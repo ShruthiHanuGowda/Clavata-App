@@ -24,6 +24,7 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
+import LoginScreen from './Src/Screens/AuthScreens/loginScreen.tsx';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -59,12 +60,14 @@ function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
-    backgroundColor: '#FFF'
+    backgroundColor: '#FFF',
+    flex: 1,
   };
 
   return (
     <SafeAreaView style={backgroundStyle}>
-      <View><Text>D-Wallet</Text></View>
+      {/*<Text>dsfsd</Text>*/}
+      <LoginScreen />
       {/*<StatusBar*/}
       {/*  barStyle={isDarkMode ? 'light-content' : 'dark-content'}*/}
       {/*  backgroundColor={backgroundStyle.backgroundColor}*/}
