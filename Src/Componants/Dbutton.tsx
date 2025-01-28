@@ -1,5 +1,6 @@
 import React from 'react';
 import {ActivityIndicator, StyleProp, StyleSheet, TouchableOpacity, ViewStyle} from 'react-native';
+import {Colors} from '../Theme';
 
 interface DButtonProps {
   type?: 'primary' | 'secondary' | 'transparent'; // button type
@@ -33,13 +34,13 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   primary: {
-    backgroundColor: '#000',
+    backgroundColor: Colors.black,
   },
   secondary: {
     padding: 13,
     borderWidth: 1,
-    backgroundColor: '#FFF',
-    borderColor: '#000',
+    backgroundColor: Colors.white,
+    borderColor: Colors.black,
   },
   disabled: {
     opacity: 0.3,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, Image, View, TextInput } from 'react-native';
 import images from '../Theme/images';
+import {Colors} from '../Theme';
 
 interface DTextInputProps {
   value: string;
@@ -67,7 +68,7 @@ export function DEmailInput({
       <TextInput
         keyboardType="email-address"
         autoCorrect={false}
-        placeholderTextColor={'#BCBCBC'}
+        placeholderTextColor={Colors.placeholder}
         inputAccessoryViewID={inputAccessoryViewID}
         style={styles.input}
         placeholder={placeholder}
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
   wrapperInput: {
     borderWidth: 0.5,
     borderRadius: 5,
-    borderColor: '#B5B5B5',
+    borderColor: Colors.gray,
     marginTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     width: '100%',
     height: 50,
-    color: '#979797',
+    color: Colors.textInput,
   },
   wrapperIcon: {
     position: 'absolute',

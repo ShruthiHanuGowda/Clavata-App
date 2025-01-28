@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, Text, Dimensions, ViewStyle, TextStyle } from 'react-native';
-import { fontsFamily, Images } from '../Theme';
+import {Colors, fontsFamily, Images} from '../Theme';
 
 // Get device width for responsive layout
 const deviceWidth = Dimensions.get('window').width;
@@ -63,7 +63,7 @@ const style = StyleSheet.create({
     marginTop: 18,
     borderBottomWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.08)',
-    backgroundColor: '#fff',
+    backgroundColor: Colors.white,
   },
   headerIcons: {
     width: '15%',

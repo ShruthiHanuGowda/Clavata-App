@@ -4,6 +4,9 @@ export type Colors = {
   success: string;
   purple: string;
   black: string;
+  placeholder: string;
+  gray: string;
+  textInput: string;
 };
 
 const colors: Colors = {
@@ -12,6 +15,9 @@ const colors: Colors = {
   success: '#009D94',
   purple: '#1E295A',
   black: '#000000',
+  placeholder: '#BCBCBC',
+  gray : '#B5B5B5',
+  textInput: '#979797',
 };
 
 export default colors;
