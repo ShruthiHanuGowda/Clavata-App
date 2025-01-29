@@ -10,8 +10,12 @@
 		0C80B921A6F3F58F76C31292 /* libPods-dwallet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-dwallet.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		19C9184E2D45E01A098EEE8A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		1C93F3B16F214C6FB3A708E5 /* Mulish-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B0B60CE0813A48A8905DBF0D /* Mulish-SemiBold.ttf */; };
+		1EA579CACE7D43A7806B5CAC /* Mulish-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3FD3E16DD3E14F74BFD598AC /* Mulish-Bold.ttf */; };
+		520078890FB248CEAF02B728 /* Mulish-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6275E4D4F4674AF19C93A48B /* Mulish-ExtraBold.ttf */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		E68EEFF633A34ABD85455944 /* Mulish-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2AA51E08B3954A74875EF008 /* Mulish-Regular.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,11 +23,15 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = dwallet/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = dwallet/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = dwallet/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		2AA51E08B3954A74875EF008 /* Mulish-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Mulish-Regular.ttf"; path = "../Src/Assets/Fonts/Mulish-Regular.ttf"; sourceTree = "<group>"; };
 		3B4392A12AC88292D35C810B /* Pods-dwallet.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-dwallet.debug.xcconfig"; path = "Target Support Files/Pods-dwallet/Pods-dwallet.debug.xcconfig"; sourceTree = "<group>"; };
+		3FD3E16DD3E14F74BFD598AC /* Mulish-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Mulish-Bold.ttf"; path = "../Src/Assets/Fonts/Mulish-Bold.ttf"; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-dwallet.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-dwallet.release.xcconfig"; path = "Target Support Files/Pods-dwallet/Pods-dwallet.release.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-dwallet.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-dwallet.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6275E4D4F4674AF19C93A48B /* Mulish-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Mulish-ExtraBold.ttf"; path = "../Src/Assets/Fonts/Mulish-ExtraBold.ttf"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = dwallet/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = dwallet/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		B0B60CE0813A48A8905DBF0D /* Mulish-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Mulish-SemiBold.ttf"; path = "../Src/Assets/Fonts/Mulish-SemiBold.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -39,6 +47,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		132401D4BD4C49509CED4E5C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				3FD3E16DD3E14F74BFD598AC /* Mulish-Bold.ttf */,
+				6275E4D4F4674AF19C93A48B /* Mulish-ExtraBold.ttf */,
+				2AA51E08B3954A74875EF008 /* Mulish-Regular.ttf */,
+				B0B60CE0813A48A8905DBF0D /* Mulish-SemiBold.ttf */,
+			);
+			name = Resources;
+			path = "";
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* dwallet */ = {
 			isa = PBXGroup;
 			children = (
@@ -75,6 +95,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				132401D4BD4C49509CED4E5C /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -161,6 +182,10 @@
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				19C9184E2D45E01A098EEE8A /* PrivacyInfo.xcprivacy in Resources */,
+				1EA579CACE7D43A7806B5CAC /* Mulish-Bold.ttf in Resources */,
+				520078890FB248CEAF02B728 /* Mulish-ExtraBold.ttf in Resources */,
+				E68EEFF633A34ABD85455944 /* Mulish-Regular.ttf in Resources */,
+				1C93F3B16F214C6FB3A708E5 /* Mulish-SemiBold.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
