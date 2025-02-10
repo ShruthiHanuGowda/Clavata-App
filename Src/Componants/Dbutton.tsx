@@ -8,12 +8,14 @@ interface DButtonProps {
   loading?: boolean; // loading state
   disabled?: boolean; // disabled state
   children: React.ReactNode; // content of the button
+  onPress: any;
 }
 
 const DButton: React.FC<DButtonProps> = (props) => {
   return (
     <TouchableOpacity
       {...props}
+      onPress={props.onPress}
       style={[
         styles.button,
         styles[props.type || 'primary'], // default to 'primary' if type is not provided
