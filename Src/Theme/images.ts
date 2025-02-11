@@ -2,5 +2,14 @@ export default {
   backHeaderArrow: require('../assets/images/Arrowback.png'),
   logoBlueNew: require('../assets/images/logo-blue_new.png'),
   email: require('../assets/images/email.png'),
-}
-
+  home: require('../assets/images/home.png'),
+  wallet: require('../assets/images/wallet.png'),
+  shop: require('../assets/images/shop.png'),
+  category: require('../assets/images/category.png'),
+  stake: require('../assets/images/stake.png'),
+  homeActive: require('../assets/images/home-active.png'),
+  walletActive: require('../assets/images/wallet-active.png'),
+  shopActive: require('../assets/images/shop-active.png'),
+  categoryActive: require('../assets/images/category-active.png'),
+  stakeActive: require('../assets/images/stake-active.png'),
+};
