@@ -1,11 +1,8 @@
-
 import React from 'react';
-import {
-  SafeAreaView,
-} from 'react-native';
-import LoginScreen from './Src/Screens/AuthScreens/loginScreen.tsx';
+import {SafeAreaView} from 'react-native';
 import {Colors} from './Src/Theme';
-
+import NavigationWrapper from './Src/Navigation/index.tsx';
+import {AuthProvider} from './Src/Providers/authProvider.tsx';
 
 function App(): React.JSX.Element {
   const backgroundStyle = {
@@ -15,11 +12,11 @@ function App(): React.JSX.Element {
 
   return (
     <SafeAreaView style={backgroundStyle}>
-      <LoginScreen />
+      <AuthProvider>
+        <NavigationWrapper />
+      </AuthProvider>
     </SafeAreaView>
   );
 }
-
-
 
 export default App;
