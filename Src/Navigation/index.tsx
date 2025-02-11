@@ -1,18 +1,20 @@
 import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import LoginScreen from '../Screens/AuthScreens/loginScreen';
 import {Root} from '../Screens/RootScreen';
-import {navigationRef} from './NavigationFunctions.ts';
-
-// Assuming `navigationRef` is declared elsewhere, for example:
+import {navigationRef} from './NavigationFunctions';
+import LoginScreen from '../Screens/AuthScreens/loginScreen';
+import Tabs from './NavigationTab';
 
 type AuthStackParamList = {
-  login: undefined; // Define your params type if necessary
+  login: undefined;
+  tab: undefined;
 };
+
 type RootStackParamList = {
-  root: undefined; // Define your params type if necessary
+  root: undefined;
   authScreens: undefined;
+  appScreens: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -21,7 +23,11 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 function AuthScreenStack() {
   return (
     <AuthStack.Navigator screenOptions={{headerShown: false}}>
-      <AuthStack.Screen name="login" component={LoginScreen} />
+      <AuthStack.Screen
+        name="login"
+        component={LoginScreen}
+        options={{headerShown: false}}
+      />
     </AuthStack.Navigator>
   );
 }
@@ -33,6 +39,7 @@ function RootScreenStack() {
       screenOptions={{headerShown: false}}>
       <RootStack.Screen name="root" component={Root} />
       <RootStack.Screen name="authScreens" component={AuthScreenStack} />
+      <RootStack.Screen name="appScreens" component={Tabs} />
     </RootStack.Navigator>
   );
 }
@@ -40,7 +47,7 @@ function RootScreenStack() {
 export function NavigationWrapper() {
   return (
     <NavigationContainer ref={navigationRef}>
-      {RootScreenStack()}
+      <RootScreenStack />
     </NavigationContainer>
   );
 }

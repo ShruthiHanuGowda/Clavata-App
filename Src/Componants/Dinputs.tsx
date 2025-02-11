@@ -1,5 +1,11 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, Image, View, TextInput } from 'react-native';
+import {
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  View,
+  TextInput,
+} from 'react-native';
 import images from '../Theme/images';
 import {Colors} from '../Theme';
 
@@ -10,18 +16,25 @@ interface DTextInputProps {
   setValid: (isValid: boolean) => void;
   style?: object;
   containerStyle?: object;
-  keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad' | 'decimal-pad' | 'numeric' | 'url';
+  keyboardType?:
+    | 'default'
+    | 'email-address'
+    | 'numeric'
+    | 'phone-pad'
+    | 'decimal-pad'
+    | 'numeric'
+    | 'url';
 }
 
 export function DTextInput({
-                             value,
-                             placeholder,
-                             setValue = () => {},
-                             setValid = () => {},
-                             style,
-                             containerStyle,
-                             keyboardType = 'default',
-                           }: DTextInputProps) {
+  value,
+  placeholder,
+  setValue = () => {},
+  setValid = () => {},
+  style,
+  containerStyle,
+  keyboardType = 'default',
+}: DTextInputProps) {
   const handleOnChange = (text: string) => {
     setValue(text);
     setValid(text.trim().length > 0);
@@ -50,12 +63,12 @@ interface DEmailInputProps {
 }
 
 export function DEmailInput({
-                              value,
-                              placeholder = 'example@drexs.com',
-                              setValue,
-                              setValid,
-                              inputAccessoryViewID,
-                            }: DEmailInputProps) {
+  value,
+  placeholder = 'example@drexs.com',
+  setValue,
+  setValid,
+  inputAccessoryViewID,
+}: DEmailInputProps) {
   const handleOnChange = (text: string) => {
     let re = /\S+@\S+\.\S+/;
     let regex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/im;

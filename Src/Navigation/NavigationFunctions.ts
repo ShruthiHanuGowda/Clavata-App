@@ -7,10 +7,25 @@ export const navigateBack = () => {
 };
 
 export const navigate = (screenName: string, params?: Record<string, any>) => {
-  // Check if the user is logged in, or if the screen doesn't require login
+  try {
+    if (navigationRef.current?.isReady()) {
+      // Type check for the screen name
+      navigationRef.current?.navigate(screenName as never, params as never);
+    } else {
+      console.warn('[Navigation] Navigation is not ready yet');
+    }
+  } catch (error) {
+    console.error('[Navigation] Error during navigation:', error);
+  }
+};
 
+export const navReset = (screenName: string, params?: Record<string, any>) => {
+  console.log('reset to screen:', screenName);
   if (navigationRef.current?.isReady()) {
-    navigationRef.current?.navigate(screenName, params);
+    navigationRef.current?.reset({
+      index: 0,
+      routes: [{name: screenName, params}],
+    });
   } else {
     console.warn('Navigation not ready yet');
   }

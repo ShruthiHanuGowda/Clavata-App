@@ -1,5 +1,14 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Text, Dimensions, ViewStyle, TextStyle } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Text,
+  Dimensions,
+  ViewStyle,
+  TextStyle,
+} from 'react-native';
 import {Colors, fontsFamily, Images} from '../Theme';
 
 // Get device width for responsive layout
@@ -17,9 +26,8 @@ interface HeaderProps {
   hideTitle?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = (props) => {
-  const { headerTitle, hideBorder, headerTextStyleProps } = props;
-
+const Header: React.FC<HeaderProps> = props => {
+  const {headerTitle, hideBorder, headerTextStyleProps} = props;
 
   return (
     <View
@@ -27,26 +35,31 @@ const Header: React.FC<HeaderProps> = (props) => {
         style.headerContainer,
         hideBorder
           ? {
-            borderBottomWidth: 0,
-            borderColor: 'rgba(255,255,255, 1)',
-          }
+              borderBottomWidth: 0,
+              borderColor: 'rgba(255,255,255, 1)',
+            }
           : {
-            borderBottomWidth: 1,
-            borderColor: 'rgba(0, 0, 0, 0.08)',
-          },
+              borderBottomWidth: 1,
+              borderColor: 'rgba(0, 0, 0, 0.08)',
+            },
         props.containerStyle,
-      ]}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10 }}>
+      ]}>
+      <View
+        style={{flexDirection: 'row', alignItems: 'center', marginLeft: 10}}>
         <View style={[style.headerIcons, props.backArrowStyle]}>
           {!props.hideBackIcon && (
-            <TouchableOpacity onPress={() => (props.backBtn ? props.backBtn() : console.log("back"))}>
+            <TouchableOpacity
+              onPress={() =>
+                props.backBtn ? props.backBtn() : console.log('back')
+              }>
               <Image source={Images.backHeaderArrow} />
             </TouchableOpacity>
           )}
         </View>
         {!props.hideTitle && (
-          <Text style={[style.headerTitle, headerTextStyleProps]}>{headerTitle}</Text>
+          <Text style={[style.headerTitle, headerTextStyleProps]}>
+            {headerTitle}
+          </Text>
         )}
       </View>
     </View>
