@@ -8,7 +8,8 @@ import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import {Images} from '../../Theme';
 import {DEmailInput} from '../../Componants/Dinputs.tsx';
 import DButton from '../../Componants/Dbutton.tsx';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {navReset} from '../../Navigation/NavigationFunctions.ts';
 
 // Initialize Magic SDK
 
@@ -32,15 +33,17 @@ const LoginScreen: React.FC = () => {
 
   const handleLogin = async () => {
     try {
-      console.log("Function called just now", userEmail);
+      console.log('Function called just now', userEmail);
       setLoading(true);
-      await magic.auth.loginWithEmailOTP({ email: userEmail });
+      await magic.auth.loginWithEmailOTP({email: userEmail});
 
       const userInfo = await magic.user.getInfo();
       console.log(`UserInfo: ${userInfo}`);
       // Successful login - handle navigation or state update
+      navReset('appScreens');
       Alert.alert('Check your email', 'We sent a magic link to your inbox');
     } catch (err) {
+      console.log('🚀 ~ handleLogin ~ err:', err);
       if (err instanceof RPCError) {
         switch (err.code) {
           case RPCErrorCode.MagicLinkFailedVerification:
@@ -59,43 +62,49 @@ const LoginScreen: React.FC = () => {
   };
 
   return (
-      <SafeAreaProvider>
-        {/* Magic Relayer Component */}
-        <magic.Relayer 
-      backgroundColor="transparent"
-      style={{
-        position: 'absolute',
-        zIndex: 9999,
-        elevation: 9999,
-        width: '100%',
-        height: '100%',
-      }}
-    />
-        <View style={{
-      zIndex: 1, // Lower zIndex than Relayer
-      opacity: loading ? 0 : 1, // Visual feedback
-      pointerEvents: loading ? 'none' : 'auto' // Block interactions during loading
-    }}>
+    <SafeAreaProvider>
+      {/* Magic Relayer Component */}
+      <magic.Relayer
+        backgroundColor="transparent"
+        style={{
+          position: 'absolute',
+          zIndex: 9999,
+          elevation: 9999,
+          width: '100%',
+          height: '100%',
+        }}
+      />
+      <View
+        style={{
+          zIndex: 1, // Lower zIndex than Relayer
+          opacity: loading ? 0 : 1, // Visual feedback
+          pointerEvents: loading ? 'none' : 'auto', // Block interactions during loading
+        }}>
         <Header headerTitle="Login" hideBorder={true} hideBackIcon={true} />
         <KeyboardAwareScrollView>
           <View style={styles.contentContainer}>
-            <Image 
-              style={{ marginHorizontal: 15, marginTop: 50 }} 
-              source={Images.logoBlueNew} 
+            <Image
+              style={{marginHorizontal: 15, marginTop: 50}}
+              source={Images.logoBlueNew}
             />
-            <Text style={{...styles.content, paddingVertical: 15, marginHorizontal: 15}}>
+            <Text
+              style={{
+                ...styles.content,
+                paddingVertical: 15,
+                marginHorizontal: 15,
+              }}>
               Welcome
             </Text>
             <View style={styles.emailInputWrapper}>
               <DEmailInput
                 inputAccessoryViewID={'sendOtp'}
-                setValid={setValid} 
-                value={userEmail} 
+                setValid={setValid}
+                value={userEmail}
                 setValue={setUserEmail}
               />
               {!isValid && userEmail && (
                 <Text style={[styles.errorMessage]}>
-                  Please enter a valid email
+                  Please enter the valid email.
                 </Text>
               )}
             </View>
@@ -103,17 +112,15 @@ const LoginScreen: React.FC = () => {
               type="primary"
               style={styles.loginBtnStyle}
               disabled={!(userEmail && isValid) || loading}
-              onPress={handleLogin}
-            >
+              onPress={handleLogin}>
               <Text style={[styles.loginText]}>
                 {loading ? 'Sending...' : 'Log In'}
               </Text>
             </DButton>
           </View>
         </KeyboardAwareScrollView>
-        </View>
-       
-      </SafeAreaProvider>
+      </View>
+    </SafeAreaProvider>
   );
 };
 

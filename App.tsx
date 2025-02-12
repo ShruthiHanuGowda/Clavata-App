@@ -1,13 +1,22 @@
-
-import React from 'react';
-import {
-  SafeAreaView,
-} from 'react-native';
-import LoginScreen from './Src/Screens/AuthScreens/loginScreen.tsx';
+import React, {useEffect} from 'react';
+import {SafeAreaView} from 'react-native';
 import {Colors} from './Src/Theme';
-
+import NavigationWrapper from './Src/Navigation/index.tsx';
+import {AuthProvider} from './Src/Providers/authProvider.tsx';
+import BootSplash from 'react-native-bootsplash';
 
 function App(): React.JSX.Element {
+  useEffect(() => {
+    const init = async () => {
+      // …do multiple sync or async tasks
+    };
+
+    init().finally(async () => {
+      await BootSplash.hide({fade: true});
+      console.log('BootSplash has been hidden successfully');
+    });
+  }, []);
+
   const backgroundStyle = {
     backgroundColor: Colors.white,
     flex: 1,
@@ -15,11 +24,11 @@ function App(): React.JSX.Element {
 
   return (
     <SafeAreaView style={backgroundStyle}>
-      <LoginScreen />
+      <AuthProvider>
+        <NavigationWrapper />
+      </AuthProvider>
     </SafeAreaView>
   );
 }
-
-
 
 export default App;
