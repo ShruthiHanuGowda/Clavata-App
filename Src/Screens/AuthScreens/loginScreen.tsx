@@ -5,7 +5,7 @@ import {RPCError, RPCErrorCode} from '@magic-sdk/react-native-bare';
 import styles from './styles.ts';
 import {Header} from '../../Componants';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
-import {Images} from '../../Theme';
+import {Colors, Images} from '../../Theme';
 import {DEmailInput} from '../../Componants/Dinputs.tsx';
 import DButton from '../../Componants/Dbutton.tsx';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
@@ -38,7 +38,7 @@ const LoginScreen: React.FC = () => {
       await magic.auth.loginWithEmailOTP({email: userEmail});
 
       const userInfo = await magic.user.getInfo();
-      console.log(`UserInfo: ${userInfo}`);
+      console.log(`UserInfo: `, JSON.stringify(userInfo));
       // Successful login - handle navigation or state update
       navReset('appScreens');
       Alert.alert('Check your email', 'We sent a magic link to your inbox');
@@ -79,6 +79,8 @@ const LoginScreen: React.FC = () => {
           zIndex: 1, // Lower zIndex than Relayer
           opacity: loading ? 0 : 1, // Visual feedback
           pointerEvents: loading ? 'none' : 'auto', // Block interactions during loading
+          backgroundColor: Colors?.white,
+          flex: 1,
         }}>
         <Header headerTitle="Login" hideBorder={true} hideBackIcon={true} />
         <KeyboardAwareScrollView>
