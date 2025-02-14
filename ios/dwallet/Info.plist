@@ -9,7 +9,7 @@
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<string>com.denergy.wallet</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -33,6 +33,13 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Mulish-Bold.ttf</string>
+		<string>Mulish-ExtraBold.ttf</string>
+		<string>Mulish-Regular.ttf</string>
+		<string>Mulish-SemiBold.ttf</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>BootSplash</string>
 	<key>UIRequiredDeviceCapabilities</key>
@@ -47,12 +54,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>UIAppFonts</key>
-	<array>
-		<string>Mulish-Bold.ttf</string>
-		<string>Mulish-ExtraBold.ttf</string>
-		<string>Mulish-Regular.ttf</string>
-		<string>Mulish-SemiBold.ttf</string>
-	</array>
 </dict>
 </plist>

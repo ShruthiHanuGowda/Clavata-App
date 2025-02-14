@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {SafeAreaView} from 'react-native';
+import {SafeAreaView, View} from 'react-native';
 import {Colors} from './Src/Theme';
 import NavigationWrapper from './Src/Navigation/index.tsx';
 import {AuthProvider} from './Src/Providers/authProvider.tsx';
@@ -24,9 +24,11 @@ function App(): React.JSX.Element {
 
   return (
     <SafeAreaView style={backgroundStyle}>
-      <AuthProvider>
-        <NavigationWrapper />
-      </AuthProvider>
+      <View style={{flex: 1, backgroundColor: Colors.white}}>
+        <AuthProvider>
+          <NavigationWrapper />
+        </AuthProvider>
+      </View>
     </SafeAreaView>
   );
 }

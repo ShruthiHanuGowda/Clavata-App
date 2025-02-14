@@ -4,13 +4,24 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: () => void;
   logout: () => void;
+  updateUserData: (userData: UserAuth) => void;
+  userDetails: UserAuth | null;
+}
+
+interface UserAuth {
+  issuer: string;
+  publicAddress: string;
+  email: string | null;
+  phoneNumber: null | string;
+  isMfaEnabled: boolean;
+  recoveryFactors: string[];
 }
 
 // Default context value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-// AuthProvider component to wrap the app and provide the context
 export const AuthProvider = ({children}: {children: ReactNode}) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [userDetails, setUserDetails] = useState<UserAuth | null>(null);
 
   // Function to simulate login
   const login = () => {
@@ -24,8 +35,13 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
     console.log('User logged out');
   };
 
+  const updateUserData = (userData: UserAuth) => {
+    setUserDetails(userData);
+  };
+
   return (
-    <AuthContext.Provider value={{isAuthenticated, login, logout}}>
+    <AuthContext.Provider
+      value={{isAuthenticated, login, logout, updateUserData, userDetails}}>
       {children}
     </AuthContext.Provider>
   );
