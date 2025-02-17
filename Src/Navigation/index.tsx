@@ -5,6 +5,7 @@ import {Root} from '../Screens/RootScreen';
 import {navigationRef} from './NavigationFunctions';
 import LoginScreen from '../Screens/AuthScreens/loginScreen';
 import Tabs from './NavigationTab';
+import Onboarding from '../Screens/Intro';
 
 type AuthStackParamList = {
   login: undefined;
@@ -12,6 +13,7 @@ type AuthStackParamList = {
 };
 
 type RootStackParamList = {
+  intro: undefined;
   root: undefined;
   authScreens: undefined;
   appScreens: undefined;
@@ -38,6 +40,7 @@ function RootScreenStack() {
       initialRouteName="root"
       screenOptions={{headerShown: false}}>
       <RootStack.Screen name="root" component={Root} />
+      <RootStack.Screen name="intro" component={Onboarding} />
       <RootStack.Screen name="authScreens" component={AuthScreenStack} />
       <RootStack.Screen name="appScreens" component={Tabs} />
     </RootStack.Navigator>
