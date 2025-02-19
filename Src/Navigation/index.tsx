@@ -5,12 +5,14 @@ import {Root} from '../Screens/RootScreen';
 import {navigationRef} from './NavigationFunctions';
 import LoginScreen from '../Screens/AuthScreens/loginScreen';
 import Tabs from './NavigationTab';
+import Onboarding from '../Screens/Intro';
 
 type AuthStackParamList = {
   login: { magicProps: any };
 };
 
 type RootStackParamList = {
+  intro: undefined;
   root: undefined;
   authScreens: { magicProps: any };
   appScreens: undefined;
