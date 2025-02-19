@@ -1,7 +1,5 @@
-import React, {useState, useEffect} from 'react';
-import {Image, SafeAreaView, Text, View, Alert} from 'react-native';
-import {Magic} from '@magic-sdk/react-native-bare';
-import {RPCError, RPCErrorCode} from '@magic-sdk/react-native-bare';
+import React, {useState} from 'react';
+import {Image, Text, View, Alert} from 'react-native';
 import styles from './styles.ts';
 import {Header} from '../../Componants';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
@@ -11,6 +9,7 @@ import DButton from '../../Componants/Dbutton.tsx';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {navReset} from '../../Navigation/NavigationFunctions.ts';
 import {useAuth} from '../../Providers/authProvider.tsx';
+import { Magic } from '@magic-sdk/react-native-bare';
 
 // Initialize Magic SDK
 
@@ -31,35 +30,33 @@ const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const {updateUserData, isAuthenticated, userDetails} = useAuth();
   console.log('🚀 ~ isAuthenticated:', isAuthenticated, userDetails);
+  
+  // const { magic } = magicProps;
+
+// Initialize Magic SDK
+
+
+  // useEffect(() => {
+  //   let timeout:any;
+  //   if (loading) {
+  //     timeout = setTimeout(() => {
+  //       setLoading(false);
+  //       Alert.alert('Timeout', 'No server response');
+  //     }, 30000); // 15-second timeout
+  //   }
+  //   return () => clearTimeout(timeout);
+  // }, [loading])
 
   const handleLogin = async () => {
     try {
-      console.log('Function called just now', userEmail);
       setLoading(true);
-      await magic.auth.loginWithEmailOTP({email: userEmail});
-
-      const userInfo: UserAuth = await magic.user.getInfo();
-      console.log(`UserInfo: `, JSON.stringify(userInfo));
-      if (userInfo) {
-        updateUserData(userInfo);
-      }
-      navReset('appScreens');
-    } catch (err) {
-      console.log('🚀 ~ handleLogin ~ err:', err);
-      if (err instanceof RPCError) {
-        switch (err.code) {
-          case RPCErrorCode.MagicLinkFailedVerification:
-            // Alert.alert('Error', 'Link verification failed');
-            break;
-          case RPCErrorCode.MagicLinkExpired:
-            // Alert.alert('Error', 'Magic link has expired');
-            break;
-          default:
-          // Alert.alert('Error', 'Authentication failed');
-        }
-      }
-    } finally {
+      await magic.auth.loginWithEmailOTP({ email: userEmail });
+      const res = await magic.user.getInfo();
+      console.log("res",res);
+      // Alert(JSON.stringify(res));
       setLoading(false);
+    } catch (err) {
+      console.log(err);
     }
   };
 

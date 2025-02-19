@@ -7,47 +7,61 @@ import LoginScreen from '../Screens/AuthScreens/loginScreen';
 import Tabs from './NavigationTab';
 
 type AuthStackParamList = {
-  login: undefined;
-  tab: undefined;
+  login: { magicProps: any };
 };
 
 type RootStackParamList = {
   root: undefined;
-  authScreens: undefined;
+  authScreens: { magicProps: any };
   appScreens: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
-function AuthScreenStack() {
+// Properly typed props for screen components
+interface AuthStackProps {
+  magicProps: any;
+}
+
+function AuthScreenStack({ magicProps }: AuthStackProps) {
   return (
     <AuthStack.Navigator screenOptions={{headerShown: false}}>
       <AuthStack.Screen
         name="login"
-        component={LoginScreen}
         options={{headerShown: false}}
-      />
+      >
+        {(props) => <LoginScreen {...props} magicProps={magicProps} />}
+      </AuthStack.Screen>
     </AuthStack.Navigator>
   );
 }
 
-function RootScreenStack() {
+function RootScreenStack({ magicProps }: AuthStackProps) {
   return (
     <RootStack.Navigator
       initialRouteName="root"
       screenOptions={{headerShown: false}}>
       <RootStack.Screen name="root" component={Root} />
-      <RootStack.Screen name="authScreens" component={AuthScreenStack} />
+      <RootStack.Screen 
+        name="authScreens" 
+        options={{headerShown: false}}
+      >
+        {(props) => <AuthScreenStack {...props} magicProps={magicProps} />}
+      </RootStack.Screen>
       <RootStack.Screen name="appScreens" component={Tabs} />
     </RootStack.Navigator>
   );
 }
 
-export function NavigationWrapper() {
+interface NavigationWrapperProps {
+  magicProps: any;
+}
+
+export function NavigationWrapper({magicProps}: NavigationWrapperProps) {
   return (
     <NavigationContainer ref={navigationRef}>
-      <RootScreenStack />
+      <RootScreenStack magicProps={magicProps} />
     </NavigationContainer>
   );
 }
