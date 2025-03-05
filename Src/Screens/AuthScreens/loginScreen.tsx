@@ -1,88 +1,62 @@
 import React, {useState} from 'react';
-import {Image, Text, View, Alert} from 'react-native';
-import styles from './styles.ts';
-import {Header} from '../../Componants';
-import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
-import {Colors, Images} from '../../Theme';
-import {DEmailInput} from '../../Componants/Dinputs.tsx';
-import DButton from '../../Componants/Dbutton.tsx';
-import {SafeAreaProvider} from 'react-native-safe-area-context';
-import {navReset} from '../../Navigation/NavigationFunctions.ts';
-import {useAuth} from '../../Providers/authProvider.tsx';
-import { Magic } from '@magic-sdk/react-native-bare';
+import {TextInput, Text, View, Pressable, Button, Image} from 'react-native';
+import {GestureHandlerRootView, ScrollView} from 'react-native-gesture-handler';
+import {Card} from 'react-native-elements';
+import {DeepLinkPage} from '@magic-sdk/react-native-bare';
+import styles from './styles';
+import {useMagic} from '../../../screens/Provider/MagicProvider';
+import {useAuth} from '../../../screens/Provider/authProvider';
+import {navReset} from '../../Navigation/NavigationFunctions';
+import {DButton, Header} from '../../Componants';
+import {Images} from '../../Theme';
+import {DEmailInput} from '../../Componants/Dinputs';
 
-// Initialize Magic SDK
+export default function LoginScreen() {
+  const {magic} = useMagic();
+  const {updateUserData, isAuthenticated, userDetails} = useAuth();
 
-const magic = new Magic('pk_live_F22A388602152902');
-
-interface UserAuth {
-  issuer: string;
-  publicAddress: string;
-  email: string | null;
-  phoneNumber: null | string;
-  isMfaEnabled: boolean;
-  recoveryFactors: string[];
-}
-
-const LoginScreen: React.FC = () => {
   const [isValid, setValid] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const {updateUserData, isAuthenticated, userDetails} = useAuth();
-  console.log('🚀 ~ isAuthenticated:', isAuthenticated, userDetails);
-  
-  // const { magic } = magicProps;
 
-// Initialize Magic SDK
-
-
-  // useEffect(() => {
-  //   let timeout:any;
-  //   if (loading) {
-  //     timeout = setTimeout(() => {
-  //       setLoading(false);
-  //       Alert.alert('Timeout', 'No server response');
-  //     }, 30000); // 15-second timeout
-  //   }
-  //   return () => clearTimeout(timeout);
-  // }, [loading])
-
-  const handleLogin = async () => {
+  const loginEmailOTP = async () => {
     try {
       setLoading(true);
-      await magic.auth.loginWithEmailOTP({ email: userEmail });
+      await magic.auth.loginWithEmailOTP({email: userEmail});
       const res = await magic.user.getInfo();
-      console.log("res",res);
-      // Alert(JSON.stringify(res));
-      setLoading(false);
+      updateUserData(res);
+      navReset('appScreens');
     } catch (err) {
+      setLoading(false);
       console.log(err);
     }
   };
 
+  const magicGoogleSignIn = async () => {
+    try {
+      alert('gooogle');
+      const res = await magic.oauth.loginWithPopup({
+        provider: 'google',
+        redirectURI:
+          'https://auth.magic.link/v1/oauth2/ZYMdhQ3jc3_qiD41-vlRngGMSa7xGMAy0-NvmODXoSw=/callback',
+      });
+      alert(JSON.stringify(res));
+    } catch (error) {
+      console.log('🚀 ~ magicGoogleSignIn ~ error:', error);
+    }
+  };
+
   return (
-    <SafeAreaProvider>
+    <View style={{flex: 1, backgroundColor: '#fff'}}>
       {/* Magic Relayer Component */}
-      <magic.Relayer
-        backgroundColor="transparent"
-        style={{
-          position: 'absolute',
-          zIndex: 9999,
-          elevation: 9999,
-          width: '100%',
-          height: '100%',
-        }}
-      />
       <View
         style={{
           zIndex: 1, // Lower zIndex than Relayer
-          opacity: loading ? 0 : 1, // Visual feedback
-          pointerEvents: loading ? 'none' : 'auto', // Block interactions during loading
-          backgroundColor: Colors?.white,
+
           flex: 1,
         }}>
         <Header headerTitle="Login" hideBorder={true} hideBackIcon={true} />
-        <KeyboardAwareScrollView>
+        <ScrollView>
           <View style={styles.contentContainer}>
             <Image
               style={{marginHorizontal: 15, marginTop: 50}}
@@ -113,16 +87,21 @@ const LoginScreen: React.FC = () => {
               type="primary"
               style={styles.loginBtnStyle}
               disabled={!(userEmail && isValid) || loading}
-              onPress={handleLogin}>
+              onPress={() => loginEmailOTP()}>
               <Text style={[styles.loginText]}>
                 {loading ? 'Sending...' : 'Log In'}
               </Text>
             </DButton>
+            {/* <DButton onPress={() => magicGoogleSignIn()}>
+              <Text style={[styles.loginText]}>Google</Text>
+            </DButton> */}
           </View>
-        </KeyboardAwareScrollView>
+        </ScrollView>
       </View>
-    </SafeAreaProvider>
+    </View>
   );
-};
+}
 
-export default LoginScreen;
+LoginScreen.navigationOptions = {
+  header: null,
+};

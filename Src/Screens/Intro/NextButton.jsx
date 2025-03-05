@@ -1,6 +1,5 @@
 import React from 'react';
 import {Image, StyleSheet, TouchableOpacity, View} from 'react-native';
-import Animated from 'react-native-reanimated';
 import {Circle, G, Svg} from 'react-native-svg';
 import images from '../../Theme/images';
 
@@ -13,7 +12,7 @@ export default function NextButton({onPress, progress = 50}) {
   const circumfernce = 2 * Math.PI * radius;
 
   return (
-    <Animated.View>
+    <View>
       <Svg width={size} height={size} fill={'#FFF'}>
         <G rotation={'-90'} origin={center}>
           <Circle
@@ -46,7 +45,7 @@ export default function NextButton({onPress, progress = 50}) {
         ]}>
         <Image source={images.forward} />
       </TouchableOpacity>
-    </Animated.View>
+    </View>
   );
 }
 

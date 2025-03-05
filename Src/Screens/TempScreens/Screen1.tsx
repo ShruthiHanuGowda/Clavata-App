@@ -1,8 +1,8 @@
 import React from 'react';
 import {View, Text, StyleSheet} from 'react-native';
-import {useAuth} from '../../Providers/authProvider';
 import {Colors} from '../../Theme';
 import {Header} from '../../Componants';
+import {useAuth} from '../../../screens/Provider/authProvider';
 
 export const Screen1: React.FC = () => {
   const {userDetails} = useAuth();
@@ -37,17 +37,18 @@ export const Screen1: React.FC = () => {
         hideBackIcon={true}
       />
       <View style={{flex: 1, paddingHorizontal: 10}}>
-        {displayData.map((item, index) => (
-          <View
-            key={index}
-            style={[
-              styles.row,
-              index === displayData.length - 1 ? null : styles.borderBottom,
-            ]}>
-            <Text style={styles.label}>{item.label}</Text>
-            <Text style={styles.value}>{item.value}</Text>
-          </View>
-        ))}
+        {displayData &&
+          displayData.map((item, index) => (
+            <View
+              key={index}
+              style={[
+                styles.row,
+                index === displayData.length - 1 ? null : styles.borderBottom,
+              ]}>
+              <Text style={styles.label}>{item.label}</Text>
+              <Text style={styles.value}>{item.value}</Text>
+            </View>
+          ))}
       </View>
     </View>
   );

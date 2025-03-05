@@ -1,20 +1,21 @@
 import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {Root} from '../Screens/RootScreen';
+import {Root} from '../../Src/Screens/RootScreen/';
 import {navigationRef} from './NavigationFunctions';
-import LoginScreen from '../Screens/AuthScreens/loginScreen';
 import Tabs from './NavigationTab';
-import Onboarding from '../Screens/Intro';
+import Onboarding from '../../Src/Screens/Intro';
+import linking from './LinkingConfiguration';
+import LoginScreen from '../../Src/Screens/AuthScreens/loginScreen';
 
 type AuthStackParamList = {
-  login: { magicProps: any };
+  login: {magicProps: any};
 };
 
 type RootStackParamList = {
   intro: undefined;
   root: undefined;
-  authScreens: { magicProps: any };
+  authScreens: {magicProps: any};
   appScreens: undefined;
 };
 
@@ -26,31 +27,28 @@ interface AuthStackProps {
   magicProps: any;
 }
 
-function AuthScreenStack({ magicProps }: AuthStackProps) {
+function AuthScreenStack({magicProps}: AuthStackProps) {
   return (
     <AuthStack.Navigator screenOptions={{headerShown: false}}>
-      <AuthStack.Screen
-        name="login"
-        options={{headerShown: false}}
-      >
-        {(props) => <LoginScreen {...props} magicProps={magicProps} />}
+      <AuthStack.Screen name="login" options={{headerShown: false}}>
+        {props => <LoginScreen {...props} magicProps={magicProps} />}
       </AuthStack.Screen>
     </AuthStack.Navigator>
   );
 }
 
-function RootScreenStack({ magicProps }: AuthStackProps) {
+function RootScreenStack() {
   return (
     <RootStack.Navigator
       initialRouteName="root"
       screenOptions={{headerShown: false}}>
       <RootStack.Screen name="root" component={Root} />
-      <RootStack.Screen 
-        name="authScreens" 
+      <RootStack.Screen name="intro" component={Onboarding} />
+      <RootStack.Screen
+        name="authScreens"
         options={{headerShown: false}}
-      >
-        {(props) => <AuthScreenStack {...props} magicProps={magicProps} />}
-      </RootStack.Screen>
+        component={LoginScreen}
+      />
       <RootStack.Screen name="appScreens" component={Tabs} />
     </RootStack.Navigator>
   );
@@ -60,10 +58,10 @@ interface NavigationWrapperProps {
   magicProps: any;
 }
 
-export function NavigationWrapper({magicProps}: NavigationWrapperProps) {
+export function NavigationWrapper() {
   return (
-    <NavigationContainer ref={navigationRef}>
-      <RootScreenStack magicProps={magicProps} />
+    <NavigationContainer ref={navigationRef} linking={linking}>
+      <RootScreenStack />
     </NavigationContainer>
   );
 }

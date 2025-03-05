@@ -6,6 +6,10 @@ import {Screen3} from '../Screens/TempScreens/Screen3';
 import {Screen5} from '../Screens/TempScreens/Screen5';
 import {Screen4} from '../Screens/TempScreens/Screen4';
 import TabBar from './TabBar';
+import Drex from '../Screens/drecs';
+import Wallet from '../Screens/wallet';
+import ProfileSetting from '../Screens/AppScreens/Account/profilesetting';
+// import ProfileSetting from '../Screens/AppScreens/Account/Profilesetting/profilesetting';
 
 type RootTabParamList = {
   'D.Energy': undefined;
@@ -24,13 +28,25 @@ export default function Tabs() {
       tabBar={props => <TabBar {...props} />}>
       <Tab.Screen
         name="D.Energy"
-        component={Screen1}
+        component={Drex}
         options={{headerShown: false}}
       />
-      <Tab.Screen name="Wallet" component={Screen2} />
-      <Tab.Screen name="Marketplace" component={Screen3} />
+      <Tab.Screen
+        name="Wallet"
+        component={Wallet}
+        options={{headerShown: false}}
+      />
+      <Tab.Screen
+        name="Marketplace"
+        component={Screen3}
+        options={{headerShown: false}}
+      />
       <Tab.Screen name="dApps" component={Screen4} />
-      <Tab.Screen name="Stake" component={Screen5} />
+      <Tab.Screen
+        name="Stake"
+        component={ProfileSetting}
+        options={{headerShown: false}}
+      />
     </Tab.Navigator>
   );
 }

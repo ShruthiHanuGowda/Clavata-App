@@ -7,7 +7,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import Animated, {useAnimatedStyle, withTiming} from 'react-native-reanimated';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Circle, Path, Svg} from 'react-native-svg';
 
@@ -88,29 +87,12 @@ const TabBarComponent: React.FC<TabBarComponentProps> = ({
     }
   }, [active]);
 
-  const animatedComponentCircleStyles = useAnimatedStyle(() => {
-    return {
-      transform: [
-        {
-          scale: withTiming(active ? 1 : 0, {duration: 250}),
-        },
-      ],
-    };
-  });
-
-  const animatedIconContainerStyles = useAnimatedStyle(() => {
-    return {
-      opacity: withTiming(active ? 1 : 0.5, {duration: 250}),
-    };
-  });
-
   return (
     <Pressable onPress={onPress} onLayout={onLayout} style={styles.component}>
-      <Animated.View
-        style={[styles.componentCircle, animatedComponentCircleStyles]}
+      <View
+        style={[styles.componentCircle, {transform: [{scale: active ? 1 : 0}]}]}
       />
-      <Animated.View
-        style={[styles.iconContainer, animatedIconContainerStyles]}>
+      <View style={[styles.iconContainer, {opacity: active ? 1 : 0.5}]}>
         <NavigationIcon route={name} isFocused={active} />
         {active && (
           <>
@@ -121,7 +103,7 @@ const TabBarComponent: React.FC<TabBarComponentProps> = ({
             <View style={styles.dot} />
           </>
         )}
-      </Animated.View>
+      </View>
     </Pressable>
   );
 };
@@ -147,8 +129,6 @@ interface TabBarProps {
     };
   };
 }
-
-const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
 const TabBar: React.FC<TabBarProps> = ({
   state: {index: activeIndex, routes},
@@ -178,20 +158,6 @@ const TabBar: React.FC<TabBarProps> = ({
     xOffset = item.x - 25;
   }
 
-  const animatedStyles = useAnimatedStyle(() => {
-    return {
-      top: -24,
-      left: 16,
-      transform: [
-        {
-          translateX: withTiming(typeof xOffset === 'number' ? xOffset : 1, {
-            duration: 250,
-          }),
-        },
-      ],
-    };
-  });
-
   const width = 100;
   const height = 100;
   const size = width < height ? width - 32 : height - 16;
@@ -201,11 +167,20 @@ const TabBar: React.FC<TabBarProps> = ({
 
   return (
     <View style={[styles.tabBar, {paddingBottom: bottom}]}>
-      <AnimatedSvg
+      <Svg
         width={110}
         height={70}
         viewBox="0 0 110 70"
-        style={[styles.activeBackground, animatedStyles]}>
+        style={[
+          styles.activeBackground,
+          {
+            top: -24,
+            left: 16,
+            transform: [
+              {translateX: typeof xOffset === 'number' ? xOffset : 1},
+            ],
+          },
+        ]}>
         <Circle
           translateY={-12}
           translateX={-3}
@@ -218,7 +193,7 @@ const TabBar: React.FC<TabBarProps> = ({
           strokeWidth={0.5}
         />
         <Path fill="#FFF" d="M4 24H6080V110H4z" />
-      </AnimatedSvg>
+      </Svg>
 
       <View style={styles.tabBarContainer}>
         {routes.map((route, index) => {
