@@ -8,6 +8,7 @@ import {
   Dimensions,
   ViewStyle,
   TextStyle,
+  SafeAreaView,
 } from 'react-native';
 import {Colors, fontsFamily, Images} from '../Theme';
 
@@ -30,7 +31,7 @@ const Header: React.FC<HeaderProps> = props => {
   const {headerTitle, hideBorder, headerTextStyleProps} = props;
 
   return (
-    <View
+    <SafeAreaView
       style={[
         style.headerContainer,
         hideBorder
@@ -62,7 +63,7 @@ const Header: React.FC<HeaderProps> = props => {
           </Text>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

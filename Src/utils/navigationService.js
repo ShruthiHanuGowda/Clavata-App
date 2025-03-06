@@ -1,4 +1,4 @@
-import {navigationRef} from '../Navigation/index';
+import {navigationRef} from '../Navigation/NavigationFunctions';
 
 export const navigateTo = (routeName, params) => {
   navigationRef.current?.navigate(routeName, params);
