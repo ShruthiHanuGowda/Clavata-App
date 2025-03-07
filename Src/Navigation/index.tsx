@@ -7,6 +7,14 @@ import Tabs from './NavigationTab';
 import Onboarding from '../../Src/Screens/Intro';
 import linking from './LinkingConfiguration';
 import LoginScreen from '../../Src/Screens/AuthScreens/loginScreen';
+import Drex from '../Screens/drecs';
+import ProfileSetting from '../Screens/AppScreens/Account/profilesetting';
+import CoinWallet from '../Screens/AppScreens/CoinWallet/CoinWallet';
+import TransactionHistory from '../Screens/AppScreens/TransactionHistory';
+import ReceiveScreen from '../Screens/AppScreens/Receive/ReceiveScreen';
+import TransferCoin from '../Screens/AppScreens/Transfer/TrasferCoin/TransferCoin';
+import {VerifyAddress} from '../Screens/Send/VerifyAdress';
+import TradeCoin from '../Screens/AppScreens/TradeCoin';
 
 type AuthStackParamList = {
   login: {magicProps: any};
@@ -51,6 +59,56 @@ function RootScreenStack() {
       />
       <RootStack.Screen name="appScreens" component={Tabs} />
     </RootStack.Navigator>
+  );
+}
+const HomeStack = createNativeStackNavigator<RootStackParamList>();
+export function HomeScreenStack() {
+  return (
+    <HomeStack.Navigator
+      initialRouteName="D.Energy"
+      screenOptions={{headerShown: false}}>
+      <HomeStack.Screen
+        name="D.Energy"
+        component={Drex}
+        screenOptions={{headerShown: false}}
+      />
+      <HomeStack.Screen
+        name="ProfileSettings"
+        component={ProfileSetting}
+        screenOptions={{headerShown: false}}
+      />
+      <HomeStack.Screen
+        name="coinWallet"
+        component={CoinWallet}
+        screenOptions={{headerShown: false}}
+      />
+      {/* //NOTE - hasn't used anywhere */}
+      <HomeStack.Screen
+        name="transactionHistroy"
+        component={TransactionHistory}
+        screenOptions={{headerShown: false}}
+      />
+      <HomeStack.Screen
+        name="receive"
+        component={ReceiveScreen}
+        screenOptions={{headerShown: false}}
+      />
+      <HomeStack.Screen
+        name="bridge"
+        component={TransferCoin}
+        screenOptions={{headerShown: false}}
+      />
+      <HomeStack.Screen
+        name="send"
+        component={VerifyAddress}
+        screenOptions={{headerShown: false}}
+      />
+      <HomeStack.Screen
+        name="trade"
+        component={TradeCoin}
+        screenOptions={{headerShown: false}}
+      />
+    </HomeStack.Navigator>
   );
 }
 

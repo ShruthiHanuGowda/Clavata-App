@@ -5,6 +5,7 @@ import style from './styles';
 import {Header} from '../../../Componants';
 import {fontsFamily} from '../../../Theme';
 import {useAuth} from '../../../../screens/Provider/authProvider';
+import {navigateBack} from '../../../Navigation/NavigationFunctions';
 
 export default function ProfileSetting(props) {
   const {userDetails} = useAuth();
@@ -29,7 +30,12 @@ export default function ProfileSetting(props) {
   return (
     <SafeAreaView style={{backgroundColor: '#fff', flex: 1}}>
       {/* <Loader isShow={loading} /> */}
-      <Text style={style.font}>My Profile</Text>
+      <Header
+        headerTitle="My Account"
+        hideBorder={true}
+        backBtn={() => navigateBack()}
+      />
+      {/* <Text style={style.font}>My Profile</Text> */}
       <ScrollView contentContainerStyle={style.container}>
         <View style={styles.subSec}>
           <View>

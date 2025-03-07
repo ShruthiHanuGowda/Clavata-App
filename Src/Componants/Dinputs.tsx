@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import images from '../Theme/images';
 import {Colors} from '../Theme';
+// import {DatePickerModal} from 'react-native-paper-dates';
 
 interface DTextInputProps {
   value: string;
@@ -95,6 +96,98 @@ export function DEmailInput({
   );
 }
 
+export function DSearchInput({
+  value,
+  placeholder = 'example@drexs.com',
+  setValue,
+  onEndEditing,
+}) {
+  const handleOnChange = text => {
+    setValue(text);
+  };
+
+  return (
+    <View style={styles.wrapperInput}>
+      <TouchableOpacity style={[styles.wrapperIconLeft]}>
+        <Image source={images.search} style={styles.icon} />
+      </TouchableOpacity>
+      <TextInput
+        autoCorrect={false}
+        placeholderTextColor={'#BCBCBC'}
+        onEndEditing={onEndEditing}
+        onBlur={onEndEditing}
+        style={[styles.input, styles.inputLeftPad]}
+        placeholder={placeholder}
+        value={value}
+        onChangeText={handleOnChange}
+      />
+    </View>
+  );
+}
+
+export function DRangeInput({range, placeholder, setRange}) {
+  const [open, setOpen] = useState(false);
+
+  const onOpen = () => {
+    setOpen(true);
+  };
+
+  const onDismiss = () => {
+    setOpen(false);
+  };
+
+  const onConfirm = data => {
+    onDismiss();
+    if (setRange) {
+      setRange(data);
+    }
+  };
+
+  const handleOnChange = text => {};
+
+  return (
+    <View style={styles.wrapperRange}>
+      <DatePickerModal
+        locale="en"
+        mode="range"
+        visible={open}
+        onDismiss={onDismiss}
+        startDate={range?.startDate}
+        endDate={range?.endDate}
+        onConfirm={onConfirm}
+        closeIcon={images.back}
+        editIcon={images.edit}
+        calendarIcon={images.date}
+      />
+      <TouchableOpacity onPress={onOpen} style={styles.wrapperRangeInput}>
+        {range?.startDate ? (
+          <DText style={styles.placeHolder} fontStyle="fontRegular">
+            {format(range.startDate, 'P')}
+          </DText>
+        ) : (
+          <DText style={styles.placeHolder} fontStyle="fontRegular">
+            From
+          </DText>
+        )}
+        <Image source={images.date} />
+      </TouchableOpacity>
+      <View style={styles.range} />
+      <TouchableOpacity onPress={onOpen} style={styles.wrapperRangeInput}>
+        {range?.endDate ? (
+          <DText style={styles.placeHolder} fontStyle="fontRegular">
+            {format(range.endDate, 'P')}
+          </DText>
+        ) : (
+          <DText style={styles.placeHolder} fontStyle="fontRegular">
+            To
+          </DText>
+        )}
+        <Image source={images.date} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   wrapperInput: {
     borderWidth: 0.5,
@@ -117,4 +210,13 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   icon: {},
+  wrapperIconLeft: {
+    position: 'absolute',
+    left: 0,
+    padding: 16,
+  },
+  inputLeftPad: {
+    paddingLeft: 39,
+    height: 42,
+  },
 });

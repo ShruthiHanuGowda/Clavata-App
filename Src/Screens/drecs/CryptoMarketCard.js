@@ -8,10 +8,8 @@ import {
 } from 'react-native';
 import {Svg} from 'react-native-svg';
 import {VictoryLine} from 'victory-native';
-// import {marketIcons} from '../../Theme/images';
 import {DText} from '../../Componants/DText';
 import {marketIcons} from '../../Theme/variable';
-import {SCREEN_CONSTANT} from '../../Navigation/constant';
 import {navigateTo} from '../../utils/navigationService';
 import {ScreenWidth} from '@rneui/base';
 
@@ -42,7 +40,7 @@ export default function CryptoMarketCard({
   return (
     <TouchableOpacity
       style={marketStyles.container}
-      onPress={() => ''}
+      onPress={() => navigateTo('coinWallet')}
       activeOpacity={0.5}>
       <View
         style={{

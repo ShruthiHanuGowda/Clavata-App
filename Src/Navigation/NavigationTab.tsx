@@ -9,6 +9,10 @@ import TabBar from './TabBar';
 import Drex from '../Screens/drecs';
 import Wallet from '../Screens/wallet';
 import ProfileSetting from '../Screens/AppScreens/Account/profilesetting';
+import MarketPlace from '../Screens/MarketPlace';
+import Stake from '../Screens/Stake';
+import DAppsScreen from '../Screens/DApps';
+import {HomeScreenStack} from '.';
 // import ProfileSetting from '../Screens/AppScreens/Account/Profilesetting/profilesetting';
 
 type RootTabParamList = {
@@ -28,7 +32,7 @@ export default function Tabs() {
       tabBar={props => <TabBar {...props} />}>
       <Tab.Screen
         name="D.Energy"
-        component={Drex}
+        component={HomeScreenStack}
         options={{headerShown: false}}
       />
       <Tab.Screen
@@ -38,13 +42,17 @@ export default function Tabs() {
       />
       <Tab.Screen
         name="Marketplace"
-        component={Screen3}
+        component={MarketPlace}
         options={{headerShown: false}}
       />
-      <Tab.Screen name="dApps" component={Screen4} />
       <Tab.Screen
         name="Stake"
-        component={ProfileSetting}
+        component={Stake}
+        options={{headerShown: false}}
+      />
+      <Tab.Screen
+        name="dApps"
+        component={DAppsScreen}
         options={{headerShown: false}}
       />
     </Tab.Navigator>

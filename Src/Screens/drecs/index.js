@@ -18,10 +18,11 @@ import CryptoMarketPlace from './CryptoMarketPlace';
 import BalanceCarousal from './BalanceCarousal';
 import {DText} from '../../Componants/DText';
 import {Path, Svg} from 'react-native-svg';
-import {navigateTo} from '../../utils/navigationService';
+// import {navigate} from '../../Navigation/NavigationFunctions';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
 // import images from '../../../../images';
 import {useScrollToTop} from '@react-navigation/native';
+import {navigateTo} from '../../utils/navigationService';
 
 function HomeHeader(props) {
   return (
@@ -63,7 +64,7 @@ function HomeHeader(props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.dotContainer}
-            onPress={() => navigateTo(SCREEN_CONSTANT.ACCOUNT)}>
+            onPress={() => navigateTo('ProfileSettings')}>
             <Image source={Images.profile} />
           </TouchableOpacity>
         </View>
