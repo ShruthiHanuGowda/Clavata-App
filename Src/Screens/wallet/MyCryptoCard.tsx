@@ -34,7 +34,7 @@ const MyCryptoCard = ({
   return (
     <TouchableOpacity
       style={marketStyles.container}
-      onPress={() => ''}
+      onPress={() => navigateTo('coinWallet')}
       activeOpacity={0.5}>
       <View
         style={[

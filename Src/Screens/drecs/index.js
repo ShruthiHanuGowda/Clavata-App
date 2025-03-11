@@ -64,7 +64,7 @@ function HomeHeader(props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.dotContainer}
-            onPress={() => navigateTo('ProfileSettings')}>
+            onPress={() => navigateTo('account')}>
             <Image source={Images.profile} />
           </TouchableOpacity>
         </View>

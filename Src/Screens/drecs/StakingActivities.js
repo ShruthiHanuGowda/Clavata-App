@@ -50,7 +50,9 @@ export default function StakingActivities(props) {
   const loading = props.loading && <ActivityIndicator color={'#000'} />;
 
   return (
-    <TouchableOpacity onPress={() => ''} style={[stakingStyles.container]}>
+    <TouchableOpacity
+      onPress={() => navigateTo('Stake')}
+      style={[stakingStyles.container]}>
       {showTitle && (
         <View style={stakingStyles.header} activeOpacity={0.5}>
           <DText style={stakingStyles.title} fontStyle="fontSemiBold">

@@ -1,14 +1,23 @@
-import React from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
+import React, {useState} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './styles';
 import {Header} from '../../../Componants';
 import {fontsFamily} from '../../../Theme';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import ToggleSwitch from 'toggle-switch-react-native';
+import {navigateTo} from '../../../utils/navigationService';
 
 export default function ProfileSetting(props) {
   const {userDetails} = useAuth();
+  const [isEnabled, setIsEnabled] = useState(true);
 
   const displayData = [
     {label: 'Issuer', value: userDetails?.issuer},
@@ -26,6 +35,10 @@ export default function ProfileSetting(props) {
         : 'None',
     },
   ];
+
+  const toggleSwitch = () => {
+    setIsEnabled(!isEnabled);
+  };
 
   return (
     <SafeAreaView style={{backgroundColor: '#fff', flex: 1}}>
@@ -138,6 +151,104 @@ export default function ProfileSetting(props) {
                 </View>
               ))}
           </View>
+        </View>
+
+        <View style={styles.subSec}>
+          <View>
+            <Text
+              style={{
+                fontFamily: fontsFamily.MulishBold,
+                fontSize: 12,
+                lineHeight: 20,
+                color: '#00201B',
+                letterSpacing: 1,
+              }}>
+              SECURITY
+            </Text>
+            <View
+              style={{
+                marginTop: 16,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+              }}>
+              <Text
+                style={{
+                  fontFamily: fontsFamily.MulishSemiBold,
+                  fontSize: 12,
+                  lineHeight: 15,
+                  color: '#A1A1A1',
+                }}>
+                Password
+              </Text>
+              <TouchableOpacity onPress={() => navigateTo('changePassword11')}>
+                <Text
+                  style={{
+                    justifyContent: 'flex-end',
+                    color: '#616161',
+                    fontSize: 12,
+                    fontFamily: fontsFamily.MulishBold,
+                    textDecorationLine: 'underline',
+                  }}>
+                  Change Password
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View
+              style={{
+                marginTop: 16,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+              }}>
+              <Text
+                style={{
+                  fontFamily: fontsFamily.MulishSemiBold,
+                  fontSize: 12,
+                  lineHeight: 15,
+                  color: '#A1A1A1',
+                }}>
+                Security Pin
+              </Text>
+              <TouchableOpacity onPress={() => ''}>
+                <Text
+                  style={{
+                    justifyContent: 'flex-end',
+                    color: '#616161',
+                    fontSize: 12,
+                    fontFamily: fontsFamily.MulishBold,
+                    textDecorationLine: 'underline',
+                  }}>
+                  Change Pin
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {/* <View style={styles.divider}></View> */}
+          {/* <View
+            style={{
+              flexDirection: 'row',
+              marginTop: 19.8,
+              justifyContent: 'space-between',
+            }}>
+            <Text
+              style={{
+                fontFamily: fontsFamily.MulishBold,
+                fontSize: 12,
+                lineHeight: 20,
+                color: '#00201B',
+                letterSpacing: 1,
+              }}>
+              BIOMETRICS
+            </Text>
+            <ToggleSwitch
+              isOn={isEnabled}
+              onColor="#34C759"
+              offColor="rgba(120, 120, 128, 0.16)"
+              size="medium"
+              onToggle={toggleSwitch}
+              thumbOnStyle={{padding: 10}}
+              thumbOffStyle={{padding: 10}}
+            />
+          </View> */}
         </View>
       </ScrollView>
     </SafeAreaView>

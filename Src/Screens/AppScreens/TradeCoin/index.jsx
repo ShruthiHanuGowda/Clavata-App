@@ -168,7 +168,6 @@ export default function TradeCoin(props) {
         hideBorder={true}
         backBtn={() => navigateBack()}
       />
-      {/* //FIXME - Navigation back */}
       <ScrollView keyboardShouldPersistTaps="handled" style={style.container}>
         <View style={style.toggleContainer}>
           <TouchableOpacity

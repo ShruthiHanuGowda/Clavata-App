@@ -56,4 +56,9 @@ export default {
   buttonBg: require('../assets/images/ButtonBg.png'),
   bottomsheetTab: require('../assets/images/bottomSheetTab.png'),
   qrCodeIcon: require('../assets/images/scan-barcode.png'),
+  user: require('../assets/images/user.png'),
+  addbenificiaries: require('../assets/images/profile-2user.png'),
+  help: require('../assets/images/help.png'),
+  history: require('../assets/images/history.png'),
+  closeIcon: require('../assets/images/closeIcon.png'),
 };

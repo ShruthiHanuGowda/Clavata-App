@@ -60,6 +60,7 @@ export default function TransactionHistory(props) {
   const [name, setUserName] = useState('');
   const [index, setIndex] = useState(0);
   const coinCode = props?.route?.params?.coinCode;
+  const [page, setPage] = useState(0);
 
   return (
     <View style={styles.container}>
@@ -77,9 +78,7 @@ export default function TransactionHistory(props) {
           }
           rightComponent={
             index === 0 && (
-              <TouchableOpacity
-                onPress={handleFilterPress}
-                style={styles.dotContainer}>
+              <TouchableOpacity onPress={() => ''} style={styles.dotContainer}>
                 <Image source={images.filter} />
               </TouchableOpacity>
             )
@@ -139,7 +138,7 @@ export default function TransactionHistory(props) {
                     <RedemptionListItem
                       item={item}
                       name={name}
-                      setSelectedItems={setItems}
+                      // setSelectedItems={setItems}
                     />
                   )}
                 />

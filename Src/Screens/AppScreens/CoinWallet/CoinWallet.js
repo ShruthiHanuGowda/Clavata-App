@@ -18,6 +18,7 @@ import PriceHistoryGraph from './PriceHistoryGraph';
 import MiniTransactionHistory from './MiniTransactionHistory';
 import {DText} from '../../../Componants/DText';
 import {navigateTo} from '../../../utils/navigationService';
+import {navigateBack} from '../../../Navigation/NavigationFunctions';
 
 const width = Dimensions.get('window').width;
 export default function CoinWallet(props) {
@@ -41,7 +42,7 @@ export default function CoinWallet(props) {
         containerStyle={{borderBottomWidth: 0}}
         leftComponent={
           <TouchableOpacity
-            onPress={() => navigateTo('D.Energy')}
+            onPress={() => navigateBack()}
             style={styles.iconContainer}>
             <Image source={images.back} />
           </TouchableOpacity>

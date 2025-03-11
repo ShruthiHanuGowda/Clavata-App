@@ -27,34 +27,6 @@ interface DTextInputProps {
     | 'url';
 }
 
-export function DTextInput({
-  value,
-  placeholder,
-  setValue = () => {},
-  setValid = () => {},
-  style,
-  containerStyle,
-  keyboardType = 'default',
-}: DTextInputProps) {
-  const handleOnChange = (text: string) => {
-    setValue(text);
-    setValid(text.trim().length > 0);
-  };
-
-  return (
-    <View style={[styles.wrapperInput, containerStyle]}>
-      <TextInput
-        placeholderTextColor={'#BCBCBC'}
-        style={[styles.input, style]}
-        placeholder={placeholder}
-        value={value}
-        onChangeText={handleOnChange}
-        keyboardType={keyboardType}
-      />
-    </View>
-  );
-}
-
 interface DEmailInputProps {
   value: string;
   placeholder?: string;
@@ -184,6 +156,36 @@ export function DRangeInput({range, placeholder, setRange}) {
         )}
         <Image source={images.date} />
       </TouchableOpacity>
+    </View>
+  );
+}
+
+export function DTextInput({
+  value,
+  placeholder,
+  setValue = () => {},
+  setValid = () => {},
+  style,
+  containerStyle,
+  keyboardType = 'default',
+  ...props
+}) {
+  const handleOnChange = text => {
+    setValue(text);
+    setValid(text.trim().length > 0);
+  };
+
+  return (
+    <View style={[styles.wrapperInput, containerStyle]}>
+      <TextInput
+        placeholderTextColor={'#BCBCBC'}
+        style={[styles.input, style]}
+        placeholder={placeholder}
+        value={value}
+        onChangeText={handleOnChange}
+        {...props}
+        keyboardType={keyboardType}
+      />
     </View>
   );
 }

@@ -1,9 +1,9 @@
 import {useNavigation} from '@react-navigation/native';
 import React from 'react';
-import {Text, View, Image, FlatList, TouchableOpacity} from 'react-native';
+import {Text, View, Image, TouchableOpacity} from 'react-native';
 
 import style from './style';
-import navigationService from '../../utils/navigationService';
+import {navigateTo} from '../../utils/navigationService';
 
 const ListItem = ({item}) => {
   const navigation = useNavigation();
@@ -11,7 +11,7 @@ const ListItem = ({item}) => {
   return (
     <TouchableOpacity
       activeOpacity={0.5}
-      onPress={() => navigationService.navigateTo(item.navigation)}
+      onPress={() => ''} //navigateTo('coinWallet')
       style={style.listContainer}>
       <View style={style.listView}>
         <Text style={style.header}>{item.name}</Text>
