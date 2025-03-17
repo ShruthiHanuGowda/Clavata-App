@@ -15,6 +15,7 @@ import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import LoginScreen from './screens/AuthScreens/LoginScreen';
 import NavigationWrapper from './Src/Navigation';
 import {AuthProvider} from './screens/Provider/authProvider';
+import {GraphQLProvider} from './screens/Provider/GraphQLProvider';
 
 export default function App() {
   const colorScheme = useColorScheme();
@@ -45,15 +46,17 @@ export default function App() {
   return (
     <View style={{flex: 1}}>
       <GestureHandlerRootView style={{flex: 1}}>
-        <MagicProvider
-          apiKey="pk_live_F22A388602152902"
-          btcRpcUrl="BTC_RPC_NODE_URL">
-          {/* <LoginScreen /> */}
-          <AuthProvider>
-            <NavigationWrapper />
-          </AuthProvider>
-          {/* <Navigation colorScheme={colorScheme} magicProps={magicProps} /> */}
-        </MagicProvider>
+        <GraphQLProvider>
+          <MagicProvider
+            apiKey="pk_live_F22A388602152902"
+            btcRpcUrl="BTC_RPC_NODE_URL">
+            {/* <LoginScreen /> */}
+            <AuthProvider>
+              <NavigationWrapper />
+            </AuthProvider>
+            {/* <Navigation colorScheme={colorScheme} magicProps={magicProps} /> */}
+          </MagicProvider>
+        </GraphQLProvider>
       </GestureHandlerRootView>
     </View>
   );
