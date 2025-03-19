@@ -135,7 +135,7 @@ export default function HomeScreen({navigation}) {
             }}>
             NEWS & ANNOUNCEMENTS
           </Text>
-          <FlatList
+          {/* <FlatList
             data={[
               {
                 headlines:
@@ -228,7 +228,7 @@ export default function HomeScreen({navigation}) {
                 </View>
               </>
             )}
-          />
+          /> */}
         </View>
         <TouchableOpacity
           style={{

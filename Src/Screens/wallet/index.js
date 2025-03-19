@@ -196,14 +196,14 @@ export default function Wallet(props) {
           </View>
           {console.log('🚀 ~ init ~ updated:', items)}
 
-          <FlatList
+          {/* <FlatList
             style={{
               paddingHorizontal: 20,
             }}
             data={items}
             keyExtractor={(item, index) => index.toString()}
             renderItem={item => <ListItem item={item.item} />}
-          />
+          /> */}
         </View>
       </ScrollView>
     </SafeAreaView>

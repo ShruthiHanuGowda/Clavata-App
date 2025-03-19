@@ -144,13 +144,13 @@ export default function AccountBeneficary(props) {
             the readable content of a page{' '}
           </Text>
         </View>
-        <FlatList
+        {/* <FlatList
           data={tempData}
           keyExtractor={(item, index) => index.toString()}
           renderItem={({item, index}) => <ListItem item={item} />}
           contentContainerStyle={{flexGrow: 2}}
           ListEmptyComponent={<ListEmpty />}
-        />
+        /> */}
       </View>
       <View style={styles.btnAlign}>
         <CustomImageButton

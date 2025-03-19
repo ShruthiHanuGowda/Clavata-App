@@ -62,54 +62,7 @@ export default function ProfileSetting(props) {
               }}>
               PERSONAL
             </Text>
-            <View style={{marginTop: 16, flexDirection: 'row'}}>
-              <View style={{flex: 1, flexDirection: 'row'}}>
-                <Text
-                  style={{
-                    fontFamily: fontsFamily.MulishSemiBold,
-                    fontSize: 12,
-                    lineHeight: 15,
-                    color: '#A1A1A1',
-                  }}>
-                  Full Name
-                </Text>
-              </View>
-              <View style={{justifyContent: 'space-evenly'}}>
-                <Text
-                  style={{
-                    fontFamily: fontsFamily.MulishSemiBold,
-                    fontSize: 12,
-                    lineHeight: 15,
-                    color: '#616161',
-                  }}>
-                  test
-                </Text>
-              </View>
-            </View>
-            <View style={{marginTop: 14, flexDirection: 'row'}}>
-              <View style={{flex: 1, flexDirection: 'row'}}>
-                <Text
-                  style={{
-                    fontFamily: fontsFamily.MulishSemiBold,
-                    fontSize: 12,
-                    lineHeight: 15,
-                    color: '#A1A1A1',
-                  }}>
-                  Email
-                </Text>
-              </View>
-              <View style={{justifyContent: 'space-evenly'}}>
-                <Text
-                  style={{
-                    fontFamily: fontsFamily.MulishSemiBold,
-                    fontSize: 12,
-                    lineHeight: 15,
-                    color: '#616161',
-                  }}>
-                  test1@gmail.com
-                </Text>
-              </View>
-            </View>
+
             {displayData &&
               displayData.map((item, index) => (
                 <View

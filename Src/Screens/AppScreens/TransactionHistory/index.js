@@ -132,7 +132,7 @@ export default function TransactionHistory(props) {
           <TabView.Item style={styles.container}>
             <View style={styles.container}>
               <View style={styles.redemptionContainer}>
-                <FlatList
+                {/* <FlatList
                   data={mockRedemptionData}
                   renderItem={({item}) => (
                     <RedemptionListItem
@@ -141,7 +141,7 @@ export default function TransactionHistory(props) {
                       // setSelectedItems={setItems}
                     />
                   )}
-                />
+                /> */}
               </View>
             </View>
           </TabView.Item>
