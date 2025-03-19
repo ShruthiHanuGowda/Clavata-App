@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Dimensions, StyleSheet, View, Animated, FlatList} from 'react-native';
+import {Dimensions, StyleSheet, View, Animated, ScrollView} from 'react-native';
 
 import NextButton from './NextButton';
 import OnboardingItem from './OnboardingItem';
@@ -14,11 +14,7 @@ export default function Onboarding({navigation}) {
   const [index, setIndex] = useState(0);
 
   const scrollX = useRef(new Animated.Value(0)).current;
-  const slidesRef = useRef(null);
-
-  const viewableItemsChanged = useRef(({viewableItems}) => {
-    setIndex((viewableItems[0] && viewableItems[0].index) || 0);
-  }).current;
+  const scrollViewRef = useRef(null);
 
   const navigateToWelcome = async () => {
     navReset('authScreens');
@@ -30,10 +26,26 @@ export default function Onboarding({navigation}) {
     // navigation.push(SCREEN_CONSTANT.WELCOME);
   };
 
+  const handleScroll = Animated.event(
+    [{nativeEvent: {contentOffset: {x: scrollX}}}],
+    {
+      useNativeDriver: false,
+    },
+  );
+
+  const handleOnMomentumScrollEnd = event => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const currentIndex = Math.round(offsetX / width);
+    setIndex(currentIndex);
+  };
+
   const handleNextPress = () => {
     if (index < slides.length - 1) {
-      if (slidesRef.current) {
-        slidesRef.current.scrollToIndex({index: index + 1});
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({
+          x: width * (index + 1),
+          animated: true,
+        });
       }
     } else {
       navigateToWelcome();
@@ -41,9 +53,12 @@ export default function Onboarding({navigation}) {
   };
 
   const handleBackPress = () => {
-    if (index > -1) {
-      if (slidesRef.current) {
-        slidesRef.current.scrollToIndex({index: index - 1});
+    if (index > 0) {
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({
+          x: width * (index - 1),
+          animated: true,
+        });
       }
     }
   };
@@ -83,23 +98,23 @@ export default function Onboarding({navigation}) {
 
   return (
     <View style={styles.background}>
-      <FlatList
-        ref={slidesRef}
+      <ScrollView
+        ref={scrollViewRef}
         horizontal
-        showsVerticalScrollIndicator
+        showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         pagingEnabled
-        renderItem={OnboardingItem}
         bounces={false}
-        onScroll={Animated.event(
-          [{nativeEvent: {contentOffset: {x: scrollX}}}],
-          {
-            useNativeDriver: false,
-          },
-        )}
-        onViewableItemsChanged={viewableItemsChanged}
-        data={slides}
-      />
+        onScroll={handleScroll}
+        onMomentumScrollEnd={handleOnMomentumScrollEnd}
+        scrollEventThrottle={16}
+        contentContainerStyle={{width: width * slides.length}}>
+        {slides.map((item, idx) => (
+          <View key={idx} style={[styles.child]}>
+            {OnboardingItem({item})}
+          </View>
+        ))}
+      </ScrollView>
 
       <View style={{height: 100, left: 50, position: 'absolute', bottom: 0}}>
         <Paginator data={slides} scrollX={scrollX} />
@@ -129,5 +144,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFF',
   },
-  child: {width},
+  child: {
+    width,
+  },
 });

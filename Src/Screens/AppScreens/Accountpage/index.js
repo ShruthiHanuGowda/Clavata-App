@@ -6,6 +6,9 @@ import {
   StatusBar,
   StyleSheet,
   ActivityIndicator,
+  Button,
+  Pressable,
+  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './style';
@@ -18,7 +21,7 @@ import {BottomSheet} from 'react-native-btr';
 // import {AirbnbRating} from 'react-native-ratings';
 // import {BottomSheetModal} from '@gorhom/bottom-sheet';
 // import useBottomSheet from '../../../../hooks/bottomsheet';
-import {Header, ScreenWidth} from '@rneui/base';
+import {color, Header, ScreenWidth} from '@rneui/base';
 import {TouchableOpacity} from 'react-native';
 // import DKYC from '../../../../component/DKYC';
 import {isDev} from '../../../../config/mode';
@@ -26,6 +29,8 @@ import {DText} from '../../../Componants/DText';
 import MenuList from '../../../Componants/rc_menuList';
 import images from '../../../Theme/images';
 import {navigateTo} from '../../../utils/navigationService';
+import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {navReset} from '../../../Navigation/NavigationFunctions';
 const STAR_IMG = require('../../../../images/star.png');
 
 const styles = StyleSheet.create({
@@ -40,6 +45,7 @@ const styles = StyleSheet.create({
 });
 
 export default function Account(props) {
+  const {magic} = useMagic();
   // const {getProfile, profile, loading} = useContext(AppContext).portfolio;
 
   // useEffect(() => {
@@ -79,6 +85,49 @@ export default function Account(props) {
     props.navigation.goBack();
   };
 
+  const handleLogout = async () => {
+    try {
+      // Confirm logout with user
+      Alert.alert(
+        'Logout',
+        'Are you sure you want to logout?',
+        [
+          {
+            text: 'Cancel',
+            onPress: () => setLoading(false),
+            style: 'cancel',
+          },
+          {
+            text: 'Logout',
+            onPress: async () => {
+              try {
+                // Logout from Magic
+                await magic.user.logout();
+
+                // Clear the auth context
+                // Navigate to login screen
+                navReset('authScreens');
+
+                console.log('User logged out successfully');
+              } catch (error) {
+                console.error('Error during logout:', error);
+                Alert.alert(
+                  'Logout Failed',
+                  'There was a problem logging out. Please try again.',
+                );
+              }
+            },
+          },
+        ],
+        {cancelable: true},
+      );
+    } catch (error) {
+      console.error('Error during logout flow:', error);
+      setLoading(false);
+      Alert.alert('Error', 'An error occurred. Please try again.');
+    }
+  };
+
   return (
     <View style={{backgroundColor: '#fff', flex: 1}}>
       {/* {isDev ? (
@@ -109,6 +158,7 @@ export default function Account(props) {
         ]}>
         Stable Build 20-07-2023
       </Text>
+
       {/* )} */}
       <Header
         centerComponent={
@@ -186,6 +236,21 @@ export default function Account(props) {
           img={images.history}
           title="All Transactions Data"
         />
+        <Pressable
+          style={{bottom: -10, left: 20}}
+          onPress={() => handleLogout()}>
+          <Text
+            style={[
+              style.content,
+              {
+                fontSize: 10,
+
+                color: 'green',
+              },
+            ]}>
+            Logout{' '}
+          </Text>
+        </Pressable>
         {/* <BottomSheetModal
           {...bottomSheetProps}
           onDismiss={() => {

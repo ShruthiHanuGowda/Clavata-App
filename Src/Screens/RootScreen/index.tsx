@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const Root = () => {
   const CheckNav = async () => {
     try {
-      const value = await AsyncStorage.getItem('isInfoDone');
+      const value = await AsyncStorage?.getItem('isInfoDone');
 
       if (value === 'true') {
         navReset('authScreens');
@@ -24,6 +24,7 @@ export const Root = () => {
     setTimeout(() => {
       // navigate('authScreens');
       CheckNav();
+      // navReset('intro');
     }, 500);
   }, []);
   return <View style={styles.container}></View>;

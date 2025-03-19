@@ -10,7 +10,7 @@ export default function Result() {
 
   return (
     <View style={styles.container}>
-      <FlatList
+      {/* <FlatList
         contentContainerStyle={styles.list}
         // data={data}
         // ListHeaderComponent={loading && <ActivityIndicator />}
@@ -25,7 +25,7 @@ export default function Result() {
           // )
         }
         // renderItem={props => <StakeListItem {...props} />}
-      />
+      /> */}
     </View>
   );
 }
