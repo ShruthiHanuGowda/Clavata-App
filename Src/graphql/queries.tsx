@@ -28,3 +28,11 @@ export const GET_USER_WALLET_ADDRESS = gql`
     }
   }
 `;
+
+export const CREATE_KYC_VERIFICATION = gql`
+  mutation createKYCVerification($email: String!, $levelName: String!) {
+    createKYCVerification(input: {email: $email, levelName: $levelName}) {
+      response
+    }
+  }
+`;

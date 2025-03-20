@@ -24,6 +24,38 @@
 	<string>4</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
+<!-- Camera permission - Required -->
+<key>NSCameraUsageDescription</key>
+<string>D Wallet needs access to your camera to verify your identity documents and take a selfie for KYC verification.</string>
+
+<!-- Photo Library permission - Required -->
+<key>NSPhotoLibraryUsageDescription</key>
+<string>D Wallet needs access to your photo library to allow you to upload existing identity documents for KYC verification.</string>
+
+<!-- Microphone permission - Required if using video verification -->
+<key>NSMicrophoneUsageDescription</key>
+<string>D Wallet needs access to your microphone for video identification during the KYC verification process.</string>
+
+<!-- Update your NSAppTransportSecurity settings -->
+<!-- You currently have NSAllowsArbitraryLoads set to false, but Sumsub might need it enabled -->
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+</dict>
+
+<!-- FaceID permission - Optional but recommended -->
+<key>NSFaceIDUsageDescription</key>
+<string>D Wallet uses Face ID to securely authenticate you during the verification process.</string>
+
+<!-- Your NSLocationWhenInUseUsageDescription is already present but empty -->
+<!-- You should add a proper description: -->
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Your location may be used to comply with regional verification requirements.</string>
+
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
