@@ -12,10 +12,11 @@ import {AuthExtension} from '@magic-ext/auth';
 import {MagicProvider} from './screens/Provider/MagicProvider';
 import {View} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import LoginScreen from './screens/AuthScreens/LoginScreen';
 import NavigationWrapper from './Src/Navigation';
 import {AuthProvider} from './screens/Provider/authProvider';
 import {GraphQLProvider} from './screens/Provider/GraphQLProvider';
+import {KycServiceProvider} from './Src/CustomHooks/KYC/KycServiceProvider';
+import {KycProvider} from './Src/CustomHooks/KYC/KYCProvider';
 
 export default function App() {
   const colorScheme = useColorScheme();
@@ -52,7 +53,11 @@ export default function App() {
             btcRpcUrl="BTC_RPC_NODE_URL">
             {/* <LoginScreen /> */}
             <AuthProvider>
-              <NavigationWrapper />
+              <KycProvider>
+                <KycServiceProvider>
+                  <NavigationWrapper />
+                </KycServiceProvider>
+              </KycProvider>
             </AuthProvider>
             {/* <Navigation colorScheme={colorScheme} magicProps={magicProps} /> */}
           </MagicProvider>

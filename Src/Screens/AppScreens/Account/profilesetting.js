@@ -19,25 +19,24 @@ export default function ProfileSetting(props) {
   const {userDetails} = useAuth();
   const [isEnabled, setIsEnabled] = useState(true);
 
-  const displayData = [
-    {label: 'Issuer', value: userDetails?.issuer},
-    {label: 'Public Address', value: userDetails?.publicAddress},
-    {label: 'Email', value: userDetails?.email},
-    {label: 'Phone Number', value: userDetails?.phoneNumber || 'Not provided'},
-    {
-      label: 'MFA Status',
-      value: userDetails?.isMfaEnabled ? 'Enabled' : 'Disabled',
-    },
-    {
-      label: 'Recovery Factors',
-      value: userDetails?.recoveryFactors.length
-        ? userDetails?.recoveryFactors.join(', ')
-        : 'None',
-    },
-  ];
-
   const toggleSwitch = () => {
     setIsEnabled(!isEnabled);
+  };
+
+  const formatKey = key => {
+    // Replace camelCase with spaces
+    const spacedKey = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ');
+    // Capitalize first letter
+    return spacedKey.charAt(0).toUpperCase() + spacedKey.slice(1);
+  };
+
+  // Function to format date values to be more readable
+  const formatValue = (key, value) => {
+    if (key === 'date' && value.includes('T')) {
+      const date = new Date(value);
+      return date.toLocaleString();
+    }
+    return value;
   };
 
   return (
@@ -63,46 +62,45 @@ export default function ProfileSetting(props) {
               PERSONAL
             </Text>
 
-            {displayData &&
-              displayData.map((item, index) => (
+            {Object.entries(userDetails).map(([key, value]) => (
+              <View
+                style={{
+                  marginTop: 14,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                }}>
                 <View
                   style={{
-                    marginTop: 14,
+                    flex: 1,
                     flexDirection: 'row',
-                    justifyContent: 'space-between',
+                    width: '30%',
                   }}>
-                  <View
+                  <Text
                     style={{
-                      flex: 1,
-                      flexDirection: 'row',
-                      width: '30%',
+                      fontFamily: fontsFamily.MulishSemiBold,
+                      fontSize: 12,
+                      lineHeight: 15,
+                      color: '#A1A1A1',
+                      // width: '50%',
                     }}>
-                    <Text
-                      style={{
-                        fontFamily: fontsFamily.MulishSemiBold,
-                        fontSize: 12,
-                        lineHeight: 15,
-                        color: '#A1A1A1',
-                        // width: '50%',
-                      }}>
-                      {item.label}
-                    </Text>
-                  </View>
-                  <View style={{justifyContent: 'space-evenly', width: '70%'}}>
-                    <Text
-                      style={{
-                        fontFamily: fontsFamily.MulishSemiBold,
-                        fontSize: 12,
-                        lineHeight: 15,
-                        color: '#616161',
-                        // width: '50%',
-                        textAlign: 'right',
-                      }}>
-                      {item.value}
-                    </Text>
-                  </View>
+                    {formatKey(key)}
+                  </Text>
                 </View>
-              ))}
+                <View style={{justifyContent: 'space-evenly', width: '70%'}}>
+                  <Text
+                    style={{
+                      fontFamily: fontsFamily.MulishSemiBold,
+                      fontSize: 12,
+                      lineHeight: 15,
+                      color: '#616161',
+                      // width: '50%',
+                      textAlign: 'right',
+                    }}>
+                    {formatValue(key, value)}
+                  </Text>
+                </View>
+              </View>
+            ))}
           </View>
         </View>
 

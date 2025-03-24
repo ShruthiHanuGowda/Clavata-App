@@ -16,6 +16,17 @@ export const CREATE_USER_WALLETS = gql`
   }
 `;
 
+export const UPDATE_KYC_STATUS = gql`
+  mutation updateIsVerified($walletAddress: String!, $is_verified: Boolean!) {
+    updateIsVerified(
+      input: {walletAddress: $walletAddress, is_verified: $is_verified}
+    ) {
+      walletAddress
+      is_verified
+    }
+  }
+`;
+
 export const GET_USER_WALLET_ADDRESS = gql`
   query getUserWalletAddress($walletAddress: String!) {
     getUserWalletAddress(walletAddress: $walletAddress) {
