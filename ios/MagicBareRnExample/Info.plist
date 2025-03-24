@@ -21,7 +21,7 @@
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>4</string>
+	<string>5</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -31,8 +31,16 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>D Wallet needs access to your camera to verify your identity documents and take a selfie for KYC verification.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>D Wallet uses Face ID to securely authenticate you during the verification process.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>D Wallet needs access to your microphone for video identification during the KYC verification process.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>D Wallet needs access to your photo library to allow you to upload existing identity documents for KYC verification.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Mulish-Bold.ttf</string>

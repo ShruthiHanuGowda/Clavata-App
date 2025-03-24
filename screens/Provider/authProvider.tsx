@@ -12,14 +12,12 @@ interface AuthContextType {
 }
 
 interface UserAuth {
-  issuer?: string;
-  publicAddress?: string;
-  email?: string | null;
-  phoneNumber?: string | null;
-  isMfaEnabled?: boolean;
-  recoveryFactors?: any[]; // You could define a more specific type if needed
-  ethAddress?: string;
-  dEnergyAddress?: string;
+  date: string;
+  denergyWallet: string;
+  ethereumWallet: string;
+  is_verified: boolean | string;
+  userWallet: string | null;
+  walletAddress: string | null;
 }
 
 // Default context value
@@ -43,12 +41,12 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
 
   const handleSaveWalletToDB = async user => {
     const walletData = {
-      walletAddress: user.email,
-      ethereumWallet: user.ethAddress,
-      denergyWallet: user.dEnergyAddress,
-      userWallet: user.publicAddress,
-      date: new Date().toISOString(),
-      is_verified: false,
+      walletAddress: user.walletAddress,
+      ethereumWallet: user.ethereumWallet,
+      denergyWallet: user.denergyWallet,
+      userWallet: user.userWallet,
+      date: user.date,
+      is_verified: user?.is_verified,
     };
 
     try {
@@ -57,7 +55,6 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
           createuserwalletaddressinput: walletData,
         },
       });
-      alert('Wallet Add Successfully.');
       return data;
     } catch (error: any) {
       throw new Error(error);
