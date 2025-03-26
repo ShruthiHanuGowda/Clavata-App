@@ -184,19 +184,7 @@ export default function LoginScreen() {
           variables: {walletAddress: userMetadata?.email?.toLowerCase()},
         });
 
-        // If user not found in DB, handleUserData will handle creating a new user
-        // if (!userData?.getUserWalletAddress) {
-        //   await prepareNewUserData(userMetadata);
-        //   setIsUserLogin(true);
 
-        //   // Show KYC bottom sheet for new users
-        //   if (!isKycCompleted) {
-        //     console.log('New user not KYC verified, will show bottom sheet');
-        //     setTimeout(() => {
-        //       showKycBottomSheet();
-        //     }, 500);
-        //   }
-        // }
       } else {
         // No active session
         setIsScreenLoading(false);

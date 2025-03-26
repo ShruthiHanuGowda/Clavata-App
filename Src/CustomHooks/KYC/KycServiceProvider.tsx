@@ -1,3 +1,4 @@
+// @ts-ignore
 import React, {createContext, useContext, useCallback} from 'react';
 import SNSMobileSDK from '@sumsub/react-native-mobilesdk-module';
 import {useKycVerification} from '../../CustomHooks/useKycVerification';
@@ -26,8 +27,8 @@ const KycServiceContext = createContext<KycServiceContextType>({
 });
 
 export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
-  children,
-}) => {
+                                                                            children,
+                                                                          }) => {
   const {initiateKycToken} = useKycVerification();
   const {userDetails} = useAuth();
   const {updateUserKycStatus} = useKycStatusUpdate(); // Use the KYC status update hook
@@ -90,10 +91,10 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
             onStatusChanged: async event => {
               console.log(
                 'onStatusChanged: [' +
-                  event.prevStatus +
-                  '] => [' +
-                  event.newStatus +
-                  ']',
+                event.prevStatus +
+                '] => [' +
+                event.newStatus +
+                ']',
               );
 
               // Set KYC completed based on status - using toLowerCase() for case-insensitive comparison

@@ -1,4 +1,5 @@
-import React from 'react';
+// @ts-ignore
+import React, {useState} from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -8,6 +9,7 @@ import {
 } from 'react-native';
 import images from '../Theme/images';
 import {Colors} from '../Theme';
+
 // import {DatePickerModal} from 'react-native-paper-dates';
 
 interface DTextInputProps {
@@ -36,12 +38,12 @@ interface DEmailInputProps {
 }
 
 export function DEmailInput({
-  value,
-  placeholder = 'example@drexs.com',
-  setValue,
-  setValid,
-  inputAccessoryViewID,
-}: DEmailInputProps) {
+                              value,
+                              placeholder = 'example@drexs.com',
+                              setValue,
+                              setValid,
+                              inputAccessoryViewID,
+                            }: DEmailInputProps) {
   const handleOnChange = (text: string) => {
     let re = /\S+@\S+\.\S+/;
     let regex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/im;
@@ -69,11 +71,11 @@ export function DEmailInput({
 }
 
 export function DSearchInput({
-  value,
-  placeholder = 'example@drexs.com',
-  setValue,
-  onEndEditing,
-}) {
+                               value,
+                               placeholder = 'example@drexs.com',
+                               setValue,
+                               onEndEditing,
+                             }) {
   const handleOnChange = text => {
     setValue(text);
   };
@@ -97,79 +99,81 @@ export function DSearchInput({
   );
 }
 
-export function DRangeInput({range, placeholder, setRange}) {
-  const [open, setOpen] = useState(false);
-
-  const onOpen = () => {
-    setOpen(true);
-  };
-
-  const onDismiss = () => {
-    setOpen(false);
-  };
-
-  const onConfirm = data => {
-    onDismiss();
-    if (setRange) {
-      setRange(data);
-    }
-  };
-
-  const handleOnChange = text => {};
-
-  return (
-    <View style={styles.wrapperRange}>
-      <DatePickerModal
-        locale="en"
-        mode="range"
-        visible={open}
-        onDismiss={onDismiss}
-        startDate={range?.startDate}
-        endDate={range?.endDate}
-        onConfirm={onConfirm}
-        closeIcon={images.back}
-        editIcon={images.edit}
-        calendarIcon={images.date}
-      />
-      <TouchableOpacity onPress={onOpen} style={styles.wrapperRangeInput}>
-        {range?.startDate ? (
-          <DText style={styles.placeHolder} fontStyle="fontRegular">
-            {format(range.startDate, 'P')}
-          </DText>
-        ) : (
-          <DText style={styles.placeHolder} fontStyle="fontRegular">
-            From
-          </DText>
-        )}
-        <Image source={images.date} />
-      </TouchableOpacity>
-      <View style={styles.range} />
-      <TouchableOpacity onPress={onOpen} style={styles.wrapperRangeInput}>
-        {range?.endDate ? (
-          <DText style={styles.placeHolder} fontStyle="fontRegular">
-            {format(range.endDate, 'P')}
-          </DText>
-        ) : (
-          <DText style={styles.placeHolder} fontStyle="fontRegular">
-            To
-          </DText>
-        )}
-        <Image source={images.date} />
-      </TouchableOpacity>
-    </View>
-  );
-}
+// export function DRangeInput({range, placeholder, setRange}) {
+//   const [open, setOpen] = useState(false);
+//
+//   const onOpen = () => {
+//     setOpen(true);
+//   };
+//
+//   const onDismiss = () => {
+//     setOpen(false);
+//   };
+//
+//   const onConfirm = data => {
+//     onDismiss();
+//     if (setRange) {
+//       setRange(data);
+//     }
+//   };
+//
+//   const handleOnChange = text => {};
+//
+//   return (
+//     <View style={styles.wrapperRange}>
+//       <DatePickerModal
+//         locale="en"
+//         mode="range"
+//         visible={open}
+//         onDismiss={onDismiss}
+//         startDate={range?.startDate}
+//         endDate={range?.endDate}
+//         onConfirm={onConfirm}
+//         closeIcon={images.back}
+//         editIcon={images.edit}
+//         calendarIcon={images.date}
+//       />
+//       <TouchableOpacity onPress={onOpen} style={styles.wrapperRangeInput}>
+//         {range?.startDate ? (
+//           <DText style={styles.placeHolder} fontStyle="fontRegular">
+//             {format(range.startDate, 'P')}
+//           </DText>
+//         ) : (
+//           <DText style={styles.placeHolder} fontStyle="fontRegular">
+//             From
+//           </DText>
+//         )}
+//         <Image source={images.date} />
+//       </TouchableOpacity>
+//       <View style={styles.range} />
+//       <TouchableOpacity onPress={onOpen} style={styles.wrapperRangeInput}>
+//         {range?.endDate ? (
+//           <DText style={styles.placeHolder} fontStyle="fontRegular">
+//             {format(range.endDate, 'P')}
+//           </DText>
+//         ) : (
+//           <DText style={styles.placeHolder} fontStyle="fontRegular">
+//             To
+//           </DText>
+//         )}
+//         <Image source={images.date} />
+//       </TouchableOpacity>
+//     </View>
+//   );
+// }
 
 export function DTextInput({
-  value,
-  placeholder,
-  setValue = () => {},
-  setValid = () => {},
-  style,
-  containerStyle,
-  keyboardType = 'default',
-  ...props
-}) {
+                             value,
+                             placeholder,
+                             setValue = () => {
+                             },
+                             setValid = () => {
+                             },
+                             style,
+                             containerStyle,
+                             keyboardType = 'default',
+                             ...props
+                           }) {
   const handleOnChange = text => {
     setValue(text);
     setValid(text.trim().length > 0);
