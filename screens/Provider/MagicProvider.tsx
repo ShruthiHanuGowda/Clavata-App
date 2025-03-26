@@ -28,21 +28,22 @@ interface MagicProviderProps {
 }
 
 export const MagicProvider: React.FC<MagicProviderProps> = ({
-  children,
-  apiKey,
-  btcRpcUrl,
-}) => {
+                                                              children,
+                                                              apiKey,
+                                                              btcRpcUrl,
+                                                            }) => {
   // Initialize Magic instance
   const magic = new Magic(apiKey, {
-    extensions: [
-      new OAuthExtension(),
-      new AuthExtension(),
-      new GDKMSExtension(),
-      new BitcoinExtension({
-        rpcUrl: btcRpcUrl,
-        network: 'testnet', // or 'mainnet' based on your needs
-      }),
-    ],
+    network: 'sepolia ',
+    // extensions: [
+    //   new OAuthExtension(),
+    //   new AuthExtension(),
+    //   new GDKMSExtension(),
+    //   new BitcoinExtension({
+    //     rpcUrl: btcRpcUrl,
+    //     network: 'sepolia', // or 'mainnet' based on your needs
+    //   }),
+    // ],
   });
 
   // Initialize Web3 with Magic's provider

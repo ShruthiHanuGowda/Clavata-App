@@ -1,7 +1,8 @@
 import {useMutation} from '@apollo/client';
-import React, {createContext, useState, ReactNode, useContext} from 'react';
+import React, {createContext, useState, ReactNode, useContext, useEffect} from 'react';
 import {CREATE_USER_WALLETS} from '../../Src/graphql/queries';
 import {Alert} from 'react-native';
+import {useWalletBalance} from '../../Src/hooks/useWalletBalance';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -9,6 +10,17 @@ interface AuthContextType {
   logout: () => void;
   updateUserData: (userData: UserAuth, isExist: Boolean) => void;
   userDetails: UserAuth | null;
+  walletBalances: {
+    wattsBalance: string;
+    ethBalance: string;
+    denergyUsdcBalance: string;
+    denergyEurcBalance: string;
+    sepoliaUsdcBalance: string;
+    sepoliaEurcBalance: string;
+    isBalanceLoading: boolean;
+    isBalanceError: string | null;
+  };
+  refreshBalances: () => Promise<void>;
 }
 
 interface UserAuth {
@@ -26,6 +38,18 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   const [createUserWallets] = useMutation(CREATE_USER_WALLETS);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [userDetails, setUserDetails] = useState<UserAuth | null>(null);
+
+  const {
+    wattsBalance,
+    ethBalance,
+    denergyUsdcBalance,
+    denergyEurcBalance,
+    sepoliaUsdcBalance,
+    sepoliaEurcBalance,
+    isBalanceLoading,
+    isBalanceError,
+    fetchBalances,
+  } = useWalletBalance();
 
   // Function to simulate login
   const login = () => {
@@ -74,9 +98,37 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
     }
   };
 
+  // Function to refresh wallet balances
+  const refreshBalances = async () => {
+    if (userDetails?.userWallet) {
+      await fetchBalances(userDetails.userWallet);
+    }
+  };
+
+  // Fetch balances whenever userDetails changes and a wallet address is available
+  useEffect(() => {
+    if (userDetails?.userWallet) {
+      fetchBalances(userDetails.userWallet);
+    }
+  }, [userDetails, fetchBalances]);
+
+  const walletBalances = {
+    wattsBalance,
+    ethBalance,
+    denergyUsdcBalance,
+    denergyEurcBalance,
+    sepoliaUsdcBalance,
+    sepoliaEurcBalance,
+    isBalanceLoading,
+    isBalanceError,
+  };
+
   return (
     <AuthContext.Provider
-      value={{isAuthenticated, login, logout, updateUserData, userDetails}}>
+      value={{
+        isAuthenticated, login, logout, updateUserData, userDetails, walletBalances,
+        refreshBalances,
+      }}>
       {children}
     </AuthContext.Provider>
   );
