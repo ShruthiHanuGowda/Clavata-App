@@ -16,6 +16,7 @@ import ListItem from './ListItem';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
 import MyCryptoCard from './MyCryptoCard';
 import AppContext from '../../../AppContext';
+import {useAuth} from '../../../screens/Provider/authProvider';
 
 const ITEMS = [
   {
@@ -37,6 +38,7 @@ export default function Wallet(props) {
   const {getDrecs, getBalance, balanceData, data} =
     useContext(AppContext).portfolio;
   const [items, setItems] = useState([]);
+  const {walletBalances, refreshBalances} = useAuth();
   const [pullToRefreshLoading, setPullToRefreshLoading] = useState(false);
   const scrollViewRef = useRef();
 
@@ -44,6 +46,7 @@ export default function Wallet(props) {
     {
       title: 'ETH Coin',
       code: 'ETH',
+      coinValue: 'ETH',
       chartData: [
         {x: 1, y: 0},
         {x: 2, y: 0},
@@ -52,8 +55,8 @@ export default function Wallet(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: 0.0, //props?.ETH?.fiatBalance
-      balance: 0.0, //props?.ETH?.tokenBalance
+      dollar: walletBalances?.ethBalanceUsd, //props?.ETH?.fiatBalance
+      balance: walletBalances?.ethBalance, //props?.ETH?.tokenBalance
     },
     {
       title: 'USDC Coin',
@@ -66,8 +69,8 @@ export default function Wallet(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: 0.0, //props?.USDC?.fiatBalance
-      balance: 0.0, //props?.USDC?.tokenBalance
+      dollar: walletBalances?.sepoliaUsdcBalanceUsd, //props?.USDC?.fiatBalance
+      balance: walletBalances?.sepoliaUsdcBalance, //props?.USDC?.tokenBalance
     },
     {
       title: 'EURC Coin',
@@ -80,8 +83,8 @@ export default function Wallet(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: 0.0, //props?.EURC?.fiatBalance
-      balance: 0.0, //props?.EURC?.tokenBalance
+      dollar: walletBalances?.sepoliaEurcBalanceUsd, //props?.EURC?.fiatBalance
+      balance: walletBalances?.sepoliaEurcBalance, //props?.EURC?.tokenBalance
     },
   ];
 
@@ -97,8 +100,8 @@ export default function Wallet(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: 0.0, //props?.WATT?.fiatBalance
-      balance: 0.0, //props?.WATT?.tokenBalance
+      dollar: walletBalances?.wattsBalanceUsd, //props?.WATT?.fiatBalance
+      balance: walletBalances?.wattsBalance, //props?.WATT?.tokenBalance
     },
     {
       title: 'wUSDC Coin',
@@ -111,8 +114,8 @@ export default function Wallet(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: 0.0, //props?.WUSDC?.fiatBalance
-      balance: 0.0, //props?.WUSDC?.tokenBalance
+      dollar: walletBalances?.denergyUsdcBalanceUsd, //props?.WUSDC?.fiatBalance
+      balance: walletBalances?.denergyUsdcBalance, //props?.WUSDC?.tokenBalance
     },
     {
       title: 'wEURC Coin',
@@ -125,8 +128,8 @@ export default function Wallet(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: 0.0, //props?.WEURC?.fiatBalance
-      balance: 0.0, //props?.WEURC?.tokenBalance
+      dollar: walletBalances?.denergyEurcBalanceUsd, //props?.WEURC?.fiatBalance
+      balance: walletBalances?.denergyEurcBalance, //props?.WEURC?.tokenBalance
     },
   ];
 

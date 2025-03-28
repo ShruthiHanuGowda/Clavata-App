@@ -21,20 +21,20 @@ const marketIconColors = {
 };
 
 const MyCryptoCard = ({
-  title,
-  code,
-  chartData,
-  dollar,
-  growth,
-  dip,
-  balance,
-}) => {
+                        title,
+                        code,
+                        chartData,
+                        dollar,
+                        growth,
+                        dip,
+                        balance,
+                      }) => {
   const height = 21;
   const width = 71;
   return (
     <TouchableOpacity
       style={marketStyles.container}
-      onPress={() => navigateTo('coinWallet')}
+      onPress={() => navigateTo('coinWallet', {coinCode: code})}
       activeOpacity={0.5}>
       <View
         style={[
