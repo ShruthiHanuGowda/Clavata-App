@@ -1,5 +1,6 @@
-import {useMutation} from '@apollo/client';
+// @ts-ignore
 import React, {createContext, useState, ReactNode, useContext, useEffect} from 'react';
+import {useMutation} from '@apollo/client';
 import {CREATE_USER_WALLETS} from '../../Src/graphql/queries';
 import {Alert} from 'react-native';
 import {useWalletBalance} from '../../Src/hooks/useWalletBalance';
@@ -18,6 +19,13 @@ interface AuthContextType {
     sepoliaUsdcBalance: string;
     sepoliaEurcBalance: string;
     isBalanceLoading: boolean;
+    // USD
+    wattsBalanceUsd: string;
+    ethBalanceUsd: string;
+    denergyUsdcBalanceUsd: string;
+    denergyEurcBalanceUsd: string;
+    sepoliaUsdcBalanceUsd: string;
+    sepoliaEurcBalanceUsd: string;
     isBalanceError: string | null;
   };
   refreshBalances: () => Promise<void>;
@@ -46,6 +54,12 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
     denergyEurcBalance,
     sepoliaUsdcBalance,
     sepoliaEurcBalance,
+    wattsBalanceUsd,
+    ethBalanceUsd,
+    denergyUsdcBalanceUsd,
+    denergyEurcBalanceUsd,
+    sepoliaUsdcBalanceUsd,
+    sepoliaEurcBalanceUsd,
     isBalanceLoading,
     isBalanceError,
     fetchBalances,
@@ -121,6 +135,12 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
     sepoliaEurcBalance,
     isBalanceLoading,
     isBalanceError,
+    wattsBalanceUsd,
+    ethBalanceUsd,
+    denergyUsdcBalanceUsd,
+    denergyEurcBalanceUsd,
+    sepoliaUsdcBalanceUsd,
+    sepoliaEurcBalanceUsd,
   };
 
   return (
