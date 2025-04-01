@@ -21,7 +21,7 @@
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>8</string>
+	<string>10</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -36,7 +36,7 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>D Wallet uses Face ID to securely authenticate you during the verification process.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>Your location is used to help verify your identity and prevent unauthorized access to your account when using Magic authentication.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>D Wallet needs access to your microphone for video identification during the KYC verification process.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
