@@ -42,7 +42,7 @@ export default function CryptoMarketPlace(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      balance: formatValue(getBalance('USDC')?.balance), //props?.USDC?.fiatBalance
+      balance: formatValue(getBalance('USDC')?.balance, 4), //props?.USDC?.fiatBalance
       dollar: formatValue(getBalance('USDC')?.balanceUsd), //props?.USDC?.tokenBalance
     },
     {

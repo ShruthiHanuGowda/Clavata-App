@@ -141,17 +141,25 @@ export const useWalletBalance = (): WalletBalanceHook => {
         'EURC': {network: 'sepolia', token: 'EURC', rateKey: 'EURC'},
       };
 
+
       // Process each ERC-20 token
       for (const [tokenSymbol, info] of Object.entries(tokenMapping)) {
-        const provider = info.network === CUSTOM_NETWORK ? denergyProvider : sepoliaProvider;
-        const contractAddress = TOKEN_CONTRACTS[info.network][info.token];
+        try {
+          const provider = info.network === CUSTOM_NETWORK ? denergyProvider : sepoliaProvider;
+          const contractAddress = TOKEN_CONTRACTS[info.network][info.token];
+          console?.log('contractAddress', contractAddress);
+          const contract = new ethers.Contract(contractAddress, ERC20_ABI, provider);
+          const balance = await contract.balanceOf(walletAddress);
+          const formattedBalance = ethers.formatUnits(balance, 6);
+          const balanceInUsd = (parseFloat(formattedBalance) * rates[info.rateKey]).toFixed(2);
 
-        const contract = new ethers.Contract(contractAddress, ERC20_ABI, provider);
-        const balance = await contract.balanceOf(walletAddress);
-        const formattedBalance = ethers.formatUnits(balance, 6);
-        const balanceInUsd = (parseFloat(formattedBalance) * rates[info.rateKey]).toFixed(2);
-
-        updateTokenData(tokenSymbol, formattedBalance, balanceInUsd);
+          updateTokenData(tokenSymbol, formattedBalance, balanceInUsd);
+        } catch (err) {
+          console.error(`Error fetching balance for ${tokenSymbol}:`, err);
+          // Set default values for failed token
+          updateTokenData(tokenSymbol, '0', '0');
+          // Continue with the next token
+        }
       }
     } catch (err: any) {
       console.error('Error fetching balances:', err);

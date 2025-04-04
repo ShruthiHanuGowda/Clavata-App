@@ -13,6 +13,7 @@ import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import styles from '../../AuthScreens/styles';
 import {SCREEN_CONSTANT} from '../../../Navigation/constant';
 import {navigateTo} from '../../../utils/navigationService';
+import {useSendUSDCANDEURC, TOKEN_ADDRESSES} from '../../../hooks/useSendUSDCANDEURC';
 
 // Define types for route params
 interface RouteParams {
@@ -62,8 +63,18 @@ export default function SendCoin(props: SendCoinProps): JSX.Element {
   const [wattAmount, setWattAmount] = useState<string>('0');
   const {magic} = useMagic();
   const {userDetails} = useAuth();
-  const {isLoading, error, sendTransaction} = useSendEth(magic, userDetails?.userWallet);
+  const {
+    isLoading: ethIsLoading,
+    error: ethError,
+    sendTransaction: sendEthTransaction,
+  } = useSendEth(magic, userDetails?.userWallet);
 
+  const {
+    isLoading: usdcIsLoading,
+    error: usdcError,
+    sendTransaction: sendUSDCTransaction,
+  } = useSendUSDCANDEURC(magic, userDetails?.userWallet);
+  console?.log('usdcError', usdcError);
   const [result, setResult] = useState<TransactionResult | null>(null);
 
 
@@ -79,25 +90,61 @@ export default function SendCoin(props: SendCoinProps): JSX.Element {
 
 
   const onVerify = async (): void => {
-
+    console.log(coinCode);
     try {
-      const transactionDetails = {
-        to: user?.beneficiaryAddress,
-        amount: wattAmount,
-      };
 
 
       // Use the sendTransaction method from our hook with a success callback
-      await sendTransaction(transactionDetails, (transactionResult) => {
-        console.log('transactionResult????', transactionResult);
-        setResult({
-          success: true,
-          ...transactionResult,
-        });
-        refreshBalance(coinCode);
-        navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {amount: transactionResult?.totalCost, coinCode: coinCode, name: ''});
+      if (coinCode === 'ETH') {
+        const transactionDetails = {
+          to: user?.beneficiaryAddress,
+          amount: wattAmount,
+        };
+        await sendEthTransaction(transactionDetails, (transactionResult) => {
+          console.log('transactionResult????', transactionResult);
+          setResult({
+            success: true,
+            ...transactionResult,
+          });
+          refreshBalance(coinCode);
+          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {amount: transactionResult?.totalCost, coinCode: coinCode, name: ''});
 
-      });
+        });
+      }
+      if (coinCode === 'USDC') {
+        const transactionDetails = {
+          to: user?.beneficiaryAddress,
+          amount: wattAmount,
+          tokenAddress: TOKEN_ADDRESSES.USDC,
+        };
+        await sendUSDCTransaction(transactionDetails, (transactionResult) => {
+          console.log('transactionResult????', transactionResult);
+          setResult({
+            success: true,
+            ...transactionResult,
+          });
+          refreshBalance(coinCode);
+          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {amount: transactionResult?.totalCost, coinCode: coinCode, name: ''});
+
+        });
+      }
+      if (coinCode === 'EURC') {
+        const transactionDetails = {
+          to: user?.beneficiaryAddress,
+          amount: wattAmount,
+          tokenAddress: TOKEN_ADDRESSES.EURC,
+        };
+        await sendUSDCTransaction(transactionDetails, (transactionResult) => {
+          console.log('transactionResult????', transactionResult);
+          setResult({
+            success: true,
+            ...transactionResult,
+          });
+          refreshBalance(coinCode);
+          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {amount: transactionResult?.totalCost, coinCode: coinCode, name: ''});
+
+        });
+      }
     } catch (err: any) {
       setResult({
         gasFee: '', networkName: '', totalCost: undefined, txHash: '',
@@ -189,14 +236,14 @@ export default function SendCoin(props: SendCoinProps): JSX.Element {
           </View>
         </View>
       </ScrollView>
-
+      {console?.log('wattAmount', wattAmount)}
       <DButton
         type="primary"
         style={styles.loginBtnStyle}
-        disabled={parseFloat(wattAmount) > parseFloat(balance) || isLoading}
+        disabled={wattAmount === '0' || wattAmount === null || wattAmount === '' || parseFloat(wattAmount) > parseFloat(balance) || ethIsLoading || usdcIsLoading}
         onPress={() => onVerify()}>
         <Text style={[styles.loginText]}>
-          {isLoading ? 'Sending...' : 'Send'}
+          {ethIsLoading || usdcIsLoading ? 'Sending...' : 'Send'}
         </Text>
       </DButton>
     </SafeAreaView>
