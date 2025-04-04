@@ -13,11 +13,33 @@ import Images from '../../../Theme/images';
 import {DText} from '../../../Componants/DText';
 import {CustomImageButton} from '../../../Componants';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import {SCREEN_CONSTANT} from '../../../Navigation/constant';
+import {isAddress} from 'ethers';
+import {SnackBarMessage} from '../../../utils/snackBar';
+import {navigateTo} from '../../../utils/navigationService';
 
 export const VerifyAddress = props => {
   const [senderAddress, setSenderAddress] = useState('');
+  const coinCode = props?.route?.params?.coinCode;
 
-  function isValidEthereumAddress(address) {}
+  function isValidEthereumAddress(address) {
+    try {
+      const status = isAddress(address);
+      console.log('status', status);
+
+      if (!status) {
+        SnackBarMessage('Please Enter valid Address.', 'error');
+      } else {
+        const user = {
+          beneficiaryAddress: senderAddress,
+        };
+        navigateTo(SCREEN_CONSTANT.SENDCOIN, {user: user, coinCode: coinCode});
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
+  }
 
   return (
     <View style={style.container}>
@@ -34,7 +56,7 @@ export const VerifyAddress = props => {
         centerComponent={
           <View style={style.nameContainer}>
             <DText style={style.title} fontStyle="fontSemiBold">
-              wUSDC
+              {coinCode}
             </DText>
           </View>
         }

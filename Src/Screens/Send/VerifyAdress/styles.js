@@ -1,6 +1,6 @@
 import {StyleSheet} from 'react-native';
-import {Colors, fontsFamily} from '../../../Theme';
 import {ScreenWidth} from '@rneui/base';
+import {Colors, fontsFamily} from '../../../Theme';
 
 export default StyleSheet.create({
   container: {
@@ -51,8 +51,9 @@ export default StyleSheet.create({
   bottomButton: {
     height: 51,
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 40,
     marginHorizontal: 10,
+
   },
   buttonImage: {
     height: 51,

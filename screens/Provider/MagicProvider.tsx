@@ -1,11 +1,6 @@
 import React, {createContext, useContext, ReactNode, useState} from 'react';
 import {Magic} from '@magic-sdk/react-native-bare';
-import {OAuthExtension} from '@magic-ext/react-native-bare-oauth';
-import {BitcoinExtension} from '@magic-ext/bitcoin';
-import {GDKMSExtension} from '@magic-ext/gdkms';
-import {AuthExtension} from '@magic-ext/auth';
 import Web3 from 'web3';
-import {ENV} from '../../config/env';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 // Define the shape of our context
@@ -34,16 +29,8 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
                                                             }) => {
   // Initialize Magic instance
   const magic = new Magic(apiKey, {
-    network: 'sepolia ',
-    // extensions: [
-    //   new OAuthExtension(),
-    //   new AuthExtension(),
-    //   new GDKMSExtension(),
-    //   new BitcoinExtension({
-    //     rpcUrl: btcRpcUrl,
-    //     network: 'sepolia', // or 'mainnet' based on your needs
-    //   }),
-    // ],
+    network: 'sepolia',
+
   });
 
   // Initialize Web3 with Magic's provider

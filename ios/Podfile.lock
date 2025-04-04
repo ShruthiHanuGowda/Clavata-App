@@ -1110,7 +1110,7 @@ PODS:
     - glog
     - RCT-Folly (= 2022.05.16.00)
     - React-Core
-  - RNSnackbar (2.8.0):
+  - RNSnackbar (2.9.0):
     - React-Core
   - RNSVG (15.11.2):
     - React-Core
@@ -1391,7 +1391,7 @@ SPEC CHECKSUMS:
   RNInAppBrowser: e36d6935517101ccba0e875bac8ad7b0cb655364
   RNReanimated: 98ed8b33f88a749dc2fd2433a03ca4f4a9d2b690
   RNScreens: b582cb834dc4133307562e930e8fa914b8c04ef2
-  RNSnackbar: 37ce6daf19c8bd35cf6133db5797aa298c8782ac
+  RNSnackbar: b0914bd060cdb82862dc1a987be57a8b918610bf
   RNSVG: d3dcdd1472cc7e82b0654c48bf6abf893485b074
   RNVectorIcons: fcc2f6cb32f5735b586e66d14103a74ce6ad61f8
   SocketRocket: f32cd54efbe0f095c4d7594881e52619cfe80b17
