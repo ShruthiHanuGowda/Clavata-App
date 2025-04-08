@@ -1,16 +1,16 @@
-import React, {useContext, useEffect, useState} from 'react';
-import {Header, Switch} from '@rneui/base';
-import {Image, SafeAreaView, StyleSheet, TouchableOpacity} from 'react-native';
-import {View} from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { Header, Switch } from '@rneui/base';
+import { Image, SafeAreaView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View } from 'react-native';
 import MarketPlaceContext from './MarketPlaceContext';
-import {moderateScale} from 'react-native-size-matters';
+import { moderateScale } from 'react-native-size-matters';
 import MarketPlaceResult from './MarketPlaceResult';
 import Filter from './Filter';
 import images from '../../Theme/images';
-import {DText} from '../../Componants/DText';
-import {DSearchInput} from '../../Componants/Dinputs';
+import { DText } from '../../Componants/DText';
+import { DSearchInput } from '../../Componants/Dinputs';
 
-function MarketPlaceHeader({handleCartPress}) {
+function MarketPlaceHeader({ handleCartPress }) {
   const selected = undefined;
   return (
     <Header
@@ -41,8 +41,8 @@ function MarketPlaceHeader({handleCartPress}) {
   );
 }
 
-function MarketPlaceMoreInfoHeader({handleBackPress, handleCartPress}) {
-  const {selectedOrg, selected} = useContext(MarketPlaceContext);
+function MarketPlaceMoreInfoHeader({ handleBackPress, handleCartPress }) {
+  const { selectedOrg, selected } = useContext(MarketPlaceContext);
   return (
     <Header
       backgroundColor={'#FFF'}
@@ -86,7 +86,7 @@ function MyListingToggle() {
 }
 
 function DCount() {
-  const {count} = useContext(MarketPlaceContext);
+  const { count } = useContext(MarketPlaceContext);
   return (
     <View style={styles.myListing}>
       <DText fontStyle="fontRegular" style={styles.myListingCount}>
@@ -131,9 +131,9 @@ const defaultFilter = {
 export default function MarketPlace() {
   const [selectedOrg, setSelectedOrg] = useState(null);
 
-  const handleBackPress = () => {};
+  const handleBackPress = () => { };
 
-  const handleCartPress = () => {};
+  const handleCartPress = () => { };
 
   return (
     <MarketPlaceContext.Provider>
@@ -205,8 +205,8 @@ const styles = StyleSheet.create({
   },
   switch: {
     transform: [
-      {scaleX: moderateScale(0.7, 1)},
-      {scaleY: moderateScale(0.7, 1)},
+      { scaleX: moderateScale(0.7, 1) },
+      { scaleY: moderateScale(0.7, 1) },
     ],
   },
 });

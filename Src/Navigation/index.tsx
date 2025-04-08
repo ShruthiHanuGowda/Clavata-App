@@ -19,6 +19,7 @@ import Account from '../Screens/AppScreens/Accountpage';
 import ContactUs from '../Screens/AppScreens/ContactUs';
 import Wallet from '../Screens/wallet';
 import AccountBeneficary from '../Screens/AppScreens/Beneficiaries/beneficary';
+import CollectionDetailsPage from '../Screens/MarketPlaceNew/CollectionDetailsPage';
 
 type AuthStackParamList = {
   login: {magicProps: any};
@@ -60,6 +61,11 @@ function RootScreenStack() {
         name="authScreens"
         options={{headerShown: false}}
         component={LoginScreen}
+      />
+      <RootStack.Screen
+        name="collectionDetails"
+        options={{headerShown: false}}
+        component={CollectionDetailsPage}
       />
       <RootStack.Screen name="appScreens" component={Tabs} />
     </RootStack.Navigator>

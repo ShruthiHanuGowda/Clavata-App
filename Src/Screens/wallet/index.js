@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useRef, useState} from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import {
   Text,
   View,
@@ -8,15 +8,15 @@ import {
   RefreshControl,
 } from 'react-native';
 
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import style from './style';
 import Portfolio from './Portfolio';
 import ListItem from './ListItem';
-import {SCREEN_CONSTANT} from '../../Navigation/constant';
+import { SCREEN_CONSTANT } from '../../Navigation/constant';
 import MyCryptoCard from './MyCryptoCard';
 import AppContext from '../../../AppContext';
-import {useAuth} from '../../../screens/Provider/authProvider';
+import { useAuth } from '../../../screens/Provider/authProvider';
 
 const ITEMS = [
   {
@@ -35,10 +35,10 @@ const ITEMS = [
 ];
 
 export default function Wallet(props) {
-  const {getDrecs, getBalance, balanceData, data} =
+  const { getDrecs, getBalance, balanceData, data } =
     useContext(AppContext).portfolio;
   const [items, setItems] = useState([]);
-  const {walletBalances, refreshBalances} = useAuth();
+  const { walletBalances, refreshBalances } = useAuth();
   const [pullToRefreshLoading, setPullToRefreshLoading] = useState(false);
   const scrollViewRef = useRef();
 
@@ -48,11 +48,11 @@ export default function Wallet(props) {
       code: 'ETH',
       coinValue: 'ETH',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       growth: 0,
       dollar: walletBalances?.ethBalanceUsd, //props?.ETH?.fiatBalance
@@ -62,11 +62,11 @@ export default function Wallet(props) {
       title: 'USDC Coin',
       code: 'USDC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       growth: 0,
       dollar: walletBalances?.sepoliaUsdcBalanceUsd, //props?.USDC?.fiatBalance
@@ -76,11 +76,11 @@ export default function Wallet(props) {
       title: 'EURC Coin',
       code: 'EURC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       growth: 0,
       dollar: walletBalances?.sepoliaEurcBalanceUsd, //props?.EURC?.fiatBalance
@@ -93,11 +93,11 @@ export default function Wallet(props) {
       title: 'Watt Coin',
       code: 'WATT',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       growth: 0,
       dollar: walletBalances?.wattsBalanceUsd, //props?.WATT?.fiatBalance
@@ -107,11 +107,11 @@ export default function Wallet(props) {
       title: 'wUSDC Coin',
       code: 'WUSDC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       growth: 0,
       dollar: walletBalances?.denergyUsdcBalanceUsd, //props?.WUSDC?.fiatBalance
@@ -121,11 +121,11 @@ export default function Wallet(props) {
       title: 'wEURC Coin',
       code: 'WEURC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       growth: 0,
       dollar: walletBalances?.denergyEurcBalanceUsd, //props?.WEURC?.fiatBalance
@@ -167,19 +167,19 @@ export default function Wallet(props) {
   }, [props.navigation]);
 
   return (
-    <SafeAreaView style={{backgroundColor: '#fff', flex: 1}}>
+    <SafeAreaView style={{ backgroundColor: '#fff', flex: 1 }}>
       <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={{paddingBottom: 50}}
-        // refreshControl={
-        //   <RefreshControl
-        //     refreshing={pullToRefreshLoading}
-        //     onRefresh={() => {
-        //       setPullToRefreshLoading(true);
-        //       init();
-        //     }}
-        //   />
-        // }
+        contentContainerStyle={{ paddingBottom: 50 }}
+      // refreshControl={
+      //   <RefreshControl
+      //     refreshing={pullToRefreshLoading}
+      //     onRefresh={() => {
+      //       setPullToRefreshLoading(true);
+      //       init();
+      //     }}
+      //   />
+      // }
       >
         <Portfolio {...balanceData} fiatBalance={data?.fiatBalance} />
         <View>
