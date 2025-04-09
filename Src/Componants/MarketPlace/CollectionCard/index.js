@@ -1,13 +1,17 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions } from 'react-native';
+
+const screenWidth = Dimensions.get('window').width;
+const cardMargin = 10;
+const cardWidth = (screenWidth / 2) - (cardMargin * 3);
 
 const CollectionCard = ({ collection, onPress }) => {
     return (
-        <TouchableOpacity style={styles.collectionCard} onPress={onPress}>
+        <TouchableOpacity style={[styles.collectionCard, { width: cardWidth }]} onPress={onPress}>
             <Image source={{ uri: collection.bannerImage }} style={styles.bannerImage} />
             <View style={styles.collectionInfo}>
                 <Text style={styles.collectionName}>{collection.collectionName}</Text>
-                <Text style={styles.symbolText}>Symbol: {collection.symbol}</Text>
+                <Text style={styles.symbolText}>{collection.symbol}</Text>
             </View>
         </TouchableOpacity>
     );
@@ -15,44 +19,34 @@ const CollectionCard = ({ collection, onPress }) => {
 
 const styles = StyleSheet.create({
     collectionCard: {
-        width: '90%',
-        marginBottom: 20,
-        borderRadius: 15,
-        overflow: 'hidden',
-        elevation: 8,
+        margin: cardMargin,
+        borderRadius: 10,
+        backgroundColor: '#fff',
+        elevation: 3,
         shadowColor: '#000',
         shadowOpacity: 0.1,
-        shadowRadius: 8,
-        backgroundColor: '#fff',
+        shadowRadius: 4,
     },
     bannerImage: {
         width: '100%',
-        height: 150,
-        resizeMode: 'cover',
-        borderRadius: 15,
+        aspectRatio: 1,
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
     },
     collectionInfo: {
-        padding: 15,
-        backgroundColor: '#fff',
-        borderBottomLeftRadius: 15,
-        borderBottomRightRadius: 15,
-        borderTopWidth: 1,
-        borderTopColor: '#eee',
+        padding: 10,
         alignItems: 'center',
-        elevation: 3,
     },
     collectionName: {
-        fontSize: 18,
+        fontSize: 14,
         fontWeight: 'bold',
         color: '#333',
-        marginBottom: 5,
         textAlign: 'center',
     },
     symbolText: {
-        fontSize: 14,
-        color: '#777',
-        marginBottom: 10,
-        textAlign: 'center',
+        fontSize: 12,
+        color: '#888',
+        marginTop: 5,
     },
 });
 
