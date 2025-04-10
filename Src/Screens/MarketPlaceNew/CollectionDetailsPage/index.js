@@ -11,6 +11,7 @@ import CollectionDetailsHeader from '../../../Componants/MarketPlace/CollectionD
 import NFTCard from '../../../Componants/MarketPlace/NFTCard';
 import Spinner from '../../../Componants/MarketPlace/Spinner';
 import TabButton from '../../../Componants/MarketPlace/TabButton';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const allNfts = [
     {
@@ -19,7 +20,6 @@ const allNfts = [
         image: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
         price: '0.5',
         icon: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
-        onSale: true,
         quantity: 20,
     },
     {
@@ -27,13 +27,10 @@ const allNfts = [
         name: 'NFT #2',
         image: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
         icon: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
-        price: null,
-        onSale: false,
+        price: 2.50,
         quantity: 5,
     },
 ];
-
-const onSaleNfts = allNfts.filter(nft => nft.onSale);
 
 const CollectionDetailsPage = ({ route }) => {
     const { collectionName } = route.params;
@@ -50,70 +47,68 @@ const CollectionDetailsPage = ({ route }) => {
         }).start();
     }, []);
 
-    const handleTabChange = (tab) => setSelectedTab(tab);
-
-    const displayedNfts = selectedTab === 'all' ? allNfts : onSaleNfts;
-
     return (
-        <ScrollView style={styles.container}>
-            <CollectionDetailsHeader />
+        <SafeAreaView style={styles.safeArea}>
+            <ScrollView style={styles.container}>
 
-            <View style={styles.imageWrapper}>
-                {!imageLoaded && (
-                    <View style={styles.imagePlaceholder}>
-                        <Spinner />
-                    </View>
-                )}
-                <Animated.Image
-                    source={{ uri: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png' }}
-                    style={[styles.bannerImage, { opacity: fadeAnim }]}
-                    onLoad={() => setImageLoaded(true)}
-                />
-            </View>
-
-            <Animated.Text style={[styles.collectionName, { opacity: fadeAnim }]}>
-                {collectionName || 'Collection Name'}
-            </Animated.Text>
-
-            <View style={styles.collectionDetails}>
-                <Text style={styles.detailsHeader}>Collection Details</Text>
-                <View style={styles.detailsRow}>
-                    <Text style={styles.detailsLabel}>Symbol:</Text>
-                    <Text style={styles.detailsValue}>VW2025</Text>
-                </View>
-                <View style={styles.detailsRow}>
-                    <Text style={styles.detailsLabel}>Year:</Text>
-                    <Text style={styles.detailsValue}>2025</Text>
-                </View>
-                <View style={styles.detailsRow}>
-                    <Text style={styles.detailsLabel}>Country:</Text>
-                    <Text style={styles.detailsValue}>Vietnam</Text>
-                </View>
-                <View style={styles.detailsRow}>
-                    <Text style={styles.detailsLabel}>Type:</Text>
-                    <Text style={styles.detailsValue}>Wind</Text>
-                </View>
-            </View>
-
-            <View style={styles.tabsContainer}>
-                <TabButton label="All" isSelected={selectedTab === 'all'} onPress={() => handleTabChange('all')} />
-                <TabButton label="On Sale" isSelected={selectedTab === 'onsale'} onPress={() => handleTabChange('onsale')} />
-            </View>
-
-            <View style={styles.nftListContainer}>
-                <View style={styles.nftGrid}>
-                    {displayedNfts.length > 0 ? (
-                        displayedNfts.map((nft) => <NFTCard key={nft.id} nft={nft} />)
-                    ) : (
-                        <Text style={styles.noNftsText}>No NFTs in this category</Text>
+                <View style={styles.imageWrapper}>
+                    {!imageLoaded && (
+                        <View style={styles.imagePlaceholder}>
+                            <Spinner />
+                        </View>
                     )}
+                    <Animated.Image
+                        source={{ uri: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png' }}
+                        style={[styles.bannerImage, { opacity: fadeAnim }]}
+                        onLoad={() => setImageLoaded(true)}
+                    />
                 </View>
-            </View>
-        </ScrollView>
+
+                <Animated.Text style={[styles.collectionName, { opacity: fadeAnim }]}>
+                    {collectionName || 'Collection Name'}
+                </Animated.Text>
+
+                <View style={styles.collectionDetails}>
+                    <Text style={styles.detailsHeader}>Collection Details</Text>
+                    <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Symbol:</Text>
+                        <Text style={styles.detailsValue}>VW2025</Text>
+                    </View>
+                    <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Year:</Text>
+                        <Text style={styles.detailsValue}>2025</Text>
+                    </View>
+                    <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Country:</Text>
+                        <Text style={styles.detailsValue}>Vietnam</Text>
+                    </View>
+                    <View style={styles.detailsRow}>
+                        <Text style={styles.detailsLabel}>Type:</Text>
+                        <Text style={styles.detailsValue}>Wind</Text>
+                    </View>
+                </View>
+
+
+                <View style={styles.nftListContainer}>
+                    <Text style={styles.nftSectionTitle}>NFTs</Text>
+                    <View style={styles.nftGrid}>
+                        {allNfts.length > 0 ? (
+                            allNfts.map((nft) => <NFTCard key={nft.id} nft={nft} />)
+                        ) : (
+                            <Text style={styles.noNftsText}>No NFTs in this category</Text>
+                        )}
+                    </View>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#f9f9f9'
+    },
     container: {
         flex: 1,
         backgroundColor: '#f9f9f9',
@@ -170,14 +165,16 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
     },
-    tabsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginVertical: 15,
-    },
     nftListContainer: {
         paddingBottom: 20,
         alignItems: 'center',
+        marginTop: 20,
+    },
+    nftSectionTitle: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 10,
     },
     nftGrid: {
         flexDirection: 'row',

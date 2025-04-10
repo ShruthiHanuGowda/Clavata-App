@@ -8,7 +8,7 @@ const CollectionDetailsHeader = () => {
     return (
         <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Text style={styles.backButtonText}>← Back</Text>
+
             </TouchableOpacity>
         </View>
     );

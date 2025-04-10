@@ -33,16 +33,14 @@ const NFTCard = ({ nft }) => {
             <Text style={styles.name} numberOfLines={1}>{nft.name}</Text>
             <Text style={styles.qty}>Qty: {nft.quantity || 1}</Text>
 
-            {nft.onSale && nft.price ? (
-                <View style={styles.priceWrapper}>
-                    {nft.icon && (
-                        <Image source={{ uri: nft.icon }} style={styles.priceIcon} />
-                    )}
-                    <Text style={styles.priceText}>{nft.price}</Text>
-                </View>
-            ) : (
-                <Text style={styles.notForSale}>Not for Sale</Text>
-            )}
+
+            <View style={styles.priceWrapper}>
+                {nft.icon && (
+                    <Image source={{ uri: nft.icon }} style={styles.priceIcon} />
+                )}
+                <Text style={styles.priceText}>{nft.price}</Text>
+            </View>
+
         </TouchableOpacity>
     );
 };
