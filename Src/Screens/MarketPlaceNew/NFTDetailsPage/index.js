@@ -5,10 +5,12 @@ import OwnerList from '../../../Componants/MarketPlace/OwnerList';
 import ContractInfo from '../../../Componants/MarketPlace/ContractInfo';
 import ActivityList from '../../../Componants/MarketPlace/ActivityList';
 import BuyModal from '../../../Componants/MarketPlace/BuySellModal/BuyModal';
+import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
 
 const NFTDetailsPage = ({ route }) => {
     const { nft } = route.params;
     const [isBuyModalVisible, setIsBuyModalVisible] = useState(false);
+    const [isSellModalVisible, setIsSellModalVisible] = useState(false)
 
     const owners = [
         { id: 1, price: '0.5', qty: 2, owner: '0x1234...abcd', isCurrentUser: false },
@@ -49,7 +51,7 @@ const NFTDetailsPage = ({ route }) => {
                 <NFTHeader nft={nft} onBuyPress={() => setIsBuyModalVisible(true)} />
 
                 <Text style={styles.sectionTitle}>👑 Owners</Text>
-                <OwnerList owners={owners} />
+                <OwnerList owners={owners} onBuyPress={() => setIsBuyModalVisible(true)} onSellPress={() => setIsSellModalVisible(true)} />
 
                 <Text style={styles.sectionTitle}>📄 Contract Info</Text>
                 <ContractInfo />
@@ -62,6 +64,11 @@ const NFTDetailsPage = ({ route }) => {
                 onClose={() => setIsBuyModalVisible(false)}
                 onConfirm={handleBuyConfirm}
                 nftToBuy={nft}
+            />
+            <SellModal
+                visible={isSellModalVisible}
+                onClose={() => setIsSellModalVisible(false)}
+                nftToSell={nft}
             />
         </>
     );

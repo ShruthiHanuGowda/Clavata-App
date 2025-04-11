@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-const OwnerList = ({ owners }) => (
+const OwnerList = ({ owners, onBuyPress, onSellPress }) => (
     <View style={styles.card}>
         {owners.map((owner) => (
             <View key={owner.id} style={styles.ownerRow}>
@@ -12,6 +12,7 @@ const OwnerList = ({ owners }) => (
                 </View>
                 <TouchableOpacity
                     style={owner.isCurrentUser ? styles.sellButton : styles.buyButton}
+                    onPress={() => owner.isCurrentUser ? onSellPress(owner) : onBuyPress(owner)}
                 >
                     <Text style={styles.buttonText}>
                         {owner.isCurrentUser ? 'Sell' : 'Buy'}
