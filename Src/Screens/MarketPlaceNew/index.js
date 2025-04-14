@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, RefreshControl, StyleSheet, View } from 'react-native';
+import { SafeAreaView, ScrollView, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { navigate } from '../../Navigation/NavigationFunctions';
 import ListingHeader from '../../Componants/MarketPlace/ListingHeader';
 import CollectionCard from '../../Componants/MarketPlace/CollectionCard';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 
 const CollectionListingPage = () => {
     const [refreshing, setRefreshing] = useState(false);
+    const walletConnected = true;
 
     const collections = [
         {
@@ -56,8 +58,13 @@ const CollectionListingPage = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <ListingHeader title="Collections" />
+            <ListingHeader title="Explore Collections" />
 
+            {walletConnected && (
+                <TouchableOpacity style={styles.myNftsButton} onPress={() => navigate('YourNFTs')}>
+                    <Text style={styles.myNftsButtonText}>View My NFTs</Text>
+                </TouchableOpacity>
+            )}
 
             <ScrollView
                 contentContainerStyle={styles.gridContainer}
@@ -92,6 +99,20 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f2f2f2',
+    },
+    myNftsButton: {
+        marginHorizontal: 10,
+        marginTop: 10,
+        marginBottom: 5,
+        padding: 12,
+        backgroundColor: '#008060',
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    myNftsButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
     gridContainer: {
         padding: 10,

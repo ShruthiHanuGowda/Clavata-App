@@ -1,14 +1,27 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 
 const screenWidth = Dimensions.get('window').width;
 const cardMargin = 10;
 const cardWidth = (screenWidth / 2) - (cardMargin * 3);
 
 const CollectionCard = ({ collection, onPress }) => {
+    const [loading, setLoading] = useState(true);
+
     return (
         <TouchableOpacity style={[styles.collectionCard, { width: cardWidth }]} onPress={onPress}>
-            <Image source={{ uri: collection.bannerImage }} style={styles.bannerImage} />
+            <View style={styles.imageWrapper}>
+                {loading && (
+                    <View style={styles.loader}>
+                        <ActivityIndicator size="small" color="#008060" />
+                    </View>
+                )}
+                <Image
+                    source={{ uri: collection.bannerImage }}
+                    style={styles.bannerImage}
+                    onLoadEnd={() => setLoading(false)}
+                />
+            </View>
             <View style={styles.collectionInfo}>
                 <Text style={styles.collectionName}>{collection.collectionName}</Text>
                 <Text style={styles.symbolText}>{collection.symbol}</Text>
@@ -27,11 +40,24 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
     },
-    bannerImage: {
+    imageWrapper: {
         width: '100%',
         aspectRatio: 1,
+        position: 'relative',
         borderTopLeftRadius: 10,
         borderTopRightRadius: 10,
+        overflow: 'hidden',
+        backgroundColor: '#eee',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loader: {
+        position: 'absolute',
+        zIndex: 1,
+    },
+    bannerImage: {
+        width: '100%',
+        height: '100%',
     },
     collectionInfo: {
         padding: 10,

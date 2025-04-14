@@ -6,8 +6,11 @@ const TabButton = ({ label, isSelected, onPress }) => {
         <TouchableOpacity
             style={[styles.tabButton, isSelected && styles.selectedTab]}
             onPress={onPress}
+            activeOpacity={0.8}
         >
-            <Text style={styles.tabButtonText}>{label}</Text>
+            <Text style={[styles.tabButtonText, isSelected && styles.selectedText]}>
+                {label}
+            </Text>
         </TouchableOpacity>
     );
 };
@@ -16,18 +19,31 @@ const styles = StyleSheet.create({
     tabButton: {
         paddingVertical: 12,
         paddingHorizontal: 25,
-        backgroundColor: '#f9f9f9',
+        backgroundColor: '#ffffff',
         borderRadius: 30,
         marginHorizontal: 8,
         borderWidth: 1,
-        borderColor: '#ddd',
+        borderColor: '#ccc',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
     },
     selectedTab: {
-        backgroundColor: '#4CAF50',
+        backgroundColor: '#008060',
+        borderColor: '#006a52',
+        shadowOpacity: 0.2,
+        elevation: 4,
     },
     tabButtonText: {
-        fontSize: 18,
+        fontSize: 16,
+        fontWeight: '600',
         color: '#333',
+        textAlign: 'center',
+    },
+    selectedText: {
+        color: '#fff',
     },
 });
 

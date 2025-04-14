@@ -8,8 +8,8 @@ const NFTHeader = ({ nft, onBuyPress }) => (
             {nft.description && <Text style={styles.description}>{nft.description}</Text>}
             {nft.price && <Text style={styles.price}>💰 Price: {nft.price}</Text>}
             <Text style={styles.qty}>📦 Quantity: {nft.quantity}</Text>
-            <TouchableOpacity style={styles.buyButton}>
-                <Text style={styles.buyButtonText} onPress={onBuyPress}>Buy Now</Text>
+            <TouchableOpacity style={styles.buyButton} onPress={onBuyPress}>
+                <Text style={styles.buyButtonText}>Buy Now</Text>
             </TouchableOpacity>
         </View>
         <Image source={{ uri: nft.image }} style={styles.nftImage} />

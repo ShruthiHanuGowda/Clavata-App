@@ -32,7 +32,7 @@ const allNfts = [
     },
 ];
 
-const CollectionDetailsPage = ({ route }) => {
+const CollectionDetailsScreen = ({ route }) => {
     const { collectionName } = route.params;
     const navigation = useNavigation();
     const [selectedTab, setSelectedTab] = useState('all');
@@ -190,4 +190,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default CollectionDetailsPage;
+export default CollectionDetailsScreen;

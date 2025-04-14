@@ -7,7 +7,7 @@ import ActivityList from '../../../Componants/MarketPlace/ActivityList';
 import BuyModal from '../../../Componants/MarketPlace/BuySellModal/BuyModal';
 import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
 
-const NFTDetailsPage = ({ route }) => {
+const NFTDetailsScreen = ({ route }) => {
     const { nft } = route.params;
     const [isBuyModalVisible, setIsBuyModalVisible] = useState(false);
     const [isSellModalVisible, setIsSellModalVisible] = useState(false)
@@ -89,4 +89,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default NFTDetailsPage;
+export default NFTDetailsScreen;
