@@ -21,23 +21,19 @@ import {navigateTo} from '../../../utils/navigationService';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import {useWalletBalance} from '../../../hooks/useWalletBalance';
 import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useWallet} from '../../../../screens/Provider/WalletProvider';
+import {SCREEN_CONSTANT} from '../../../Navigation/constant';
 
 const width = Dimensions.get('window').width;
 export default function CoinWallet(props) {
   const coinCode = props?.route?.params?.coinCode;
-  const {getSingleTokenBalance, wattsBalance, fetchBalances} = useWalletBalance();
-  const {userDetails, walletBalances, refreshBalances} = useAuth();
-
-
-  useEffect(() => {
-    // Make sure this is being called with a valid address
-    fetchBalances(userDetails?.userWallet);
-  }, [fetchBalances]);
+  const {getBalance} = useWallet();
+  const {userDetails} = useAuth();
 
 
   console.log('userDetails', userDetails?.userWallet);
-  const {balance, balanceUsd} = getSingleTokenBalance(coinCode);
-  console.log(`WATT Balance: ${balance}, USD Value: $${balanceUsd}`, wattsBalance);
+  const {balance, balanceUsd} = getBalance(coinCode);
+
 
   const [toggleValue, setToggleValue] = useState('day');
   const [index, setIndex] = useState(0);
@@ -177,20 +173,20 @@ export default function CoinWallet(props) {
                   <OperationButton
                     name={'Send'}
                     image={images.sendIcon}
-                    //   onPress={() =>
-                    //     navigateTo(SCREEN_CONSTANT.VERIFYADDRESS, {
-                    //       coinCode: coinCode,
-                    //     })
-                    //   }
+                    onPress={() =>
+                      navigateTo(SCREEN_CONSTANT?.VERIFYADDRESS, {
+                        coinCode: coinCode,
+                      })
+                    }
                   />
                   <OperationButton
                     name={'Receive'}
                     image={images.receiveIcon}
-                    //   onPress={() =>
-                    //     navigateTo(SCREEN_CONSTANT.RECIEVESCREEN, {
-                    //       coinCode: coinCode,
-                    //     })
-                    //   }
+                    onPress={() =>
+                      navigateTo(SCREEN_CONSTANT.RECIEVESCREEN, {
+                        coinCode: coinCode,
+                      })
+                    }
                   />
                 </>
                 {/*{coinCode === 'ETH' && (*/}

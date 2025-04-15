@@ -16,9 +16,8 @@ import ToggleSwitch from 'toggle-switch-react-native';
 import {navigateTo} from '../../../utils/navigationService';
 
 export default function ProfileSetting(props) {
-  const {userDetails, walletBalances, refreshBalances} = useAuth();
+  const {userDetails} = useAuth();
   const [isEnabled, setIsEnabled] = useState(true);
-  console.log('walletBalances?>>>', walletBalances);
   const toggleSwitch = () => {
     setIsEnabled(!isEnabled);
   };
@@ -104,67 +103,6 @@ export default function ProfileSetting(props) {
           </View>
         </View>
 
-        <View style={styles.subSec}>
-          <View>
-            <Text
-              style={{
-                fontFamily: fontsFamily.MulishBold,
-                fontSize: 12,
-                lineHeight: 20,
-                color: '#00201B',
-                letterSpacing: 1,
-              }}>
-              BALANCE
-            </Text>
-            {walletBalances?.isBalanceError === null ?
-              <View>{Object.entries(walletBalances).map(([key, value]) => {
-                console.log('key', key);
-                return (
-                  <View
-                    style={[{
-                      marginTop: 14,
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                    }, (key === 'isBalanceError' || key === 'isBalanceLoading') && {display: 'none'}]}>
-                    <View
-                      style={{
-                        flex: 1,
-                        flexDirection: 'row',
-                        width: '30%',
-                      }}>
-                      <Text
-                        style={{
-                          fontFamily: fontsFamily.MulishSemiBold,
-                          fontSize: 12,
-                          lineHeight: 15,
-                          color: '#A1A1A1',
-                          // width: '50%',
-                        }}>
-                        {formatKey(key)}
-                      </Text>
-                    </View>
-                    <View style={{justifyContent: 'space-evenly', width: '70%'}}>
-                      <Text
-                        style={{
-                          fontFamily: fontsFamily.MulishSemiBold,
-                          fontSize: 12,
-                          lineHeight: 15,
-                          color: '#616161',
-                          // width: '50%',
-                          textAlign: 'right',
-                        }}>
-                        {formatValue(key, value)}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
-              </View>
-              :
-              <View style={{marginTop: 15}}><Text style={{color: Colors?.error}}>Something went wrong while fetching
-                balance. Error: {walletBalances?.isBalanceError}</Text></View>}
-          </View>
-        </View>
 
         <View style={styles.subSec}>
           <View>

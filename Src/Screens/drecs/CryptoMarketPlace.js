@@ -3,12 +3,18 @@ import {Image, StyleSheet, Text, View} from 'react-native';
 import {DText} from '../../Componants/DText';
 import CryptoMarketCard from './CryptoMarketCard';
 import {fontsFamily} from '../../Theme';
-import {useAuth} from '../../../screens/Provider/authProvider';
+import {useWallet} from '../../../screens/Provider/WalletProvider';
 
 
 export default function CryptoMarketPlace(props) {
-  const {walletBalances, refreshBalances} = useAuth();
-  console.log('walletBalances>>>>>>>>', walletBalances);
+  const {getBalance, refreshBalance, isBalanceLoading} = useWallet();
+
+  const formatValue = (value, fixed) => {
+    if (value === undefined || value === null) {
+      return '0.00';
+    }
+    return parseFloat(value).toFixed(fixed ?? 2);
+  };
   const ethereumCoins = [
     {
       title: 'ETH Coin',
@@ -22,8 +28,8 @@ export default function CryptoMarketPlace(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: walletBalances?.ethBalanceUsd, //props?.ETH?.fiatBalance
-      balance: walletBalances?.ethBalance, //props?.ETH?.tokenBalance
+      balance: formatValue(getBalance('ETH')?.balance, 4), //props?.ETH?.fiatBalance
+      dollar: formatValue(getBalance('ETH')?.balanceUsd), //props?.ETH?.tokenBalance
     },
     {
       title: 'USDC Coin',
@@ -36,8 +42,8 @@ export default function CryptoMarketPlace(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: walletBalances?.sepoliaUsdcBalanceUsd, //props?.USDC?.fiatBalance
-      balance: walletBalances?.sepoliaUsdcBalance, //props?.USDC?.tokenBalance
+      balance: formatValue(getBalance('USDC')?.balance, 4), //props?.USDC?.fiatBalance
+      dollar: formatValue(getBalance('USDC')?.balanceUsd), //props?.USDC?.tokenBalance
     },
     {
       title: 'EURC Coin',
@@ -50,8 +56,8 @@ export default function CryptoMarketPlace(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: walletBalances?.sepoliaEurcBalanceUsd, //props?.EURC?.fiatBalance
-      balance: walletBalances?.sepoliaEurcBalance, //props?.EURC?.tokenBalance
+      balance: formatValue(getBalance('EURC')?.balance), //props?.EURC?.fiatBalance
+      dollar: formatValue(getBalance('EURC')?.balanceUsd), //props?.EURC?.tokenBalance
     },
   ];
 
@@ -67,8 +73,8 @@ export default function CryptoMarketPlace(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: walletBalances?.wattsBalanceUsd, //props?.WATT?.fiatBalance
-      balance: walletBalances?.wattsBalance, //props?.WATT?.tokenBalance
+      balance: formatValue(getBalance('WATT')?.balance), //props?.WATT?.fiatBalance
+      dollar: formatValue(getBalance('WATT')?.balanceUsd), //props?.WATT?.tokenBalance
     },
     {
       title: 'wUSDC Coin',
@@ -81,8 +87,8 @@ export default function CryptoMarketPlace(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: walletBalances?.denergyUsdcBalanceUsd, //props?.WUSDC?.fiatBalance
-      balance: walletBalances?.denergyUsdcBalance, //props?.WUSDC?.tokenBalance
+      balance: formatValue(getBalance('WUSDC')?.balance), //props?.WUSDC?.fiatBalance
+      dollar: formatValue(getBalance('WUSDC')?.balanceUsd), //props?.WUSDC?.tokenBalance
     },
     {
       title: 'wEURC Coin',
@@ -95,8 +101,8 @@ export default function CryptoMarketPlace(props) {
         {x: 5, y: 0},
       ],
       growth: 0,
-      dollar: walletBalances?.denergyEurcBalanceUsd, //props?.WEURC?.fiatBalance
-      balance: walletBalances?.denergyEurcBalance, //props?.WEURC?.tokenBalance
+      balance: formatValue(getBalance('WEURC')?.balance), //props?.WEURC?.fiatBalance
+      dollar: formatValue(getBalance('WEURC')?.balanceUsd), //props?.WEURC?.tokenBalance
     },
   ];
   return (
