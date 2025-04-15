@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 import {
     View,
     Text,
@@ -8,9 +8,28 @@ import {
     TouchableOpacity,
     ScrollView,
     ActivityIndicator,
-} from 'react-native'
+} from 'react-native';
 
-const ReviewStage = ({
+interface ReviewStageProps {
+    nftToBuy: {
+        image?: {
+            thumbnail: string;
+        };
+        collectionName?: string;
+        name?: string;
+        tokenId?: string;
+    };
+    paymentCurrency: string;
+    quantity: number;
+    setQuantity: React.Dispatch<React.SetStateAction<number>>;
+    nftPrice: number;
+    walletBalance: number;
+    walletFetchStatus: 'loading' | 'success' | 'error';
+    continueToNextStage: () => void;
+    availableQuantity: number;
+}
+
+const ReviewStage: React.FC<ReviewStageProps> = ({
     nftToBuy,
     paymentCurrency,
     quantity,
@@ -21,26 +40,28 @@ const ReviewStage = ({
     continueToNextStage,
     availableQuantity,
 }) => {
-    const feePercentage = 0.025
-    const nftPriceWithFee = nftPrice * (1 + feePercentage)
-    const totalPayment = nftPriceWithFee * quantity
-    const quantityExceeds = quantity > availableQuantity
-    const notEnoughBalance = totalPayment > walletBalance
+    const feePercentage = 0.025;
+    const nftPriceWithFee = nftPrice * (1 + feePercentage);
+    const totalPayment = nftPriceWithFee * quantity;
+    const quantityExceeds = quantity > availableQuantity;
+    const notEnoughBalance = totalPayment > walletBalance;
 
-    const handleQuantityChange = (val) => {
-        const number = parseInt(val.replace(/[^0-9]/g, ''), 10)
+    const handleQuantityChange = (val: string) => {
+        const number = parseInt(val.replace(/[^0-9]/g, ''), 10);
         if (!isNaN(number) && number <= availableQuantity) {
-            setQuantity(number)
+            setQuantity(number);
         } else if (val === '') {
-            setQuantity('')
+            setQuantity(0);
         }
-    }
+    };
 
     return (
         <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.nftInfo}>
                 <Image
-                    source={{ uri: nftToBuy?.image?.thumbnail || 'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg' }}
+                    source={{
+                        uri: nftToBuy?.image?.thumbnail || 'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
+                    }}
                     style={styles.nftImage}
                 />
                 <View>
@@ -66,13 +87,19 @@ const ReviewStage = ({
                 <Text style={styles.helper}>Available: {availableQuantity}</Text>
 
                 <Text style={styles.label}>NFT Price</Text>
-                <Text style={styles.value}>{nftPrice} {paymentCurrency}</Text>
+                <Text style={styles.value}>
+                    {nftPrice} {paymentCurrency}
+                </Text>
 
                 <Text style={styles.label}>Total (excl. fees)</Text>
-                <Text style={styles.value}>{(nftPrice * quantity).toFixed(2)} {paymentCurrency}</Text>
+                <Text style={styles.value}>
+                    {(nftPrice * quantity).toFixed(2)} {paymentCurrency}
+                </Text>
 
                 <Text style={styles.label}>Fee ({(feePercentage * 100).toFixed(2)}%)</Text>
-                <Text style={styles.value}>{(nftPrice * quantity * feePercentage).toFixed(2)} {paymentCurrency}</Text>
+                <Text style={styles.value}>
+                    {(nftPrice * quantity * feePercentage).toFixed(2)} {paymentCurrency}
+                </Text>
 
                 <Text style={styles.label}>Total Payment (incl. fees)</Text>
                 <Text style={styles.value}>{totalPayment.toFixed(2)} {paymentCurrency}</Text>
@@ -111,8 +138,8 @@ const ReviewStage = ({
                 <Text style={styles.buttonText}>Checkout</Text>
             </TouchableOpacity>
         </ScrollView>
-    )
-}
+    );
+};
 
 const styles = StyleSheet.create({
     nftInfo: {
@@ -184,6 +211,6 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
     },
-})
+});
 
-export default ReviewStage
+export default ReviewStage;
