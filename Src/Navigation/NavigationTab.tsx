@@ -1,7 +1,8 @@
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import React from 'react';
 import TabBar from './TabBar';
-import MarketPlace from '../Screens/MarketPlace';
+// import MarketPlace from '../Screens/MarketPlace';
+import MarketPlace from '../Screens/MarketPlaceNew';
 import Stake from '../Screens/Stake';
 import DAppsScreen from '../Screens/DApps';
 import {HomeScreenStack, WalletStack} from '.';
@@ -31,6 +32,11 @@ export default function Tabs() {
         component={WalletStack}
         options={{headerShown: false}}
       />
+      {/* <Tab.Screen
+        name="Marketplace"
+        component={MarketPlace}
+        options={{headerShown: false}}
+      /> */}
       <Tab.Screen
         name="Marketplace"
         component={MarketPlace}

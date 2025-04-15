@@ -23,6 +23,9 @@ import Account from '../Screens/AppScreens/Accountpage';
 import ContactUs from '../Screens/AppScreens/ContactUs';
 import Wallet from '../Screens/wallet';
 import AccountBeneficary from '../Screens/AppScreens/Beneficiaries/beneficary';
+import YourNFTsScreen from '../Screens/MarketPlaceNew/YourNFTsScreen';
+import CollectionDetailsScreen from '../Screens/MarketPlaceNew/CollectionDetailsPage';
+import NFTDetailsScreen from '../Screens/MarketPlaceNew/NFTDetailsPage';
 import {SCREEN_CONSTANT} from './constant';
 
 type AuthStackParamList = {
@@ -65,6 +68,21 @@ function RootScreenStack() {
         name="authScreens"
         options={{headerShown: false}}
         component={LoginScreen}
+      />
+      <RootStack.Screen
+        name="collectionDetails"
+        options={{headerShown: false}}
+        component={CollectionDetailsScreen}
+      />
+      <RootStack.Screen
+        name="NFTDetailsPage"
+        options={{headerShown: false}}
+        component={NFTDetailsScreen}
+      />
+      <RootStack.Screen
+        name="YourNFTs"
+        component={YourNFTsScreen}
+        options={{headerShown: false}}
       />
       <RootStack.Screen name="appScreens" component={Tabs} />
     </RootStack.Navigator>
