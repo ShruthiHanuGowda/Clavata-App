@@ -41,14 +41,18 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
           </View>
         )}
         <Image
-          source={{uri: collection.bannerImage}}
+          source={{
+            uri:
+              collection?.bannerImage ||
+              'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
+          }}
           style={styles.bannerImage}
           onLoadEnd={() => setLoading(false)}
         />
       </View>
       <View style={styles.collectionInfo}>
-        <Text style={styles.collectionName}>{collection.collectionName}</Text>
-        <Text style={styles.symbolText}>{collection.symbol}</Text>
+        <Text style={styles.collectionName}>{collection?.collectionName}</Text>
+        <Text style={styles.symbolText}>{collection?.symbol}</Text>
       </View>
     </TouchableOpacity>
   );

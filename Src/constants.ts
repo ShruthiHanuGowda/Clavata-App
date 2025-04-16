@@ -26,3 +26,6 @@ export const TOKEN_CONTRACTS = {
     EURC: '0x08210F9170F89Ab7658F0B5E3fF39b0E03C594D4',
   },
 };
+
+export const API_NFT_URL =
+  'https://y2veqyu78j.execute-api.me-central-1.amazonaws.com/default';
