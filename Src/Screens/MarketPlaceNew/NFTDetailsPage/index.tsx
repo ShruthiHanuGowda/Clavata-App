@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {ScrollView, Text, StyleSheet, View} from 'react-native';
 import NFTHeader from '../../../Componants/MarketPlace/NFTHeader';
 import OwnerList from '../../../Componants/MarketPlace/OwnerList';
@@ -6,25 +6,8 @@ import ContractInfo from '../../../Componants/MarketPlace/ContractInfo';
 import ActivityList from '../../../Componants/MarketPlace/ActivityList';
 import BuyModal from '../../../Componants/MarketPlace/BuySellModal/BuyModal';
 import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
-
-interface Owner {
-  id: number;
-  price: string | null;
-  qty: number;
-  owner: string;
-  isCurrentUser: boolean;
-}
-
-interface Activity {
-  id: number;
-  event: string;
-  price: string;
-  qty: number;
-  from: string;
-  to: string;
-  date: string;
-  explorer: string;
-}
+import {NftToken} from '../../../types/types';
+import {useCompleteNft} from '../../../hooks/useCompleteNft';
 
 interface NFTDetailsScreenProps {
   route: {
@@ -35,49 +18,47 @@ interface NFTDetailsScreenProps {
 }
 
 const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
-  const {nft} = route.params;
+  const {nft}: {nft: NftToken} = route.params;
   const [isBuyModalVisible, setIsBuyModalVisible] = useState<boolean>(false);
   const [isSellModalVisible, setIsSellModalVisible] = useState<boolean>(false);
 
-  const owners: Owner[] = [
-    {id: 1, price: '0.5', qty: 2, owner: '0x1234...abcd', isCurrentUser: false},
-    {id: 2, price: null, qty: 1, owner: '0xABCD...4567', isCurrentUser: true},
-  ];
+  const {
+    nft: combinedNft,
+    loading: isLoading,
+    refetch,
+  } = useCompleteNft(nft?.id);
 
-  const activities: Activity[] = [
-    {
-      id: 1,
-      event: 'Transfer',
-      price: '0.5',
-      qty: 1,
-      from: '0x1...aaa',
-      to: '0x2...bbb',
-      date: '2025-04-09',
-      explorer:
-        'https://explorernew.denergytestnet.com/tx/0x087d07eb487c3eb2c717766bb4cf8242d83ed7b7d1b55e7d4618f09adb18f937',
-    },
-    {
-      id: 2,
-      event: 'Sale',
-      price: '0.6',
-      qty: 10,
-      from: '0x2...bbb',
-      to: '0x3...ccc',
-      date: '2025-04-08',
-      explorer:
-        'https://explorernew.denergytestnet.com/tx/0x087d07eb487c3eb2c717766bb4cf8242d83ed7b7d1b55e7d4618f09adb18f937',
-    },
-  ];
-
+  // Handle Buy Confirmation
   const handleBuyConfirm = () => {
     console.log('Buy confirmed!');
     setIsBuyModalVisible(false);
   };
 
+  useEffect(() => {
+    if (nft?.collectionAddress && nft?.tokenId) {
+      refetch();
+    }
+  }, [nft]);
+
+  if (isLoading || !combinedNft) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading NFT details...</Text>
+      </View>
+    );
+  }
+
+  const marketData = combinedNft;
+
+  const owners = marketData?.marketData?.activeAsks || [];
+
   return (
     <>
       <ScrollView style={styles.container}>
-        <NFTHeader nft={nft} onBuyPress={() => setIsBuyModalVisible(true)} />
+        <NFTHeader
+          nft={combinedNft}
+          onBuyPress={() => setIsBuyModalVisible(true)}
+        />
 
         <Text style={styles.sectionTitle}>👑 Owners</Text>
         <OwnerList
@@ -87,21 +68,23 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
         />
 
         <Text style={styles.sectionTitle}>📄 Contract Info</Text>
-        <ContractInfo />
+        <ContractInfo nft={combinedNft} />
 
         <Text style={styles.sectionTitle}>📊 Activity</Text>
-        <ActivityList activities={activities} />
+        <ActivityList nft={combinedNft} />
       </ScrollView>
+
       <BuyModal
         visible={isBuyModalVisible}
         onClose={() => setIsBuyModalVisible(false)}
         // onConfirm={handleBuyConfirm}
-        nftToBuy={nft}
+        nftToBuy={combinedNft}
       />
+
       <SellModal
         visible={isSellModalVisible}
         onClose={() => setIsSellModalVisible(false)}
-        nftToSell={nft}
+        nftToSell={combinedNft}
       />
     </>
   );
@@ -119,6 +102,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 10,
     color: '#2c3e50',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
   },
 });
 

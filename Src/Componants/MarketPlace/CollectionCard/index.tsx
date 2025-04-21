@@ -8,19 +8,14 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
+import {ApiCollection} from '../../../types/types';
 
 const screenWidth = Dimensions.get('window').width;
 const cardMargin = 10;
 const cardWidth = screenWidth / 2 - cardMargin * 3;
 
-interface Collection {
-  bannerImage: string;
-  collectionName: string;
-  symbol: string;
-}
-
 interface CollectionCardProps {
-  collection: Collection;
+  collection: ApiCollection;
   onPress: () => void;
 }
 
@@ -43,7 +38,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
         <Image
           source={{
             uri:
-              collection?.bannerImage ||
+              collection?.banner?.large ||
               'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
           }}
           style={styles.bannerImage}

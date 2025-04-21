@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -14,17 +14,28 @@ import CollectionCard from '../../Componants/MarketPlace/CollectionCard';
 import {TouchableOpacity} from 'react-native-gesture-handler';
 import useApi from '../../hooks/useApi';
 import {API_NFT_URL} from '../../constants';
+import {ApiCollectionsResponse} from '../../types/types';
+import {useMagic} from '../../../screens/Provider/MagicProvider';
 
-const CollectionListingPage = () => {
-  const [refreshing, setRefreshing] = useState(false);
-  const walletConnected = true;
+const CollectionListingPage: React.FC = () => {
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const {setActiveNetwork} = useMagic();
 
   const {
     data: collections,
     isLoading,
     error,
     refetch,
-  } = useApi(`${API_NFT_URL}/nftMarketplace_getCollections`, {method: 'GET'});
+  } = useApi<ApiCollectionsResponse>(
+    `${API_NFT_URL}/nftMarketplace_getCollections`,
+    {
+      method: 'GET',
+    },
+  );
+
+  useEffect(() => {
+    setActiveNetwork('denergy');
+  }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -38,13 +49,11 @@ const CollectionListingPage = () => {
     <SafeAreaView style={styles.container}>
       <ListingHeader title="Explore Collections" />
 
-      {walletConnected && (
-        <TouchableOpacity
-          style={styles.myNftsButton}
-          onPress={() => navigate('YourNFTs')}>
-          <Text style={styles.myNftsButtonText}>View My NFTs</Text>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        style={styles.myNftsButton}
+        onPress={() => navigate('YourNFTs')}>
+        <Text style={styles.myNftsButtonText}>View My NFTs</Text>
+      </TouchableOpacity>
 
       <ScrollView
         contentContainerStyle={styles.gridContainer}
@@ -64,13 +73,12 @@ const CollectionListingPage = () => {
               collections?.data.map((collection, index) => {
                 if (index % 2 === 0) {
                   return (
-                    <View key={collection.id} style={styles.row}>
+                    <View key={collection.contractAddress} style={styles.row}>
                       <CollectionCard
                         collection={collection}
                         onPress={() =>
                           navigate('collectionDetails', {
-                            collectionId: collection.id,
-                            collectionName: collection.collectionName,
+                            contractAddress: collection.contractAddress,
                           })
                         }
                       />
@@ -79,9 +87,8 @@ const CollectionListingPage = () => {
                           collection={collections?.data[index + 1]}
                           onPress={() =>
                             navigate('collectionDetails', {
-                              collectionId: collections?.data[index + 1].id,
-                              collectionName:
-                                collections?.data[index + 1].collectionName,
+                              contractAddress:
+                                collections?.data[index + 1].contractAddress,
                             })
                           }
                         />

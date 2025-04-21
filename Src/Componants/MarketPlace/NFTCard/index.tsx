@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {NavigationProp, useNavigation} from '@react-navigation/native';
 import Spinner from '../Spinner';
+import {NftToken} from '../../../types/types';
 
 interface NFT {
   name: string;
@@ -19,7 +20,8 @@ interface NFT {
 }
 
 interface NFTCardProps {
-  nft: NFT;
+  nft: NftToken;
+  currentAskPrice?: number;
 }
 
 type NavigationProps = NavigationProp<any, any>;
@@ -27,7 +29,7 @@ type NavigationProps = NavigationProp<any, any>;
 const screenWidth = Dimensions.get('window').width;
 const cardSize = (screenWidth - 40) / 2;
 
-const NFTCard: React.FC<NFTCardProps> = ({nft}) => {
+const NFTCard: React.FC<NFTCardProps> = ({nft, currentAskPrice}) => {
   const [imageLoaded, setImageLoaded] = useState<boolean>(false);
 
   const navigation = useNavigation<NavigationProps>();
@@ -45,7 +47,11 @@ const NFTCard: React.FC<NFTCardProps> = ({nft}) => {
           </View>
         )}
         <Image
-          source={{uri: nft.image}}
+          source={{
+            uri:
+              nft.image?.thumbnail ||
+              'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
+          }}
           style={styles.image}
           onLoad={() => setImageLoaded(true)}
         />
@@ -54,13 +60,17 @@ const NFTCard: React.FC<NFTCardProps> = ({nft}) => {
       <Text style={styles.name} numberOfLines={1}>
         {nft.name}
       </Text>
-      <Text style={styles.qty}>Qty: {nft.quantity || 1}</Text>
+      <Text style={styles.qty}>Qty: {nft.totalListed || 1}</Text>
 
       <View style={styles.priceWrapper}>
-        {nft.icon && (
-          <Image source={{uri: nft.icon}} style={styles.priceIcon} />
-        )}
-        <Text style={styles.priceText}>{nft.price}</Text>
+        <Image
+          source={{
+            uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
+          }}
+          style={styles.priceIcon}
+        />
+
+        <Text style={styles.priceText}>{currentAskPrice}</Text>
       </View>
     </TouchableOpacity>
   );

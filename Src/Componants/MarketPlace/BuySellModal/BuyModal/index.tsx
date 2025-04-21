@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import ReviewStage from './ReviewStage';
 import ApproveAndConfirmStage from './ApproveAndConfirmStage';
 import ConfirmStage from './ConfirmStage';
 import TransactionConfirmed from './TransactionConfirmed';
+import {useWallet} from '../../../../../screens/Provider/WalletProvider';
 
 enum BuyingStage {
   REVIEW = 'REVIEW',
@@ -42,6 +43,14 @@ const BuyModal: React.FC<BuyModalProps> = ({visible, onClose, nftToBuy}) => {
     useState<string>('0x123456...abc');
   const walletBalance = 100;
   const walletFetchStatus = 'success';
+
+  const {getBalance, refreshBalance, isBalanceLoading} = useWallet();
+
+  useEffect(() => {
+    refreshBalance('WUSDC');
+  }, []);
+
+  const {balance} = getBalance('WUSDC');
 
   const goBack = () => {
     if (stage !== BuyingStage.REVIEW) {
@@ -96,7 +105,7 @@ const BuyModal: React.FC<BuyModalProps> = ({visible, onClose, nftToBuy}) => {
                 paymentCurrency={paymentCurrency}
                 // setPaymentCurrency={setPaymentCurrency}
                 availableQuantity={5}
-                walletBalance={walletBalance}
+                walletBalance={Number(balance)}
                 walletFetchStatus={walletFetchStatus}
                 continueToNextStage={continueToNextStage}
               />
