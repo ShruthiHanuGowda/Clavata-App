@@ -49,6 +49,8 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
       userWallet: user.userWallet,
       date: user.date,
       is_verified: user?.is_verified,
+      accessToken: '',
+      applicantId: '',
     };
 
     try {
@@ -64,6 +66,7 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   };
 
   const updateUserData = async (userData: UserAuth, isExist) => {
+    console.log('🚀 ~ updateUserData ~ userData:', userData);
     try {
       setUserDetails(userData);
       if (!isExist) {
@@ -72,6 +75,7 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
         return true;
       }
     } catch (error) {
+      console.log('🚀 ~ updateUserData ~ error:', error);
       throw new Error(error);
     }
   };

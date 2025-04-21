@@ -31,6 +31,9 @@ import images from '../../../Theme/images';
 import {navigateTo} from '../../../utils/navigationService';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {navReset} from '../../../Navigation/NavigationFunctions';
+import {UPDATE_KYC_STATUS} from '../../../graphql/queries';
+import {useMutation} from '@apollo/client';
+import {useAuth} from '../../../../screens/Provider/authProvider';
 const STAR_IMG = require('../../../../images/star.png');
 
 const styles = StyleSheet.create({
@@ -46,11 +49,24 @@ const styles = StyleSheet.create({
 
 export default function Account(props) {
   const {magic} = useMagic();
+  const {userDetails} = useAuth();
   // const {getProfile, profile, loading} = useContext(AppContext).portfolio;
 
   // useEffect(() => {
   //   getProfile();
   // }, []);
+
+  const [updateKycStatus, {loading, error, data}] = useMutation(
+    UPDATE_KYC_STATUS,
+    {
+      onCompleted: data => {
+        console.log('KYC status updated successfully:', data);
+      },
+      onError: error => {
+        console.error('Error updating KYC status:', error);
+      },
+    },
+  );
 
   const [visible, setVisible] = useState(false);
   // const bottomSheetProps = useBottomSheet(visible, [10, 400]);
@@ -248,7 +264,38 @@ export default function Account(props) {
                 color: 'green',
               },
             ]}>
-            Logout{' '}
+            Logout
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={{bottom: -10, left: 20}}
+          onPress={async () => {
+            try {
+              const userEmail = userDetails?.walletAddress;
+              const result = await updateKycStatus({
+                variables: {
+                  walletAddress: userEmail.toLowerCase(),
+                  is_verified: false,
+                  applicantId: 'test',
+                  accessToken: 'test',
+                },
+              });
+              console.log('🚀 ~ onPress={ ~ result:', result);
+            } catch (error) {
+              console.error('Error updating KYC status:', error);
+            }
+          }}>
+          <Text
+            style={[
+              style.content,
+              {
+                fontSize: 10,
+
+                color: 'green',
+              },
+            ]}>
+            KYC Status
           </Text>
         </Pressable>
         {/* <BottomSheetModal

@@ -3,12 +3,24 @@ import {useAuth} from '../../../screens/Provider/authProvider';
 
 // GraphQL mutation for updating KYC verification status
 export const UPDATE_KYC_STATUS = gql`
-  mutation updateIsVerified($walletAddress: String!, $is_verified: Boolean!) {
+  mutation updateIsVerified(
+    $walletAddress: String!
+    $is_verified: Boolean!
+    $applicantId: String
+    $accessToken: String
+  ) {
     updateIsVerified(
-      input: {walletAddress: $walletAddress, is_verified: $is_verified}
+      input: {
+        walletAddress: $walletAddress
+        is_verified: $is_verified
+        applicantId: $applicantId
+        accessToken: $accessToken
+      }
     ) {
       walletAddress
       is_verified
+      applicantId
+      accessToken
     }
   }
 `;
@@ -23,6 +35,8 @@ interface UpdateKycStatusData {
 interface UpdateKycStatusVars {
   walletAddress: string;
   is_verified: boolean;
+  applicantId: string;
+  accessToken: string;
 }
 
 export const useKycStatusUpdate = () => {
@@ -45,17 +59,22 @@ export const useKycStatusUpdate = () => {
   // Function to call the mutation with the user's wallet address
   const updateUserKycStatus = async (
     isVerified: boolean = true,
+    applicantId: string | null,
+    accessToken: string | null,
   ): Promise<any> => {
     try {
       const userEmail = userDetails?.walletAddress;
       if (!userEmail) {
         throw new Error('No wallet address available');
       }
-
+      console.log('🚀 ~ useKycStatusUpdate ~ applicantId:', applicantId);
+      console.log('🚀 ~ useKycStatusUpdate ~ accessToken:', accessToken);
       const result = await updateKycStatus({
         variables: {
           walletAddress: userEmail.toLowerCase(),
           is_verified: isVerified,
+          applicantId: applicantId || '',
+          accessToken: accessToken || '',
         },
       });
       console.log('🚀 ~ useKycStatusUpdate ~ result:', result);

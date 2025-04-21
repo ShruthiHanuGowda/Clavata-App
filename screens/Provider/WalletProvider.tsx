@@ -19,33 +19,39 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 // Provider component
 export const WalletProvider = ({children}: {children: ReactNode}) => {
   const {userDetails} = useAuth();
-  const {
-    isLoading,
-    error,
-    getBalance,
-    fetchSingleBalance,
-    fetchAllBalances,
-  } = useWalletBalance();
+  console.log(
+    '🚀 ~ WalletProvider ~ userDetails:',
+    JSON?.stringify(userDetails),
+  );
+  const {isLoading, error, getBalance, fetchSingleBalance, fetchAllBalances} =
+    useWalletBalance();
 
   // Function to refresh a single token balance
   const refreshBalance = async (tokenSymbol: string): Promise<TokenBalance> => {
-    if (!userDetails?.userWallet) {
+    if (!userDetails?.ethereumWallet) {
       return {balance: '0', balanceUsd: '0'};
     }
-    return await fetchSingleBalance(userDetails.userWallet, tokenSymbol);
+    return await fetchSingleBalance(
+      userDetails.ethereumWallet,
+      userDetails.denergyWallet,
+      tokenSymbol,
+    );
   };
 
   // Function to refresh all wallet balances
   const refreshAllBalances = async (): Promise<void> => {
-    if (userDetails?.userWallet) {
-      await fetchAllBalances(userDetails.userWallet);
+    if (userDetails?.ethereumWallet) {
+      await fetchAllBalances(
+        userDetails.ethereumWallet,
+        userDetails.denergyWallet,
+      );
     }
   };
 
   // Fetch all balances whenever userDetails changes and a wallet address is available
   useEffect(() => {
-    if (userDetails?.userWallet) {
-      fetchAllBalances(userDetails.userWallet);
+    if (userDetails?.ethereumWallet && userDetails?.denergyWallet) {
+      fetchAllBalances(userDetails.ethereumWallet, userDetails.denergyWallet);
     }
   }, [userDetails, fetchAllBalances]);
 

@@ -10,19 +10,33 @@ export const CREATE_USER_WALLETS = gql`
       denergyWallet
       ethereumWallet
       userWallet
-      is_verified
+
       date
+      applicantId
+      accessToken
     }
   }
 `;
 
 export const UPDATE_KYC_STATUS = gql`
-  mutation updateIsVerified($walletAddress: String!, $is_verified: Boolean!) {
+  mutation updateIsVerified(
+    $walletAddress: String!
+    $is_verified: Boolean!
+    $applicantId: String
+    $accessToken: String
+  ) {
     updateIsVerified(
-      input: {walletAddress: $walletAddress, is_verified: $is_verified}
+      input: {
+        walletAddress: $walletAddress
+        is_verified: $is_verified
+        applicantId: $applicantId
+        accessToken: $accessToken
+      }
     ) {
       walletAddress
       is_verified
+      applicantId
+      accessToken
     }
   }
 `;

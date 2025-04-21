@@ -1,5 +1,5 @@
 // @ts-ignore
-import React, {createContext, useContext, useCallback} from 'react';
+import React, {createContext, useContext, useCallback, useState} from 'react';
 import SNSMobileSDK from '@sumsub/react-native-mobilesdk-module';
 import {useKycVerification} from '../../CustomHooks/useKycVerification';
 import {useAuth} from '../../../screens/Provider/authProvider';
@@ -27,14 +27,17 @@ const KycServiceContext = createContext<KycServiceContextType>({
 });
 
 export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
-                                                                            children,
-                                                                          }) => {
+  children,
+}) => {
   const {initiateKycToken} = useKycVerification();
   const {userDetails} = useAuth();
   const {updateUserKycStatus} = useKycStatusUpdate(); // Use the KYC status update hook
 
   // Based on your working handleKYCToken function
-  const handleKYCToken = useCallback(async (): Promise<string | null> => {
+  const handleKYCToken = useCallback(async (): Promise<{
+    accessToken: string;
+    userId: string | null;
+  } | null> => {
     console.log('Getting KYC token');
     const userEmail = userDetails?.walletAddress;
     console.log('User email/wallet:', userEmail);
@@ -52,7 +55,7 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
 
       if (token) {
         console.log('KYC token obtained');
-        return token;
+        return {accessToken: token, userId};
       } else {
         console.error('Failed to obtain KYC token');
         return null;
@@ -70,31 +73,33 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
 
       try {
         // Get your access token from your backend
-        const accessToken = await handleKYCToken();
-
-        if (!accessToken) {
+        const tokenResult = await handleKYCToken();
+        if (!tokenResult) {
           console.error('Failed to get KYC token');
           return {
             success: false,
             message: 'Could not obtain verification token',
           };
         }
+        const {accessToken, userId} = tokenResult;
 
         console.log('Initializing SumSub SDK');
         let snsMobileSDK = SNSMobileSDK.init(accessToken, async () => {
           // This is a token expiration handler, will be called if the provided token is invalid or got expired
           console.log('Token expired, getting a new one');
-          return (await handleKYCToken()) || '';
+          const newToken = await handleKYCToken();
+          return newToken?.accessToken || '';
         })
           .withHandlers({
             // Optional callbacks you can use to get notified of the corresponding events
             onStatusChanged: async event => {
               console.log(
                 'onStatusChanged: [' +
-                event.prevStatus +
-                '] => [' +
-                event.newStatus +
-                ']',
+                  event.prevStatus +
+                  '] => [' +
+                  event.newStatus +
+                  ']',
+                JSON.stringify(event),
               );
 
               // Set KYC completed based on status - using toLowerCase() for case-insensitive comparison
@@ -106,7 +111,12 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
 
                 // Update KYC status in the backend when status changes to approved or pending
                 try {
-                  await updateUserKycStatus(true);
+                  console.log(
+                    '🟢 ~ useCallback ~ applicantId, kycAccessToken:',
+                    userId,
+                    accessToken,
+                  );
+                  await updateUserKycStatus(true, userId, accessToken);
                   console.log('KYC status updated in backend');
                 } catch (err) {
                   console.error('Failed to update KYC status in backend:', err);
@@ -134,7 +144,12 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
 
           // Update KYC status in the backend when verification completes successfully
           try {
-            await updateUserKycStatus(true);
+            console.log(
+              '✅ ~ useCallback ~ applicantId, kycAccessToken:',
+              userId,
+              accessToken,
+            );
+            await updateUserKycStatus(true, userId, accessToken);
             console.log(
               'KYC status updated in backend after successful verification',
             );

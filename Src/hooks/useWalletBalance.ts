@@ -7,6 +7,7 @@ import {
   SEPOLIA_RPC_URL,
   TOKEN_CONTRACTS,
 } from '../constants';
+import {useAuth} from '../../screens/Provider/authProvider';
 
 interface ExchangeRate {
   currency_code: string;
@@ -51,9 +52,13 @@ interface WalletBalanceHook {
   exchangeRates: ExchangeRates;
 
   // Functions
-  fetchAllBalances: (walletAddress: string) => Promise<void>;
+  fetchAllBalances: (
+    walletAddress: string,
+    denergyAddress: string,
+  ) => Promise<void>;
   fetchSingleBalance: (
     walletAddress: string,
+    denergyAddress: string,
     tokenSymbol: string,
   ) => Promise<TokenBalance>;
   getBalance: (tokenSymbol: string) => TokenBalance;
@@ -61,6 +66,7 @@ interface WalletBalanceHook {
 
 export const useWalletBalance = (): WalletBalanceHook => {
   // State for all token balances
+  const {userDetails} = useAuth();
   const [tokenData, setTokenData] = useState<TokenData>({
     WATT: {balance: '0', balanceUsd: '0'},
     ETH: {balance: '0', balanceUsd: '0'},
@@ -125,8 +131,8 @@ export const useWalletBalance = (): WalletBalanceHook => {
 
   // Function to fetch all balances
   const fetchAllBalances = useCallback(
-    async (walletAddress: string): Promise<void> => {
-      if (!walletAddress) return;
+    async (walletAddress: string, denergyAddress: string): Promise<void> => {
+      if (!walletAddress || !denergyAddress) return;
 
       setIsLoading(true);
       setError(null);
@@ -139,32 +145,80 @@ export const useWalletBalance = (): WalletBalanceHook => {
         // Fetch exchange rates first
         const rates = await fetchExchangeRates();
 
-        // Fetch native balances
-        const denergyNativeBalance = await denergyProvider.getBalance(
-          walletAddress,
-        );
-        const formattedWattsBalance = ethers.formatEther(denergyNativeBalance);
-        const wattsInUsd = (
-          parseFloat(formattedWattsBalance) * rates.USDC
-        ).toFixed(2);
-        updateTokenData('WATT', formattedWattsBalance, wattsInUsd);
+        // Fetch WATT balance using denergyAddress
+        try {
+          // Check if denergy address exists and is valid
+          if (denergyAddress && ethers.isAddress(denergyAddress)) {
+            const denergyNativeBalance = await denergyProvider.getBalance(
+              denergyAddress,
+            );
+            const formattedWattsBalance =
+              ethers.formatEther(denergyNativeBalance);
 
-        const sepoliaNativeBalance = await sepoliaProvider.getBalance(
-          walletAddress,
-        );
-        const formattedEthBalance = ethers.formatEther(sepoliaNativeBalance);
-        const ethInUsd = (parseFloat(formattedEthBalance) * rates.ETH).toFixed(
-          2,
-        );
-        updateTokenData('ETH', formattedEthBalance, ethInUsd);
+            const wattsInUsd = (
+              parseFloat(formattedWattsBalance) * rates.USDC
+            ).toFixed(2);
+            updateTokenData('WATT', formattedWattsBalance, wattsInUsd);
+          } else {
+            console.log(
+              'No valid denergy address found, skipping WATT balance check',
+            );
+            updateTokenData('WATT', '0', '0');
+          }
+        } catch (error) {
+          console.error('🚀 ~ error fetching WATT balance:', error);
+          updateTokenData('WATT', '0', '0');
+        }
 
-        // Fetch ERC-20 token balances
-        // Mapping of token symbols to their network and token info
+        // Fetch ETH balance using walletAddress
+        try {
+          if (walletAddress && ethers.isAddress(walletAddress)) {
+            const sepoliaNativeBalance = await sepoliaProvider.getBalance(
+              walletAddress,
+            );
+            const formattedEthBalance =
+              ethers.formatEther(sepoliaNativeBalance);
+            const ethInUsd = (
+              parseFloat(formattedEthBalance) * rates.ETH
+            ).toFixed(2);
+            updateTokenData('ETH', formattedEthBalance, ethInUsd);
+          } else {
+            console.log(
+              'No valid wallet address found, skipping ETH balance check',
+            );
+            updateTokenData('ETH', '0', '0');
+          }
+        } catch (error) {
+          console.error('🚀 ~ error fetching ETH balance:', error);
+          updateTokenData('ETH', '0', '0');
+        }
+
+        // Mapping of token symbols to their network, token info, and which address to use
         const tokenMapping = {
-          WUSDC: {network: 'denergy', token: 'USDC', rateKey: 'USDC'},
-          WEURC: {network: 'denergy', token: 'EURC', rateKey: 'EURC'},
-          USDC: {network: 'sepolia', token: 'USDC', rateKey: 'USDC'},
-          EURC: {network: 'sepolia', token: 'EURC', rateKey: 'EURC'},
+          WUSDC: {
+            network: 'denergy',
+            token: 'USDC',
+            rateKey: 'USDC',
+            useAddress: denergyAddress,
+          },
+          WEURC: {
+            network: 'denergy',
+            token: 'EURC',
+            rateKey: 'EURC',
+            useAddress: denergyAddress,
+          },
+          USDC: {
+            network: 'sepolia',
+            token: 'USDC',
+            rateKey: 'USDC',
+            useAddress: walletAddress,
+          },
+          EURC: {
+            network: 'sepolia',
+            token: 'EURC',
+            rateKey: 'EURC',
+            useAddress: walletAddress,
+          },
         };
 
         // Process each ERC-20 token
@@ -181,13 +235,24 @@ export const useWalletBalance = (): WalletBalanceHook => {
               ERC20_ABI,
               provider,
             );
-            const balance = await contract.balanceOf(walletAddress);
-            const formattedBalance = ethers.formatUnits(balance, 6);
-            const balanceInUsd = (
-              parseFloat(formattedBalance) * rates[info.rateKey]
-            ).toFixed(2);
 
-            updateTokenData(tokenSymbol, formattedBalance, balanceInUsd);
+            // Use the appropriate address for each token
+            const addressToUse = info.useAddress;
+
+            if (addressToUse && ethers.isAddress(addressToUse)) {
+              const balance = await contract.balanceOf(addressToUse);
+              const formattedBalance = ethers.formatUnits(balance, 6);
+              const balanceInUsd = (
+                parseFloat(formattedBalance) * rates[info.rateKey]
+              ).toFixed(2);
+
+              updateTokenData(tokenSymbol, formattedBalance, balanceInUsd);
+            } else {
+              console.log(
+                `No valid address found for ${tokenSymbol}, skipping balance check`,
+              );
+              updateTokenData(tokenSymbol, '0', '0');
+            }
           } catch (err) {
             console.error(`Error fetching balance for ${tokenSymbol}:`, err);
             // Set default values for failed token
@@ -209,9 +274,10 @@ export const useWalletBalance = (): WalletBalanceHook => {
   const fetchSingleBalance = useCallback(
     async (
       walletAddress: string,
+      denergyAddress: string,
       tokenSymbol: string,
     ): Promise<TokenBalance> => {
-      if (!walletAddress) {
+      if ((!walletAddress && !denergyAddress) || !tokenSymbol) {
         return {balance: '0', balanceUsd: '0'};
       }
 
@@ -233,42 +299,72 @@ export const useWalletBalance = (): WalletBalanceHook => {
         // Handle different tokens
         switch (normalizedTokenSymbol) {
           case 'WATT': {
-            const denergyNativeBalance = await denergyProvider.getBalance(
-              walletAddress,
-            );
-            const formattedBalance = ethers.formatEther(denergyNativeBalance);
-            const balanceInUsd = (
-              parseFloat(formattedBalance) * rates.USDC
-            ).toFixed(2);
-            tokenBalance = {
-              balance: formattedBalance,
-              balanceUsd: balanceInUsd,
-            };
+            // Use denergyAddress for WATT
+            if (denergyAddress && ethers.isAddress(denergyAddress)) {
+              const denergyNativeBalance = await denergyProvider.getBalance(
+                denergyAddress,
+              );
+              const formattedBalance = ethers.formatEther(denergyNativeBalance);
+              const balanceInUsd = (
+                parseFloat(formattedBalance) * rates.USDC
+              ).toFixed(2);
+              tokenBalance = {
+                balance: formattedBalance,
+                balanceUsd: balanceInUsd,
+              };
+            } else {
+              console.log('No valid denergy address found for WATT');
+            }
             break;
           }
 
           case 'ETH': {
-            const sepoliaNativeBalance = await sepoliaProvider.getBalance(
-              walletAddress,
-            );
-            const formattedBalance = ethers.formatEther(sepoliaNativeBalance);
-            const balanceInUsd = (
-              parseFloat(formattedBalance) * rates.ETH
-            ).toFixed(2);
-            tokenBalance = {
-              balance: formattedBalance,
-              balanceUsd: balanceInUsd,
-            };
+            // Use walletAddress for ETH
+            if (walletAddress && ethers.isAddress(walletAddress)) {
+              const sepoliaNativeBalance = await sepoliaProvider.getBalance(
+                walletAddress,
+              );
+              const formattedBalance = ethers.formatEther(sepoliaNativeBalance);
+              const balanceInUsd = (
+                parseFloat(formattedBalance) * rates.ETH
+              ).toFixed(2);
+              tokenBalance = {
+                balance: formattedBalance,
+                balanceUsd: balanceInUsd,
+              };
+            } else {
+              console.log('No valid wallet address found for ETH');
+            }
             break;
           }
 
           default: {
             // Handle ERC-20 tokens
             const tokenMapping = {
-              WUSDC: {network: 'denergy', token: 'USDC', rateKey: 'USDC'},
-              WEURC: {network: 'denergy', token: 'EURC', rateKey: 'EURC'},
-              USDC: {network: 'sepolia', token: 'USDC', rateKey: 'USDC'},
-              EURC: {network: 'sepolia', token: 'EURC', rateKey: 'EURC'},
+              WUSDC: {
+                network: 'denergy',
+                token: 'USDC',
+                rateKey: 'USDC',
+                useAddress: denergyAddress,
+              },
+              WEURC: {
+                network: 'denergy',
+                token: 'EURC',
+                rateKey: 'EURC',
+                useAddress: denergyAddress,
+              },
+              USDC: {
+                network: 'sepolia',
+                token: 'USDC',
+                rateKey: 'USDC',
+                useAddress: walletAddress,
+              },
+              EURC: {
+                network: 'sepolia',
+                token: 'EURC',
+                rateKey: 'EURC',
+                useAddress: walletAddress,
+              },
             };
 
             const tokenInfo =
@@ -285,21 +381,30 @@ export const useWalletBalance = (): WalletBalanceHook => {
             const contractAddress =
               TOKEN_CONTRACTS[tokenInfo.network][tokenInfo.token];
 
-            const contract = new ethers.Contract(
-              contractAddress,
-              ERC20_ABI,
-              provider,
-            );
-            const balance = await contract.balanceOf(walletAddress);
-            const formattedBalance = ethers.formatUnits(balance, 6);
-            const balanceInUsd = (
-              parseFloat(formattedBalance) * rates[tokenInfo.rateKey]
-            ).toFixed(2);
+            // Use the appropriate address for the token
+            const addressToUse = tokenInfo.useAddress;
 
-            tokenBalance = {
-              balance: formattedBalance,
-              balanceUsd: balanceInUsd,
-            };
+            if (addressToUse && ethers.isAddress(addressToUse)) {
+              const contract = new ethers.Contract(
+                contractAddress,
+                ERC20_ABI,
+                provider,
+              );
+              const balance = await contract.balanceOf(addressToUse);
+              const formattedBalance = ethers.formatUnits(balance, 6);
+              const balanceInUsd = (
+                parseFloat(formattedBalance) * rates[tokenInfo.rateKey]
+              ).toFixed(2);
+
+              tokenBalance = {
+                balance: formattedBalance,
+                balanceUsd: balanceInUsd,
+              };
+            } else {
+              console.log(
+                `No valid address found for ${normalizedTokenSymbol}`,
+              );
+            }
           }
         }
 

@@ -18,14 +18,11 @@ export default function App() {
 
   const [env, setEnv] = React.useState(ENV.PROD);
 
-
   return (
     <View style={{flex: 1}}>
       <GestureHandlerRootView style={{flex: 1}}>
         <GraphQLProvider>
-          <MagicProvider
-            apiKey="pk_live_F22A388602152902"
-            btcRpcUrl="BTC_RPC_NODE_URL">
+          <MagicProvider apiKey="pk_live_F22A388602152902">
             {/* <LoginScreen /> */}
             <AuthProvider>
               <WalletProvider>

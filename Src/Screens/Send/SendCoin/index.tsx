@@ -1,5 +1,5 @@
-import React, {useState, useEffect} from 'react';
-import {View, Text, TextInput, ScrollView} from 'react-native';
+import React, {useState, useEffect, useRef} from 'react';
+import {View, Text, TextInput, ScrollView, Alert, Button} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './style';
 import {CustomImageButton, DButton, Header} from '../../../Componants';
@@ -13,7 +13,12 @@ import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import styles from '../../AuthScreens/styles';
 import {SCREEN_CONSTANT} from '../../../Navigation/constant';
 import {navigateTo} from '../../../utils/navigationService';
-import {useSendUSDCANDEURC, TOKEN_ADDRESSES} from '../../../hooks/useSendUSDCANDEURC';
+import {WebView} from 'react-native-webview';
+import {
+  useSendUSDCANDEURC,
+  TOKEN_ADDRESSES,
+} from '../../../hooks/useSendUSDCANDEURC';
+import {useSendWatt} from '../../../hooks/useSendWATT';
 
 // Define types for route params
 interface RouteParams {
@@ -50,121 +55,201 @@ interface TransactionResult {
   networkName?: string;
   gasFee?: string;
   error?: string;
-  totalCost: string | bigint;
+  totalCost: string | bigint | undefined;
 }
 
+const denergyNetworkConfig = {
+  rpcUrl: 'https://rpc.denergytestnet.com',
+  chainId: 4442,
+  name: 'DEnergy Testnet',
+};
+
 export default function SendCoin(props: SendCoinProps): JSX.Element {
-
-
   const {coinCode, user} = props.route.params;
+  const webviewRef = useRef(null);
   console?.log('Uset', user);
   const {getBalance, refreshBalance} = useWallet();
   const {balance, balanceUsd}: BalanceInfo = getBalance(coinCode);
   const [wattAmount, setWattAmount] = useState<string>('0');
-  const {magic} = useMagic();
+  const {magic_sepolia, setActiveNetwork, activeNetwork, magic_denergy} =
+    useMagic();
+  console.log('🚀 ~ SendCoin ~ activeNetwork:', activeNetwork);
   const {userDetails} = useAuth();
   const {
     isLoading: ethIsLoading,
     error: ethError,
     sendTransaction: sendEthTransaction,
-  } = useSendEth(magic, userDetails?.userWallet);
+  } = useSendEth(magic_sepolia, userDetails?.ethereumWallet ?? undefined);
 
   const {
     isLoading: usdcIsLoading,
     error: usdcError,
     sendTransaction: sendUSDCTransaction,
-  } = useSendUSDCANDEURC(magic, userDetails?.userWallet);
-  console?.log('usdcError', usdcError);
+  } = useSendUSDCANDEURC(
+    magic_sepolia,
+    userDetails?.ethereumWallet ?? undefined,
+  );
+
+  const {
+    isLoading: wattIsLoading,
+    error: wattError,
+    sendTransaction: sendWattTransaction,
+    validateTransaction,
+  } = useSendWatt(magic_denergy, userDetails?.denergyWallet ?? undefined);
   const [result, setResult] = useState<TransactionResult | null>(null);
 
+  const handleSendTransaction = () => {
+    const txPayload = {
+      action: 'sendTransaction',
+      payload: {
+        to: '0x43971Ed032222246aB5D5E3c11bdB40c89e83959',
+        amount: '0.01', // 0.01 WATT or native token on Denergy
+      },
+    };
+
+    webviewRef.current?.postMessage(JSON.stringify(txPayload));
+  };
+
+  const onMessage = event => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+
+      if (data.type === 'txSuccess') {
+        Alert.alert('Transaction Success', `Hash: ${data.txHash}`);
+      } else if (data.type === 'txError') {
+        Alert.alert('Transaction Failed', data.message);
+      }
+    } catch (error) {
+      console.error('Invalid message from WebView:', error);
+    }
+  };
 
   const onChangeAmount = (val: string): void => {
     const y = val.replace(/\s/g, '');
     const x = y.replace(/[^\w\s\.]/gi, '');
-    var output = x.split('.');
-    output = output.shift() + (output.length ? '.' + output.join('') : '');
-    var t = output;
-    output = t.indexOf('.') >= 0 ? t.substr(0, t.indexOf('.')) + t.substr(t.indexOf('.'), 6) : t;
+    const parts = x.split('.');
+    const wholePart = parts[0] || '';
+    const decimalPart =
+      parts.length > 1 ? '.' + parts.slice(1).join('').substring(0, 5) : '';
+    const output = wholePart + decimalPart;
     setWattAmount(output);
   };
-
 
   const onVerify = async (): void => {
     console.log(coinCode);
     try {
-
-
       // Use the sendTransaction method from our hook with a success callback
+      await setActiveNetwork('sepolia');
       if (coinCode === 'ETH') {
         const transactionDetails = {
           to: user?.beneficiaryAddress,
           amount: wattAmount,
         };
-        await sendEthTransaction(transactionDetails, (transactionResult) => {
+        await sendEthTransaction(transactionDetails, transactionResult => {
           console.log('transactionResult????', transactionResult);
           setResult({
             success: true,
             ...transactionResult,
           });
           refreshBalance(coinCode);
-          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {amount: transactionResult?.totalCost, coinCode: coinCode, name: ''});
-
+          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
+            amount: transactionResult?.totalCost,
+            coinCode: coinCode,
+            name: '',
+          });
         });
       }
       if (coinCode === 'USDC') {
+        await setActiveNetwork('sepolia');
         const transactionDetails = {
           to: user?.beneficiaryAddress,
           amount: wattAmount,
           tokenAddress: TOKEN_ADDRESSES.USDC,
         };
-        await sendUSDCTransaction(transactionDetails, (transactionResult) => {
+        await sendUSDCTransaction(transactionDetails, transactionResult => {
           console.log('transactionResult????', transactionResult);
           setResult({
             success: true,
             ...transactionResult,
           });
           refreshBalance(coinCode);
-          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {amount: transactionResult?.totalCost, coinCode: coinCode, name: ''});
-
+          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
+            amount: transactionResult?.totalCost,
+            coinCode: coinCode,
+            name: '',
+          });
         });
       }
       if (coinCode === 'EURC') {
+        await setActiveNetwork('sepolia');
         const transactionDetails = {
           to: user?.beneficiaryAddress,
           amount: wattAmount,
           tokenAddress: TOKEN_ADDRESSES.EURC,
         };
-        await sendUSDCTransaction(transactionDetails, (transactionResult) => {
+        await sendUSDCTransaction(transactionDetails, transactionResult => {
           console.log('transactionResult????', transactionResult);
           setResult({
             success: true,
             ...transactionResult,
           });
           refreshBalance(coinCode);
-          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {amount: transactionResult?.totalCost, coinCode: coinCode, name: ''});
-
+          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
+            amount: transactionResult?.totalCost,
+            coinCode: coinCode,
+            name: '',
+          });
         });
+      }
+      if (coinCode === 'WATT') {
+        const transactionDetails = {
+          to: user?.beneficiaryAddress,
+          amount: wattAmount,
+        };
+        await setActiveNetwork('denergy');
+        try {
+          // Validate first
+          const isValid = await validateTransaction(transactionDetails?.to);
+          if (!isValid) return;
+
+          // Send transaction
+          await sendWattTransaction(transactionDetails, transactionResult => {
+            console.log('Transaction successful!', transactionResult);
+            setResult({
+              success: true,
+              ...transactionResult,
+            });
+            refreshBalance(coinCode);
+            navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
+              amount: transactionResult?.totalCost,
+              coinCode: coinCode,
+              name: '',
+            });
+            // Handle success (update UI, etc)
+          });
+        } catch (err) {
+          console.error('Failed to send WATT:', err);
+          // Handle error
+        }
       }
     } catch (err: any) {
       setResult({
-        gasFee: '', networkName: '', totalCost: undefined, txHash: '',
+        gasFee: '',
+        networkName: '',
+        totalCost: undefined,
+        txHash: '',
         success: false,
         error: err.message || 'Transaction failed',
       });
     }
-
   };
 
   return (
     <SafeAreaView style={{backgroundColor: '#fff', flex: 1}}>
-
       <Header
-        headerTitle={`Send ${
-          coinCode
-        }`}
+        headerTitle={`Send ${coinCode}`}
         backBtn={() => navigateBack()}
         hideBorder={true}
-
       />
       <ScrollView keyboardShouldPersistTaps="handled" style={style.container}>
         <View style={style.container}>
@@ -188,8 +273,7 @@ export default function SendCoin(props: SendCoinProps): JSX.Element {
                 justifyContent: 'center',
                 fontFamily: fontsFamily.MulishBold,
                 fontSize: 36,
-              }}
-            ></TextInput>
+              }}></TextInput>
             <View
               style={{
                 borderWidth: 1,
@@ -199,22 +283,31 @@ export default function SendCoin(props: SendCoinProps): JSX.Element {
                 borderRadius: 7,
                 position: 'absolute',
                 right: 10,
-              }}
-            >
+              }}>
               <Text style={style.watt}>
-                {coinCode === 'WUSDC' ? 'wUSDC' : coinCode === 'WEURC' ? 'wEURC' : coinCode}
+                {coinCode === 'WUSDC'
+                  ? 'wUSDC'
+                  : coinCode === 'WEURC'
+                  ? 'wEURC'
+                  : coinCode}
               </Text>
             </View>
           </View>
           {parseFloat(wattAmount) > parseFloat(balance) && (
             <View style={{padding: 10}}>
-              <Text style={{color: '#F42121', fontSize: 12}}>Insufficent balance</Text>
+              <Text style={{color: '#F42121', fontSize: 12}}>
+                Insufficent balance
+              </Text>
             </View>
           )}
           <View style={{justifyContent: 'center', alignItems: 'center'}}>
             <View
-              style={{borderWidth: 1, borderColor: '#E0E0E0', marginTop: 20, borderRadius: 7}}
-            >
+              style={{
+                borderWidth: 1,
+                borderColor: '#E0E0E0',
+                marginTop: 20,
+                borderRadius: 7,
+              }}>
               <View
                 style={{
                   flexDirection: 'row',
@@ -222,28 +315,50 @@ export default function SendCoin(props: SendCoinProps): JSX.Element {
                   justifyContent: 'center',
                   marginVertical: 15,
                   marginHorizontal: 15,
-                }}
-              >
-                <Text style={{fontFamily: fontsFamily.Mulish, fontSize: 12, color: '#848484'}}>
+                }}>
+                <Text
+                  style={{
+                    fontFamily: fontsFamily.Mulish,
+                    fontSize: 12,
+                    color: '#848484',
+                  }}>
                   Available Tokens
                 </Text>
-                <Text style={{fontFamily: fontsFamily.MulishBold, marginLeft: 10, color: '#000'}}>
+                <Text
+                  style={{
+                    fontFamily: fontsFamily.MulishBold,
+                    marginLeft: 10,
+                    color: '#000',
+                  }}>
                   {balance}{' '}
-                  {coinCode === 'WUSDC' ? 'wUSDC' : coinCode === 'WEURC' ? 'wEURC' : coinCode}
+                  {coinCode === 'WUSDC'
+                    ? 'wUSDC'
+                    : coinCode === 'WEURC'
+                    ? 'wEURC'
+                    : coinCode}
                 </Text>
               </View>
             </View>
           </View>
         </View>
       </ScrollView>
-      {console?.log('wattAmount', wattAmount)}
       <DButton
         type="primary"
         style={styles.loginBtnStyle}
-        disabled={wattAmount === '0' || wattAmount === null || wattAmount === '' || parseFloat(wattAmount) > parseFloat(balance) || ethIsLoading || usdcIsLoading}
+        disabled={
+          wattAmount === '0' ||
+          wattAmount === null ||
+          wattAmount === '' ||
+          parseFloat(wattAmount) > parseFloat(balance) ||
+          ethIsLoading ||
+          usdcIsLoading ||
+          wattIsLoading
+        }
         onPress={() => onVerify()}>
         <Text style={[styles.loginText]}>
-          {ethIsLoading || usdcIsLoading ? 'Sending...' : 'Send'}
+          {ethIsLoading || usdcIsLoading || wattIsLoading
+            ? 'Sending...'
+            : 'Send'}
         </Text>
       </DButton>
     </SafeAreaView>

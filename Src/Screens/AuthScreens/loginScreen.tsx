@@ -25,7 +25,7 @@ import KycBottomSheet from '../../CustomHooks/KYC/KycBottomSheet';
 import {useKyc} from '../../CustomHooks/KYC/KYCProvider';
 
 export default function LoginScreen() {
-  const {magic} = useMagic();
+  const {magic, magic_sepolia, magic_denergy, setActiveNetwork} = useMagic();
   const {updateUserData, userDetails} = useAuth();
   // console.log('🚀 ~ LoginScreen ~ userDetails:', userDetails);
   const {isKycCompleted, showKycBottomSheet} = useKyc();
@@ -104,9 +104,12 @@ export default function LoginScreen() {
   const handleUserData = async (data: any) => {
     try {
       if (data?.getUserWalletAddress) {
+        const result = await checkAllNetworks();
+        console.log('Network check results:', JSON.stringify(result));
         // User exists in DB - store data in context
         const apiData = {...data.getUserWalletAddress};
         delete apiData.__typename;
+        console.log('🚀 ~ handleUserData ~ apiData:', JSON?.stringify(apiData));
         await updateUserData(apiData, true);
         setIsUserLogin(true);
         const isVerified =
@@ -137,18 +140,138 @@ export default function LoginScreen() {
     }
   };
 
+  // Check if user is logged in to primary network
+  const checkPrimaryNetworkAuth = async () => {
+    try {
+      const isLoggedIn = await magic.user.isLoggedIn();
+      if (isLoggedIn) {
+        const userData = await magic.user.getInfo();
+        return {
+          isLoggedIn,
+          publicAddress: userData?.publicAddress,
+          userData,
+        };
+      }
+      return {isLoggedIn, publicAddress: null, userData: null};
+    } catch (error) {
+      console.error('Primary network auth error:', error);
+      return {isLoggedIn: false, publicAddress: null, userData: null, error};
+    }
+  };
+
+  // Check if user is logged in to Sepolia network
+  const checkSepoliaNetworkAuth = async () => {
+    try {
+      await setActiveNetwork('sepolia');
+      const isLoggedIn = await magic_sepolia.user.isLoggedIn();
+      if (isLoggedIn) {
+        const userData = await magic_sepolia.user.getInfo();
+        return {
+          isLoggedIn,
+          publicAddress: userData?.publicAddress,
+          userData,
+        };
+      }
+
+      return {isLoggedIn, publicAddress: null, userData: null};
+    } catch (error) {
+      console.error(
+        'Sepolia network auth error:',
+        JSON.stringify(error, null, 2),
+      );
+      return {isLoggedIn: false, publicAddress: null, userData: null, error};
+    }
+  };
+
+  // Check if user is logged in to Denergy network
+  const checkDenergyNetworkAuth = async () => {
+    try {
+      await setActiveNetwork('denergy');
+      console.log('Attempting to get Denergy user info...');
+
+      const isLoggedIn = await magic_denergy.user.isLoggedIn();
+      console.log('Is user logged in to Denergy?', isLoggedIn);
+
+      if (isLoggedIn) {
+        const userData = await magic_denergy.user.getInfo();
+        console.log('🚀 ~ Denergy userData:', JSON.stringify(userData));
+        return {
+          isLoggedIn,
+          publicAddress: userData?.publicAddress,
+          userData,
+        };
+      }
+
+      console.log('Need to authenticate on Denergy first');
+      return {isLoggedIn, publicAddress: null, userData: null};
+    } catch (error) {
+      console.error(
+        'Denergy network auth error:',
+        JSON.stringify(error, null, 2),
+      );
+      return {isLoggedIn: false, publicAddress: null, userData: null, error};
+    }
+  };
+
+  // Main function to check all networks
+  const checkAllNetworks = async () => {
+    try {
+      // First check primary network
+      const primaryNetworkData = await checkPrimaryNetworkAuth();
+
+      // Only proceed if logged in to primary network
+      if (!primaryNetworkData.isLoggedIn) {
+        console.log(
+          'User not logged in to primary network. Please authenticate first.',
+        );
+        return {
+          isLoggedIn: false,
+          addresses: {},
+        };
+      }
+
+      // Check other networks
+      const sepoliaNetworkData = await checkSepoliaNetworkAuth();
+      const denergyNetworkData = await checkDenergyNetworkAuth();
+
+      // Collect all public addresses
+      const addresses = {
+        primary: primaryNetworkData.publicAddress,
+        sepolia: sepoliaNetworkData.publicAddress,
+        denergy: denergyNetworkData.publicAddress,
+      };
+
+      return {
+        isLoggedIn: true,
+        addresses,
+        networkData: {
+          primary: primaryNetworkData,
+          sepolia: sepoliaNetworkData,
+          denergy: denergyNetworkData,
+        },
+      };
+    } catch (error) {
+      console.error('Error checking all networks:', error);
+      return {
+        isLoggedIn: false,
+        addresses: {},
+        error,
+      };
+    }
+  };
+
   // Create wallets and prepare user data for new users
   const prepareNewUserData = async () => {
     try {
+      const result = await checkAllNetworks();
+      console.log('🚀 ~ prepareNewUserData ~ result:', result);
       const userData = await magic.user.getInfo();
-      const ethereumWallet = ethers.Wallet.createRandom();
-      const provider = new ethers.JsonRpcProvider('https://rpc.d.energy');
-      const denergyWallet = ethers.Wallet.createRandom().connect(provider);
+      console.log('🚀 ~ prepareNewUserData ~ userData:', userData);
       const walletData = {
         walletAddress: userData.email,
-        ethereumWallet: ethereumWallet?.address,
-        denergyWallet: denergyWallet?.address,
-        userWallet: userData.publicAddress,
+        ethereumWallet: result?.networkData?.sepolia?.publicAddress,
+        denergyWallet: result?.networkData?.denergy?.publicAddress,
+        userWallet: result?.networkData?.primary?.publicAddress,
         date: new Date().toISOString(),
         is_verified: false,
       };
@@ -183,8 +306,6 @@ export default function LoginScreen() {
         await getUserWallet({
           variables: {walletAddress: userMetadata?.email?.toLowerCase()},
         });
-
-
       } else {
         // No active session
         setIsScreenLoading(false);

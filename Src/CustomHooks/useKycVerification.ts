@@ -69,7 +69,12 @@ export const useKycVerification = () => {
       } else {
         bodyData = parsedData.body || parsedData;
       }
+      console.log('🚀 ~ useKycVerification ~ parsedData:', parsedData);
 
+      console.log(
+        '🚀 ~ useKycVerification ~ bodyData:',
+        JSON.stringify(bodyData),
+      );
       // Extract token data
       const token = bodyData?.accessTokenData?.token || null;
       const userId = bodyData?.accessTokenData?.userId || null;
@@ -98,6 +103,10 @@ export const useKycVerification = () => {
         typeof responseData === 'string'
           ? JSON.parse(responseData)
           : responseData;
+      console.log(
+        '🚀 ~ extractTokenFromResponse ~ parsedData:',
+        JSON.stringify(parsedData),
+      );
 
       // Handle body as string or object
       const bodyData =
