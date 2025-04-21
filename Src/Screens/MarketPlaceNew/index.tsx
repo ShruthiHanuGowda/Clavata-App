@@ -1,223 +1,148 @@
-import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { navigate } from '../../Navigation/NavigationFunctions';
+import React, {useEffect, useState} from 'react';
+import {
+  SafeAreaView,
+  ScrollView,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+  ActivityIndicator,
+} from 'react-native';
+import {navigate} from '../../Navigation/NavigationFunctions';
 import ListingHeader from '../../Componants/MarketPlace/ListingHeader';
 import CollectionCard from '../../Componants/MarketPlace/CollectionCard';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import {TouchableOpacity} from 'react-native-gesture-handler';
+import useApi from '../../hooks/useApi';
+import {API_NFT_URL} from '../../constants';
+import {ApiCollectionsResponse} from '../../types/types';
+import {useMagic} from '../../../screens/Provider/MagicProvider';
 
-const CollectionListingPage = () => {
-    const [refreshing, setRefreshing] = useState(false);
-    const walletConnected = true;
+const CollectionListingPage: React.FC = () => {
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const {setActiveNetwork} = useMagic();
 
-    const collections = [
-        {
-            id: 1,
-            bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-            collectionName: 'India Hydroelectric 2025',
-            symbol: 'IH2025',
-        },
-        {
-            id: 2,
-            bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-            collectionName: 'Brazil Wind 2024',
-            symbol: 'BW2024',
-        },
-        {
-            id: 3,
-            bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-            collectionName: 'Turkey Hydroelectric 2025',
-            symbol: 'TH2025',
-        },
-        {
-            id: 4,
-            bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-            collectionName: 'Chile Hydroelectric 2025',
-            symbol: 'CH2025',
-        },
-        {
-            id: 5,
-            bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-            collectionName: 'India Wind 2025',
-            symbol: 'IW2025',
-        },
-        {
-            id: 6,
-            bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-            collectionName: 'Thailand Solar 2025',
-            symbol: 'TS2025',
-        },
-    ];
+  const {
+    data: collections,
+    isLoading,
+    error,
+    refetch,
+  } = useApi<ApiCollectionsResponse>(
+    `${API_NFT_URL}/nftMarketplace_getCollections`,
+    {
+      method: 'GET',
+    },
+  );
 
-    // Handle pull to refresh action
-    const onRefresh = () => {
-        setRefreshing(true);
-        setTimeout(() => {
-            setRefreshing(false);
-        }, 2000);
-    };
+  useEffect(() => {
+    setActiveNetwork('denergy');
+  }, []);
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <ListingHeader title="Explore Collections" />
+  const onRefresh = () => {
+    setRefreshing(true);
+    refetch();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  };
 
-            {walletConnected && (
-                <TouchableOpacity style={styles.myNftsButton} onPress={() => navigate('YourNFTs')}>
-                    <Text style={styles.myNftsButtonText}>View My NFTs</Text>
-                </TouchableOpacity>
-            )}
+  return (
+    <SafeAreaView style={styles.container}>
+      <ListingHeader title="Explore Collections" />
 
-            <ScrollView
-                contentContainerStyle={styles.gridContainer}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            >
+      <TouchableOpacity
+        style={styles.myNftsButton}
+        onPress={() => navigate('YourNFTs')}>
+        <Text style={styles.myNftsButtonText}>View My NFTs</Text>
+      </TouchableOpacity>
 
-                {collections.map((collection, index) => {
-                    if (index % 2 === 0) {
-                        return (
-                            <View key={collection.id} style={styles.row}>
-                                <CollectionCard
-                                    collection={collection}
-                                    onPress={() => navigate('collectionDetails', { collectionId: collection.id, collectionName: collection.collectionName })}
-                                />
-                                {collections[index + 1] && (
-                                    <CollectionCard
-                                        collection={collections[index + 1]}
-                                        onPress={() => navigate('collectionDetails', { collectionId: collections[index + 1].id, collectionName: collections[index + 1].collectionName })}
-                                    />
-                                )}
-                            </View>
-                        );
-                    }
-                    return null;
-                })}
-            </ScrollView>
-        </SafeAreaView>
-    );
+      <ScrollView
+        contentContainerStyle={styles.gridContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }>
+        {/* Show Loader when data is still being fetched */}
+        {isLoading ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color="#008060" />
+            <Text style={styles.loaderText}>Loading Collections...</Text>
+          </View>
+        ) : (
+          // Show collections when data is fetched
+          <>
+            {!isLoading &&
+              collections?.data.map((collection, index) => {
+                if (index % 2 === 0) {
+                  return (
+                    <View key={collection.contractAddress} style={styles.row}>
+                      <CollectionCard
+                        collection={collection}
+                        onPress={() =>
+                          navigate('collectionDetails', {
+                            contractAddress: collection.contractAddress,
+                          })
+                        }
+                      />
+                      {collections?.data[index + 1] && (
+                        <CollectionCard
+                          collection={collections?.data[index + 1]}
+                          onPress={() =>
+                            navigate('collectionDetails', {
+                              contractAddress:
+                                collections?.data[index + 1].contractAddress,
+                            })
+                          }
+                        />
+                      )}
+                    </View>
+                  );
+                }
+                return null;
+              })}
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f2f2f2',
-    },
-    myNftsButton: {
-        marginHorizontal: 10,
-        marginTop: 10,
-        marginBottom: 5,
-        padding: 12,
-        backgroundColor: '#008060',
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    myNftsButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    gridContainer: {
-        padding: 10,
-    },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 10,
-    },
+  container: {
+    flex: 1,
+    backgroundColor: '#f2f2f2',
+  },
+  myNftsButton: {
+    marginHorizontal: 10,
+    marginTop: 10,
+    marginBottom: 5,
+    padding: 12,
+    backgroundColor: '#008060',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  myNftsButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  gridContainer: {
+    padding: 10,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+  },
+  loaderText: {
+    marginTop: 10,
+    fontSize: 18,
+    color: '#008060',
+  },
 });
 
 export default CollectionListingPage;
-
-
-// import React, { useState } from 'react';
-// import { SafeAreaView, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-// import { navigate } from '../../Navigation/NavigationFunctions';
-// import ListingHeader from '../../Componants/MarketPlace/ListingHeader';
-// import CollectionCard from '../../Componants/MarketPlace/CollectionCard';
-
-// const CollectionListingPage = () => {
-//     const [refreshing, setRefreshing] = useState(false);
-
-//     const collections = [
-//         {
-//             id: 1,
-//             bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-//             collectionName: 'India Hydroelectric 2025',
-//             symbol: 'IH2025',
-//         },
-//         {
-//             id: 2,
-//             bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-//             collectionName: 'Brazil Wind 2024',
-//             symbol: 'BW2024',
-//         },
-//         {
-//             id: 3,
-//             bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-//             collectionName: 'Turkey Hydroelectric 2025',
-//             symbol: 'TH2025',
-//         },
-//         {
-//             id: 4,
-//             bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-//             collectionName: 'Chile Hydroelectric 2025',
-//             symbol: 'CH2025',
-//         },
-//         {
-//             id: 5,
-//             bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-//             collectionName: 'India Wind 2025',
-//             symbol: 'IW2025',
-//         },
-//         {
-//             id: 6,
-//             bannerImage: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-//             collectionName: 'Thailand Solar 2025',
-//             symbol: 'TS2025',
-//         },
-//     ];
-
-//     // Handle pull to refresh action
-//     const onRefresh = () => {
-//         setRefreshing(true);
-//         setTimeout(() => {
-//             setRefreshing(false);
-//         }, 2000);
-//     };
-
-//     const renderItem = ({ item }) => (
-//         <CollectionCard
-//             collection={item}
-//             onPress={() => navigate('collectionDetails', { collectionId: item.id, collectionName: item.collectionName })}
-//         />
-//     );
-
-//     return (
-//         <SafeAreaView style={styles.container}>
-
-//             <ListingHeader title="Collections" />
-
-
-//             <FlatList
-//                 data={collections}
-//                 renderItem={renderItem}
-//                 keyExtractor={(item) => item.id.toString()}
-//                 numColumns={2}
-//                 contentContainerStyle={styles.gridContainer}
-//                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-//                 showsVerticalScrollIndicator={false}
-//             />
-//         </SafeAreaView>
-//     );
-// };
-
-// const styles = StyleSheet.create({
-//     container: {
-//         flex: 1,
-//         backgroundColor: '#f2f2f2',
-//     },
-//     gridContainer: {
-//         padding: 10,
-//     },
-// });
-
-// export default CollectionListingPage;
-

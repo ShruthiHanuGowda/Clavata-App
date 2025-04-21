@@ -1,35 +1,39 @@
 import React from 'react';
 import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
-
-interface NFT {
-  name: string;
-  description?: string;
-  price?: string;
-  quantity: number;
-  image: string;
-}
+import {NftToken, TokenMarketData} from '../../../types/types';
+import {getMinAskPrice} from '../../../hooks/marketPlace';
 
 interface NFTHeaderProps {
-  nft: NFT;
+  nft: NftToken | null;
   onBuyPress: () => void;
 }
 
-const NFTHeader: React.FC<NFTHeaderProps> = ({nft, onBuyPress}) => (
-  <View style={styles.header}>
-    <View style={styles.left}>
-      <Text style={styles.title}>{nft.name}</Text>
-      {nft.description && (
+const NFTHeader: React.FC<NFTHeaderProps> = ({nft, onBuyPress}) => {
+  const price = getMinAskPrice(nft?.marketData?.activeAsks ?? []);
+  return (
+    <View style={styles.header}>
+      <View style={styles.left}>
+        <Text style={styles.title}>{nft?.name}</Text>
+        {/* {nft.description && (
         <Text style={styles.description}>{nft.description}</Text>
-      )}
-      {nft.price && <Text style={styles.price}>💰 Price: {nft.price}</Text>}
-      <Text style={styles.qty}>📦 Quantity: {nft.quantity}</Text>
-      <TouchableOpacity style={styles.buyButton} onPress={onBuyPress}>
-        <Text style={styles.buyButtonText}>Buy Now</Text>
-      </TouchableOpacity>
+      )} */}
+        <Text style={styles.price}>💰 Price: {price}</Text>
+        <Text style={styles.qty}>📦 Quantity: {nft?.totalListed}</Text>
+        <TouchableOpacity style={styles.buyButton} onPress={onBuyPress}>
+          <Text style={styles.buyButtonText}>Buy Now</Text>
+        </TouchableOpacity>
+      </View>
+      <Image
+        source={{
+          uri:
+            nft?.image?.thumbnail ||
+            'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
+        }}
+        style={styles.nftImage}
+      />
     </View>
-    <Image source={{uri: nft.image}} style={styles.nftImage} />
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   header: {

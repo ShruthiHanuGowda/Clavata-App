@@ -1,48 +1,69 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
-
-interface Owner {
-  id: number;
-  price: string | null;
-  qty: number;
-  owner: string;
-  isCurrentUser: boolean;
-}
+import {View, Text, TouchableOpacity, StyleSheet, Image} from 'react-native';
+import {activeAsks} from '../../../types/types';
+import {useAuth} from '../../../../screens/Provider/authProvider';
+import {getMinAskPrice} from '../../../hooks/marketPlace';
+import {shortenAddress} from '../../../utils/shortenAddress';
 
 interface OwnerListProps {
-  owners: Owner[];
-  onBuyPress: (owner: Owner) => void;
-  onSellPress: (owner: Owner) => void;
+  owners: activeAsks[];
+  onBuyPress: (owner: activeAsks) => void;
+  onSellPress: (owner: activeAsks) => void;
 }
 
 const OwnerList: React.FC<OwnerListProps> = ({
   owners,
   onBuyPress,
   onSellPress,
-}) => (
-  <View style={styles.card}>
-    {owners.map(owner => (
-      <View key={owner.id} style={styles.ownerRow}>
-        <View style={styles.ownerInfo}>
-          {owner?.price && (
-            <Text style={styles.ownerText}>Price: {owner.price}</Text>
-          )}
-          <Text style={styles.ownerText}>Qty: {owner.qty}</Text>
-          <Text style={styles.ownerText}>Owner: {owner.owner}</Text>
-        </View>
-        <TouchableOpacity
-          style={owner.isCurrentUser ? styles.sellButton : styles.buyButton}
-          onPress={() =>
-            owner.isCurrentUser ? onSellPress(owner) : onBuyPress(owner)
-          }>
-          <Text style={styles.buttonText}>
-            {owner.isCurrentUser ? 'Sell' : 'Buy'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    ))}
-  </View>
-);
+}) => {
+  const {userDetails} = useAuth();
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.title}>Owners</Text>
+      {owners.map((owner, index) => {
+        const isCurrentUser = owner.seller?.id === userDetails?.userWallet;
+        const isLast = index === owners.length - 1;
+
+        return (
+          <View
+            key={owner.id}
+            style={[styles.ownerRow, !isLast && styles.rowBorder]}>
+            <View style={styles.ownerInfo}>
+              <Text style={styles.ownerText}>
+                <Text style={styles.label}>Qty:</Text> {owner.amount}
+              </Text>
+              <Text style={styles.ownerText}>
+                <Text style={styles.label}>Owner:</Text>{' '}
+                {shortenAddress(owner.seller?.id)}
+              </Text>
+              <View style={styles.priceRow}>
+                <Text style={styles.label}>Price:</Text>
+                <Image
+                  source={{
+                    uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
+                  }}
+                  style={styles.tokenIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.priceText}>{owner.askPrice}</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={isCurrentUser ? styles.sellButton : styles.buyButton}
+              onPress={() =>
+                isCurrentUser ? onSellPress(owner) : onBuyPress(owner)
+              }>
+              <Text style={styles.buttonText}>
+                {isCurrentUser ? 'Sell' : 'Buy'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        );
+      })}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   card: {
@@ -52,30 +73,67 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     elevation: 2,
   },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 10,
+  },
   ownerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    paddingVertical: 10,
+  },
+  rowBorder: {
     borderBottomColor: '#eee',
     borderBottomWidth: 1,
-    paddingBottom: 10,
   },
-  ownerInfo: {flex: 1},
-  ownerText: {fontSize: 14, color: '#34495e', marginBottom: 3},
+  ownerInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  ownerText: {
+    fontSize: 14,
+    color: '#2d3436',
+    marginBottom: 3,
+  },
+  label: {
+    fontWeight: '600',
+    color: '#34495e',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  tokenIcon: {
+    width: 16,
+    height: 16,
+    marginLeft: 4,
+    marginRight: 4,
+  },
+  priceText: {
+    fontSize: 14,
+    color: '#2d3436',
+  },
   buyButton: {
     backgroundColor: '#008060',
     paddingVertical: 8,
     paddingHorizontal: 20,
-    borderRadius: 25,
+    borderRadius: 20,
   },
   sellButton: {
-    backgroundColor: '#f39c12',
+    backgroundColor: '#e67e22',
     paddingVertical: 8,
     paddingHorizontal: 20,
-    borderRadius: 25,
+    borderRadius: 20,
   },
-  buttonText: {color: '#fff', fontWeight: '600', fontSize: 14},
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
 });
 
 export default OwnerList;
