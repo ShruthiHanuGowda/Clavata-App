@@ -47,7 +47,7 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
       </View>
     );
   }
-
+ 
   const marketData = combinedNft;
 
   const owners = marketData?.marketData?.activeAsks || [];

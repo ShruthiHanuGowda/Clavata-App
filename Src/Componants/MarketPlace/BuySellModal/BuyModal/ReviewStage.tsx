@@ -50,10 +50,6 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
   const quantityExceeds = quantity > availableQuantity;
   const notEnoughBalance = totalPayment > walletBalance;
 
-  //   const {magic_denergy, magic, magic_sepolia} = useMagic();
-
-  const {userDetails} = useAuth();
-
   const handleQuantityChange = (val: string) => {
     const number = parseInt(val.replace(/[^0-9]/g, ''), 10);
     if (!isNaN(number) && number <= availableQuantity) {
@@ -63,35 +59,8 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
     }
   };
 
-  const magic = new Magic('pk_live_035EF4798A442669', {
-    network: {
-      rpcUrl: 'https://rpc.denergytestnet.com',
-      chainId: 4442,
-    },
-    // testMode: true,
-  });
-
-  const checkout = async () => {
-    try {
-      const message = `Hello 1222`;
-
-      const encodedMessage = toUtf8Bytes(message);
-
-      const provider = new BrowserProvider(magic?.rpcProvider as any);
-      const signer = await provider.getSigner();
-
-      const signature = await signer.signMessage(encodedMessage);
-
-      console.log('Signed message:', message);
-      console.log('Signature:', signature);
-    } catch (error) {
-      console.error('Signing failed:', error);
-    }
-  };
-
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
-      <magic.Relayer />
       <View style={styles.nftInfo}>
         <Image
           source={{
@@ -181,9 +150,8 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
           (notEnoughBalance || !quantity || quantityExceeds) &&
             styles.disabledButton,
         ]}
-        // disabled={notEnoughBalance || !quantity || quantityExceeds}
-        // onPress={continueToNextStage}
-        onPress={checkout}>
+        disabled={notEnoughBalance || !quantity || quantityExceeds}
+        onPress={continueToNextStage}>
         <Text style={styles.buttonText}>Checkout</Text>
       </TouchableOpacity>
     </ScrollView>

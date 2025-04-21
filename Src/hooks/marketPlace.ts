@@ -1,6 +1,7 @@
 import {GRAPH_API_NFTMARKET} from '../constants';
 import {GET_NFTS_MARKET_DATA, GET_TOKEN_ACTIVITY} from '../graphql/NFTqueries';
 import {
+  activeAsks,
   Activity,
   AskOrder,
   AskOrderType,
@@ -80,6 +81,25 @@ export function getMinAskPrice(data: {askPrice: string}[]): number {
   }
 
   return minAskPrice;
+}
+
+export function getMinAsk(
+  data: {askPrice: string; seller: {id: `0x${string}`}}[],
+): Partial<activeAsks> {
+  if (!Array.isArray(data) || data.length === 0) {
+    return {};
+  }
+
+  const minItem = data.reduce((min, item) => {
+    const currentPrice = parseFloat(item.askPrice);
+    const minPrice = parseFloat(min.askPrice);
+    return currentPrice < minPrice ? item : min;
+  }, data[0]);
+
+  if (Number.isNaN(parseFloat(minItem.askPrice))) {
+    return {};
+  }
+  return minItem;
 }
 
 export const sortActivity = ({
