@@ -1,7 +1,15 @@
 import {useState} from 'react';
-import {BrowserProvider, Contract, JsonRpcProvider, TransactionReceipt, formatUnits, parseUnits} from 'ethers';
+import {
+  BrowserProvider,
+  Contract,
+  JsonRpcProvider,
+  TransactionReceipt,
+  formatUnits,
+  parseUnits,
+} from 'ethers';
 
-const INFURA_URL = 'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
+const INFURA_URL =
+  'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
 const infuraProvider = new JsonRpcProvider(INFURA_URL);
 
 // Token addresses
@@ -13,74 +21,74 @@ export const TOKEN_ADDRESSES = {
 // Generic ERC20 ABI (works for both USDC and EURC)
 const ERC20_ABI = [
   {
-    'constant': true,
-    'inputs': [
+    constant: true,
+    inputs: [
       {
-        'name': '_owner',
-        'type': 'address',
+        name: '_owner',
+        type: 'address',
       },
     ],
-    'name': 'balanceOf',
-    'outputs': [
+    name: 'balanceOf',
+    outputs: [
       {
-        'name': 'balance',
-        'type': 'uint256',
+        name: 'balance',
+        type: 'uint256',
       },
     ],
-    'payable': false,
-    'stateMutability': 'view',
-    'type': 'function',
+    payable: false,
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    'constant': false,
-    'inputs': [
+    constant: false,
+    inputs: [
       {
-        'name': '_to',
-        'type': 'address',
+        name: '_to',
+        type: 'address',
       },
       {
-        'name': '_value',
-        'type': 'uint256',
-      },
-    ],
-    'name': 'transfer',
-    'outputs': [
-      {
-        'name': '',
-        'type': 'bool',
+        name: '_value',
+        type: 'uint256',
       },
     ],
-    'payable': false,
-    'stateMutability': 'nonpayable',
-    'type': 'function',
+    name: 'transfer',
+    outputs: [
+      {
+        name: '',
+        type: 'bool',
+      },
+    ],
+    payable: false,
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
   {
-    'constant': true,
-    'inputs': [],
-    'name': 'decimals',
-    'outputs': [
+    constant: true,
+    inputs: [],
+    name: 'decimals',
+    outputs: [
       {
-        'name': '',
-        'type': 'uint8',
+        name: '',
+        type: 'uint8',
       },
     ],
-    'payable': false,
-    'stateMutability': 'view',
-    'type': 'function',
+    payable: false,
+    stateMutability: 'view',
+    type: 'function',
   },
   {
-    'constant': true,
-    'inputs': [],
-    'name': 'symbol',
-    'outputs': [
+    constant: true,
+    inputs: [],
+    name: 'symbol',
+    outputs: [
       {
-        'name': '',
-        'type': 'string',
+        name: '',
+        type: 'string',
       },
     ],
-    'payable': false,
-    'stateMutability': 'view',
-    'type': 'function',
+    payable: false,
+    stateMutability: 'view',
+    type: 'function',
   },
 ];
 
@@ -138,19 +146,28 @@ export const useSendUSDCANDEURC = (
       }
 
       // Initialize token contract with infura provider
-      const tokenContract = new Contract(transactionDetails.tokenAddress, ERC20_ABI, infuraProvider);
+      const tokenContract = new Contract(
+        transactionDetails.tokenAddress,
+        ERC20_ABI,
+        infuraProvider,
+      );
 
       // Get token decimals and symbol
       const tokenDecimals = await tokenContract.decimals();
       const tokenSymbol = await tokenContract.symbol();
 
       // Convert amount to token's smallest unit using the correct decimals
-      const amountInSmallestUnit = parseUnits(transactionDetails.amount, tokenDecimals);
+      const amountInSmallestUnit = parseUnits(
+        transactionDetails.amount,
+        tokenDecimals,
+      );
 
       // Check user's token balance
       const userTokenBalance = await tokenContract.balanceOf(userAddress);
       if (userTokenBalance < amountInSmallestUnit) {
-        throw new Error(`Insufficient ${tokenSymbol} balance for the transaction`);
+        throw new Error(
+          `Insufficient ${tokenSymbol} balance for the transaction`,
+        );
       }
 
       // Get Magic provider for signing transactions
