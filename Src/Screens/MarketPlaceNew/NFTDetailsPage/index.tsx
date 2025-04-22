@@ -8,6 +8,7 @@ import BuyModal from '../../../Componants/MarketPlace/BuySellModal/BuyModal';
 import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
 import {NftToken} from '../../../types/types';
 import {useCompleteNft} from '../../../hooks/useCompleteNft';
+import useNftActivity from '../../../hooks/useNftActivity';
 
 interface NFTDetailsScreenProps {
   route: {
@@ -28,11 +29,11 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
     refetch,
   } = useCompleteNft(nft?.id);
 
-  // Handle Buy Confirmation
-  const handleBuyConfirm = () => {
-    console.log('Buy confirmed!');
-    setIsBuyModalVisible(false);
-  };
+  const {
+    activity,
+    loading,
+    refetch: refetchActivity,
+  } = useNftActivity(nft.tokenId, nft.collectionAddress);
 
   useEffect(() => {
     if (nft?.collectionAddress && nft?.tokenId) {
@@ -47,7 +48,7 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
       </View>
     );
   }
- 
+
   const marketData = combinedNft;
 
   const owners = marketData?.marketData?.activeAsks || [];
@@ -71,20 +72,32 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
         <ContractInfo nft={combinedNft} />
 
         <Text style={styles.sectionTitle}>📊 Activity</Text>
-        <ActivityList nft={combinedNft} />
+        <ActivityList activity={activity} loading={loading} />
       </ScrollView>
 
       <BuyModal
         visible={isBuyModalVisible}
-        onClose={() => setIsBuyModalVisible(false)}
+        onClose={() => {
+          setIsBuyModalVisible(false);
+          refetch();
+          refetchActivity();
+        }}
         // onConfirm={handleBuyConfirm}
         nftToBuy={combinedNft}
       />
 
       <SellModal
         visible={isSellModalVisible}
-        onClose={() => setIsSellModalVisible(false)}
+        onClose={() => {
+          setIsSellModalVisible(false);
+          refetch();
+        }}
+        variant="adjust"
         nftToSell={combinedNft}
+        onSuccessSale={() => {
+          refetch();
+          refetchActivity();
+        }}
       />
     </>
   );

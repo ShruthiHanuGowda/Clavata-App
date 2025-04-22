@@ -9,7 +9,7 @@ import {
   Platform,
   Linking,
 } from 'react-native';
-import {NftToken} from '../../../types/types';
+import {Activity, NftToken} from '../../../types/types';
 import useNftActivity from '../../../hooks/useNftActivity';
 import ActivityEventText from './ActivityEventText';
 import {getBlockExploreLink} from '../../../utils/explorer';
@@ -17,7 +17,8 @@ import {getBlockExploreLink} from '../../../utils/explorer';
 const MAX_PER_PAGE = 5;
 
 interface ActivityCardProps {
-  nft: NftToken;
+  activity: Activity[];
+  loading: boolean;
 }
 
 const shortenAddress = (address: string = '') =>
@@ -25,13 +26,8 @@ const shortenAddress = (address: string = '') =>
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : address;
 
-const ActivityCard: React.FC<ActivityCardProps> = ({nft}) => {
+const ActivityCard: React.FC<ActivityCardProps> = ({activity, loading}) => {
   const [page, setPage] = useState(1);
-
-  const {activity, loading, error} = useNftActivity(
-    nft.tokenId,
-    nft.collectionAddress,
-  );
 
   const paginated = activity.slice(0, page * MAX_PER_PAGE);
 
@@ -45,9 +41,11 @@ const ActivityCard: React.FC<ActivityCardProps> = ({nft}) => {
 
   if (loading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="small" color="#3498db" />
-        <Text style={{marginTop: 8}}>Loading activity...</Text>
+      <View style={styles.container}>
+        <View style={styles.loading}>
+          <ActivityIndicator size="small" color="#3498db" />
+          <Text style={{marginTop: 8}}>Loading activity...</Text>
+        </View>
       </View>
     );
   }

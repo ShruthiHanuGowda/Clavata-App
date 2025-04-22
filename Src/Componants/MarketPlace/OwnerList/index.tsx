@@ -22,7 +22,9 @@ const OwnerList: React.FC<OwnerListProps> = ({
     <View style={styles.card}>
       <Text style={styles.title}>Owners</Text>
       {owners.map((owner, index) => {
-        const isCurrentUser = owner.seller?.id === userDetails?.userWallet;
+        const isCurrentUser =
+          owner.seller?.id.toLowerCase() ===
+          userDetails?.userWallet?.toLocaleLowerCase();
         const isLast = index === owners.length - 1;
 
         return (
@@ -55,7 +57,7 @@ const OwnerList: React.FC<OwnerListProps> = ({
                 isCurrentUser ? onSellPress(owner) : onBuyPress(owner)
               }>
               <Text style={styles.buttonText}>
-                {isCurrentUser ? 'Sell' : 'Buy'}
+                {isCurrentUser ? 'Modify' : 'Buy'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -124,7 +126,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   sellButton: {
-    backgroundColor: '#e67e22',
+    backgroundColor: '#e74c3c',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,

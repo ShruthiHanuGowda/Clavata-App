@@ -64,10 +64,11 @@ const BuyModal: React.FC<BuyModalProps> = ({
   );
   const [confirmedTxHash, setConfirmedTxHash] = useState<string>('');
 
-  const {refreshBalance} = useWallet();
+  const {refreshBalance, getBalance} = useWallet();
   const {magic_denergy} = useMagic();
   const {userDetails} = useAuth();
   const {callWithGasPrice} = useCallWithGasPrice();
+  const {balance} = getBalance('WUSDC');
 
   const account = userDetails?.denergyWallet as `0x${string}`;
   const nftPrice = getMinAskPrice(nftToBuy?.marketData?.activeAsks ?? []);
@@ -81,14 +82,13 @@ const BuyModal: React.FC<BuyModalProps> = ({
   const usdcAddress = TOKEN_CONTRACTS.denergy.USDC as `0x${string}`;
   const eurcAddress = TOKEN_CONTRACTS.denergy.EURC as `0x${string}`;
   const tokenAddress = paymentCurrency === 'USDC' ? usdcAddress : eurcAddress;
-  console.log(tokenAddress);
 
   const tokenContract = useERC20(tokenAddress);
   const nftMarketContract = getNftMarketContract();
   const marketAddress = TOKEN_CONTRACTS.nftMarket as `0x${string}`;
 
   useEffect(() => {
-    refreshBalance('WUSDC'); // consider dynamic here based on paymentCurrency
+    refreshBalance('WUSDC');
   }, [paymentCurrency]);
 
   const {isApproved, isApproving, isConfirming, handleApprove, handleConfirm} =
@@ -98,7 +98,8 @@ const BuyModal: React.FC<BuyModalProps> = ({
           tokenAddress,
           account,
           marketAddress,
-          BigInt(nftPrice) * BigInt(quantity),
+          // BigInt(nftPrice ?? 0) * BigInt(quantity ?? 0),
+          MaxUint256,
           magic_denergy,
         );
       },
@@ -109,28 +110,27 @@ const BuyModal: React.FC<BuyModalProps> = ({
         ]);
       },
       onConfirm: async () => {
-        const provider = new BrowserProvider(magic_denergy.rpcProvider as any);
-        const signer = await provider.getSigner();
-        const onChainTokenContract = new Contract(
-          tokenAddress,
-          ERC20_ABI,
-          signer,
-        );
+        // const provider = new BrowserProvider(magic_denergy.rpcProvider as any);
+        // const signer = await provider.getSigner();
+        // const onChainTokenContract = new Contract(
+        //   tokenAddress,
+        //   ERC20_ABI,
+        //   signer,
+        // );
+        // const currentAllowance = await onChainTokenContract.allowance(
+        //   account,
+        //   marketAddress,
+        // );
+        // const requiredAllowance = BigInt(nftPrice) * BigInt(quantity);
 
-        const currentAllowance = await onChainTokenContract.allowance(
-          account,
-          marketAddress,
-        );
-        const requiredAllowance = BigInt(nftPrice) * BigInt(quantity);
+        // if (currentAllowance < requiredAllowance) {
+        //   const tx = await callWithGasPrice(tokenContract, 'approve', [
+        //     marketAddress,
+        //     MaxUint256,
+        //   ]);
 
-        if (currentAllowance < requiredAllowance) {
-          const tx = await callWithGasPrice(tokenContract, 'approve', [
-            marketAddress,
-            MaxUint256,
-          ]);
-
-          await tx;
-        }
+        //   await tx;
+        // }
 
         return callWithGasPrice(nftMarketContract, 'buyToken', [
           nftToBuy.collectionAddress,
@@ -140,7 +140,8 @@ const BuyModal: React.FC<BuyModalProps> = ({
         ]);
       },
       onSuccess: ({receipt}) => {
-        setConfirmedTxHash(receipt.transactionHash);
+        console.log(receipt);
+        setConfirmedTxHash(receipt.hash);
         setStage(BuyingStage.TX_CONFIRMED);
       },
     });
@@ -182,7 +183,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
                 nftPrice={Number(nftPrice)}
                 paymentCurrency={paymentCurrency}
                 availableQuantity={parseFloat(availableQuantity)}
-                walletBalance={50} // replace with actual balance logic
+                walletBalance={Number(balance)}
                 walletFetchStatus={'success'}
                 continueToNextStage={() =>
                   setStage(BuyingStage.APPROVE_AND_CONFIRM)

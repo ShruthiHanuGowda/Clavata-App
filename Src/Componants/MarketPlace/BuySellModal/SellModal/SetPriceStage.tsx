@@ -19,9 +19,10 @@ interface NFT {
 
 interface SetPriceStageProps {
   nftToSell: NFT;
-  variant: 'adjust' | 'sell';
+  variant: 'set' | 'adjust';
   currentPrice?: number;
   price: string;
+  lowestPrice?: number;
   setPrice: React.Dispatch<React.SetStateAction<string>>;
   quantity: string;
   setQuantity: React.Dispatch<React.SetStateAction<string>>;

@@ -1,7 +1,7 @@
 import {JsonRpcProvider, JsonRpcSigner} from 'ethers';
 import {useEffect, useState} from 'react';
 import {CUSTOM_RPC_URL} from '../../constants';
-import { logMissingFieldErrors } from '@apollo/client/core/ObservableQuery';
+import {logMissingFieldErrors} from '@apollo/client/core/ObservableQuery';
 
 export function useGasPrice(
   signer?: JsonRpcSigner,
@@ -34,7 +34,7 @@ export function useGasPrice(
     return () => {
       setGasPrice(undefined);
     };
-  }, [signer, chainId]);
+  }, [chainId]);
 
   return gasPrice;
 }

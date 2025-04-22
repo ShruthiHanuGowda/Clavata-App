@@ -2,6 +2,7 @@ import {useCallback, useReducer, useRef, useEffect} from 'react';
 import noop from 'lodash/noop';
 import useCatchTxError from './useCatchTxError';
 import {useAuth} from '../../../screens/Provider/authProvider';
+import {TransactionReceipt} from 'ethers';
 
 // Types for state
 type LoadingState = 'idle' | 'loading' | 'success' | 'fail';
@@ -46,21 +47,20 @@ const reducer = (state: State, action: Action): State => {
 // Shared prop types
 interface OnSuccessProps {
   state: State;
-  receipt: any; // Use appropriate type for your transaction receipts
+  receipt: any;
 }
 
 type CustomApproveProps = {
   onRequiresApproval: () => Promise<boolean>;
-  onApprove: () => Promise<{hash: string | null} | undefined>;
+  onApprove: () => Promise<TransactionReceipt | undefined>;
 };
 
 type ApproveConfirmTransaction = {
-  onConfirm: (params?: any) => Promise<{hash: string | null} | undefined>;
+  onConfirm: (params?: any) => Promise<TransactionReceipt | undefined>;
   onSuccess: ({state, receipt}: OnSuccessProps) => void;
   onApproveSuccess?: ({state, receipt}: OnSuccessProps) => void;
 } & CustomApproveProps;
 
-// React Native-friendly hook
 const useApproveConfirmTransaction = ({
   onConfirm,
   onSuccess = noop,
@@ -106,10 +106,7 @@ const useApproveConfirmTransaction = ({
     [fetchWithCatchTxError, onConfirm, onSuccess, state],
   );
 
-  // Auto-approve check on mount or dependency change
   useEffect(() => {
-    console.log('handleApprove', handlePreApprove.current);
-
     if (userDetails && handlePreApprove.current) {
       handlePreApprove.current().then(requiresApproval => {
         if (!requiresApproval) {
