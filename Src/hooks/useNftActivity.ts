@@ -1,28 +1,26 @@
-import {useState, useEffect, useCallback} from 'react';
+import {useState, useEffect} from 'react';
 import {Activity} from '../types/types';
 import {getTokenActivity, sortActivity} from './marketPlace';
 
 const useNftActivity = (tokenId: string, collectionAddress: string) => {
   const [activity, setActivity] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchActivity = async () => {
     if (!tokenId || !collectionAddress) return;
 
-    setLoading(true);
-    setError(null);
-
     try {
+      setLoading(true);
+      setError(null);
+
       const response = await getTokenActivity(
         tokenId,
         collectionAddress.toLowerCase(),
       );
-
       const sorted = sortActivity(response);
       setActivity(sorted);
     } catch (err) {
-      console.error('Failed to fetch activity:', err);
       setError('Failed to fetch activity');
     } finally {
       setLoading(false);
@@ -33,15 +31,11 @@ const useNftActivity = (tokenId: string, collectionAddress: string) => {
     fetchActivity();
   }, [tokenId, collectionAddress]);
 
-  const refetch = useCallback(() => {
-    fetchActivity();
-  }, []);
-
   return {
     activity,
     loading,
     error,
-    refetch,
+    refetch: fetchActivity,
   };
 };
 

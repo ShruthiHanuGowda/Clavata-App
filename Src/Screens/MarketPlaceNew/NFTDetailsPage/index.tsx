@@ -1,5 +1,13 @@
 import React, {useState, useEffect} from 'react';
-import {ScrollView, Text, StyleSheet, View} from 'react-native';
+import {
+  ScrollView,
+  Text,
+  StyleSheet,
+  View,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
+
 import NFTHeader from '../../../Componants/MarketPlace/NFTHeader';
 import OwnerList from '../../../Componants/MarketPlace/OwnerList';
 import ContractInfo from '../../../Componants/MarketPlace/ContractInfo';
@@ -13,15 +21,16 @@ import useNftActivity from '../../../hooks/useNftActivity';
 interface NFTDetailsScreenProps {
   route: {
     params: {
-      nft: any;
+      nft: NftToken;
     };
   };
 }
 
 const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
-  const {nft}: {nft: NftToken} = route.params;
-  const [isBuyModalVisible, setIsBuyModalVisible] = useState<boolean>(false);
-  const [isSellModalVisible, setIsSellModalVisible] = useState<boolean>(false);
+  const {nft} = route.params;
+  const [isBuyModalVisible, setIsBuyModalVisible] = useState(false);
+  const [isSellModalVisible, setIsSellModalVisible] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     nft: combinedNft,
@@ -29,11 +38,17 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
     refetch,
   } = useCompleteNft(nft?.id);
 
+  const hasTokenData = combinedNft?.tokenId && combinedNft?.collectionAddress;
+
   const {
     activity,
-    loading,
+    loading: activityLoading,
+    error: activityError,
     refetch: refetchActivity,
-  } = useNftActivity(nft.tokenId, nft.collectionAddress);
+  } = useNftActivity(
+    hasTokenData ? combinedNft.tokenId : '',
+    hasTokenData ? combinedNft.collectionAddress : '',
+  );
 
   useEffect(() => {
     if (nft?.collectionAddress && nft?.tokenId) {
@@ -41,24 +56,41 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
     }
   }, [nft]);
 
+  useEffect(() => {
+    if (hasTokenData) {
+      refetchActivity();
+    }
+  }, [hasTokenData]);
+
+  const onRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    await refetchActivity();
+    setIsRefreshing(false);
+  };
+
+  const owners = combinedNft?.marketData?.activeAsks || [];
+
   if (isLoading || !combinedNft) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading NFT details...</Text>
+        <ActivityIndicator size="large" color="#008060" />
+        <Text style={styles.loadingText}>Fetching NFT Details...</Text>
       </View>
     );
   }
 
-  const marketData = combinedNft;
-
-  const owners = marketData?.marketData?.activeAsks || [];
-
   return (
     <>
-      <ScrollView style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+        }>
         <NFTHeader
           nft={combinedNft}
           onBuyPress={() => setIsBuyModalVisible(true)}
+          onSellPress={() => setIsSellModalVisible(true)}
         />
 
         <Text style={styles.sectionTitle}>👑 Owners</Text>
@@ -72,7 +104,11 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
         <ContractInfo nft={combinedNft} />
 
         <Text style={styles.sectionTitle}>📊 Activity</Text>
-        <ActivityList activity={activity} loading={loading} />
+        {activityError ? (
+          <Text style={styles.errorText}>Failed to load activity.</Text>
+        ) : (
+          <ActivityList activity={activity} loading={activityLoading} />
+        )}
       </ScrollView>
 
       <BuyModal
@@ -82,7 +118,6 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
           refetch();
           refetchActivity();
         }}
-        // onConfirm={handleBuyConfirm}
         nftToBuy={combinedNft}
       />
 
@@ -112,15 +147,26 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 10,
-    color: '#2c3e50',
+    fontWeight: '700',
+    marginVertical: 15,
+    color: '#34495e',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#7f8c8d',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#e74c3c',
+    textAlign: 'center',
+    marginTop: 10,
   },
 });
 

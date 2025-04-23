@@ -105,7 +105,7 @@ const SellModal: React.FC<SellModalProps> = ({
   const nftMarketContract = getNftMarketContract();
   const marketAddress = TOKEN_CONTRACTS.nftMarket as `0x${string}`;
 
-  const account = userDetails?.denergyWallet as `0x${string}`;
+  const account = userDetails?.userWallet as `0x${string}`;
 
   const isInvalidTransferAddress =
     !transferAddress ||
@@ -113,6 +113,7 @@ const SellModal: React.FC<SellModalProps> = ({
 
   const goBack = () => {
     setQuantity('');
+    setTransferAddress('');
     switch (stage) {
       case SellingStage.SET_PRICE:
         setStage(SellingStage.SELL);
@@ -206,16 +207,14 @@ const SellModal: React.FC<SellModalProps> = ({
         }
         if (stage === SellingStage.CONFIRM_TRANSFER) {
           const data = hexlify(toUtf8Bytes(''));
-          if (account)
-            return callWithGasPrice(collectionContract, 'safeTransferFrom', [
-              account,
-              transferAddress as `0x${string}`,
-              BigInt(nftToSell.tokenId),
-              BigInt(quantity),
-              data,
-            ]);
+          return callWithGasPrice(collectionContract, 'safeTransferFrom', [
+            account,
+            transferAddress as `0x${string}`,
+            BigInt(nftToSell.tokenId),
+            BigInt(quantity),
+            data,
+          ]);
         }
-        // const methodName = variant === 'sell' ? 'createAskOrder' : 'modifyAskOrder'
         if (variant === 'sell') {
           const askPrice = parseUnits(price as `${number}`, 6);
           return callWithGasPrice(nftMarketContract, 'createAskOrder', [
@@ -260,7 +259,13 @@ const SellModal: React.FC<SellModalProps> = ({
               </TouchableOpacity>
             )}
             <Text style={styles.title}>{modalTitles[stage]}</Text>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity
+              onPress={() => {
+                onClose();
+                setStage(
+                  variant === 'sell' ? SellingStage.SELL : SellingStage.EDIT,
+                );
+              }}>
               <Text style={styles.closeButton}>✕</Text>
             </TouchableOpacity>
           </View>
@@ -316,12 +321,6 @@ const SellModal: React.FC<SellModalProps> = ({
                 handleConfirm={handleConfirm}
               />
             )}
-            {stage === SellingStage.TX_CONFIRMED && (
-              <TransactionConfirmed
-                txHash={confirmedTxHash}
-                onDismiss={onClose}
-              />
-            )}
             {stage === SellingStage.ADJUST_PRICE && (
               <SetPriceStage
                 price={price}
@@ -363,6 +362,9 @@ const SellModal: React.FC<SellModalProps> = ({
               <TransactionConfirmed
                 txHash={confirmedTxHash}
                 onDismiss={() => {
+                  setStage(
+                    variant === 'sell' ? SellingStage.SELL : SellingStage.EDIT,
+                  );
                   onClose();
                 }}
               />

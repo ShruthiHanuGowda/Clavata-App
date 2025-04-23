@@ -1,15 +1,41 @@
 import React from 'react';
 import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
 import {NftToken, TokenMarketData} from '../../../types/types';
-import {getMinAskPrice} from '../../../hooks/marketPlace';
+import {getMinAsk, getMinAskPrice, isOwnNft} from '../../../hooks/marketPlace';
+import {useAuth} from '../../../../screens/Provider/authProvider';
 
 interface NFTHeaderProps {
   nft: NftToken | null;
   onBuyPress: () => void;
+  onSellPress: () => void;
 }
 
-const NFTHeader: React.FC<NFTHeaderProps> = ({nft, onBuyPress}) => {
+const NFTHeader: React.FC<NFTHeaderProps> = ({
+  nft,
+  onBuyPress,
+  onSellPress,
+}) => {
+  const {userDetails} = useAuth();
   const price = getMinAskPrice(nft?.marketData?.activeAsks ?? []);
+  const minAsk = getMinAsk(nft?.marketData?.activeAsks ?? []);
+  console.log(minAsk?.amount);
+
+  const isOwn = isOwnNft(
+    userDetails?.userWallet as `0x${string}`,
+    nft?.marketData?.activeAsks ?? [],
+  );
+
+  const ownerButtons = (
+    <TouchableOpacity
+      style={styles.buyButton}
+      onPress={onSellPress}
+      disabled={!nft?.marketData?.isTradable}>
+      <Text style={styles.buyButtonText}>
+        {nft?.marketData?.isTradable ? 'Adjust price' : 'List for sale'}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.header}>
       <View style={styles.left}>
@@ -17,11 +43,19 @@ const NFTHeader: React.FC<NFTHeaderProps> = ({nft, onBuyPress}) => {
         {/* {nft.description && (
         <Text style={styles.description}>{nft.description}</Text>
       )} */}
-        <Text style={styles.price}>💰 Price: {price}</Text>
-        <Text style={styles.qty}>📦 Quantity: {nft?.totalListed}</Text>
-        <TouchableOpacity style={styles.buyButton} onPress={onBuyPress}>
-          <Text style={styles.buyButtonText}>Buy Now</Text>
-        </TouchableOpacity>
+        <Text style={styles.price}>
+          💰 Price: {price > 0 ? price : 'Not for sale'}
+        </Text>
+        <Text style={styles.qty}>📦 Quantity: {minAsk?.amount ?? 0}</Text>
+        {isOwn && ownerButtons}
+        {!isOwn && (
+          <TouchableOpacity
+            style={styles.buyButton}
+            onPress={onBuyPress}
+            disabled={!nft?.marketData?.isTradable}>
+            <Text style={styles.buyButtonText}>Buy Now</Text>
+          </TouchableOpacity>
+        )}
       </View>
       <Image
         source={{

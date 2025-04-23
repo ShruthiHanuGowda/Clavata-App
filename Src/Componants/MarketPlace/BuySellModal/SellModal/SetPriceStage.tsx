@@ -48,8 +48,8 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
   const priceIsValid =
     !price || Number.isNaN(parseFloat(price)) || parseFloat(price) <= 0;
   const qtyIsValid =
-    !quantity ||
     Number.isNaN(parseFloat(quantity)) ||
+    !quantity ||
     parseFloat(quantity) <= 0;
   const priceAsFloat = parseFloat(price);
   const priceIsOutOfRange =

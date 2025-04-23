@@ -1,9 +1,10 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Linking} from 'react-native';
+import {getBlockExploreLink} from '../../../../utils/explorer';
 
 const TransactionConfirmed = ({txHash, onDismiss}) => {
   const openExplorer = () => {
-    const url = `https://explorernew.denergytestnet.com/tx/${txHash}`;
+    const url = getBlockExploreLink(txHash, 'transaction');
     Linking.openURL(url);
   };
 

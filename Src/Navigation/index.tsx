@@ -23,10 +23,10 @@ import Account from '../Screens/AppScreens/Accountpage';
 import ContactUs from '../Screens/AppScreens/ContactUs';
 import Wallet from '../Screens/wallet';
 import AccountBeneficary from '../Screens/AppScreens/Beneficiaries/beneficary';
-import YourNFTsScreen from '../Screens/MarketPlaceNew/YourNFTsScreen';
 import CollectionDetailsScreen from '../Screens/MarketPlaceNew/CollectionDetailsPage';
 import NFTDetailsScreen from '../Screens/MarketPlaceNew/NFTDetailsPage';
 import {SCREEN_CONSTANT} from './constant';
+import ProfileNFTsScreen from '../Screens/MarketPlaceNew/ProfileNFTsScreen';
 
 type AuthStackParamList = {
   login: {magicProps: any};
@@ -80,8 +80,8 @@ function RootScreenStack() {
         component={NFTDetailsScreen}
       />
       <RootStack.Screen
-        name="YourNFTs"
-        component={YourNFTsScreen}
+        name="ProfileNFTs"
+        component={ProfileNFTsScreen}
         options={{headerShown: false}}
       />
       <RootStack.Screen name="appScreens" component={Tabs} />
@@ -106,9 +106,15 @@ export function HomeScreenStack() {
       />
       <HomeStack.Screen name="receive" component={ReceiveScreen} />
       <HomeStack.Screen name="bridge" component={TransferCoin} />
-      <HomeStack.Screen name={SCREEN_CONSTANT.VERIFYADDRESS} component={VerifyAddress} />
+      <HomeStack.Screen
+        name={SCREEN_CONSTANT.VERIFYADDRESS}
+        component={VerifyAddress}
+      />
       <HomeStack.Screen name={SCREEN_CONSTANT.SENDCOIN} component={SendCoin} />
-      <HomeStack.Screen name={SCREEN_CONSTANT.SENDSUCCESS} component={sendSuccess} />
+      <HomeStack.Screen
+        name={SCREEN_CONSTANT.SENDSUCCESS}
+        component={sendSuccess}
+      />
 
       <HomeStack.Screen name="trade" component={TradeCoin} />
       <HomeStack.Screen name="account" component={Account} />

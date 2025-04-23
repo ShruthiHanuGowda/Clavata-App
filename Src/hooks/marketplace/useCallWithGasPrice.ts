@@ -27,7 +27,7 @@ export function useCallWithGasPrice() {
       methodName: string,
       methodArgs: any[] = [],
       overrides: Overrides = {},
-    ): Promise<TransactionReceipt> => {
+    ): Promise<TransactionReceipt | undefined> => {
       try {
         if (!provider) {
           throw new Error('Ethereum provider not ready yet.');
@@ -40,13 +40,10 @@ export function useCallWithGasPrice() {
         if (!methodName) {
           throw new Error('No method name provided');
         }
-        console.log(methodName);
 
         const signer = await provider.getSigner();
-        console.log('signer', signer);
 
         const connectedContract = contract.connect(signer);
-        console.log(signer);
 
         try {
           const tx: TransactionResponse = await connectedContract[methodName](
