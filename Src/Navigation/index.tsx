@@ -106,9 +106,19 @@ export function HomeScreenStack() {
       />
       <HomeStack.Screen name="receive" component={ReceiveScreen} />
       <HomeStack.Screen name="bridge" component={TransferCoin} />
-      <HomeStack.Screen name={SCREEN_CONSTANT.VERIFYADDRESS} component={VerifyAddress} />
+      <HomeStack.Screen
+        name={SCREEN_CONSTANT.VERIFYADDRESS}
+        component={VerifyAddress}
+      />
+      <HomeStack.Screen
+        name={SCREEN_CONSTANT.TRANSFERCOIN}
+        component={TransferCoin}
+      />
       <HomeStack.Screen name={SCREEN_CONSTANT.SENDCOIN} component={SendCoin} />
-      <HomeStack.Screen name={SCREEN_CONSTANT.SENDSUCCESS} component={sendSuccess} />
+      <HomeStack.Screen
+        name={SCREEN_CONSTANT.SENDSUCCESS}
+        component={sendSuccess}
+      />
 
       <HomeStack.Screen name="trade" component={TradeCoin} />
       <HomeStack.Screen name="account" component={Account} />

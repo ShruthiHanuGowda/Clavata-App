@@ -5,7 +5,6 @@ import CryptoMarketCard from './CryptoMarketCard';
 import {fontsFamily} from '../../Theme';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
 
-
 export default function CryptoMarketPlace(props) {
   const {getBalance, refreshBalance, isBalanceLoading} = useWallet();
 
@@ -27,6 +26,7 @@ export default function CryptoMarketPlace(props) {
         {x: 4, y: 0},
         {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive'],
       growth: 0,
       balance: formatValue(getBalance('ETH')?.balance, 4), //props?.ETH?.fiatBalance
       dollar: formatValue(getBalance('ETH')?.balanceUsd), //props?.ETH?.tokenBalance
@@ -41,6 +41,7 @@ export default function CryptoMarketPlace(props) {
         {x: 4, y: 0},
         {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
       balance: formatValue(getBalance('USDC')?.balance, 4), //props?.USDC?.fiatBalance
       dollar: formatValue(getBalance('USDC')?.balanceUsd), //props?.USDC?.tokenBalance
@@ -55,6 +56,7 @@ export default function CryptoMarketPlace(props) {
         {x: 4, y: 0},
         {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
       balance: formatValue(getBalance('EURC')?.balance), //props?.EURC?.fiatBalance
       dollar: formatValue(getBalance('EURC')?.balanceUsd), //props?.EURC?.tokenBalance
@@ -72,6 +74,7 @@ export default function CryptoMarketPlace(props) {
         {x: 4, y: 0},
         {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive'],
       growth: 0,
       balance: formatValue(getBalance('WATT')?.balance), //props?.WATT?.fiatBalance
       dollar: formatValue(getBalance('WATT')?.balanceUsd), //props?.WATT?.tokenBalance
@@ -86,6 +89,7 @@ export default function CryptoMarketPlace(props) {
         {x: 4, y: 0},
         {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
       balance: formatValue(getBalance('WUSDC')?.balance), //props?.WUSDC?.fiatBalance
       dollar: formatValue(getBalance('WUSDC')?.balanceUsd), //props?.WUSDC?.tokenBalance
@@ -100,6 +104,7 @@ export default function CryptoMarketPlace(props) {
         {x: 4, y: 0},
         {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
       balance: formatValue(getBalance('WEURC')?.balance), //props?.WEURC?.fiatBalance
       dollar: formatValue(getBalance('WEURC')?.balanceUsd), //props?.WEURC?.tokenBalance

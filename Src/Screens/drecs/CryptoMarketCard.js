@@ -26,22 +26,30 @@ const marketIconColors = {
 };
 
 export default function CryptoMarketCard({
-                                           title,
-                                           code,
-                                           chartData,
-                                           dollar,
-                                           growth,
-                                           dip,
-                                           loading,
-                                           balance,
-                                           coinValue = null,
-                                         }) {
+  title,
+  code,
+  chartData,
+  dollar,
+  growth,
+  dip,
+  loading,
+  balance,
+  coinValue = null,
+  operationsTypes,
+}) {
+  console.log('🚀 ~  title', code, title, operationsTypes);
+
   const height = 21;
   const width = 71;
   return (
     <TouchableOpacity
       style={marketStyles.container}
-      onPress={() => navigateTo('coinWallet', {coinValue: coinValue, coinCode: code})}
+      onPress={() =>
+        navigateTo('coinWallet', {
+          coinCode: code,
+          operationsTypes: operationsTypes,
+        })
+      }
       activeOpacity={0.5}>
       <View
         style={{

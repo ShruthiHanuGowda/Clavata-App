@@ -10,7 +10,7 @@ import {
 import {fontsFamily, Images} from '../../../Theme';
 import style from './styles';
 import {ScrollView, TouchableOpacity} from 'react-native-gesture-handler';
-import OperationButton from './operationButton';
+import OperationButton, {renderOperationButtons} from './operationButton';
 import LinearGradient from 'react-native-linear-gradient';
 import {Header, Tab} from '@rneui/base';
 import images from '../../../Theme/images';
@@ -27,13 +27,13 @@ import {SCREEN_CONSTANT} from '../../../Navigation/constant';
 const width = Dimensions.get('window').width;
 export default function CoinWallet(props) {
   const coinCode = props?.route?.params?.coinCode;
+  const operationsTypes = props?.route?.params?.operationsTypes;
+  console.log('🚀 ~ CoinWallet ~ operationsTypes:', operationsTypes);
   const {getBalance} = useWallet();
   const {userDetails} = useAuth();
 
-
   console.log('userDetails', userDetails?.userWallet);
   const {balance, balanceUsd} = getBalance(coinCode);
-
 
   const [toggleValue, setToggleValue] = useState('day');
   const [index, setIndex] = useState(0);
@@ -97,15 +97,15 @@ export default function CoinWallet(props) {
         // }
       />
       <ScrollView
-        // refreshControl={
-        //   <RefreshControl
-        //     refreshing={pullToRefreshLoading}
-        //     onRefresh={() => {
-        //       setPullToRefreshLoading(true);
-        //       init();
-        //     }}
-        //   />
-        // }
+      // refreshControl={
+      //   <RefreshControl
+      //     refreshing={pullToRefreshLoading}
+      //     onRefresh={() => {
+      //       setPullToRefreshLoading(true);
+      //       init();
+      //     }}
+      //   />
+      // }
       >
         <View style={{marginTop: 5}}>
           <LinearGradient
@@ -145,7 +145,8 @@ export default function CoinWallet(props) {
                     PORTFOLIO
                   </DText>
                   <DText fontStyle="fontBold" style={styles.totalAmount}>
-                    {/* {coinData?.tokenBalance || 0} */}{balance}
+                    {/* {coinData?.tokenBalance || 0} */}
+                    {balance}
                   </DText>
                   <DText
                     fontStyle="fontBold"
@@ -169,7 +170,8 @@ export default function CoinWallet(props) {
                 </ImageBackground>
               </View>
               <View style={styles.btnAlign}>
-                <>
+                {renderOperationButtons(operationsTypes, coinCode)}
+                {/* <>
                   <OperationButton
                     name={'Send'}
                     image={images.sendIcon}
@@ -188,7 +190,7 @@ export default function CoinWallet(props) {
                       })
                     }
                   />
-                </>
+                </> */}
                 {/*{coinCode === 'ETH' && (*/}
                 {/*  <>*/}
                 {/*    <OperationButton*/}
