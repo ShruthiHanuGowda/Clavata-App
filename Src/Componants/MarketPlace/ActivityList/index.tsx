@@ -9,7 +9,7 @@ import {
   Platform,
   Linking,
 } from 'react-native';
-import {NftToken} from '../../../types/types';
+import {Activity, NftToken} from '../../../types/types';
 import useNftActivity from '../../../hooks/useNftActivity';
 import ActivityEventText from './ActivityEventText';
 import {getBlockExploreLink} from '../../../utils/explorer';
@@ -17,7 +17,8 @@ import {getBlockExploreLink} from '../../../utils/explorer';
 const MAX_PER_PAGE = 5;
 
 interface ActivityCardProps {
-  nft: NftToken;
+  activity: Activity[];
+  loading: boolean;
 }
 
 const shortenAddress = (address: string = '') =>
@@ -25,13 +26,8 @@ const shortenAddress = (address: string = '') =>
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : address;
 
-const ActivityCard: React.FC<ActivityCardProps> = ({nft}) => {
+const ActivityCard: React.FC<ActivityCardProps> = ({activity, loading}) => {
   const [page, setPage] = useState(1);
-
-  const {activity, loading, error} = useNftActivity(
-    nft.tokenId,
-    nft.collectionAddress,
-  );
 
   const paginated = activity.slice(0, page * MAX_PER_PAGE);
 
@@ -45,9 +41,11 @@ const ActivityCard: React.FC<ActivityCardProps> = ({nft}) => {
 
   if (loading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="small" color="#3498db" />
-        <Text style={{marginTop: 8}}>Loading activity...</Text>
+      <View style={styles.container}>
+        <View style={styles.loading}>
+          <ActivityIndicator size="small" color="#3498db" />
+          <Text style={{marginTop: 8}}>Loading activity...</Text>
+        </View>
       </View>
     );
   }
@@ -104,9 +102,11 @@ const ActivityCard: React.FC<ActivityCardProps> = ({nft}) => {
       ))}
 
       {page * MAX_PER_PAGE < activity.length && (
-        <TouchableOpacity onPress={handleLoadMore} style={styles.loadMore}>
-          <Text style={styles.loadMoreText}>Load More</Text>
-        </TouchableOpacity>
+        <View style={styles.loadMoreWrapper}>
+          <TouchableOpacity onPress={handleLoadMore} style={styles.loadMore}>
+            <Text style={styles.loadMoreText}>Load More</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </ScrollView>
   );
@@ -114,7 +114,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({nft}) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 30,
+    paddingBottom: 50,
   },
   card: {
     backgroundColor: '#fff',
@@ -167,17 +167,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 30,
   },
+  loadMoreWrapper: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
   loadMore: {
     backgroundColor: '#3498db',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    alignSelf: 'center',
-    marginTop: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   loadMoreText: {
     color: '#fff',
     fontWeight: '600',
+    fontSize: 14,
   },
 });
 

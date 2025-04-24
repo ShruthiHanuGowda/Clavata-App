@@ -9,19 +9,19 @@ import {
 } from 'react-native';
 import {NavigationProp, useNavigation} from '@react-navigation/native';
 import Spinner from '../Spinner';
-import {NftToken} from '../../../types/types';
+import {NftLocation, NftToken} from '../../../types/types';
+import SellModal from '../BuySellModal/SellModal';
+import {set} from 'date-fns';
 
-interface NFT {
-  name: string;
-  price: string;
-  quantity?: number;
-  image: string;
-  icon?: string;
+interface UserNFTCardProps {
+  nft: NftToken;
+  refresh: () => void;
 }
 
-interface NFTCardProps {
-  nft: NftToken;
-  currentAskPrice?: number;
+interface SellNftProps {
+  nft?: NftToken;
+  location?: NftLocation;
+  variant?: 'sell' | 'adjust';
 }
 
 type NavigationProps = NavigationProp<any, any>;
@@ -29,8 +29,11 @@ type NavigationProps = NavigationProp<any, any>;
 const screenWidth = Dimensions.get('window').width;
 const cardSize = (screenWidth - 40) / 2;
 
-const NFTCard: React.FC<NFTCardProps> = ({nft, currentAskPrice}) => {
+const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
   const [imageLoaded, setImageLoaded] = useState<boolean>(false);
+  const [clickedSellNft, setClickedSellNft] = useState<SellNftProps>({});
+  const [isBuyModalVisible, setIsBuyModalVisible] = useState(false);
+  const [isSellModalVisible, setIsSellModalVisible] = useState(false);
 
   const navigation = useNavigation<NavigationProps>();
 
@@ -38,8 +41,28 @@ const NFTCard: React.FC<NFTCardProps> = ({nft, currentAskPrice}) => {
     navigation.navigate('NFTDetailsPage', {nft});
   };
 
+  const handleCollectibleClick = (location?: NftLocation) => {
+    console.log(location);
+
+    switch (location) {
+      case NftLocation.WALLET:
+        setClickedSellNft({location, variant: 'sell'});
+        setIsSellModalVisible(true);
+        break;
+      case NftLocation.FORSALE:
+        setClickedSellNft({location, variant: 'adjust'});
+        setIsSellModalVisible(true);
+        break;
+      default:
+        handlePress();
+        break;
+    }
+  };
+
   return (
-    <TouchableOpacity onPress={handlePress} style={styles.card}>
+    <TouchableOpacity
+      onPress={() => handleCollectibleClick(nft.location)}
+      style={styles.card}>
       <View style={styles.imageContainer}>
         {!imageLoaded && (
           <View style={styles.imagePlaceholder}>
@@ -60,18 +83,19 @@ const NFTCard: React.FC<NFTCardProps> = ({nft, currentAskPrice}) => {
       <Text style={styles.name} numberOfLines={1}>
         {nft.name}
       </Text>
-      <Text style={styles.qty}>Qty: {nft.totalListed || 1}</Text>
+      <Text style={styles.qty}>Qty: {nft.marketData?.quantity || 0}</Text>
 
-      <View style={styles.priceWrapper}>
-        <Image
-          source={{
-            uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
-          }}
-          style={styles.priceIcon}
-        />
-
-        <Text style={styles.priceText}>{currentAskPrice}</Text>
-      </View>
+      <SellModal
+        visible={isSellModalVisible}
+        onClose={() => {
+          setIsSellModalVisible(false);
+        }}
+        variant={clickedSellNft?.variant}
+        nftToSell={clickedSellNft?.nft || nft}
+        onSuccessSale={() => {
+          refresh();
+        }}
+      />
     </TouchableOpacity>
   );
 };
@@ -150,4 +174,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default NFTCard;
+export default UserNFTCard;

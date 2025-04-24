@@ -21,46 +21,52 @@ const OwnerList: React.FC<OwnerListProps> = ({
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Owners</Text>
-      {owners.map((owner, index) => {
-        const isCurrentUser = owner.seller?.id === userDetails?.userWallet;
-        const isLast = index === owners.length - 1;
+      {owners.length === 0 && (
+        <Text style={styles.emptyText}>No active asks found</Text>
+      )}
+      {owners.length > 0 &&
+        owners.map((owner, index) => {
+          const isCurrentUser =
+            owner.seller?.id.toLowerCase() ===
+            userDetails?.userWallet?.toLocaleLowerCase();
+          const isLast = index === owners.length - 1;
 
-        return (
-          <View
-            key={owner.id}
-            style={[styles.ownerRow, !isLast && styles.rowBorder]}>
-            <View style={styles.ownerInfo}>
-              <Text style={styles.ownerText}>
-                <Text style={styles.label}>Qty:</Text> {owner.amount}
-              </Text>
-              <Text style={styles.ownerText}>
-                <Text style={styles.label}>Owner:</Text>{' '}
-                {shortenAddress(owner.seller?.id)}
-              </Text>
-              <View style={styles.priceRow}>
-                <Text style={styles.label}>Price:</Text>
-                <Image
-                  source={{
-                    uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
-                  }}
-                  style={styles.tokenIcon}
-                  resizeMode="contain"
-                />
-                <Text style={styles.priceText}>{owner.askPrice}</Text>
+          return (
+            <View
+              key={owner.id}
+              style={[styles.ownerRow, !isLast && styles.rowBorder]}>
+              <View style={styles.ownerInfo}>
+                <Text style={styles.ownerText}>
+                  <Text style={styles.label}>Qty:</Text> {owner.amount}
+                </Text>
+                <Text style={styles.ownerText}>
+                  <Text style={styles.label}>Owner:</Text>{' '}
+                  {shortenAddress(owner.seller?.id)}
+                </Text>
+                <View style={styles.priceRow}>
+                  <Text style={styles.label}>Price:</Text>
+                  <Image
+                    source={{
+                      uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
+                    }}
+                    style={styles.tokenIcon}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.priceText}>{owner.askPrice}</Text>
+                </View>
               </View>
+              <TouchableOpacity
+                style={isCurrentUser ? styles.sellButton : styles.buyButton}
+                onPress={() =>
+                  isCurrentUser ? onSellPress(owner) : onBuyPress(owner)
+                }>
+                <Text style={styles.buttonText}>
+                  {isCurrentUser ? 'Modify' : 'Buy'}
+                </Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={isCurrentUser ? styles.sellButton : styles.buyButton}
-              onPress={() =>
-                isCurrentUser ? onSellPress(owner) : onBuyPress(owner)
-              }>
-              <Text style={styles.buttonText}>
-                {isCurrentUser ? 'Sell' : 'Buy'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        );
-      })}
+          );
+        })}
     </View>
   );
 };
@@ -72,6 +78,12 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 20,
     elevation: 2,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    textAlign: 'center',
+    paddingVertical: 10,
   },
   title: {
     fontSize: 18,
@@ -124,7 +136,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   sellButton: {
-    backgroundColor: '#e67e22',
+    backgroundColor: '#e74c3c',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,

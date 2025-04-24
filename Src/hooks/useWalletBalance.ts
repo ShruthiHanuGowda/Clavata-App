@@ -229,7 +229,6 @@ export const useWalletBalance = (): WalletBalanceHook => {
                 ? denergyProvider
                 : sepoliaProvider;
             const contractAddress = TOKEN_CONTRACTS[info.network][info.token];
-            console?.log('contractAddress', contractAddress);
             const contract = new ethers.Contract(
               contractAddress,
               ERC20_ABI,

@@ -14,8 +14,8 @@ interface AuthContextType {
 
 interface UserAuth {
   date: string;
-  denergyWallet: string;
-  ethereumWallet: string;
+  denergyWallet: `0x${string}`;
+  ethereumWallet: `0x${string}`;
   is_verified: boolean | string;
   userWallet: string | null;
   walletAddress: string | null;

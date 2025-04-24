@@ -15,17 +15,6 @@ export const DENERGY_EURC_ADDRESS =
   '0x9abaD0Dfd8F5ce10A8a6EeBbd852922de21f6F22';
 export const DESTINATION_ADDRESS = '0xD3b0FD7E3aE415446e1b9595E3102835B37438D4';
 
-// ERC20 ABI (minimal for balanceOf function)
-export const ERC20_ABI = [
-  {
-    constant: true,
-    inputs: [{name: 'owner', type: 'address'}],
-    name: 'balanceOf',
-    outputs: [{name: '', type: 'uint256'}],
-    type: 'function',
-  },
-];
-
 // contract token
 export const TOKEN_CONTRACTS = {
   denergy: {
@@ -36,6 +25,7 @@ export const TOKEN_CONTRACTS = {
     USDC: USDC_ADDRESS,
     EURC: EURC_ADDRESS,
   },
+  nftMarket: '0x7C28Bb005eb59ea04a01379055C9F58C1f683586',
 };
 
 export const API_NFT_URL =

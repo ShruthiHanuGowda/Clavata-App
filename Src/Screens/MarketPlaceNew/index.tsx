@@ -38,11 +38,7 @@ const CollectionListingPage: React.FC = () => {
   }, []);
 
   const onRefresh = () => {
-    setRefreshing(true);
     refetch();
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 2000);
   };
 
   return (
@@ -51,23 +47,21 @@ const CollectionListingPage: React.FC = () => {
 
       <TouchableOpacity
         style={styles.myNftsButton}
-        onPress={() => navigate('YourNFTs')}>
+        onPress={() => navigate('ProfileNFTs')}>
         <Text style={styles.myNftsButtonText}>View My NFTs</Text>
       </TouchableOpacity>
 
       <ScrollView
         contentContainerStyle={styles.gridContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
         }>
-        {/* Show Loader when data is still being fetched */}
         {isLoading ? (
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color="#008060" />
             <Text style={styles.loaderText}>Loading Collections...</Text>
           </View>
         ) : (
-          // Show collections when data is fetched
           <>
             {!isLoading &&
               collections?.data.map((collection, index) => {
