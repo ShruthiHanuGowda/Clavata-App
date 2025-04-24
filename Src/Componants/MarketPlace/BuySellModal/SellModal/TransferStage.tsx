@@ -75,9 +75,9 @@ const TransferStage = ({
         <View style={{flex: 1}}>
           <Text style={styles.nftName}>{nftToSell?.name}</Text>
           <Text style={styles.collectionName}>{nftToSell?.collectionName}</Text>
-          {lowestPrice?.toString() && (
+          {/* {lowestPrice?.toString() && (
             <Text style={styles.lowestPrice}>Lowest Price: {lowestPrice}</Text>
-          )}
+          )} */}
         </View>
       </View>
 

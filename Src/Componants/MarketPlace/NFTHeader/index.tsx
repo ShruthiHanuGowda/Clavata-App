@@ -18,7 +18,6 @@ const NFTHeader: React.FC<NFTHeaderProps> = ({
   const {userDetails} = useAuth();
   const price = getMinAskPrice(nft?.marketData?.activeAsks ?? []);
   const minAsk = getMinAsk(nft?.marketData?.activeAsks ?? []);
-  console.log(minAsk?.amount);
 
   const isOwn = isOwnNft(
     userDetails?.userWallet as `0x${string}`,
@@ -61,7 +60,7 @@ const NFTHeader: React.FC<NFTHeaderProps> = ({
         source={{
           uri:
             nft?.image?.thumbnail ||
-            'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
+            'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
         }}
         style={styles.nftImage}
       />

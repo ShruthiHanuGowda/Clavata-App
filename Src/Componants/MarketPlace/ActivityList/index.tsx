@@ -102,9 +102,11 @@ const ActivityCard: React.FC<ActivityCardProps> = ({activity, loading}) => {
       ))}
 
       {page * MAX_PER_PAGE < activity.length && (
-        <TouchableOpacity onPress={handleLoadMore} style={styles.loadMore}>
-          <Text style={styles.loadMoreText}>Load More</Text>
-        </TouchableOpacity>
+        <View style={styles.loadMoreWrapper}>
+          <TouchableOpacity onPress={handleLoadMore} style={styles.loadMore}>
+            <Text style={styles.loadMoreText}>Load More</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </ScrollView>
   );
@@ -112,7 +114,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({activity, loading}) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 30,
+    paddingBottom: 50,
   },
   card: {
     backgroundColor: '#fff',
@@ -165,17 +167,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 30,
   },
+  loadMoreWrapper: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
   loadMore: {
     backgroundColor: '#3498db',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    alignSelf: 'center',
-    marginTop: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   loadMoreText: {
     color: '#fff',
     fontWeight: '600',
+    fontSize: 14,
   },
 });
 

@@ -61,7 +61,7 @@ const SellStage: React.FC<SellStageProps> = ({
               <View style={styles.priceRow}>
                 <Image
                   source={{
-                    uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
+                    uri: nftToSell?.image?.thumbnail || 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
                   }}
                   style={styles.icon}
                 />

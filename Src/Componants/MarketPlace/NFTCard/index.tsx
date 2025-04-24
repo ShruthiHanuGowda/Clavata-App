@@ -50,7 +50,7 @@ const NFTCard: React.FC<NFTCardProps> = ({nft, currentAskPrice}) => {
           source={{
             uri:
               nft.image?.thumbnail ||
-              'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
+              'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
           }}
           style={styles.image}
           onLoad={() => setImageLoaded(true)}
