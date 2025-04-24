@@ -70,15 +70,12 @@ const denergyNetworkConfig = {
 
 export default function SendCoin(props: SendCoinProps): JSX.Element {
   const {coinCode, user} = props.route.params;
-  console.log('🚀 ~ SendCoin ~ coinCode:', coinCode);
   const webviewRef = useRef(null);
-  console?.log('Uset', user);
   const {getBalance, refreshBalance} = useWallet();
   const {balance, balanceUsd}: BalanceInfo = getBalance(coinCode);
   const [wattAmount, setWattAmount] = useState<string>('0');
   const {magic_sepolia, setActiveNetwork, activeNetwork, magic_denergy} =
     useMagic();
-  console.log('🚀 ~ SendCoin ~ activeNetwork:', activeNetwork);
   const {userDetails} = useAuth();
   const {
     isLoading: ethIsLoading,

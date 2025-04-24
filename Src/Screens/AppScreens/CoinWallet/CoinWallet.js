@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Text,
   View,
@@ -7,33 +7,31 @@ import {
   StyleSheet,
   ImageBackground,
 } from 'react-native';
-import {fontsFamily, Images} from '../../../Theme';
+import { fontsFamily, Images } from '../../../Theme';
 import style from './styles';
-import {ScrollView, TouchableOpacity} from 'react-native-gesture-handler';
-import OperationButton, {renderOperationButtons} from './operationButton';
+import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
+import OperationButton, { renderOperationButtons } from './operationButton';
 import LinearGradient from 'react-native-linear-gradient';
-import {Header, Tab} from '@rneui/base';
+import { Header, Tab } from '@rneui/base';
 import images from '../../../Theme/images';
 import PriceHistoryGraph from './PriceHistoryGraph';
 import MiniTransactionHistory from './MiniTransactionHistory';
-import {DText} from '../../../Componants/DText';
-import {navigateTo} from '../../../utils/navigationService';
-import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {useWalletBalance} from '../../../hooks/useWalletBalance';
-import {useAuth} from '../../../../screens/Provider/authProvider';
-import {useWallet} from '../../../../screens/Provider/WalletProvider';
-import {SCREEN_CONSTANT} from '../../../Navigation/constant';
+import { DText } from '../../../Componants/DText';
+import { navigateTo } from '../../../utils/navigationService';
+import { navigateBack } from '../../../Navigation/NavigationFunctions';
+import { useWalletBalance } from '../../../hooks/useWalletBalance';
+import { useAuth } from '../../../../screens/Provider/authProvider';
+import { useWallet } from '../../../../screens/Provider/WalletProvider';
+import { SCREEN_CONSTANT } from '../../../Navigation/constant';
 
 const width = Dimensions.get('window').width;
 export default function CoinWallet(props) {
   const coinCode = props?.route?.params?.coinCode;
   const operationsTypes = props?.route?.params?.operationsTypes;
-  console.log('🚀 ~ CoinWallet ~ operationsTypes:', operationsTypes);
-  const {getBalance} = useWallet();
-  const {userDetails} = useAuth();
+  const { getBalance } = useWallet();
+  const { userDetails } = useAuth();
 
-  console.log('userDetails', userDetails?.userWallet);
-  const {balance, balanceUsd} = getBalance(coinCode);
+  const { balance, balanceUsd } = getBalance(coinCode);
 
   const [toggleValue, setToggleValue] = useState('day');
   const [index, setIndex] = useState(0);
@@ -50,7 +48,7 @@ export default function CoinWallet(props) {
     <View style={styles.container}>
       <Header
         backgroundColor={'#FFF'}
-        containerStyle={{borderBottomWidth: 0}}
+        containerStyle={{ borderBottomWidth: 0 }}
         leftComponent={
           <TouchableOpacity
             onPress={() => navigateBack()}
@@ -75,26 +73,26 @@ export default function CoinWallet(props) {
             )} */}
           </View>
         }
-        // rightComponent={
-        //   coinCode !== 'USD' && (
-        //     <TouchableOpacity
-        //       disabled={loading}
-        //       style={styles.iconContainer}
-        //       onPress={() =>
-        //         navigateTo(SCREEN_CONSTANT.QRCODE, {
-        //           toScreen: 'coinWallet',
-        //           coinCode: coinData?.coinCode,
-        //           address: coinData?.address,
-        //         })
-        //       }
-        //     >
-        //       <Image
-        //         source={images.qrCodeIcon}
-        //         style={{ height: 25, width: 25, opacity: loading ? 0.5 : 1 }}
-        //       />
-        //     </TouchableOpacity>
-        //   )
-        // }
+      // rightComponent={
+      //   coinCode !== 'USD' && (
+      //     <TouchableOpacity
+      //       disabled={loading}
+      //       style={styles.iconContainer}
+      //       onPress={() =>
+      //         navigateTo(SCREEN_CONSTANT.QRCODE, {
+      //           toScreen: 'coinWallet',
+      //           coinCode: coinData?.coinCode,
+      //           address: coinData?.address,
+      //         })
+      //       }
+      //     >
+      //       <Image
+      //         source={images.qrCodeIcon}
+      //         style={{ height: 25, width: 25, opacity: loading ? 0.5 : 1 }}
+      //       />
+      //     </TouchableOpacity>
+      //   )
+      // }
       />
       <ScrollView
       // refreshControl={
@@ -107,15 +105,15 @@ export default function CoinWallet(props) {
       //   />
       // }
       >
-        <View style={{marginTop: 5}}>
+        <View style={{ marginTop: 5 }}>
           <LinearGradient
             colors={['#FFFFFF', '#dcf2f1', '#FFFFFF']}
-            start={{x: 0, y: 1}}
-            end={{x: 0, y: 0}}
+            start={{ x: 0, y: 1 }}
+            end={{ x: 0, y: 0 }}
             useAngle={true}
             angle={330}
             locations={[0, 0, 0.25]}>
-            <View style={{paddingTop: 10, paddingBottom: 30}}>
+            <View style={{ paddingTop: 10, paddingBottom: 30 }}>
               <View
                 style={{
                   flex: 2,
@@ -126,7 +124,7 @@ export default function CoinWallet(props) {
                 <ImageBackground
                   source={images.rectangle}
                   resizeMode="cover"
-                  imageStyle={{borderRadius: 7}}
+                  imageStyle={{ borderRadius: 7 }}
                   style={{
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -471,7 +469,7 @@ export default function CoinWallet(props) {
             indicatorStyle={{
               backgroundColor: 'transparent',
             }}
-            style={{backgroundColor: 'transparent'}}>
+            style={{ backgroundColor: 'transparent' }}>
             {(coinCode === 'USD' ? [] : TAB_ITEMS).map((tab, i) => {
               return (
                 <Tab.Item
@@ -493,7 +491,7 @@ export default function CoinWallet(props) {
               );
             })}
           </Tab>
-          <View style={{marginHorizontal: 25, marginTop: 20}}>
+          <View style={{ marginHorizontal: 25, marginTop: 20 }}>
             {index === 0 && coinCode !== 'USD' ? (
               <>
                 <View
@@ -536,12 +534,12 @@ export default function CoinWallet(props) {
                   </Text>
                   <Image
                     source={images.sharePriceIcon}
-                    style={{height: 10, width: 15, marginLeft: 2}}
+                    style={{ height: 10, width: 15, marginLeft: 2 }}
                     resizeMode="contain"
                   />
                   <Text style={style.Today}>(+0.00%)</Text>
                 </View>
-                <View style={{left: -20}}>
+                <View style={{ left: -20 }}>
                   {graphData && (
                     <PriceHistoryGraph
                       labels={graphData?.label}
@@ -554,7 +552,7 @@ export default function CoinWallet(props) {
             ) : (
               <MiniTransactionHistory
                 coinCode={coinCode}
-                // name={profile?.name}
+              // name={profile?.name}
               />
             )}
           </View>

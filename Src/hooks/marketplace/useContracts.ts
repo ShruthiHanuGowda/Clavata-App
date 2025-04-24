@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
-import {
-  ERC1155_COLLECTION_ABI,
-  ERC20_ABI,
-  NFT_MARKET_ABI,
-  TOKEN_CONTRACTS,
-} from '../../constants';
+import {TOKEN_CONTRACTS} from '../../constants';
 import {AbiCoder, ethers, InterfaceAbi} from 'ethers';
+import {
+  ERC1155_ABI,
+  ERC20_ABI,
+  NFT_MARKETPLACE_ABI,
+} from '../../utils/Contracts';
 
 /**
  * Helper hooks to get specific contracts (by ABI)
@@ -70,7 +70,7 @@ export const useERC20 = (
 
 export const getNftMarketContract = (signer?: any) => {
   return getContract({
-    abi: NFT_MARKET_ABI,
+    abi: NFT_MARKETPLACE_ABI,
     address: TOKEN_CONTRACTS.nftMarket as `0x${string}`,
     signer,
   });
@@ -79,5 +79,5 @@ export const getNftMarketContract = (signer?: any) => {
 export const useNftMarketCollectionContract = (
   collectionAddress: `0x${string}` | undefined,
 ) => {
-  return useContract(collectionAddress, ERC1155_COLLECTION_ABI as any);
+  return useContract(collectionAddress, ERC1155_ABI as any);
 };

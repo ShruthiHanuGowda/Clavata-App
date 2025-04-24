@@ -1,10 +1,5 @@
 import {BrowserProvider, Contract} from 'ethers';
-import {
-  ERC1155_COLLECTION_ABI,
-  ERC20_ABI,
-  TOKEN_CONTRACTS,
-} from '../../constants';
-import {useMagic} from '../../../screens/Provider/MagicProvider';
+import {ERC1155_ABI, ERC20_ABI} from '../../utils/Contracts';
 
 export const requiresApproval = async (
   contractAddress: any,
@@ -51,7 +46,7 @@ export const isApprovedForAll = async (
     const signer = await provider.getSigner();
     const onChainTokenContract = new Contract(
       contractAddress,
-      ERC1155_COLLECTION_ABI,
+      ERC1155_ABI,
       signer,
     );
     const isApprovedForAll = await onChainTokenContract.isApprovedForAll(

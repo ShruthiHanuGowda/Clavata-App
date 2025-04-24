@@ -6,12 +6,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import {Svg} from 'react-native-svg';
-import {VictoryLine} from 'victory-native';
-import {DText} from '../../Componants/DText';
-import {marketIcons} from '../../Theme/variable';
-import {navigateTo} from '../../utils/navigationService';
-import {ScreenWidth} from '@rneui/base';
+import { Svg } from 'react-native-svg';
+import { VictoryLine } from 'victory-native';
+import { DText } from '../../Componants/DText';
+import { marketIcons } from '../../Theme/variable';
+import { navigateTo } from '../../utils/navigationService';
+import { ScreenWidth } from '@rneui/base';
 
 const marketIconColors = {
   WATT: '#045E19',
@@ -37,7 +37,6 @@ export default function CryptoMarketCard({
   coinValue = null,
   operationsTypes,
 }) {
-  console.log('🚀 ~  title', code, title, operationsTypes);
 
   const height = 21;
   const width = 71;
@@ -69,7 +68,7 @@ export default function CryptoMarketCard({
             <DText
               style={marketStyles.coinTitle}
               fontStyle="fontBold"
-              textProps={{numberOfLines: 1}}>
+              textProps={{ numberOfLines: 1 }}>
               {title}
             </DText>
             <DText style={marketStyles.coinCode} fontStyle="fontRegular">
@@ -112,7 +111,7 @@ export default function CryptoMarketCard({
         )}
       </View>
 
-      <View style={{alignItems: 'flex-end'}}>
+      <View style={{ alignItems: 'flex-end' }}>
         <DText style={marketStyles.usd} fontStyle="fontExtraBold">
           {balance}
         </DText>

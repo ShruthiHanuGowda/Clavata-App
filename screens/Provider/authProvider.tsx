@@ -66,7 +66,6 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   };
 
   const updateUserData = async (userData: UserAuth, isExist) => {
-    console.log('🚀 ~ updateUserData ~ userData:', userData);
     try {
       setUserDetails(userData);
       if (!isExist) {

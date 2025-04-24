@@ -13,7 +13,6 @@ export default function SendSummary(props) {
   const tokenBalance = props?.route?.params?.tokenBalance;
   const name = props?.route?.params?.name;
   const amount = props?.route?.params?.amount;
-  console.log('🚀 ~ SendSummary ~ amount:', amount);
   const toAddress = props?.route?.params?.toAddress;
   const [networkFee, setNetworkFee] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -47,7 +46,6 @@ export default function SendSummary(props) {
         // totalAmount = parseFloat(amount) + parseFloat(feeResult?.data.networkFee);
         totalAmount = amount;
       }
-      console.log('🚀 ~ getNetworkFee ~ feeResult?.data.networkFee:', feeResult?.data.networkFee);
       setNetworkFee(feeResult?.data.networkFee);
       setTotalAmount(totalAmount);
       setLoading(false);

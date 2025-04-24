@@ -197,7 +197,6 @@ export default function Wallet(props) {
               <MyCryptoCard {...crypto} key={crypto.code} />
             ))}
           </View>
-          {console.log('🚀 ~ init ~ updated:', items)}
 
           {/* <FlatList
             style={{

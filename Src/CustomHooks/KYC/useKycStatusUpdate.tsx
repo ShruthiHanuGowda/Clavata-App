@@ -67,8 +67,7 @@ export const useKycStatusUpdate = () => {
       if (!userEmail) {
         throw new Error('No wallet address available');
       }
-      console.log('🚀 ~ useKycStatusUpdate ~ applicantId:', applicantId);
-      console.log('🚀 ~ useKycStatusUpdate ~ accessToken:', accessToken);
+
       const result = await updateKycStatus({
         variables: {
           walletAddress: userEmail.toLowerCase(),

@@ -19,10 +19,6 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 // Provider component
 export const WalletProvider = ({children}: {children: ReactNode}) => {
   const {userDetails} = useAuth();
-  console.log(
-    '🚀 ~ WalletProvider ~ userDetails:',
-    JSON?.stringify(userDetails),
-  );
   const {isLoading, error, getBalance, fetchSingleBalance, fetchAllBalances} =
     useWalletBalance();
 

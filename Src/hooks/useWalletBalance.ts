@@ -3,11 +3,11 @@ import {ethers} from 'ethers';
 import {
   CUSTOM_NETWORK,
   CUSTOM_RPC_URL,
-  ERC20_ABI,
   SEPOLIA_RPC_URL,
   TOKEN_CONTRACTS,
 } from '../constants';
 import {useAuth} from '../../screens/Provider/authProvider';
+import {ERC20_ABI} from '../utils/Contracts';
 
 interface ExchangeRate {
   currency_code: string;

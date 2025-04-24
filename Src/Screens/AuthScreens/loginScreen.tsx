@@ -109,7 +109,7 @@ export default function LoginScreen() {
         // User exists in DB - store data in context
         const apiData = {...data.getUserWalletAddress};
         delete apiData.__typename;
-        console.log('🚀 ~ handleUserData ~ apiData:', JSON?.stringify(apiData));
+
         await updateUserData(apiData, true);
         setIsUserLogin(true);
         const isVerified =
@@ -194,7 +194,7 @@ export default function LoginScreen() {
 
       if (isLoggedIn) {
         const userData = await magic_denergy.user.getInfo();
-        console.log('🚀 ~ Denergy userData:', JSON.stringify(userData));
+
         return {
           isLoggedIn,
           publicAddress: userData?.publicAddress,
@@ -264,9 +264,7 @@ export default function LoginScreen() {
   const prepareNewUserData = async () => {
     try {
       const result = await checkAllNetworks();
-      console.log('🚀 ~ prepareNewUserData ~ result:', result);
       const userData = await magic.user.getInfo();
-      console.log('🚀 ~ prepareNewUserData ~ userData:', userData);
       const walletData = {
         walletAddress: userData.email,
         ethereumWallet: result?.networkData?.sepolia?.publicAddress,

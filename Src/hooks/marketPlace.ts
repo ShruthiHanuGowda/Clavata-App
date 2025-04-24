@@ -1,11 +1,8 @@
 import {Contract, JsonRpcProvider} from 'ethers';
-import {
-  API_NFT_URL,
-  CUSTOM_RPC_URL,
-  ERC1155_COLLECTION_ABI,
-  GRAPH_API_NFTMARKET,
-} from '../constants';
+import {API_NFT_URL, CUSTOM_RPC_URL, GRAPH_API_NFTMARKET} from '../constants';
 import {GET_NFTS_MARKET_DATA, GET_TOKEN_ACTIVITY} from '../graphql/NFTqueries';
+import {ERC1155_ABI} from '../utils/Contracts';
+
 import {
   activeAsks,
   Activity,
@@ -243,7 +240,7 @@ export const fetchWalletTokenIdsForCollections = async (
       const collectionAddress = collection.contractAddress as `0x${string}`;
       const contract = new Contract(
         collectionAddress,
-        ERC1155_COLLECTION_ABI,
+        ERC1155_ABI,
         provider,
       );
 
