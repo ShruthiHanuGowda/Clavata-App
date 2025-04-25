@@ -1,5 +1,5 @@
 import Snackbar from 'react-native-snackbar';
-import {Colors, fontsFamily} from '../Theme';
+import { Colors, fontsFamily } from '../Theme';
 
 export const SnackBarMessage = (message, slug = '') => {
   Snackbar.show({
@@ -11,7 +11,7 @@ export const SnackBarMessage = (message, slug = '') => {
       slug === 'error'
         ? Colors.error
         : slug === 'success'
-        ? Colors.success
-        : Colors.purple,
+          ? Colors.success
+          : Colors.purple,
   });
 };

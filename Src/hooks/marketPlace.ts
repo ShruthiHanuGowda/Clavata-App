@@ -1,4 +1,4 @@
-import {Contract, JsonRpcProvider} from 'ethers';
+import {Contract, id, JsonRpcProvider} from 'ethers';
 import {API_NFT_URL, CUSTOM_RPC_URL, GRAPH_API_NFTMARKET} from '../constants';
 import {GET_NFTS_MARKET_DATA, GET_TOKEN_ACTIVITY} from '../graphql/NFTqueries';
 import {ERC1155_ABI} from '../utils/Contracts';
@@ -238,11 +238,7 @@ export const fetchWalletTokenIdsForCollections = async (
   const allCollectionPromises = Object.values(collections).map(
     async collection => {
       const collectionAddress = collection.contractAddress as `0x${string}`;
-      const contract = new Contract(
-        collectionAddress,
-        ERC1155_ABI,
-        provider,
-      );
+      const contract = new Contract(collectionAddress, ERC1155_ABI, provider);
 
       try {
         const currentTokenIdRaw = await contract.currentTokenId();
@@ -297,16 +293,21 @@ export const getNftsFromDifferentCollectionsApi = async (
   ) as ApiResponseSpecificToken['data'][];
 
   return filtered.map((res, index) => ({
+    id: res?.tokenId,
     tokenId: res?.tokenId,
     name: `${res?.collectionDetails?.collectionName} #${res?.tokenId}`,
     collectionName: res?.collectionDetails?.collectionName,
     collectionAddress: from[index]?.collectionAddress as `0x${string}`,
     contractAddress: res?.contractAddress,
+    totalListed: '0',
+    image: {
+      original: res?.image?.original,
+      thumbnail: res?.image?.thumbnail,
+    },
     description: res?.description,
     attributes: res?.attributes,
     createdAt: res?.createdAt,
     updatedAt: res?.updatedAt,
-    image: res?.image,
   }));
 };
 

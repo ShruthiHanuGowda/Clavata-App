@@ -30,6 +30,7 @@ import {TOKEN_CONTRACTS} from '../../../../constants';
 import {isApprovedForAll} from '../../../../hooks/marketplace/requiresApproval';
 import {useMagic} from '../../../../../screens/Provider/MagicProvider';
 import Modal from 'react-native-modal';
+import {SnackBarMessage} from '../../../../utils/snackBar';
 
 enum SellingStage {
   SELL = 'SELL',
@@ -77,6 +78,19 @@ const stagesWithBackButton = [
   SellingStage.TRANSFER,
   SellingStage.CONFIRM_TRANSFER,
 ];
+
+const getToastText = (variant: string, stage: SellingStage) => {
+  if (stage === SellingStage.CONFIRM_REMOVE_FROM_MARKET) {
+    return 'Your NFT has been returned to your wallet';
+  }
+  if (stage === SellingStage.CONFIRM_TRANSFER) {
+    return 'Your NFT has been transferred to another wallet';
+  }
+  if (variant === 'sell') {
+    return 'Your NFT has been listed for sale!';
+  }
+  return 'Your NFT listing has been changed.';
+};
 
 const SellModal: React.FC<SellModalProps> = ({
   visible,
@@ -196,7 +210,10 @@ const SellModal: React.FC<SellModalProps> = ({
         ]);
       },
       onApproveSuccess: async ({receipt}) => {
-        console.log(receipt);
+        SnackBarMessage(
+          `Contract approved - you can now put your NFT for sale!`,
+          'success',
+        );
       },
       onConfirm: async () => {
         if (stage === SellingStage.CONFIRM_REMOVE_FROM_MARKET) {
@@ -241,6 +258,7 @@ const SellModal: React.FC<SellModalProps> = ({
         if (!variant) return;
         console.log('receipt', receipt);
         setConfirmedTxHash(receipt.hash);
+        SnackBarMessage(getToastText(variant, stage), 'success');
         setStage(SellingStage.TX_CONFIRMED);
         onSuccessSale();
       },

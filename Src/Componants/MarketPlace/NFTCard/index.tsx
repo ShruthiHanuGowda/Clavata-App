@@ -22,6 +22,7 @@ interface NFT {
 interface NFTCardProps {
   nft: NftToken;
   currentAskPrice?: number;
+  quantity?: number;
 }
 
 type NavigationProps = NavigationProp<any, any>;
@@ -29,7 +30,11 @@ type NavigationProps = NavigationProp<any, any>;
 const screenWidth = Dimensions.get('window').width;
 const cardSize = (screenWidth - 40) / 2;
 
-const NFTCard: React.FC<NFTCardProps> = ({nft, currentAskPrice}) => {
+const NFTCard: React.FC<NFTCardProps> = ({
+  nft,
+  currentAskPrice,
+  quantity = 0,
+}) => {
   const [imageLoaded, setImageLoaded] = useState<boolean>(false);
 
   const navigation = useNavigation<NavigationProps>();
@@ -60,7 +65,7 @@ const NFTCard: React.FC<NFTCardProps> = ({nft, currentAskPrice}) => {
       <Text style={styles.name} numberOfLines={1}>
         {nft.name}
       </Text>
-      <Text style={styles.qty}>Qty: {nft.totalListed || 1}</Text>
+      <Text style={styles.qty}>Qty: {quantity}</Text>
 
       <View style={styles.priceWrapper}>
         <Image

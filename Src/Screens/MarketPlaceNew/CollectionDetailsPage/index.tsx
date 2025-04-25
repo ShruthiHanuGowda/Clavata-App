@@ -13,7 +13,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import Spinner from '../../../Componants/MarketPlace/Spinner';
 import NFTCard from '../../../Componants/MarketPlace/NFTCard';
 import useNfts from '../../../hooks/useNfts';
-import {getMinAskPrice} from '../../../hooks/marketPlace';
+import {getMinAsk} from '../../../hooks/marketPlace';
 import {ApiCollection, ApiSingleCollectionResponse} from '../../../types/types';
 import useApi from '../../../hooks/useApi';
 import {API_NFT_URL} from '../../../constants';
@@ -21,6 +21,7 @@ import {API_NFT_URL} from '../../../constants';
 const CollectionDetailsScreen = ({route}) => {
   const {contractAddress} = route.params;
   const navigation = useNavigation();
+
   const [fadeAnim] = useState(new Animated.Value(0));
   const [imageLoaded, setImageLoaded] = useState(false);
   const [collection, setCollection] = useState<ApiCollection | null>(null);
@@ -32,9 +33,7 @@ const CollectionDetailsScreen = ({route}) => {
     refetch,
   } = useApi<ApiSingleCollectionResponse>(
     `${API_NFT_URL}/nftMarketplace_getCollections/?contractAddress=${contractAddress}`,
-    {
-      method: 'GET',
-    },
+    {method: 'GET'},
   );
 
   const {
@@ -43,6 +42,7 @@ const CollectionDetailsScreen = ({route}) => {
     error: nftsError,
   } = useNfts(contractAddress);
 
+  // Fade-in effect
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -51,6 +51,7 @@ const CollectionDetailsScreen = ({route}) => {
     }).start();
   }, []);
 
+  // Set collection on data fetch
   useEffect(() => {
     if (collectionRes?.data) {
       setCollection(collectionRes.data);
@@ -60,6 +61,7 @@ const CollectionDetailsScreen = ({route}) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container}>
+        {/* Banner Image */}
         <View style={styles.imageWrapper}>
           {!imageLoaded && (
             <View style={styles.imagePlaceholder}>
@@ -75,19 +77,20 @@ const CollectionDetailsScreen = ({route}) => {
           />
         </View>
 
+        {/* Collection Name */}
         <Animated.Text style={[styles.collectionName, {opacity: fadeAnim}]}>
           {collection?.collectionName || 'Collection Name'}
         </Animated.Text>
 
+        {/* Collection Details */}
         <View style={styles.collectionDetails}>
           <Text style={styles.detailsHeader}>Collection Details</Text>
-
           {collection ? (
             <>
-              <DetailRow label="Symbol" value={collection?.symbol} />
-              <DetailRow label="Year" value={collection?.year} />
-              <DetailRow label="Country" value={collection?.country} />
-              <DetailRow label="Type" value={collection?.type} />
+              <DetailRow label="Symbol" value={collection.symbol} />
+              <DetailRow label="Year" value={collection.year} />
+              <DetailRow label="Country" value={collection.country} />
+              <DetailRow label="Type" value={collection.type} />
             </>
           ) : isLoading ? (
             <Spinner />
@@ -96,6 +99,7 @@ const CollectionDetailsScreen = ({route}) => {
           )}
         </View>
 
+        {/* NFT List */}
         <View style={styles.nftListContainer}>
           <Text style={styles.nftSectionTitle}>NFTs</Text>
           <View style={styles.nftGrid}>
@@ -105,14 +109,22 @@ const CollectionDetailsScreen = ({route}) => {
               <Text style={styles.errorText}>{nftsError}</Text>
             ) : nfts.length > 0 ? (
               nfts.map((nft: any) => {
-                const currentAskPriceAsNumber = getMinAskPrice(
-                  nft?.activeAsks ?? [],
-                );
+                const currentAsk = getMinAsk(nft.activeAsks ?? []);
+                const hasAsks = nft?.activeAsks?.length > 0;
+
+                if (!hasAsks) return null;
+
+                const nftData = {
+                  ...nft,
+                  name: `${collection?.collectionName} #${nft.tokenId}`,
+                };
+
                 return (
                   <NFTCard
                     key={nft.tokenId}
-                    nft={nft}
-                    currentAskPrice={currentAskPriceAsNumber}
+                    nft={nftData}
+                    currentAskPrice={Number(currentAsk?.askPrice) || 0}
+                    quantity={Number(currentAsk?.amount) || 0}
                   />
                 );
               })
@@ -152,11 +164,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   imagePlaceholder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',

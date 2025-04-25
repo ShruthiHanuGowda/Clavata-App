@@ -26,9 +26,10 @@ import {
 import {useCallWithGasPrice} from '../../../../hooks/marketplace/useCallWithGasPrice';
 import useApproveConfirmTransaction from '../../../../hooks/marketplace/useApproveConfirmTransaction';
 
-import {TOKEN_CONTRACTS, ERC20_ABI} from '../../../../constants';
+import {TOKEN_CONTRACTS} from '../../../../constants';
 import {NftToken} from '../../../../types/types';
-import {BrowserProvider, Contract, MaxUint256} from 'ethers';
+import {MaxUint256} from 'ethers';
+import {SnackBarMessage} from '../../../../utils/snackBar';
 
 enum BuyingStage {
   REVIEW = 'REVIEW',
@@ -109,29 +110,13 @@ const BuyModal: React.FC<BuyModalProps> = ({
           MaxUint256,
         ]);
       },
+      onApproveSuccess: async ({receipt}) => {
+        SnackBarMessage(
+          `Contract approved - you can now buy NFT with ${paymentCurrency}!`,
+          'success',
+        );
+      },
       onConfirm: async () => {
-        // const provider = new BrowserProvider(magic_denergy.rpcProvider as any);
-        // const signer = await provider.getSigner();
-        // const onChainTokenContract = new Contract(
-        //   tokenAddress,
-        //   ERC20_ABI,
-        //   signer,
-        // );
-        // const currentAllowance = await onChainTokenContract.allowance(
-        //   account,
-        //   marketAddress,
-        // );
-        // const requiredAllowance = BigInt(nftPrice) * BigInt(quantity);
-
-        // if (currentAllowance < requiredAllowance) {
-        //   const tx = await callWithGasPrice(tokenContract, 'approve', [
-        //     marketAddress,
-        //     MaxUint256,
-        //   ]);
-
-        //   await tx;
-        // }
-
         return callWithGasPrice(nftMarketContract, 'buyToken', [
           nftToBuy.collectionAddress,
           BigInt(nftToBuy.tokenId),
@@ -141,6 +126,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
       },
       onSuccess: ({receipt}) => {
         console.log(receipt);
+        SnackBarMessage(`Your NFT has been sent to your wallet`, 'success');
         setConfirmedTxHash(receipt.hash);
         setStage(BuyingStage.TX_CONFIRMED);
       },

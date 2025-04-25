@@ -8,6 +8,7 @@ import {
 } from 'ethers';
 import {useGasPrice} from './useGasPrice';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
+import {SnackBarMessage} from '../../utils/snackBar';
 
 type Overrides = {
   gas?: bigint;
@@ -51,14 +52,18 @@ export function useCallWithGasPrice() {
             {
               ...overrides,
               // gasPrice,
-              // gasLimit, // Uncomment if you re-add gas estimation
+              // gasLimit,
             },
           );
 
           return tx.wait() as Promise<TransactionReceipt>;
         } catch (error) {
           console.error(`Transaction failed for method ${methodName}:`, error);
-          throw new Error(`Transaction failed for method ${methodName}`);
+          SnackBarMessage(
+            `Transaction failed for method ${error.message}`,
+            'error',
+          );
+          // throw new Error(`Transaction failed for method ${methodName}`);
         }
       } catch (error) {
         console.log(error);

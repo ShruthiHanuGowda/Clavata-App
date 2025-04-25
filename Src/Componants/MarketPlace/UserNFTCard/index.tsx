@@ -11,7 +11,6 @@ import {NavigationProp, useNavigation} from '@react-navigation/native';
 import Spinner from '../Spinner';
 import {NftLocation, NftToken} from '../../../types/types';
 import SellModal from '../BuySellModal/SellModal';
-import {set} from 'date-fns';
 
 interface UserNFTCardProps {
   nft: NftToken;
@@ -26,13 +25,9 @@ interface SellNftProps {
 
 type NavigationProps = NavigationProp<any, any>;
 
-const screenWidth = Dimensions.get('window').width;
-const cardSize = (screenWidth - 40) / 2;
-
 const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
   const [imageLoaded, setImageLoaded] = useState<boolean>(false);
   const [clickedSellNft, setClickedSellNft] = useState<SellNftProps>({});
-  const [isBuyModalVisible, setIsBuyModalVisible] = useState(false);
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
 
   const navigation = useNavigation<NavigationProps>();
@@ -42,8 +37,6 @@ const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
   };
 
   const handleCollectibleClick = (location?: NftLocation) => {
-    console.log(location);
-
     switch (location) {
       case NftLocation.WALLET:
         setClickedSellNft({location, variant: 'sell'});
@@ -102,11 +95,12 @@ const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
 
 const styles = StyleSheet.create({
   card: {
-    width: cardSize,
+    width: '46%',
     borderRadius: 12,
     backgroundColor: '#fff',
     padding: 10,
-    margin: 5,
+    marginBottom: 12,
+    marginRight: 12,
     alignItems: 'center',
     elevation: 3,
     shadowColor: '#000',

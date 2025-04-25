@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 import {ethers, Provider, TransactionReceipt} from 'ethers';
 import {isUserRejected} from './reject';
+import {SnackBarMessage} from '../../utils/snackBar';
 
 type Params = {
   throwUserRejectError?: boolean;
@@ -31,6 +32,7 @@ export default function useCatchTxError(params?: Params) {
 
         const receipt: any = tx;
         if (receipt?.status === 1) {
+          SnackBarMessage(`Transaction Submitted!`, 'success');
           return receipt;
         } else {
           throw new Error('Transaction failed.');
