@@ -7,9 +7,9 @@ import {
 } from '@apollo/client';
 
 // Environment variables or configuration
-const API_KEY = 'da2-n5rv7b7ipngvvff25xfs3xlufi';
+const API_KEY = 'da2-baxdpa3fcnh55ph4mgfoygz7em';
 const API_URL =
-  'https://tvmbdqb7gvfnhfggz6liar6ylm.appsync-api.me-central-1.amazonaws.com/graphql';
+  'https://rbp2j64ilzapvcxolmwmv4cuj4.appsync-api.me-central-1.amazonaws.com/graphql';
 
 // Apollo client configuration
 const createApolloClient = (): ApolloClient<NormalizedCacheObject> => {

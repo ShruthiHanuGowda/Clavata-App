@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Header, ScreenWidth} from '@rneui/base';
 import {
   FlatList,
@@ -21,8 +21,9 @@ import {Path, Svg} from 'react-native-svg';
 // import {navigate} from '../../Navigation/NavigationFunctions';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
 // import images from '../../../../images';
-import {useScrollToTop} from '@react-navigation/native';
+import {useFocusEffect, useScrollToTop} from '@react-navigation/native';
 import {navigateTo} from '../../utils/navigationService';
+import {useWallet} from '../../../screens/Provider/WalletProvider';
 
 function HomeHeader(props) {
   return (
@@ -74,6 +75,7 @@ function HomeHeader(props) {
 }
 
 export default function HomeScreen({navigation}) {
+  const {refreshAllBalances} = useWallet();
   // const { get, getDrecs, data, drecsData, balanceData, loading, getBalance, getProfile, profile } =
   //   useContext(AppContext).portfolio;
   // const { newCount, getNewCount } = useNotification();
@@ -96,12 +98,15 @@ export default function HomeScreen({navigation}) {
 
   useScrollToTop(scrollViewRef);
 
-  // useEffect(() => {
-  //   const unsubscribe = navigation.addListener('focus', () => {
-  //     init();
-  //   });
-  //   return unsubscribe;
-  // }, [navigation]);
+  useFocusEffect(
+    useCallback(() => {
+      refreshAllBalances();
+
+      return () => {
+        console.log('Screen is unfocused!');
+      };
+    }, []),
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -111,8 +116,12 @@ export default function HomeScreen({navigation}) {
       {/* <DKYC loading={loading} {...profile} /> */}
       <ScrollView
         ref={scrollViewRef}
-        // refreshControl={<RefreshControl refreshing={false} onRefresh={init} />}
-      >
+        refreshControl={
+          <RefreshControl
+            refreshing={false}
+            onRefresh={() => refreshAllBalances()}
+          />
+        }>
         <BalanceCarousal
         // loading={loading}
         // drecsData={drecsData}
