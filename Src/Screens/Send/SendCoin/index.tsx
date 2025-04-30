@@ -150,6 +150,7 @@ export default function SendCoin(props: SendCoinProps): JSX.Element {
           to: user?.beneficiaryAddress,
           amount: wattAmount,
           tokenAddress: TOKEN_ADDRESSES.USDC,
+          coinCode: 'USDC',
         };
         await sendUSDCTransaction(transactionDetails, transactionResult => {
           console.log('transactionResult????', transactionResult);
@@ -171,6 +172,7 @@ export default function SendCoin(props: SendCoinProps): JSX.Element {
           to: user?.beneficiaryAddress,
           amount: wattAmount,
           tokenAddress: TOKEN_ADDRESSES.EURC,
+          coinCode: 'EURC',
         };
         await sendUSDCTransaction(transactionDetails, transactionResult => {
           console.log('transactionResult????', transactionResult);
@@ -223,6 +225,7 @@ export default function SendCoin(props: SendCoinProps): JSX.Element {
           to: user?.beneficiaryAddress,
           amount: wattAmount,
           tokenAddress: TOKEN_ADDRESSES_DENERGY?.USDC,
+          coinCode: 'WUSDC',
         };
         await sendDenergyUSDCTransaction(
           transactionDetails,
@@ -247,6 +250,7 @@ export default function SendCoin(props: SendCoinProps): JSX.Element {
           to: user?.beneficiaryAddress,
           amount: wattAmount,
           tokenAddress: TOKEN_ADDRESSES_DENERGY.EURC,
+          coinCode: 'WEURC',
         };
         await sendDenergyUSDCTransaction(
           transactionDetails,

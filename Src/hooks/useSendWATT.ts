@@ -64,6 +64,7 @@ export const useSendWatt = (
 
       // Convert amount to wei
       const amountInWei = parseUnits(transactionDetails.amount, 18);
+      console.log('🚀 ~ amountInWei:', amountInWei);
 
       // Estimate gas price
       const gasPrice = await dengergyProvider.getFeeData();
@@ -77,6 +78,7 @@ export const useSendWatt = (
 
       // Check if user has enough balance for transaction + gas
       const balanceInWei = await dengergyProvider.getBalance(userAddress);
+      console.log('🚀 ~ balanceInWei:', balanceInWei);
       const gasCost = gasEstimate * (gasPrice.gasPrice ?? parseUnits('50', 9)); // Default gas price if null
       const totalCost = amountInWei + gasCost;
 

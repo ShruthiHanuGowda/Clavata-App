@@ -1,5 +1,8 @@
+import {useMutation} from '@apollo/client';
 import {useState} from 'react';
 import Web3 from 'web3';
+import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
+import {DENERGY_EURC_ADDRESS, DENERGY_USDC_ADDRESS} from '../constants';
 
 // Denergy RPC URL and chain ID
 const DENERGY_RPC_URL = 'https://rpc.denergytestnet.com';
@@ -9,8 +12,8 @@ const web3 = new Web3(provider);
 
 // Token addresses on Denergy testnet
 export const TOKEN_ADDRESSES_DENERGY = {
-  USDC: '0x4A50915Be4c0CEADE5EFFf28a2e6a22B9a0c49e4',
-  EURC: '0x9abaD0Dfd8F5ce10A8a6EeBbd852922de21f6F22',
+  USDC: DENERGY_USDC_ADDRESS,
+  EURC: DENERGY_EURC_ADDRESS,
 };
 
 // Generic ERC20 ABI (works for both USDC and EURC)
@@ -91,6 +94,7 @@ interface TokenTransactionDetails {
   to: string;
   amount: string;
   tokenAddress: string;
+  coinCode: string;
 }
 
 interface TransactionSuccess {
@@ -121,6 +125,10 @@ export const useSendDenergyUSDCAndEURC = (
 ) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [createTransactionHistoryMobile] = useMutation(
+    CREATE_TRANSACTION_HISTORY_MOBILE,
+  );
 
   /**
    * Send a USDC or EURC transaction on Denergy testnet
@@ -230,6 +238,21 @@ export const useSendDenergyUSDCAndEURC = (
 
       // Call success callback if provided
       if (onSuccess && typeof onSuccess === 'function') {
+        const {data} = await createTransactionHistoryMobile({
+          variables: {
+            input: {
+              transactionHash: receipt.hash,
+              method: 'send',
+              createdAt: new Date().toISOString(),
+              from: userAddress,
+              to: transactionDetails.to,
+              amount: parseFloat(transactionDetails.amount),
+              txnFee: parseFloat(gasCost.toString()),
+              coinCode: transactionDetails.coinCode,
+              transactionStatus: 'success',
+            },
+          },
+        });
         onSuccess({
           txHash: txHash,
           networkName: 'Denergy Testnet',
