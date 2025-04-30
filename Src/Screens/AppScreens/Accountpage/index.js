@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, {useState, useEffect, useContext} from 'react';
 import {
   Text,
   View,
@@ -10,30 +10,30 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './style';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ScrollView } from 'react-native-gesture-handler';
+import {ScrollView} from 'react-native-gesture-handler';
 // import {navigateTo} from '../../../../utils/navigationService';
-import { SCREEN_CONSTANT } from '../../../../navigation/constant';
+import {SCREEN_CONSTANT} from '../../../../navigation/constant';
 import LinearGradient from 'react-native-linear-gradient';
-import { BottomSheet } from 'react-native-btr';
+import {BottomSheet} from 'react-native-btr';
 // import {AirbnbRating} from 'react-native-ratings';
 // import {BottomSheetModal} from '@gorhom/bottom-sheet';
 // import useBottomSheet from '../../../../hooks/bottomsheet';
-import { color, Header, ScreenWidth } from '@rneui/base';
-import { TouchableOpacity } from 'react-native';
+import {color, Header, ScreenWidth} from '@rneui/base';
+import {TouchableOpacity} from 'react-native';
 // import DKYC from '../../../../component/DKYC';
-import { isDev } from '../../../../config/mode';
-import { DText } from '../../../Componants/DText';
+import {isDev} from '../../../../config/mode';
+import {DText} from '../../../Componants/DText';
 import MenuList from '../../../Componants/rc_menuList';
 import images from '../../../Theme/images';
-import { navigateTo } from '../../../utils/navigationService';
-import { useMagic } from '../../../../screens/Provider/MagicProvider';
-import { navReset } from '../../../Navigation/NavigationFunctions';
-import { UPDATE_KYC_STATUS } from '../../../graphql/queries';
-import { useMutation } from '@apollo/client';
-import { useAuth } from '../../../../screens/Provider/authProvider';
+import {navigateTo} from '../../../utils/navigationService';
+import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {navReset} from '../../../Navigation/NavigationFunctions';
+import {UPDATE_KYC_STATUS} from '../../../graphql/queries';
+import {useMutation} from '@apollo/client';
+import {useAuth} from '../../../../screens/Provider/authProvider';
 const STAR_IMG = require('../../../../images/star.png');
 
 const styles = StyleSheet.create({
@@ -48,15 +48,15 @@ const styles = StyleSheet.create({
 });
 
 export default function Account(props) {
-  const { magic } = useMagic();
-  const { userDetails } = useAuth();
+  const {magic} = useMagic();
+  const {userDetails} = useAuth();
   // const {getProfile, profile, loading} = useContext(AppContext).portfolio;
 
   // useEffect(() => {
   //   getProfile();
   // }, []);
 
-  const [updateKycStatus, { loading, error, data }] = useMutation(
+  const [updateKycStatus, {loading, error, data}] = useMutation(
     UPDATE_KYC_STATUS,
     {
       onCompleted: data => {
@@ -135,7 +135,7 @@ export default function Account(props) {
             },
           },
         ],
-        { cancelable: true },
+        {cancelable: true},
       );
     } catch (error) {
       console.error('Error during logout flow:', error);
@@ -145,7 +145,7 @@ export default function Account(props) {
   };
 
   return (
-    <View style={{ backgroundColor: '#fff', flex: 1 }}>
+    <View style={{backgroundColor: '#fff', flex: 1}}>
       {/* {isDev ? (
         <Text
           style={[
@@ -194,8 +194,8 @@ export default function Account(props) {
       <ScrollView>
         <LinearGradient
           colors={['#d8fffd', '#dcf2f1', '#FFFFFF']}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 1, y: 1 }}
+          start={{x: 0, y: 1}}
+          end={{x: 1, y: 1}}
           useAngle={true}
           angle={30}
           locations={[0, 0.3, 0.6]}>
@@ -209,7 +209,7 @@ export default function Account(props) {
               <ActivityIndicator />
             </View>
           ) : ( */}
-          <View style={{ marginHorizontal: 20, marginBottom: 25, height: 150 }}>
+          <View style={{marginHorizontal: 20, marginBottom: 25, height: 150}}>
             <View
               style={{
                 borderBottomColor: 'black',
@@ -224,7 +224,7 @@ export default function Account(props) {
           </View>
           {/* )} */}
         </LinearGradient>
-        <View style={{ height: 15 }}></View>
+        <View style={{height: 15}}></View>
         <MenuList
           onPress={() => navigateTo('ProfileSettings')}
           img={images.user}
@@ -253,7 +253,7 @@ export default function Account(props) {
           title="All Transactions Data"
         />
         <Pressable
-          style={{ bottom: -10, left: 20 }}
+          style={{bottom: -10, left: 20}}
           onPress={() => handleLogout()}>
           <Text
             style={[
@@ -268,7 +268,7 @@ export default function Account(props) {
           </Text>
         </Pressable>
 
-        <Pressable
+        {/* <Pressable
           style={{ bottom: -10, left: 20 }}
           onPress={async () => {
             try {
@@ -297,7 +297,7 @@ export default function Account(props) {
             ]}>
             KYC Status
           </Text>
-        </Pressable>
+        </Pressable> */}
         {/* <BottomSheetModal
           {...bottomSheetProps}
           onDismiss={() => {
