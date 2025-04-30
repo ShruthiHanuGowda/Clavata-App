@@ -3,32 +3,66 @@ import {View, Text, TouchableOpacity, Image, StyleSheet} from 'react-native';
 import {DText} from '../../../Componants/DText';
 import {fontsFamily, Images} from '../../../Theme';
 import images from '../../../Theme/images';
-
+import 'text-encoding';
+import Share from 'react-native-share';
+import QRCode from 'react-native-qrcode-svg';
+import Clipboard from '@react-native-community/clipboard';
+import {SnackBarMessage} from '../../../utils/snackBar';
 const ShowQr = ({coinCode, address, name}) => {
   const saveQrToDisk = async () => {};
+  const [qrCodeRef, setQrCodeRef] = useState();
 
-  const onShare = async () => {};
-
-  const copy = () => {};
-
+  const copy = () => {
+    Clipboard.setString(address);
+    SnackBarMessage('Address is copied!', 'default');
+  };
+  const onShare = async () => {
+    if (qrCodeRef) {
+      try {
+        qrCodeRef.toDataURL(data => {
+          const shareImageBase64 = {
+            title: 'QR',
+            message: `${
+              coinCode === 'WUSDC'
+                ? 'wUSDC'
+                : coinCode === 'WEURC'
+                ? 'wEURC'
+                : coinCode
+            } address: ${address}`,
+            url: `data:image/png;base64,${data}`,
+            subject: 'Share QR code',
+          };
+          Share.open(shareImageBase64)
+            .then(res => {})
+            .catch(err => {
+              err && {};
+            });
+        });
+      } catch (error) {}
+    }
+  };
   return (
     <View style={styles.boxContainer}>
       <View style={styles.outerBox}>
         <View style={styles.qrCodeAlign}>
-          <Image source={images.tempqrcode} style={{height: 350, width: 350}} />
+          {/* <Image source={images.tempqrcode} style={{height: 350, width: 350}} /> */}
+          <QRCode size={200} value={address} getRef={c => setQrCodeRef(c)} />
         </View>
         <View style={styles.qrUsernameAlign}>
-          <Text style={styles.username} numberOfLines={1}>
-            test
-          </Text>
+          {/* <Text style={styles.username} numberOfLines={1}>
+          
+          </Text> */}
         </View>
+
         <View style={styles.qrBtnAlign}>
           <TouchableOpacity style={styles.downloadBtn} onPress={saveQrToDisk}>
             <DText fontStyle="fontBold" style={styles.downloadText}>
               Download
             </DText>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.buttonContainer} onPress={onShare}>
+          <TouchableOpacity
+            style={styles.buttonContainer}
+            onPress={() => onShare()}>
             <DText fontStyle="fontBold" style={styles.shareText}>
               Share
             </DText>
@@ -43,7 +77,7 @@ const ShowQr = ({coinCode, address, name}) => {
             </View>
             <TouchableOpacity onPress={copy} style={styles.copyIconAlign}>
               <Image
-                source={Images.copy}
+                source={Images.copyIcon}
                 style={styles.copyIcon}
                 resizeMode="contain"
               />

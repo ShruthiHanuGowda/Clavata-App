@@ -12,6 +12,6 @@ export const SnackBarMessage = (message, slug = '') => {
         ? Colors.error
         : slug === 'success'
         ? Colors.success
-        : Colors.purple,
+        : Colors.success,
   });
 };
