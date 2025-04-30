@@ -14,6 +14,8 @@ import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {NftLocation} from '../../../types/types';
 import UserNFTCard from '../../../Componants/MarketPlace/UserNFTCard';
+import {Header} from '../../../Componants';
+import {navigateBack} from '../../../Navigation/NavigationFunctions';
 
 const ProfileNFTsScreen = ({route}) => {
   const [selectedTab, setSelectedTab] = useState('all');
@@ -49,6 +51,11 @@ const ProfileNFTsScreen = ({route}) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Header
+        headerTitle={'Your NFTs'}
+        backBtn={() => navigateBack()}
+        hideBorder={true}
+      />
       <View style={styles.container}>
         <Text style={styles.headerTitle}>Your NFT Collection</Text>
 
@@ -96,13 +103,12 @@ const ProfileNFTsScreen = ({route}) => {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
     backgroundColor: '#ffffff',
   },
   container: {
-    flex: 1,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
+    marginTop: 15,
   },
   headerTitle: {
     fontSize: 26,

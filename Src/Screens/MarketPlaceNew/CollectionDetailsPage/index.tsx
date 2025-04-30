@@ -17,6 +17,8 @@ import {getMinAsk} from '../../../hooks/marketPlace';
 import {ApiCollection, ApiSingleCollectionResponse} from '../../../types/types';
 import useApi from '../../../hooks/useApi';
 import {API_NFT_URL} from '../../../constants';
+import {Header} from '../../../Componants';
+import {navigateBack} from '../../../Navigation/NavigationFunctions';
 
 const CollectionDetailsScreen = ({route}) => {
   const {contractAddress} = route.params;
@@ -60,6 +62,11 @@ const CollectionDetailsScreen = ({route}) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Header
+        headerTitle={'Collection Details'}
+        backBtn={() => navigateBack()}
+        hideBorder={true}
+      />
       <ScrollView style={styles.container}>
         {/* Banner Image */}
         <View style={styles.imageWrapper}>
@@ -159,6 +166,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9f9f9',
+    marginTop: 15,
   },
   imageWrapper: {
     position: 'relative',

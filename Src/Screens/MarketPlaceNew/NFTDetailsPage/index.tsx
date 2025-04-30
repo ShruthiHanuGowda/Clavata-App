@@ -6,6 +6,7 @@ import {
   View,
   ActivityIndicator,
   RefreshControl,
+  SafeAreaView,
 } from 'react-native';
 
 import NFTHeader from '../../../Componants/MarketPlace/NFTHeader';
@@ -17,6 +18,8 @@ import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
 import {NftToken} from '../../../types/types';
 import {useCompleteNft} from '../../../hooks/useCompleteNft';
 import useNftActivity from '../../../hooks/useNftActivity';
+import {Header} from '../../../Componants';
+import {navigateBack} from '../../../Navigation/NavigationFunctions';
 
 interface NFTDetailsScreenProps {
   route: {
@@ -81,7 +84,12 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
   }
 
   return (
-    <>
+    <SafeAreaView>
+      <Header
+        headerTitle={combinedNft.name}
+        backBtn={() => navigateBack()}
+        hideBorder={true}
+      />
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -134,7 +142,7 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
           refetchActivity();
         }}
       />
-    </>
+    </SafeAreaView>
   );
 };
 
