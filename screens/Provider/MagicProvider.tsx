@@ -1,12 +1,13 @@
 import React, {createContext, useContext, ReactNode, useState} from 'react';
 import {Magic} from '@magic-sdk/react-native-bare';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {CUSTOM_NETWORK_CHAIN_ID, CUSTOM_RPC_URL} from '../../Src/constants';
 
 // Network configuration constants - only Sepolia and Denergy
 export const NETWORKS = {
   denergy: {
-    rpcUrl: 'https://rpc.denergytestnet.com',
-    chainId: 4442, // Denergy chain ID
+    rpcUrl: CUSTOM_RPC_URL,
+    chainId: CUSTOM_NETWORK_CHAIN_ID, // Denergy chain ID
   },
 };
 

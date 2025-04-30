@@ -1,7 +1,16 @@
 import {useState} from 'react';
-import {BrowserProvider, formatUnits, parseUnits, JsonRpcProvider, TransactionReceipt} from 'ethers';
+import {
+  BrowserProvider,
+  formatUnits,
+  parseUnits,
+  JsonRpcProvider,
+  TransactionReceipt,
+} from 'ethers';
+import {useMutation} from '@apollo/client';
+import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 
-const INFURA_URL = 'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
+const INFURA_URL =
+  'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
 const infuraProvider = new JsonRpcProvider(INFURA_URL);
 
 interface TransactionDetails {
@@ -16,7 +25,6 @@ interface TransactionSuccess {
   totalCost: string | bigint;
 }
 
-
 type SuccessCallback = (result: TransactionSuccess) => void;
 
 /**
@@ -25,12 +33,13 @@ type SuccessCallback = (result: TransactionSuccess) => void;
  * @param userAddress - User's public address
  * @returns Transaction state and functions
  */
-export const useSendEth = (
-  magic: any,
-  userAddress: string | undefined,
-) => {
+export const useSendEth = (magic: any, userAddress: string | undefined) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [createTransactionHistoryMobile] = useMutation(
+    CREATE_TRANSACTION_HISTORY_MOBILE,
+  );
   console.log('error', error, isLoading);
   /**
    * Send an Ethereum transaction
@@ -87,6 +96,25 @@ export const useSendEth = (
 
       // Wait for transaction to be mined
       const receipt = await tx.wait();
+      try {
+        const {data} = await createTransactionHistoryMobile({
+          variables: {
+            input: {
+              transactionHash: receipt?.hash,
+              method: 'send',
+              createdAt: new Date().toISOString(),
+              from: userAddress,
+              to: transactionDetails.to,
+              amount: parseFloat(transactionDetails.amount),
+              txnFee: parseFloat(gasCost.toString()),
+              coinCode: 'ETH',
+              transactionStatus: 'success',
+            },
+          },
+        });
+      } catch (error: any) {
+        throw new Error(error);
+      }
 
       // Call success callback if provided
       if (onSuccess && typeof onSuccess === 'function' && receipt) {

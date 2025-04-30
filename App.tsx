@@ -1,7 +1,7 @@
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import React from 'react';
 import useColorScheme from './hooks/useColorScheme';
-
+// import 'text-encoding';
 import {ENV, API_KEY} from './config/env';
 import {MagicProvider} from './screens/Provider/MagicProvider';
 import {View} from 'react-native';

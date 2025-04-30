@@ -33,6 +33,25 @@ type SuccessCallback = (result: BridgeSuccess) => void;
  *
  * @returns Bridge state and functions
  */
+
+const apiCall = async (transactionDetails: any, endPoint: string) => {
+  const apiUrl = `${'https://backend.wattswaps.com'}/bridge_api/${endPoint}`;
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': '93192389131231YYAOIJ',
+      },
+      body: JSON.stringify(transactionDetails),
+    });
+    const result = await response.json();
+    console.log('result', result);
+  } catch (error) {
+    console.error('API call failed:', error);
+  }
+};
+
 export const useBridge = () => {
   const {refreshBalance} = useWallet();
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -99,16 +118,8 @@ export const useBridge = () => {
         const receipt = await depositTx.wait();
 
         // Get user address from Auth provider
-        const userAddress = userDetails?.ethereumWallet || '';
+        const userAddress = userDetails?.denergyWallet || '';
 
-        // Create transaction details for API call
-        const transactionDetails = {
-          amount,
-          userAddress: userAddress,
-          hash: receipt?.hash || '',
-          sourceChainCode: 'ETH',
-          coinCode: 'USDC',
-        };
         refreshBalance('USDC');
 
         // Call success callback if provided
@@ -120,6 +131,16 @@ export const useBridge = () => {
             sourceChain: 'ETH',
             coinCode: 'USDC',
           };
+          //REVIEW -  Create transaction details for API call
+          const transactionDetails = {
+            amount,
+            userAddress: userAddress,
+            hash: '',
+            sourceChainCode: 'ETH',
+            coinCode: 'USDC',
+          };
+          apiCall(transactionDetails, 'depositErc20Token').then();
+          // return transaction;
           onSuccess(successData);
         }
 
@@ -184,19 +205,11 @@ export const useBridge = () => {
         const receipt = await depositTx.wait();
 
         // Get user address from Auth provider
-        const userAddress = userDetails?.ethereumWallet || '';
+        const userAddress = userDetails?.denergyWallet || '';
 
-        // Create transaction details for API call
-        const transactionDetails = {
-          amount,
-          userAddress: userAddress,
-          hash: receipt?.hash || '',
-          sourceChainCode: 'ETH',
-          coinCode: 'EURC',
-        };
         refreshBalance('EURC');
 
-        // Call success callback if provided
+        // REVIEW - Call success callback if provided
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
           const successData = {
             txHash: receipt.hash,
@@ -205,6 +218,15 @@ export const useBridge = () => {
             sourceChain: 'ETH',
             coinCode: 'EURC',
           };
+          //REVIEW -  Create transaction details for API call
+          const transactionDetails = {
+            amount,
+            userAddress: userAddress,
+            hash: '',
+            sourceChainCode: 'ETH',
+            coinCode: 'EURC',
+          };
+          apiCall(transactionDetails, 'depositErc20Token').then();
           onSuccess(successData);
         }
 
@@ -272,18 +294,8 @@ export const useBridge = () => {
         const receipt = await depositTx.wait();
 
         // Get user address from Auth provider
-        const userAddress = userDetails?.denergyWallet || '';
+        const userAddress = userDetails?.ethereumWallet || '';
 
-        // Create transaction details for API call
-        const transactionDetails = {
-          amount,
-          userAddress: userAddress,
-          tokenAddress: usdcAddress || '',
-          hash: '',
-          sourceChainCode: 'DENERGY',
-          coinCode: 'WUSDC',
-          destinationChainCode: 'ETH',
-        };
         refreshBalance('WUSDC');
 
         // Call success callback if provided
@@ -295,6 +307,18 @@ export const useBridge = () => {
             sourceChain: 'DENERGY',
             coinCode: 'WUSDC',
           };
+
+          //REVIEW -  Create transaction details for API call
+          const transactionDetails = {
+            amount,
+            userAddress: userAddress,
+            tokenAddress: USDC_ADDRESS,
+            hash: '',
+            sourceChainCode: 'DENERGY',
+            coinCode: 'WUSDC',
+            destinationChainCode: 'ETH',
+          };
+          apiCall(transactionDetails, 'withdrawErc20Token').then();
           onSuccess(successData);
         }
 
@@ -362,18 +386,8 @@ export const useBridge = () => {
         const receipt = await depositTx.wait();
 
         // Get user address from Auth provider
-        const userAddress = userDetails?.denergyWallet || '';
+        const userAddress = userDetails?.ethereumWallet || '';
 
-        // Create transaction details for API call
-        const transactionDetails = {
-          amount,
-          userAddress: userAddress,
-          tokenAddress: eurcAddress || '',
-          hash: '',
-          sourceChainCode: 'DENERGY',
-          coinCode: 'WEURC',
-          destinationChainCode: 'ETH',
-        };
         refreshBalance('WEURC');
 
         // Call success callback if provided
@@ -385,6 +399,17 @@ export const useBridge = () => {
             sourceChain: 'DENERGY',
             coinCode: 'WEURC',
           };
+
+          const transactionDetails = {
+            amount,
+            userAddress: userAddress,
+            tokenAddress: EURC_ADDRESS,
+            hash: '',
+            sourceChainCode: 'DENERGY',
+            coinCode: 'WEURC',
+            destinationChainCode: 'ETH',
+          };
+          apiCall(transactionDetails, 'withdrawErc20Token').then();
           onSuccess(successData);
         }
 

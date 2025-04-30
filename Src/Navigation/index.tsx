@@ -104,7 +104,10 @@ export function HomeScreenStack() {
         name="transactionHistroy"
         component={TransactionHistory}
       />
-      <HomeStack.Screen name="receive" component={ReceiveScreen} />
+      <HomeStack.Screen
+        name={SCREEN_CONSTANT.RECIEVESCREEN}
+        component={ReceiveScreen}
+      />
       <HomeStack.Screen name="bridge" component={TransferCoin} />
       <HomeStack.Screen
         name={SCREEN_CONSTANT.VERIFYADDRESS}

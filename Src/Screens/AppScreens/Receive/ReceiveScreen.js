@@ -6,8 +6,11 @@ import {navigateBack} from '../../../utils/navigationService';
 import {StyleSheet} from 'react-native';
 import ShowQr from '../QRcodeScreen/ShowQr';
 import {DText} from '../../../Componants/DText';
-
+import {useAuth} from '../../../../screens/Provider/authProvider';
 const ReceiveScreen = ({route}) => {
+  const {coinCode} = route.params;
+  const {userDetails} = useAuth();
+  console.log('🚀 ~ ReceiveScreen ~ userDetails:', userDetails);
   return (
     <View style={styles.container}>
       <Header
@@ -21,7 +24,7 @@ const ReceiveScreen = ({route}) => {
         centerComponent={
           <View style={styles.nameContainer}>
             <DText fontStyle="fontBold" style={styles.headerTitle}>
-              WATT Wallet
+              {coinCode} Wallet
             </DText>
           </View>
         }
@@ -29,7 +32,13 @@ const ReceiveScreen = ({route}) => {
 
       <ScrollView>
         <View style={styles.boxAlign}>
-          <ShowQr />
+          <ShowQr
+            address={
+              coinCode === 'ETH' || coinCode === 'USDC' || coinCode === 'EURC'
+                ? userDetails?.ethereumWallet
+                : userDetails?.denergyWallet
+            }
+          />
         </View>
       </ScrollView>
     </View>

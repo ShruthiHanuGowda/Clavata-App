@@ -6,6 +6,8 @@ import {
   JsonRpcProvider,
   TransactionReceipt,
 } from 'ethers';
+import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
+import {useMutation} from '@apollo/client';
 
 const DENERGY_RPC_URL = 'https://rpc.denergytestnet.com';
 const dengergyProvider = new JsonRpcProvider(DENERGY_RPC_URL, {
@@ -40,7 +42,9 @@ export const useSendWatt = (
 ) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [createTransactionHistoryMobile] = useMutation(
+    CREATE_TRANSACTION_HISTORY_MOBILE,
+  );
   /**
    * Send a WATT token transaction on the DEnergy network
    * @param transactionDetails - Transaction details
@@ -60,6 +64,7 @@ export const useSendWatt = (
 
       // Convert amount to wei
       const amountInWei = parseUnits(transactionDetails.amount, 18);
+      console.log('🚀 ~ amountInWei:', amountInWei);
 
       // Estimate gas price
       const gasPrice = await dengergyProvider.getFeeData();
@@ -73,6 +78,7 @@ export const useSendWatt = (
 
       // Check if user has enough balance for transaction + gas
       const balanceInWei = await dengergyProvider.getBalance(userAddress);
+      console.log('🚀 ~ balanceInWei:', balanceInWei);
       const gasCost = gasEstimate * (gasPrice.gasPrice ?? parseUnits('50', 9)); // Default gas price if null
       const totalCost = amountInWei + gasCost;
 
@@ -108,6 +114,25 @@ export const useSendWatt = (
 
       // Call success callback if provided
       if (onSuccess && typeof onSuccess === 'function') {
+        try {
+          const {data} = await createTransactionHistoryMobile({
+            variables: {
+              input: {
+                transactionHash: txHash,
+                method: 'send',
+                createdAt: new Date().toISOString(),
+                from: userAddress,
+                to: transactionDetails.to,
+                amount: parseFloat(transactionDetails.amount),
+                txnFee: parseFloat(gasCost.toString()),
+                coinCode: 'WATT',
+                transactionStatus: 'success',
+              },
+            },
+          });
+        } catch (error: any) {
+          throw new Error(error);
+        }
         onSuccess({
           txHash,
           networkName: 'DEnergy Testnet',

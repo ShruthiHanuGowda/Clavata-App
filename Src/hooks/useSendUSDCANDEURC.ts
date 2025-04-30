@@ -7,6 +7,8 @@ import {
   formatUnits,
   parseUnits,
 } from 'ethers';
+import {useMutation} from '@apollo/client';
+import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 
 const INFURA_URL =
   'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
@@ -96,6 +98,7 @@ interface TokenTransactionDetails {
   to: string;
   amount: string;
   tokenAddress: string;
+  coinCode: string;
 }
 
 interface TransactionSuccess {
@@ -121,7 +124,9 @@ export const useSendUSDCANDEURC = (
 ) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [createTransactionHistoryMobile] = useMutation(
+    CREATE_TRANSACTION_HISTORY_MOBILE,
+  );
   /**
    * Send a USDC or EURC transaction on Sepolia
    * @param transactionDetails - Transaction details including recipient, amount, and token address
@@ -211,6 +216,21 @@ export const useSendUSDCANDEURC = (
 
       // Call success callback if provided
       if (onSuccess && typeof onSuccess === 'function' && receipt) {
+        const {data} = await createTransactionHistoryMobile({
+          variables: {
+            input: {
+              transactionHash: receipt.hash,
+              method: 'send',
+              createdAt: new Date().toISOString(),
+              from: userAddress,
+              to: transactionDetails.to,
+              amount: parseFloat(transactionDetails.amount),
+              txnFee: parseFloat(gasCost.toString()),
+              coinCode: transactionDetails.coinCode,
+              transactionStatus: 'success',
+            },
+          },
+        });
         onSuccess({
           txHash: receipt.hash,
           networkName: 'Sepolia Testnet',

@@ -264,6 +264,7 @@ export default function LoginScreen() {
   const prepareNewUserData = async () => {
     try {
       const result = await checkAllNetworks();
+      setActiveNetwork('default');
       const userData = await magic.user.getInfo();
       const walletData = {
         walletAddress: userData.email,

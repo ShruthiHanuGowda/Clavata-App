@@ -61,3 +61,21 @@ export const CREATE_KYC_VERIFICATION = gql`
     }
   }
 `;
+
+export const CREATE_TRANSACTION_HISTORY_MOBILE = gql`
+  mutation createTransactionHistoryMobile(
+    $input: CreateTransactionHistoryMobileInput!
+  ) {
+    createTransactionHistoryMobile(input: $input) {
+      transactionHash
+      method
+      createdAt
+      from
+      to
+      amount
+      txnFee
+      coinCode
+      transactionStatus
+    }
+  }
+`;

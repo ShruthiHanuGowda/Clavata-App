@@ -1,12 +1,18 @@
-import React from 'react';
+import React, {useCallback, useEffect} from 'react';
 import {Image, StyleSheet, Text, View} from 'react-native';
 import {DText} from '../../Componants/DText';
 import CryptoMarketCard from './CryptoMarketCard';
 import {fontsFamily} from '../../Theme';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
-
+import {useFocusEffect} from '@react-navigation/native';
+import {useAuth} from '../../../screens/Provider/authProvider';
 export default function CryptoMarketPlace(props) {
-  const {getBalance, refreshBalance, isBalanceLoading} = useWallet();
+  const {getBalance, refreshBalance, isBalanceLoading, refreshAllBalances} =
+    useWallet();
+  const {userDetails} = useAuth();
+  useEffect(() => {
+    console.log('userDetails', userDetails?.denergyWallet, userDetails);
+  }, [userDetails]);
 
   const formatValue = (value, fixed) => {
     if (value === undefined || value === null) {
