@@ -8,14 +8,14 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import {ApiCollection} from '../../../types/types';
+import {ApiCollection, Collection} from '../../../types/types';
 
 const screenWidth = Dimensions.get('window').width;
 const cardMargin = 10;
 const cardWidth = screenWidth / 2 - cardMargin * 3;
 
 interface CollectionCardProps {
-  collection: ApiCollection;
+  collection: Collection;
   onPress: () => void;
 }
 
@@ -46,7 +46,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
         />
       </View>
       <View style={styles.collectionInfo}>
-        <Text style={styles.collectionName}>{collection?.collectionName}</Text>
+        <Text style={styles.collectionName}>{collection?.name}</Text>
         <Text style={styles.symbolText}>{collection?.symbol}</Text>
       </View>
     </TouchableOpacity>

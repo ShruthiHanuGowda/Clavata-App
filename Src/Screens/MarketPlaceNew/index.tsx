@@ -12,26 +12,14 @@ import {navigate} from '../../Navigation/NavigationFunctions';
 import ListingHeader from '../../Componants/MarketPlace/ListingHeader';
 import CollectionCard from '../../Componants/MarketPlace/CollectionCard';
 import {TouchableOpacity} from 'react-native-gesture-handler';
-import useApi from '../../hooks/useApi';
-import {API_NFT_URL} from '../../constants';
-import {ApiCollectionsResponse} from '../../types/types';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
+import useCollections from '../../hooks/useCollections';
 
 const CollectionListingPage: React.FC = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const {setActiveNetwork} = useMagic();
 
-  const {
-    data: collections,
-    isLoading,
-    error,
-    refetch,
-  } = useApi<ApiCollectionsResponse>(
-    `${API_NFT_URL}/nftMarketplace_getCollections`,
-    {
-      method: 'GET',
-    },
-  );
+  const {collections, loading: isLoading, refetch} = useCollections();
 
   useEffect(() => {
     setActiveNetwork('denergy');
@@ -64,25 +52,24 @@ const CollectionListingPage: React.FC = () => {
         ) : (
           <>
             {!isLoading &&
-              collections?.data.map((collection, index) => {
+              collections?.map((collection, index) => {
                 if (index % 2 === 0) {
                   return (
-                    <View key={collection.contractAddress} style={styles.row}>
+                    <View key={collection.id} style={styles.row}>
                       <CollectionCard
                         collection={collection}
                         onPress={() =>
                           navigate('collectionDetails', {
-                            contractAddress: collection.contractAddress,
+                            contractAddress: collection.id,
                           })
                         }
                       />
-                      {collections?.data[index + 1] && (
+                      {collections[index + 1] && (
                         <CollectionCard
-                          collection={collections?.data[index + 1]}
+                          collection={collections[index + 1]}
                           onPress={() =>
                             navigate('collectionDetails', {
-                              contractAddress:
-                                collections?.data[index + 1].contractAddress,
+                              contractAddress: collections[index + 1].id,
                             })
                           }
                         />

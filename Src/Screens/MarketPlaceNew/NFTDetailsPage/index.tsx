@@ -67,7 +67,7 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
 
   const onRefresh = async () => {
     setIsRefreshing(true);
-    await refetch();
+    refetch();
     await refetchActivity();
     setIsRefreshing(false);
   };
@@ -84,11 +84,12 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
   }
 
   return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.safeArea}>
       <Header
         headerTitle={combinedNft.name}
         backBtn={() => navigateBack()}
-        hideBorder={true}
+        containerStyle={{backgroundColor: '#f9fafa'}}
+        hideBorder
       />
       <ScrollView
         style={styles.container}
@@ -147,11 +148,15 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f9fafa',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f9fafa',
-    paddingTop: 50,
     paddingHorizontal: 15,
+    paddingTop: 10,
   },
   sectionTitle: {
     fontSize: 20,

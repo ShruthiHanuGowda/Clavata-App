@@ -103,3 +103,23 @@ export const GET_TOKEN_ACTIVITY = gql`
           }
         }
     `;
+
+export const GET_NFTS_COLLECTIONS = gql`
+  query NftsWithCollections {
+    nfts(first: 1000) {
+      collection {
+        id
+        name
+        symbol
+        active
+        totalTrades
+        totalVolumeUSDC
+        numberTokensListed
+        creatorAddress
+        tradingFee
+        creatorFee
+        whitelistChecker
+      }
+    }
+  }
+`;

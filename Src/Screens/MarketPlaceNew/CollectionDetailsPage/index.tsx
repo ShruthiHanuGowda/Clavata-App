@@ -65,82 +65,89 @@ const CollectionDetailsScreen = ({route}) => {
       <Header
         headerTitle={'Collection Details'}
         backBtn={() => navigateBack()}
-        hideBorder={true}
+        containerStyle={{backgroundColor: '#f9f9f9'}}
+        hideBorder
       />
-      <ScrollView style={styles.container}>
-        {/* Banner Image */}
-        <View style={styles.imageWrapper}>
-          {!imageLoaded && (
-            <View style={styles.imagePlaceholder}>
+      <View style={{flex: 1}}>
+        <ScrollView style={styles.container}>
+          {/* Banner Image */}
+          <View style={styles.imageWrapper}>
+            {!imageLoaded && (
+              <View style={styles.imagePlaceholder}>
+                <Spinner />
+              </View>
+            )}
+            <Animated.Image
+              source={{
+                uri: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
+              }}
+              style={[styles.bannerImage, {opacity: fadeAnim}]}
+              onLoad={() => setImageLoaded(true)}
+            />
+          </View>
+
+          {/* Collection Name */}
+          <Animated.Text style={[styles.collectionName, {opacity: fadeAnim}]}>
+            {collection?.collectionName || 'Collection Name'}
+          </Animated.Text>
+
+          {/* Collection Details */}
+          <View style={styles.collectionDetails}>
+            <Text style={styles.detailsHeader}>Collection Details</Text>
+            {collection ? (
+              <>
+                <DetailRow label="Symbol" value={collection.symbol} />
+                <DetailRow label="Year" value={collection.year} />
+                <DetailRow label="Country" value={collection.country} />
+                <DetailRow label="Type" value={collection.type} />
+              </>
+            ) : isLoading ? (
               <Spinner />
-            </View>
-          )}
-          <Animated.Image
-            source={{
-              uri: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-            }}
-            style={[styles.bannerImage, {opacity: fadeAnim}]}
-            onLoad={() => setImageLoaded(true)}
-          />
-        </View>
-
-        {/* Collection Name */}
-        <Animated.Text style={[styles.collectionName, {opacity: fadeAnim}]}>
-          {collection?.collectionName || 'Collection Name'}
-        </Animated.Text>
-
-        {/* Collection Details */}
-        <View style={styles.collectionDetails}>
-          <Text style={styles.detailsHeader}>Collection Details</Text>
-          {collection ? (
-            <>
-              <DetailRow label="Symbol" value={collection.symbol} />
-              <DetailRow label="Year" value={collection.year} />
-              <DetailRow label="Country" value={collection.country} />
-              <DetailRow label="Type" value={collection.type} />
-            </>
-          ) : isLoading ? (
-            <Spinner />
-          ) : (
-            <Text style={styles.errorText}>Failed to load collection data</Text>
-          )}
-        </View>
-
-        {/* NFT List */}
-        <View style={styles.nftListContainer}>
-          <Text style={styles.nftSectionTitle}>NFTs</Text>
-          <View style={styles.nftGrid}>
-            {nftsLoading ? (
-              <Spinner />
-            ) : nftsError ? (
-              <Text style={styles.errorText}>{nftsError}</Text>
-            ) : nfts.length > 0 ? (
-              nfts.map((nft: any) => {
-                const currentAsk = getMinAsk(nft.activeAsks ?? []);
-                const hasAsks = nft?.activeAsks?.length > 0;
-
-                if (!hasAsks) return null;
-
-                const nftData = {
-                  ...nft,
-                  name: `${collection?.collectionName} #${nft.tokenId}`,
-                };
-
-                return (
-                  <NFTCard
-                    key={nft.tokenId}
-                    nft={nftData}
-                    currentAskPrice={Number(currentAsk?.askPrice) || 0}
-                    quantity={Number(currentAsk?.amount) || 0}
-                  />
-                );
-              })
             ) : (
-              <Text style={styles.noNftsText}>No NFTs in this collection</Text>
+              <Text style={styles.errorText}>
+                Failed to load collection data
+              </Text>
             )}
           </View>
-        </View>
-      </ScrollView>
+
+          {/* NFT List */}
+          <View style={styles.nftListContainer}>
+            <Text style={styles.nftSectionTitle}>NFTs</Text>
+            <View style={styles.nftGrid}>
+              {nftsLoading ? (
+                <Spinner />
+              ) : nftsError ? (
+                <Text style={styles.errorText}>{nftsError}</Text>
+              ) : nfts.length > 0 ? (
+                nfts.map((nft: any) => {
+                  const currentAsk = getMinAsk(nft.activeAsks ?? []);
+                  const hasAsks = nft?.activeAsks?.length > 0;
+
+                  if (!hasAsks) return null;
+
+                  const nftData = {
+                    ...nft,
+                    name: `${collection?.collectionName} #${nft.tokenId}`,
+                  };
+
+                  return (
+                    <NFTCard
+                      key={nft.tokenId}
+                      nft={nftData}
+                      currentAskPrice={Number(currentAsk?.askPrice) || 0}
+                      quantity={Number(currentAsk?.amount) || 0}
+                    />
+                  );
+                })
+              ) : (
+                <Text style={styles.noNftsText}>
+                  No NFTs in this collection
+                </Text>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -166,7 +173,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9f9f9',
-    marginTop: 15,
+    paddingTop: 20,
   },
   imageWrapper: {
     position: 'relative',
@@ -179,7 +186,7 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     width: '100%',
-    height: 250,
+    height: 150,
     resizeMode: 'cover',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,

@@ -1,6 +1,10 @@
 import {Contract, id, JsonRpcProvider} from 'ethers';
 import {API_NFT_URL, CUSTOM_RPC_URL, GRAPH_API_NFTMARKET} from '../constants';
-import {GET_NFTS_MARKET_DATA, GET_TOKEN_ACTIVITY} from '../graphql/NFTqueries';
+import {
+  GET_NFTS_COLLECTIONS,
+  GET_NFTS_MARKET_DATA,
+  GET_TOKEN_ACTIVITY,
+} from '../graphql/NFTqueries';
 import {ERC1155_ABI} from '../utils/Contracts';
 
 import {
@@ -10,6 +14,7 @@ import {
   ApiResponseSpecificToken,
   AskOrder,
   AskOrderType,
+  Collection,
   MarketEvent,
   NftLocation,
   NftToken,
@@ -46,6 +51,28 @@ export const getNftsMarketData = async (
     return data.nfts || [];
   } catch (error) {
     console.error('Failed to fetch NFTs market data', error);
+    return [];
+  }
+};
+
+export const getCollectionsMarketData = async (): Promise<Collection[]> => {
+  try {
+    const {data} = await client.query({
+      query: GET_NFTS_COLLECTIONS,
+    });
+
+    const collectionsMap = new Map<string, Collection>();
+
+    data.nfts.forEach((nft: any) => {
+      const collection = nft.collection;
+      if (collection && !collectionsMap.has(collection.id)) {
+        collectionsMap.set(collection.id, collection);
+      }
+    });
+
+    return Array.from(collectionsMap.values());
+  } catch (error) {
+    console.error('Failed to fetch collections from nfts', error);
     return [];
   }
 };
