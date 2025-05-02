@@ -1,7 +1,7 @@
-import {Contract, id, JsonRpcProvider} from 'ethers';
+import {Contract, JsonRpcProvider} from 'ethers';
 import {API_NFT_URL, CUSTOM_RPC_URL, GRAPH_API_NFTMARKET} from '../constants';
 import {
-  GET_NFTS_COLLECTIONS,
+  GET_NFTS_COLLECTIONS_WITH_ASKS,
   GET_NFTS_MARKET_DATA,
   GET_TOKEN_ACTIVITY,
 } from '../graphql/NFTqueries';
@@ -22,9 +22,7 @@ import {
   TokenMarketData,
   Transaction,
 } from '../types/types';
-import {ApolloClient, createHttpLink, gql, InMemoryCache} from '@apollo/client';
-import range from 'lodash/range';
-import {groupBy} from 'lodash';
+import {ApolloClient, createHttpLink, InMemoryCache} from '@apollo/client';
 
 const httpLink = createHttpLink({
   uri: GRAPH_API_NFTMARKET,
@@ -58,14 +56,16 @@ export const getNftsMarketData = async (
 export const getCollectionsMarketData = async (): Promise<Collection[]> => {
   try {
     const {data} = await client.query({
-      query: GET_NFTS_COLLECTIONS,
+      query: GET_NFTS_COLLECTIONS_WITH_ASKS,
     });
 
     const collectionsMap = new Map<string, Collection>();
 
     data.nfts.forEach((nft: any) => {
       const collection = nft.collection;
-      if (collection && !collectionsMap.has(collection.id)) {
+      const hasActiveAsks = nft?.activeAsks && nft?.activeAsks?.length > 0;
+
+      if (collection && hasActiveAsks && !collectionsMap.has(collection.id)) {
         collectionsMap.set(collection.id, collection);
       }
     });
