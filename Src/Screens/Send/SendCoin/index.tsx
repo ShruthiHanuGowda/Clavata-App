@@ -62,12 +62,6 @@ interface TransactionResult {
   totalCost: string | bigint | undefined;
 }
 
-const denergyNetworkConfig = {
-  rpcUrl: 'https://rpc.denergytestnet.com',
-  chainId: 4442,
-  name: 'DEnergy Testnet',
-};
-
 export default function SendCoin(props: SendCoinProps): JSX.Element {
   const {coinCode, user} = props.route.params;
   const webviewRef = useRef(null);

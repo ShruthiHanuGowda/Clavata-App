@@ -15,6 +15,7 @@ export default function BalanceCarousal(props) {
       </DText>
       <LinearGradient
         colors={['#008D85', '#23CEC4']}
+        locations={[0, 0.5, 1]}
         style={[carousalStyles.cardContainer]}>
         <Tab
           value={index}

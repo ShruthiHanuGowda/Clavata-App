@@ -10,7 +10,7 @@ import LoginScreen from '../../Src/Screens/AuthScreens/loginScreen';
 import Drex from '../Screens/drecs';
 import ProfileSetting from '../Screens/AppScreens/Account/profilesetting';
 import CoinWallet from '../Screens/AppScreens/CoinWallet/CoinWallet';
-import TransactionExample from '../../Src/TestingFolder/TransactionExample';
+
 import TransactionHistory from '../Screens/AppScreens/TransactionHistory';
 import ReceiveScreen from '../Screens/AppScreens/Receive/ReceiveScreen';
 import TransferCoin from '../Screens/AppScreens/Transfer/TrasferCoin/TransferCoin';
@@ -37,25 +37,36 @@ type RootStackParamList = {
   root: undefined;
   authScreens: {magicProps: any};
   appScreens: undefined;
+  collectionDetails: undefined;
+  NFTDetailsPage: undefined;
+  ProfileNFTs: undefined;
 };
 
-const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+type HomeStackParamList = {
+  'D.Energy': undefined;
+  ProfileSettings: undefined;
+  coinWalletStack: undefined;
+  trade: undefined;
+  account: undefined;
+  contactus: undefined;
+  beneficary: undefined;
+};
+
+type CoinWalletStackParamList = {
+  coinWallet: undefined;
+  [SCREEN_CONSTANT.RECIEVESCREEN]: undefined;
+  [SCREEN_CONSTANT.VERIFYADDRESS]: undefined;
+  [SCREEN_CONSTANT.TRANSFERCOIN]: undefined;
+  [SCREEN_CONSTANT.SENDCOIN]: undefined;
+  [SCREEN_CONSTANT.SENDSUCCESS]: undefined;
+};
+
+type WalletStackParamList = {
+  wallet: undefined;
+  coinWalletStack: undefined;
+};
+createNativeStackNavigator<AuthStackParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
-
-// Properly typed props for screen components
-interface AuthStackProps {
-  magicProps: any;
-}
-
-function AuthScreenStack({magicProps}: AuthStackProps) {
-  return (
-    <AuthStack.Navigator screenOptions={{headerShown: false}}>
-      <AuthStack.Screen name="login" options={{headerShown: false}}>
-        {props => <LoginScreen {...props} magicProps={magicProps} />}
-      </AuthStack.Screen>
-    </AuthStack.Navigator>
-  );
-}
 
 function RootScreenStack() {
   return (
@@ -89,7 +100,45 @@ function RootScreenStack() {
   );
 }
 
-const HomeStack = createNativeStackNavigator<RootStackParamList>();
+const CoinWalletStack = createNativeStackNavigator<CoinWalletStackParamList>();
+
+export function CoinWalletStackFun() {
+  return (
+    <CoinWalletStack.Navigator
+      initialRouteName="coinWallet"
+      screenOptions={{headerShown: false}}>
+      <CoinWalletStack.Screen name="coinWallet" component={CoinWallet} />
+      {/*<HomeStack.Screen name="coinWallet" component={TransactionExample} />*/}
+      <CoinWalletStack.Screen
+        name="transactionHistroy"
+        component={TransactionHistory}
+      />
+      <CoinWalletStack.Screen
+        name={SCREEN_CONSTANT.RECIEVESCREEN}
+        component={ReceiveScreen}
+      />
+      <CoinWalletStack.Screen name="bridge" component={TransferCoin} />
+      <CoinWalletStack.Screen
+        name={SCREEN_CONSTANT.VERIFYADDRESS}
+        component={VerifyAddress}
+      />
+      <CoinWalletStack.Screen
+        name={SCREEN_CONSTANT.TRANSFERCOIN}
+        component={TransferCoin}
+      />
+      <CoinWalletStack.Screen
+        name={SCREEN_CONSTANT.SENDCOIN}
+        component={SendCoin}
+      />
+      <CoinWalletStack.Screen
+        name={SCREEN_CONSTANT.SENDSUCCESS}
+        component={sendSuccess}
+      />
+    </CoinWalletStack.Navigator>
+  );
+}
+
+const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 
 export function HomeScreenStack() {
   return (
@@ -98,30 +147,7 @@ export function HomeScreenStack() {
       screenOptions={{headerShown: false}}>
       <HomeStack.Screen name="D.Energy" component={Drex} />
       <HomeStack.Screen name="ProfileSettings" component={ProfileSetting} />
-      <HomeStack.Screen name="coinWallet" component={CoinWallet} />
-      {/*<HomeStack.Screen name="coinWallet" component={TransactionExample} />*/}
-      <HomeStack.Screen
-        name="transactionHistroy"
-        component={TransactionHistory}
-      />
-      <HomeStack.Screen
-        name={SCREEN_CONSTANT.RECIEVESCREEN}
-        component={ReceiveScreen}
-      />
-      <HomeStack.Screen name="bridge" component={TransferCoin} />
-      <HomeStack.Screen
-        name={SCREEN_CONSTANT.VERIFYADDRESS}
-        component={VerifyAddress}
-      />
-      <HomeStack.Screen
-        name={SCREEN_CONSTANT.TRANSFERCOIN}
-        component={TransferCoin}
-      />
-      <HomeStack.Screen name={SCREEN_CONSTANT.SENDCOIN} component={SendCoin} />
-      <HomeStack.Screen
-        name={SCREEN_CONSTANT.SENDSUCCESS}
-        component={sendSuccess}
-      />
+      <HomeStack.Screen name="coinWalletStack" component={CoinWalletStackFun} />
 
       <HomeStack.Screen name="trade" component={TradeCoin} />
       <HomeStack.Screen name="account" component={Account} />
@@ -131,7 +157,7 @@ export function HomeScreenStack() {
   );
 }
 
-const walletStack = createNativeStackNavigator<RootStackParamList>();
+const walletStack = createNativeStackNavigator<WalletStackParamList>();
 
 export function WalletStack() {
   return (
@@ -139,7 +165,10 @@ export function WalletStack() {
       initialRouteName="wallet"
       screenOptions={{headerShown: false}}>
       <walletStack.Screen name="wallet" component={Wallet} />
-      <walletStack.Screen name="coinWallet" component={CoinWallet} />
+      <walletStack.Screen
+        name="coinWalletStack"
+        component={CoinWalletStackFun}
+      />
     </walletStack.Navigator>
   );
 }

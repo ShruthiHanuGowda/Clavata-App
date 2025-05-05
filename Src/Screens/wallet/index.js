@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, {useContext, useEffect, useRef, useState} from 'react';
 import {
   Text,
   View,
@@ -8,15 +8,16 @@ import {
   RefreshControl,
 } from 'react-native';
 
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 import style from './style';
 import Portfolio from './Portfolio';
 import ListItem from './ListItem';
-import { SCREEN_CONSTANT } from '../../Navigation/constant';
+import {SCREEN_CONSTANT} from '../../Navigation/constant';
 import MyCryptoCard from './MyCryptoCard';
 import AppContext from '../../../AppContext';
-import { useAuth } from '../../../screens/Provider/authProvider';
+import {useAuth} from '../../../screens/Provider/authProvider';
+import {useWallet} from '../../../screens/Provider/WalletProvider';
 
 const ITEMS = [
   {
@@ -35,56 +36,65 @@ const ITEMS = [
 ];
 
 export default function Wallet(props) {
-  const { getDrecs, getBalance, balanceData, data } =
-    useContext(AppContext).portfolio;
+  const {getDrecs, balanceData, data} = useContext(AppContext).portfolio;
+  const {getBalance, refreshAllBalances, isBalanceLoading} = useWallet();
   const [items, setItems] = useState([]);
-  const { walletBalances, refreshBalances } = useAuth();
+  const {walletBalances, refreshBalances} = useAuth();
   const [pullToRefreshLoading, setPullToRefreshLoading] = useState(false);
   const scrollViewRef = useRef();
-
+  const formatValue = (value, fixed) => {
+    if (value === undefined || value === null) {
+      return '0.00';
+    }
+    return parseFloat(value).toFixed(fixed ?? 2);
+  };
+  console.log('walletBalances', formatValue(getBalance('ETH')?.balance, 4));
   const ethereumCoins = [
     {
       title: 'ETH Coin',
       code: 'ETH',
       coinValue: 'ETH',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive'],
       growth: 0,
-      dollar: walletBalances?.ethBalanceUsd, //props?.ETH?.fiatBalance
-      balance: walletBalances?.ethBalance, //props?.ETH?.tokenBalance
+      balance: formatValue(getBalance('ETH')?.balance, 4), //props?.ETH?.fiatBalance
+      dollar: formatValue(getBalance('ETH')?.balanceUsd),
     },
     {
       title: 'USDC Coin',
       code: 'USDC',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
-      dollar: walletBalances?.sepoliaUsdcBalanceUsd, //props?.USDC?.fiatBalance
-      balance: walletBalances?.sepoliaUsdcBalance, //props?.USDC?.tokenBalance
+      balance: formatValue(getBalance('USDC')?.balance, 4), //props?.USDC?.fiatBalance
+      dollar: formatValue(getBalance('USDC')?.balanceUsd), //props?.USDC?.tokenBalance
     },
     {
       title: 'EURC Coin',
       code: 'EURC',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
-      dollar: walletBalances?.sepoliaEurcBalanceUsd, //props?.EURC?.fiatBalance
-      balance: walletBalances?.sepoliaEurcBalance, //props?.EURC?.tokenBalance
+      balance: formatValue(getBalance('EURC')?.balance), //props?.EURC?.fiatBalance
+      dollar: formatValue(getBalance('EURC')?.balanceUsd), //props?.EURC?.tokenBalance
     },
   ];
 
@@ -93,43 +103,46 @@ export default function Wallet(props) {
       title: 'Watt Coin',
       code: 'WATT',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive'],
       growth: 0,
-      dollar: walletBalances?.wattsBalanceUsd, //props?.WATT?.fiatBalance
-      balance: walletBalances?.wattsBalance, //props?.WATT?.tokenBalance
+      balance: formatValue(getBalance('WATT')?.balance), //props?.WATT?.fiatBalance
+      dollar: formatValue(getBalance('WATT')?.balanceUsd), //props?.WATT?.tokenBalance
     },
     {
       title: 'wUSDC Coin',
       code: 'WUSDC',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
-      dollar: walletBalances?.denergyUsdcBalanceUsd, //props?.WUSDC?.fiatBalance
-      balance: walletBalances?.denergyUsdcBalance, //props?.WUSDC?.tokenBalance
+      balance: formatValue(getBalance('WUSDC')?.balance), //props?.WUSDC?.fiatBalance
+      dollar: formatValue(getBalance('WUSDC')?.balanceUsd), //props?.WUSDC?.tokenBalance
     },
     {
       title: 'wEURC Coin',
       code: 'WEURC',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
+      operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
-      dollar: walletBalances?.denergyEurcBalanceUsd, //props?.WEURC?.fiatBalance
-      balance: walletBalances?.denergyEurcBalance, //props?.WEURC?.tokenBalance
+      balance: formatValue(getBalance('WEURC')?.balance), //props?.WEURC?.fiatBalance
+      dollar: formatValue(getBalance('WEURC')?.balanceUsd), //props?.WEURC?.tokenBalance
     },
   ];
 
@@ -141,7 +154,7 @@ export default function Wallet(props) {
   };
   const init = () => {
     scrollToTop();
-    getBalance();
+    // getBalance();
     const updated = ITEMS.map(async item => {
       if (item.code === 'DRECS') {
         const [error, result] = await getDrecs();
@@ -167,20 +180,18 @@ export default function Wallet(props) {
   }, [props.navigation]);
 
   return (
-    <SafeAreaView style={{ backgroundColor: '#fff', flex: 1 }}>
+    <SafeAreaView style={{backgroundColor: '#fff', flex: 1}}>
       <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={{ paddingBottom: 50 }}
-      // refreshControl={
-      //   <RefreshControl
-      //     refreshing={pullToRefreshLoading}
-      //     onRefresh={() => {
-      //       setPullToRefreshLoading(true);
-      //       init();
-      //     }}
-      //   />
-      // }
-      >
+        contentContainerStyle={{paddingBottom: 50}}
+        refreshControl={
+          <RefreshControl
+            refreshing={isBalanceLoading}
+            onRefresh={() => {
+              refreshAllBalances();
+            }}
+          />
+        }>
         <Portfolio {...balanceData} fiatBalance={data?.fiatBalance} />
         <View>
           <View style={style.myCryptosContainer}>

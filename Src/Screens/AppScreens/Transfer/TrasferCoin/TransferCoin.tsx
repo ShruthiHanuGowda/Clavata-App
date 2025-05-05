@@ -281,6 +281,15 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         amount: val,
         targetCoin: selectedTargetToken,
       };
+      console.log(
+        '🚀 ~ initiateSwap ~ params: SwapApiParams.selectedTargetToken:',
+        selectedToken,
+      );
+      console.log('🚀 ~ initiateSwap ~ params: SwapApiParams.val:', val);
+      console.log(
+        '🚀 ~ initiateSwap ~ params: SwapApiParams.selectedToken:',
+        selectedToken,
+      );
 
       // Call APIs
       const [error, result] = await initiateSwapApi(params);
@@ -291,9 +300,9 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
       }
 
       setIsLoading(false);
-      setUsdValue(result.data.conversionAmountInUsd);
-      setAmountInTokens(result.data.conversionAmount.toString());
-      setNetworkFee(feeResult.data.networkFee);
+      // setUsdValue(result.data.conversionAmountInUsd);
+      setAmountInTokens(val);
+      setNetworkFee('0');
     } catch (error) {
       setIsLoading(false);
       setErrorMessage('Error fetching conversion data');
