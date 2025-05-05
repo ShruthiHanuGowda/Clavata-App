@@ -53,73 +53,67 @@ export default function CryptoMarketCard({
       }
       activeOpacity={0.5}>
       <View
-        style={{
-          flexDirection: 'row',
-        }}>
-        <View
-          style={[
-            marketStyles.image,
-            {
-              backgroundColor: marketIconColors[code],
-            },
-          ]}>
-          <Image source={marketIcons[code]} />
-        </View>
-        <View style={marketStyles.content}>
-          <View>
-            <DText
-              style={marketStyles.coinTitle}
-              fontStyle="fontBold"
-              textProps={{numberOfLines: 1}}>
-              {title}
-            </DText>
-            <DText style={marketStyles.coinCode} fontStyle="fontRegular">
-              {code}
-            </DText>
-          </View>
-        </View>
+        style={[
+          marketStyles.image,
+          {
+            backgroundColor: marketIconColors[code],
+          },
+        ]}>
+        <Image source={marketIcons[code]} />
       </View>
-      <View
-        style={{
-          width,
-          justifyContent: 'center',
-          alignItems: 'center',
-          bottom: 10,
-        }}>
-        <Svg width={width} height={height}>
-          <VictoryLine
-            interpolation="natural"
-            standalone={false}
-            width={width}
-            height={height}
-            style={{
-              data: {
-                stroke: growth >= 0 ? '#029471' : '#F42121',
-                strokeWidth: 1,
-              },
-            }}
-            padding={0}
-            data={chartData}
-          />
-        </Svg>
-        {growth >= 0 ? (
-          <DText fontStyle="fontRegular" style={marketStyles.growth}>
-            +{growth}%
-          </DText>
-        ) : (
-          <DText fontStyle="fontRegular" style={marketStyles.dip}>
-            -{dip}%
-          </DText>
-        )}
-      </View>
-
-      <View style={{alignItems: 'flex-end'}}>
-        <DText style={marketStyles.usd} fontStyle="fontExtraBold">
-          {balance}
+      <View style={marketStyles.info}>
+        <DText
+          style={marketStyles.coinTitle}
+          fontStyle="fontBold"
+          textProps={{numberOfLines: 1}}>
+          {title}
         </DText>
         <DText style={marketStyles.coinCode} fontStyle="fontSemiBold">
-          ${dollar || 0}
+          {code}
         </DText>
+      </View>
+      <View style={marketStyles.content}>
+        <View
+          style={{
+            width,
+            justifyContent: 'center',
+            alignItems: 'center',
+            bottom: 10,
+          }}>
+          <Svg width={width} height={height}>
+            <VictoryLine
+              interpolation="natural"
+              standalone={false}
+              width={width}
+              height={height}
+              style={{
+                data: {
+                  stroke: growth >= 0 ? '#029471' : '#F42121',
+                  strokeWidth: 1,
+                },
+              }}
+              padding={0}
+              data={chartData}
+            />
+          </Svg>
+          {growth >= 0 ? (
+            <DText fontStyle="fontRegular" style={marketStyles.growth}>
+              +{growth}%
+            </DText>
+          ) : (
+            <DText fontStyle="fontRegular" style={marketStyles.dip}>
+              -{dip}%
+            </DText>
+          )}
+        </View>
+        <View style={{alignItems: 'flex-end'}}>
+          <DText style={marketStyles.usd} fontStyle="fontExtraBold">
+            {balance}
+          </DText>
+          <DText style={marketStyles.coinCode} fontStyle="fontSemiBold">
+            ${dollar || 0}
+          </DText>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -129,9 +123,9 @@ const marketStyles = StyleSheet.create({
     height: 37,
     flex: 1,
     flexDirection: 'row',
-    marginBottom: 21,
-    width: ScreenWidth - 42,
-    justifyContent: 'space-between',
+    marginBottom: 15,
+    // marginLeft: 20,
+    width: ScreenWidth - 40,
   },
   image: {
     backgroundColor: '#D5F5F1',
@@ -144,7 +138,7 @@ const marketStyles = StyleSheet.create({
   },
   coinTitle: {
     color: '#515151',
-    fontSize: 12,
+    fontSize: 14,
     lineHeight: 16,
   },
   coinCode: {
@@ -152,8 +146,15 @@ const marketStyles = StyleSheet.create({
     fontSize: 12,
     marginTop: 5,
   },
+  info: {
+    marginRight: 40,
+    width: 80,
+  },
   content: {
-    width: 70,
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   chart: {},
   growth: {
@@ -173,7 +174,7 @@ const marketStyles = StyleSheet.create({
   usd: {
     color: '#515151',
     textAlign: 'right',
-    fontSize: 12,
+    fontSize: 14,
     lineHeight: 16,
   },
 });
