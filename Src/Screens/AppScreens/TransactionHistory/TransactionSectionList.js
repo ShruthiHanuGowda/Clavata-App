@@ -11,75 +11,75 @@ import {
 import ListItem from './ListItem';
 import styles from './styles';
 import {DText} from '../../../Componants/DText';
-// import TransactionDetailsModal from './TransactionDetailsModal';
+import TransactionDetailsModal from './TransactionDetailsModal';
 
 //NOTE - This data is for testing UI
-const mockData = [
-  {
-    id: '1',
-    date: '2025-03-07',
-    type: 'Deposit',
-    amount: 0.001,
-    status: 'Success',
-    coinCode: 'WATT',
-  },
-  {
-    id: '2',
-    date: '2025-03-06',
-    type: 'Withdrawal',
-    amount: 50,
-    status: 'Pending',
-    coinCode: 'WATT',
-  },
-  {
-    id: '3',
-    date: '2025-03-05',
-    type: 'Transfer',
-    amount: 200,
-    status: 'Completed',
-    coinCode: 'WATT',
-  },
-  {
-    id: '4',
-    date: '2025-02-28',
-    type: 'Deposit',
-    amount: 300,
-    status: 'Completed',
-    coinCode: 'WATT',
-  },
-  {
-    id: '5',
-    date: '2025-01-20',
-    type: 'Withdrawal',
-    amount: 100,
-    status: 'Completed',
-    coinCode: 'WATT',
-  },
-  {
-    id: '6',
-    date: '2025-03-01',
-    type: 'Transfer',
-    amount: 500,
-    status: 'Failed',
-    coinCode: 'WATT',
-  },
-  {
-    id: '7',
-    date: '2025-02-15',
-    type: 'Deposit',
-    amount: 150,
-    status: 'Completed',
-    coinCode: 'WATT',
-  },
-  {
-    id: '8',
-    date: '2024-12-25',
-    type: 'Deposit',
-    amount: 350,
-    status: 'Completed',
-    coinCode: 'WATT',
-  },
-];
+// const mockData = [
+//   {
+//     id: '1',
+//     date: '2025-03-07',
+//     type: 'Deposit',
+//     amount: 0.001,
+//     status: 'Success',
+//     coinCode: 'WATT',
+//   },
+//   {
+//     id: '2',
+//     date: '2025-03-06',
+//     type: 'Withdrawal',
+//     amount: 50,
+//     status: 'Pending',
+//     coinCode: 'WATT',
+//   },
+//   {
+//     id: '3',
+//     date: '2025-03-05',
+//     type: 'Transfer',
+//     amount: 200,
+//     status: 'Completed',
+//     coinCode: 'WATT',
+//   },
+//   {
+//     id: '4',
+//     date: '2025-02-28',
+//     type: 'Deposit',
+//     amount: 300,
+//     status: 'Completed',
+//     coinCode: 'WATT',
+//   },
+//   {
+//     id: '5',
+//     date: '2025-01-20',
+//     type: 'Withdrawal',
+//     amount: 100,
+//     status: 'Completed',
+//     coinCode: 'WATT',
+//   },
+//   {
+//     id: '6',
+//     date: '2025-03-01',
+//     type: 'Transfer',
+//     amount: 500,
+//     status: 'Failed',
+//     coinCode: 'WATT',
+//   },
+//   {
+//     id: '7',
+//     date: '2025-02-15',
+//     type: 'Deposit',
+//     amount: 150,
+//     status: 'Completed',
+//     coinCode: 'WATT',
+//   },
+//   {
+//     id: '8',
+//     date: '2024-12-25',
+//     type: 'Deposit',
+//     amount: 350,
+//     status: 'Completed',
+//     coinCode: 'WATT',
+//   },
+// ];
 
 const defaultFilters = {
   page: 1,
@@ -90,7 +90,7 @@ const defaultFilters = {
 };
 
 const TransactionSectionList = ({
-  data = mockData,
+  data,
   name = 'user',
   loadData = () => {},
   totalLength = 8,
@@ -101,6 +101,7 @@ const TransactionSectionList = ({
   filters = defaultFilters,
   setFilters = () => {},
 }) => {
+  console.log('🚀 ~ data:', data);
   const [transactionDetailsVisible, setTransactionDetailsVisible] =
     useState(false);
   const [selectedItems, setSelectedItems] = useState({});
@@ -154,7 +155,7 @@ const TransactionSectionList = ({
     }, {}),
   );
 
-  console.log('SECTION_DATA????>>>>', JSON.stringify(SECTION_DATA));
+  // console.log('SECTION_DATA????>>>>', JSON.stringify(SECTION_DATA));
 
   const renderEmpty = () => {
     return (
@@ -234,11 +235,11 @@ const TransactionSectionList = ({
         ListEmptyComponent={renderEmpty}
       />
       {renderFooter()}
-      {/* <TransactionDetailsModal
+      <TransactionDetailsModal
         visible={transactionDetailsVisible}
         setVisible={setTransactionDetailsVisible}
         selectedItems={selectedItems}
-      /> */}
+      />
     </>
   );
 };

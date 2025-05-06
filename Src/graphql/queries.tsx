@@ -79,3 +79,22 @@ export const CREATE_TRANSACTION_HISTORY_MOBILE = gql`
     }
   }
 `;
+
+export const LIST_TRANSACTION_HISTORY = gql`
+  query listTransactionHistoryMobiles($limit: Int, $nextToken: String) {
+    listTransactionHistoryMobiles(limit: $limit, nextToken: $nextToken) {
+      nextToken
+      items {
+        amount
+        coinCode
+        createdAt
+        from
+        method
+        to
+        transactionHash
+        transactionStatus
+        txnFee
+      }
+    }
+  }
+`;

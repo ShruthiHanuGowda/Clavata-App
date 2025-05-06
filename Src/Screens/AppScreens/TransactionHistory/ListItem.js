@@ -215,8 +215,8 @@ class ListItem extends React.PureComponent {
             }}>
             {item.change}{' '}
             {item.amount >= 0
-              ? Number(item.amount).toFixed(3)
-              : Number(item.tokenAmount).toFixed(3)}{' '}
+              ? parseFloat(item.amount)
+              : parseFloat(item.tokenAmount)}{' '}
             {item.coinCode === 'WUSDC'
               ? 'wUSDC'
               : item.coinCode === 'WEURC'

@@ -13,6 +13,7 @@ export default {
   categoryActive: require('../assets/images/category-active.png'),
   stakeActive: require('../assets/images/stake-active.png'),
   copyIcon: require('../assets/images/copy.png'),
+  closeCircle: require('../assets/images/close-circle.png'),
   //
   onboard1: require('../assets/images/onboard-1.png'),
   onboard2: require('../assets/images/onboard-2.png'),
