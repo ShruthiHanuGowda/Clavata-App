@@ -34,15 +34,15 @@ export default function MiniTransactionHistory({
     hasMoreData,
     loadMoreTransactions,
     refreshTransactions,
-  } = useTransactionHistory(20);
-  console.log('🚀 ~ formattedTransactions:', formattedTransactions);
+  } = useTransactionHistory(20, coinCode);
+  // console.log('🚀 ~ formattedTransactions:', formattedTransactions);
 
   const [mockTransactions, setMockTransactions] = useState();
 
   // const {getAll, data, loading, count} = useTransaction();
   // console.log('🚀 ~ data :', JSON.stringify(data), coinCode);
   // const [open, setOpen] = useState(false);
-  console.log('🚀 ~ transactions :', JSON.stringify(transactions), loading);
+  // console.log('🚀 ~ transactions :', JSON.stringify(transactions), loading);
   const [filters, setFilters] = useState(defaultFilter);
 
   useEffect(() => {

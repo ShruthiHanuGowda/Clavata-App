@@ -39,7 +39,10 @@ interface TransactionHistoryVars {
   nextToken?: string;
 }
 
-export const useTransactionHistory = (defaultLimit: number = 3) => {
+export const useTransactionHistory = (
+  defaultLimit: number = 3,
+  coinCode: string,
+) => {
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [formattedTransactions, setFormattedTransactions] = useState<
     FormattedTransactionItem[]
@@ -74,8 +77,6 @@ export const useTransactionHistory = (defaultLimit: number = 3) => {
         type === 'send' || type === 'Sell' || type === 'Bridge Deposit';
       const change = isSending ? '-' : '+';
 
-      // Generate a user name based on the address
-      // This is a simple implementation - you might want to implement a lookup
       const addressToUse = isSending ? item.to : item.from;
       const userName = generateUserName(addressToUse);
 
@@ -119,6 +120,9 @@ export const useTransactionHistory = (defaultLimit: number = 3) => {
     TransactionHistoryVars
   >(LIST_TRANSACTION_HISTORY, {
     variables: {
+      filter: {
+        coinCode: {eq: coinCode},
+      },
       limit: defaultLimit,
       nextToken: null,
     },

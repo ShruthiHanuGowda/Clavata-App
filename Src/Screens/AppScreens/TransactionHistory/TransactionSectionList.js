@@ -1,5 +1,5 @@
 import moment from 'moment';
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import ListItem from './ListItem';
 import styles from './styles';
-import {DText} from '../../../Componants/DText';
+import { DText } from '../../../Componants/DText';
 import TransactionDetailsModal from './TransactionDetailsModal';
 
 //NOTE - This data is for testing UI
@@ -92,16 +92,15 @@ const defaultFilters = {
 const TransactionSectionList = ({
   data,
   name = 'user',
-  loadData = () => {},
+  loadData = () => { },
   totalLength = 8,
   totalDataLength = 8,
   refreshing = false,
-  _onRefresh = () => {},
+  _onRefresh = () => { },
   loadingExtraData = false,
   filters = defaultFilters,
-  setFilters = () => {},
+  setFilters = () => { },
 }) => {
-  console.log('🚀 ~ data:', data);
   const [transactionDetailsVisible, setTransactionDetailsVisible] =
     useState(false);
   const [selectedItems, setSelectedItems] = useState({});
@@ -132,12 +131,12 @@ const TransactionSectionList = ({
     const title = checktoday
       ? 'TODAY'
       : checkYesterday
-      ? 'YESTERDAY'
-      : checkLastWeek
-      ? 'LAST WEEK'
-      : checkWithing30Days <= 30
-      ? 'LAST 30 DAYS'
-      : 'OLDER';
+        ? 'YESTERDAY'
+        : checkLastWeek
+          ? 'LAST WEEK'
+          : checkWithing30Days <= 30
+            ? 'LAST 30 DAYS'
+            : 'OLDER';
     return title;
   };
 
@@ -211,7 +210,7 @@ const TransactionSectionList = ({
         contentContainerStyle={{
           paddingBottom: 100,
         }}
-        renderItem={({item}) => (
+        renderItem={({ item }) => (
           <ListItem item={item} name={name} setSelectedItems={setItems} />
         )}
         refreshControl={
@@ -222,7 +221,7 @@ const TransactionSectionList = ({
           />
         }
         showsVerticalScrollIndicator={false}
-        renderSectionHeader={({section: {title}}) => (
+        renderSectionHeader={({ section: { title } }) => (
           <View style={styles.headerAlign}>
             <Text style={styles.header}>{title}</Text>
             <View style={styles.borderLine} />
