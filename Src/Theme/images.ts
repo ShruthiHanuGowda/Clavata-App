@@ -14,6 +14,7 @@ export default {
   stakeActive: require('../assets/images/stake-active.png'),
   copyIcon: require('../assets/images/copy.png'),
   closeCircle: require('../assets/images/close-circle.png'),
+  logout: require('../assets/images/logout.jpg'),
   //
   onboard1: require('../assets/images/onboard-1.png'),
   onboard2: require('../assets/images/onboard-2.png'),

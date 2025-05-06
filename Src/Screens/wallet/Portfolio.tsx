@@ -20,7 +20,9 @@ const Portfolio = ({WATT, fiatBalance}) => {
       <View style={style.portfolioMainView}>
         <Text style={style.content}>portfolio value</Text>
         {/*  {fiatBalance} */}
-        <Text style={style.contentText}>$0.0</Text>
+        <Text style={style.contentText}>
+          ${fiatBalance ? Number(fiatBalance).toFixed(2) : '0.0'}
+        </Text>
         <AreaChart
           chartData={
             WATT?.chartData || [

@@ -67,6 +67,7 @@ export default function ProfileSetting(props) {
                   marginTop: 14,
                   flexDirection: 'row',
                   justifyContent: 'space-between',
+                  display: key === 'is_verified' ? 'none' : 'flex',
                 }}>
                 <View
                   style={{
@@ -103,8 +104,7 @@ export default function ProfileSetting(props) {
           </View>
         </View>
 
-
-        <View style={styles.subSec}>
+        {/* <View style={styles.subSec}>
           <View>
             <Text
               style={{
@@ -174,7 +174,7 @@ export default function ProfileSetting(props) {
             </View>
           </View>
 
-        </View>
+        </View> */}
       </ScrollView>
     </SafeAreaView>
   );

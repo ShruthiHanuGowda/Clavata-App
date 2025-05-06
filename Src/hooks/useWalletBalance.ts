@@ -156,7 +156,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
               ethers.formatEther(denergyNativeBalance);
 
             const wattsInUsd = (
-              parseFloat(formattedWattsBalance) * rates.USDC
+              parseFloat(formattedWattsBalance) * rates.WATT
             ).toFixed(2);
             updateTokenData('WATT', formattedWattsBalance, wattsInUsd);
           } else {

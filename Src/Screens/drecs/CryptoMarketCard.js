@@ -108,10 +108,10 @@ export default function CryptoMarketCard({
         </View>
         <View style={{alignItems: 'flex-end'}}>
           <DText style={marketStyles.usd} fontStyle="fontExtraBold">
-            {balance}
+            {balance ? Number(balance).toFixed(2) : '0.0'}
           </DText>
           <DText style={marketStyles.coinCode} fontStyle="fontSemiBold">
-            ${dollar || 0}
+            ${dollar ? Number(dollar).toFixed(2) : '0.0'}
           </DText>
         </View>
       </View>

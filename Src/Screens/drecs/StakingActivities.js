@@ -13,10 +13,9 @@ import {DText} from '../../Componants/DText';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
 import {fontsFamily} from '../../Theme';
 import {navigateTo} from '../../utils/navigationService';
-
+import {useWallet} from '../../../screens/Provider/WalletProvider';
 function CustomSlice(props) {
   const {datum} = props;
-
   const sliceOverride = {
     ...props.slice,
     endAngle: (props.slice?.endAngle ?? 0) + 0.3,
@@ -39,6 +38,7 @@ const colors = {
 };
 
 export default function StakingActivities(props) {
+  const {refreshBalance, getBalance} = useWallet();
   const {showTitle = true, drecsAvailable, drecsOwned, drecsStaked} = props;
   const width = 220;
   const height = 200;
@@ -63,64 +63,132 @@ export default function StakingActivities(props) {
             style={{
               width: 18,
               height: 18,
+              marginRight: 21,
             }}
           />
         </View>
       )}
-      <View style={stakingStyles.chart}>
-        <Svg width={width} height={height}>
-          <VictoryPie
-            // dataComponent={<CustomSlice />}
-            standalone={false}
-            width={width}
-            height={height}
-            colorScale={[colors.available, colors.staked]}
-            labels={[]}
-            radius={75}
-            // startAngle={-30}
-            innerRadius={45}
-            data={
-              total > 0
-                ? [
-                    {x: 1, y: available},
-                    {x: 2, y: staked},
-                  ]
-                : [{x: 1, y: 1}]
-            }
-          />
-          <Text
-            stroke={'#2F2F2F'}
-            fontSize="15"
-            fill={'#2F2F2F'}
-            x={width / 2}
-            y={height / 2}
-            fontFamily={fontsFamily.MulishBold}
-            textAnchor="middle">
-            {/* {total || 0} */}0
-          </Text>
-        </Svg>
-        <View style={stakingStyles.info}>
-          {/* <View>
+      <View
+        style={{
+          width: '100%',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+        <View style={[stakingStyles.chart]}>
+          <Svg width={width} height={height}>
+            <VictoryPie
+              // dataComponent={<CustomSlice />}
+              standalone={false}
+              width={width}
+              height={height}
+              colorScale={[colors.available, colors.staked]}
+              labels={[]}
+              radius={75}
+              // startAngle={-30}
+              innerRadius={45}
+              data={
+                total > 0
+                  ? [
+                      {x: 1, y: available},
+                      {x: 2, y: staked},
+                    ]
+                  : [{x: 1, y: 1}]
+              }
+            />
+            <Text
+              stroke={'#2F2F2F'}
+              fontSize="15"
+              fill={'#2F2F2F'}
+              x={width / 2}
+              y={height / 2}
+              fontFamily={fontsFamily.MulishBold}
+              textAnchor="middle">
+              {/* {total || 0} */}
+              {Number(getBalance('WATT')?.balance).toFixed(2)}
+            </Text>
+          </Svg>
+          <View style={stakingStyles.info}>
+            {/* <View>
             <DText style={stakingStyles.ownedCount}>{drecsOwned || 0} {loading}</DText>
             <DText style={stakingStyles.label} fontStyle="fontRegular">
               DRECs Owned
             </DText>
           </View> */}
-          <View style={stakingStyles.staked}>
-            <DText style={stakingStyles.stakedCount}>
-              {/* {drecsStaked || 0} {loading} */}0
-            </DText>
-            <DText style={stakingStyles.label} fontStyle="fontRegular">
-              EACs Staked
-            </DText>
+            <View style={stakingStyles.staked}>
+              <DText style={stakingStyles.stakedCount}>
+                {/* {drecsStaked || 0} {loading} */} 0 WATT
+              </DText>
+              <DText style={stakingStyles.label} fontStyle="fontRegular">
+                Staked
+              </DText>
+            </View>
+            <View style={stakingStyles.staked}>
+              <DText style={stakingStyles.availableCount}>
+                {/* {drecsAvailable || 0} {loading} */}
+                {Number(getBalance('WATT')?.balance).toFixed(2)} WATT
+              </DText>
+              <DText style={stakingStyles.label} fontStyle="fontRegular">
+                Available
+              </DText>
+            </View>
           </View>
-          <View style={stakingStyles.staked}>
-            <DText style={stakingStyles.availableCount}>
-              {/* {drecsAvailable || 0} {loading} */}0
-            </DText>
+        </View>
+        <View style={stakingStyles.chart}>
+          <Svg width={width} height={height}>
+            <VictoryPie
+              // dataComponent={<CustomSlice />}
+              standalone={false}
+              width={width}
+              height={height}
+              colorScale={[colors.available, colors.staked]}
+              labels={[]}
+              radius={75}
+              // startAngle={-30}
+              innerRadius={45}
+              data={
+                total > 0
+                  ? [
+                      {x: 1, y: available},
+                      {x: 2, y: staked},
+                    ]
+                  : [{x: 1, y: 1}]
+              }
+            />
+            <Text
+              stroke={'#2F2F2F'}
+              fontSize="15"
+              fill={'#2F2F2F'}
+              x={width / 2}
+              y={height / 2}
+              fontFamily={fontsFamily.MulishBold}
+              textAnchor="middle">
+              {/* {total || 0} */}0
+            </Text>
+          </Svg>
+          <View style={stakingStyles.info}>
+            {/* <View>
+            <DText style={stakingStyles.ownedCount}>{drecsOwned || 0} {loading}</DText>
             <DText style={stakingStyles.label} fontStyle="fontRegular">
-              EACs Available
+              DRECs Owned
             </DText>
+          </View> */}
+            <View style={stakingStyles.staked}>
+              <DText style={stakingStyles.stakedCount}>
+                {/* {drecsStaked || 0} {loading} */}0 MWh
+              </DText>
+              <DText style={stakingStyles.label} fontStyle="fontRegular">
+                Staked
+              </DText>
+            </View>
+            <View style={stakingStyles.staked}>
+              <DText style={stakingStyles.availableCount}>
+                {/* {drecsAvailable || 0} {loading} */}0 MWh
+              </DText>
+              <DText style={stakingStyles.label} fontStyle="fontRegular">
+                Available
+              </DText>
+            </View>
           </View>
         </View>
       </View>
@@ -140,10 +208,11 @@ const stakingStyles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 2.24,
     textTransform: 'uppercase',
+    marginLeft: 21,
   },
   container: {
-    marginLeft: 21,
-    marginRight: 21,
+    marginLeft: 0,
+    marginRight: 0,
   },
 
   chart: {
@@ -158,6 +227,8 @@ const stakingStyles = StyleSheet.create({
     marginLeft: 16,
     borderLeftWidth: 1 / 3,
     borderLeftColor: '#E7E8F2',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   availableCount: {
     color: colors.available,

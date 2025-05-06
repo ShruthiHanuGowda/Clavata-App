@@ -24,8 +24,14 @@ import {SCREEN_CONSTANT} from '../../Navigation/constant';
 import {useFocusEffect, useScrollToTop} from '@react-navigation/native';
 import {navigateTo} from '../../utils/navigationService';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
+import {useAuth} from '../../../screens/Provider/authProvider';
 
 function HomeHeader(props) {
+  const {userDetails} = useAuth();
+  function getUsernameFromEmail(email) {
+    return email.split('@')[0];
+  }
+  const username = getUsernameFromEmail(userDetails.walletAddress);
   return (
     <Header
       containerStyle={{
@@ -35,7 +41,7 @@ function HomeHeader(props) {
       leftComponent={
         <View style={styles.nameContainer}>
           <DText style={styles.hello} fontStyle="fontSemiBold">
-            Hello,{' '}
+            {`Hello, ${username}`}
             {!props?.loading && (
               <DText fontStyle="fontBold">{props?.name?.split(' ')[0]}</DText>
             )}
@@ -56,13 +62,13 @@ function HomeHeader(props) {
           style={{
             flexDirection: 'row',
           }}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.dotContainer}
             // onPress={() => navigateTo(SCREEN_CONSTANT.NOTIFICATIONS)}
           >
             <Image source={Images.notification} />
             {props?.newCount > 0 && <View style={styles.dot} />}
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TouchableOpacity
             style={styles.dotContainer}
             onPress={() => navigateTo('account')}>

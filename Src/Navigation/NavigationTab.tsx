@@ -47,11 +47,11 @@ export default function Tabs() {
         component={Stake}
         options={{headerShown: false}}
       />
-      <Tab.Screen
+      {/* <Tab.Screen
         name="dApps"
         component={DAppsScreen}
         options={{headerShown: false}}
-      />
+      /> */}
     </Tab.Navigator>
   );
 }

@@ -4,8 +4,14 @@ import {View, StyleSheet, ActivityIndicator} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {DText} from '../../Componants/DText';
 import {fontsFamily} from '../../Theme';
-
+import {useWallet} from '../../../screens/Provider/WalletProvider';
+import {number} from 'bitcoinjs-lib/types/script';
 export default function BalanceCarousal(props) {
+  const {getBalance} = useWallet();
+  const wattBalance = getBalance('WATT')?.balance;
+  const wusdcBalance = getBalance('WUSDC')?.balanceUsd;
+  const usdcBalance = getBalance('USDC')?.balanceUsd;
+
   const [index, setIndex] = useState(1);
   const loading = props.loading && <ActivityIndicator color={'#FFF'} />;
   return (
@@ -69,7 +75,7 @@ export default function BalanceCarousal(props) {
           <TabView.Item style={carousalStyles.tabItem}>
             <DText fontStyle="fontBold" style={carousalStyles.value}>
               {/* {`$${props?.drecsData?.drecsOwned}`} {loading} //NOTE  - for dynamic data */}
-              0.0000
+              MWh
             </DText>
           </TabView.Item>
           <TabView.Item style={carousalStyles.tabItem}>
@@ -80,7 +86,7 @@ export default function BalanceCarousal(props) {
                   : 0
               }`}{' '}
               {loading} //NOTE  - for dynamic data*/}
-              0.0000
+              {Number(wattBalance).toFixed(2)} WATT
             </DText>
           </TabView.Item>
           <TabView.Item style={carousalStyles.tabItem}>
@@ -91,7 +97,7 @@ export default function BalanceCarousal(props) {
                   : 0
               }`}{' '}
               {loading} //NOTE  - for dynamic data*/}
-              0.0000
+              $ {Number(Number(wusdcBalance) + Number(usdcBalance)).toFixed(2)}
             </DText>
           </TabView.Item>
         </TabView>

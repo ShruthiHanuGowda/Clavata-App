@@ -50,6 +50,11 @@ const styles = StyleSheet.create({
 export default function Account(props) {
   const {magic} = useMagic();
   const {userDetails} = useAuth();
+  function getUsernameFromEmail(email) {
+    return email.split('@')[0];
+  }
+  const username = getUsernameFromEmail(userDetails.walletAddress);
+
   // const {getProfile, profile, loading} = useContext(AppContext).portfolio;
 
   // useEffect(() => {
@@ -110,7 +115,7 @@ export default function Account(props) {
         [
           {
             text: 'Cancel',
-            onPress: () => setLoading(false),
+            onPress: () => {},
             style: 'cancel',
           },
           {
@@ -161,7 +166,7 @@ export default function Account(props) {
           Development Build 09-08-2023
         </Text>
       ) : ( */}
-      <Text
+      {/* <Text
         style={[
           style.content,
           {
@@ -173,7 +178,7 @@ export default function Account(props) {
           },
         ]}>
         Stable Build 20-07-2023
-      </Text>
+      </Text> */}
 
       {/* )} */}
       <Header
@@ -217,8 +222,8 @@ export default function Account(props) {
                 alignItems: 'center',
                 marginBottom: 54,
               }}>
-              <Text style={style.contentText}>Test</Text>
-              <Text style={style.content}>Test</Text>
+              <Text style={style.contentText}>{username}</Text>
+              <Text style={style.content}>{username}</Text>
               {/* <DKYC loading={loading} {...profile} /> */}
             </View>
           </View>
@@ -252,7 +257,13 @@ export default function Account(props) {
           img={images.history}
           title="All Transactions Data"
         />
-        <Pressable
+        <MenuList
+          onPress={() => handleLogout()}
+          img={images.logout}
+          title="Logout"
+        />
+
+        {/* <Pressable
           style={{bottom: -10, left: 20}}
           onPress={() => handleLogout()}>
           <Text
@@ -266,7 +277,7 @@ export default function Account(props) {
             ]}>
             Logout
           </Text>
-        </Pressable>
+        </Pressable> */}
 
         {/* <Pressable
           style={{ bottom: -10, left: 20 }}

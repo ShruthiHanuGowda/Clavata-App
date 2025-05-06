@@ -145,6 +145,10 @@ export default function CryptoMarketPlace(props) {
           />
         ))}
       </View>
+      <View style={marketPlaceStyles.divider} />
+      <View style={marketPlaceStyles.myCryptosContainer}>
+        <Text style={marketPlaceStyles.HeaderFont}>My Certificates</Text>
+      </View>
     </View>
   );
 }

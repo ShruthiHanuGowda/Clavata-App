@@ -37,7 +37,9 @@ const ITEMS = [
 
 export default function Wallet(props) {
   const {getDrecs, balanceData, data} = useContext(AppContext).portfolio;
-  const {getBalance, refreshAllBalances, isBalanceLoading} = useWallet();
+  const {getBalance, refreshAllBalances, isBalanceLoading, portfolio} =
+    useWallet();
+  console.log('🚀 ~ Wallet ~ portfolio:', portfolio);
   const [items, setItems] = useState([]);
   const {walletBalances, refreshBalances} = useAuth();
   const [pullToRefreshLoading, setPullToRefreshLoading] = useState(false);
@@ -192,7 +194,7 @@ export default function Wallet(props) {
             }}
           />
         }>
-        <Portfolio {...balanceData} fiatBalance={data?.fiatBalance} />
+        <Portfolio {...balanceData} fiatBalance={portfolio?.totalUsd} />
         <View>
           <View style={style.myCryptosContainer}>
             <Text style={style.HeaderFont}>My Assets</Text>
@@ -207,6 +209,10 @@ export default function Wallet(props) {
             {ethereumCoins.map(crypto => (
               <MyCryptoCard {...crypto} key={crypto.code} />
             ))}
+          </View>
+          <View style={style.dividerCoins} />
+          <View style={style.myCryptosContainer}>
+            <Text style={style.HeaderFont}>My Certificates</Text>
           </View>
 
           {/* <FlatList
