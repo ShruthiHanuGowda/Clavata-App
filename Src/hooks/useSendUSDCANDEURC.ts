@@ -9,90 +9,11 @@ import {
 } from 'ethers';
 import {useMutation} from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
+import {ERC20_ABI} from '../utils/Contracts';
 
 const INFURA_URL =
   'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
 const infuraProvider = new JsonRpcProvider(INFURA_URL);
-
-// Token addresses
-export const TOKEN_ADDRESSES = {
-  USDC: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-  EURC: '0x08210F9170F89Ab7658F0B5E3fF39b0E03C594D4',
-};
-
-// Generic ERC20 ABI (works for both USDC and EURC)
-const ERC20_ABI = [
-  {
-    constant: true,
-    inputs: [
-      {
-        name: '_owner',
-        type: 'address',
-      },
-    ],
-    name: 'balanceOf',
-    outputs: [
-      {
-        name: 'balance',
-        type: 'uint256',
-      },
-    ],
-    payable: false,
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    constant: false,
-    inputs: [
-      {
-        name: '_to',
-        type: 'address',
-      },
-      {
-        name: '_value',
-        type: 'uint256',
-      },
-    ],
-    name: 'transfer',
-    outputs: [
-      {
-        name: '',
-        type: 'bool',
-      },
-    ],
-    payable: false,
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: 'decimals',
-    outputs: [
-      {
-        name: '',
-        type: 'uint8',
-      },
-    ],
-    payable: false,
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: 'symbol',
-    outputs: [
-      {
-        name: '',
-        type: 'string',
-      },
-    ],
-    payable: false,
-    stateMutability: 'view',
-    type: 'function',
-  },
-];
 
 interface TokenTransactionDetails {
   to: string;

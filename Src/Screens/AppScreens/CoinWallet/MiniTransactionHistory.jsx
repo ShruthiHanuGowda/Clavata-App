@@ -10,6 +10,7 @@ import {format} from 'date-fns';
 import {DText} from '../../../Componants/DText';
 import TransactionSectionList from '../TransactionHistory/TransactionSectionList';
 import {useTransactionHistory} from '../../../hooks/useTransactionHistory';
+import {useAuth} from '../../../../screens/Provider/authProvider';
 
 const defaultFilter = {
   page: 1,
@@ -26,6 +27,15 @@ export default function MiniTransactionHistory({
   showFilter,
   setShowFilter,
 }) {
+  const {userDetails} = useAuth();
+
+  const coinCodesForDenergyWallet = ['watt', 'weurc', 'wusdc'];
+
+  const wallet = coinCodesForDenergyWallet.includes(
+    coinCode.toLocaleLowerCase(),
+  )
+    ? userDetails?.denergyWallet
+    : userDetails?.ethereumWallet;
   const {
     transactions,
     formattedTransactions,
@@ -34,7 +44,7 @@ export default function MiniTransactionHistory({
     hasMoreData,
     loadMoreTransactions,
     refreshTransactions,
-  } = useTransactionHistory(20, coinCode);
+  } = useTransactionHistory(20, coinCode, wallet);
   // console.log('🚀 ~ formattedTransactions:', formattedTransactions);
 
   const [mockTransactions, setMockTransactions] = useState();

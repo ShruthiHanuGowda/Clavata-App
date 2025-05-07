@@ -42,6 +42,7 @@ interface TransactionHistoryVars {
 export const useTransactionHistory = (
   defaultLimit: number = 3,
   coinCode: string,
+  wallet: string,
 ) => {
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [formattedTransactions, setFormattedTransactions] = useState<
@@ -121,6 +122,7 @@ export const useTransactionHistory = (
   >(LIST_TRANSACTION_HISTORY, {
     variables: {
       filter: {
+        or: [{from: {contains: wallet}}, {to: {contains: wallet}}],
         coinCode: {eq: coinCode},
       },
       limit: defaultLimit,
