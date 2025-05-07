@@ -248,7 +248,10 @@ export default function MiniTransactionHistory({
       {loading ? (
         <ActivityIndicator />
       ) : (
-        <TransactionSectionList data={mockTransactions} />
+        <TransactionSectionList
+          data={mockTransactions}
+          hasMoreData={hasMoreData}
+        />
       )}
     </View>
   );
