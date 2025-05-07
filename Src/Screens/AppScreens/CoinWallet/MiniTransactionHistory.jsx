@@ -48,6 +48,7 @@ export default function MiniTransactionHistory({
   // console.log('🚀 ~ formattedTransactions:', formattedTransactions);
 
   const [mockTransactions, setMockTransactions] = useState();
+  console.log('🚀 ~ mockTransactions:', JSON.stringify(mockTransactions));
 
   // const {getAll, data, loading, count} = useTransaction();
   // console.log('🚀 ~ data :', JSON.stringify(data), coinCode);
@@ -246,12 +247,11 @@ export default function MiniTransactionHistory({
               fontSize: 14,
             }}>
             {/* All {data?.count} transaction in{' '} */}
-            {/* {coinCode === 'WUSDC'
+            {coinCode === 'WUSDC'
               ? 'wUSDC'
               : coinCode === 'WEURC'
               ? 'wEURC'
-              : coinCode} */}
-            WATT
+              : coinCode}
           </DText>
         </View>
       )}

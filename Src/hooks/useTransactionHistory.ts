@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useQuery, ApolloError} from '@apollo/client';
 import {LIST_TRANSACTION_HISTORY} from '../graphql/queries';
+import {useAuth} from '../../screens/Provider/authProvider';
 
 // Define the types for our transaction history data
 interface TransactionItem {
@@ -52,28 +53,25 @@ export const useTransactionHistory = (
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [queryError, setQueryError] = useState<ApolloError | null>(null);
 
+  const {userDetails} = useAuth();
+
+  const coinCodesForDenergyWallet = ['watt', 'weurc', 'wusdc'];
+
+  const walletAddress = coinCodesForDenergyWallet.includes(
+    coinCode.toLocaleLowerCase(),
+  )
+    ? userDetails?.denergyWallet
+    : userDetails?.ethereumWallet;
+
   // Transform transactions to format needed by ListItem component
   const transformTransactions = (
     rawData: TransactionItem[],
   ): FormattedTransactionItem[] => {
     return rawData.map((item, index) => {
-      // Determine transaction type based on method
-      let type = item.method;
-      if (type === 'send') {
-        type = 'send';
-      } else if (type === 'receive') {
-        type = 'Received';
-      } else if (type === 'swap') {
-        type = 'Swap';
-      } else if (type === 'bridge') {
-        type = 'Bridge Deposit';
-      } else if (type === 'buy') {
-        type = 'Buy';
-      } else if (type === 'sell') {
-        type = 'Sell';
-      }
+      console.log('🚀 ~ returnrawData.map ~ item:', item);
+      let fromAddress = item.from;
+      let type = fromAddress === walletAddress ? 'send' : 'Received';
 
-      // Determine if transaction is incoming or outgoing
       const isSending =
         type === 'send' || type === 'Sell' || type === 'Bridge Deposit';
       const change = isSending ? '-' : '+';
@@ -131,6 +129,7 @@ export const useTransactionHistory = (
     onCompleted: data => {
       if (data?.listTransactionHistoryMobiles) {
         const rawData = data.listTransactionHistoryMobiles.items;
+        console.log('🚀 ~ rawData:', JSON.stringify(rawData));
         setTransactions(rawData);
         setFormattedTransactions(transformTransactions(rawData));
         setNextToken(data.listTransactionHistoryMobiles.nextToken);
