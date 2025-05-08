@@ -10,14 +10,7 @@ import {
 import {NavigationProp, useNavigation} from '@react-navigation/native';
 import Spinner from '../Spinner';
 import {NftToken} from '../../../types/types';
-
-interface NFT {
-  name: string;
-  price: string;
-  quantity?: number;
-  image: string;
-  icon?: string;
-}
+import {formatQuantityMWh} from '../../../utils';
 
 interface NFTCardProps {
   nft: NftToken;
@@ -65,7 +58,7 @@ const NFTCard: React.FC<NFTCardProps> = ({
       <Text style={styles.name} numberOfLines={1}>
         {nft.name}
       </Text>
-      <Text style={styles.qty}>Qty: {quantity}</Text>
+      <Text style={styles.qty}>Qty: {formatQuantityMWh(quantity)}</Text>
 
       <View style={styles.priceWrapper}>
         <Image
@@ -75,7 +68,7 @@ const NFTCard: React.FC<NFTCardProps> = ({
           style={styles.priceIcon}
         />
 
-        <Text style={styles.priceText}>{currentAskPrice}</Text>
+        <Text style={styles.priceText}>{currentAskPrice} per MWh</Text>
       </View>
     </TouchableOpacity>
   );

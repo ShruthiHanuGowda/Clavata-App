@@ -8,17 +8,11 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
-
-interface NFT {
-  name: string;
-  collectionName: string;
-  image: {
-    thumbnail: string;
-  };
-}
+import {NftToken} from '../../../../types/types';
+import {formatQuantityMWh} from '../../../../utils';
 
 interface SetPriceStageProps {
-  nftToSell: NFT;
+  nftToSell: NftToken;
   variant: 'set' | 'adjust';
   currentPrice?: number;
   price: string;
@@ -29,7 +23,7 @@ interface SetPriceStageProps {
   continueToNextStage: () => void;
 }
 
-const MIN_PRICE = 0.01;
+const MIN_PRICE = 1;
 const MAX_PRICE = 10000;
 
 const SetPriceStage: React.FC<SetPriceStageProps> = ({
@@ -47,6 +41,10 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
     variant === 'adjust' && currentPrice && currentPrice === parseFloat(price);
   const priceIsValid =
     !price || Number.isNaN(parseFloat(price)) || parseFloat(price) <= 0;
+  const parsedQty = parseFloat(quantity);
+  const quantityGreaterThanAvailable =
+    nftToSell?.marketData?.quantity &&
+    parsedQty * 1_000_000 > nftToSell?.marketData?.quantity;
   const qtyIsValid =
     Number.isNaN(parseFloat(quantity)) ||
     !quantity ||
@@ -103,7 +101,7 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
 
       {/* Price Input */}
       <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Set Price (USDC)</Text>
+        <Text style={styles.inputLabel}>Set Price per MWh(USDC) </Text>
         <TextInput
           style={[styles.input, priceIsOutOfRange && styles.inputError]}
           ref={inputRef}
@@ -121,7 +119,7 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
 
       {/* Quantity Input */}
       <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Quantity to sell</Text>
+        <Text style={styles.inputLabel}>Quantity to sell (MWh)</Text>
         <TextInput
           style={[styles.input, qtyIsValid && styles.inputError]}
           value={quantity}
@@ -131,6 +129,12 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
         />
         {qtyIsValid && (
           <Text style={styles.errorText}>Quantity must be greater than 0</Text>
+        )}
+        {quantityGreaterThanAvailable && (
+          <Text style={styles.errorText}>
+            Cannot sell more than{' '}
+            {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))} NFTs.
+          </Text>
         )}
       </View>
 

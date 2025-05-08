@@ -3,6 +3,7 @@ import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
 import {NftToken, TokenMarketData} from '../../../types/types';
 import {getMinAsk, getMinAskPrice, isOwnNft} from '../../../hooks/marketPlace';
 import {useAuth} from '../../../../screens/Provider/authProvider';
+import {formatQuantityMWh} from '../../../utils';
 
 interface NFTHeaderProps {
   nft: NftToken | null;
@@ -43,9 +44,12 @@ const NFTHeader: React.FC<NFTHeaderProps> = ({
         <Text style={styles.description}>{nft.description}</Text>
       )} */}
         <Text style={styles.price}>
-          💰 Price: {price > 0 ? price : 'Not for sale'}
+          💰 Price: {price > 0 ? `${price} per MWh` : 'Not for sale'}
         </Text>
-        <Text style={styles.qty}>📦 Quantity: {minAsk?.amount ?? 0}</Text>
+        <Text style={styles.qty}>
+          📦 Quantity: {formatQuantityMWh(Number(minAsk?.amount ?? 0))}
+        </Text>
+
         {isOwn && ownerButtons}
         {!isOwn && (
           <TouchableOpacity

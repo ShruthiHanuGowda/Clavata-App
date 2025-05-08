@@ -1,18 +1,26 @@
-import React, {useCallback, useEffect} from 'react';
-import {Image, StyleSheet, Text, View} from 'react-native';
-import {DText} from '../../Componants/DText';
+import React, { useCallback, useEffect } from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { DText } from '../../Componants/DText';
 import CryptoMarketCard from './CryptoMarketCard';
-import {fontsFamily} from '../../Theme';
-import {useWallet} from '../../../screens/Provider/WalletProvider';
-import {useFocusEffect} from '@react-navigation/native';
-import {useAuth} from '../../../screens/Provider/authProvider';
+import { fontsFamily } from '../../Theme';
+import { useWallet } from '../../../screens/Provider/WalletProvider';
+import { useFocusEffect } from '@react-navigation/native';
+import { useAuth } from '../../../screens/Provider/authProvider';
+import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList';
+import { useNftsForAddress } from '../../hooks/useNftsForAddress';
 export default function CryptoMarketPlace(props) {
-  const {getBalance, refreshBalance, isBalanceLoading, refreshAllBalances} =
+  const { getBalance, refreshBalance, isBalanceLoading, refreshAllBalances } =
     useWallet();
-  const {userDetails} = useAuth();
+  const { userDetails } = useAuth();
   useEffect(() => {
     console.log('userDetails', userDetails?.denergyWallet, userDetails);
   }, [userDetails]);
+
+  const account = userDetails?.userWallet;
+
+  const { nfts, isLoading, } = useNftsForAddress({
+    account: account,
+  });
 
   const formatValue = (value, fixed) => {
     if (value === undefined || value === null) {
@@ -26,11 +34,11 @@ export default function CryptoMarketPlace(props) {
       code: 'ETH',
       coinValue: 'ETH',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive'],
       growth: 0,
@@ -41,11 +49,11 @@ export default function CryptoMarketPlace(props) {
       title: 'USDC Coin',
       code: 'USDC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
@@ -56,11 +64,11 @@ export default function CryptoMarketPlace(props) {
       title: 'EURC Coin',
       code: 'EURC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
@@ -74,11 +82,11 @@ export default function CryptoMarketPlace(props) {
       title: 'Watt Coin',
       code: 'WATT',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive'],
       growth: 0,
@@ -89,11 +97,11 @@ export default function CryptoMarketPlace(props) {
       title: 'wUSDC Coin',
       code: 'WUSDC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
@@ -104,11 +112,11 @@ export default function CryptoMarketPlace(props) {
       title: 'wEURC Coin',
       code: 'WEURC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
@@ -148,6 +156,7 @@ export default function CryptoMarketPlace(props) {
       <View style={marketPlaceStyles.divider} />
       <View style={marketPlaceStyles.myCryptosContainer}>
         <Text style={marketPlaceStyles.HeaderFont}>My Certificates</Text>
+        <MyCertificatesList nfts={nfts ?? []} isLoading={isLoading} />
       </View>
     </View>
   );

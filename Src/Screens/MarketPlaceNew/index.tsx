@@ -31,7 +31,7 @@ const CollectionListingPage: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ListingHeader title="Explore Collections" />
+      {/* <ListingHeader title="Explore Collections" /> */}
 
       <TouchableOpacity
         style={styles.myNftsButton}
