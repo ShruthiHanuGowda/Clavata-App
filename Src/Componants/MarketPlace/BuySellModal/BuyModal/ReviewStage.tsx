@@ -13,6 +13,7 @@ import {useMagic} from '../../../../../screens/Provider/MagicProvider';
 import {BrowserProvider, hexlify, toUtf8Bytes} from 'ethers';
 import {useAuth} from '../../../../../screens/Provider/authProvider';
 import {Magic} from '@magic-sdk/react-native-bare';
+import {formatQuantityMWh} from '../../../../utils';
 
 interface ReviewStageProps {
   nftToBuy: {
@@ -45,9 +46,10 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
   availableQuantity,
 }) => {
   const feePercentage = 0.025;
+
   const nftPriceWithFee = nftPrice * (1 + feePercentage);
   const totalPayment = nftPriceWithFee * quantity;
-  const quantityExceeds = quantity > availableQuantity;
+  const quantityExceeds = quantity * 1_000_000 > availableQuantity;
   const notEnoughBalance = totalPayment > walletBalance;
 
   const handleQuantityChange = (val: string) => {
@@ -94,7 +96,9 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
           onChangeText={handleQuantityChange}
           placeholder="Enter quantity"
         />
-        <Text style={styles.helper}>Available: {availableQuantity}</Text>
+        <Text style={styles.helper}>
+          Available: {formatQuantityMWh(availableQuantity)}
+        </Text>
 
         <Text style={styles.label}>NFT Price</Text>
         <Text style={styles.value}>
@@ -139,7 +143,8 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
 
       {quantityExceeds && (
         <Text style={styles.warningText}>
-          Quantity exceeds available. Max allowed: {availableQuantity}
+          Quantity exceeds available. Max allowed:{' '}
+          {formatQuantityMWh(availableQuantity)}
         </Text>
       )}
 

@@ -4,6 +4,7 @@ import {activeAsks} from '../../../types/types';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {getMinAskPrice} from '../../../hooks/marketPlace';
 import {shortenAddress} from '../../../utils/shortenAddress';
+import {formatQuantityMWh} from '../../../utils';
 
 interface OwnerListProps {
   owners: activeAsks[];
@@ -37,7 +38,8 @@ const OwnerList: React.FC<OwnerListProps> = ({
               style={[styles.ownerRow, !isLast && styles.rowBorder]}>
               <View style={styles.ownerInfo}>
                 <Text style={styles.ownerText}>
-                  <Text style={styles.label}>Qty:</Text> {owner.amount}
+                  <Text style={styles.label}>Qty:</Text>
+                  {formatQuantityMWh(Number(owner.amount ?? 0))}
                 </Text>
                 <Text style={styles.ownerText}>
                   <Text style={styles.label}>Owner:</Text>{' '}
@@ -52,7 +54,7 @@ const OwnerList: React.FC<OwnerListProps> = ({
                     style={styles.tokenIcon}
                     resizeMode="contain"
                   />
-                  <Text style={styles.priceText}>{owner.askPrice}</Text>
+                  <Text style={styles.priceText}>{owner.askPrice} per MWh</Text>
                 </View>
               </View>
               <TouchableOpacity

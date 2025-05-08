@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import {NftToken} from '../../../../types/types';
+import {useAuth} from '../../../../../screens/Provider/authProvider';
+import {formatQuantityMWh} from '../../../../utils';
 
 interface TransferStageProps {
   nftToSell: NftToken;
@@ -31,14 +33,14 @@ const TransferStage = ({
   isInvalidTransferAddress,
   continueToNextStage,
 }: TransferStageProps) => {
-  //   const transferAddressEqualsConnectedAddress =
-  //     transferAddress.toLowerCase() === userAddress.toLowerCase();
-  const transferAddressEqualsConnectedAddress = false;
+  const {userDetails} = useAuth();
+  const transferAddressEqualsConnectedAddress =
+    transferAddress.toLowerCase() === userDetails?.denergyWallet.toLowerCase();
 
   const parsedQty = parseFloat(quantity);
   const quantityGreaterThanAvailable =
     nftToSell?.marketData?.quantity &&
-    parsedQty > nftToSell?.marketData?.quantity;
+    parsedQty * 1_000_000 > nftToSell?.marketData?.quantity;
   const isQtyInvalid = quantity === '' || isNaN(parsedQty) || parsedQty <= 0;
 
   const showConfirmButtonDisabled = Boolean(
@@ -101,7 +103,7 @@ const TransferStage = ({
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Quantity to Transfer</Text>
+        <Text style={styles.label}>Quantity to Transfer (in MWh)</Text>
         <TextInput
           style={styles.input}
           placeholder="Quantity"
@@ -111,7 +113,8 @@ const TransferStage = ({
         />
         {quantityGreaterThanAvailable && (
           <Text style={styles.warningText}>
-            Cannot send more than {nftToSell?.marketData?.quantity} NFTs.
+            Cannot send more than{' '}
+            {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))} NFTs.
           </Text>
         )}
       </View>

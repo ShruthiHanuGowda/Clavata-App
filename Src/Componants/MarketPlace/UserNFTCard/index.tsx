@@ -11,6 +11,7 @@ import {NavigationProp, useNavigation} from '@react-navigation/native';
 import Spinner from '../Spinner';
 import {NftLocation, NftToken} from '../../../types/types';
 import SellModal from '../BuySellModal/SellModal';
+import {formatQuantityMWh} from '../../../utils';
 
 interface UserNFTCardProps {
   nft: NftToken;
@@ -39,11 +40,11 @@ const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
   const handleCollectibleClick = (location?: NftLocation) => {
     switch (location) {
       case NftLocation.WALLET:
-        setClickedSellNft({location, variant: 'sell'});
+        setClickedSellNft({nft, location, variant: 'sell'});
         setIsSellModalVisible(true);
         break;
       case NftLocation.FORSALE:
-        setClickedSellNft({location, variant: 'adjust'});
+        setClickedSellNft({nft, location, variant: 'adjust'});
         setIsSellModalVisible(true);
         break;
       default:
@@ -76,14 +77,16 @@ const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
       <Text style={styles.name} numberOfLines={1}>
         {nft.name}
       </Text>
-      <Text style={styles.qty}>Qty: {nft.marketData?.quantity || 0}</Text>
+      <Text style={styles.qty}>
+        Qty: {formatQuantityMWh(Number(nft.marketData?.quantity ?? 0))}
+      </Text>
 
       <SellModal
         visible={isSellModalVisible}
         onClose={() => {
           setIsSellModalVisible(false);
         }}
-        variant={clickedSellNft?.variant}
+        variant={'adjust'}
         nftToSell={clickedSellNft?.nft || nft}
         onSuccessSale={() => {
           refresh();

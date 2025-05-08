@@ -1,5 +1,5 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {Header, ScreenWidth} from '@rneui/base';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Header, ScreenWidth } from '@rneui/base';
 import {
   FlatList,
   Image,
@@ -10,24 +10,24 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
-import {View} from 'react-native';
-import {fontsFamily, Images} from '../../Theme';
+import { View } from 'react-native';
+import { fontsFamily, Images } from '../../Theme';
 
 import StakingActivities from './StakingActivities';
 import CryptoMarketPlace from './CryptoMarketPlace';
 import BalanceCarousal from './BalanceCarousal';
-import {DText} from '../../Componants/DText';
-import {Path, Svg} from 'react-native-svg';
+import { DText } from '../../Componants/DText';
+import { Path, Svg } from 'react-native-svg';
 // import {navigate} from '../../Navigation/NavigationFunctions';
-import {SCREEN_CONSTANT} from '../../Navigation/constant';
+import { SCREEN_CONSTANT } from '../../Navigation/constant';
 // import images from '../../../../images';
-import {useFocusEffect, useScrollToTop} from '@react-navigation/native';
-import {navigateTo} from '../../utils/navigationService';
-import {useWallet} from '../../../screens/Provider/WalletProvider';
-import {useAuth} from '../../../screens/Provider/authProvider';
+import { useFocusEffect, useScrollToTop } from '@react-navigation/native';
+import { navigateTo } from '../../utils/navigationService';
+import { useWallet } from '../../../screens/Provider/WalletProvider';
+import { useAuth } from '../../../screens/Provider/authProvider';
 
 function HomeHeader(props) {
-  const {userDetails} = useAuth();
+  const { userDetails } = useAuth();
   function getUsernameFromEmail(email) {
     return email.split('@')[0];
   }
@@ -80,8 +80,8 @@ function HomeHeader(props) {
   );
 }
 
-export default function HomeScreen({navigation}) {
-  const {refreshAllBalances} = useWallet();
+export default function HomeScreen({ navigation }) {
+  const { refreshAllBalances } = useWallet();
   // const { get, getDrecs, data, drecsData, balanceData, loading, getBalance, getProfile, profile } =
   //   useContext(AppContext).portfolio;
   // const { newCount, getNewCount } = useNotification();
@@ -139,7 +139,7 @@ export default function HomeScreen({navigation}) {
         <CryptoMarketPlace
         // loading={loading} {...balanceData}
         />
-        <View style={{marginTop: 30, marginHorizontal: 20}}>
+        <View style={{ marginTop: 30, marginHorizontal: 20 }}>
           <Text
             style={{
               fontFamily: fontsFamily.MulishBold,

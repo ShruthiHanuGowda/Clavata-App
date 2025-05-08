@@ -232,16 +232,26 @@ const SellModal: React.FC<SellModalProps> = ({
             data,
           ]);
         }
+        const rawPrice = Number(price);
+        const rawQuantity = Number(quantity);
+        const microQuantity = rawQuantity * 1_000_000;
+
+        const adjustedQuantity = BigInt(microQuantity);
+
+        // const pricePerMicroUnit = rawPrice / microQuantity;
+        // console.log('pricePerMicroUnit', pricePerMicroUnit);
+
+        const adjustedPrice = parseUnits(rawPrice.toString(), 6);
+
         if (variant === 'sell') {
-          const askPrice = parseUnits(price as `${number}`, 6);
           return callWithGasPrice(nftMarketContract, 'createAskOrder', [
             nftToSell.collectionAddress,
             BigInt(nftToSell.tokenId),
-            askPrice,
-            BigInt(quantity),
+            adjustedPrice,
+            adjustedQuantity,
           ]);
         }
-        const askPrice = parseUnits(price as `${number}`, 6);
+
         const tx = callWithGasPrice(nftMarketContract, 'cancelAsk', [
           nftToSell.collectionAddress,
           BigInt(nftToSell.tokenId),
@@ -250,8 +260,8 @@ const SellModal: React.FC<SellModalProps> = ({
         return callWithGasPrice(nftMarketContract, 'createAskOrder', [
           nftToSell.collectionAddress,
           BigInt(nftToSell.tokenId),
-          askPrice,
-          BigInt(quantity),
+          adjustedPrice,
+          BigInt(adjustedQuantity),
         ]);
       },
       onSuccess: async ({receipt}) => {

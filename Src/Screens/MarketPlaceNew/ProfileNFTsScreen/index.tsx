@@ -19,7 +19,6 @@ import {navigateBack} from '../../../Navigation/NavigationFunctions';
 
 const ProfileNFTsScreen = ({route}) => {
   const [selectedTab, setSelectedTab] = useState('all');
-  const [walletConnected, setWalletConnected] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const {userDetails} = useAuth();
   const account = route?.params?.accountAddress || userDetails?.userWallet;
@@ -57,8 +56,6 @@ const ProfileNFTsScreen = ({route}) => {
         hideBorder={true}
       />
       <View style={styles.container}>
-        <Text style={styles.headerTitle}>Your NFT Collection</Text>
-
         <View style={styles.tabs}>
           {['all', 'wallet', 'sale'].map(type => (
             <TabButton
@@ -104,10 +101,12 @@ const ProfileNFTsScreen = ({route}) => {
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: '#ffffff',
+    flex: 1,
   },
   container: {
     paddingHorizontal: 16,
     backgroundColor: '#fff',
+    flex: 1,
     marginTop: 15,
   },
   headerTitle: {

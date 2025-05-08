@@ -28,6 +28,7 @@ export const useNftsForAddress = ({account}: {account: `0x${string}`}) => {
 
     try {
       setIsLoading(true);
+      setNfts([]);
       setError(null);
       const result = await getCompleteAccountNftData(account, collectionsRes);
       setNfts(result);

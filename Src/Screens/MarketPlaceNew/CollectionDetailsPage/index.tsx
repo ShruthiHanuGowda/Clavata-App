@@ -96,7 +96,7 @@ const CollectionDetailsScreen = ({route}) => {
             <Text style={styles.detailsHeader}>Collection Details</Text>
             {collection ? (
               <>
-                <DetailRow label="Symbol" value={collection.symbol} />
+                {/* <DetailRow label="Symbol" value={collection.symbol} /> */}
                 <DetailRow label="Year" value={collection.year} />
                 <DetailRow label="Country" value={collection.country} />
                 <DetailRow label="Type" value={collection.type} />
@@ -159,9 +159,12 @@ const DetailRow = ({
   label: string;
   value: string | null | undefined;
 }) => (
-  <View style={styles.detailsRow}>
-    <Text style={styles.detailsLabel}>{label}:</Text>
-    <Text style={styles.detailsValue}>{value || '-'}</Text>
+  <View style={styles.bulletRow}>
+    <Text style={styles.bulletPoint}>{'\u2022'}</Text>
+    <Text style={styles.bulletText}>
+      <Text style={styles.detailsLabel}>{label}: </Text>
+      <Text style={styles.detailsValue}>{value || '-'}</Text>
+    </Text>
   </View>
 );
 
@@ -212,10 +215,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: '#333',
   },
-  detailsRow: {
+  bulletRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  bulletPoint: {
+    fontSize: 20,
+    color: '#555',
+    marginRight: 8,
+    lineHeight: 22,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 22,
   },
   detailsLabel: {
     fontSize: 16,
