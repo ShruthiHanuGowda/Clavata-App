@@ -3,9 +3,7 @@ import React from 'react';
 import TabBar from './TabBar';
 // import MarketPlace from '../Screens/MarketPlace';
 import MarketPlace from '../Screens/MarketPlaceNew';
-import Stake from '../Screens/Stake';
-import DAppsScreen from '../Screens/DApps';
-import {HomeScreenStack, WalletStack} from '.';
+import {HomeScreenStack, StakeStackFun, WalletStack} from '.';
 
 type RootTabParamList = {
   'D.Energy': undefined;
@@ -44,7 +42,7 @@ export default function Tabs() {
       />
       <Tab.Screen
         name="Stake"
-        component={Stake}
+        component={StakeStackFun}
         options={{headerShown: false}}
       />
       {/* <Tab.Screen

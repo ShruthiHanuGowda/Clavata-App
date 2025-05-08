@@ -38,12 +38,12 @@ interface DEmailInputProps {
 }
 
 export function DEmailInput({
-                              value,
-                              placeholder = 'example@drexs.com',
-                              setValue,
-                              setValid,
-                              inputAccessoryViewID,
-                            }: DEmailInputProps) {
+  value,
+  placeholder = 'example@drexs.com',
+  setValue,
+  setValid,
+  inputAccessoryViewID,
+}: DEmailInputProps) {
   const handleOnChange = (text: string) => {
     let re = /\S+@\S+\.\S+/;
     let regex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/im;
@@ -71,11 +71,11 @@ export function DEmailInput({
 }
 
 export function DSearchInput({
-                               value,
-                               placeholder = 'example@drexs.com',
-                               setValue,
-                               onEndEditing,
-                             }) {
+  value,
+  placeholder = 'example@drexs.com',
+  setValue,
+  onEndEditing,
+}) {
   const handleOnChange = text => {
     setValue(text);
   };
@@ -163,18 +163,16 @@ export function DSearchInput({
 // }
 
 export function DTextInput({
-                             value,
-                             placeholder,
-                             setValue = () => {
-                             },
-                             setValid = () => {
-                             },
-                             style,
-                             containerStyle,
-                             keyboardType = 'default',
-                             ...props
-                           }) {
-  const handleOnChange = text => {
+  value,
+  placeholder,
+  setValue,
+  setValid,
+  style,
+  containerStyle,
+  keyboardType = 'default',
+  ...props
+}: DTextInputProps) {
+  const handleOnChange = (text: string) => {
     setValue(text);
     setValid(text.trim().length > 0);
   };

@@ -71,40 +71,10 @@ export default function CoinWallet(props) {
         centerComponent={
           <View style={styles.nameContainer}>
             <DText fontStyle="fontBold" style={styles.headerTitle}>
-              {/* {`${
-                coinCode === 'WUSDC'
-                  ? 'wUSDC'
-                  : coinCode === 'WEURC'
-                  ? 'wEURC'
-                  : coinCode
-              }`} */}
               {coinCode}
             </DText>
-            {/* {coinCode !== "WATT" && (
-              <DText fontStyle='fontBold' style={styles.headerCoincodeTitle}>{coinCode}</DText>
-            )} */}
           </View>
         }
-        // rightComponent={
-        //   coinCode !== 'USD' && (
-        //     <TouchableOpacity
-        //       disabled={loading}
-        //       style={styles.iconContainer}
-        //       onPress={() =>
-        //         navigateTo(SCREEN_CONSTANT.QRCODE, {
-        //           toScreen: 'coinWallet',
-        //           coinCode: coinData?.coinCode,
-        //           address: coinData?.address,
-        //         })
-        //       }
-        //     >
-        //       <Image
-        //         source={images.qrCodeIcon}
-        //         style={{ height: 25, width: 25, opacity: loading ? 0.5 : 1 }}
-        //       />
-        //     </TouchableOpacity>
-        //   )
-        // }
       />
       <ScrollView
       // refreshControl={

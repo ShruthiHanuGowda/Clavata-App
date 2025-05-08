@@ -27,6 +27,9 @@ import CollectionDetailsScreen from '../Screens/MarketPlaceNew/CollectionDetails
 import NFTDetailsScreen from '../Screens/MarketPlaceNew/NFTDetailsPage';
 import {SCREEN_CONSTANT} from './constant';
 import ProfileNFTsScreen from '../Screens/MarketPlaceNew/ProfileNFTsScreen';
+import Stake from '../Screens/Stake';
+import ValidatorDetailsScreen from '../Screens/Stake/ValidatorDetailsScreen';
+import StakeScreen from '../Screens/Stake/StakeScreen';
 
 type AuthStackParamList = {
   login: {magicProps: any};
@@ -65,7 +68,12 @@ type WalletStackParamList = {
   wallet: undefined;
   coinWalletStack: undefined;
 };
-createNativeStackNavigator<AuthStackParamList>();
+
+type StakeStackParamList = {
+  stake: undefined;
+  ValidatorDetailsScreen: undefined;
+};
+
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 function RootScreenStack() {
@@ -170,6 +178,23 @@ export function WalletStack() {
         component={CoinWalletStackFun}
       />
     </walletStack.Navigator>
+  );
+}
+
+const StakeStack = createNativeStackNavigator<StakeStackParamList>();
+
+export function StakeStackFun() {
+  return (
+    <StakeStack.Navigator
+      initialRouteName="stake"
+      screenOptions={{headerShown: false}}>
+      <StakeStack.Screen name="stake" component={Stake} />
+      <StakeStack.Screen
+        name="ValidatorDetailsScreen"
+        component={ValidatorDetailsScreen}
+      />
+      <StakeStack.Screen name="StakeScreen" component={StakeScreen} />
+    </StakeStack.Navigator>
   );
 }
 

@@ -32,7 +32,7 @@ export default function BalanceCarousal(props) {
           style={carousalStyles.tab}>
           <Tab.Item
             active
-            title="EACs"
+            title="ENERGY"
             buttonStyle={[
               carousalStyles.button,
               index === 0 && carousalStyles.buttonActive,
