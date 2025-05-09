@@ -102,6 +102,7 @@ const SellModal: React.FC<SellModalProps> = ({
   const [stage, setStage] = useState<SellingStage>(
     variant === 'sell' ? SellingStage.SELL : SellingStage.EDIT,
   );
+
   const [price, setPrice] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('');
   const [transferAddress, setTransferAddress] = useState<string>('');
@@ -222,16 +223,6 @@ const SellModal: React.FC<SellModalProps> = ({
             BigInt(nftToSell.tokenId),
           ]);
         }
-        if (stage === SellingStage.CONFIRM_TRANSFER) {
-          const data = hexlify(toUtf8Bytes(''));
-          return callWithGasPrice(collectionContract, 'safeTransferFrom', [
-            account,
-            transferAddress as `0x${string}`,
-            BigInt(nftToSell.tokenId),
-            BigInt(quantity),
-            data,
-          ]);
-        }
         const rawPrice = Number(price);
         const rawQuantity = Number(quantity);
         const microQuantity = rawQuantity * 1_000_000;
@@ -242,6 +233,16 @@ const SellModal: React.FC<SellModalProps> = ({
         // console.log('pricePerMicroUnit', pricePerMicroUnit);
 
         const adjustedPrice = parseUnits(rawPrice.toString(), 6);
+        if (stage === SellingStage.CONFIRM_TRANSFER) {
+          const data = hexlify(toUtf8Bytes(''));
+          return callWithGasPrice(collectionContract, 'safeTransferFrom', [
+            account,
+            transferAddress as `0x${string}`,
+            BigInt(nftToSell.tokenId),
+            adjustedQuantity,
+            data,
+          ]);
+        }
 
         if (variant === 'sell') {
           return callWithGasPrice(nftMarketContract, 'createAskOrder', [

@@ -25,6 +25,7 @@ import { useFocusEffect, useScrollToTop } from '@react-navigation/native';
 import { navigateTo } from '../../utils/navigationService';
 import { useWallet } from '../../../screens/Provider/WalletProvider';
 import { useAuth } from '../../../screens/Provider/authProvider';
+import { useNftsForAddress } from '../../hooks/useNftsForAddress';
 
 function HomeHeader(props) {
   const { userDetails } = useAuth();
@@ -82,6 +83,12 @@ function HomeHeader(props) {
 
 export default function HomeScreen({ navigation }) {
   const { refreshAllBalances } = useWallet();
+  const { userDetails } = useAuth();
+  const account = userDetails.denergyWallet;
+  const { refresh, totalQuantity, isLoading } = useNftsForAddress({
+    account: account,
+  });
+
   // const { get, getDrecs, data, drecsData, balanceData, loading, getBalance, getProfile, profile } =
   //   useContext(AppContext).portfolio;
   // const { newCount, getNewCount } = useNotification();
@@ -101,6 +108,11 @@ export default function HomeScreen({ navigation }) {
     });
   };
   const ref = React.useRef(null);
+
+  const onRefresh = () => {
+    refreshAllBalances();
+    refresh();
+  };
 
   useScrollToTop(scrollViewRef);
 
@@ -125,16 +137,20 @@ export default function HomeScreen({ navigation }) {
         refreshControl={
           <RefreshControl
             refreshing={false}
-            onRefresh={() => refreshAllBalances()}
+            onRefresh={() => onRefresh()}
           />
         }>
         <BalanceCarousal
-        // loading={loading}
-        // drecsData={drecsData}
+          loading={isLoading}
+          // drecsData={drecsData}
+          drecsOwned={totalQuantity}
         // {...balanceData}
         />
         <StakingActivities
-        // loading={loading} {...drecsData}
+          drecsStaked={0}
+          drecsOwned={totalQuantity}
+          loading={isLoading}
+        // {...drecsData}
         />
         <CryptoMarketPlace
         // loading={loading} {...balanceData}

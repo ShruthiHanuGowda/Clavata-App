@@ -1,4 +1,4 @@
-import {useState, useEffect, useCallback} from 'react';
+import {useState, useEffect, useCallback, useMemo} from 'react';
 import {getCompleteAccountNftData} from './marketPlace';
 import {ApiCollections, NftToken} from '../types/types';
 import useApi from './useApi';
@@ -50,10 +50,18 @@ export const useNftsForAddress = ({account}: {account: `0x${string}`}) => {
     }
   }, [isLoadingCollections, account, collectionsRes, fetchData]);
 
+  const totalQuantity = useMemo(() => {
+    return nfts.reduce((sum, nft) => {
+      const quantity = Number(nft.marketData?.quantity ?? 0);
+      return sum + quantity;
+    }, 0);
+  }, [nfts]);
+
   return {
     nfts,
     isLoading,
     error,
+    totalQuantity,
     refresh: fetchData,
   };
 };

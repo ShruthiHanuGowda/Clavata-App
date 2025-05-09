@@ -1,6 +1,11 @@
-export const formatQuantityMWh = (quantity: number): string => {
+export const formatQuantityMWh = (
+  quantity: number,
+  unit: boolean = true,
+): string => {
   const mwh = quantity / 1_000_000;
-  return `${mwh % 1 === 0 ? mwh.toFixed(0) : mwh.toFixed(2)} MWh`;
+  return `${mwh % 1 === 0 ? mwh.toFixed(0) : mwh.toFixed(2)} ${
+    unit ? 'MWh' : ''
+  }`;
 };
 
 export const formatPrice = (price: number | undefined): string => {

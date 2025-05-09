@@ -18,7 +18,7 @@ export default function CryptoMarketPlace(props) {
 
   const account = userDetails?.userWallet;
 
-  const { nfts, isLoading, } = useNftsForAddress({
+  const { nfts, isLoading, refresh } = useNftsForAddress({
     account: account,
   });
 
@@ -156,7 +156,7 @@ export default function CryptoMarketPlace(props) {
       <View style={marketPlaceStyles.divider} />
       <View style={marketPlaceStyles.myCryptosContainer}>
         <Text style={marketPlaceStyles.HeaderFont}>My Certificates</Text>
-        <MyCertificatesList nfts={nfts ?? []} isLoading={isLoading} />
+        <MyCertificatesList nfts={nfts ?? []} isLoading={isLoading} refresh={refresh} />
       </View>
     </View>
   );

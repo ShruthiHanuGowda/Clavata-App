@@ -33,11 +33,11 @@ const CollectionListingPage: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* <ListingHeader title="Explore Collections" /> */}
 
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.myNftsButton}
         onPress={() => navigate('ProfileNFTs')}>
         <Text style={styles.myNftsButtonText}>View My NFTs</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       <ScrollView
         contentContainerStyle={styles.gridContainer}

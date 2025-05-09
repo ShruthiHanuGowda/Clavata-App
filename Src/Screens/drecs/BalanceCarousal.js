@@ -1,13 +1,14 @@
-import {Tab, TabView} from '@rneui/base';
-import React, {useEffect, useState} from 'react';
-import {View, StyleSheet, ActivityIndicator} from 'react-native';
+import { Tab, TabView } from '@rneui/base';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {DText} from '../../Componants/DText';
-import {fontsFamily} from '../../Theme';
-import {useWallet} from '../../../screens/Provider/WalletProvider';
-import {number} from 'bitcoinjs-lib/types/script';
+import { DText } from '../../Componants/DText';
+import { fontsFamily } from '../../Theme';
+import { useWallet } from '../../../screens/Provider/WalletProvider';
+import { number } from 'bitcoinjs-lib/types/script';
+import { formatQuantityMWh } from '../../utils';
 export default function BalanceCarousal(props) {
-  const {getBalance} = useWallet();
+  const { getBalance } = useWallet();
   const wattBalance = getBalance('WATT')?.balance;
   const wusdcBalance = getBalance('WUSDC')?.balanceUsd;
   const usdcBalance = getBalance('USDC')?.balanceUsd;
@@ -74,8 +75,8 @@ export default function BalanceCarousal(props) {
         <TabView value={index} onChange={setIndex} animationType="spring">
           <TabView.Item style={carousalStyles.tabItem}>
             <DText fontStyle="fontBold" style={carousalStyles.value}>
-              {/* {`$${props?.drecsData?.drecsOwned}`} {loading} //NOTE  - for dynamic data */}
-              MWh
+              {loading}
+              {formatQuantityMWh(Number(props?.drecsOwned ?? 0))}
             </DText>
           </TabView.Item>
           <TabView.Item style={carousalStyles.tabItem}>
