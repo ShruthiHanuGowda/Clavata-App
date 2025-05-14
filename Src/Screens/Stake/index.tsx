@@ -1,12 +1,13 @@
 import React, {useEffect, useState, JSX} from 'react';
 import {Header} from '@rneui/base';
-import {StyleSheet, View, Text} from 'react-native';
+import {StyleSheet, View, Text, Button} from 'react-native';
 import {DText} from '../../Componants/DText';
 import {Tab} from '@rneui/base';
 import {fontsFamily} from '../../Theme';
 import StakeListingScreen from './StakeListingScreen';
 import ValidatorsScreen from './ValidatorsScreen';
 import StakeScreen from './StakeScreen';
+import {useNFTStaking} from '../../hooks/useNFTStaking';
 
 // Define props interface for Stake component
 interface StakeProps {
@@ -21,6 +22,7 @@ interface FontFamily {
 }
 
 function Stake(props: StakeProps): JSX.Element {
+  const {listenForEvents} = useNFTStaking();
   const [index, setIndex] = useState<number>(0);
   const TAB_ITEMS: readonly string[] = [
     'Total Pools',
@@ -63,6 +65,7 @@ function Stake(props: StakeProps): JSX.Element {
         }
       />
       <View style={styles.container}>
+        <Button title="Stake" onPress={() => {}} />
         <Tab
           value={index}
           onChange={setIndex}
