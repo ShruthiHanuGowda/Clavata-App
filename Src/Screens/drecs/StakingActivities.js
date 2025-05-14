@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, {useEffect} from 'react';
 import {
   Image,
   StyleSheet,
@@ -6,17 +6,17 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { Svg, Text } from 'react-native-svg';
-import { Slice, VictoryPie } from 'victory-native';
+import {Svg, Text} from 'react-native-svg';
+import {Slice, VictoryPie} from 'victory-native';
 import images from '../../Theme/images';
-import { DText } from '../../Componants/DText';
-import { SCREEN_CONSTANT } from '../../Navigation/constant';
-import { fontsFamily } from '../../Theme';
-import { navigateTo } from '../../utils/navigationService';
-import { useWallet } from '../../../screens/Provider/WalletProvider';
-import { formatQuantityMWh } from '../../utils';
+import {DText} from '../../Componants/DText';
+import {SCREEN_CONSTANT} from '../../Navigation/constant';
+import {fontsFamily} from '../../Theme';
+import {navigateTo} from '../../utils/navigationService';
+import {useWallet} from '../../../screens/Provider/WalletProvider';
+import {formatQuantityMWh} from '../../utils';
 function CustomSlice(props) {
-  const { datum } = props;
+  const {datum} = props;
   const sliceOverride = {
     ...props.slice,
     endAngle: (props.slice?.endAngle ?? 0) + 0.3,
@@ -39,8 +39,8 @@ const colors = {
 };
 
 export default function StakingActivities(props) {
-  const { refreshBalance, getBalance } = useWallet();
-  const { showTitle = true, drecsAvailable, drecsOwned, drecsStaked } = props;
+  const {refreshBalance, getBalance} = useWallet();
+  const {showTitle = true, drecsAvailable, drecsOwned, drecsStaked} = props;
   const width = 220;
   const height = 200;
 
@@ -91,10 +91,10 @@ export default function StakingActivities(props) {
               data={
                 total > 0
                   ? [
-                    { x: 1, y: available },
-                    { x: 2, y: staked },
-                  ]
-                  : [{ x: 1, y: 1 }]
+                      {x: 1, y: available},
+                      {x: 2, y: staked},
+                    ]
+                  : [{x: 1, y: 1}]
               }
             />
             <Text
@@ -150,10 +150,10 @@ export default function StakingActivities(props) {
               data={
                 total > 0
                   ? [
-                    { x: 1, y: available },
-                    { x: 2, y: staked },
-                  ]
-                  : [{ x: 1, y: 1 }]
+                      {x: 1, y: available},
+                      {x: 2, y: staked},
+                    ]
+                  : [{x: 1, y: 1}]
               }
             />
             <Text
@@ -185,7 +185,7 @@ export default function StakingActivities(props) {
             <View style={stakingStyles.staked}>
               <DText style={stakingStyles.availableCount}>
                 {loading}
-                {formatQuantityMWh(Number(drecsOwned ?? 0))}
+                {!props.loading && formatQuantityMWh(Number(drecsOwned ?? 0))}
               </DText>
               <DText style={stakingStyles.label} fontStyle="fontRegular">
                 Available

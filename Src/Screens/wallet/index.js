@@ -18,6 +18,8 @@ import MyCryptoCard from './MyCryptoCard';
 import AppContext from '../../../AppContext';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
+import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList';
+import {useNftsForAddress} from '../../hooks/useNftsForAddress';
 
 const ITEMS = [
   {
@@ -44,6 +46,15 @@ export default function Wallet(props) {
   const {walletBalances, refreshBalances} = useAuth();
   const [pullToRefreshLoading, setPullToRefreshLoading] = useState(false);
   const scrollViewRef = useRef();
+
+  const {userDetails} = useAuth();
+
+  const account = userDetails?.userWallet;
+
+  const {nfts, isLoading, refresh} = useNftsForAddress({
+    account: account,
+  });
+
   const formatValue = (value, fixed) => {
     if (value === undefined || value === null) {
       return '0.00';
@@ -213,6 +224,12 @@ export default function Wallet(props) {
           <View style={style.dividerCoins} />
           <View style={style.myCryptosContainer}>
             <Text style={style.HeaderFont}>My Certificates</Text>
+            <MyCertificatesList
+              nfts={nfts ?? []}
+              isLoading={isLoading}
+              refresh={refresh}
+              containerStyle={{marginLeft: 20}}
+            />
           </View>
 
           {/* <FlatList

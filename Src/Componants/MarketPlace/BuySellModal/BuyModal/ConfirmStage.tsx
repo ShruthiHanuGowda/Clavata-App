@@ -23,7 +23,7 @@ const ConfirmStage = ({isConfirming, handleConfirm}: ConfirmStageProps) => {
       {isConfirming ? (
         <ActivityIndicator
           size="large"
-          color="#008060"
+          color="#81c8c3"
           style={{marginVertical: 20}}
         />
       ) : (
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    backgroundColor: '#008060',
+    backgroundColor: '#81c8c3',
     padding: 14,
     borderRadius: 8,
     alignItems: 'center',

@@ -30,6 +30,7 @@ import ProfileNFTsScreen from '../Screens/MarketPlaceNew/ProfileNFTsScreen';
 import Stake from '../Screens/Stake';
 import ValidatorDetailsScreen from '../Screens/Stake/ValidatorDetailsScreen';
 import StakeScreen from '../Screens/Stake/StakeScreen';
+import WalletNFTDetailsScreen from '../Screens/MarketPlaceNew/NFTDetailsPageNew';
 
 type AuthStackParamList = {
   login: {magicProps: any};
@@ -101,6 +102,11 @@ function RootScreenStack() {
       <RootStack.Screen
         name="ProfileNFTs"
         component={ProfileNFTsScreen}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="walletNFTDetails"
+        component={WalletNFTDetailsScreen}
         options={{headerShown: false}}
       />
       <RootStack.Screen name="appScreens" component={Tabs} />

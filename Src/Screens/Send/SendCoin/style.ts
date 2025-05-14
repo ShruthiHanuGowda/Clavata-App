@@ -51,7 +51,7 @@ export default StyleSheet.create<Styles>({
   seeAll: {
     fontFamily: fontsFamily.MulishSemiBold,
     fontSize: 12,
-    color: '#008060',
+    color: '#81c8c3',
     textAlign: 'center',
     //   lineHeight:
   },

@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   selectedTab: {
-    backgroundColor: '#008060',
+    backgroundColor: '#81c8c3',
     borderColor: '#006a52',
     shadowOpacity: 0.2,
     elevation: 4,

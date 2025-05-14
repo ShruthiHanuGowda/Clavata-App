@@ -10,39 +10,40 @@ import {ScreenWidth} from '@rneui/base';
 interface Props {
   nft: NftToken;
   refresh: () => void;
+  containerStyle?: object;
 }
 type NavigationProps = NavigationProp<any, any>;
 
-const MyCertificateCard = ({nft, refresh}: Props) => {
+const MyCertificateCard = ({nft, refresh, containerStyle}: Props) => {
   const [clickedSellNft, setClickedSellNft] = useState<any>({});
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
 
   const navigation = useNavigation<NavigationProps>();
   const handlePress = () => {
-    navigation.navigate('NFTDetailsPage', {nft});
+    navigation.navigate('walletNFTDetails', {nft});
   };
 
   const handleCollectibleClick = (location?: NftLocation) => {
-    switch (location) {
-      case NftLocation.WALLET:
-        setClickedSellNft({nft, location, variant: 'sell'});
-        setIsSellModalVisible(true);
-        break;
-      case NftLocation.FORSALE:
-        setClickedSellNft({nft, location, variant: 'adjust'});
-        setIsSellModalVisible(true);
-        break;
-      default:
-        handlePress();
-        break;
-    }
+    // switch (location) {
+    //   case NftLocation.WALLET:
+    //     setClickedSellNft({nft, location, variant: 'sell'});
+    //     setIsSellModalVisible(true);
+    //     break;
+    //   case NftLocation.FORSALE:
+    //     setClickedSellNft({nft, location, variant: 'adjust'});
+    //     setIsSellModalVisible(true);
+    //     break;
+    //   default:
+    handlePress();
+    // break;
+    // }
   };
   const height = 21;
   const width = 71;
   return (
     <>
       <TouchableOpacity
-        style={marketStyles.container}
+        style={[marketStyles.container, containerStyle]}
         onPress={() => handleCollectibleClick(nft.location)}
         activeOpacity={0.5}>
         <View style={marketStyles.image}>
@@ -60,7 +61,7 @@ const MyCertificateCard = ({nft, refresh}: Props) => {
           <DText
             style={marketStyles.coinTitle}
             fontStyle="fontBold"
-            textProps={{numberOfLines: 1}}>
+            textProps={{numberOfLines: 1, ellipsizeMode: 'middle'}}>
             {nft.name}
           </DText>
           {/* <DText style={marketStyles.coinCode} fontStyle="fontSemiBold">
@@ -109,7 +110,6 @@ const marketStyles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     marginBottom: 15,
-    // marginLeft: 20,
     width: ScreenWidth - 40,
   },
   image: {
@@ -133,7 +133,7 @@ const marketStyles = StyleSheet.create({
   },
   info: {
     marginRight: 40,
-    width: 120,
+    width: 140,
   },
   content: {
     flex: 1,

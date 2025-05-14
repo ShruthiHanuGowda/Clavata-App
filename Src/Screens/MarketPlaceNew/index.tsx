@@ -9,9 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {navigate} from '../../Navigation/NavigationFunctions';
-import ListingHeader from '../../Componants/MarketPlace/ListingHeader';
 import CollectionCard from '../../Componants/MarketPlace/CollectionCard';
-import {TouchableOpacity} from 'react-native-gesture-handler';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
 import useCollections from '../../hooks/useCollections';
 
@@ -46,7 +44,7 @@ const CollectionListingPage: React.FC = () => {
         }>
         {isLoading ? (
           <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#008060" />
+            <ActivityIndicator size="large" color="#81c8c3" />
             <Text style={styles.loaderText}>Loading Collections...</Text>
           </View>
         ) : (
@@ -96,7 +94,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 5,
     padding: 12,
-    backgroundColor: '#008060',
+    backgroundColor: '#81c8c3',
     borderRadius: 10,
     alignItems: 'center',
   },
@@ -122,7 +120,7 @@ const styles = StyleSheet.create({
   loaderText: {
     marginTop: 10,
     fontSize: 18,
-    color: '#008060',
+    color: '#81c8c3',
   },
 });
 

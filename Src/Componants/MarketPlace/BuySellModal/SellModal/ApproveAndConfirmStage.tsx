@@ -53,7 +53,7 @@ const ApproveAndConfirmStage: React.FC<ApproveAndConfirmStageProps> = ({
 
       {isApproving && (
         <View style={styles.spinnerContainer}>
-          <ActivityIndicator size="large" color="#008060" />
+          <ActivityIndicator size="large" color="#81c8c3" />
         </View>
       )}
 
@@ -103,7 +103,7 @@ const ApproveAndConfirmStage: React.FC<ApproveAndConfirmStageProps> = ({
 
       {isConfirming && (
         <View style={styles.spinnerContainer}>
-          <ActivityIndicator size="large" color="#008060" />
+          <ActivityIndicator size="large" color="#81c8c3" />
         </View>
       )}
 
@@ -139,16 +139,16 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#008060',
+    backgroundColor: '#81c8c3',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
   },
   stepSuccess: {
-    backgroundColor: '#008060',
+    backgroundColor: '#81c8c3',
   },
   stepActive: {
-    backgroundColor: '#008060',
+    backgroundColor: '#81c8c3',
   },
   stepDisabled: {
     backgroundColor: '#e0e0e0',
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   successText: {
-    color: '#008060',
+    color: '#81c8c3',
   },
   secondaryText: {
     color: '#6c757d',
@@ -191,10 +191,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     marginBottom: 16,
-    backgroundColor: '#008060',
+    backgroundColor: '#81c8c3',
   },
   primaryButton: {
-    backgroundColor: '#008060',
+    backgroundColor: '#81c8c3',
   },
   secondaryButton: {
     backgroundColor: '#6c757d',

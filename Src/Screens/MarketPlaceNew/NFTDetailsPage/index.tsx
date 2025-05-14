@@ -77,7 +77,7 @@ const NFTDetailsScreen: React.FC<NFTDetailsScreenProps> = ({route}) => {
   if (isLoading || !combinedNft) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#008060" />
+        <ActivityIndicator size="large" color="#81c8c3" />
         <Text style={styles.loadingText}>Fetching NFT Details...</Text>
       </View>
     );

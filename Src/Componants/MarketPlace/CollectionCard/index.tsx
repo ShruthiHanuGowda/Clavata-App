@@ -32,7 +32,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
       <View style={styles.imageWrapper}>
         {loading && (
           <View style={styles.loader}>
-            <ActivityIndicator size="small" color="#008060" />
+            <ActivityIndicator size="small" color="#81c8c3" />
           </View>
         )}
         <Image
