@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import {
   View,
   Text,
@@ -48,7 +48,7 @@ enum SellingStage {
 
 interface SellModalProps {
   visible: boolean;
-  variant?: 'sell' | 'adjust';
+  variant?: 'sell' | 'adjust' | 'transfer';
   onClose: () => void;
   nftToSell: NftToken;
   onSuccessSale: () => void;
@@ -100,7 +100,27 @@ const SellModal: React.FC<SellModalProps> = ({
   onSuccessSale,
 }) => {
   const [stage, setStage] = useState<SellingStage>(
-    variant === 'sell' ? SellingStage.SELL : SellingStage.EDIT,
+    variant === 'sell'
+      ? SellingStage.SELL
+      : variant === 'adjust'
+      ? SellingStage.EDIT
+      : variant === 'transfer'
+      ? SellingStage.TRANSFER
+      : SellingStage.SELL,
+  );
+
+  useMemo(
+    () =>
+      setStage(
+        variant === 'sell'
+          ? SellingStage.SELL
+          : variant === 'adjust'
+          ? SellingStage.EDIT
+          : variant === 'transfer'
+          ? SellingStage.TRANSFER
+          : SellingStage.SELL,
+      ),
+    [variant],
   );
 
   const [price, setPrice] = useState<string>('');

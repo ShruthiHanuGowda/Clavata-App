@@ -67,6 +67,7 @@ export interface TokenMarketData {
   latestTradedPriceInUSDC?: string;
   tradeVolumeBNB?: string;
   totalTrades?: string;
+  tradeVolumeUSDC?: string;
   totalListed?: string;
   otherId?: string;
   quantity?: number;

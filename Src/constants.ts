@@ -32,4 +32,4 @@ export const API_NFT_URL =
   'https://y2veqyu78j.execute-api.me-central-1.amazonaws.com/default';
 
 export const GRAPH_API_NFTMARKET =
-  'http://54.82.255.11:8000/subgraphs/name/nftmarket-subgraph';
+  'https://nftmarket-subgraph.wattswaps.com/subgraphs/name/nftmarket-subgraph';

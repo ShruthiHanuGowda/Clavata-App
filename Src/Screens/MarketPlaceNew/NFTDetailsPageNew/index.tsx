@@ -7,6 +7,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import {Header, Tab} from '@rneui/base';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
@@ -19,6 +20,9 @@ import {formatQuantityMWh} from '../../../utils';
 import {useCompleteNft} from '../../../hooks/useCompleteNft';
 import {NftLocation} from '../../../types/types';
 import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
+import useApi from '../../../hooks/useApi';
+import {API_NFT_URL} from '../../../constants';
+import useNftActivity from '../../../hooks/useNftActivity';
 
 const width = Dimensions.get('window').width;
 
@@ -57,50 +61,10 @@ const NFTHeader = ({name, quantity}) => (
 
 const WalletNFTDetailsScreen = ({route}) => {
   const {nft} = route.params;
-  console.log('🚀 ~ nft:', nft);
-
   const [index, setIndex] = useState(0);
   const [clickedSellNft, setClickedSellNft] = useState<any>({});
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
   const TAB_ITEMS = ['Details', 'Sellers', 'Activity'];
-
-  const sellers = [
-    {
-      id: '0xa8b4856...1',
-      amount: '15000000',
-      askPrice: '2',
-      timestamp: '1746808244',
-      seller: {
-        id: '0xfbf8f51692d205cdcbd45873235ab1284a2332d2',
-      },
-    },
-    {
-      id: '0xa8b4xyz...2',
-      amount: '5000000',
-      askPrice: '1.5',
-      timestamp: '1746809250',
-      seller: {
-        id: '0xabc1234567890defabc1234567890defabc12345',
-      },
-    },
-  ];
-
-  const activityData = [
-    {
-      event: 'Sale',
-      price: '2',
-      from: '0xabc1234567890defabc1234567890defabc12345',
-      to: '0xdef678901234abcddef678901234abcddef67890',
-      timestamp: '1746786978',
-    },
-    {
-      event: 'Transfer',
-      price: '1.5',
-      from: '0x456abc789def0123456abc789def0123456abc78',
-      to: '0x789def456abc0123789def456abc0123789def45',
-      timestamp: '1746790000',
-    },
-  ];
 
   const handleCollectibleClick = (location?: NftLocation) => {
     switch (location) {
@@ -117,24 +81,39 @@ const WalletNFTDetailsScreen = ({route}) => {
     }
   };
 
-  // const {
-  //   nft: combinedNft,
-  //   loading: isLoading,
-  //   refetch,
-  // } = useCompleteNft(nft.id);
+  const {
+    nft: combinedNft,
+    loading: isLoading,
+    refetch,
+  } = useCompleteNft(`${nft?.collectionAddress}-${nft?.tokenId}`);
 
-  // console.log('combinedNft', combinedNft);
+  const {data, isLoading: isCollectionLoading} = useApi<any>(
+    `${API_NFT_URL}/nftMarketplace_getCollectionTokens?contractAddress=${nft?.collectionAddress}&tokenId=${nft?.tokenId}`,
+    {method: 'GET'},
+  );
 
-  // const hasTokenData = combinedNft?.tokenId && combinedNft?.collectionAddress;
+  const hasTokenData = combinedNft?.tokenId && combinedNft?.collectionAddress;
 
-  // if (isLoading || !combinedNft) {
-  //   return (
-  //     <View style={styles.loadingContainer}>
-  //       <ActivityIndicator size="large" color="#81c8c3" />
-  //       <Text style={styles.loadingText}>Fetching NFT Details...</Text>
-  //     </View>
-  //   );
-  // }
+  const {
+    activity,
+    loading: activityLoading,
+    error: activityError,
+    refetch: refetchActivity,
+  } = useNftActivity(
+    hasTokenData ? combinedNft.tokenId : '',
+    hasTokenData ? combinedNft.collectionAddress : '',
+  );
+
+  const owners = combinedNft?.marketData?.activeAsks || [];
+
+  if (isLoading || isCollectionLoading || !combinedNft) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#81c8c3" />
+        <Text style={styles.loadingText}>Fetching NFT Details...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -183,7 +162,14 @@ const WalletNFTDetailsScreen = ({route}) => {
                 <ActionButton
                   icon={images.sendIcon}
                   label="Send"
-                  onPress={() => handleCollectibleClick(nft.location)}
+                  onPress={() => {
+                    setClickedSellNft({
+                      nft,
+                      location: nft.location,
+                      variant: 'transfer',
+                    });
+                    setIsSellModalVisible(true);
+                  }}
                 />
                 <ActionButton
                   icon={images.buyIcon}
@@ -223,26 +209,37 @@ const WalletNFTDetailsScreen = ({route}) => {
           {index === 0 && (
             <View style={styles.detailsContainer}>
               {[
-                ['Collection Name', `${nft?.name}`],
-                ['Symbol', 'IS2025'],
-                ['Year', '2025'],
-                ['Country', 'India'],
+                [
+                  'Collection Name',
+                  `${data?.collectionDetails?.collectionName}`,
+                ],
+                ['Symbol', `${data?.collectionDetails?.symbol}`],
+                ['Year', `${data?.collectionDetails?.year}`],
+                ['Country', `${data?.collectionDetails?.country}`],
                 [
                   'Contract Address',
-                  '0xb18c23b04e82ce8ba14597966e25f63343e346b7',
+                  `${data?.collectionDetails?.contractAddress}`,
                 ],
-                ['Owner Address', '0x756Ba4Bd0eFEd10c5F5C3C76f15893d0bB2387A4'],
-                ['Type', 'Solar'],
-                ['Token ID', '1'],
+                ['Owner Address', `${data?.collectionDetails?.ownerAddress}`],
+                ['Type', `${data?.collectionDetails?.type}`],
+                ['Token ID', `${data?.tokenId}`],
                 [
                   'Metadata URL',
-                  'https://nfts-data.s3.me-central-1.amazonaws.com/BH2024/1.json',
+                  `${combinedNft?.marketData?.metadataUrl ?? '-'}`,
                 ],
-                ['Trade Volume (USDC)', '100'],
-                ['Latest Traded Price (USDC)', '10'],
-                ['Total Trades', '1'],
-                ['Total Listed', `${nft?.totalListed ?? 0}`],
-                ['Tradable', 'Yes'],
+                [
+                  'Trade Volume (USDC)',
+                  `${combinedNft?.marketData?.tradeVolumeUSDC ?? '-'}`,
+                ],
+                [
+                  'Latest Traded Price (USDC)',
+                  `${combinedNft?.marketData?.latestTradedPriceInUSDC ?? '-'}`,
+                ],
+                [
+                  'Total Trades',
+                  `${combinedNft?.marketData?.totalTrades ?? 0}`,
+                ],
+                ['Total Listed', `${nft?.marketData?.totalListed ?? 0}`],
               ].map(([title, value], idx) => (
                 <View key={idx} style={styles.detailRow}>
                   <Text
@@ -263,70 +260,82 @@ const WalletNFTDetailsScreen = ({route}) => {
           )}
           {index === 1 && (
             <>
-              {sellers.map((item, idx) => (
-                <View key={idx} style={styles.sellerContainer}>
-                  <View style={styles.sellerRow}>
-                    <Text style={styles.sellerLabel}>Price:</Text>
-                    <Text style={styles.sellerValue}>
-                      $ {item.askPrice} Per MWh
-                    </Text>
+              {owners.length > 0 ? (
+                owners.map((item, idx) => (
+                  <View key={idx} style={styles.sellerContainer}>
+                    <View style={styles.sellerRow}>
+                      <Text style={styles.sellerLabel}>Price:</Text>
+                      <Text style={styles.sellerValue}>
+                        $ {item.askPrice} Per MWh
+                      </Text>
+                    </View>
+                    <View style={styles.sellerRow}>
+                      <Text style={styles.sellerLabel}>Qty:</Text>
+                      <Text style={styles.sellerValue}>
+                        {formatQuantityMWh(Number(item.amount ?? 0))}
+                      </Text>
+                    </View>
+                    <View style={styles.sellerRow}>
+                      <Text style={styles.sellerLabel}>Seller:</Text>
+                      <Text
+                        style={styles.sellerValue}
+                        numberOfLines={1}
+                        ellipsizeMode="middle">
+                        {item.seller.id}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.sellerRow}>
-                    <Text style={styles.sellerLabel}>Qty:</Text>
-                    <Text style={styles.sellerValue}>
-                      {formatQuantityMWh(Number(item.amount ?? 0))}
-                    </Text>
-                  </View>
-                  <View style={styles.sellerRow}>
-                    <Text style={styles.sellerLabel}>Seller:</Text>
-                    <Text
-                      style={styles.sellerValue}
-                      numberOfLines={1}
-                      ellipsizeMode="middle">
-                      {item.seller.id}
-                    </Text>
-                  </View>
-                </View>
-              ))}
+                ))
+              ) : (
+                <Text style={styles.emptyText}>No sellers found.</Text>
+              )}
             </>
           )}
           {index === 2 && (
             <View>
-              {activityData.map((item, idx) => (
-                <View key={idx} style={styles.activityCard}>
-                  <View style={styles.activityHeader}>
-                    <Text style={styles.activityEvent}>{item.event}</Text>
-                    <Text style={styles.activityPrice}>${item.price} USDC</Text>
-                  </View>
+              {activity && activity.length > 0 ? (
+                activity.map((item, idx) => (
+                  <View key={idx} style={styles.activityCard}>
+                    <View style={styles.activityHeader}>
+                      <Text style={styles.activityEvent}>
+                        {item.marketEvent}
+                      </Text>
+                      <Text style={styles.activityPrice}>${item.price}</Text>
+                    </View>
 
-                  <View style={styles.activityDetailRow}>
-                    <Text style={styles.activityLabel}>From</Text>
-                    <Text
-                      style={styles.activityValue}
-                      numberOfLines={1}
-                      ellipsizeMode="middle">
-                      {item.from}
-                    </Text>
-                  </View>
+                    <View style={styles.activityDetailRow}>
+                      <Text style={styles.activityLabel}>From</Text>
+                      <Text
+                        style={styles.activityValue}
+                        numberOfLines={1}
+                        ellipsizeMode="middle">
+                        {item.seller ?? '-'}
+                      </Text>
+                    </View>
 
-                  <View style={styles.activityDetailRow}>
-                    <Text style={styles.activityLabel}>To</Text>
-                    <Text
-                      style={styles.activityValue}
-                      numberOfLines={1}
-                      ellipsizeMode="middle">
-                      {item.to}
-                    </Text>
-                  </View>
+                    <View style={styles.activityDetailRow}>
+                      <Text style={styles.activityLabel}>To</Text>
+                      <Text
+                        style={styles.activityValue}
+                        numberOfLines={1}
+                        ellipsizeMode="middle">
+                        {item.buyer ?? '-'}
+                      </Text>
+                    </View>
 
-                  <View style={styles.activityDetailRow}>
-                    <Text style={styles.activityLabel}>Date</Text>
-                    <Text style={styles.activityValue}>
-                      {new Date(Number(item.timestamp) * 1000).toLocaleString()}
-                    </Text>
+                    <View style={styles.activityDetailRow}>
+                      <Text style={styles.activityLabel}>Date</Text>
+                      <Text style={styles.activityValue}>
+                        {new Date(
+                          Number(item.timestamp) * 1000,
+                        ).toLocaleString()}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              ))}
+                ))
+              ) : (
+                <Text style={styles.emptyText}>No activity available.</Text>
+              )}
             </View>
           )}
         </View>
@@ -342,6 +351,8 @@ const WalletNFTDetailsScreen = ({route}) => {
         onSuccessSale={() => {
           setIsSellModalVisible(false);
           setClickedSellNft(null);
+          refetch();
+          refetchActivity();
         }}
       />
     </View>
@@ -545,6 +556,13 @@ const styles = StyleSheet.create({
     color: '#111',
     flex: 1,
     textAlign: 'right',
+  },
+  emptyText: {
+    fontFamily: fontsFamily.MulishBold,
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 
