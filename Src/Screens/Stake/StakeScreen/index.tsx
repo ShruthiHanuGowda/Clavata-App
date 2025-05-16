@@ -23,6 +23,7 @@ import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import styles from './styles';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
+import {useNFTStaking} from '../../../hooks/useNFTStaking';
 
 // Interface for component props
 interface StakeScreenProps {
@@ -42,6 +43,12 @@ const StakeScreen: React.FC<StakeScreenProps> = () => {
       '0x0000000000000000000000000000000000000000',
   });
 
+  const {
+    isLoading: isNFTStakingLoading,
+    error: nftStakingError,
+    delegateERC1155,
+  } = useNFTStaking();
+
   const {setActiveNetwork} = useMagic();
 
   // State for dropdown visibility
@@ -49,11 +56,14 @@ const StakeScreen: React.FC<StakeScreenProps> = () => {
 
   // State for selected NFT
   const [selectedNFT, setSelectedNFT] = useState<any>(null);
+  // console.log('🚀 ~ selectedNFT:', JSON.stringify(selectedNFT, null, 2));
 
   // State for amount input
   const [amount, setAmount] = useState<string>('');
   const [isAmountValid, setIsAmountValid] = useState<boolean>(false);
   const [amountError, setAmountError] = useState<string>('');
+  const [txHash, setTxHash] = useState<string>('');
+  const [txStatus, setTxStatus] = useState<string>('idle'); // 'idle', 'staking', 'success', 'failed'
 
   useEffect(() => {
     setActiveNetwork('denergy');
@@ -116,26 +126,68 @@ const StakeScreen: React.FC<StakeScreenProps> = () => {
     )}`;
   };
 
+  const handleStakeSuccess = result => {
+    console.log('Staking successful:', result);
+    setTxHash(result.txHash);
+    setTxStatus('success');
+
+    // Show success alert
+    Alert.alert(
+      'Staking Successful',
+      `Your NFT has been staked successfully!\n\nTransaction Hash: ${result.txHash.substring(
+        0,
+        10,
+      )}...`,
+      [{text: 'OK', onPress: () => console.log('OK')}],
+    );
+  };
+
   // Handle stake button press
-  const handleStake = (): void => {
-    // Final validation before staking
-    if (!amount || amount === '.' || amount === '0') {
-      setAmountError('Please enter a valid amount');
-      setIsAmountValid(false);
+  const handleStake = async () => {
+    // Input validation
+    if (!amount || parseFloat(amount) <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid amount to stake');
       return;
     }
 
-    if (!selectedNFT) {
+    if (
+      selectedNFT.marketData &&
+      parseFloat(amount) > parseFloat(selectedNFT.marketData.quantity)
+    ) {
+      Alert.alert(
+        'Insufficient Balance',
+        `You can't stake more than you own (${selectedNFT.marketData.quantity})`,
+      );
       return;
     }
 
-    console.log('Staking:', {
-      nftCollection: selectedNFT.collectionName,
-      collectionAddress: selectedNFT.collectionAddress,
-      tokenId: selectedNFT.tokenId,
-      amount: amount,
-    });
-    // Implement staking logic here
+    // Update status and start staking process
+    setTxStatus('staking');
+
+    try {
+      // Call delegateERC1155 function from our hook
+      // This function will handle approval checking and requesting internally
+      await delegateERC1155(
+        selectedNFT.contractAddress, // ERC1155 contract address
+        selectedNFT.tokenId, // Token ID
+        amount, // Amount to stake
+        handleStakeSuccess, // Success callback
+      );
+    } catch (err) {
+      console.error('Staking failed:', err);
+      setTxStatus('failed');
+
+      // Show error alert
+      Alert.alert(
+        'Staking Failed',
+        `There was an error while staking: ${err.message}`,
+        [{text: 'OK'}],
+      );
+    } finally {
+      if (txStatus !== 'success') {
+        setTxStatus('idle');
+      }
+    }
   };
 
   return (
@@ -229,9 +281,17 @@ const StakeScreen: React.FC<StakeScreenProps> = () => {
             {/* Stake Button */}
             <DButton
               onPress={handleStake}
+              loading={txStatus === 'staking' || isNFTStakingLoading}
               style={styles.stakeButton}
-              disabled={!selectedNFT || !isAmountValid}>
-              <Text style={styles.stakeButtonText}>Stake</Text>
+              disabled={
+                !selectedNFT ||
+                !isAmountValid ||
+                txStatus === 'staking' ||
+                isNFTStakingLoading
+              }>
+              <Text style={styles.stakeButtonText}>
+                {txStatus === 'staking' ? 'Staking...' : 'Stake'}
+              </Text>
             </DButton>
 
             {/* Bottom Sheet for NFT Selection */}

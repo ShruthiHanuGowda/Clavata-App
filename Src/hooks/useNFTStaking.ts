@@ -9,20 +9,15 @@ import {
 import {useMagic} from '../../screens/Provider/MagicProvider';
 import {useAuth} from '../../screens/Provider/authProvider';
 import {useWallet} from '../../screens/Provider/WalletProvider';
-import {STAKING_CONTRACT_ABI} from '../utils/Contracts';
+import {STAKING_CONTRACT_ABI, ERC1155_ABI} from '../utils/Contracts';
+import {STAKING_ADDRESS, STAKING_VALIDATOR_ADDRESS} from '../constants';
 
 // Contract address for the staking contract
-const STAKING_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000808';
+const STAKING_CONTRACT_ADDRESS = STAKING_ADDRESS;
+// Validator address imported from constants
+const VALIDATOR_ADDRESS = STAKING_VALIDATOR_ADDRESS;
 
 // Event interfaces for the event listeners
-interface CreateValidatorEvent {
-  validatorAddress: string;
-  erc1155Contract: string;
-  tokenId: string;
-  value: string;
-  transactionHash: string;
-}
-
 interface DelegateEvent {
   delegatorAddress: string;
   validatorAddress: string;
@@ -44,7 +39,6 @@ interface UnbondEvent {
 }
 
 // Callback types for the event listeners
-type CreateValidatorCallback = (event: CreateValidatorEvent) => void;
 type DelegateCallback = (event: DelegateEvent) => void;
 type UnbondCallback = (event: UnbondEvent) => void;
 
@@ -60,26 +54,6 @@ interface StakingSuccess {
 
 type SuccessCallback = (result: StakingSuccess) => void;
 
-// API call helper function (similar to your useBridge hook)
-const apiCall = async (transactionDetails: any, endPoint: string) => {
-  const apiUrl = `${'https://your-api-endpoint.com'}/staking_api/${endPoint}`;
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': 'YOUR_API_KEY',
-      },
-      body: JSON.stringify(transactionDetails),
-    });
-    const result = await response.json();
-    console.log('result', result);
-    return result;
-  } catch (error) {
-    console.error('API call failed:', error);
-  }
-};
-
 /**
  * Custom hook for NFT staking operations
  * @returns Staking state and functions
@@ -87,6 +61,7 @@ const apiCall = async (transactionDetails: any, endPoint: string) => {
 export const useNFTStaking = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isApproved, setIsApproved] = useState<boolean>(false);
 
   // Get magic instance from the provider (adjust network names as needed)
   const {magic_denergy, setActiveNetwork} = useMagic();
@@ -98,105 +73,132 @@ export const useNFTStaking = () => {
   const {refreshBalance} = useWallet();
 
   /**
-   * Create NFT validator
-   * @param validatorAddress - Address of the validator
-   * @param minSelfDelegation - Minimum self delegation amount
+   * Check if the staking contract is approved for ERC1155 tokens
    * @param erc1155Contract - Address of the ERC1155 contract
-   * @param tokenId - ID of the token
-   * @param value - Value to stake
-   * @param onSuccess - Optional callback for successful transaction
+   * @param ownerAddress - Address of the token owner
+   * @param operatorAddress - Address to check approval for (staking contract)
    */
-  const createNFTValidator = useCallback(
+  const checkApproval = useCallback(
     async (
-      validatorAddress: string,
-      minSelfDelegation: string,
       erc1155Contract: string,
-      tokenId: string,
-      value: string,
-      onSuccess?: SuccessCallback,
-    ): Promise<TransactionReceipt | undefined> => {
-      await setActiveNetwork('denergy');
+      ownerAddress: string,
+      operatorAddress: string = STAKING_CONTRACT_ADDRESS,
+    ): Promise<boolean> => {
+      console.log(
+        `[NFT Staking] Checking approval for ${operatorAddress} to handle tokens from ${ownerAddress}`,
+      );
+
       try {
         if (!magic_denergy) {
+          console.error('[NFT Staking] Magic SDK not available');
           throw new Error('Magic SDK not available');
         }
 
+        // Get Magic provider
+        const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
+
+        // Create contract instance for the ERC1155 token
+        const tokenContract = new Contract(
+          erc1155Contract,
+          ERC1155_ABI,
+          magicProvider,
+        );
+
+        // Check if approved
+        const approved = await tokenContract.isApprovedForAll(
+          ownerAddress,
+          operatorAddress,
+        );
+
+        console.log(`[NFT Staking] Approval status: ${approved}`);
+        setIsApproved(approved);
+        return approved;
+      } catch (err: any) {
+        console.error(
+          `[NFT Staking] Error checking approval: ${
+            err.message || 'Unknown error'
+          }`,
+        );
+        setError(err.message || 'Failed to check approval status');
+        return false;
+      }
+    },
+    [magic_denergy],
+  );
+
+  /**
+   * Set approval for the staking contract to handle ERC1155 tokens
+   * @param erc1155Contract - Address of the ERC1155 contract
+   * @param operatorAddress - Address to approve (staking contract)
+   */
+  const setApproval = useCallback(
+    async (
+      erc1155Contract: string,
+      operatorAddress: string = STAKING_CONTRACT_ADDRESS,
+    ): Promise<boolean> => {
+      console.log(
+        `[NFT Staking] Setting approval for ${operatorAddress} to handle tokens`,
+      );
+
+      try {
         setIsLoading(true);
         setError(null);
+
+        if (!magic_denergy) {
+          console.error('[NFT Staking] Magic SDK not available');
+          throw new Error('Magic SDK not available');
+        }
+
+        await setActiveNetwork('denergy');
+        console.log('[NFT Staking] Network set to denergy for approval');
 
         // Get Magic provider for signing transactions
         const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
         const signer = await magicProvider.getSigner();
-        const userAddress = await signer.getAddress();
 
-        // Initialize staking contract
-        const stakingContract = new Contract(
-          STAKING_CONTRACT_ADDRESS,
-          STAKING_CONTRACT_ABI,
+        // Create contract instance for the ERC1155 token
+        const tokenContract = new Contract(
+          erc1155Contract,
+          ERC1155_ABI,
           signer,
         );
 
-        // Convert values to proper format if needed
-        const valueInWei = parseUnits(value, 18); // Adjust decimals as needed for your token
-        const minSelfDelegationInWei = parseUnits(minSelfDelegation, 18);
-        const tokenIdBigInt = BigInt(tokenId);
+        // Set approval
+        console.log(
+          '[NFT Staking] Submitting setApprovalForAll transaction...',
+        );
+        const tx = await tokenContract.setApprovalForAll(operatorAddress, true);
+        console.log(`[NFT Staking] Approval transaction submitted: ${tx.hash}`);
 
-        // Call the createNFTValidator function
-        const tx = await stakingContract.createNFTValidator(
-          validatorAddress,
-          minSelfDelegationInWei,
-          erc1155Contract,
-          tokenIdBigInt,
-          valueInWei,
+        // Wait for transaction to be mined
+        console.log(
+          '[NFT Staking] Waiting for approval transaction confirmation...',
+        );
+        const receipt = await tx.wait();
+        console.log(
+          `[NFT Staking] Approval transaction confirmed in block: ${receipt?.blockNumber}`,
         );
 
-        // Wait for the transaction to be mined
-        const receipt = await tx.wait();
-
-        // Refresh balances if needed
-        refreshBalance('NFT');
-
-        // Call success callback if provided
-        if (onSuccess && typeof onSuccess === 'function' && receipt) {
-          const successData: StakingSuccess = {
-            txHash: receipt.hash,
-            userAddress: userAddress,
-            validatorAddress: validatorAddress,
-            erc1155Contract: erc1155Contract,
-            tokenId: tokenId,
-            amount: value,
-          };
-
-          // Create transaction details for API call
-          const transactionDetails = {
-            validatorAddress,
-            userAddress,
-            erc1155Contract,
-            tokenId,
-            amount: value,
-            hash: receipt.hash,
-          };
-          apiCall(transactionDetails, 'createNFTValidator').then();
-
-          onSuccess(successData);
-        }
-
-        return receipt;
+        setIsApproved(true);
+        return true;
       } catch (err: any) {
-        setError(err.message || 'Create validator transaction failed');
-        throw err;
+        console.error(
+          `[NFT Staking] Error setting approval: ${
+            err.message || 'Unknown error'
+          }`,
+        );
+        setError(err.message || 'Failed to approve staking contract');
+        return false;
       } finally {
         setIsLoading(false);
       }
     },
-    [magic_denergy, userDetails, refreshBalance, setActiveNetwork],
+    [magic_denergy, setActiveNetwork],
   );
 
   /**
    * Delegate ERC1155 tokens to a validator
    * @param erc1155Contract - Address of the ERC1155 contract
-   * @param delegatorAddress - Address of the delegator
-   * @param validatorAddress - Address of the validator
    * @param tokenId - ID of the token
    * @param amount - Amount to delegate
    * @param onSuccess - Optional callback for successful transaction
@@ -204,27 +206,71 @@ export const useNFTStaking = () => {
   const delegateERC1155 = useCallback(
     async (
       erc1155Contract: string,
-      delegatorAddress: string,
-      validatorAddress: string,
       tokenId: string,
       amount: string,
       onSuccess?: SuccessCallback,
     ): Promise<TransactionReceipt | undefined> => {
+      console.log(
+        `[NFT Staking] Starting delegate process for token ${tokenId}`,
+      );
+      console.log(
+        `[NFT Staking] Contract: ${erc1155Contract}, Amount: ${amount}`,
+      );
+      console.log(
+        `[NFT Staking] Using validator address: ${VALIDATOR_ADDRESS}`,
+      );
+
       await setActiveNetwork('denergy');
+      console.log('[NFT Staking] Network set to denergy');
+
       try {
         if (!magic_denergy) {
+          console.error('[NFT Staking] Magic SDK not available');
           throw new Error('Magic SDK not available');
         }
 
         setIsLoading(true);
         setError(null);
+        console.log('[NFT Staking] Initializing provider and signer');
 
         // Get Magic provider for signing transactions
         const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
         const signer = await magicProvider.getSigner();
-        const userAddr = await signer.getAddress();
+        const delegatorAddress = await signer.getAddress();
+        console.log(`[NFT Staking] Delegator address: ${delegatorAddress}`);
+
+        // Check if staking contract is approved to handle user's tokens
+        console.log('[NFT Staking] Checking if staking contract is approved');
+        const isApproved = await checkApproval(
+          erc1155Contract,
+          delegatorAddress,
+          STAKING_CONTRACT_ADDRESS,
+        );
+
+        // If not approved, set approval
+        if (!isApproved) {
+          console.log(
+            '[NFT Staking] Staking contract not approved, requesting approval',
+          );
+          const approvalSuccess = await setApproval(
+            erc1155Contract,
+            STAKING_CONTRACT_ADDRESS,
+          );
+
+          if (!approvalSuccess) {
+            console.error('[NFT Staking] Failed to approve staking contract');
+            throw new Error('Failed to approve staking contract');
+          }
+
+          console.log('[NFT Staking] Successfully approved staking contract');
+        } else {
+          console.log('[NFT Staking] Staking contract already approved');
+        }
 
         // Initialize staking contract
+        console.log(
+          `[NFT Staking] Initializing staking contract at ${STAKING_CONTRACT_ADDRESS}`,
+        );
         const stakingContract = new Contract(
           STAKING_CONTRACT_ADDRESS,
           STAKING_CONTRACT_ABI,
@@ -232,65 +278,77 @@ export const useNFTStaking = () => {
         );
 
         // Convert values to proper format
-        const amountInWei = parseUnits(amount, 18); // Adjust decimals as needed
+        const amountInWei = parseUnits(amount, 6); // Adjust decimals as needed
+        console.log('🚀 ~ useNFTStaking ~ amountInWei:', amountInWei);
         const tokenIdBigInt = BigInt(tokenId);
+        console.log(`[NFT Staking] Amount in Wei: ${amountInWei.toString()}`);
 
         // Call the delegateERC1155 function
+        console.log('[NFT Staking] Submitting delegate transaction...');
         const tx = await stakingContract.delegateERC1155(
           erc1155Contract,
           delegatorAddress,
-          validatorAddress,
+          VALIDATOR_ADDRESS, // Use the imported validator address
           tokenIdBigInt,
           amountInWei,
+          {gasLimit: 900000},
         );
+        console.log(`[NFT Staking] Transaction submitted: ${tx.hash}`);
 
         // Wait for the transaction to be mined
+        console.log('[NFT Staking] Waiting for transaction confirmation...');
         const receipt = await tx.wait();
+        console.log(
+          `[NFT Staking] Transaction confirmed in block: ${receipt?.blockNumber}`,
+        );
 
         // Refresh balances if needed
+        console.log('[NFT Staking] Refreshing NFT balance');
         refreshBalance('NFT');
 
         // Call success callback if provided
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
+          console.log('[NFT Staking] Preparing success callback data');
           const successData: StakingSuccess = {
             txHash: receipt.hash,
-            userAddress: userAddr,
-            validatorAddress: validatorAddress,
+            userAddress: delegatorAddress,
+            validatorAddress: VALIDATOR_ADDRESS,
             erc1155Contract: erc1155Contract,
             tokenId: tokenId,
             amount: amount,
           };
 
-          // Create transaction details for API call
-          const transactionDetails = {
-            delegatorAddress,
-            validatorAddress,
-            erc1155Contract,
-            tokenId,
-            amount,
-            hash: receipt.hash,
-          };
-          apiCall(transactionDetails, 'delegateERC1155').then();
-
+          console.log('[NFT Staking] Calling success callback');
           onSuccess(successData);
         }
 
+        console.log('[NFT Staking] Delegation completed successfully');
         return receipt;
       } catch (err: any) {
+        console.error(
+          `[NFT Staking] Delegate error: ${err.message || 'Unknown error'}`,
+        );
+        console.error(err);
         setError(err.message || 'Delegate transaction failed');
         throw err;
       } finally {
         setIsLoading(false);
+        console.log('[NFT Staking] Delegate process finished');
       }
     },
-    [magic_denergy, userDetails, refreshBalance, setActiveNetwork],
+    [
+      magic_denergy,
+      userDetails,
+      refreshBalance,
+      setActiveNetwork,
+      checkApproval,
+      setApproval,
+    ],
   );
 
   /**
    * Undelegate ERC1155 tokens from a validator
    * @param erc1155Contract - Address of the ERC1155 contract
-   * @param delegatorAddress - Address of the delegator
-   * @param validatorAddress - Address of the validator
    * @param tokenId - ID of the token
    * @param amount - Amount to undelegate
    * @param onSuccess - Optional callback for successful transaction
@@ -298,29 +356,45 @@ export const useNFTStaking = () => {
   const undelegateERC1155 = useCallback(
     async (
       erc1155Contract: string,
-      delegatorAddress: string,
-      validatorAddress: string,
       tokenId: string,
       amount: string,
       onSuccess?: SuccessCallback,
     ): Promise<
       {receipt: TransactionReceipt; completionTime: string} | undefined
     > => {
+      console.log(
+        `[NFT Staking] Starting undelegate process for token ${tokenId}`,
+      );
+      console.log(
+        `[NFT Staking] Contract: ${erc1155Contract}, Amount: ${amount}`,
+      );
+      console.log(
+        `[NFT Staking] Using validator address: ${VALIDATOR_ADDRESS}`,
+      );
+
       await setActiveNetwork('denergy');
+      console.log('[NFT Staking] Network set to denergy');
+
       try {
         if (!magic_denergy) {
+          console.error('[NFT Staking] Magic SDK not available');
           throw new Error('Magic SDK not available');
         }
 
         setIsLoading(true);
         setError(null);
+        console.log('[NFT Staking] Initializing provider and signer');
 
         // Get Magic provider for signing transactions
         const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
         const signer = await magicProvider.getSigner();
-        const userAddr = await signer.getAddress();
+        const delegatorAddress = await signer.getAddress();
+        console.log(`[NFT Staking] Delegator address: ${delegatorAddress}`);
 
         // Initialize staking contract
+        console.log(
+          `[NFT Staking] Initializing staking contract at ${STAKING_CONTRACT_ADDRESS}`,
+        );
         const stakingContract = new Contract(
           STAKING_CONTRACT_ADDRESS,
           STAKING_CONTRACT_ABI,
@@ -330,66 +404,72 @@ export const useNFTStaking = () => {
         // Convert values to proper format
         const amountInWei = parseUnits(amount, 18); // Adjust decimals as needed
         const tokenIdBigInt = BigInt(tokenId);
+        console.log(`[NFT Staking] Amount in Wei: ${amountInWei.toString()}`);
 
         // Call the undelegateERC1155 function
+        console.log('[NFT Staking] Submitting undelegate transaction...');
         const tx = await stakingContract.undelegateERC1155(
           erc1155Contract,
           delegatorAddress,
-          validatorAddress,
+          VALIDATOR_ADDRESS, // Use the imported validator address
           tokenIdBigInt,
           amountInWei,
         );
+        console.log(`[NFT Staking] Transaction submitted: ${tx.hash}`);
 
         // Wait for the transaction to be mined
+        console.log('[NFT Staking] Waiting for transaction confirmation...');
         const receipt = await tx.wait();
+        console.log(
+          `[NFT Staking] Transaction confirmed in block: ${receipt?.blockNumber}`,
+        );
 
         // Get the completion time from the result
         let completionTime = '';
         try {
+          console.log('[NFT Staking] Retrieving completion time');
           const result = await tx;
           completionTime = result.toString();
+          console.log(`[NFT Staking] Completion time: ${completionTime}`);
         } catch (err) {
-          console.error('Failed to get completion time', err);
+          console.error('[NFT Staking] Failed to get completion time', err);
         }
 
         // Refresh balances if needed
+        console.log('[NFT Staking] Refreshing NFT balance');
         refreshBalance('NFT');
 
         // Call success callback if provided
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
+          console.log('[NFT Staking] Preparing success callback data');
           const successData: StakingSuccess = {
             txHash: receipt.hash,
-            userAddress: userAddr,
-            validatorAddress: validatorAddress,
+            userAddress: delegatorAddress,
+            validatorAddress: VALIDATOR_ADDRESS,
             erc1155Contract: erc1155Contract,
             tokenId: tokenId,
             amount: amount,
           };
 
-          // Create transaction details for API call
-          const transactionDetails = {
-            delegatorAddress,
-            validatorAddress,
-            erc1155Contract,
-            tokenId,
-            amount,
-            hash: receipt.hash,
-            completionTime,
-          };
-          apiCall(transactionDetails, 'undelegateERC1155').then();
-
+          console.log('[NFT Staking] Calling success callback');
           onSuccess(successData);
         }
 
+        console.log('[NFT Staking] Undelegation completed successfully');
         return {
           receipt,
           completionTime,
         };
       } catch (err: any) {
+        console.error(
+          `[NFT Staking] Undelegate error: ${err.message || 'Unknown error'}`,
+        );
+        console.error(err);
         setError(err.message || 'Undelegate transaction failed');
         throw err;
       } finally {
         setIsLoading(false);
+        console.log('[NFT Staking] Undelegate process finished');
       }
     },
     [magic_denergy, userDetails, refreshBalance, setActiveNetwork],
@@ -397,24 +477,27 @@ export const useNFTStaking = () => {
 
   /**
    * Listen for staking-related events
-   * @param onCreateValidator - Callback for CreateNFTValidator events
    * @param onDelegate - Callback for DelegateNFT events
    * @param onUnbond - Callback for UnbondNFT events
    * @returns A cleanup function to remove all listeners
    */
   const listenForEvents = useCallback(
-    (
-      onCreateValidator?: CreateValidatorCallback,
-      onDelegate?: DelegateCallback,
-      onUnbond?: UnbondCallback,
-    ) => {
+    (onDelegate?: DelegateCallback, onUnbond?: UnbondCallback) => {
       if (!magic_denergy) {
+        console.error(
+          '[NFT Staking] Magic SDK not available for event listeners',
+        );
         setError('Magic SDK not available');
         return () => {};
       }
 
+      console.log('[NFT Staking] Setting up event listeners');
+
       const setupListeners = async () => {
         try {
+          console.log(
+            '[NFT Staking] Initializing provider for event listeners',
+          );
           const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
           const stakingContract = new Contract(
             STAKING_CONTRACT_ADDRESS,
@@ -423,27 +506,12 @@ export const useNFTStaking = () => {
           );
 
           // Clean up any existing listeners first
+          console.log('[NFT Staking] Removing any existing listeners');
           stakingContract.removeAllListeners();
-
-          // Set up CreateNFTValidator event listener
-          if (onCreateValidator) {
-            const createFilter = stakingContract.filters.CreateNFTValidator();
-            stakingContract.on(
-              createFilter,
-              (validatorAddress, erc1155Contract, tokenId, value, event) => {
-                onCreateValidator({
-                  validatorAddress,
-                  erc1155Contract,
-                  tokenId: tokenId.toString(),
-                  value: formatUnits(value, 18), // Adjust decimals as needed
-                  transactionHash: event.transactionHash,
-                });
-              },
-            );
-          }
 
           // Set up DelegateNFT event listener
           if (onDelegate) {
+            console.log('[NFT Staking] Setting up DelegateNFT event listener');
             const delegateFilter = stakingContract.filters.DelegateNFT();
             stakingContract.on(
               delegateFilter,
@@ -456,6 +524,19 @@ export const useNFTStaking = () => {
                 newShares,
                 event,
               ) => {
+                console.log(
+                  `[NFT Staking] DelegateNFT event detected: ${event.transactionHash}`,
+                );
+                console.log(
+                  `[NFT Staking] Delegator: ${delegatorAddress}, Validator: ${validatorAddress}`,
+                );
+                console.log(
+                  `[NFT Staking] TokenId: ${tokenId}, Amount: ${formatUnits(
+                    amount,
+                    18,
+                  )}`,
+                );
+
                 onDelegate({
                   delegatorAddress,
                   validatorAddress,
@@ -471,6 +552,7 @@ export const useNFTStaking = () => {
 
           // Set up UnbondNFT event listener
           if (onUnbond) {
+            console.log('[NFT Staking] Setting up UnbondNFT event listener');
             const unbondFilter = stakingContract.filters.UnbondNFT();
             stakingContract.on(
               unbondFilter,
@@ -483,6 +565,22 @@ export const useNFTStaking = () => {
                 completionTime,
                 event,
               ) => {
+                console.log(
+                  `[NFT Staking] UnbondNFT event detected: ${event.transactionHash}`,
+                );
+                console.log(
+                  `[NFT Staking] Delegator: ${delegatorAddress}, Validator: ${validatorAddress}`,
+                );
+                console.log(
+                  `[NFT Staking] TokenId: ${tokenId}, Amount: ${formatUnits(
+                    amount,
+                    18,
+                  )}`,
+                );
+                console.log(
+                  `[NFT Staking] Completion Time: ${completionTime.toString()}`,
+                );
+
                 onUnbond({
                   delegatorAddress,
                   validatorAddress,
@@ -495,8 +593,10 @@ export const useNFTStaking = () => {
               },
             );
           }
+
+          console.log('[NFT Staking] Event listeners successfully set up');
         } catch (err) {
-          console.error('Failed to set up event listeners:', err);
+          console.error('[NFT Staking] Failed to set up event listeners:', err);
           setError('Failed to set up event listeners');
         }
       };
@@ -505,6 +605,7 @@ export const useNFTStaking = () => {
 
       // Return cleanup function
       return () => {
+        console.log('[NFT Staking] Cleaning up event listeners');
         const cleanup = async () => {
           try {
             const magicProvider = new BrowserProvider(
@@ -516,8 +617,12 @@ export const useNFTStaking = () => {
               magicProvider,
             );
             stakingContract.removeAllListeners();
+            console.log('[NFT Staking] All event listeners removed');
           } catch (err) {
-            console.error('Failed to remove event listeners:', err);
+            console.error(
+              '[NFT Staking] Failed to remove event listeners:',
+              err,
+            );
           }
         };
         cleanup();
@@ -532,6 +637,7 @@ export const useNFTStaking = () => {
       const cleanup = async () => {
         if (magic_denergy) {
           try {
+            console.log('[NFT Staking] Cleaning up event listeners on unmount');
             const magicProvider = new BrowserProvider(
               magic_denergy.rpcProvider,
             );
@@ -541,8 +647,12 @@ export const useNFTStaking = () => {
               magicProvider,
             );
             stakingContract.removeAllListeners();
+            console.log('[NFT Staking] All event listeners removed on unmount');
           } catch (err) {
-            console.error('Failed to remove event listeners:', err);
+            console.error(
+              '[NFT Staking] Failed to remove event listeners on unmount:',
+              err,
+            );
           }
         }
       };
@@ -550,10 +660,17 @@ export const useNFTStaking = () => {
     };
   }, [magic_denergy]);
 
+  console.log(
+    '[NFT Staking] Hook initialized with validator:',
+    VALIDATOR_ADDRESS,
+  );
+
   return {
     isLoading,
     error,
-    createNFTValidator,
+    isApproved,
+    checkApproval,
+    setApproval,
     delegateERC1155,
     undelegateERC1155,
     listenForEvents,
