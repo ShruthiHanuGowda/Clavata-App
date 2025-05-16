@@ -57,7 +57,7 @@ const SellStage: React.FC<SellStageProps> = ({
           <Text style={styles.nftName}>{nftToSell?.name || 'NFT Name'}</Text>
           {lowestPrice > 0 && (
             <>
-              <Text style={styles.label}>Lowest Price</Text>
+              <Text style={styles.label}>Lowest Price (MWh) </Text>
               <View style={styles.priceRow}>
                 <Image
                   source={{

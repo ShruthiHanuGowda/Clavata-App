@@ -45,7 +45,7 @@ const EditStage: React.FC<EditStageProps> = ({
 
           {lowestPrice ? (
             <View style={styles.priceBlock}>
-              <Text style={styles.priceLabel}>Lowest Price</Text>
+              <Text style={styles.priceLabel}>Lowest Price (MWh)</Text>
               <View style={styles.priceRow}>
                 <Image
                   source={{

@@ -64,14 +64,11 @@ export const getNftsMarketData = async (
 
 export const getCollectionsMarketData = async (): Promise<Collection[]> => {
   try {
-    console.log('GET_NFTS_COLLECTIONS_WITH_ASKS');
-    console.log(GRAPH_API_NFTMARKET);
-    
     const {data} = await client.query({
       query: GET_NFTS_COLLECTIONS_WITH_ASKS,
     });
     console.log('data', data);
-    
+
     const collectionsMap = new Map<string, Collection>();
 
     data.nfts.forEach((nft: any) => {

@@ -41,7 +41,6 @@ export default function Wallet(props) {
   const {getDrecs, balanceData, data} = useContext(AppContext).portfolio;
   const {getBalance, refreshAllBalances, isBalanceLoading, portfolio} =
     useWallet();
-  console.log('🚀 ~ Wallet ~ portfolio:', portfolio);
   const [items, setItems] = useState([]);
   const {walletBalances, refreshBalances} = useAuth();
   const [pullToRefreshLoading, setPullToRefreshLoading] = useState(false);
@@ -61,7 +60,7 @@ export default function Wallet(props) {
     }
     return parseFloat(value).toFixed(fixed ?? 2);
   };
-  console.log('walletBalances', formatValue(getBalance('ETH')?.balance, 4));
+
   const ethereumCoins = [
     {
       title: 'ETH Coin',
@@ -202,6 +201,7 @@ export default function Wallet(props) {
             refreshing={isBalanceLoading}
             onRefresh={() => {
               refreshAllBalances();
+              refresh();
             }}
           />
         }>
