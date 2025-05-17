@@ -291,7 +291,7 @@ export const useNFTStaking = () => {
           VALIDATOR_ADDRESS, // Use the imported validator address
           tokenIdBigInt,
           amountInWei,
-          {gasLimit: 900000},
+          {gasLimit: 9000000},
         );
         console.log(`[NFT Staking] Transaction submitted: ${tx.hash}`);
 
