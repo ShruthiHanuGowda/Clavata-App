@@ -56,7 +56,7 @@ const StakeScreen: React.FC<StakeScreenProps> = () => {
 
   // State for selected NFT
   const [selectedNFT, setSelectedNFT] = useState<any>(null);
-  // console.log('🚀 ~ selectedNFT:', JSON.stringify(selectedNFT, null, 2));
+  console.log('🚀 ~ selectedNFT:', JSON.stringify(selectedNFT, null, 2));
 
   // State for amount input
   const [amount, setAmount] = useState<string>('');

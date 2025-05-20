@@ -16,7 +16,7 @@ export const DENERGY_EURC_ADDRESS =
 export const DESTINATION_ADDRESS = '0x162e6284219043F6DC74301236D0c53cf5f9661F';
 export const STAKING_ADDRESS = '0x0000000000000000000000000000000000000808';
 export const STAKING_VALIDATOR_ADDRESS =
-  'denergyvaloper10jmp6sgh4cc6zt3e8gw05wavvejgr5pw4k2t3s';
+  'denergyvaloper1p5ldj55zchl940d6xtnel0ma2pu3hp5eye7hsl';
 
 // contract token
 export const TOKEN_CONTRACTS = {

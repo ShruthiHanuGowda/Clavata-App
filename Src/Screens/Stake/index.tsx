@@ -65,7 +65,6 @@ function Stake(props: StakeProps): JSX.Element {
         }
       />
       <View style={styles.container}>
-        <Button title="Stake" onPress={() => {}} />
         <Tab
           value={index}
           onChange={setIndex}
