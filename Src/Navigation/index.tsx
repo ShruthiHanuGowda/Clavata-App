@@ -30,7 +30,7 @@ import ProfileNFTsScreen from '../Screens/MarketPlaceNew/ProfileNFTsScreen';
 import Stake from '../Screens/Stake';
 import ValidatorDetailsScreen from '../Screens/Stake/ValidatorDetailsScreen';
 import StakeScreen from '../Screens/Stake/StakeScreen';
-import WalletNFTDetailsScreen from '../Screens/MarketPlaceNew/NFTDetailsPageNew';
+import WalletNFTDetailsScreen from '../Screens/MarketPlaceNew/WalletNFTDetailsPage';
 
 type AuthStackParamList = {
   login: {magicProps: any};

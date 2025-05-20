@@ -31,5 +31,8 @@ export const TOKEN_CONTRACTS = {
 export const API_NFT_URL =
   'https://y2veqyu78j.execute-api.me-central-1.amazonaws.com/default';
 
+export const API_OFFSETTING_URL =
+  'https://brh92tcajc.execute-api.me-central-1.amazonaws.com/Testing/evident-redeem';
+
 export const GRAPH_API_NFTMARKET =
   'https://nftmarket-subgraph.wattswaps.com/subgraphs/name/nftmarket-subgraph';

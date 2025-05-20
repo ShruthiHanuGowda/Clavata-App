@@ -8,8 +8,14 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Linking,
+  PermissionsAndroid,
+  Platform,
+  Share,
 } from 'react-native';
+import RNFS from 'react-native-fs';
 import {Header, Tab} from '@rneui/base';
+import axios from 'axios';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import {DText} from '../../../Componants/DText';
 import images from '../../../Theme/images';
@@ -21,8 +27,10 @@ import {useCompleteNft} from '../../../hooks/useCompleteNft';
 import {NftLocation} from '../../../types/types';
 import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
 import useApi from '../../../hooks/useApi';
-import {API_NFT_URL} from '../../../constants';
+import {API_NFT_URL, API_OFFSETTING_URL} from '../../../constants';
 import useNftActivity from '../../../hooks/useNftActivity';
+import {OffsetModal} from '../../../Componants/MarketPlace/OffsetModal';
+import {SnackBarMessage} from '../../../utils/snackBar';
 
 const width = Dimensions.get('window').width;
 
@@ -64,6 +72,11 @@ const WalletNFTDetailsScreen = ({route}) => {
   const [index, setIndex] = useState(0);
   const [clickedSellNft, setClickedSellNft] = useState<any>({});
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
+  const [isOffsetModalVisible, setIsOffsetModalVisible] = useState(false);
+  const [offsetVolume, setOffsetVolume] = useState('');
+  const [isLoadingOffset, setIsLoadingOffset] = useState(false);
+  const [redemptionUrl, setRedemptionUrl] = useState('');
+
   const TAB_ITEMS = ['Details', 'Sellers', 'Activity'];
 
   const handleCollectibleClick = (location?: NftLocation) => {
@@ -91,6 +104,176 @@ const WalletNFTDetailsScreen = ({route}) => {
     `${API_NFT_URL}/nftMarketplace_getCollectionTokens?contractAddress=${nft?.collectionAddress}&tokenId=${nft?.tokenId}`,
     {method: 'GET'},
   );
+
+  const handleOffsetSubmit = async volume => {
+    if (!volume) {
+      SnackBarMessage('Please enter a valid volume', 'error');
+      return;
+    }
+    if (isNaN(volume) || Number(volume) <= 0) {
+      SnackBarMessage('Please enter a valid volume', 'error');
+      return;
+    }
+
+    setIsLoadingOffset(true);
+
+    try {
+      const response = await fetch(`${API_OFFSETTING_URL}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          volumeInput: volume,
+          nfts: [
+            {
+              contractAddr: nft?.collectionAddress,
+              tokenId: nft?.tokenId,
+            },
+          ],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.statusCode === 200) {
+        SnackBarMessage(`Offset created successfully`, 'success');
+        const offsetData = JSON.parse(data.body);
+
+        setRedemptionUrl(offsetData?.data?.redemptionStatementUrl);
+      } else {
+        SnackBarMessage(`Error: ${data.message}`, 'error');
+        setIsOffsetModalVisible(false);
+      }
+    } catch (error) {
+      console.error('Error submitting offset:', error);
+      SnackBarMessage('Error submitting offset', 'error');
+      setIsOffsetModalVisible(false);
+    } finally {
+      setIsLoadingOffset(false);
+    }
+  };
+
+  const handleViewCertificate = () => {
+    Linking.openURL(redemptionUrl).catch(err =>
+      console.error('Failed to open URL:', err),
+    );
+  };
+
+  const requestPermissions = async () => {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission',
+          message:
+            'This app needs access to your storage to download the certificate.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  };
+
+  // const handleDownloadCertificate = async () => {
+  //   try {
+  //     const fileName = `certificate_${new Date().getTime()}`;
+  //     let dirType: string | null = null;
+
+  //     if (Platform.OS === 'ios') {
+  //       dirType = RNFS.DocumentDirectoryPath;
+  //     } else {
+  //       await requestPermissions();
+  //       dirType = `${RNFS.ExternalStorageDirectoryPath}/Download`;
+  //     }
+
+  //     const certificatePath = `${dirType}/${fileName}`;
+
+  //     const response = await axios.get(redemptionUrl, {
+  //       responseType: 'arraybuffer',
+  //     });
+
+  //     console.log(response);
+
+  //     const result = await RNFS.downloadFile({
+  //       fromUrl: redemptionUrl,
+  //       toFile: certificatePath,
+  //       background: true,
+  //       begin: res => {
+  //         console.log('Download started:', res);
+  //       },
+  //       progress: res => {
+  //         const progress = res.bytesWritten / res.contentLength;
+  //         console.log('Download progress:', progress);
+  //       },
+  //     }).promise;
+
+  //     if (result.statusCode === 200) {
+  //       console.log('Certificate downloaded successfully');
+
+  //       SnackBarMessage('Certificate downloaded successfully', 'success');
+  //       console.log(certificatePath);
+
+  //       Share.share({
+  //         message: 'Here is a file you can open:',
+  //         url: `file://${certificatePath}`,
+  //         title: 'Download Complete',
+  //       });
+
+  //       // Linking.openURL(`file://${certificatePath}`);
+  //     } else {
+  //       SnackBarMessage('Failed to download certificate', 'error');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error downloading certificate:', error);
+  //     SnackBarMessage('Failed to download certificate', 'error');
+  //   }
+  // };
+
+  const handleDownloadCertificate = async () => {
+    try {
+      // Add appropriate file extension based on what type of certificate it is
+      const fileName = `certificate_${new Date().getTime()}.pdf`; // or .json or other appropriate extension
+      let dirType = null;
+      if (Platform.OS === 'ios') {
+        dirType = RNFS.DocumentDirectoryPath;
+      } else {
+        await requestPermissions();
+        dirType = `${RNFS.ExternalStorageDirectoryPath}/Download`;
+      }
+      const certificatePath = `${dirType}/${fileName}`;
+      // First check the type of data you're getting
+      const response = await axios.get(redemptionUrl, {
+        responseType: 'arraybuffer',
+      });
+      // Write the file directly from the response data
+      await RNFS.writeFile(
+        certificatePath,
+        Buffer.from(response.data).toString('base64'),
+        'base64',
+      );
+      console.log('Certificate downloaded successfully');
+      SnackBarMessage('Certificate downloaded successfully', 'success');
+      // For iOS, use the file:// protocol
+      const shareUrl =
+        Platform.OS === 'ios' ? `file://${certificatePath}` : certificatePath;
+      // Share the file with appropriate mime type
+      Share.share({
+        message: 'Here is your certificate:',
+        url: shareUrl,
+        title: 'Certificate Download Complete',
+        type: 'application/pdf',
+      });
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+      SnackBarMessage('Failed to download certificate', 'error');
+    }
+  };
 
   const hasTokenData = combinedNft?.tokenId && combinedNft?.collectionAddress;
 
@@ -174,7 +357,7 @@ const WalletNFTDetailsScreen = ({route}) => {
                 <ActionButton
                   icon={images.buyIcon}
                   label="Offset"
-                  onPress={() => {}}
+                  onPress={() => setIsOffsetModalVisible(true)}
                 />
               </View>
             </View>
@@ -355,6 +538,21 @@ const WalletNFTDetailsScreen = ({route}) => {
           refetchActivity();
         }}
       />
+
+      <OffsetModal
+        visible={isOffsetModalVisible}
+        onClose={() => {
+          setIsOffsetModalVisible(false);
+          setRedemptionUrl('');
+        }}
+        onSubmit={handleOffsetSubmit}
+        value={offsetVolume}
+        setValue={setOffsetVolume}
+        isLoadingOffset={isLoadingOffset}
+        redemptionUrl={redemptionUrl}
+        handleViewCertificate={() => handleViewCertificate()}
+        handleDownloadCertificate={() => handleDownloadCertificate()}
+      />
     </View>
   );
 };
@@ -453,7 +651,9 @@ const styles = StyleSheet.create({
   detailsContainer: {
     margin: 5,
     padding: 15,
-    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#009D94',
+    backgroundColor: '#fff',
     borderRadius: 10,
   },
   detailRow: {
