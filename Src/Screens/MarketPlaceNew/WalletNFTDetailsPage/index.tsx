@@ -12,6 +12,7 @@ import {
   PermissionsAndroid,
   Platform,
   Share,
+  Alert,
 } from 'react-native';
 import RNFS from 'react-native-fs';
 import {Header, Tab} from '@rneui/base';
@@ -180,98 +181,78 @@ const WalletNFTDetailsScreen = ({route}) => {
     }
   };
 
-  // const handleDownloadCertificate = async () => {
-  //   try {
-  //     const fileName = `certificate_${new Date().getTime()}`;
-  //     let dirType: string | null = null;
-
-  //     if (Platform.OS === 'ios') {
-  //       dirType = RNFS.DocumentDirectoryPath;
-  //     } else {
-  //       await requestPermissions();
-  //       dirType = `${RNFS.ExternalStorageDirectoryPath}/Download`;
-  //     }
-
-  //     const certificatePath = `${dirType}/${fileName}`;
-
-  //     const response = await axios.get(redemptionUrl, {
-  //       responseType: 'arraybuffer',
-  //     });
-
-  //     console.log(response);
-
-  //     const result = await RNFS.downloadFile({
-  //       fromUrl: redemptionUrl,
-  //       toFile: certificatePath,
-  //       background: true,
-  //       begin: res => {
-  //         console.log('Download started:', res);
-  //       },
-  //       progress: res => {
-  //         const progress = res.bytesWritten / res.contentLength;
-  //         console.log('Download progress:', progress);
-  //       },
-  //     }).promise;
-
-  //     if (result.statusCode === 200) {
-  //       console.log('Certificate downloaded successfully');
-
-  //       SnackBarMessage('Certificate downloaded successfully', 'success');
-  //       console.log(certificatePath);
-
-  //       Share.share({
-  //         message: 'Here is a file you can open:',
-  //         url: `file://${certificatePath}`,
-  //         title: 'Download Complete',
-  //       });
-
-  //       // Linking.openURL(`file://${certificatePath}`);
-  //     } else {
-  //       SnackBarMessage('Failed to download certificate', 'error');
-  //     }
-  //   } catch (error) {
-  //     console.error('Error downloading certificate:', error);
-  //     SnackBarMessage('Failed to download certificate', 'error');
-  //   }
-  // };
-
-  const handleDownloadCertificate = async () => {
+  const onPressCertificateDownload = async () => {
     try {
-      // Add appropriate file extension based on what type of certificate it is
-      const fileName = `certificate_${new Date().getTime()}.pdf`; // or .json or other appropriate extension
-      let dirType = null;
-      if (Platform.OS === 'ios') {
-        dirType = RNFS.DocumentDirectoryPath;
-      } else {
-        await requestPermissions();
-        dirType = `${RNFS.ExternalStorageDirectoryPath}/Download`;
-      }
-      const certificatePath = `${dirType}/${fileName}`;
-      // First check the type of data you're getting
-      const response = await axios.get(redemptionUrl, {
+      const timestamp = Math.floor(Date.now() / 1000);
+
+      //FIXME - need to change this to the actual url
+      const url = `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`;
+      const fileName = `certificate_${timestamp}.pdf`;
+
+      // Determine path
+      const filePath =
+        Platform.OS === 'android'
+          ? `${RNFS.DownloadDirectoryPath}/${fileName}`
+          : `${RNFS.DocumentDirectoryPath}/${fileName}`;
+
+      // First, make a direct request with axios to get the actual PDF data
+      const response = await axios({
+        method: 'GET',
+        url: url,
         responseType: 'arraybuffer',
+        headers: {
+          Accept: 'application/pdf',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        },
+        // Important: Some APIs check for browser-like behavior
+        maxRedirects: 5,
+        timeout: 30000,
       });
-      // Write the file directly from the response data
+
+      // Log response info for debugging
+      console.log('Response status:', response.status);
+      console.log('Content type:', response.headers['content-type']);
+      console.log('Content length:', response.data.byteLength, 'bytes');
+
+      // Verify we got PDF data (should start with %PDF-)
+      const firstBytes = response.data.slice(0, 10);
+      const startOfFile = Buffer.from(firstBytes).toString().substring(0, 5);
+      console.log('File starts with:', startOfFile);
+
+      if (startOfFile !== '%PDF-') {
+        // Log the first part of the response to see what we're getting instead
+        console.log(
+          'Not a PDF file, received:',
+          Buffer.from(response.data).toString().substring(0, 100),
+        );
+        throw new Error('Response is not a valid PDF');
+      }
+
+      // Write the file directly from the axios response data
       await RNFS.writeFile(
-        certificatePath,
+        filePath,
         Buffer.from(response.data).toString('base64'),
         'base64',
       );
-      console.log('Certificate downloaded successfully');
-      SnackBarMessage('Certificate downloaded successfully', 'success');
-      // For iOS, use the file:// protocol
-      const shareUrl =
-        Platform.OS === 'ios' ? `file://${certificatePath}` : certificatePath;
-      // Share the file with appropriate mime type
+
+      // Verify file was written correctly
+      const stats = await RNFS.stat(filePath);
+      console.log('Written file size:', stats.size, 'bytes');
+
+      // Now share the file
+      const shareUrl = Platform.OS === 'ios' ? filePath : `file://${filePath}`;
       Share.share({
         message: 'Here is your certificate:',
         url: shareUrl,
         title: 'Certificate Download Complete',
-        type: 'application/pdf',
       });
     } catch (error) {
-      console.error('Error downloading certificate:', error);
-      SnackBarMessage('Failed to download certificate', 'error');
+      console.log('Download error:', error);
+      Alert.alert(
+        'Download Failed',
+        'There was a problem downloading the certificate. Please try again later.',
+      );
     }
   };
 
@@ -475,7 +456,7 @@ const WalletNFTDetailsScreen = ({route}) => {
             </>
           )}
           {index === 2 && (
-            <View>
+            <Vi ew>
               {activity && activity.length > 0 ? (
                 activity.map((item, idx) => (
                   <View key={idx} style={styles.activityCard}>
@@ -519,7 +500,7 @@ const WalletNFTDetailsScreen = ({route}) => {
               ) : (
                 <Text style={styles.emptyText}>No activity available.</Text>
               )}
-            </View>
+            </Vi>
           )}
         </View>
       </ScrollView>
@@ -551,7 +532,7 @@ const WalletNFTDetailsScreen = ({route}) => {
         isLoadingOffset={isLoadingOffset}
         redemptionUrl={redemptionUrl}
         handleViewCertificate={() => handleViewCertificate()}
-        handleDownloadCertificate={() => handleDownloadCertificate()}
+        handleDownloadCertificate={() => onPressCertificateDownload()}
       />
     </View>
   );
