@@ -32,6 +32,7 @@ import {API_NFT_URL, API_OFFSETTING_URL} from '../../../constants';
 import useNftActivity from '../../../hooks/useNftActivity';
 import {OffsetModal} from '../../../Componants/MarketPlace/OffsetModal';
 import {SnackBarMessage} from '../../../utils/snackBar';
+import {useAuth} from '../../../../screens/Provider/authProvider';
 
 const width = Dimensions.get('window').width;
 
@@ -70,6 +71,8 @@ const NFTHeader = ({name, quantity}) => (
 
 const WalletNFTDetailsScreen = ({route}) => {
   const {nft} = route.params;
+  const {userDetails} = useAuth();
+
   const [index, setIndex] = useState(0);
   const [clickedSellNft, setClickedSellNft] = useState<any>({});
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
@@ -77,6 +80,8 @@ const WalletNFTDetailsScreen = ({route}) => {
   const [offsetVolume, setOffsetVolume] = useState('');
   const [isLoadingOffset, setIsLoadingOffset] = useState(false);
   const [redemptionUrl, setRedemptionUrl] = useState('');
+
+  const account = userDetails?.userWallet as `0x${string}`;
 
   const TAB_ITEMS = ['Details', 'Sellers', 'Activity'];
 
@@ -115,6 +120,15 @@ const WalletNFTDetailsScreen = ({route}) => {
       SnackBarMessage('Please enter a valid volume', 'error');
       return;
     }
+    if (Number(volume) > Number(nft?.marketData?.quantity / 1_000_000)) {
+      SnackBarMessage(
+        `Volume exceeds the available quantity of ${
+          nft?.marketData?.quantity / 1_000_000
+        } MWh`,
+        'error',
+      );
+      return;
+    }
 
     setIsLoadingOffset(true);
 
@@ -130,6 +144,7 @@ const WalletNFTDetailsScreen = ({route}) => {
             {
               contractAddr: nft?.collectionAddress,
               tokenId: nft?.tokenId,
+              account: account,
             },
           ],
         }),
@@ -445,7 +460,7 @@ const WalletNFTDetailsScreen = ({route}) => {
             </>
           )}
           {index === 2 && (
-            <Vi ew>
+            <View>
               {activity && activity.length > 0 ? (
                 activity.map((item, idx) => (
                   <View key={idx} style={styles.activityCard}>
@@ -489,7 +504,7 @@ const WalletNFTDetailsScreen = ({route}) => {
               ) : (
                 <Text style={styles.emptyText}>No activity available.</Text>
               )}
-            </Vi>
+            </View>
           )}
         </View>
       </ScrollView>
