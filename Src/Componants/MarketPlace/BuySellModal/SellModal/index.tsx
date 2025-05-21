@@ -99,6 +99,7 @@ const SellModal: React.FC<SellModalProps> = ({
   nftToSell,
   onSuccessSale,
 }) => {
+  console.log('🚀 ~ nftToSell:', JSON.stringify(nftToSell, null, 2));
   const [stage, setStage] = useState<SellingStage>(
     variant === 'sell'
       ? SellingStage.SELL
