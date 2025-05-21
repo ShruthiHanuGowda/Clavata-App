@@ -68,7 +68,7 @@ const NFTCard: React.FC<NFTCardProps> = ({
           style={styles.priceIcon}
         />
 
-        <Text style={styles.priceText}>{currentAskPrice} per MWh</Text>
+        <Text style={styles.priceText}>${currentAskPrice} per MWh</Text>
       </View>
     </TouchableOpacity>
   );
