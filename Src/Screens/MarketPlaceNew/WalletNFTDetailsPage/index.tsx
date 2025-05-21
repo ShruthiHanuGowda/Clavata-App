@@ -185,17 +185,14 @@ const WalletNFTDetailsScreen = ({route}) => {
     try {
       const timestamp = Math.floor(Date.now() / 1000);
 
-      //FIXME - need to change this to the actual url
-      const url = `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`;
+      const url = redemptionUrl;
       const fileName = `certificate_${timestamp}.pdf`;
 
-      // Determine path
       const filePath =
         Platform.OS === 'android'
           ? `${RNFS.DownloadDirectoryPath}/${fileName}`
           : `${RNFS.DocumentDirectoryPath}/${fileName}`;
 
-      // First, make a direct request with axios to get the actual PDF data
       const response = await axios({
         method: 'GET',
         url: url,
@@ -205,20 +202,12 @@ const WalletNFTDetailsScreen = ({route}) => {
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         },
-        // Important: Some APIs check for browser-like behavior
         maxRedirects: 5,
         timeout: 30000,
       });
 
-      // Log response info for debugging
-      console.log('Response status:', response.status);
-      console.log('Content type:', response.headers['content-type']);
-      console.log('Content length:', response.data.byteLength, 'bytes');
-
-      // Verify we got PDF data (should start with %PDF-)
       const firstBytes = response.data.slice(0, 10);
       const startOfFile = Buffer.from(firstBytes).toString().substring(0, 5);
-      console.log('File starts with:', startOfFile);
 
       if (startOfFile !== '%PDF-') {
         // Log the first part of the response to see what we're getting instead
