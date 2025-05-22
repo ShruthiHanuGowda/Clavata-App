@@ -23,8 +23,7 @@ import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import styles from './styles';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
-import {useNFTStaking} from '../../../hooks/useNFTStaking';
-
+import {useNFTStaking} from '../Hooks/useNFTStaking';
 // Interface for component props
 interface StakeScreenProps {
   // You can add props here if needed

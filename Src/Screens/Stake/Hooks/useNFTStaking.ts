@@ -6,11 +6,11 @@ import {
   parseUnits,
   formatUnits,
 } from 'ethers';
-import {useMagic} from '../../screens/Provider/MagicProvider';
-import {useAuth} from '../../screens/Provider/authProvider';
-import {useWallet} from '../../screens/Provider/WalletProvider';
-import {STAKING_CONTRACT_ABI, ERC1155_ABI} from '../utils/Contracts';
-import {STAKING_ADDRESS, STAKING_VALIDATOR_ADDRESS} from '../constants';
+import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useWallet} from '../../../../screens/Provider/WalletProvider';
+import {STAKING_CONTRACT_ABI, ERC1155_ABI} from '../../../utils/Contracts';
+import {STAKING_ADDRESS, STAKING_VALIDATOR_ADDRESS} from '../../../constants';
 
 // Contract address for the staking contract
 const STAKING_CONTRACT_ADDRESS = STAKING_ADDRESS;

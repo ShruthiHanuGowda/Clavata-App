@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import images from '../../Theme/images';
+import useValidators from './Hooks/useValidators';
 
 // Define interfaces for our data types
 interface Validator {
@@ -36,57 +38,82 @@ interface Delegator {
   lastReward: string;
 }
 
-const ValidatorDetailsScreen = ({navigation}: {navigation: any}) => {
-  // Static validator data
-  const validator: Validator = {
-    id: 1,
-    name: 'Validator A',
-    validatorId: 'val_001',
-    description:
-      'GreenEnergy - Sustainable validator focused on renewable energy',
-    publicKey: '0x1a2b3c...7f8g',
-    powerConsumption: 150,
-    uptime: 99.8,
-    slashes: 0,
-    missedBlocks: 12,
-    jailed: 'Never',
-  };
+const ValidatorDetailsScreen = ({
+  navigation,
+  route,
+}: {
+  navigation: any;
+  route: any;
+}) => {
+  const [validator, setValidator] = useState<Validator | null>(null);
+  const [delegators, setDelegators] = useState<Delegator[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Static delegators data
-  const delegators: Delegator[] = [
-    {
-      id: 1,
-      address: '0x1234...5678',
-      stake: {nft: 50, watt: 2000},
-      rewards: 125,
-      stakeDate: '2024-01-15',
-      lastReward: '2024-05-18',
-    },
-    {
-      id: 2,
-      address: '0x9abc...def0',
-      stake: {nft: 25, watt: 1000},
-      rewards: 62,
-      stakeDate: '2024-02-20',
-      lastReward: '2024-05-17',
-    },
-    {
-      id: 3,
-      address: '0xfedc...ba98',
-      stake: {nft: 75, watt: 3000},
-      rewards: 188,
-      stakeDate: '2024-01-08',
-      lastReward: '2024-05-19',
-    },
-    {
-      id: 4,
-      address: '0x5f6e...d9c8',
-      stake: {nft: 30, watt: 1500},
-      rewards: 87,
-      stakeDate: '2024-03-10',
-      lastReward: '2024-05-16',
-    },
-  ];
+  // Get the validatorId from route params (assuming it's passed when navigating)
+  const validatorId = route.params?.validatorId || 'val_001';
+
+  // Use our custom hook
+  const {singleValidator} = useValidators();
+
+  useEffect(() => {
+    const fetchValidatorData = async () => {
+      try {
+        setIsLoading(true);
+        // Adjust the API endpoint as needed
+        const apiUrl = `https://2f6h4d0go8.execute-api.me-central-1.amazonaws.com/default/staking_getValidators?validatorId=${validatorId}`;
+        const response = await singleValidator.fetch(apiUrl);
+        console.log(
+          '🚀 ~ fetchValidatorData ~ response:',
+          JSON.stringify(response, null, 2),
+        );
+
+        if (response && response.validator) {
+          // Map API response to our component interfaces
+          const mappedValidator: Validator = {
+            id: 1, // Generate an id if needed
+            name: response.validator.validatorName,
+            validatorId: response.validator.validatorId,
+            description: response.validator.description,
+            publicKey: response.validator.publicKey,
+            powerConsumption: response.validator.powerConsumption,
+            uptime: response.validator.uptime,
+            slashes: response.validator.slashes,
+            missedBlocks: response.validator.missedBlocks,
+            jailed: response.validator.status === 'ACTIVE' ? 'Never' : 'Yes',
+          };
+
+          setValidator(mappedValidator);
+
+          // Map delegators if available
+          if (response.delegators && response.delegators.length > 0) {
+            const mappedDelegators: Delegator[] = response.delegators.map(
+              (del, index) => ({
+                id: index + 1,
+                address: del.delegatorAddress,
+                stake: {
+                  nft: del.stakedNFT,
+                  watt: del.stakedWatt,
+                },
+                rewards: del.rewardsEarned,
+                stakeDate: new Date().toISOString().split('T')[0], // Placeholder, replace if API provides
+                lastReward: new Date().toISOString().split('T')[0], // Placeholder, replace if API provides
+              }),
+            );
+
+            setDelegators(mappedDelegators);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching validator data:', err);
+        setError('Failed to load validator data. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchValidatorData();
+  }, [validatorId]);
 
   const formatStake = (nft: number, watt: number) => {
     const formatNumber = (num: number) => {
@@ -104,6 +131,56 @@ const ValidatorDetailsScreen = ({navigation}: {navigation: any}) => {
     return date.toLocaleDateString('en-US', options);
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}>
+            <Image source={images.back} style={{width: 20, height: 20}} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Validator Details</Text>
+          <View style={styles.spacer} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#009D94" />
+          <Text style={styles.loadingText}>Loading validator data...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error state
+  if (error || !validator) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}>
+            <Image source={images.back} style={{width: 20, height: 20}} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Validator Details</Text>
+          <View style={styles.spacer} />
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>
+            {error || 'Failed to load validator data'}
+          </Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() =>
+              navigation.replace('ValidatorDetailsScreen', {validatorId})
+            }>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -112,7 +189,6 @@ const ValidatorDetailsScreen = ({navigation}: {navigation: any}) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}>
           <Image source={images.back} style={{width: 20, height: 20}} />
-          {/* <Text style={styles.backText}>←</Text> */}
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Validator Details</Text>
         <View style={styles.spacer} />
@@ -120,6 +196,14 @@ const ValidatorDetailsScreen = ({navigation}: {navigation: any}) => {
 
       {/* Main Content */}
       <View style={styles.content}>
+        {/* Validator Name Section */}
+        <View style={styles.validatorNameContainer}>
+          <Text style={styles.validatorName}>{validator.name}</Text>
+          <View style={styles.validatorIdContainer}>
+            <Text style={styles.validatorId}>ID: {validator.validatorId}</Text>
+          </View>
+        </View>
+
         {/* Description Section */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Description:</Text>
@@ -233,7 +317,9 @@ const ValidatorDetailsScreen = ({navigation}: {navigation: any}) => {
         <TouchableOpacity
           style={styles.stakeButton}
           onPress={() => {
-            navigation.navigate('StakeScreen');
+            navigation.navigate('StakeScreen', {
+              validatorId: validator.validatorId,
+            });
           }}>
           <Text style={styles.stakeButtonText}>Stake</Text>
         </TouchableOpacity>
@@ -276,6 +362,34 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  // New styles for validator name
+  validatorNameContainer: {
+    marginBottom: 16,
+    backgroundColor: '#f5f9ff',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  validatorName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#009D94',
+    marginBottom: 4,
+  },
+  validatorIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  validatorId: {
+    fontSize: 14,
+    color: '#666',
   },
   card: {
     backgroundColor: '#fff',
@@ -424,6 +538,40 @@ const styles = StyleSheet.create({
     height: 50,
   },
   stakeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#d32f2f',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#009D94',
+    borderRadius: 8,
+    padding: 12,
+    width: 120,
+    alignItems: 'center',
+  },
+  retryButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

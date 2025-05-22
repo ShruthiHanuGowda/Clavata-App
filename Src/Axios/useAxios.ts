@@ -12,7 +12,7 @@ interface UseAxiosResponse<T> {
   refetch: () => void;
 }
 
-const useApi = <T>(
+const useAxios = <T>(
   url: string,
   options: UseAxiosOptions = {},
 ): UseAxiosResponse<T> => {
@@ -56,4 +56,4 @@ const useApi = <T>(
   return {data, isLoading, error, refetch};
 };
 
-export default useApi;
+export default useAxios;

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -6,25 +6,25 @@ import {
   ScrollView,
   Pressable,
   TouchableOpacity,
+  ActivityIndicator, // Added ActivityIndicator import
 } from 'react-native';
 import {fontsFamily} from '../../Theme';
 import {navigateTo} from '../../utils/navigationService';
 import {BottomSheet} from 'react-native-btr';
 import {DButton} from '../../Componants';
+import useValidators from './Hooks/useValidators';
 
 // Define interfaces for our data types
 interface Validator {
-  id: number;
-  name: string;
   validatorId: string;
-  status: 'Active' | 'Inactive';
-  apr: number;
-  commission: number;
-  age: number;
-  totalStake: {
-    nft: number;
-    watt: number;
-  };
+  validatorName: string;
+  status: string;
+  // apr: number; // Commented out as per instructions
+  commissionRate: number;
+  validatorAge: number;
+  totalStakeAmount: number;
+  totalStakedNFT: number;
+  totalStakedWatt: number;
 }
 
 // Props interface
@@ -33,89 +33,71 @@ interface ValidatorsScreenProps {
 }
 
 const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
-  const [sortBy, setSortBy] = useState('APR');
+  // State for actual applied filters
+  const [sortBy, setSortBy] = useState('Commission');
   const [filterStatus, setFilterStatus] = useState('All');
+
+  // Temporary state for bottom sheet selection (before applying)
+  const [tempSortBy, setTempSortBy] = useState('Commission');
+  const [tempFilterStatus, setTempFilterStatus] = useState('All');
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
 
-  const sortOptions = ['APR', 'Commission', 'Age', 'Total Stake'];
+  // Modified sort options (removed APR)
+  const sortOptions = ['Commission', 'Age', 'Total Stake'];
   const statusOptions = ['All', 'Active', 'Inactive'];
 
+  // Define the validators API URL
+  const VALIDATORS_URL =
+    'https://2f6h4d0go8.execute-api.me-central-1.amazonaws.com/default/staking_getValidators';
+
+  // Use our updated hook - only for list
+  const {validatorList} = useValidators();
+  const {
+    data,
+    loading: isLoading,
+    error,
+    fetch: fetchValidators,
+  } = validatorList;
+
+  // Fetch validators on component mount
+  useEffect(() => {
+    fetchValidators(VALIDATORS_URL).catch(err => {
+      console.log('Error fetching validators:', err);
+    });
+  }, []);
+
+  console.log('🚀 ~ data:', JSON.stringify(data, null, 2), isLoading, error);
+
   // Sample data matching the design
-  const allValidators: Validator[] = [
-    {
-      id: 1,
-      name: 'Validator A',
-      validatorId: 'val_001',
-      status: 'Active',
-      apr: 12.5,
-      commission: 5,
-      age: 365,
-      totalStake: {
-        nft: 1500,
-        watt: 50000,
-      },
-    },
-    {
-      id: 2,
-      name: 'Validator B',
-      validatorId: 'val_002',
-      status: 'Active',
-      apr: 11.8,
-      commission: 3,
-      age: 180,
-      totalStake: {
-        nft: 2100,
-        watt: 75000,
-      },
-    },
-    {
-      id: 3,
-      name: 'Validator C',
-      validatorId: 'val_003',
-      status: 'Inactive',
-      apr: 10.2,
-      commission: 7,
-      age: 500,
-      totalStake: {
-        nft: 800,
-        watt: 30000,
-      },
-    },
-    {
-      id: 4,
-      name: 'Validator D',
-      validatorId: 'val_004',
-      status: 'Active',
-      apr: 13.1,
-      commission: 4,
-      age: 120,
-      totalStake: {
-        nft: 2500,
-        watt: 80000,
-      },
-    },
-  ];
+  const allValidators: Validator[] = data?.validators || [];
 
   // Filter and sort logic
   const getFilteredAndSortedValidators = () => {
     // First, filter by status
     let filteredValidators = allValidators.filter(validator => {
       if (filterStatus === 'All') return true;
-      return validator.status === filterStatus;
+      // Convert status to match UI format (capitalized first letter only)
+      const formattedStatus =
+        validator.status === 'ACTIVE'
+          ? 'Active'
+          : validator.status === 'INACTIVE'
+          ? 'Inactive'
+          : validator.status;
+      return formattedStatus === filterStatus;
     });
 
     // Then, sort by selected criteria
     const sortedValidators = [...filteredValidators].sort((a, b) => {
       switch (sortBy) {
-        case 'APR':
-          return b.apr - a.apr; // Descending order (highest APR first)
+        // case 'APR':
+        //   return b.apr - a.apr; // Descending order (highest APR first)
         case 'Commission':
-          return a.commission - b.commission; // Ascending order (lowest commission first)
+          return a.commissionRate - b.commissionRate; // Ascending order (lowest commission first)
         case 'Age':
-          return b.age - a.age; // Descending order (oldest first)
+          return b.validatorAge - a.validatorAge; // Descending order (oldest first)
         case 'Total Stake':
-          const totalStakeA = a.totalStake.nft + a.totalStake.watt;
-          const totalStakeB = b.totalStake.nft + b.totalStake.watt;
+          const totalStakeA = a.totalStakedNFT + a.totalStakedWatt;
+          const totalStakeB = b.totalStakedNFT + b.totalStakedWatt;
           return totalStakeB - totalStakeA; // Descending order (highest stake first)
         default:
           return 0;
@@ -139,27 +121,44 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
   };
 
   const handleShowFilters = () => {
+    // When opening the bottom sheet, initialize temp values with current applied filters
+    setTempSortBy(sortBy);
+    setTempFilterStatus(filterStatus);
     setBottomSheetVisible(true);
   };
 
   const handleApplyFilters = () => {
-    // The validators list will automatically update due to the getFilteredAndSortedValidators function
+    // Only update the actual filter values when Apply is clicked
+    setSortBy(tempSortBy);
+    setFilterStatus(tempFilterStatus);
+
     console.log(
       'Applied filters - Sorting by:',
-      sortBy,
+      tempSortBy,
       '| Filter status:',
-      filterStatus,
+      tempFilterStatus,
     );
-    console.log(
-      'Filtered validators count:',
-      getFilteredAndSortedValidators().length,
-    );
+
     setBottomSheetVisible(false);
   };
 
   // Get count of filtered results for display
   const getFilteredCount = () => getFilteredAndSortedValidators().length;
   const getTotalCount = () => allValidators.length;
+
+  const getFormattedStatus = (status: string) => {
+    // Convert API status (ACTIVE/INACTIVE) to UI format (Active/Inactive)
+    return status === 'ACTIVE'
+      ? 'Active'
+      : status === 'INACTIVE'
+      ? 'Inactive'
+      : status;
+  };
+
+  // Navigate to details screen with validator ID
+  const navigateToDetails = (validatorId: string) => {
+    navigateTo('ValidatorDetailsScreen', {validatorId});
+  };
 
   return (
     <View style={styles.container}>
@@ -181,76 +180,110 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
         </View>
       </View>
 
+      {/* Loading State - Centered ActivityIndicator */}
+      {isLoading && (
+        // <View style={styles.loadingOverlay}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#009D94" />
+          <Text style={styles.loadingText}>Loading validators...</Text>
+          {/* </View> */}
+        </View>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error: {error.message}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => fetchValidators(VALIDATORS_URL)}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Validators List */}
-      <ScrollView
-        bounces={false}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}>
-        {validators.map((validator: Validator, index: number) => (
-          <Pressable
-            onPress={() => navigateTo('ValidatorDetailsScreen')}
-            key={validator.id}
-            style={[
-              styles.validatorCard,
-              {
-                marginBottom: index === validators.length - 1 ? '15%' : 16,
-              },
-            ]}>
-            {/* Validator Header */}
-            <View style={styles.validatorHeader}>
-              <View style={styles.validatorNameContainer}>
-                <Text style={styles.validatorName}>{validator.name}</Text>
-                <View style={styles.statusContainer}>
-                  <View
-                    style={[
-                      styles.statusDot,
-                      {
-                        backgroundColor:
-                          validator.status === 'Active' ? '#4CAF50' : '#F44336',
-                      },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.statusText,
-                      {
-                        color:
-                          validator.status === 'Active' ? '#4CAF50' : '#F44336',
-                      },
-                    ]}>
-                    {validator.status}
+      {!isLoading && !error && (
+        <ScrollView
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}>
+          {validators.map((validator: Validator, index: number) => {
+            console.log('🚀 ~ {validators.map ~ Validator:', validator);
+            const formattedStatus = getFormattedStatus(validator.status);
+
+            return (
+              <Pressable
+                onPress={() => navigateToDetails(validator.validatorId)}
+                key={validator.validatorId}
+                style={[
+                  styles.validatorCard,
+                  {
+                    marginBottom: index === validators.length - 1 ? '15%' : 16,
+                  },
+                ]}>
+                {/* Validator Header */}
+                <View style={styles.validatorHeader}>
+                  <View style={styles.validatorNameContainer}>
+                    <Text style={styles.validatorName}>
+                      {validator.validatorName}
+                    </Text>
+                    <View style={styles.statusContainer}>
+                      <View
+                        style={[
+                          styles.statusDot,
+                          {
+                            backgroundColor:
+                              formattedStatus.toLowerCase() === 'active'
+                                ? '#4CAF50'
+                                : '#F44336',
+                          },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.statusText,
+                          {
+                            color:
+                              formattedStatus.toLowerCase() === 'active'
+                                ? '#4CAF50'
+                                : '#F44336',
+                          },
+                        ]}>
+                        {formattedStatus}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Validator ID */}
+                <Text style={styles.validatorId}>
+                  ID: {validator.validatorId}
+                </Text>
+
+                {/* Validator Details */}
+                <View style={styles.validatorDetailsContainer}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>
+                      Commission: {validator.commissionRate}%
+                    </Text>
+                    <Text style={styles.detailLabel}>
+                      Age: {validator.validatorAge} days
+                    </Text>
+                  </View>
+                  <Text style={styles.totalStakeText}>
+                    Total Stake:{' '}
+                    {formatStake(
+                      validator.totalStakedNFT,
+                      validator.totalStakedWatt,
+                    )}
                   </Text>
                 </View>
-              </View>
-              <View style={styles.aprContainer}>
-                <Text style={styles.aprText}>APR: {validator.apr}%</Text>
-              </View>
-            </View>
-
-            {/* Validator ID */}
-            <Text style={styles.validatorId}>ID: {validator.validatorId}</Text>
-
-            {/* Validator Details */}
-            <View style={styles.validatorDetailsContainer}>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>
-                  Commission: {validator.commission}%
-                </Text>
-                <Text style={styles.detailLabel}>
-                  Age: {validator.age} days
-                </Text>
-              </View>
-              <Text style={styles.totalStakeText}>
-                Total Stake:{' '}
-                {formatStake(
-                  validator.totalStake.nft,
-                  validator.totalStake.watt,
-                )}
-              </Text>
-            </View>
-          </Pressable>
-        ))}
-      </ScrollView>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {/* Bottom Sheet for Filter Options */}
       <BottomSheet
@@ -275,17 +308,19 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
                 key={option}
                 style={[
                   styles.optionItem,
-                  sortBy === option && styles.optionItemSelected,
+                  tempSortBy === option && styles.optionItemSelected,
                 ]}
-                onPress={() => setSortBy(option)}>
+                onPress={() => setTempSortBy(option)}>
                 <Text
                   style={[
                     styles.optionText,
-                    sortBy === option && styles.optionTextSelected,
+                    tempSortBy === option && styles.optionTextSelected,
                   ]}>
                   {option}
                 </Text>
-                {sortBy === option && <Text style={styles.checkMark}>✓</Text>}
+                {tempSortBy === option && (
+                  <Text style={styles.checkMark}>✓</Text>
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -298,17 +333,17 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
                 key={option}
                 style={[
                   styles.optionItem,
-                  filterStatus === option && styles.optionItemSelected,
+                  tempFilterStatus === option && styles.optionItemSelected,
                 ]}
-                onPress={() => setFilterStatus(option)}>
+                onPress={() => setTempFilterStatus(option)}>
                 <Text
                   style={[
                     styles.optionText,
-                    filterStatus === option && styles.optionTextSelected,
+                    tempFilterStatus === option && styles.optionTextSelected,
                   ]}>
                   {option}
                 </Text>
-                {filterStatus === option && (
+                {tempFilterStatus === option && (
                   <Text style={styles.checkMark}>✓</Text>
                 )}
               </TouchableOpacity>
@@ -327,12 +362,75 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
   );
 };
 
-// Styles
+// Styles with updated loading state
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  // Updated loading styles with overlay and centered container
+  loadingOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Semi-transparent background
+    zIndex: 1000, // Ensure it's above other elements
+  },
+  loadingContainer: {
+    top: -100,
+    // backgroundColor: 'white',
+    borderRadius: 10,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // shadowColor: '#000',
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 2,
+    // },
+    // shadowOpacity: 0.25,
+    // shadowRadius: 3.84,
+    // elevation: 5,
+    // minWidth: 200,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#333',
+    marginTop: 15,
+    fontFamily: fontsFamily?.Mulish || 'sans-serif',
+    textAlign: 'center',
+  },
+  errorContainer: {
+    padding: 20,
+    margin: 16,
+    backgroundColor: '#ffebee',
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f44336',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#d32f2f',
+    marginBottom: 12,
+    fontFamily: fontsFamily?.Mulish || 'sans-serif',
+  },
+  retryButton: {
+    backgroundColor: '#f44336',
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 4,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: fontsFamily?.MulishSemiBold || 'sans-serif',
+  },
+  // Existing styles remain the same...
   sortFilterContainer: {
     backgroundColor: '#e8f4f8',
     margin: 16,
@@ -391,7 +489,7 @@ const styles = StyleSheet.create({
   sortDropdownText: {
     fontSize: 14,
     color: '#333',
-    fontFamily: fontsFamily?.MulishRegular || 'sans-serif',
+    fontFamily: fontsFamily?.Mulish || 'sans-serif',
   },
   sortDropdownArrow: {
     fontSize: 12,
@@ -476,7 +574,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 12,
-    fontFamily: fontsFamily?.MulishRegular || 'sans-serif',
+    fontFamily: fontsFamily?.Mulish || 'sans-serif',
   },
   validatorDetailsContainer: {
     gap: 8,
@@ -488,13 +586,12 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 14,
     color: '#333',
-    fontFamily: fontsFamily?.MulishRegular || 'sans-serif',
+    fontFamily: fontsFamily?.Mulish || 'sans-serif',
   },
   totalStakeText: {
     fontSize: 14,
     color: '#333',
-    fontWeight: '500',
-    fontFamily: fontsFamily?.MulishMedium || 'sans-serif',
+    fontFamily: fontsFamily?.Mulish || 'sans-serif',
   },
   // Bottom Sheet Styles
   bottomSheetCard: {

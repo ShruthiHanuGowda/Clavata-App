@@ -7,8 +7,7 @@ import {fontsFamily} from '../../Theme';
 import StakeListingScreen from './StakeListingScreen';
 import ValidatorsScreen from './ValidatorsScreen';
 import StakeScreen from './StakeScreen';
-import {useNFTStaking} from '../../hooks/useNFTStaking';
-
+import useValidators from './Hooks/useValidators';
 // Define props interface for Stake component
 interface StakeProps {
   // Add any props if needed
@@ -22,7 +21,6 @@ interface FontFamily {
 }
 
 function Stake(props: StakeProps): JSX.Element {
-  const {listenForEvents} = useNFTStaking();
   const [index, setIndex] = useState<number>(0);
   const TAB_ITEMS: readonly string[] = [
     'Total Pools',
