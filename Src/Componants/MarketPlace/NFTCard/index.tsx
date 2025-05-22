@@ -28,8 +28,6 @@ const NFTCard: React.FC<NFTCardProps> = ({
   currentAskPrice,
   quantity = 0,
 }) => {
-  const [imageLoaded, setImageLoaded] = useState<boolean>(false);
-
   const navigation = useNavigation<NavigationProps>();
 
   const handlePress = () => {
@@ -37,13 +35,8 @@ const NFTCard: React.FC<NFTCardProps> = ({
   };
 
   return (
-    <TouchableOpacity onPress={handlePress} style={styles.card}>
-      <View style={styles.imageContainer}>
-        {!imageLoaded && (
-          <View style={styles.imagePlaceholder}>
-            <Spinner />
-          </View>
-        )}
+    <TouchableOpacity onPress={handlePress} style={styles.nftItemContainer}>
+      <View style={styles.imageWrapper}>
         <Image
           source={{
             uri:
@@ -51,100 +44,74 @@ const NFTCard: React.FC<NFTCardProps> = ({
               'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
           }}
           style={styles.image}
-          onLoad={() => setImageLoaded(true)}
+          resizeMode="cover"
         />
       </View>
-
-      <Text style={styles.name} numberOfLines={1}>
-        {nft.name}
-      </Text>
-      <Text style={styles.qty}>Qty: {formatQuantityMWh(quantity)}</Text>
-
+      <View style={styles.nftTextWrapper}>
+        <Text style={styles.nftTitle} numberOfLines={1}>
+          {nft.name}
+        </Text>
+        <Text style={styles.nftQuantity}>
+          Available : {formatQuantityMWh(quantity)}
+        </Text>
+      </View>
       <View style={styles.priceWrapper}>
-        <Image
-          source={{
-            uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
-          }}
-          style={styles.priceIcon}
-        />
-
-        <Text style={styles.priceText}>${currentAskPrice} per MWh</Text>
+        <Text style={styles.price}>${currentAskPrice} per MWh</Text>
       </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    width: cardSize,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    padding: 10,
-    margin: 5,
+  nftItemContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    elevation: 3,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    marginBottom: 12,
+    padding: 10,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowOffset: {width: 0, height: 1},
+    shadowRadius: 3,
   },
-  imageContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: 10,
-    overflow: 'hidden',
-    backgroundColor: '#f1f1f1',
-    position: 'relative',
-    marginBottom: 8,
+  imageWrapper: {
+    backgroundColor: '#D5F5F1',
+    height: 50,
+    width: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+    height: 44,
+    width: 44,
+    borderRadius: 22,
   },
-  imagePlaceholder: {
-    ...StyleSheet.absoluteFillObject,
+  nftTextWrapper: {
+    flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#e0e0e0',
   },
-  name: {
+  nftTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    textAlign: 'center',
-    marginBottom: 4,
   },
-  qty: {
+  nftQuantity: {
     fontSize: 12,
-    color: '#555',
-    marginBottom: 6,
+    color: '#777',
+    marginTop: 4,
   },
   priceWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e6f4ea',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 20,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
-  priceText: {
-    fontSize: 13,
+  price: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#2e7d32',
-    fontWeight: '500',
-  },
-  priceIcon: {
-    width: 14,
-    height: 14,
-    marginRight: 5,
-  },
-  notForSale: {
-    fontSize: 12,
-    color: '#b71c1c',
-    backgroundColor: '#fdecea',
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderRadius: 15,
   },
 });
 

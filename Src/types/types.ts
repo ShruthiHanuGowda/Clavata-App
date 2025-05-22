@@ -91,6 +91,9 @@ export interface NftToken {
   updatedAt?: string;
   marketData?: TokenMarketData;
   location?: NftLocation;
+  country?: string;
+  year?: string;
+  type?: string;
   meta?: Record<string, string | number>;
 }
 
@@ -238,8 +241,14 @@ export interface ApiResponseSpecificToken {
     createdAt: string;
     updatedAt: string;
     attributes: NftAttribute[];
+    mintedVolume: string;
     collectionDetails: {
       collectionName: string;
+      symbol?: string;
+      year?: string;
+      country?: string;
+      type?: string;
+      ownerAddress?: string;
     };
   };
 }

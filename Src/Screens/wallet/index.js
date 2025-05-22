@@ -228,7 +228,7 @@ export default function Wallet(props) {
               nfts={nfts ?? []}
               isLoading={isLoading}
               refresh={refresh}
-              containerStyle={{marginLeft: 20}}
+              containerStyle={{marginHorizontal: 20}}
             />
           </View>
 
