@@ -38,9 +38,7 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
     accessToken: string;
     userId: string | null;
   } | null> => {
-    console.log('Getting KYC token');
     const userEmail = userDetails?.walletAddress;
-    console.log('User email/wallet:', userEmail);
 
     if (!userEmail) {
       console.error('No user email or wallet address available');
@@ -54,7 +52,6 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
       );
 
       if (token) {
-        console.log('KYC token obtained');
         return {accessToken: token, userId};
       } else {
         console.error('Failed to obtain KYC token');
@@ -66,11 +63,18 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
     }
   }, [userDetails, initiateKycToken]);
 
+  const handleVerificationCompleted = async (applicantId, accessToken) => {
+    console.log(
+      '🟢 ~ handleVerificationCompleted ~ applicantId, accessToken:',
+      applicantId,
+      accessToken,
+    );
+    await updateUserKycStatus(true, applicantId, accessToken);
+  };
+
   // Based on your working launchSumSub function
   const launchKycVerification =
     useCallback(async (): Promise<VerificationResult> => {
-      console.log('launchKycVerification called');
-
       try {
         // Get your access token from your backend
         const tokenResult = await handleKYCToken();
@@ -83,94 +87,69 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
         }
         const {accessToken, userId} = tokenResult;
 
-        console.log('Initializing SumSub SDK');
         let snsMobileSDK = SNSMobileSDK.init(accessToken, async () => {
           // This is a token expiration handler, will be called if the provided token is invalid or got expired
-          console.log('Token expired, getting a new one');
           const newToken = await handleKYCToken();
           return newToken?.accessToken || '';
         })
           .withHandlers({
             // Optional callbacks you can use to get notified of the corresponding events
             onStatusChanged: async event => {
-              console.log(
-                'onStatusChanged: [' +
-                  event.prevStatus +
-                  '] => [' +
-                  event.newStatus +
-                  ']',
-                JSON.stringify(event),
-              );
-
               // Set KYC completed based on status - using toLowerCase() for case-insensitive comparison
               if (
                 event.newStatus.toLowerCase() === 'approved' ||
                 event.newStatus.toLowerCase() === 'pending'
               ) {
-                console.log('Setting KYC completed based on status');
-
                 // Update KYC status in the backend when status changes to approved or pending
                 try {
-                  console.log(
-                    '🟢 ~ useCallback ~ applicantId, kycAccessToken:',
-                    userId,
-                    accessToken,
-                  );
-                  await updateUserKycStatus(true, userId, accessToken);
-                  console.log('KYC status updated in backend');
+                  // KYC status updated in backend
                 } catch (err) {
                   console.error('Failed to update KYC status in backend:', err);
                 }
               }
             },
+
             onLog: event => {
-              console.log('onLog: [Idensic] ' + event.message);
+              if (
+                event.message.includes('sdk.applicant:') &&
+                event.message.includes('reviewStatus=completed')
+              ) {
+                // Extract applicant ID from the log message
+                const applicantIdMatch = event.message.match(
+                  /applicantId=([a-zA-Z0-9]+)/,
+                );
+
+                if (applicantIdMatch && applicantIdMatch[1]) {
+                  const applicantId = applicantIdMatch[1];
+                  // Handle the completed verification
+                  handleVerificationCompleted(applicantId, accessToken);
+                }
+              }
             },
           })
-          .withDebug(true)
+          .withDebug(false) // Changed to false for production
           .withLocale('en') // Optional, for cases when you need to override the system locale
           .build();
 
-        console.log('Launching SumSub SDK');
         const result = await snsMobileSDK.launch();
-        console.log('SumSub SDK State: ' + JSON.stringify(result));
 
         // Process result based on status - using toLowerCase() for case-insensitive comparison
         if (
           result.status.toLowerCase() === 'approved' ||
           result.status.toLowerCase() === 'pending'
         ) {
-          console.log('KYC completed successfully');
-
-          // Update KYC status in the backend when verification completes successfully
-          try {
-            console.log(
-              '✅ ~ useCallback ~ applicantId, kycAccessToken:',
-              userId,
-              accessToken,
-            );
-            await updateUserKycStatus(true, userId, accessToken);
-            console.log(
-              'KYC status updated in backend after successful verification',
-            );
-          } catch (err) {
-            console.error('Failed to update KYC status in backend:', err);
-          }
-
           return {
             success: true,
             message: 'Verification completed successfully!',
             status: result.status,
           };
         } else if (result.status.toLowerCase() === 'cancelled') {
-          console.log('KYC cancelled by user');
           return {
             success: false,
             message: 'Verification was cancelled',
             status: result.status,
           };
         } else {
-          console.log('KYC ended with status:', result.status);
           return {
             success: false,
             message: `Verification ended with status: ${result.status}`,

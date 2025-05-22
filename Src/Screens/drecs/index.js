@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Header, ScreenWidth } from '@rneui/base';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {Header, ScreenWidth} from '@rneui/base';
 import {
+  Button,
   FlatList,
   Image,
   RefreshControl,
@@ -10,28 +11,32 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
-import { View } from 'react-native';
-import { fontsFamily, Images } from '../../Theme';
+import {View} from 'react-native';
+import {fontsFamily, Images} from '../../Theme';
 
 import StakingActivities from './StakingActivities';
 import CryptoMarketPlace from './CryptoMarketPlace';
 import BalanceCarousal from './BalanceCarousal';
-import { DText } from '../../Componants/DText';
-import { Path, Svg } from 'react-native-svg';
+import {DText} from '../../Componants/DText';
+import {Path, Svg} from 'react-native-svg';
 // import {navigate} from '../../Navigation/NavigationFunctions';
-import { SCREEN_CONSTANT } from '../../Navigation/constant';
+import {SCREEN_CONSTANT} from '../../Navigation/constant';
 // import images from '../../../../images';
-import { useFocusEffect, useScrollToTop } from '@react-navigation/native';
-import { navigateTo } from '../../utils/navigationService';
-import { useWallet } from '../../../screens/Provider/WalletProvider';
-import { useAuth } from '../../../screens/Provider/authProvider';
-import { useNftsForAddress } from '../../hooks/useNftsForAddress';
+import {useFocusEffect, useScrollToTop} from '@react-navigation/native';
+import {navigateTo} from '../../utils/navigationService';
+import {useWallet} from '../../../screens/Provider/WalletProvider';
+import {useAuth} from '../../../screens/Provider/authProvider';
+import {useNftsForAddress} from '../../hooks/useNftsForAddress';
+import {getKYCDetails} from '../../CustomHooks/KYC/KYCQuery';
+import {useMutation} from '@apollo/client';
+import {UPDATE_KYC_STATUS} from '../../graphql/queries';
 
 function HomeHeader(props) {
-  const { userDetails } = useAuth();
+  const {userDetails} = useAuth();
   function getUsernameFromEmail(email) {
     return email.split('@')[0];
   }
+
   const username = getUsernameFromEmail(userDetails.walletAddress);
   return (
     <Header
@@ -81,13 +86,55 @@ function HomeHeader(props) {
   );
 }
 
-export default function HomeScreen({ navigation }) {
-  const { refreshAllBalances } = useWallet();
-  const { userDetails } = useAuth();
+export default function HomeScreen({navigation}) {
+  const {refreshAllBalances} = useWallet();
+  const {userDetails} = useAuth();
   const account = userDetails.denergyWallet;
-  const { refresh, totalQuantity, isLoading } = useNftsForAddress({
+  const {refresh, totalQuantity, isLoading} = useNftsForAddress({
     account: account,
   });
+
+  const [updateKycStatus, {loading, error, data}] = useMutation(
+    UPDATE_KYC_STATUS,
+    {
+      onCompleted: data => {
+        console.log('KYC status updated successfully:', data);
+      },
+      onError: error => {
+        console.error('Error updating KYC status:', error);
+      },
+    },
+  );
+
+  const updateUserKycStatus = async (isVerified, applicantId, accessToken) => {
+    try {
+      alert('KYC');
+      const res = await getKYCDetails('682ee8ec04c08fb9d8cf0cc2');
+      console.log(res);
+      const userEmail = userDetails?.walletAddress;
+      if (!userEmail) {
+        throw new Error('No wallet address available');
+      }
+
+      const result = await updateKycStatus({
+        variables: {
+          walletAddress: userEmail.toLowerCase(),
+          is_verified: true,
+          applicantId: '682ee8ec04c08fb9d8cf0cc2' || '',
+          accessToken:
+            '_act-sbx-jwt-eyJhbGciOiJub25lIn0.eyJqdGkiOiJfYWN0LXNieC01OGQ0Y2UzYi0yNGJhLTQ2ZTgtYWIyYy1lZjI5NTVmMzZjNTQtdjIiLCJ1cmwiOiJodHRwczovL2FwaS5zdW1zdWIuY29tIn0.-v2' ||
+            '',
+          kycDetails: 'testData',
+        },
+      });
+      console.log('🚀 ~ useKycStatusUpdate ~ result:', result);
+
+      return result;
+    } catch (error) {
+      console.error('Failed to update KYC status:', error);
+      throw error;
+    }
+  };
 
   // const { get, getDrecs, data, drecsData, balanceData, loading, getBalance, getProfile, profile } =
   //   useContext(AppContext).portfolio;
@@ -135,27 +182,25 @@ export default function HomeScreen({ navigation }) {
       <ScrollView
         ref={scrollViewRef}
         refreshControl={
-          <RefreshControl
-            refreshing={false}
-            onRefresh={() => onRefresh()}
-          />
+          <RefreshControl refreshing={false} onRefresh={() => onRefresh()} />
         }>
         <BalanceCarousal
           loading={isLoading}
           // drecsData={drecsData}
           drecsOwned={totalQuantity}
-        // {...balanceData}
+          // {...balanceData}
         />
+        <Button title="KYC" onPress={async () => await updateUserKycStatus()} />
         <StakingActivities
           drecsStaked={0}
           drecsOwned={totalQuantity}
           loading={isLoading}
-        // {...drecsData}
+          // {...drecsData}
         />
         <CryptoMarketPlace
         // loading={loading} {...balanceData}
         />
-        <View style={{ marginTop: 30, marginHorizontal: 20 }}>
+        <View style={{marginTop: 30, marginHorizontal: 20}}>
           <Text
             style={{
               fontFamily: fontsFamily.MulishBold,

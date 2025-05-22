@@ -2,12 +2,14 @@ import {useMutation, gql} from '@apollo/client';
 import {useAuth} from '../../../screens/Provider/authProvider';
 
 // GraphQL mutation for updating KYC verification status
+
 export const UPDATE_KYC_STATUS = gql`
   mutation updateIsVerified(
     $walletAddress: String!
     $is_verified: Boolean!
     $applicantId: String
     $accessToken: String
+    $kycDetails: String
   ) {
     updateIsVerified(
       input: {
@@ -15,12 +17,14 @@ export const UPDATE_KYC_STATUS = gql`
         is_verified: $is_verified
         applicantId: $applicantId
         accessToken: $accessToken
+        kycDetails: $kycDetails
       }
     ) {
       walletAddress
       is_verified
       applicantId
       accessToken
+      kycDetails
     }
   }
 `;
