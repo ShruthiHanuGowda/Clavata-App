@@ -80,6 +80,7 @@ const WalletNFTDetailsScreen = ({route}) => {
   const [offsetVolume, setOffsetVolume] = useState('');
   const [isLoadingOffset, setIsLoadingOffset] = useState(false);
   const [redemptionUrl, setRedemptionUrl] = useState('');
+  const [pdfDownloadUrl, setPdfDownloadUrl] = useState('');
 
   const account = userDetails?.userWallet as `0x${string}`;
 
@@ -157,6 +158,7 @@ const WalletNFTDetailsScreen = ({route}) => {
         const offsetData = JSON.parse(data.body);
 
         setRedemptionUrl(offsetData?.data?.redemptionStatementUrl);
+        setPdfDownloadUrl(offsetData?.data?.pdfDownloadUrl);
       } else {
         SnackBarMessage(`Error: ${data.message}`, 'error');
         setIsOffsetModalVisible(false);
@@ -198,9 +200,12 @@ const WalletNFTDetailsScreen = ({route}) => {
 
   const onPressCertificateDownload = async () => {
     try {
+      if (!pdfDownloadUrl) {
+        return;
+      }
       const timestamp = Math.floor(Date.now() / 1000);
 
-      const url = redemptionUrl;
+      const url = pdfDownloadUrl;
       const fileName = `certificate_${timestamp}.pdf`;
 
       const filePath =

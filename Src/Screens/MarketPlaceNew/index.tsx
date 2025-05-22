@@ -12,12 +12,15 @@ import {navigate} from '../../Navigation/NavigationFunctions';
 import CollectionCard from '../../Componants/MarketPlace/CollectionCard';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
 import useCollections from '../../hooks/useCollections';
+import {Header} from '@rneui/base';
+import {DText} from '../../Componants/DText';
 
 const CollectionListingPage: React.FC = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const {setActiveNetwork} = useMagic();
 
   const {collections, loading: isLoading, refetch} = useCollections();
+  console.log('collections', collections);
 
   useEffect(() => {
     setActiveNetwork('denergy');
@@ -28,15 +31,20 @@ const CollectionListingPage: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* <ListingHeader title="Explore Collections" /> */}
-
-      {/* <TouchableOpacity
-        style={styles.myNftsButton}
-        onPress={() => navigate('ProfileNFTs')}>
-        <Text style={styles.myNftsButtonText}>View My NFTs</Text>
-      </TouchableOpacity> */}
-
+    <View style={styles.container}>
+      <Header
+        containerStyle={{
+          borderBottomWidth: 0,
+        }}
+        backgroundColor={'#FFF'}
+        leftComponent={
+          <View style={styles.nameContainer}>
+            <DText style={styles.title} fontStyle="fontBold">
+              Marketplace
+            </DText>
+          </View>
+        }
+      />
       <ScrollView
         contentContainerStyle={styles.gridContainer}
         refreshControl={
@@ -49,38 +57,21 @@ const CollectionListingPage: React.FC = () => {
           </View>
         ) : (
           <>
-            {!isLoading &&
-              collections?.map((collection, index) => {
-                if (index % 2 === 0) {
-                  return (
-                    <View key={collection.id} style={styles.row}>
-                      <CollectionCard
-                        collection={collection}
-                        onPress={() =>
-                          navigate('collectionDetails', {
-                            contractAddress: collection.id,
-                          })
-                        }
-                      />
-                      {collections[index + 1] && (
-                        <CollectionCard
-                          collection={collections[index + 1]}
-                          onPress={() =>
-                            navigate('collectionDetails', {
-                              contractAddress: collections[index + 1].id,
-                            })
-                          }
-                        />
-                      )}
-                    </View>
-                  );
+            {collections?.map(collection => (
+              <CollectionCard
+                key={collection.id}
+                collection={collection}
+                onPress={() =>
+                  navigate('collectionDetails', {
+                    contractAddress: collection.id,
+                  })
                 }
-                return null;
-              })}
+              />
+            ))}
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -89,27 +80,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f2f2f2',
   },
-  myNftsButton: {
-    marginHorizontal: 10,
-    marginTop: 10,
-    marginBottom: 5,
-    padding: 12,
-    backgroundColor: '#81c8c3',
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  myNftsButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   gridContainer: {
     padding: 10,
   },
-  row: {
+  title: {
+    fontSize: 18,
+    lineHeight: 23,
+    width: 200,
+    color: '#000',
+  },
+  nameContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    marginLeft: 10,
   },
   loaderContainer: {
     flex: 1,

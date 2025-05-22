@@ -5,17 +5,15 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-  Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import {ApiCollection, Collection} from '../../../types/types';
-
-const screenWidth = Dimensions.get('window').width;
-const cardMargin = 10;
-const cardWidth = screenWidth / 2 - cardMargin * 3;
+import {Collection} from '../../../types/types';
+import {formatQuantityMWh} from '../../../utils';
 
 interface CollectionCardProps {
-  collection: Collection;
+  collection: Collection & {
+    totalAskAmount?: string;
+  };
   onPress: () => void;
 }
 
@@ -26,28 +24,41 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
   const [loading, setLoading] = useState(true);
 
   return (
-    <TouchableOpacity
-      style={[styles.collectionCard, {width: cardWidth}]}
-      onPress={onPress}>
-      <View style={styles.imageWrapper}>
-        {loading && (
-          <View style={styles.loader}>
-            <ActivityIndicator size="small" color="#81c8c3" />
-          </View>
-        )}
-        <Image
-          source={{
-            uri:
-              collection?.banner?.large ||
-              'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-          }}
-          style={styles.bannerImage}
-          onLoadEnd={() => setLoading(false)}
-        />
-      </View>
-      <View style={styles.collectionInfo}>
-        <Text style={styles.collectionName}>{collection?.name}</Text>
-        <Text style={styles.symbolText}>{collection?.symbol}</Text>
+    <TouchableOpacity style={styles.collectionCard} onPress={onPress}>
+      <View style={styles.collectionContent}>
+        <View style={styles.imageWrapper}>
+          {loading && (
+            <View style={styles.loader}>
+              <ActivityIndicator size="small" color="#81c8c3" />
+            </View>
+          )}
+          <Image
+            source={{
+              uri:
+                collection?.banner?.large ||
+                'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
+            }}
+            style={styles.bannerImage}
+            onLoadEnd={() => setLoading(false)}
+          />
+        </View>
+
+        <View style={styles.collectionInfo}>
+          <Text style={styles.collectionName}>{collection?.name}</Text>
+          <Text style={styles.collectionText}>
+            Country: {collection?.country ?? '-'}
+          </Text>
+          <Text style={styles.collectionText}>
+            Type: {collection?.type ?? '-'}
+          </Text>
+          <Text style={styles.collectionText}>
+            Year: {collection?.year ?? '-'}
+          </Text>
+          <Text style={styles.collectionText}>
+            Total Available Quantity:{' '}
+            {formatQuantityMWh(Number(collection?.totalAskAmount ?? 0))}
+          </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -55,24 +66,30 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
 const styles = StyleSheet.create({
   collectionCard: {
-    margin: cardMargin,
+    margin: 5,
     borderRadius: 10,
     backgroundColor: '#fff',
     elevation: 3,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    overflow: 'hidden',
+  },
+  collectionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   imageWrapper: {
-    width: '100%',
-    aspectRatio: 1,
-    position: 'relative',
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    overflow: 'hidden',
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+    marginRight: 12,
     backgroundColor: '#eee',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   loader: {
     position: 'absolute',
@@ -81,21 +98,20 @@ const styles = StyleSheet.create({
   bannerImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 8,
   },
   collectionInfo: {
-    padding: 10,
-    alignItems: 'center',
+    flex: 1,
   },
   collectionName: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#333',
-    textAlign: 'center',
   },
-  symbolText: {
+  collectionText: {
     fontSize: 12,
-    color: '#888',
-    marginTop: 5,
+    color: '#666',
+    marginTop: 3,
   },
 });
 
