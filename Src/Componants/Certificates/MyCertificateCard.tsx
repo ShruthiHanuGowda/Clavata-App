@@ -18,8 +18,6 @@ const MyCertificateCard = ({nft, refresh, containerStyle}: Props) => {
   const [clickedSellNft, setClickedSellNft] = useState<any>({});
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
 
-  // console.log('nft', nft);
-
   const navigation = useNavigation<NavigationProps>();
   const handlePress = () => {
     navigation.navigate('walletNFTDetails', {nft});
