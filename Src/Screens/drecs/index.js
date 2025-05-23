@@ -36,7 +36,9 @@ function HomeHeader(props) {
     return email.split('@')[0];
   }
 
-  const username = getUsernameFromEmail(userDetails.walletAddress);
+  const username = userDetails?.kycDetails?.firstName
+    ? userDetails?.kycDetails?.firstName
+    : getUsernameFromEmail(userDetails.walletAddress);
   return (
     <Header
       containerStyle={{

@@ -53,6 +53,9 @@ export const GET_USER_WALLET_ADDRESS = gql`
       userWallet
       is_verified
       date
+      applicantId
+      accessToken
+      kycDetails
     }
   }
 `;

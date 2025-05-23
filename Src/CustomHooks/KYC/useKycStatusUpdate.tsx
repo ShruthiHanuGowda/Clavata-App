@@ -1,6 +1,8 @@
 import {useMutation, gql} from '@apollo/client';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import {getKYCDetails} from './KYCQuery';
+import {ExtractedKycInfo} from '../../utils/type';
+import {parseDataAndReturnFixedInfo} from '../../Screens/AuthScreens/loginScreen';
 
 // GraphQL mutation for updating KYC verification status
 
@@ -46,7 +48,7 @@ interface UpdateKycStatusVars {
 }
 
 export const useKycStatusUpdate = () => {
-  const {userDetails} = useAuth();
+  const {userDetails, updateUserDetails} = useAuth();
   //   console.log('🚀 ~ useKycStatusUpdate ~ userDetails:', userDetails);
 
   // Initialize the mutation hook
@@ -85,6 +87,20 @@ export const useKycStatusUpdate = () => {
           kycDetails: JSON.stringify(kycDetails),
         },
       });
+
+      const kycDetailsParsed = JSON.parse(JSON.stringify(kycDetails));
+      const extractedKycInfo: ExtractedKycInfo | null =
+        parseDataAndReturnFixedInfo(kycDetailsParsed);
+
+      if (extractedKycInfo) {
+        updateUserDetails({
+          kycDetails: extractedKycInfo,
+          is_verified: isVerified,
+          applicantId: applicantId || '',
+          accessToken: accessToken || '',
+        });
+      }
+
       console.log('🚀 ~ useKycStatusUpdate ~ result:');
 
       return result;
