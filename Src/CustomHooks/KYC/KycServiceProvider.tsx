@@ -1,5 +1,5 @@
-// @ts-ignore
 import React, {createContext, useContext, useCallback, useState} from 'react';
+// @ts-ignore
 import SNSMobileSDK from '@sumsub/react-native-mobilesdk-module';
 import {useKycVerification} from '../../CustomHooks/useKycVerification';
 import {useAuth} from '../../../screens/Provider/authProvider';
@@ -95,7 +95,6 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
           .withHandlers({
             // Optional callbacks you can use to get notified of the corresponding events
             onStatusChanged: async event => {
-              // Set KYC completed based on status - using toLowerCase() for case-insensitive comparison
               if (
                 event.newStatus.toLowerCase() === 'approved' ||
                 event.newStatus.toLowerCase() === 'pending'
@@ -121,13 +120,13 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
 
                 if (applicantIdMatch && applicantIdMatch[1]) {
                   const applicantId = applicantIdMatch[1];
-                  // Handle the completed verification
+
                   handleVerificationCompleted(applicantId, accessToken);
                 }
               }
             },
           })
-          .withDebug(false) // Changed to false for production
+          .withDebug(true) // Changed to false for production
           .withLocale('en') // Optional, for cases when you need to override the system locale
           .build();
 

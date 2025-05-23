@@ -65,7 +65,7 @@ export default function Account(props) {
     UPDATE_KYC_STATUS,
     {
       onCompleted: data => {
-        console.log('KYC status updated successfully:', data);
+        console.log('KYC status updated successfully:');
       },
       onError: error => {
         console.error('Error updating KYC status:', error);

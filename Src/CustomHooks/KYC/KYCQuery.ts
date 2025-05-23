@@ -104,7 +104,6 @@ export const getKYCDetails = async (applicantId: string): Promise<any> => {
       errorPolicy: 'all', // Return partial data even if there are errors
     });
 
-    console.log('✅ KYC data fetched successfully:', data);
     return data || [];
   } catch (error) {
     console.error('❌ Failed to fetch KYC data:', error);

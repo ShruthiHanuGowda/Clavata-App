@@ -69,12 +69,7 @@ export const useKycVerification = () => {
       } else {
         bodyData = parsedData.body || parsedData;
       }
-      console.log('🚀 ~ useKycVerification ~ parsedData:', parsedData);
 
-      console.log(
-        '🚀 ~ useKycVerification ~ bodyData:',
-        JSON.stringify(bodyData),
-      );
       // Extract token data
       const token = bodyData?.accessTokenData?.token || null;
       const userId = bodyData?.accessTokenData?.userId || null;

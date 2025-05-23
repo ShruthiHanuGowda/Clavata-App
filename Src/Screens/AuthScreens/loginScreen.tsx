@@ -105,7 +105,7 @@ export default function LoginScreen() {
     try {
       if (data?.getUserWalletAddress) {
         const result = await checkAllNetworks();
-        console.log('Network check results:', JSON.stringify(result));
+        console.log('Network check results:');
         // User exists in DB - store data in context
         const apiData = {...data.getUserWalletAddress};
         delete apiData.__typename;
@@ -266,7 +266,7 @@ export default function LoginScreen() {
       const result = await checkAllNetworks();
       setActiveNetwork('default');
       const userData = await magic.user.getInfo();
-      const walletData = {
+      const walletData: any = {
         walletAddress: userData.email,
         ethereumWallet: result?.networkData?.sepolia?.publicAddress,
         denergyWallet: result?.networkData?.denergy?.publicAddress,

@@ -1,5 +1,6 @@
 import {useMutation, gql} from '@apollo/client';
 import {useAuth} from '../../../screens/Provider/authProvider';
+import {getKYCDetails} from './KYCQuery';
 
 // GraphQL mutation for updating KYC verification status
 
@@ -41,6 +42,7 @@ interface UpdateKycStatusVars {
   is_verified: boolean;
   applicantId: string;
   accessToken: string;
+  kycDetails: string;
 }
 
 export const useKycStatusUpdate = () => {
@@ -53,7 +55,7 @@ export const useKycStatusUpdate = () => {
     UpdateKycStatusVars
   >(UPDATE_KYC_STATUS, {
     onCompleted: data => {
-      console.log('KYC status updated successfully:', data);
+      console.log('KYC status updated successfully:');
     },
     onError: error => {
       console.error('Error updating KYC status:', error);
@@ -68,19 +70,22 @@ export const useKycStatusUpdate = () => {
   ): Promise<any> => {
     try {
       const userEmail = userDetails?.walletAddress;
+
       if (!userEmail) {
         throw new Error('No wallet address available');
       }
-
+      const res = await getKYCDetails(applicantId || '');
+      const kycDetails = res?.getCompanyDetails?.response;
       const result = await updateKycStatus({
         variables: {
           walletAddress: userEmail.toLowerCase(),
           is_verified: isVerified,
           applicantId: applicantId || '',
           accessToken: accessToken || '',
+          kycDetails: JSON.stringify(kycDetails),
         },
       });
-      console.log('🚀 ~ useKycStatusUpdate ~ result:', result);
+      console.log('🚀 ~ useKycStatusUpdate ~ result:');
 
       return result;
     } catch (error) {

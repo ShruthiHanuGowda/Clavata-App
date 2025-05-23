@@ -27,7 +27,6 @@ import {navigateTo} from '../../utils/navigationService';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import {useNftsForAddress} from '../../hooks/useNftsForAddress';
-import {getKYCDetails} from '../../CustomHooks/KYC/KYCQuery';
 import {useMutation} from '@apollo/client';
 import {UPDATE_KYC_STATUS} from '../../graphql/queries';
 
@@ -98,43 +97,13 @@ export default function HomeScreen({navigation}) {
     UPDATE_KYC_STATUS,
     {
       onCompleted: data => {
-        console.log('KYC status updated successfully:', data);
+        console.log('KYC status updated successfully:');
       },
       onError: error => {
         console.error('Error updating KYC status:', error);
       },
     },
   );
-
-  const updateUserKycStatus = async (isVerified, applicantId, accessToken) => {
-    try {
-      alert('KYC');
-      const res = await getKYCDetails('682ee8ec04c08fb9d8cf0cc2');
-      console.log(res);
-      const userEmail = userDetails?.walletAddress;
-      if (!userEmail) {
-        throw new Error('No wallet address available');
-      }
-
-      const result = await updateKycStatus({
-        variables: {
-          walletAddress: userEmail.toLowerCase(),
-          is_verified: true,
-          applicantId: '682ee8ec04c08fb9d8cf0cc2' || '',
-          accessToken:
-            '_act-sbx-jwt-eyJhbGciOiJub25lIn0.eyJqdGkiOiJfYWN0LXNieC01OGQ0Y2UzYi0yNGJhLTQ2ZTgtYWIyYy1lZjI5NTVmMzZjNTQtdjIiLCJ1cmwiOiJodHRwczovL2FwaS5zdW1zdWIuY29tIn0.-v2' ||
-            '',
-          kycDetails: 'testData',
-        },
-      });
-      console.log('🚀 ~ useKycStatusUpdate ~ result:', result);
-
-      return result;
-    } catch (error) {
-      console.error('Failed to update KYC status:', error);
-      throw error;
-    }
-  };
 
   // const { get, getDrecs, data, drecsData, balanceData, loading, getBalance, getProfile, profile } =
   //   useContext(AppContext).portfolio;
@@ -190,7 +159,6 @@ export default function HomeScreen({navigation}) {
           drecsOwned={totalQuantity}
           // {...balanceData}
         />
-        <Button title="KYC" onPress={async () => await updateUserKycStatus()} />
         <StakingActivities
           drecsStaked={0}
           drecsOwned={totalQuantity}
