@@ -8,35 +8,35 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Linking,
-  PermissionsAndroid,
-  Platform,
+  Linking, Platform,
   Share,
-  Alert,
+  Alert
 } from 'react-native';
 import RNFS from 'react-native-fs';
-import {Header, Tab} from '@rneui/base';
+import { Header, Tab } from '@rneui/base';
 import axios from 'axios';
-import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {DText} from '../../../Componants/DText';
+import { navigateBack } from '../../../Navigation/NavigationFunctions';
+import { DText } from '../../../Componants/DText';
 import images from '../../../Theme/images';
 import LinearGradient from 'react-native-linear-gradient';
-import {fontsFamily} from '../../../Theme';
-import {useState} from 'react';
-import {formatQuantityMWh} from '../../../utils';
-import {useCompleteNft} from '../../../hooks/useCompleteNft';
-import {NftLocation} from '../../../types/types';
+import { fontsFamily } from '../../../Theme';
+import { useState } from 'react';
+import { formatQuantityMWh } from '../../../utils';
+import { useCompleteNft } from '../../../hooks/useCompleteNft';
+import { NftLocation } from '../../../types/types';
 import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
 import useApi from '../../../hooks/useApi';
-import {API_NFT_URL, API_OFFSETTING_URL} from '../../../constants';
+import { API_NFT_URL } from '../../../constants';
 import useNftActivity from '../../../hooks/useNftActivity';
-import {OffsetModal} from '../../../Componants/MarketPlace/OffsetModal';
-import {SnackBarMessage} from '../../../utils/snackBar';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import { OffsetModal } from '../../../Componants/MarketPlace/OffsetModal';
+import { useAuth } from '../../../../screens/Provider/authProvider';
+import { useMagic } from '../../../../screens/Provider/MagicProvider';
+import { getBlockExploreLink } from '../../../utils/explorer';
+import { useOffsetNft } from '../../../hooks/useOffsetNft';
 
 const width = Dimensions.get('window').width;
 
-const ActionButton = ({icon, label, onPress}) => (
+const ActionButton = ({ icon, label, onPress }) => (
   <TouchableOpacity style={styles.actionContainer} onPress={onPress}>
     <View style={styles.actionIconWrapper}>
       <Image source={icon} style={styles.actionIcon} />
@@ -45,12 +45,12 @@ const ActionButton = ({icon, label, onPress}) => (
   </TouchableOpacity>
 );
 
-const NFTHeader = ({name, quantity}) => (
+const NFTHeader = ({ name, quantity }) => (
   <View style={styles.nftHeaderContainer}>
     <ImageBackground
       source={images.rectangle}
       resizeMode="cover"
-      imageStyle={{borderRadius: 7}}
+      imageStyle={{ borderRadius: 7 }}
       style={styles.nftImageBackground}>
       <Image source={images.rectangleDot} style={styles.nftOverlayImage} />
       <DText fontStyle="fontBold" style={styles.portfolio}>
@@ -59,7 +59,7 @@ const NFTHeader = ({name, quantity}) => (
       <DText
         fontStyle="fontBold"
         style={styles.totalAmount}
-        textProps={{numberOfLines: 1, ellipsizeMode: 'tail'}}>
+        textProps={{ numberOfLines: 1, ellipsizeMode: 'tail' }}>
         {name}
       </DText>
       <DText fontStyle="fontBold" style={styles.amount}>
@@ -69,31 +69,45 @@ const NFTHeader = ({name, quantity}) => (
   </View>
 );
 
-const WalletNFTDetailsScreen = ({route}) => {
-  const {nft} = route.params;
-  const {userDetails} = useAuth();
+const WalletNFTDetailsScreen = ({ route }) => {
+  const { nft } = route.params;
+  const { userDetails } = useAuth();
+  const { magic_denergy } = useMagic();
 
   const [index, setIndex] = useState(0);
   const [clickedSellNft, setClickedSellNft] = useState<any>({});
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
   const [isOffsetModalVisible, setIsOffsetModalVisible] = useState(false);
   const [offsetVolume, setOffsetVolume] = useState('');
-  const [isLoadingOffset, setIsLoadingOffset] = useState(false);
-  const [redemptionUrl, setRedemptionUrl] = useState('');
-  const [pdfDownloadUrl, setPdfDownloadUrl] = useState('');
+  const [currentQuantity, setCurrentQuantity] = useState(nft?.marketData?.quantity || 0);
+
 
   const account = userDetails?.userWallet as `0x${string}`;
+
+  const {
+    isLoadingOffset,
+    redemptionUrl,
+    pdfDownloadUrl,
+    transactionHash,
+    offsetSuccess,
+    executeOffset,
+    resetOffsetState,
+    getAvailableQuantity,
+    validateOffsetVolume,
+  } = useOffsetNft(magic_denergy, account, userDetails?.walletAddress, setCurrentQuantity);
+
+  const availableQuantity = getAvailableQuantity(nft?.marketData?.quantity || 0);
 
   const TAB_ITEMS = ['Details', 'Sellers', 'Activity'];
 
   const handleCollectibleClick = (location?: NftLocation) => {
     switch (location) {
       case NftLocation.WALLET:
-        setClickedSellNft({nft, location, variant: 'sell'});
+        setClickedSellNft({ nft, location, variant: 'sell' });
         setIsSellModalVisible(true);
         break;
       case NftLocation.FORSALE:
-        setClickedSellNft({nft, location, variant: 'adjust'});
+        setClickedSellNft({ nft, location, variant: 'adjust' });
         setIsSellModalVisible(true);
         break;
       default:
@@ -107,94 +121,34 @@ const WalletNFTDetailsScreen = ({route}) => {
     refetch,
   } = useCompleteNft(`${nft?.collectionAddress}-${nft?.tokenId}`);
 
-  const {data, isLoading: isCollectionLoading} = useApi<any>(
+
+  const { data, isLoading: isCollectionLoading } = useApi<any>(
     `${API_NFT_URL}/nftMarketplace_getCollectionTokens?contractAddress=${nft?.collectionAddress}&tokenId=${nft?.tokenId}`,
-    {method: 'GET'},
+    { method: 'GET' },
   );
 
-  const handleOffsetSubmit = async volume => {
-    if (!volume) {
-      SnackBarMessage('Please enter a valid volume', 'error');
-      return;
-    }
-    if (isNaN(volume) || Number(volume) <= 0) {
-      SnackBarMessage('Please enter a valid volume', 'error');
-      return;
-    }
-    if (Number(volume) > Number(nft?.marketData?.quantity / 1_000_000)) {
-      SnackBarMessage(
-        `Volume exceeds the available quantity of ${
-          nft?.marketData?.quantity / 1_000_000
-        } MWh`,
-        'error',
-      );
+  const handleOffsetSubmit = async (volume) => {
+    const success = await executeOffset(volume, nft);
+    if (!success) {
       return;
     }
 
-    setIsLoadingOffset(true);
-
-    try {
-      const response = await fetch(`${API_OFFSETTING_URL}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          volumeInput: volume,
-          nfts: [
-            {
-              contractAddr: nft?.collectionAddress,
-              tokenId: nft?.tokenId,
-              account: account,
-            },
-          ],
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.statusCode === 200) {
-        SnackBarMessage(`Offset created successfully`, 'success');
-        const offsetData = JSON.parse(data.body);
-
-        setRedemptionUrl(offsetData?.data?.redemptionStatementUrl);
-        setPdfDownloadUrl(offsetData?.data?.pdfDownloadUrl);
-      } else {
-        SnackBarMessage(`Error: ${data.message}`, 'error');
-        setIsOffsetModalVisible(false);
-      }
-    } catch (error) {
-      console.error('Error submitting offset:', error);
-      SnackBarMessage('Error submitting offset', 'error');
-      setIsOffsetModalVisible(false);
-    } finally {
-      setIsLoadingOffset(false);
-    }
   };
 
   const handleViewCertificate = () => {
-    Linking.openURL(redemptionUrl).catch(err =>
-      console.error('Failed to open URL:', err),
-    );
+    if (redemptionUrl) {
+      Linking.openURL(redemptionUrl).catch(err =>
+        console.error('Failed to open URL:', err),
+      );
+    }
   };
 
-  const requestPermissions = async () => {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-        {
-          title: 'Storage Permission',
-          message:
-            'This app needs access to your storage to download the certificate.',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        },
+  const handleExplorer = () => {
+    if (transactionHash) {
+      const url = getBlockExploreLink(transactionHash, 'transaction');
+      Linking.openURL(url).catch(err =>
+        console.error('Failed to open URL:', err),
       );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (err) {
-      console.warn(err);
-      return false;
     }
   };
 
@@ -204,7 +158,6 @@ const WalletNFTDetailsScreen = ({route}) => {
         return;
       }
       const timestamp = Math.floor(Date.now() / 1000);
-
       const url = pdfDownloadUrl;
       const fileName = `certificate_${timestamp}.pdf`;
 
@@ -230,7 +183,6 @@ const WalletNFTDetailsScreen = ({route}) => {
       const startOfFile = Buffer.from(firstBytes).toString().substring(0, 5);
 
       if (startOfFile !== '%PDF-') {
-        // Log the first part of the response to see what we're getting instead
         console.log(
           'Not a PDF file, received:',
           Buffer.from(response.data).toString().substring(0, 100),
@@ -238,18 +190,14 @@ const WalletNFTDetailsScreen = ({route}) => {
         throw new Error('Response is not a valid PDF');
       }
 
-      // Write the file directly from the axios response data
       await RNFS.writeFile(
         filePath,
         Buffer.from(response.data).toString('base64'),
         'base64',
       );
 
-      // Verify file was written correctly
       const stats = await RNFS.stat(filePath);
-      console.log('Written file size:', stats.size, 'bytes');
 
-      // Now share the file
       const shareUrl = Platform.OS === 'ios' ? filePath : `file://${filePath}`;
       Share.share({
         message: 'Here is your certificate:',
@@ -257,12 +205,17 @@ const WalletNFTDetailsScreen = ({route}) => {
         title: 'Certificate Download Complete',
       });
     } catch (error) {
-      console.log('Download error:', error);
       Alert.alert(
         'Download Failed',
         'There was a problem downloading the certificate. Please try again later.',
       );
     }
+  };
+
+  const handleOffsetModalClose = () => {
+    setIsOffsetModalVisible(false);
+    setOffsetVolume('');
+    resetOffsetState();
   };
 
   const hasTokenData = combinedNft?.tokenId && combinedNft?.collectionAddress;
@@ -292,7 +245,7 @@ const WalletNFTDetailsScreen = ({route}) => {
     <View style={styles.container}>
       <Header
         backgroundColor={'#FFF'}
-        containerStyle={{borderBottomWidth: 0}}
+        containerStyle={{ borderBottomWidth: 0 }}
         leftComponent={
           <TouchableOpacity
             onPress={() => navigateBack()}
@@ -309,19 +262,19 @@ const WalletNFTDetailsScreen = ({route}) => {
         }
       />
       <ScrollView>
-        <View style={{marginTop: 5}}>
+        <View style={{ marginTop: 5 }}>
           <LinearGradient
             colors={['#FFFFFF', '#dcf2f1', '#FFFFFF']}
-            start={{x: 0, y: 1}}
-            end={{x: 0, y: 0}}
+            start={{ x: 0, y: 1 }}
+            end={{ x: 0, y: 0 }}
             useAngle={true}
             angle={330}
             locations={[0, 0, 0.25]}>
-            <View style={{paddingTop: 10, paddingBottom: 30}}>
+            <View style={{ paddingTop: 10, paddingBottom: 30 }}>
               <NFTHeader
                 name={nft?.name}
                 quantity={formatQuantityMWh(
-                  Number(nft.marketData?.quantity ?? 0),
+                  Number(currentQuantity),
                 )}
               />
               <View style={styles.btnAlign}>
@@ -356,8 +309,8 @@ const WalletNFTDetailsScreen = ({route}) => {
             value={index}
             onChange={setIndex}
             variant="primary"
-            indicatorStyle={{backgroundColor: 'transparent'}}
-            style={{backgroundColor: 'transparent'}}>
+            indicatorStyle={{ backgroundColor: 'transparent' }}
+            style={{ backgroundColor: 'transparent' }}>
             {TAB_ITEMS.map((tab, i) => (
               <Tab.Item
                 key={i}
@@ -378,7 +331,7 @@ const WalletNFTDetailsScreen = ({route}) => {
             ))}
           </Tab>
         </View>
-        <View style={{marginHorizontal: 25, marginTop: 20}}>
+        <View style={{ marginHorizontal: 25, marginTop: 20 }}>
           {index === 0 && (
             <View style={styles.detailsContainer}>
               {[
@@ -531,17 +484,18 @@ const WalletNFTDetailsScreen = ({route}) => {
 
       <OffsetModal
         visible={isOffsetModalVisible}
-        onClose={() => {
-          setIsOffsetModalVisible(false);
-          setRedemptionUrl('');
-        }}
+        onClose={handleOffsetModalClose}
         onSubmit={handleOffsetSubmit}
         value={offsetVolume}
         setValue={setOffsetVolume}
         isLoadingOffset={isLoadingOffset}
         redemptionUrl={redemptionUrl}
-        handleViewCertificate={() => handleViewCertificate()}
-        handleDownloadCertificate={() => onPressCertificateDownload()}
+        offsetSuccess={offsetSuccess}
+        availableQuantity={availableQuantity}
+        onValidateVolume={validateOffsetVolume}
+        handleExplorer={handleExplorer}
+        handleViewCertificate={handleViewCertificate}
+        handleDownloadCertificate={onPressCertificateDownload}
       />
     </View>
   );
@@ -701,7 +655,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 15,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
