@@ -7,20 +7,15 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  Linking, Platform,
-  Share,
-  Alert
+  ActivityIndicator
 } from 'react-native';
-import RNFS from 'react-native-fs';
 import { Header, Tab } from '@rneui/base';
-import axios from 'axios';
 import { navigateBack } from '../../../Navigation/NavigationFunctions';
 import { DText } from '../../../Componants/DText';
 import images from '../../../Theme/images';
 import LinearGradient from 'react-native-linear-gradient';
 import { fontsFamily } from '../../../Theme';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatQuantityMWh } from '../../../utils';
 import { useCompleteNft } from '../../../hooks/useCompleteNft';
 import { NftLocation } from '../../../types/types';
@@ -28,11 +23,11 @@ import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
 import useApi from '../../../hooks/useApi';
 import { API_NFT_URL } from '../../../constants';
 import useNftActivity from '../../../hooks/useNftActivity';
-import { OffsetModal } from '../../../Componants/MarketPlace/OffsetModal';
-import { useAuth } from '../../../../screens/Provider/authProvider';
+import { useNavigation } from '@react-navigation/native';
+import { BrowserProvider, Contract } from 'ethers';
 import { useMagic } from '../../../../screens/Provider/MagicProvider';
-import { getBlockExploreLink } from '../../../utils/explorer';
-import { useOffsetNft } from '../../../hooks/useOffsetNft';
+import { ERC1155_ABI } from '../../../utils/Contracts';
+import { useAuth } from '../../../../screens/Provider/authProvider';
 
 const width = Dimensions.get('window').width;
 
@@ -71,32 +66,44 @@ const NFTHeader = ({ name, quantity }) => (
 
 const WalletNFTDetailsScreen = ({ route }) => {
   const { nft } = route.params;
-  const { userDetails } = useAuth();
+  const navigation = useNavigation();
   const { magic_denergy } = useMagic();
+  const { userDetails } = useAuth();
 
   const [index, setIndex] = useState(0);
   const [clickedSellNft, setClickedSellNft] = useState<any>({});
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
-  const [isOffsetModalVisible, setIsOffsetModalVisible] = useState(false);
-  const [offsetVolume, setOffsetVolume] = useState('');
-  const [currentQuantity, setCurrentQuantity] = useState(nft?.marketData?.quantity || 0);
+  const [currentQuantity, setCurrentQuantity] = useState(
+    nft?.marketData?.quantity,
+  );
 
 
-  const account = userDetails?.userWallet as `0x${string}`;
+  useEffect(() => {
+    console.log("calling useEffect in WalletNFTDetailsScreen");
+    // Fetch the current quantity from the API or any other source
+    const fetchCurrentQuantity = async () => {
+      try {
+        const magicProvider = new BrowserProvider(magic_denergy.rpcProvider as any);
+        const signer = await magicProvider.getSigner();
+        const collectionContract = new Contract(
+          nft?.collectionAddress,
+          ERC1155_ABI,
+          signer,
+        );
 
-  const {
-    isLoadingOffset,
-    redemptionUrl,
-    pdfDownloadUrl,
-    transactionHash,
-    offsetSuccess,
-    executeOffset,
-    resetOffsetState,
-    getAvailableQuantity,
-    validateOffsetVolume,
-  } = useOffsetNft(magic_denergy, account, userDetails?.walletAddress, setCurrentQuantity);
+        const balance = await collectionContract.balanceOf(userDetails?.denergyWallet, nft?.tokenId);
+        console.log("Fetched current quantity:", balance);
 
-  const availableQuantity = getAvailableQuantity(nft?.marketData?.quantity || 0);
+        setCurrentQuantity(balance);
+      } catch (error) {
+        console.error('Error fetching current quantity:', error);
+      }
+    }
+    fetchCurrentQuantity();
+
+  }, [])
+
+
 
   const TAB_ITEMS = ['Details', 'Sellers', 'Activity'];
 
@@ -121,102 +128,10 @@ const WalletNFTDetailsScreen = ({ route }) => {
     refetch,
   } = useCompleteNft(`${nft?.collectionAddress}-${nft?.tokenId}`);
 
-
   const { data, isLoading: isCollectionLoading } = useApi<any>(
     `${API_NFT_URL}/nftMarketplace_getCollectionTokens?contractAddress=${nft?.collectionAddress}&tokenId=${nft?.tokenId}`,
     { method: 'GET' },
   );
-
-  const handleOffsetSubmit = async (volume) => {
-    const success = await executeOffset(volume, nft);
-    if (!success) {
-      return;
-    }
-
-  };
-
-  const handleViewCertificate = () => {
-    if (redemptionUrl) {
-      Linking.openURL(redemptionUrl).catch(err =>
-        console.error('Failed to open URL:', err),
-      );
-    }
-  };
-
-  const handleExplorer = () => {
-    if (transactionHash) {
-      const url = getBlockExploreLink(transactionHash, 'transaction');
-      Linking.openURL(url).catch(err =>
-        console.error('Failed to open URL:', err),
-      );
-    }
-  };
-
-  const onPressCertificateDownload = async () => {
-    try {
-      if (!pdfDownloadUrl) {
-        return;
-      }
-      const timestamp = Math.floor(Date.now() / 1000);
-      const url = pdfDownloadUrl;
-      const fileName = `certificate_${timestamp}.pdf`;
-
-      const filePath =
-        Platform.OS === 'android'
-          ? `${RNFS.DownloadDirectoryPath}/${fileName}`
-          : `${RNFS.DocumentDirectoryPath}/${fileName}`;
-
-      const response = await axios({
-        method: 'GET',
-        url: url,
-        responseType: 'arraybuffer',
-        headers: {
-          Accept: 'application/pdf',
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        },
-        maxRedirects: 5,
-        timeout: 30000,
-      });
-
-      const firstBytes = response.data.slice(0, 10);
-      const startOfFile = Buffer.from(firstBytes).toString().substring(0, 5);
-
-      if (startOfFile !== '%PDF-') {
-        console.log(
-          'Not a PDF file, received:',
-          Buffer.from(response.data).toString().substring(0, 100),
-        );
-        throw new Error('Response is not a valid PDF');
-      }
-
-      await RNFS.writeFile(
-        filePath,
-        Buffer.from(response.data).toString('base64'),
-        'base64',
-      );
-
-      const stats = await RNFS.stat(filePath);
-
-      const shareUrl = Platform.OS === 'ios' ? filePath : `file://${filePath}`;
-      Share.share({
-        message: 'Here is your certificate:',
-        url: shareUrl,
-        title: 'Certificate Download Complete',
-      });
-    } catch (error) {
-      Alert.alert(
-        'Download Failed',
-        'There was a problem downloading the certificate. Please try again later.',
-      );
-    }
-  };
-
-  const handleOffsetModalClose = () => {
-    setIsOffsetModalVisible(false);
-    setOffsetVolume('');
-    resetOffsetState();
-  };
 
   const hasTokenData = combinedNft?.tokenId && combinedNft?.collectionAddress;
 
@@ -229,6 +144,10 @@ const WalletNFTDetailsScreen = ({ route }) => {
     hasTokenData ? combinedNft.tokenId : '',
     hasTokenData ? combinedNft.collectionAddress : '',
   );
+
+  const formattedQty = useMemo(() => formatQuantityMWh(
+    Number(currentQuantity ?? 0),
+  ), [currentQuantity])
 
   const owners = combinedNft?.marketData?.activeAsks || [];
 
@@ -273,9 +192,7 @@ const WalletNFTDetailsScreen = ({ route }) => {
             <View style={{ paddingTop: 10, paddingBottom: 30 }}>
               <NFTHeader
                 name={nft?.name}
-                quantity={formatQuantityMWh(
-                  Number(currentQuantity),
-                )}
+                quantity={formattedQty}
               />
               <View style={styles.btnAlign}>
                 <ActionButton
@@ -300,7 +217,9 @@ const WalletNFTDetailsScreen = ({ route }) => {
                 <ActionButton
                   icon={images.buyIcon}
                   label="Offset"
-                  onPress={() => setIsOffsetModalVisible(true)}
+                  onPress={() => {
+                    navigation.navigate('OffsetScreen', { nft });
+                  }}
                 />
               </View>
             </View>
@@ -480,22 +399,6 @@ const WalletNFTDetailsScreen = ({ route }) => {
           refetch();
           refetchActivity();
         }}
-      />
-
-      <OffsetModal
-        visible={isOffsetModalVisible}
-        onClose={handleOffsetModalClose}
-        onSubmit={handleOffsetSubmit}
-        value={offsetVolume}
-        setValue={setOffsetVolume}
-        isLoadingOffset={isLoadingOffset}
-        redemptionUrl={redemptionUrl}
-        offsetSuccess={offsetSuccess}
-        availableQuantity={availableQuantity}
-        onValidateVolume={validateOffsetVolume}
-        handleExplorer={handleExplorer}
-        handleViewCertificate={handleViewCertificate}
-        handleDownloadCertificate={onPressCertificateDownload}
       />
     </View>
   );

@@ -1,8 +1,8 @@
 import React from 'react';
-import {NavigationContainer} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {Root} from '../../Src/Screens/RootScreen/';
-import {navigationRef} from './NavigationFunctions';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Root } from '../../Src/Screens/RootScreen/';
+import { navigationRef } from './NavigationFunctions';
 import Tabs from './NavigationTab';
 import Onboarding from '../../Src/Screens/Intro';
 import linking from './LinkingConfiguration';
@@ -14,7 +14,7 @@ import CoinWallet from '../Screens/AppScreens/CoinWallet/CoinWallet';
 import TransactionHistory from '../Screens/AppScreens/TransactionHistory';
 import ReceiveScreen from '../Screens/AppScreens/Receive/ReceiveScreen';
 import TransferCoin from '../Screens/AppScreens/Transfer/TrasferCoin/TransferCoin';
-import {VerifyAddress} from '../Screens/Send/VerifyAdress';
+import { VerifyAddress } from '../Screens/Send/VerifyAdress';
 import SendCoin from '../Screens/Send/SendCoin';
 import sendSuccess from '../Screens/Send/sendSuccess/sendSuccess';
 
@@ -25,21 +25,22 @@ import Wallet from '../Screens/wallet';
 import AccountBeneficary from '../Screens/AppScreens/Beneficiaries/beneficary';
 import CollectionDetailsScreen from '../Screens/MarketPlaceNew/CollectionDetailsPage';
 import NFTDetailsScreen from '../Screens/MarketPlaceNew/NFTDetailsPage';
-import {SCREEN_CONSTANT} from './constant';
+import { SCREEN_CONSTANT } from './constant';
 import ProfileNFTsScreen from '../Screens/MarketPlaceNew/ProfileNFTsScreen';
 import Stake from '../Screens/Stake';
 import ValidatorDetailsScreen from '../Screens/Stake/ValidatorDetailsScreen';
 import StakeScreen from '../Screens/Stake/StakeScreen';
 import WalletNFTDetailsScreen from '../Screens/MarketPlaceNew/WalletNFTDetailsPage';
+import OffsetScreen from '../Screens/MarketPlaceNew/OffsetScreen';
 
 type AuthStackParamList = {
-  login: {magicProps: any};
+  login: { magicProps: any };
 };
 
 type RootStackParamList = {
   intro: undefined;
   root: undefined;
-  authScreens: {magicProps: any};
+  authScreens: { magicProps: any };
   appScreens: undefined;
   collectionDetails: undefined;
   NFTDetailsPage: undefined;
@@ -81,33 +82,38 @@ function RootScreenStack() {
   return (
     <RootStack.Navigator
       initialRouteName="root"
-      screenOptions={{headerShown: false}}>
+      screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="root" component={Root} />
       <RootStack.Screen name="intro" component={Onboarding} />
       <RootStack.Screen
         name="authScreens"
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
         component={LoginScreen}
       />
       <RootStack.Screen
         name="collectionDetails"
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
         component={CollectionDetailsScreen}
       />
       <RootStack.Screen
         name="NFTDetailsPage"
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
         component={NFTDetailsScreen}
       />
       <RootStack.Screen
         name="ProfileNFTs"
         component={ProfileNFTsScreen}
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
       />
       <RootStack.Screen
         name="walletNFTDetails"
         component={WalletNFTDetailsScreen}
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
+      />
+      <RootStack.Screen
+        name="OffsetScreen"
+        component={OffsetScreen}
+        options={{ headerShown: false }}
       />
       <RootStack.Screen name="appScreens" component={Tabs} />
     </RootStack.Navigator>
@@ -120,7 +126,7 @@ export function CoinWalletStackFun() {
   return (
     <CoinWalletStack.Navigator
       initialRouteName="coinWallet"
-      screenOptions={{headerShown: false}}>
+      screenOptions={{ headerShown: false }}>
       <CoinWalletStack.Screen name="coinWallet" component={CoinWallet} />
       {/*<HomeStack.Screen name="coinWallet" component={TransactionExample} />*/}
       <CoinWalletStack.Screen
@@ -158,7 +164,7 @@ export function HomeScreenStack() {
   return (
     <HomeStack.Navigator
       initialRouteName="D.Energy"
-      screenOptions={{headerShown: false}}>
+      screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="D.Energy" component={Drex} />
       <HomeStack.Screen name="ProfileSettings" component={ProfileSetting} />
       <HomeStack.Screen name="coinWalletStack" component={CoinWalletStackFun} />
@@ -177,7 +183,7 @@ export function WalletStack() {
   return (
     <walletStack.Navigator
       initialRouteName="wallet"
-      screenOptions={{headerShown: false}}>
+      screenOptions={{ headerShown: false }}>
       <walletStack.Screen name="wallet" component={Wallet} />
       <walletStack.Screen
         name="coinWalletStack"
@@ -193,7 +199,7 @@ export function StakeStackFun() {
   return (
     <StakeStack.Navigator
       initialRouteName="stake"
-      screenOptions={{headerShown: false}}>
+      screenOptions={{ headerShown: false }}>
       <StakeStack.Screen name="stake" component={Stake} />
       <StakeStack.Screen
         name="ValidatorDetailsScreen"
