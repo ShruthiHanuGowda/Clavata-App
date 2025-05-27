@@ -12,9 +12,6 @@ export default function CryptoMarketPlace(props) {
   const {getBalance, refreshBalance, isBalanceLoading, refreshAllBalances} =
     useWallet();
   const {userDetails} = useAuth();
-  useEffect(() => {
-    console.log('userDetails', userDetails?.denergyWallet, userDetails);
-  }, [userDetails]);
 
   const account = userDetails?.userWallet;
 

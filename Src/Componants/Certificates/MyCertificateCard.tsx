@@ -38,54 +38,43 @@ const MyCertificateCard = ({nft, refresh, containerStyle}: Props) => {
     // break;
     // }
   };
-  const height = 21;
-  const width = 71;
   return (
     <>
       <TouchableOpacity
-        style={[marketStyles.container, containerStyle]}
+        style={[styles.container]}
         onPress={() => handleCollectibleClick(nft.location)}
-        activeOpacity={0.5}>
-        <View style={marketStyles.image}>
+        activeOpacity={0.8}>
+        <View style={styles.image}>
           <Image
             source={{
               uri:
                 nft.image?.thumbnail ||
                 'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
             }}
-            style={{height: '80%', width: '80%', borderRadius: 20}}
-            resizeMode="cover" // or 'contain', depending on how you want the image to scale
+            style={styles.thumbnail}
+            resizeMode="cover"
           />
         </View>
-        <View style={marketStyles.info}>
+
+        <View style={styles.rowContent}>
           <DText
-            style={marketStyles.coinTitle}
+            style={styles.name}
             fontStyle="fontBold"
-            textProps={{numberOfLines: 1, ellipsizeMode: 'middle'}}>
+            textProps={{numberOfLines: 1, ellipsizeMode: 'tail'}}>
             {nft.name}
           </DText>
-          {/* <DText style={marketStyles.coinCode} fontStyle="fontSemiBold">
-            {formatQuantityMWh(Number(nft.marketData?.quantity ?? 0))}
-          </DText> */}
-        </View>
-        <View style={marketStyles.content}>
-          <View
-            style={{
-              width,
-              justifyContent: 'center',
-              alignItems: 'center',
-              bottom: 10,
-            }}></View>
-          <View style={{alignItems: 'flex-end'}}>
-            <DText style={marketStyles.usd} fontStyle="fontExtraBold">
+
+          <View style={styles.right}>
+            <DText style={styles.quantity} fontStyle="fontExtraBold">
               {formatQuantityMWh(Number(nft.marketData?.quantity ?? 0))}
             </DText>
-            <DText style={marketStyles.coinCode} fontStyle="fontSemiBold">
+            <DText style={styles.price} fontStyle="fontSemiBold">
               $ TBC
             </DText>
           </View>
         </View>
       </TouchableOpacity>
+
       <SellModal
         visible={isSellModalVisible}
         onClose={() => {
@@ -104,63 +93,57 @@ const MyCertificateCard = ({nft, refresh, containerStyle}: Props) => {
   );
 };
 
-const marketStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
-    height: 37,
-    flex: 1,
     flexDirection: 'row',
-    marginBottom: 15,
-    width: ScreenWidth - 40,
+    alignItems: 'center',
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   image: {
-    backgroundColor: '#D5F5F1',
-    height: 37,
-    width: 37,
-    borderRadius: 20,
+    height: 50,
+    width: 50,
+    borderRadius: 25,
+    backgroundColor: '#E5F8F5',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 12,
   },
-  coinTitle: {
-    color: '#515151',
-    fontSize: 14,
-    lineHeight: 16,
+  thumbnail: {
+    height: '80%',
+    width: '80%',
+    borderRadius: 20,
   },
-  coinCode: {
-    color: '#A6A6A6',
-    fontSize: 12,
-    marginTop: 5,
-  },
-  info: {
-    marginRight: 40,
-    width: 140,
-  },
-  content: {
-    flex: 1,
+  rowContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    flex: 1,
   },
-  chart: {},
-  growth: {
-    color: '#0FB990',
-    textAlign: 'center',
-    fontSize: 10,
-    lineHeight: 16,
-    marginTop: 5,
+  name: {
+    flex: 1,
+    fontSize: 15,
+    color: '#2C2C2C',
   },
-  dip: {
-    color: '#FF4949',
-    textAlign: 'center',
-    fontSize: 10,
-    lineHeight: 16,
-    marginTop: 5,
+  right: {
+    width: 100,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
-  usd: {
-    color: '#515151',
-    textAlign: 'right',
-    fontSize: 14,
-    lineHeight: 16,
+  quantity: {
+    fontSize: 15,
+    color: '#00796B',
+  },
+  price: {
+    fontSize: 13,
+    color: '#999999',
+    marginTop: 4,
   },
 });
 

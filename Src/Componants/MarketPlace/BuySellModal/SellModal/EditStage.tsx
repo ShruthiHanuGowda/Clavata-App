@@ -68,7 +68,7 @@ const EditStage: React.FC<EditStageProps> = ({
                   }}
                   style={styles.icon}
                 />
-                <Text style={styles.priceText}>{currentPrice}</Text>
+                <Text style={styles.priceText}>${currentPrice}</Text>
               </View>
             </View>
           ) : null}

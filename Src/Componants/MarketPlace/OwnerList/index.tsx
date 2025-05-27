@@ -54,7 +54,9 @@ const OwnerList: React.FC<OwnerListProps> = ({
                     style={styles.tokenIcon}
                     resizeMode="contain"
                   />
-                  <Text style={styles.priceText}>{owner.askPrice} per MWh</Text>
+                  <Text style={styles.priceText}>
+                    ${owner.askPrice} per MWh
+                  </Text>
                 </View>
               </View>
               <TouchableOpacity

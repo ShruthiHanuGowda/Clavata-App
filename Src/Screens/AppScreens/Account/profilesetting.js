@@ -9,11 +9,9 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './styles';
 import {Header} from '../../../Componants';
-import {Colors, fontsFamily} from '../../../Theme';
+import {fontsFamily} from '../../../Theme';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import ToggleSwitch from 'toggle-switch-react-native';
-import {navigateTo} from '../../../utils/navigationService';
 
 export default function ProfileSetting(props) {
   const {userDetails} = useAuth();
@@ -34,6 +32,9 @@ export default function ProfileSetting(props) {
     if (key === 'date' && value.includes('T')) {
       const date = new Date(value);
       return date.toLocaleString();
+    }
+    if (key === 'is_verified') {
+      return value ? 'Verified' : 'Not Verified';
     }
     return value;
   };
@@ -61,46 +62,42 @@ export default function ProfileSetting(props) {
               PERSONAL
             </Text>
 
-            {Object.entries(userDetails).map(([key, value]) => (
-              <View
-                style={{
-                  marginTop: 14,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  display: key === 'is_verified' ? 'none' : 'flex',
-                }}>
+            {Object.entries(userDetails)
+              .filter(([key]) => !['kycDetails', 'accessToken'].includes(key))
+              .map(([key, value]) => (
                 <View
+                  key={key}
                   style={{
-                    flex: 1,
+                    marginTop: 14,
                     flexDirection: 'row',
-                    width: '30%',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
                   }}>
-                  <Text
-                    style={{
-                      fontFamily: fontsFamily.MulishSemiBold,
-                      fontSize: 12,
-                      lineHeight: 15,
-                      color: '#A1A1A1',
-                      // width: '50%',
-                    }}>
-                    {formatKey(key)}
-                  </Text>
+                  <View style={{flex: 0.4, paddingRight: 8}}>
+                    <Text
+                      style={{
+                        fontFamily: fontsFamily.MulishSemiBold,
+                        fontSize: 12,
+                        lineHeight: 15,
+                        color: '#A1A1A1',
+                      }}>
+                      {formatKey(key)}
+                    </Text>
+                  </View>
+                  <View style={{flex: 0.6, alignItems: 'flex-end'}}>
+                    <Text
+                      style={{
+                        fontFamily: fontsFamily.MulishSemiBold,
+                        fontSize: 12,
+                        lineHeight: 15,
+                        color: '#616161',
+                        textAlign: 'right',
+                      }}>
+                      {formatValue(key, value)}
+                    </Text>
+                  </View>
                 </View>
-                <View style={{justifyContent: 'space-evenly', width: '70%'}}>
-                  <Text
-                    style={{
-                      fontFamily: fontsFamily.MulishSemiBold,
-                      fontSize: 12,
-                      lineHeight: 15,
-                      color: '#616161',
-                      // width: '50%',
-                      textAlign: 'right',
-                    }}>
-                    {formatValue(key, value)}
-                  </Text>
-                </View>
-              </View>
-            ))}
+              ))}
           </View>
         </View>
 

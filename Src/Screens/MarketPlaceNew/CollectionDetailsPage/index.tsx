@@ -1,17 +1,15 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {
   ScrollView,
   Animated,
   StyleSheet,
   Text,
   View,
-  Image,
+  RefreshControl,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import Spinner from '../../../Componants/MarketPlace/Spinner';
-import NFTCard from '../../../Componants/MarketPlace/NFTCard';
 import useNfts from '../../../hooks/useNfts';
 import {getMinAsk} from '../../../hooks/marketPlace';
 import {ApiCollection, ApiSingleCollectionResponse} from '../../../types/types';
@@ -19,14 +17,13 @@ import useApi from '../../../hooks/useApi';
 import {API_NFT_URL} from '../../../constants';
 import {Header} from '../../../Componants';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import NFTCard from '../../../Componants/MarketPlace/NFTCard';
 
 const CollectionDetailsScreen = ({route}) => {
   const {contractAddress} = route.params;
-  const navigation = useNavigation();
-
   const [fadeAnim] = useState(new Animated.Value(0));
-  const [imageLoaded, setImageLoaded] = useState(false);
   const [collection, setCollection] = useState<ApiCollection | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const {
     data: collectionRes,
@@ -42,9 +39,9 @@ const CollectionDetailsScreen = ({route}) => {
     nfts,
     loading: nftsLoading,
     error: nftsError,
+    refetch: nftsRefetch,
   } = useNfts(contractAddress);
 
-  // Fade-in effect
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -53,53 +50,39 @@ const CollectionDetailsScreen = ({route}) => {
     }).start();
   }, []);
 
-  // Set collection on data fetch
   useEffect(() => {
     if (collectionRes?.data) {
       setCollection(collectionRes.data);
     }
   }, [collectionRes]);
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    await nftsRefetch();
+    setRefreshing(false);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <Header
-        headerTitle={'Collection Details'}
+        headerTitle={'Available Certificates'}
         backBtn={() => navigateBack()}
         containerStyle={{backgroundColor: '#f9f9f9'}}
         hideBorder
       />
       <View style={{flex: 1}}>
-        <ScrollView style={styles.container}>
-          {/* Banner Image */}
-          <View style={styles.imageWrapper}>
-            {!imageLoaded && (
-              <View style={styles.imagePlaceholder}>
-                <Spinner />
-              </View>
-            )}
-            <Animated.Image
-              source={{
-                uri: 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-              }}
-              style={[styles.bannerImage, {opacity: fadeAnim}]}
-              onLoad={() => setImageLoaded(true)}
-            />
-          </View>
-
-          {/* Collection Name */}
-          <Animated.Text style={[styles.collectionName, {opacity: fadeAnim}]}>
-            {collection?.collectionName || 'Collection Name'}
-          </Animated.Text>
-
-          {/* Collection Details */}
+        <ScrollView
+          style={styles.container}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }>
           <View style={styles.collectionDetails}>
-            <Text style={styles.detailsHeader}>Collection Details</Text>
             {collection ? (
               <>
-                {/* <DetailRow label="Symbol" value={collection.symbol} /> */}
-                <DetailRow label="Year" value={collection.year} />
-                <DetailRow label="Country" value={collection.country} />
-                <DetailRow label="Type" value={collection.type} />
+                <DetailRow label="Country" value={collection?.country} />
+                <DetailRow label="Type" value={collection?.type} />
+                <DetailRow label="Year" value={collection?.year} />
               </>
             ) : isLoading ? (
               <Spinner />
@@ -110,16 +93,15 @@ const CollectionDetailsScreen = ({route}) => {
             )}
           </View>
 
-          {/* NFT List */}
           <View style={styles.nftListContainer}>
-            <Text style={styles.nftSectionTitle}>NFTs</Text>
-            <View style={styles.nftGrid}>
-              {nftsLoading ? (
-                <Spinner />
-              ) : nftsError ? (
-                <Text style={styles.errorText}>{nftsError}</Text>
-              ) : nfts.length > 0 ? (
-                nfts.map((nft: any) => {
+            <Text style={styles.nftSectionTitle}>Certificates</Text>
+            {nftsLoading ? (
+              <Spinner />
+            ) : nftsError ? (
+              <Text style={styles.errorText}>{nftsError}</Text>
+            ) : nfts.length > 0 ? (
+              <View style={styles.nftList}>
+                {nfts.map((nft: any) => {
                   const currentAsk = getMinAsk(nft.activeAsks ?? []);
                   const hasAsks = nft?.activeAsks?.length > 0;
 
@@ -138,13 +120,11 @@ const CollectionDetailsScreen = ({route}) => {
                       quantity={Number(currentAsk?.amount) || 0}
                     />
                   );
-                })
-              ) : (
-                <Text style={styles.noNftsText}>
-                  No NFTs in this collection
-                </Text>
-              )}
-            </View>
+                })}
+              </View>
+            ) : (
+              <Text style={styles.noNftsText}>No NFTs in this collection</Text>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -178,97 +158,74 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
     paddingTop: 20,
   },
-  imageWrapper: {
-    position: 'relative',
-  },
-  imagePlaceholder: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bannerImage: {
-    width: '100%',
-    height: 150,
-    resizeMode: 'cover',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
-  collectionName: {
-    textAlign: 'center',
-    fontSize: 30,
-    fontWeight: 'bold',
-    color: '#333',
-    marginVertical: 15,
-  },
   collectionDetails: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    marginHorizontal: 10,
-    marginTop: 20,
-    elevation: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginHorizontal: 12,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   detailsHeader: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '600',
     marginBottom: 10,
-    color: '#333',
+    color: '#1C1C1C',
   },
   bulletRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 4,
   },
   bulletPoint: {
-    fontSize: 20,
-    color: '#555',
-    marginRight: 8,
+    fontSize: 18,
+    color: '#6B6B6B',
+    marginRight: 6,
     lineHeight: 22,
   },
   bulletText: {
     flex: 1,
-    fontSize: 16,
-    color: '#333',
+    fontSize: 15,
+    color: '#2D2D2D',
     lineHeight: 22,
   },
   detailsLabel: {
-    fontSize: 16,
     fontWeight: '600',
     color: '#555',
   },
   detailsValue: {
-    fontSize: 16,
-    color: '#333',
+    color: '#2D2D2D',
   },
   nftListContainer: {
-    paddingBottom: 20,
-    alignItems: 'center',
-    marginTop: 20,
+    paddingBottom: 30,
+    marginTop: 24,
   },
   nftSectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: 12,
+    marginHorizontal: 12,
   },
-  nftGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 5,
+  nftList: {
+    paddingHorizontal: 10,
   },
   noNftsText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#777',
     textAlign: 'center',
-    marginTop: 30,
+    marginTop: 20,
   },
   errorText: {
-    fontSize: 16,
+    fontSize: 15,
     color: 'red',
     textAlign: 'center',
-    marginTop: 30,
+    marginTop: 20,
   },
 });
 

@@ -53,7 +53,9 @@ export default function Account(props) {
   function getUsernameFromEmail(email) {
     return email.split('@')[0];
   }
-  const username = getUsernameFromEmail(userDetails.walletAddress);
+  const username = userDetails?.kycDetails?.firstName
+    ? userDetails?.kycDetails?.firstName
+    : getUsernameFromEmail(userDetails.walletAddress);
 
   // const {getProfile, profile, loading} = useContext(AppContext).portfolio;
 
@@ -65,7 +67,7 @@ export default function Account(props) {
     UPDATE_KYC_STATUS,
     {
       onCompleted: data => {
-        console.log('KYC status updated successfully:', data);
+        console.log('KYC status updated successfully:');
       },
       onError: error => {
         console.error('Error updating KYC status:', error);

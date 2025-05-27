@@ -39,3 +39,8 @@ export const API_OFFSETTING_URL =
 
 export const GRAPH_API_NFTMARKET =
   'https://nftmarket-subgraph.wattswaps.com/subgraphs/name/nftmarket-subgraph';
+
+export const KYC_API_URL =
+  'https://gh6hwmywzjfvlghrmqctqmo42u.appsync-api.me-central-1.amazonaws.com/graphql';
+
+export const KYC_API_KEY = 'da2-pamxpzqquvenlmpacbqq6ejwda';

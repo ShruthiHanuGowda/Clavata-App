@@ -142,6 +142,7 @@ export const GET_NFTS_COLLECTIONS_WITH_ASKS = gql`
       }
       activeAsks {
         id
+        amount
       }
     }
   }

@@ -23,11 +23,42 @@ import {GET_USER_WALLET_ADDRESS} from '../../graphql/queries';
 import {useKycService} from '../../CustomHooks/KYC/KycServiceProvider';
 import KycBottomSheet from '../../CustomHooks/KYC/KycBottomSheet';
 import {useKyc} from '../../CustomHooks/KYC/KYCProvider';
+import {UserAuth, ExtractedKycInfo, Address, UserData} from '../../utils/type';
+
+export const parseDataAndReturnFixedInfo = (data: any) => {
+  try {
+    // If data is a string, parse it as JSON
+    let parsedData;
+    if (typeof data === 'string') {
+      parsedData = JSON.parse(data);
+    } else if (typeof data === 'object' && data !== null) {
+      parsedData = data;
+    } else {
+      throw new Error('Invalid data type. Expected string or object.');
+    }
+
+    // Check if fullResponse exists and contains fixedInfo
+    if (parsedData.fullResponse && parsedData.fullResponse.fixedInfo) {
+      return parsedData.fullResponse.fixedInfo;
+    }
+
+    // Check if fixedInfo exists directly on the data object
+    if (parsedData.fixedInfo) {
+      return parsedData.fixedInfo;
+    }
+
+    // If fixedInfo is not found, return null
+    console.warn('fixedInfo not found in the provided data');
+    return null;
+  } catch (error) {
+    console.error('Error parsing data:', error.message);
+    return null;
+  }
+};
 
 export default function LoginScreen() {
   const {magic, magic_sepolia, magic_denergy, setActiveNetwork} = useMagic();
   const {updateUserData, userDetails} = useAuth();
-  // console.log('🚀 ~ LoginScreen ~ userDetails:', userDetails);
   const {isKycCompleted, showKycBottomSheet} = useKyc();
   const {launchKycVerification} = useKycService();
 
@@ -101,18 +132,47 @@ export default function LoginScreen() {
   }, [navigateToApp]);
 
   // Handle user data from query
-  const handleUserData = async (data: any) => {
+  const handleUserData = async (data: UserData): Promise<void> => {
     try {
       if (data?.getUserWalletAddress) {
         const result = await checkAllNetworks();
-        console.log('Network check results:', JSON.stringify(result));
+        console.log('Network check results:');
+
         // User exists in DB - store data in context
-        const apiData = {...data.getUserWalletAddress};
-        delete apiData.__typename;
+        const apiData: UserAuth = {
+          date: data.getUserWalletAddress.date || new Date().toISOString(),
+          denergyWallet: data.getUserWalletAddress
+            .denergyWallet as `0x${string}`,
+          ethereumWallet: data.getUserWalletAddress
+            .ethereumWallet as `0x${string}`,
+          userWallet: data.getUserWalletAddress.userWallet || null,
+          walletAddress: data.getUserWalletAddress.walletAddress || null,
+          is_verified: data.getUserWalletAddress.is_verified || false,
+          kycDetails: data.getUserWalletAddress.kycDetails,
+          accessToken: data.getUserWalletAddress.accessToken,
+          applicantId: data.getUserWalletAddress.applicantId,
+        };
+
+        // Process KYC details if they exist
+        if (apiData.kycDetails && typeof apiData.kycDetails === 'string') {
+          const kycDetailsParsed = JSON.parse(apiData.kycDetails);
+          const extractedKycInfo: ExtractedKycInfo | null =
+            parseDataAndReturnFixedInfo(kycDetailsParsed);
+
+          if (extractedKycInfo) {
+            console.log('Successfully extracted KYC info:', extractedKycInfo);
+            apiData.kycDetails = extractedKycInfo;
+          } else {
+            console.log(
+              'Failed to extract KYC info, keeping original kycDetails',
+            );
+          }
+        }
 
         await updateUserData(apiData, true);
         setIsUserLogin(true);
-        const isVerified =
+
+        const isVerified: boolean =
           apiData?.is_verified === true || apiData?.is_verified === 'true';
 
         // Check if user should be prompted for KYC
@@ -126,6 +186,7 @@ export default function LoginScreen() {
           console.log('User already KYC verified, navigating to app');
           navigateToApp();
         }
+
         setLoading(false);
         setIsScreenLoading(false);
       } else {
@@ -266,7 +327,11 @@ export default function LoginScreen() {
       const result = await checkAllNetworks();
       setActiveNetwork('default');
       const userData = await magic.user.getInfo();
-      const walletData = {
+      console.log(
+        '🚀 ~ prepareNewUserData ~ userData:',
+        JSON.stringify(userData),
+      );
+      const walletData: any = {
         walletAddress: userData.email,
         ethereumWallet: result?.networkData?.sepolia?.publicAddress,
         denergyWallet: result?.networkData?.denergy?.publicAddress,

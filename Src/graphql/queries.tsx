@@ -24,6 +24,7 @@ export const UPDATE_KYC_STATUS = gql`
     $is_verified: Boolean!
     $applicantId: String
     $accessToken: String
+    $kycDetails: String
   ) {
     updateIsVerified(
       input: {
@@ -31,12 +32,14 @@ export const UPDATE_KYC_STATUS = gql`
         is_verified: $is_verified
         applicantId: $applicantId
         accessToken: $accessToken
+        kycDetails: $kycDetails
       }
     ) {
       walletAddress
       is_verified
       applicantId
       accessToken
+      kycDetails
     }
   }
 `;
@@ -50,6 +53,9 @@ export const GET_USER_WALLET_ADDRESS = gql`
       userWallet
       is_verified
       date
+      applicantId
+      accessToken
+      kycDetails
     }
   }
 `;

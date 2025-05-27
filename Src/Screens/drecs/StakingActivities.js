@@ -73,7 +73,7 @@ export default function StakingActivities(props) {
         style={{
           width: '100%',
           flexDirection: 'row',
-          justifyContent: 'space-between',
+          justifyContent: 'space-around',
           alignItems: 'center',
         }}>
         <View style={[stakingStyles.chart]}>
@@ -124,7 +124,7 @@ export default function StakingActivities(props) {
                 Staked
               </DText>
             </View>
-            <View style={stakingStyles.staked}>
+            <View style={[stakingStyles.staked, {marginTop: 10}]}>
               <DText style={stakingStyles.availableCount}>
                 {/* {drecsAvailable || 0} {loading} */}
                 {Number(getBalance('WATT')?.balance).toFixed(2)} WATT
@@ -182,7 +182,7 @@ export default function StakingActivities(props) {
                 Staked
               </DText>
             </View>
-            <View style={stakingStyles.staked}>
+            <View style={[stakingStyles.staked, {marginTop: 10}]}>
               <DText style={stakingStyles.availableCount}>
                 {loading}
                 {!props.loading && formatQuantityMWh(Number(drecsOwned ?? 0))}
@@ -220,15 +220,13 @@ const stakingStyles = StyleSheet.create({
   chart: {
     marginBottom: 44,
     alignItems: 'center',
+    width: '50%',
   },
   info: {
-    flexDirection: 'row',
+    // flexDirection: 'row',
+    alignSelf: 'center',
   },
   staked: {
-    paddingLeft: 16,
-    marginLeft: 16,
-    borderLeftWidth: 1 / 3,
-    borderLeftColor: '#E7E8F2',
     justifyContent: 'center',
     alignItems: 'center',
   },

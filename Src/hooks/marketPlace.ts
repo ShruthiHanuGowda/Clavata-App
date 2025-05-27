@@ -67,16 +67,31 @@ export const getCollectionsMarketData = async (): Promise<Collection[]> => {
     const {data} = await client.query({
       query: GET_NFTS_COLLECTIONS_WITH_ASKS,
     });
-    console.log('data', data);
 
-    const collectionsMap = new Map<string, Collection>();
+    const collectionsMap = new Map<
+      string,
+      Collection & {totalAskAmount?: string}
+    >();
 
     data.nfts.forEach((nft: any) => {
       const collection = nft.collection;
-      const hasActiveAsks = nft?.activeAsks && nft?.activeAsks?.length > 0;
+      const activeAsks = nft?.activeAsks || [];
 
-      if (collection && hasActiveAsks && !collectionsMap.has(collection.id)) {
-        collectionsMap.set(collection.id, collection);
+      if (collection && activeAsks.length > 0) {
+        const existing = collectionsMap.get(collection.id);
+        const askTotal = activeAsks.reduce((sum: bigint, ask: any) => {
+          return sum + BigInt(ask.amount || 0);
+        }, BigInt(0));
+
+        if (existing) {
+          const currentTotal = BigInt(existing.totalAskAmount || '0');
+          existing.totalAskAmount = (currentTotal + askTotal).toString();
+        } else {
+          collectionsMap.set(collection.id, {
+            ...collection,
+            totalAskAmount: askTotal.toString(),
+          });
+        }
       }
     });
 
@@ -343,6 +358,12 @@ export const getNftsFromDifferentCollectionsApi = async (
     },
     description: res?.description,
     attributes: res?.attributes,
+    symbol: res?.collectionDetails?.symbol,
+    year: res?.collectionDetails?.year,
+    country: res?.collectionDetails?.country,
+    ownerAddress: res?.collectionDetails?.ownerAddress,
+    type: res?.collectionDetails?.type,
+    mintedVolume: res?.mintedVolume,
     createdAt: res?.createdAt,
     updatedAt: res?.updatedAt,
   }));
