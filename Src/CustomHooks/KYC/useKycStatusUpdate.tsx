@@ -8,7 +8,7 @@ import {parseDataAndReturnFixedInfo} from '../../Screens/AuthScreens/loginScreen
 
 export const UPDATE_KYC_STATUS = gql`
   mutation updateIsVerified(
-    $walletAddress: String!
+    $emailAddress: String!
     $is_verified: Boolean!
     $applicantId: String
     $accessToken: String
@@ -16,14 +16,14 @@ export const UPDATE_KYC_STATUS = gql`
   ) {
     updateIsVerified(
       input: {
-        walletAddress: $walletAddress
+        emailAddress: $emailAddress
         is_verified: $is_verified
         applicantId: $applicantId
         accessToken: $accessToken
         kycDetails: $kycDetails
       }
     ) {
-      walletAddress
+      emailAddress
       is_verified
       applicantId
       accessToken
@@ -34,13 +34,13 @@ export const UPDATE_KYC_STATUS = gql`
 
 interface UpdateKycStatusData {
   UpdateIsVerified: {
-    walletAddress: string;
+    emailAddress: string;
     is_verified: boolean;
   };
 }
 
 interface UpdateKycStatusVars {
-  walletAddress: string;
+  emailAddress: string;
   is_verified: boolean;
   applicantId: string;
   accessToken: string;
@@ -71,7 +71,7 @@ export const useKycStatusUpdate = () => {
     accessToken: string | null,
   ): Promise<any> => {
     try {
-      const userEmail = userDetails?.walletAddress;
+      const userEmail = userDetails?.emailAddress;
 
       if (!userEmail) {
         throw new Error('No wallet address available');
@@ -80,7 +80,7 @@ export const useKycStatusUpdate = () => {
       const kycDetails = res?.getCompanyDetails?.response;
       const result = await updateKycStatus({
         variables: {
-          walletAddress: userEmail.toLowerCase(),
+          emailAddress: userEmail.toLowerCase(),
           is_verified: isVerified,
           applicantId: applicantId || '',
           accessToken: accessToken || '',

@@ -38,7 +38,7 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
     accessToken: string;
     userId: string | null;
   } | null> => {
-    const userEmail = userDetails?.walletAddress;
+    const userEmail = userDetails?.emailAddress;
 
     if (!userEmail) {
       console.error('No user email or wallet address available');

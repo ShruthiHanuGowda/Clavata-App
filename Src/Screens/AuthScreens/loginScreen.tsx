@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Text,
   View,
@@ -9,21 +9,22 @@ import {
 } from 'react-native';
 import 'react-native-get-random-values';
 import '@ethersproject/shims'; // for ethers.js
-import {ethers} from 'ethers';
+import { ethers } from 'ethers';
 import styles from './styles';
-import {useMagic} from '../../../screens/Provider/MagicProvider';
-import {useAuth} from '../../../screens/Provider/authProvider';
-import {navReset} from '../../Navigation/NavigationFunctions';
-import {DButton, Header} from '../../Componants';
-import {Images} from '../../Theme';
-import {DEmailInput} from '../../Componants/Dinputs';
-import {useLazyQuery} from '@apollo/client';
-import {GET_USER_WALLET_ADDRESS} from '../../graphql/queries';
+import { useMagic } from '../../../screens/Provider/MagicProvider';
+import { useAuth } from '../../../screens/Provider/authProvider';
+import { navReset } from '../../Navigation/NavigationFunctions';
+import { DButton, Header } from '../../Componants';
+import { Images } from '../../Theme';
+import { DEmailInput } from '../../Componants/Dinputs';
+import { useLazyQuery } from '@apollo/client';
+import { GET_USER_WALLET_ADDRESS } from '../../graphql/queries';
 // import {useKyc} fom '../../contexts/KycContextProvider';
-import {useKycService} from '../../CustomHooks/KYC/KycServiceProvider';
+import { useKycService } from '../../CustomHooks/KYC/KycServiceProvider';
 import KycBottomSheet from '../../CustomHooks/KYC/KycBottomSheet';
-import {useKyc} from '../../CustomHooks/KYC/KYCProvider';
-import {UserAuth, ExtractedKycInfo, Address, UserData} from '../../utils/type';
+import { useKyc } from '../../CustomHooks/KYC/KYCProvider';
+import { UserAuth, ExtractedKycInfo, Address, UserData } from '../../utils/type';
+import { useApolloClientContext } from '../../../screens/Provider/GraphQLProvider';
 
 export const parseDataAndReturnFixedInfo = (data: any) => {
   try {
@@ -57,10 +58,10 @@ export const parseDataAndReturnFixedInfo = (data: any) => {
 };
 
 export default function LoginScreen() {
-  const {magic, magic_sepolia, magic_denergy, setActiveNetwork} = useMagic();
-  const {updateUserData, userDetails} = useAuth();
-  const {isKycCompleted, showKycBottomSheet} = useKyc();
-  const {launchKycVerification} = useKycService();
+  const { magic, magic_sepolia, magic_denergy, setActiveNetwork } = useMagic();
+  const { updateUserData, userDetails } = useAuth();
+  const { isKycCompleted, showKycBottomSheet } = useKyc();
+  const { launchKycVerification } = useKycService();
 
   const [isUserLogin, setIsUserLogin] = useState(false);
   const [isValid, setValid] = useState(false);
@@ -68,9 +69,10 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [isScreenLoading, setIsScreenLoading] = useState(true);
   const [kycProcessing, setKycProcessing] = useState(false);
+  const { updateClientWithToken } = useApolloClientContext();
 
   // Query to check if user exists in DB
-  const [getUserWallet, {data: userData}] = useLazyQuery(
+  const [getUserWallet, { data: userData }] = useLazyQuery(
     GET_USER_WALLET_ADDRESS,
     {
       fetchPolicy: 'network-only',
@@ -107,7 +109,7 @@ export default function LoginScreen() {
 
       if (result.success) {
         Alert.alert('Success', result.message, [
-          {text: 'OK', onPress: navigateToApp},
+          { text: 'OK', onPress: navigateToApp },
         ]);
       } else {
         showKycBottomSheet();
@@ -146,7 +148,7 @@ export default function LoginScreen() {
           ethereumWallet: data.getUserWalletAddress
             .ethereumWallet as `0x${string}`,
           userWallet: data.getUserWalletAddress.userWallet || null,
-          walletAddress: data.getUserWalletAddress.walletAddress || null,
+          emailAddress: data.getUserWalletAddress.emailAddress || null,
           is_verified: data.getUserWalletAddress.is_verified || false,
           kycDetails: data.getUserWalletAddress.kycDetails,
           accessToken: data.getUserWalletAddress.accessToken,
@@ -207,16 +209,17 @@ export default function LoginScreen() {
       const isLoggedIn = await magic.user.isLoggedIn();
       if (isLoggedIn) {
         const userData = await magic.user.getInfo();
+        await updateClientWithToken();
         return {
           isLoggedIn,
           publicAddress: userData?.publicAddress,
           userData,
         };
       }
-      return {isLoggedIn, publicAddress: null, userData: null};
+      return { isLoggedIn, publicAddress: null, userData: null };
     } catch (error) {
       console.error('Primary network auth error:', error);
-      return {isLoggedIn: false, publicAddress: null, userData: null, error};
+      return { isLoggedIn: false, publicAddress: null, userData: null, error };
     }
   };
 
@@ -234,13 +237,13 @@ export default function LoginScreen() {
         };
       }
 
-      return {isLoggedIn, publicAddress: null, userData: null};
+      return { isLoggedIn, publicAddress: null, userData: null };
     } catch (error) {
       console.error(
         'Sepolia network auth error:',
         JSON.stringify(error, null, 2),
       );
-      return {isLoggedIn: false, publicAddress: null, userData: null, error};
+      return { isLoggedIn: false, publicAddress: null, userData: null, error };
     }
   };
 
@@ -264,13 +267,13 @@ export default function LoginScreen() {
       }
 
       console.log('Need to authenticate on Denergy first');
-      return {isLoggedIn, publicAddress: null, userData: null};
+      return { isLoggedIn, publicAddress: null, userData: null };
     } catch (error) {
       console.error(
         'Denergy network auth error:',
         JSON.stringify(error, null, 2),
       );
-      return {isLoggedIn: false, publicAddress: null, userData: null, error};
+      return { isLoggedIn: false, publicAddress: null, userData: null, error };
     }
   };
 
@@ -327,12 +330,12 @@ export default function LoginScreen() {
       const result = await checkAllNetworks();
       setActiveNetwork('default');
       const userData = await magic.user.getInfo();
-      console.log(
-        '🚀 ~ prepareNewUserData ~ userData:',
-        JSON.stringify(userData),
-      );
+      // console.log(
+      //   '🚀 ~ prepareNewUserData ~ userData:',
+      //   JSON.stringify(userData),
+      // );
       const walletData: any = {
-        walletAddress: userData.email,
+        emailAddress: userData.email,
         ethereumWallet: result?.networkData?.sepolia?.publicAddress,
         denergyWallet: result?.networkData?.denergy?.publicAddress,
         userWallet: result?.networkData?.primary?.publicAddress,
@@ -365,10 +368,10 @@ export default function LoginScreen() {
         // If user is logged in, get metadata and check DB
         const userMetadata = await magic.user.getInfo();
         console.log('User session active, checking database...', userMetadata);
-
+        await updateClientWithToken();
         // Check if user exists in database
         await getUserWallet({
-          variables: {walletAddress: userMetadata?.email?.toLowerCase()},
+          variables: { emailAddress: userMetadata?.email?.toLowerCase() },
         });
       } else {
         // No active session
@@ -391,10 +394,12 @@ export default function LoginScreen() {
     try {
       setLoading(true);
       // Login with Magic Link
-      await magic.auth.loginWithEmailOTP({email: userEmail});
+      const res = await magic.auth.loginWithEmailOTP({ email: userEmail });
+      console.log(res);
+
 
       await getUserWallet({
-        variables: {walletAddress: userEmail.toLowerCase()},
+        variables: { emailAddress: userEmail.toLowerCase() },
       });
     } catch (err) {
       setLoading(false);
@@ -416,14 +421,14 @@ export default function LoginScreen() {
           backgroundColor: '#fff',
         }}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={{marginTop: 20}}>Checking session...</Text>
+        <Text style={{ marginTop: 20 }}>Checking session...</Text>
       </View>
     );
   }
 
   return (
-    <View style={{flex: 1, backgroundColor: '#fff'}}>
-      <View style={{flex: 1}}>
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      <View style={{ flex: 1 }}>
         <Header headerTitle="Login" hideBorder={true} hideBackIcon={true} />
         <ScrollView>
           <View style={styles.contentContainer}>

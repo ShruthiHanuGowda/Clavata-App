@@ -38,7 +38,7 @@ function HomeHeader(props) {
 
   const username = userDetails?.kycDetails?.firstName
     ? userDetails?.kycDetails?.firstName
-    : getUsernameFromEmail(userDetails.walletAddress);
+    : getUsernameFromEmail(userDetails.emailAddress);
   return (
     <Header
       containerStyle={{

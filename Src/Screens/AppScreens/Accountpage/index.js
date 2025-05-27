@@ -55,7 +55,7 @@ export default function Account(props) {
   }
   const username = userDetails?.kycDetails?.firstName
     ? userDetails?.kycDetails?.firstName
-    : getUsernameFromEmail(userDetails.walletAddress);
+    : getUsernameFromEmail(userDetails.emailAddress);
 
   // const {getProfile, profile, loading} = useContext(AppContext).portfolio;
 
@@ -129,7 +129,9 @@ export default function Account(props) {
 
                 // Clear the auth context
                 // Navigate to login screen
-                navReset('authScreens');
+                setTimeout(() => {
+                  navReset('authScreens');
+                }, 500);
 
                 console.log('User logged out successfully');
               } catch (error) {

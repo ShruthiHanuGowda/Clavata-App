@@ -31,7 +31,7 @@ export interface UserWalletAddress {
   denergyWallet?: string;
   ethereumWallet?: string;
   userWallet?: string;
-  walletAddress?: string;
+  emailAddress?: string;
   accessToken?: string;
   applicantId?: string;
   [key: string]: any;
@@ -43,7 +43,7 @@ export interface UserAuth {
   ethereumWallet: `0x${string}`;
   is_verified: boolean | string;
   userWallet: string | null;
-  walletAddress: string | null;
+  emailAddress: string | null;
   kycDetails?: string | ExtractedKycInfo; // Can be JSON string or parsed object
   accessToken?: string;
   applicantId?: string;
