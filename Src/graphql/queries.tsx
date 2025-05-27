@@ -1,4 +1,4 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
 // Define the GraphQL mutation
 export const CREATE_USER_WALLETS = gql`
@@ -6,7 +6,7 @@ export const CREATE_USER_WALLETS = gql`
     $createuserwalletaddressinput: CreateUserWalletAddressInput!
   ) {
     createUserWalletAddress(input: $createuserwalletaddressinput) {
-      walletAddress
+      emailAddress
       denergyWallet
       ethereumWallet
       userWallet
@@ -20,7 +20,7 @@ export const CREATE_USER_WALLETS = gql`
 
 export const UPDATE_KYC_STATUS = gql`
   mutation updateIsVerified(
-    $walletAddress: String!
+    $emailAddress: String!
     $is_verified: Boolean!
     $applicantId: String
     $accessToken: String
@@ -28,14 +28,14 @@ export const UPDATE_KYC_STATUS = gql`
   ) {
     updateIsVerified(
       input: {
-        walletAddress: $walletAddress
+        emailAddress: $emailAddress
         is_verified: $is_verified
         applicantId: $applicantId
         accessToken: $accessToken
         kycDetails: $kycDetails
       }
     ) {
-      walletAddress
+      emailAddress
       is_verified
       applicantId
       accessToken
@@ -45,9 +45,9 @@ export const UPDATE_KYC_STATUS = gql`
 `;
 
 export const GET_USER_WALLET_ADDRESS = gql`
-  query getUserWalletAddress($walletAddress: String!) {
-    getUserWalletAddress(walletAddress: $walletAddress) {
-      walletAddress
+  query getUserWalletAddress($emailAddress: String!) {
+    getUserWalletAddress(emailAddress: $emailAddress) {
+      emailAddress
       denergyWallet
       ethereumWallet
       userWallet

@@ -55,7 +55,7 @@ export default function Account(props) {
   }
   const username = userDetails?.kycDetails?.firstName
     ? userDetails?.kycDetails?.firstName
-    : getUsernameFromEmail(userDetails.walletAddress);
+    : getUsernameFromEmail(userDetails.emailAddress);
 
   // const {getProfile, profile, loading} = useContext(AppContext).portfolio;
 
