@@ -18,7 +18,7 @@ const createApolloClient = (magicAccessToken: string = ''): ApolloClient<Normali
     uri: API_URL,
     cache: new InMemoryCache(),
     headers: {
-      // 'x-api-key': API_KEY,
+      'x-api-key': API_KEY,
       Authorization: magicAccessToken ? `Bearer ${magicAccessToken}` : '',
     },
   });
