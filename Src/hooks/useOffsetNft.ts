@@ -132,7 +132,7 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
       const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
       const signer = await magicProvider.getSigner();
       const token = await magic_denergy.user.getIdToken();
-      console.log(token);
+
 
 
       if (taxAmount > 0) {
@@ -194,6 +194,7 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({
           volumeInput: volume,
