@@ -1,12 +1,23 @@
-import {useState} from 'react';
-import {BrowserProvider, Contract} from 'ethers';
-import {ERC1155_ABI, ERC20_ABI} from '../utils/Contracts';
-import {SnackBarMessage} from '../utils/snackBar';
-import {API_OFFSETTING_URL} from '../constants';
-import {useWallet} from '../../screens/Provider/WalletProvider';
+import { useState } from 'react';
+import { BrowserProvider, Contract } from 'ethers';
+import { ERC1155_ABI, ERC20_ABI } from '../utils/Contracts';
+import { SnackBarMessage } from '../utils/snackBar';
+import { API_OFFSETTING_URL, DENERGY_USDC_ADDRESS, PLATFORM_SETTINGS_API_KEY, PLATFORM_SETTINGS_API_URL } from '../constants';
+import { useWallet } from '../../screens/Provider/WalletProvider';
+import { ApolloClient, HttpLink, InMemoryCache, useQuery } from '@apollo/client';
+import { LIST_PLATFORM_SETTINGS } from '../graphql/queries';
 
-const WUSDC_CONTRACT_ADDRESS = '0x847eE0Ba6a31b8E2B8A9f5DE6246f38F4522BC9f';
-const TREASURY_ADDRESS = '0x9D5975DD1123032aE0B2D943e9735d88dC90a2DE';
+const TREASURY_ADDRESS = '0x756Ba4Bd0eFEd10c5F5C3C76f15893d0bB2387A4';
+
+const client = new ApolloClient({
+  link: new HttpLink({
+    uri: PLATFORM_SETTINGS_API_URL,
+    headers: {
+      'x-api-key': PLATFORM_SETTINGS_API_KEY,
+    },
+  }),
+  cache: new InMemoryCache(),
+});
 
 export const useOffsetNft = (magic_denergy, account, walletAddress) => {
   const [isLoadingOffset, setIsLoadingOffset] = useState(false);
@@ -14,7 +25,26 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
   const [pdfDownloadUrl, setPdfDownloadUrl] = useState('');
   const [transactionHash, setTransactionHash] = useState('');
   const [offsetSuccess, setOffsetSuccess] = useState(false);
-  const {refreshBalance, getBalance} = useWallet();
+  const { refreshBalance, getBalance } = useWallet();
+
+
+  const { loading, error, data, refetch } = useQuery(LIST_PLATFORM_SETTINGS, {
+    client,
+    variables: {
+      filter: {
+        keyName: {
+          contains: 'treasuryWalletAddress',
+        },
+      },
+      limit: 1,
+    },
+  });
+
+  const treasurySetting = data?.listPlatformSettings?.items && data?.listPlatformSettings?.items.length > 0 && data?.listPlatformSettings?.items[0] || null;
+
+  const dynamicTreasuryAddress = treasurySetting?.value || TREASURY_ADDRESS;
+  console.log('treasurySetting', dynamicTreasuryAddress);
+
 
   const resetOffsetState = () => {
     setRedemptionUrl('');
@@ -27,20 +57,20 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
     const maxQuantity = Number(nftQuantity / 1_000_000);
 
     if (!volume || volume.trim() === '') {
-      return {isValid: false, maxQuantity};
+      return { isValid: false, maxQuantity };
     }
 
     const numericVolume = Number(volume);
 
     if (isNaN(numericVolume) || numericVolume <= 0) {
-      return {isValid: false, maxQuantity};
+      return { isValid: false, maxQuantity };
     }
 
     if (numericVolume > maxQuantity) {
-      return {isValid: false, maxQuantity};
+      return { isValid: false, maxQuantity };
     }
 
-    return {isValid: true, maxQuantity};
+    return { isValid: true, maxQuantity };
   };
 
   const getAvailableQuantity = nftQuantity => {
@@ -58,7 +88,7 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
       };
     } catch (error) {
       console.error('Error checking WUSDC balance:', error);
-      return {hasEnoughBalance: false, balance: 0, required: requiredAmount};
+      return { hasEnoughBalance: false, balance: 0, required: requiredAmount };
     }
   };
 
@@ -66,7 +96,7 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
     try {
       const signer = await magicProvider.getSigner();
       const wusdcContract = new Contract(
-        WUSDC_CONTRACT_ADDRESS,
+        DENERGY_USDC_ADDRESS,
         ERC20_ABI,
         signer,
       );
@@ -75,12 +105,12 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
 
       // console.log(`Sending ${amount} WUSDC to treasury...`);
       const taxTransaction = await wusdcContract.transfer(
-        TREASURY_ADDRESS,
+        dynamicTreasuryAddress,
         BigInt(amountTosend),
       );
       await taxTransaction.wait();
 
-      return {success: true, hash: taxTransaction.hash};
+      return { success: true, hash: taxTransaction.hash };
     } catch (error) {
       console.error('Error sending WUSDC to treasury:', error);
       throw error;
@@ -88,7 +118,7 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
   };
 
   const executeOffset = async (offsetData, nft) => {
-    const {volume, startDate, endDate, purpose, taxAmount} = offsetData;
+    const { volume, startDate, endDate, purpose, taxAmount } = offsetData;
 
     const validation = validateOffsetVolume(volume, nft?.marketData?.quantity);
     if (!validation.isValid) {
@@ -101,6 +131,9 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
     try {
       const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
       const signer = await magicProvider.getSigner();
+      const token = await magic_denergy.user.getIdToken();
+      console.log(token);
+
 
       if (taxAmount > 0) {
         // console.log('Checking WUSDC balance for tax payment...');
@@ -126,8 +159,7 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
 
       if (balance < volumeInWei) {
         SnackBarMessage(
-          `Insufficient NFT balance. You have ${
-            Number(balance) / 1_000_000
+          `Insufficient NFT balance. You have ${Number(balance) / 1_000_000
           } MWh available`,
           'error',
         );

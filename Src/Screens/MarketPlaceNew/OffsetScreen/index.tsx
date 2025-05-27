@@ -36,7 +36,6 @@ const OffsetScreen = ({ route }) => {
     const { nft } = route.params;
     const { userDetails } = useAuth();
     const { magic_denergy } = useMagic();
-
     const [volume, setVolume] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
