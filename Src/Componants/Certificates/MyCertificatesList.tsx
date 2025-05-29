@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   View,
@@ -11,9 +11,9 @@ import {
   UIManager,
 } from 'react-native';
 import MyCertificateCard from './MyCertificateCard';
-import {NftToken} from '../../types/types';
-import {fontsFamily} from '../../Theme';
-import {formatQuantityMWh} from '../../utils';
+import { NftToken } from '../../types/types';
+import { fontsFamily } from '../../Theme';
+import { formatQuantityMWh } from '../../utils';
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Ensure this library is installed
 
 interface Props {
@@ -116,7 +116,7 @@ const MyCertificatesList = ({
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    padding: 10,
+    // padding: 10,
     paddingBottom: 20,
   },
   loadingContainer: {
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,

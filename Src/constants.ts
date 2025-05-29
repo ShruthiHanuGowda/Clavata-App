@@ -44,3 +44,7 @@ export const KYC_API_URL =
   'https://gh6hwmywzjfvlghrmqctqmo42u.appsync-api.me-central-1.amazonaws.com/graphql';
 
 export const KYC_API_KEY = 'da2-pamxpzqquvenlmpacbqq6ejwda';
+
+export const PLATFORM_SETTINGS_API_URL = "https://z5xzy7dsije2hgtxlkl7q6mzve.appsync-api.me-central-1.amazonaws.com/graphql";
+
+export const PLATFORM_SETTINGS_API_KEY = 'da2-mefhraz6cvgxbctio2efrac6ke';
