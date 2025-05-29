@@ -48,7 +48,6 @@ export default function MiniTransactionHistory({
   // console.log('🚀 ~ formattedTransactions:', formattedTransactions);
 
   const [mockTransactions, setMockTransactions] = useState();
-  console.log('🚀 ~ mockTransactions:', JSON.stringify(mockTransactions));
 
   // const {getAll, data, loading, count} = useTransaction();
   // console.log('🚀 ~ data :', JSON.stringify(data), coinCode);
