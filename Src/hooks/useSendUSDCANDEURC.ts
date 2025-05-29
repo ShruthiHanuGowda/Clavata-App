@@ -10,10 +10,16 @@ import {
 import {useMutation} from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 import {ERC20_ABI} from '../utils/Contracts';
+import {EURC_ADDRESS, USDC_ADDRESS} from '../constants';
 
 const INFURA_URL =
   'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
 const infuraProvider = new JsonRpcProvider(INFURA_URL);
+
+export const TOKEN_ADDRESSES = {
+  USDC: USDC_ADDRESS,
+  EURC: EURC_ADDRESS,
+};
 
 interface TokenTransactionDetails {
   to: string;
