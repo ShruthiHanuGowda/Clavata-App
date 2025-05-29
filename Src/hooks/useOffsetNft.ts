@@ -43,7 +43,6 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
   const treasurySetting = data?.listPlatformSettings?.items && data?.listPlatformSettings?.items.length > 0 && data?.listPlatformSettings?.items[0] || null;
 
   const dynamicTreasuryAddress = treasurySetting?.value || TREASURY_ADDRESS;
-  console.log('treasurySetting', dynamicTreasuryAddress);
 
 
   const resetOffsetState = () => {
@@ -133,8 +132,6 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
       const signer = await magicProvider.getSigner();
       const token = await magic_denergy.user.getIdToken();
 
-
-
       if (taxAmount > 0) {
         // console.log('Checking WUSDC balance for tax payment...');
         const balanceCheck = await checkWUSDCBalance(magicProvider, taxAmount);
@@ -198,17 +195,16 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
         },
         body: JSON.stringify({
           volumeInput: volume,
-          startDate,
-          endDate,
           purpose,
+          periodStart: startDate,
+          periodEnd: endDate,
           taxAmount,
           nfts: [
             {
               contractAddr: nft?.collectionAddress,
               tokenId: nft?.tokenId,
               account: account,
-              hash: receipt?.hash,
-              walletAddress: walletAddress,
+              transactionHash: receipt?.hash,
             },
           ],
         }),

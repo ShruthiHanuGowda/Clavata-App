@@ -269,17 +269,13 @@ const OffsetScreen = ({ route }) => {
 
         return (
             <View style={styles.taxContainer}>
-                <View style={styles.taxHeader}>
-                    <DText fontStyle="fontBold" style={styles.taxTitle}>
-                        Transaction Fee
-                    </DText>
-                </View>
-
+                <DText fontStyle="fontBold" style={styles.taxTitle}>
+                    Transaction Fee
+                </DText>
                 <View style={styles.taxCalculationRow}>
                     <DText style={styles.taxLabel}>Volume: {volume} MWh</DText>
                     <DText style={styles.taxValue}>× {TAX_RATE_PER_MWH} WUSDC</DText>
                 </View>
-
                 <View style={styles.taxTotalRow}>
                     <DText fontStyle="fontBold" style={styles.taxTotalLabel}>
                         Total Fee:
@@ -315,13 +311,13 @@ const OffsetScreen = ({ route }) => {
 
             <View style={styles.formContainer}>
                 {/* Volume Input */}
-                <View style={styles.fieldContainer}>
-                    <DText fontStyle="fontBold" style={styles.fieldLabel}>
+                <View style={styles.inputGroup}>
+                    <DText fontStyle="fontBold" style={styles.label}>
                         Volume *
                     </DText>
                     <View style={styles.inputContainer}>
                         <TextInput
-                            style={[styles.input, inputError && styles.inputError]}
+                            style={[styles.input, inputError ? styles.warningInput : undefined]}
                             keyboardType="numeric"
                             value={volume}
                             onChangeText={handleInputChange}
@@ -339,7 +335,7 @@ const OffsetScreen = ({ route }) => {
                         </TouchableOpacity>
                     </View>
                     {inputError ? (
-                        <DText style={styles.errorText}>{inputError}</DText>
+                        <DText style={styles.warningText}>{inputError}</DText>
                     ) : null}
                 </View>
 
@@ -347,14 +343,14 @@ const OffsetScreen = ({ route }) => {
                 {renderTaxCalculation()}
 
                 {/* Start Date Input */}
-                <View style={styles.fieldContainer}>
-                    <DText fontStyle="fontBold" style={styles.fieldLabel}>
+                <View style={styles.inputGroup}>
+                    <DText fontStyle="fontBold" style={styles.label}>
                         Start Date *
                     </DText>
                     <TextInput
                         style={[
-                            styles.dateInput,
-                            dateErrors.startDate && styles.inputError,
+                            styles.input,
+                            dateErrors.startDate && styles.warningInput,
                         ]}
                         value={startDate}
                         onChangeText={text => handleDateChange('startDate', text)}
@@ -362,35 +358,35 @@ const OffsetScreen = ({ route }) => {
                         placeholderTextColor="#A0A0A0"
                     />
                     {dateErrors.startDate && (
-                        <DText style={styles.errorText}>{dateErrors.startDate}</DText>
+                        <DText style={styles.warningText}>{dateErrors.startDate}</DText>
                     )}
                 </View>
 
                 {/* End Date Input */}
-                <View style={styles.fieldContainer}>
-                    <DText fontStyle="fontBold" style={styles.fieldLabel}>
+                <View style={styles.inputGroup}>
+                    <DText fontStyle="fontBold" style={styles.label}>
                         End Date *
                     </DText>
                     <TextInput
-                        style={[styles.dateInput, dateErrors.endDate && styles.inputError]}
+                        style={[styles.input, dateErrors.endDate && styles.warningInput]}
                         value={endDate}
                         onChangeText={text => handleDateChange('endDate', text)}
                         placeholder="YYYY-MM-DD"
                         placeholderTextColor="#A0A0A0"
                     />
                     {dateErrors.endDate && (
-                        <DText style={styles.errorText}>{dateErrors.endDate}</DText>
+                        <DText style={styles.warningText}>{dateErrors.endDate}</DText>
                     )}
                 </View>
 
                 {/* Date Range Error */}
                 {dateErrors.dateRange && (
-                    <DText style={styles.errorText}>{dateErrors.dateRange}</DText>
+                    <DText style={styles.warningText}>{dateErrors.dateRange}</DText>
                 )}
 
                 {/* Purpose Dropdown */}
-                <View style={styles.fieldContainer}>
-                    <DText fontStyle="fontBold" style={styles.fieldLabel}>
+                <View style={styles.inputGroup}>
+                    <DText fontStyle="fontBold" style={styles.label}>
                         Purpose *
                     </DText>
                     <TouchableOpacity
@@ -433,32 +429,27 @@ const OffsetScreen = ({ route }) => {
                 </View>
             </View>
 
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    style={[
-                        styles.primaryButton,
-                        !isFormValid() && styles.disabledButton,
-                    ]}
-                    onPress={handleSubmit}
-                    disabled={!isFormValid()}
-                    activeOpacity={0.8}>
-                    <DText
-                        fontStyle="fontBold"
-                        style={[
-                            styles.primaryButtonText,
-                            !isFormValid() && styles.disabledButtonText,
-                        ]}>
-                        Execute Offset
-                    </DText>
-                </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+                style={[
+                    styles.button,
+                    !isFormValid() && styles.buttonDisabled,
+                ]}
+                onPress={handleSubmit}
+                disabled={!isFormValid()}
+                activeOpacity={0.8}>
+                <DText
+                    fontStyle="fontBold"
+                    style={styles.buttonText}>
+                    Execute Offset
+                </DText>
+            </TouchableOpacity>
         </ScrollView>
     );
 
     const renderProcessing = () => (
         <View style={styles.centerContainer}>
             <View style={styles.processingContainer}>
-                <ActivityIndicator size="large" color="#009D94" />
+                <ActivityIndicator size="large" color="#81c8c3" />
                 <DText fontStyle="fontBold" style={styles.processingTitle}>
                     Processing Offset...
                 </DText>
@@ -545,16 +536,14 @@ const OffsetScreen = ({ route }) => {
                 </TouchableOpacity>
             </View>
 
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    style={styles.primaryButton}
-                    onPress={() => navigateBack()}
-                    activeOpacity={0.8}>
-                    <DText fontStyle="fontBold" style={styles.primaryButtonText}>
-                        Done
-                    </DText>
-                </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+                style={styles.button}
+                onPress={() => navigateBack()}
+                activeOpacity={0.8}>
+                <DText fontStyle="fontBold" style={styles.buttonText}>
+                    Done
+                </DText>
+            </TouchableOpacity>
         </ScrollView>
     );
 
@@ -601,7 +590,7 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
     },
     centerContainer: {
         flex: 1,
@@ -662,7 +651,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#F0FBF9',
         padding: 16,
-        borderRadius: 12,
+        borderRadius: 8,
         marginBottom: 20,
         borderWidth: 1,
         borderColor: '#B8E6E1',
@@ -673,84 +662,73 @@ const styles = StyleSheet.create({
     },
     availableAmount: {
         fontSize: 16,
-        color: '#009D94',
+        color: '#81c8c3',
     },
     formContainer: {
         flex: 1,
     },
-    fieldContainer: {
+    inputGroup: {
         marginBottom: 20,
     },
-    fieldLabel: {
+    label: {
+        fontWeight: '600',
+        marginBottom: 6,
         fontSize: 14,
-        color: '#1A1A1A',
-        marginBottom: 8,
     },
     inputContainer: {
         position: 'relative',
     },
     input: {
-        height: 60,
-        paddingHorizontal: 20,
-        paddingRight: 100,
-        borderColor: '#E0E0E0',
-        borderWidth: 2,
-        borderRadius: 16,
-        fontSize: 18,
-        backgroundColor: '#FAFAFA',
-        color: '#1A1A1A',
-        textAlign: 'center',
-        fontFamily: fontsFamily.MulishBold,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+        fontSize: 14,
+        backgroundColor: '#fff',
     },
-    dateInput: {
-        height: 60,
-        paddingHorizontal: 20,
-        borderColor: '#E0E0E0',
-        borderWidth: 2,
-        borderRadius: 16,
-        fontSize: 16,
-        backgroundColor: '#FAFAFA',
-        color: '#1A1A1A',
-        fontFamily: fontsFamily.Mulish,
+    warningInput: {
+        borderColor: '#e74c3c',
     },
-    inputError: {
-        borderColor: '#FF6B6B',
-        backgroundColor: '#FFF5F5',
+    warningText: {
+        color: '#e74c3c',
+        fontSize: 12,
+        marginTop: 4,
     },
     inputLabel: {
         position: 'absolute',
-        right: 80,
-        top: 18,
-        fontSize: 16,
-        color: '#009D94',
+        right: 60,
+        top: 10,
+        fontSize: 14,
+        color: '#81c8c3',
         fontFamily: fontsFamily.MulishBold,
     },
     maxButton: {
         position: 'absolute',
-        right: 12,
-        top: 12,
-        backgroundColor: '#009D94',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
+        right: 8,
+        top: 6,
+        backgroundColor: '#81c8c3',
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        borderRadius: 4,
     },
     maxButtonText: {
         color: '#fff',
         fontSize: 12,
     },
     dropdownButton: {
-        height: 60,
-        paddingHorizontal: 20,
-        borderColor: '#E0E0E0',
-        borderWidth: 2,
-        borderRadius: 16,
-        backgroundColor: '#FAFAFA',
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+        backgroundColor: '#fff',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
     dropdownButtonText: {
-        fontSize: 16,
+        fontSize: 14,
         color: '#1A1A1A',
     },
     placeholderText: {
@@ -758,15 +736,15 @@ const styles = StyleSheet.create({
     },
     dropdownArrow: {
         fontSize: 14,
-        color: '#009D94',
+        color: '#81c8c3',
         fontFamily: fontsFamily.MulishBold,
     },
     dropdownContainer: {
         marginTop: 4,
         backgroundColor: '#fff',
-        borderRadius: 12,
+        borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#E0E0E0',
+        borderColor: '#ddd',
         elevation: 5,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -774,8 +752,8 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
     },
     dropdownOption: {
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: 10,
+        paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#F0F0F0',
     },
@@ -783,102 +761,65 @@ const styles = StyleSheet.create({
         borderBottomWidth: 0,
     },
     dropdownOptionText: {
-        fontSize: 16,
+        fontSize: 14,
         color: '#1A1A1A',
     },
     // Tax Calculation Styles
     taxContainer: {
-        backgroundColor: '#FFF8E1',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#FFE082',
-    },
-    taxHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
+        backgroundColor: '#f8f8f8',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 16,
     },
     taxTitle: {
-        fontSize: 16,
-        color: '#E65100',
-    },
-    infoIcon: {
-        fontSize: 16,
-        color: '#FF9800',
+        fontSize: 14,
+        color: '#555',
+        marginBottom: 8,
     },
     taxCalculationRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 4,
     },
     taxLabel: {
-        fontSize: 14,
-        color: '#BF360C',
+        fontSize: 13,
+        color: '#555',
     },
     taxValue: {
-        fontSize: 14,
-        color: '#BF360C',
+        fontSize: 13,
+        color: '#555',
     },
     taxTotalRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
         paddingTop: 8,
         borderTopWidth: 1,
-        borderTopColor: '#FFE082',
+        borderTopColor: '#ddd',
     },
     taxTotalLabel: {
-        fontSize: 16,
-        color: '#E65100',
+        fontSize: 14,
+        color: '#555',
     },
     taxTotalValue: {
-        fontSize: 16,
-        color: '#E65100',
-    },
-    taxNote: {
-        fontSize: 12,
-        color: '#8D6E63',
-        fontStyle: 'italic',
-        textAlign: 'center',
-    },
-    errorText: {
-        color: '#FF6B6B',
         fontSize: 14,
-        textAlign: 'left',
-        marginTop: 6,
+        color: '#555',
     },
-    buttonContainer: {
-        paddingVertical: 20,
-        paddingBottom: 40,
-    },
-    primaryButton: {
-        height: 56,
-        borderRadius: 16,
-        backgroundColor: '#009D94',
-        justifyContent: 'center',
+    button: {
+        backgroundColor: '#81c8c3',
+        padding: 14,
+        borderRadius: 8,
         alignItems: 'center',
-        shadowColor: '#009D94',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
+        marginVertical: 20,
     },
-    primaryButtonText: {
+    buttonDisabled: {
+        backgroundColor: '#ccc',
+    },
+    buttonText: {
         color: '#fff',
+        fontWeight: 'bold',
         fontSize: 16,
-    },
-    disabledButton: {
-        backgroundColor: '#C0C0C0',
-        shadowOpacity: 0,
-        elevation: 0,
-    },
-    disabledButtonText: {
-        color: '#888',
     },
     processingContainer: {
         alignItems: 'center',
@@ -898,7 +839,7 @@ const styles = StyleSheet.create({
     },
     processingFeeText: {
         fontSize: 14,
-        color: '#E65100',
+        color: '#555',
         marginTop: 8,
         textAlign: 'center',
         fontWeight: 'bold',
@@ -906,7 +847,7 @@ const styles = StyleSheet.create({
     successDetailsContainer: {
         backgroundColor: '#F0FBF9',
         padding: 20,
-        borderRadius: 12,
+        borderRadius: 8,
         marginBottom: 30,
         borderWidth: 1,
         borderColor: '#B8E6E1',
@@ -924,7 +865,7 @@ const styles = StyleSheet.create({
     },
     successDetailValue: {
         fontSize: 14,
-        color: '#009D94',
+        color: '#81c8c3',
         flex: 1,
         textAlign: 'right',
     },
@@ -933,21 +874,21 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     certificateButton: {
-        height: 60,
-        borderRadius: 16,
+        borderRadius: 8,
         backgroundColor: '#F8FFFE',
-        borderWidth: 1.5,
-        borderColor: '#009D94',
+        borderWidth: 1,
+        borderColor: '#81c8c3',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 12,
+        padding: 14,
     },
     certificateButtonIcon: {
         fontSize: 20,
     },
     certificateButtonText: {
-        color: '#009D94',
+        color: '#81c8c3',
         fontSize: 16,
     },
 });
