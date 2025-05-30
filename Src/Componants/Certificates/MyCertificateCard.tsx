@@ -1,11 +1,10 @@
-import React, {useState} from 'react';
-import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
-import {NftLocation, NftToken} from '../../types/types';
-import {formatQuantityMWh} from '../../utils';
-import {NavigationProp, useNavigation} from '@react-navigation/native';
-import SellModal from '../MarketPlace/BuySellModal/SellModal';
-import {DText} from '../DText';
-import {ScreenWidth} from '@rneui/base';
+import React, { useState } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { NftLocation, NftToken } from '../../types/types';
+import { formatQuantityMWh } from '../../utils';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
+// import SellModal from '../MarketPlace/BuySellModal/SellModal';
+import { DText } from '../DText';
 
 interface Props {
   nft: NftToken;
@@ -14,13 +13,13 @@ interface Props {
 }
 type NavigationProps = NavigationProp<any, any>;
 
-const MyCertificateCard = ({nft, refresh, containerStyle}: Props) => {
+const MyCertificateCard = ({ nft, refresh, containerStyle }: Props) => {
   const [clickedSellNft, setClickedSellNft] = useState<any>({});
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
 
   const navigation = useNavigation<NavigationProps>();
   const handlePress = () => {
-    navigation.navigate('walletNFTDetails', {nft});
+    navigation.navigate('walletNFTDetails', { nft });
   };
 
   const handleCollectibleClick = (location?: NftLocation) => {
@@ -60,7 +59,7 @@ const MyCertificateCard = ({nft, refresh, containerStyle}: Props) => {
           <DText
             style={styles.name}
             fontStyle="fontBold"
-            textProps={{numberOfLines: 1, ellipsizeMode: 'tail'}}>
+            textProps={{ numberOfLines: 1, ellipsizeMode: 'tail' }}>
             {nft.name}
           </DText>
 
@@ -75,7 +74,7 @@ const MyCertificateCard = ({nft, refresh, containerStyle}: Props) => {
         </View>
       </TouchableOpacity>
 
-      <SellModal
+      {/* <SellModal
         visible={isSellModalVisible}
         onClose={() => {
           setIsSellModalVisible(false);
@@ -88,7 +87,7 @@ const MyCertificateCard = ({nft, refresh, containerStyle}: Props) => {
           setIsSellModalVisible(false);
           setClickedSellNft(null);
         }}
-      />
+      /> */}
     </>
   );
 };
@@ -98,11 +97,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
+    marginTop: 5,
     marginBottom: 12,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,

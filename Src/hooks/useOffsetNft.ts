@@ -19,7 +19,7 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
-export const useOffsetNft = (magic_denergy, account, walletAddress) => {
+export const useOffsetNft = (magic_denergy: any, account: any, walletAddress: any) => {
   const [isLoadingOffset, setIsLoadingOffset] = useState(false);
   const [redemptionUrl, setRedemptionUrl] = useState('');
   const [pdfDownloadUrl, setPdfDownloadUrl] = useState('');
@@ -52,7 +52,7 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
     setOffsetSuccess(false);
   };
 
-  const validateOffsetVolume = (volume, nftQuantity) => {
+  const validateOffsetVolume = (volume: string, nftQuantity: number) => {
     const maxQuantity = Number(nftQuantity / 1_000_000);
 
     if (!volume || volume.trim() === '') {
@@ -72,11 +72,11 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
     return { isValid: true, maxQuantity };
   };
 
-  const getAvailableQuantity = nftQuantity => {
+  const getAvailableQuantity = (nftQuantity: number) => {
     return Number(nftQuantity / 1_000_000);
   };
 
-  const checkWUSDCBalance = async (magicProvider, requiredAmount) => {
+  const checkWUSDCBalance = async (magicProvider: any, requiredAmount: number) => {
     try {
       const balance = getBalance('WUSDC')?.balance ?? 0;
 
@@ -91,7 +91,7 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
     }
   };
 
-  const sendWUSDCToTreasury = async (magicProvider, amount) => {
+  const sendWUSDCToTreasury = async (magicProvider: any, amount: number) => {
     try {
       const signer = await magicProvider.getSigner();
       const wusdcContract = new Contract(
@@ -116,7 +116,7 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
     }
   };
 
-  const executeOffset = async (offsetData, nft) => {
+  const executeOffset = async (offsetData: any, nft: any) => {
     const { volume, startDate, endDate, purpose, taxAmount } = offsetData;
 
     const validation = validateOffsetVolume(volume, nft?.marketData?.quantity);
@@ -195,16 +195,17 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
         },
         body: JSON.stringify({
           volumeInput: volume,
+          startDate,
+          endDate,
           purpose,
-          periodStart: startDate,
-          periodEnd: endDate,
           taxAmount,
           nfts: [
             {
               contractAddr: nft?.collectionAddress,
               tokenId: nft?.tokenId,
               account: account,
-              transactionHash: receipt?.hash,
+              hash: receipt?.hash,
+              walletAddress: walletAddress,
             },
           ],
         }),
@@ -233,7 +234,7 @@ export const useOffsetNft = (magic_denergy, account, walletAddress) => {
         );
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error during offset process:', error);
 
       if (error.message?.includes('user rejected')) {

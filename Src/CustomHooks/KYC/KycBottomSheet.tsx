@@ -101,7 +101,7 @@ const KycBottomSheet: React.FC<KycBottomSheetProps> = ({
   return (
     <BottomSheet
       ref={bottomSheetRef}
-      index={isKycBottomSheetVisible ? 0 : -1}
+      index={-1}
       snapPoints={snapPoints}
       onChange={handleSheetChanges}
       enablePanDownToClose={!isKycBottomSheetVisible}

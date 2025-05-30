@@ -1,9 +1,9 @@
 // @ts-ignore
-import React, { createContext, useState, ReactNode, useContext } from 'react';
-import { useMutation } from '@apollo/client';
-import { CREATE_USER_WALLETS } from '../../Src/graphql/queries';
-import { Alert } from 'react-native';
-import { UserAuth } from '../../Src/utils/type';
+import React, {createContext, useState, ReactNode, useContext} from 'react';
+import {useMutation} from '@apollo/client';
+import {CREATE_USER_WALLETS} from '../../Src/graphql/queries';
+import {Alert} from 'react-native';
+import {UserAuth} from '../../Src/utils/type';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -17,11 +17,10 @@ interface AuthContextType {
 // Default context value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider = ({children}: {children: ReactNode}) => {
   const [createUserWallets] = useMutation(CREATE_USER_WALLETS);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [userDetails, setUserDetails] = useState<UserAuth | null>(null);
-  console.log('🚀 ~ AuthProvider ~ userDetails:', JSON.stringify(userDetails));
 
   // Function to simulate login
   const login = () => {
@@ -35,7 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log('User logged out');
   };
 
-  const handleSaveWalletToDB = async user => {
+  const handleSaveWalletToDB = async (user: UserAuth) => {
     const walletData = {
       emailAddress: user.emailAddress,
       ethereumWallet: user.ethereumWallet,
@@ -48,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     try {
-      const { data } = await createUserWallets({
+      const {data} = await createUserWallets({
         variables: {
           createuserwalletaddressinput: walletData,
         },
@@ -59,9 +58,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateUserData = async (userData: UserAuth, isExist) => {
+  const updateUserData = async (userData: UserAuth, isExist: boolean) => {
     try {
-      setUserDetails(userData);
+      updateUserDetails(userData);
       if (!isExist) {
         return await handleSaveWalletToDB(userData);
       } else {
@@ -75,20 +74,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // New function to update specific fields of userDetails
   const updateUserDetails = (partialUserData: Partial<UserAuth>) => {
-    setUserDetails(prevUserDetails => {
-      if (!prevUserDetails) {
-        console.warn(
-          'Cannot update user details: No existing user details found',
-        );
-        return prevUserDetails;
-      }
+    try {
+      setUserDetails(prevUserDetails => {
+        // If no existing user details, create new object with partial data
+        if (!prevUserDetails) {
+          console.log(
+            'No existing user details found, creating new user details',
+          );
+          return partialUserData as UserAuth;
+        }
 
-      // Merge existing userDetails with new partial data
-      return {
-        ...prevUserDetails,
-        ...partialUserData,
-      };
-    });
+        // Merge existing userDetails with new partial data
+        return {
+          ...prevUserDetails,
+          ...partialUserData,
+        };
+      });
+    } catch (error) {
+      console.log('🚀 ~ updateUserData ~ error:', error);
+      throw new Error(error);
+    }
   };
 
   return (

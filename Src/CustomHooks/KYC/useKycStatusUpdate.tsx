@@ -3,6 +3,7 @@ import {useAuth} from '../../../screens/Provider/authProvider';
 import {getKYCDetails} from './KYCQuery';
 import {ExtractedKycInfo} from '../../utils/type';
 import {parseDataAndReturnFixedInfo} from '../../Screens/AuthScreens/loginScreen';
+import {useApolloClientContext} from '../../../screens/Provider/GraphQLProvider'; // Added missing import
 
 // GraphQL mutation for updating KYC verification status
 
@@ -49,6 +50,7 @@ interface UpdateKycStatusVars {
 
 export const useKycStatusUpdate = () => {
   const {userDetails, updateUserDetails} = useAuth();
+  const {client} = useApolloClientContext(); // Get Apollo client from context
   //   console.log('🚀 ~ useKycStatusUpdate ~ userDetails:', userDetails);
 
   // Initialize the mutation hook
@@ -72,12 +74,15 @@ export const useKycStatusUpdate = () => {
   ): Promise<any> => {
     try {
       const userEmail = userDetails?.emailAddress;
-
       if (!userEmail) {
         throw new Error('No wallet address available');
       }
-      const res = await getKYCDetails(applicantId || '');
-      const kycDetails = res?.getCompanyDetails?.response;
+      console.log('🚀 ~ useKycStatusUpdate ~ applicantId:', applicantId);
+      // Fixed: Pass the Apollo client to getKYCDetails
+      const res = await getKYCDetails(applicantId || '', client);
+      console.log('🚀 ~ useKycStatusUpdate ~ kycDetails:', res);
+      const kycDetails = res; // Fixed: Updated path to match query
+
       const result = await updateKycStatus({
         variables: {
           emailAddress: userEmail.toLowerCase(),
@@ -89,10 +94,19 @@ export const useKycStatusUpdate = () => {
       });
 
       const kycDetailsParsed = JSON.parse(JSON.stringify(kycDetails));
+      console.log(
+        '🚀 ~ useKycStatusUpdate ~ kycDetailsParsed:',
+        kycDetailsParsed,
+      );
       const extractedKycInfo: ExtractedKycInfo | null =
         parseDataAndReturnFixedInfo(kycDetailsParsed);
+      console.log(
+        '🚀 ~ useKycStatusUpdate ~ extractedKycInfo:',
+        extractedKycInfo,
+      );
 
       if (extractedKycInfo) {
+        console.log('🚀 ~ useKycStatusUpdate ~ extractedKycInfo: ✅');
         updateUserDetails({
           kycDetails: extractedKycInfo,
           is_verified: isVerified,

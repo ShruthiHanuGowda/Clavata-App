@@ -1,7 +1,7 @@
 import React, {createContext, useContext, ReactNode, useState} from 'react';
 import {Magic} from '@magic-sdk/react-native-bare';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
-import {CUSTOM_NETWORK_CHAIN_ID, CUSTOM_RPC_URL} from '../../Src/constants';
+import {CUSTOM_NETWORK_CHAIN_ID, CUSTOM_RPC_URL} from '../../Src/constants.ts';
 
 // Network configuration constants - only Sepolia and Denergy
 export const NETWORKS = {
@@ -37,16 +37,13 @@ interface MagicProviderProps {
 export const MagicProvider: React.FC<MagicProviderProps> = ({
   children,
   apiKey,
-  initialNetwork = 'default', // Default to default network
+  initialNetwork = 'default',
 }) => {
-  // State for tracking which network is currently active
   const [activeNetwork, setActiveNetworkState] =
     useState<NetworkType>(initialNetwork);
 
-  // Initialize default Magic instance with only API key
   const magic_default = new Magic(apiKey);
 
-  // Initialize Magic instances for both networks
   const magic_sepolia = new Magic(apiKey, {
     network: 'sepolia',
   });
@@ -58,7 +55,6 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
     },
   });
 
-  // Get the active Magic instance based on the current network
   const getMagicInstance = () => {
     switch (activeNetwork) {
       case 'sepolia':

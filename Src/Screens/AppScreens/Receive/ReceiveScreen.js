@@ -10,7 +10,6 @@ import {useAuth} from '../../../../screens/Provider/authProvider';
 const ReceiveScreen = ({route}) => {
   const {coinCode} = route.params;
   const {userDetails} = useAuth();
-  console.log('🚀 ~ ReceiveScreen ~ userDetails:', userDetails);
   return (
     <View style={styles.container}>
       <Header
@@ -33,6 +32,7 @@ const ReceiveScreen = ({route}) => {
       <ScrollView>
         <View style={styles.boxAlign}>
           <ShowQr
+            coinCode={coinCode}
             address={
               coinCode === 'ETH' || coinCode === 'USDC' || coinCode === 'EURC'
                 ? userDetails?.ethereumWallet

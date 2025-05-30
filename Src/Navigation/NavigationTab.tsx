@@ -1,9 +1,13 @@
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
 import TabBar from './TabBar';
-// import MarketPlace from '../Screens/MarketPlace';
-import MarketPlace from '../Screens/MarketPlaceNew';
-import {HomeScreenStack, StakeStackFun, WalletStack} from '.';
+import MarketPlace from '../Screens/MarketPlace';
+import screen1 from '../Screens/TempScreen/screen1';
+import screen2 from '../Screens/TempScreen/screen2';
+import screen3 from '../Screens/TempScreen/screen3';
+import screen4 from '../Screens/TempScreen/screen4';
+import HomeScreen from '../Screens/HomeScreen';
+import { HomeScreenStack, StakeStackFun, WalletStack } from '.';
 
 type RootTabParamList = {
   'D.Energy': undefined;
@@ -23,27 +27,22 @@ export default function Tabs() {
       <Tab.Screen
         name="D.Energy"
         component={HomeScreenStack}
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
       />
       <Tab.Screen
         name="Wallet"
         component={WalletStack}
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
       />
-      {/* <Tab.Screen
-        name="Marketplace"
-        component={MarketPlace}
-        options={{headerShown: false}}
-      /> */}
       <Tab.Screen
         name="Marketplace"
         component={MarketPlace}
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
       />
       <Tab.Screen
         name="Stake"
         component={StakeStackFun}
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
       />
       {/* <Tab.Screen
         name="dApps"

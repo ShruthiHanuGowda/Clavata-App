@@ -1,6 +1,6 @@
 import images from './images';
 
-export const marketIcons = {
+export const marketIcons: {[key: string]: string} = {
   WATT: images.watt,
   BTC: images.bitcoin,
   USDT: images.usdt,

@@ -10,7 +10,9 @@ import {
   TextStyle,
   SafeAreaView,
 } from 'react-native';
-import {Colors, fontsFamily, Images} from '../Theme';
+import Colors from '../Theme/Colors';
+import fontsFamily from '../Theme/fontsFamily';
+import Images from '../Theme/images';
 
 // Get device width for responsive layout
 const deviceWidth = Dimensions.get('window').width;

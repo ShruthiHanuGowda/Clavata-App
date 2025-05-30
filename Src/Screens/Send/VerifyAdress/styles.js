@@ -53,7 +53,6 @@ export default StyleSheet.create({
     borderRadius: 12,
     marginBottom: 40,
     marginHorizontal: 10,
-
   },
   buttonImage: {
     height: 51,

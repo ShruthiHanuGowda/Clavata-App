@@ -214,6 +214,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     fontSize: 16,
+    color: '#000',
   },
   inputError: {
     borderColor: 'red',

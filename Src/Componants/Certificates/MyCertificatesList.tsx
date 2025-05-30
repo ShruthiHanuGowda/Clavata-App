@@ -14,7 +14,7 @@ import MyCertificateCard from './MyCertificateCard';
 import { NftToken } from '../../types/types';
 import { fontsFamily } from '../../Theme';
 import { formatQuantityMWh } from '../../utils';
-import Icon from 'react-native-vector-icons/MaterialIcons'; // Ensure this library is installed
+import { N } from 'ethers';
 
 interface Props {
   nfts: NftToken[];
@@ -70,7 +70,7 @@ const MyCertificatesList = ({
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size='small' color="#009D94" />
       </View>
     );
   }

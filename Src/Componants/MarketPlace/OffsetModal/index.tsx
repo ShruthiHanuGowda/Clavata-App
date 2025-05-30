@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   Modal,
   TouchableOpacity,
@@ -11,12 +11,12 @@ import {
   Dimensions,
   ScrollView,
 } from 'react-native';
-import { fontsFamily } from '../../../Theme';
+import {fontsFamily} from '../../../Theme';
 
 const PURPOSE_OPTIONS = [
-  { label: 'Carbon Offset', value: 'carbon_offset' },
-  { label: 'Renewable Energy Certificate', value: 'renewable_energy_cert' },
-  { label: 'Corporate Sustainability', value: 'corporate_sustainability' },
+  {label: 'Carbon Offset', value: 'carbon_offset'},
+  {label: 'Renewable Energy Certificate', value: 'renewable_energy_cert'},
+  {label: 'Corporate Sustainability', value: 'corporate_sustainability'},
 ];
 
 export const OffsetModal = ({
@@ -44,9 +44,13 @@ export const OffsetModal = ({
   const [endDate, setEndDate] = useState('');
   const [purpose, setPurpose] = useState('');
   const [showPurposeDropdown, setShowPurposeDropdown] = useState(false);
-  const [dateErrors, setDateErrors] = useState({ startDate: '', endDate: '', dateRange: '' });
+  const [dateErrors, setDateErrors] = useState({
+    startDate: '',
+    endDate: '',
+    dateRange: '',
+  });
 
-  const handleInputChange = (text) => {
+  const handleInputChange = text => {
     setValue(text);
 
     if (text && onValidateVolume) {
@@ -72,7 +76,7 @@ export const OffsetModal = ({
 
   const handleDateChange = (field, text) => {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    const newErrors = { ...dateErrors };
+    const newErrors = {...dateErrors};
 
     if (field === 'startDate') {
       setStartDate(text);
@@ -91,7 +95,12 @@ export const OffsetModal = ({
     }
 
     // Validate date range
-    if (startDate && endDate && dateRegex.test(startDate) && dateRegex.test(endDate)) {
+    if (
+      startDate &&
+      endDate &&
+      dateRegex.test(startDate) &&
+      dateRegex.test(endDate)
+    ) {
       const start = new Date(startDate);
       const end = new Date(endDate);
       if (start >= end) {
@@ -104,7 +113,7 @@ export const OffsetModal = ({
     setDateErrors(newErrors);
   };
 
-  const handlePurposeSelect = (selectedPurpose) => {
+  const handlePurposeSelect = selectedPurpose => {
     setPurpose(selectedPurpose.value);
     setShowPurposeDropdown(false);
   };
@@ -168,7 +177,9 @@ export const OffsetModal = ({
   }, [visible]);
 
   const renderOffsetForm = () => (
-    <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.scrollContainer}
+      showsVerticalScrollIndicator={false}>
       <View style={styles.contentContainer}>
         <View style={styles.iconContainer}>
           <Text style={styles.iconText}>⚡</Text>
@@ -191,10 +202,7 @@ export const OffsetModal = ({
           <Text style={styles.fieldLabel}>Volume *</Text>
           <View style={styles.inputContainer}>
             <TextInput
-              style={[
-                styles.input,
-                !isValidInput && styles.inputError,
-              ]}
+              style={[styles.input, !isValidInput && styles.inputError]}
               keyboardType="numeric"
               value={value}
               onChangeText={handleInputChange}
@@ -226,7 +234,7 @@ export const OffsetModal = ({
               dateErrors.startDate && styles.inputError,
             ]}
             value={startDate}
-            onChangeText={(text) => handleDateChange('startDate', text)}
+            onChangeText={text => handleDateChange('startDate', text)}
             placeholder="YYYY-MM-DD"
             placeholderTextColor="#A0A0A0"
           />
@@ -239,12 +247,9 @@ export const OffsetModal = ({
         <View style={styles.fieldContainer}>
           <Text style={styles.fieldLabel}>End Date *</Text>
           <TextInput
-            style={[
-              styles.dateInput,
-              dateErrors.endDate && styles.inputError,
-            ]}
+            style={[styles.dateInput, dateErrors.endDate && styles.inputError]}
             value={endDate}
-            onChangeText={(text) => handleDateChange('endDate', text)}
+            onChangeText={text => handleDateChange('endDate', text)}
             placeholder="YYYY-MM-DD"
             placeholderTextColor="#A0A0A0"
           />
@@ -265,11 +270,14 @@ export const OffsetModal = ({
             style={styles.dropdownButton}
             onPress={() => setShowPurposeDropdown(!showPurposeDropdown)}
             activeOpacity={0.8}>
-            <Text style={[
-              styles.dropdownButtonText,
-              !purpose && styles.placeholderText
-            ]}>
-              {purpose ? PURPOSE_OPTIONS.find(opt => opt.value === purpose)?.label : 'Select purpose'}
+            <Text
+              style={[
+                styles.dropdownButtonText,
+                !purpose && styles.placeholderText,
+              ]}>
+              {purpose
+                ? PURPOSE_OPTIONS.find(opt => opt.value === purpose)?.label
+                : 'Select purpose'}
             </Text>
             <Text style={styles.dropdownArrow}>
               {showPurposeDropdown ? '▲' : '▼'}
@@ -283,7 +291,8 @@ export const OffsetModal = ({
                   key={option.value}
                   style={[
                     styles.dropdownOption,
-                    index === PURPOSE_OPTIONS.length - 1 && styles.lastDropdownOption
+                    index === PURPOSE_OPTIONS.length - 1 &&
+                      styles.lastDropdownOption,
                   ]}
                   onPress={() => handlePurposeSelect(option)}
                   activeOpacity={0.8}>
@@ -309,10 +318,13 @@ export const OffsetModal = ({
               onPress={handleSubmit}
               disabled={!isFormValid()}
               activeOpacity={0.8}>
-              <Text style={[
-                styles.primaryButtonText,
-                !isFormValid() && styles.disabledButtonText,
-              ]}>Execute Offset</Text>
+              <Text
+                style={[
+                  styles.primaryButtonText,
+                  !isFormValid() && styles.disabledButtonText,
+                ]}>
+                Execute Offset
+              </Text>
             </TouchableOpacity>
           )}
 
@@ -336,7 +348,8 @@ export const OffsetModal = ({
 
       <Text style={styles.modalTitle}>Offset Successful!</Text>
       <Text style={styles.modalSubtitle}>
-        Your offset has been completed successfully. You can now view or download your certificate.
+        Your offset has been completed successfully. You can now view or
+        download your certificate.
       </Text>
 
       <View style={styles.certificateButtonsContainer}>
@@ -391,10 +404,12 @@ export const OffsetModal = ({
           style={[
             styles.modalContent,
             {
-              transform: [{ scale: scaleAnim }],
+              transform: [{scale: scaleAnim}],
             },
           ]}>
-          {offsetSuccess || redemptionUrl ? renderSuccessView() : renderOffsetForm()}
+          {offsetSuccess || redemptionUrl
+            ? renderSuccessView()
+            : renderOffsetForm()}
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -418,7 +433,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     elevation: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: {width: 0, height: 10},
     shadowOpacity: 0.3,
     shadowRadius: 20,
   },
@@ -514,6 +529,7 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     fontFamily: fontsFamily.MulishBold,
     textAlign: 'center',
+    color: '#000',
   },
   dateInput: {
     width: '100%',
@@ -524,8 +540,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     fontSize: 16,
     backgroundColor: '#FAFAFA',
-    color: '#1A1A1A',
     fontFamily: fontsFamily.Mulish,
+    color: '#000',
   },
   inputError: {
     borderColor: '#FF6B6B',
@@ -586,7 +602,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
@@ -632,7 +648,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#009D94',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,

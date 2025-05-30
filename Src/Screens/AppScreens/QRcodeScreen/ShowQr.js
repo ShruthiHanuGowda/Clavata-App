@@ -6,7 +6,7 @@ import images from '../../../Theme/images';
 import 'text-encoding';
 import Share from 'react-native-share';
 import QRCode from 'react-native-qrcode-svg';
-import Clipboard from '@react-native-community/clipboard';
+import Clipboard from '@react-native-clipboard/clipboard';
 import {SnackBarMessage} from '../../../utils/snackBar';
 const ShowQr = ({coinCode, address, name}) => {
   const saveQrToDisk = async () => {};
@@ -97,9 +97,7 @@ const styles = StyleSheet.create({
   },
 
   outerBox: {
-    borderWidth: 1,
-    borderColor: '#F9F9F9',
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#fff',
     width: '100%',
     borderRadius: 10,
     alignItems: 'center',

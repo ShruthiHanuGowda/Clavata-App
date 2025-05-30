@@ -57,7 +57,7 @@ export const useTransactionHistory = (
 
   const coinCodesForDenergyWallet = ['watt', 'weurc', 'wusdc'];
 
-  const walletAddress = coinCodesForDenergyWallet.includes(
+  const emailAddress = coinCodesForDenergyWallet.includes(
     coinCode.toLocaleLowerCase(),
   )
     ? userDetails?.denergyWallet
@@ -70,7 +70,7 @@ export const useTransactionHistory = (
     return rawData.map((item, index) => {
       console.log('🚀 ~ returnrawData.map ~ item:', item);
       let fromAddress = item.from;
-      let type = fromAddress === walletAddress ? 'send' : 'Received';
+      let type = fromAddress === emailAddress ? 'send' : 'Received';
 
       const isSending =
         type === 'send' || type === 'Sell' || type === 'Bridge Deposit';

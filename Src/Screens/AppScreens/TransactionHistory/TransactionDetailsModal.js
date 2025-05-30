@@ -6,6 +6,7 @@ import styles from './styles';
 import images from '../../../Theme/images';
 
 const TransactionDetailsModal = ({visible, setVisible, selectedItems}) => {
+  console.log('🚀 ~ TransactionDetailsModal ~ selectedItems:', selectedItems);
   const TransactionDetails = ({title, value}) => {
     return (
       <TouchableOpacity

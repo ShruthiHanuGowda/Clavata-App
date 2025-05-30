@@ -256,11 +256,11 @@ export default function Account(props) {
           img={images.help}
           title="Contact Us"
         />
-        <MenuList
+        {/* <MenuList
           onPress={() => navigateTo('transactionHistroy')}
           img={images.history}
           title="All Transactions Data"
-        />
+        /> */}
         <MenuList
           onPress={() => handleLogout()}
           img={images.logout}

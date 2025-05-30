@@ -210,6 +210,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     marginTop: 4,
+    color: '#000',
   },
   warning: {
     color: '#e74c3c',

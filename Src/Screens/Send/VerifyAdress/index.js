@@ -11,12 +11,12 @@ import style from './styles';
 import {Header} from '@rneui/base';
 import Images from '../../../Theme/images';
 import {DText} from '../../../Componants/DText';
-import {CustomImageButton} from '../../../Componants';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import {SCREEN_CONSTANT} from '../../../Navigation/constant';
 import {isAddress} from 'ethers';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import {navigateTo} from '../../../utils/navigationService';
+import {CustomImageButton} from '../../../Componants';
 
 export const VerifyAddress = props => {
   const [senderAddress, setSenderAddress] = useState('');
@@ -38,7 +38,6 @@ export const VerifyAddress = props => {
     } catch (err) {
       console.error(err);
     }
-
   }
 
   return (
@@ -79,6 +78,7 @@ export const VerifyAddress = props => {
         </TouchableOpacity>
       </ScrollView>
       <CustomImageButton
+        disable={!senderAddress}
         backgroundImage={Images.buttonBg}
         label="Send"
         labelStyle={style.textStyle}

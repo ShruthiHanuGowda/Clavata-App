@@ -1,6 +1,6 @@
-import {useState, useEffect} from 'react';
-import {getNftsMarketData} from './marketPlace';
-import {TokenMarketData} from '../types/types';
+import { useState, useEffect } from 'react';
+import { getNftsMarketData } from './marketPlace';
+import { TokenMarketData } from '../types/types';
 
 const useNfts = (collectionId: string) => {
   const [nfts, setNfts] = useState<TokenMarketData[]>([]);
@@ -14,7 +14,7 @@ const useNfts = (collectionId: string) => {
     try {
       const where = {
         isTradable: true,
-        collection_: {id: collectionId},
+        collection_: { id: collectionId },
       };
 
       const fetchedNfts = await getNftsMarketData(where);
@@ -33,7 +33,7 @@ const useNfts = (collectionId: string) => {
     }
   }, [collectionId]);
 
-  return {nfts, loading, error, refetch: fetchNfts};
+  return { nfts, loading, error, refetch: fetchNfts };
 };
 
 export default useNfts;

@@ -8,7 +8,7 @@ import {
   TextInput,
 } from 'react-native';
 import images from '../Theme/images';
-import {Colors} from '../Theme';
+import Colors from '../Theme/Colors';
 
 // import {DatePickerModal} from 'react-native-paper-dates';
 

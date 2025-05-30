@@ -231,13 +231,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#000',
   },
   closeButton: {
     fontSize: 18,
+    color: '#000',
   },
   backButton: {
     fontSize: 18,
     paddingRight: 12,
+    color: '#000',
   },
 });
 

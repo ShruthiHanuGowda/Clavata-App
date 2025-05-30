@@ -25,7 +25,6 @@ import {DText} from '../../../../Componants/DText';
 import {navigateBack} from '../../../../Navigation/NavigationFunctions';
 import {useWallet} from '../../../../../screens/Provider/WalletProvider';
 import {ReactElement} from 'react';
-import {useUSDCApprove} from '../../../../hooks/useUSDCApprove';
 import {useMagic} from '../../../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../../../screens/Provider/authProvider';
 import {useBridge} from '../../../../hooks/useBridge';

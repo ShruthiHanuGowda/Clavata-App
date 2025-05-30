@@ -40,6 +40,7 @@ export const useKycVerification = () => {
       });
 
       let responseData = result.data?.createKYCVerification?.response;
+      console.log('🚀 ~ useKycVerification ~ responseData:', responseData);
       if (!responseData) {
         return {token: null, userId: null, expiryTime: null};
       }

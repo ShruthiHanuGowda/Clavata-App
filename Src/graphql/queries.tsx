@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client';
+import {gql} from '@apollo/client';
 
 // Define the GraphQL mutation
 export const CREATE_USER_WALLETS = gql`
@@ -113,9 +113,11 @@ export const LIST_TRANSACTION_HISTORY = gql`
   }
 `;
 
-
 export const LIST_PLATFORM_SETTINGS = gql`
-  query ListPlatformSettings($filter: TablePlatformSettingsFilterInput, $limit: Int) {
+  query ListPlatformSettings(
+    $filter: TablePlatformSettingsFilterInput
+    $limit: Int
+  ) {
     listPlatformSettings(filter: $filter, limit: $limit) {
       items {
         pId

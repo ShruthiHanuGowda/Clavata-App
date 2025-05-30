@@ -1,11 +1,13 @@
-import {useState, useEffect, useCallback, useRef} from 'react';
-import axios, {AxiosRequestConfig, AxiosResponse} from 'axios';
+import {useState, useEffect, useCallback} from 'react';
 
-interface UseAxiosOptions extends AxiosRequestConfig {
+interface UseApiOptions {
+  method?: string;
+  headers?: HeadersInit;
+  body?: string | FormData;
   [key: string]: any;
 }
 
-interface UseAxiosResponse<T> {
+interface UseApiResponse<T> {
   data: T | null;
   isLoading: boolean;
   error: string | null;
@@ -14,46 +16,33 @@ interface UseAxiosResponse<T> {
 
 const useApi = <T>(
   url: string,
-  options: UseAxiosOptions = {},
-): UseAxiosResponse<T> => {
+  options: UseApiOptions = {},
+): UseApiResponse<T> => {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Use useRef to store the options object to prevent re-renders
-  const optionsRef = useRef(options);
-
-  // Setup a counter for manual refetches
-  const refetchCounter = useRef(0);
-
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response: AxiosResponse<T> = await axios({
-        url,
-        ...optionsRef.current,
-      });
-      setData(response.data);
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`Error fetching data: ${response.statusText}`);
+      }
+      const result: T = await response.json();
+      setData(result);
     } catch (err: any) {
-      setError(
-        err.response?.data?.message || err.message || 'Something went wrong!',
-      );
+      setError(err.message || 'Something went wrong!');
     } finally {
       setIsLoading(false);
     }
-  }, [url, refetchCounter.current]); // Only depend on url and refetch counter
-
-  // Manual refetch function that increments counter to trigger useEffect
-  const refetch = useCallback(() => {
-    refetchCounter.current += 1;
-    fetchData();
-  }, [fetchData]);
+  }, [url, options]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, []);
 
-  return {data, isLoading, error, refetch};
+  return {data, isLoading, error, refetch: fetchData};
 };
 
 export default useApi;

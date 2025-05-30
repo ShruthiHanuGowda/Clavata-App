@@ -1,5 +1,6 @@
 import {StyleSheet, TextStyle, ViewStyle} from 'react-native';
-import {Colors, fontsFamily} from '../../Theme';
+import Colors from '../../Theme/Colors';
+import fontsFamily from '../../Theme/fontsFamily';
 
 // Define the types for different style objects
 interface Styles {

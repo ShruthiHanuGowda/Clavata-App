@@ -2,7 +2,7 @@ import {ScreenWidth} from '@rneui/base';
 import React from 'react';
 import {Image, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {Svg} from 'react-native-svg';
-import {VictoryLine} from 'victory-native';
+import {CartesianChart, Line} from 'victory-native';
 import {marketIcons} from '../../Theme/variable';
 import {DText} from '../../Componants/DText';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
@@ -73,22 +73,24 @@ const MyCryptoCard = ({
               width,
             },
           ]}>
-          <Svg width={width} height={height}>
-            <VictoryLine
-              interpolation="natural"
-              standalone={false}
-              width={width}
-              height={height}
-              style={{
-                data: {
-                  stroke: growth > 0 ? '#029471' : '#F42121',
-                  strokeWidth: 1,
-                },
-              }}
-              padding={0}
+          <View width={width} height={height} style={{backgroundColor: '#fff'}}>
+            <CartesianChart
               data={chartData}
-            />
-          </Svg>
+              xKey="x"
+              yKeys={['y']}
+              axisOptions={{lineColor: '#fff'}}
+              frame={{lineColor: '#fff'}}>
+              {/* 👇 render function exposes various data, such as points. */}
+              {({points}) => (
+                // 👇 and we'll use the Line component to render a line path.
+                <Line
+                  points={points.y}
+                  color={growth >= 0 ? '#029471' : '#F42121'}
+                  strokeWidth={0}
+                />
+              )}
+            </CartesianChart>
+          </View>
           {growth >= 0 ? (
             <DText fontStyle="fontRegular" style={marketStyles.growth}>
               +{growth}%

@@ -53,11 +53,11 @@ interface WalletBalanceHook {
 
   // Functions
   fetchAllBalances: (
-    walletAddress: string,
+    emailAddress: string,
     denergyAddress: string,
   ) => Promise<void>;
   fetchSingleBalance: (
-    walletAddress: string,
+    emailAddress: string,
     denergyAddress: string,
     tokenSymbol: string,
   ) => Promise<TokenBalance>;
@@ -131,8 +131,8 @@ export const useWalletBalance = (): WalletBalanceHook => {
 
   // Function to fetch all balances
   const fetchAllBalances = useCallback(
-    async (walletAddress: string, denergyAddress: string): Promise<void> => {
-      if (!walletAddress || !denergyAddress) return;
+    async (emailAddress: string, denergyAddress: string): Promise<void> => {
+      if (!emailAddress || !denergyAddress) return;
 
       setIsLoading(true);
       setError(null);
@@ -170,11 +170,11 @@ export const useWalletBalance = (): WalletBalanceHook => {
           updateTokenData('WATT', '0', '0');
         }
 
-        // Fetch ETH balance using walletAddress
+        // Fetch ETH balance using emailAddress
         try {
-          if (walletAddress && ethers.isAddress(walletAddress)) {
+          if (emailAddress && ethers.isAddress(emailAddress)) {
             const sepoliaNativeBalance = await sepoliaProvider.getBalance(
-              walletAddress,
+              emailAddress,
             );
             const formattedEthBalance =
               ethers.formatEther(sepoliaNativeBalance);
@@ -211,13 +211,13 @@ export const useWalletBalance = (): WalletBalanceHook => {
             network: 'sepolia',
             token: 'USDC',
             rateKey: 'USDC',
-            useAddress: walletAddress,
+            useAddress: emailAddress,
           },
           EURC: {
             network: 'sepolia',
             token: 'EURC',
             rateKey: 'EURC',
-            useAddress: walletAddress,
+            useAddress: emailAddress,
           },
         };
 
@@ -272,11 +272,11 @@ export const useWalletBalance = (): WalletBalanceHook => {
   // Function to fetch a single token's balance
   const fetchSingleBalance = useCallback(
     async (
-      walletAddress: string,
+      emailAddress: string,
       denergyAddress: string,
       tokenSymbol: string,
     ): Promise<TokenBalance> => {
-      if ((!walletAddress && !denergyAddress) || !tokenSymbol) {
+      if ((!emailAddress && !denergyAddress) || !tokenSymbol) {
         return {balance: '0', balanceUsd: '0'};
       }
 
@@ -318,10 +318,10 @@ export const useWalletBalance = (): WalletBalanceHook => {
           }
 
           case 'ETH': {
-            // Use walletAddress for ETH
-            if (walletAddress && ethers.isAddress(walletAddress)) {
+            // Use emailAddress for ETH
+            if (emailAddress && ethers.isAddress(emailAddress)) {
               const sepoliaNativeBalance = await sepoliaProvider.getBalance(
-                walletAddress,
+                emailAddress,
               );
               const formattedBalance = ethers.formatEther(sepoliaNativeBalance);
               const balanceInUsd = (
@@ -356,13 +356,13 @@ export const useWalletBalance = (): WalletBalanceHook => {
                 network: 'sepolia',
                 token: 'USDC',
                 rateKey: 'USDC',
-                useAddress: walletAddress,
+                useAddress: emailAddress,
               },
               EURC: {
                 network: 'sepolia',
                 token: 'EURC',
                 rateKey: 'EURC',
-                useAddress: walletAddress,
+                useAddress: emailAddress,
               },
             };
 

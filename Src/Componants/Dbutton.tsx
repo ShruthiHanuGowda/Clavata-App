@@ -1,6 +1,12 @@
 import React from 'react';
-import {ActivityIndicator, StyleProp, StyleSheet, TouchableOpacity, ViewStyle} from 'react-native';
-import {Colors} from '../Theme';
+import {
+  ActivityIndicator,
+  StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  ViewStyle,
+} from 'react-native';
+import Colors from '../Theme/Colors';
 
 interface DButtonProps {
   type?: 'primary' | 'secondary' | 'transparent'; // button type
@@ -11,7 +17,7 @@ interface DButtonProps {
   onPress: any;
 }
 
-const DButton: React.FC<DButtonProps> = (props) => {
+const DButton: React.FC<DButtonProps> = props => {
   return (
     <TouchableOpacity
       {...props}
@@ -22,8 +28,7 @@ const DButton: React.FC<DButtonProps> = (props) => {
         props.disabled && styles.disabled,
         props.style,
       ]}
-      disabled={props.disabled}
-    >
+      disabled={props.disabled}>
       {props.loading ? <ActivityIndicator /> : props.children}
     </TouchableOpacity>
   );

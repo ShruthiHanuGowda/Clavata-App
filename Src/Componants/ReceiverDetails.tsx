@@ -1,5 +1,12 @@
 import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Image, Clipboard} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Clipboard,
+} from 'react-native';
 import {ScreenWidth} from '@rneui/base';
 import {DTextInput} from './Dinputs';
 import {SnackBarMessage} from '../utils/snackBar';
@@ -37,7 +44,11 @@ const ReceiverDetails = ({data}) => {
         </View>
         <View style={styles.copyBox}>
           <TouchableOpacity onPress={() => copy(data?.beneficiaryAddress)}>
-            <Image source={images.collectCopy} style={styles.copyImg} resizeMode="contain" />
+            <Image
+              source={images.collectCopy}
+              style={styles.copyImg}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
         </View>
       </View>

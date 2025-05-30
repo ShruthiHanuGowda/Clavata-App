@@ -189,6 +189,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     backgroundColor: '#fff',
+    color: '#000',
   },
   warningInput: {
     borderColor: '#e74c3c',

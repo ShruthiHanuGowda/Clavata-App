@@ -7,7 +7,7 @@ const denergyTestnet = {
   blockExplorers: {
     default: {
       name: 'Denergy Testnet',
-      url: 'https://explorernew.denergytestnet.com/',
+      url: 'https://explorer.denergytestnet.com/',
     },
   },
 };

@@ -9,9 +9,8 @@ import {
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Circle, Path, Svg} from 'react-native-svg';
-
 import images from '../Theme/images';
-import {fontsFamily} from '../Theme';
+import fontsFamily from '../Theme/fontsFamily';
 
 type TabIconKeys = 'D.Energy' | 'Wallet' | 'Marketplace' | 'dApps' | 'Stake';
 

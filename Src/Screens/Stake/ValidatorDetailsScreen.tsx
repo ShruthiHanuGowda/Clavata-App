@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   Image,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import images from '../../Theme/images';
 import useValidators from './Hooks/useValidators';
@@ -195,7 +196,10 @@ const ValidatorDetailsScreen = ({
       </View>
 
       {/* Main Content */}
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        bounces={false}
+        showsVerticalScrollIndicator={false}>
         {/* Validator Name Section */}
         <View style={styles.validatorNameContainer}>
           <Text style={styles.validatorName}>{validator.name}</Text>
@@ -259,19 +263,9 @@ const ValidatorDetailsScreen = ({
             Delegators ({delegators.length}):
           </Text>
 
-          <ScrollView
-            style={styles.delegatorsList}
-            bounces={false}
-            showsVerticalScrollIndicator={false}>
+          <View style={styles.delegatorsList}>
             {delegators.map((delegator, index) => (
-              <View
-                key={delegator.id}
-                style={[
-                  styles.delegatorCard,
-                  index === delegators.length - 1 && {
-                    marginBottom: 100,
-                  },
-                ]}>
+              <View key={delegator.id} style={[styles.delegatorCard]}>
                 <View style={styles.delegatorHeader}>
                   <Text style={styles.delegatorAddress}>
                     {delegator.address}
@@ -305,12 +299,12 @@ const ValidatorDetailsScreen = ({
                 </View>
               </View>
             ))}
-          </ScrollView>
+          </View>
         </View>
 
         {/* Bottom padding for fixed button */}
         <View style={styles.bottomPadding} />
-      </View>
+      </ScrollView>
 
       {/* Fixed Stake Button */}
       <View style={styles.buttonContainer}>
@@ -340,6 +334,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+    marginTop: Platform.OS === 'ios' ? 0 : 20,
   },
   backButton: {
     padding: 8,

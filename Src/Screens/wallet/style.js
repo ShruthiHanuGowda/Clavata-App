@@ -2,8 +2,8 @@ import {StyleSheet} from 'react-native';
 import {Colors, fontsFamily} from '../../Theme';
 export default StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Colors.white,
+    marginLeft: 21,
+    marginRight: 21,
   },
   font: {
     fontFamily: fontsFamily.MulishBold,

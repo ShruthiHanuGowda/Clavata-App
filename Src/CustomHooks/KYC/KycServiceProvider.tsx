@@ -4,6 +4,7 @@ import SNSMobileSDK from '@sumsub/react-native-mobilesdk-module';
 import {useKycVerification} from '../../CustomHooks/useKycVerification';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import {useKycStatusUpdate} from './useKycStatusUpdate'; // Import the new hook
+import {Platform} from 'react-native';
 
 // Define types for the SumSub verification result
 interface VerificationResult {
@@ -64,12 +65,9 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
   }, [userDetails, initiateKycToken]);
 
   const handleVerificationCompleted = async (applicantId, accessToken) => {
-    console.log(
-      '🟢 ~ handleVerificationCompleted ~ applicantId, accessToken:',
-      applicantId,
-      accessToken,
-    );
-    await updateUserKycStatus(true, applicantId, accessToken);
+    setTimeout(async () => {
+      await updateUserKycStatus(true, applicantId, accessToken);
+    }, 2000);
   };
 
   // Based on your working launchSumSub function
@@ -109,20 +107,35 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
             },
 
             onLog: event => {
+              let applicantId = null;
+
               if (
+                Platform.OS === 'ios' &&
                 event.message.includes('sdk.applicant:') &&
                 event.message.includes('reviewStatus=completed')
               ) {
-                // Extract applicant ID from the log message
+                // iOS format: Extract applicant ID from the log message
                 const applicantIdMatch = event.message.match(
                   /applicantId=([a-zA-Z0-9]+)/,
                 );
-
                 if (applicantIdMatch && applicantIdMatch[1]) {
-                  const applicantId = applicantIdMatch[1];
-
-                  handleVerificationCompleted(applicantId, accessToken);
+                  applicantId = applicantIdMatch[1];
                 }
+              } else if (
+                Platform.OS === 'android' &&
+                event.message.includes('On Load Data Success for applicant:')
+              ) {
+                // Android format: Extract applicant ID after "applicant: "
+                const applicantIdMatch = event.message.match(
+                  /On Load Data Success for applicant:\s*([a-zA-Z0-9]+)/,
+                );
+                if (applicantIdMatch && applicantIdMatch[1]) {
+                  applicantId = applicantIdMatch[1];
+                }
+              }
+
+              if (applicantId) {
+                handleVerificationCompleted(applicantId, accessToken);
               }
             },
           })

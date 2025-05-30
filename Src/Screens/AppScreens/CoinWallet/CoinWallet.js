@@ -126,7 +126,7 @@ export default function CoinWallet(props) {
                   </DText>
                   <DText fontStyle="fontBold" style={styles.totalAmount}>
                     {/* {coinData?.tokenBalance || 0} */}
-                    {balance}
+                    {parseFloat(balance).toFixed(2)}
                   </DText>
                   <DText
                     fontStyle="fontBold"

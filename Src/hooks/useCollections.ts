@@ -1,7 +1,7 @@
-import {useState, useEffect, useCallback} from 'react';
-import {Collection} from '../types/types';
-import {getCollectionsMarketData} from './marketPlace';
-import {API_NFT_URL} from '../constants';
+import { useState, useEffect, useCallback } from 'react';
+import { Collection } from '../types/types';
+import { getCollectionsMarketData } from './marketPlace';
+import { API_NFT_URL } from '../constants';
 
 const fetchExtraDetails = async (contractAddress: string) => {
   const url = `${API_NFT_URL}/nftMarketplace_getCollections/?contractAddress=${contractAddress}`;
@@ -55,7 +55,7 @@ const useCollections = () => {
     fetchCollections();
   }, [fetchCollections]);
 
-  return {collections, loading, error, refetch: fetchCollections};
+  return { collections, loading, error, refetch: fetchCollections };
 };
 
 export default useCollections;

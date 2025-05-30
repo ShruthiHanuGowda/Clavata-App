@@ -1,36 +1,25 @@
 import React from 'react';
-import {VictoryArea, VictoryAxis} from 'victory-native';
+import {CartesianChart, Line} from 'victory-native';
 import {Svg} from 'react-native-svg';
+import {Text, View} from 'react-native';
 
 const height = 120;
 const width = 200;
 
 const AreaChart = ({chartData}) => {
   return (
-    <Svg width={width} height={height} translateY={-40}>
-      <VictoryArea
-        interpolation="natural"
-        standalone
-        width={width}
-        height={height}
+    <View style={{width: 100, height: 120}}>
+      <CartesianChart
         data={chartData}
-        style={{
-          data: {
-            fill: '#00AB4415',
-            fillOpacity: 0.7,
-            stroke: '#02947190',
-            strokeWidth: 2,
-          },
-        }}
-      />
-      <VictoryAxis
-        style={{
-          axis: {stroke: 'transparent'},
-          ticks: {stroke: 'transparent'},
-          tickLabels: {fill: 'transparent'},
-        }}
-      />
-    </Svg>
+        xKey="x"
+        yKeys={['y']}
+        axisOptions={{lineColor: '#fff'}}
+        frame={{lineColor: '#fff'}}>
+        {({points}) => (
+          <Line points={points.y} color={'#02947190'} strokeWidth={1} />
+        )}
+      </CartesianChart>
+    </View>
   );
 };
 
