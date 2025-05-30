@@ -7,18 +7,18 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import {NftToken} from '../../../types/types';
-import {navigate} from '../../../Navigation/NavigationFunctions';
+import { useNavigation } from '@react-navigation/native';
+import { NftToken } from '../../../types/types';
+import { navigate } from '../../../Navigation/NavigationFunctions';
 
 interface ContractInfoProps {
   nft: NftToken;
 }
 
 const shortenText = (text: string, chars = 6) =>
-  text.length > 20 ? `${text.slice(0, chars)}...${text.slice(-chars)}` : text;
+  text?.length > 20 ? `${text.slice(0, chars)}...${text.slice(-chars)}` : text;
 
-const ContractInfo: React.FC<ContractInfoProps> = ({nft}) => {
+const ContractInfo: React.FC<ContractInfoProps> = ({ nft }) => {
   const navigation = useNavigation();
   const IPFS = nft?.marketData?.metadataUrl ?? '';
   const openIPFS = () => {
@@ -42,7 +42,7 @@ const ContractInfo: React.FC<ContractInfoProps> = ({nft}) => {
         </Text>
       </TouchableOpacity>
 
-      <Text style={[styles.label, {marginTop: 12}]}>IPFS Metadata</Text>
+      <Text style={[styles.label, { marginTop: 12 }]}>IPFS Metadata</Text>
       <TouchableOpacity onPress={openIPFS}>
         <Text style={styles.valueLink}>{shortenText(IPFS, 20)}</Text>
       </TouchableOpacity>

@@ -1,22 +1,22 @@
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
-import {RootStackParamList} from '../../types';
+import { RootStackParamList } from '../../types';
 import LoginScreen from '../../Src/Screens/AuthScreens/loginScreen';
 import {
   createNavigationContainerRef,
   NavigationContainer,
 } from '@react-navigation/native';
 import LoginScreenNew from '../Screens/AuthScreens/loginScreenNew';
-import {View} from 'react-native';
-import {Root} from '../Screens/RootScreen';
+import { View } from 'react-native';
+import { Root } from '../Screens/RootScreen';
 import Tabs from './NavigationTab';
-import {SCREEN_CONSTANT} from './constant';
+import { SCREEN_CONSTANT } from './constant';
 import CoinWallet from '../Screens/AppScreens/CoinWallet/CoinWallet';
 import Drex from '../Screens/HomeScreen';
-import {VerifyAddress} from '../Screens/Send/VerifyAdress';
+import { VerifyAddress } from '../Screens/Send/VerifyAdress';
 import SendCoin from '../Screens/Send/SendCoin';
 import sendSuccess from '../Screens/Send/sendSuccess/sendSuccess';
-import {navigationRef} from './NavigationFunctions';
+import { navigationRef } from './NavigationFunctions';
 import CollectionDetailsScreen from '../Screens/MarketPlace/CollectionDetailsPage';
 import NFTDetailsScreen from '../Screens/MarketPlace/NFTDetailsPage';
 import WalletNFTDetailsScreen from '../Screens/MarketPlace/WalletNFTDetailsPage';
@@ -33,41 +33,27 @@ import ProfileSetting from '../Screens/AppScreens/Account/profilesetting';
 import AccountBeneficary from '../Screens/AppScreens/Beneficiaries/beneficary';
 import ContactUs from '../Screens/AppScreens/ContactUs';
 import Onboarding from '../Screens/Intro';
+import BuyNFTScreen from '../Screens/MarketPlace/BuyNFT';
+import CollectionListingPage from '../Screens/MarketPlace';
 
 function RootScreenStack() {
   const RootStack = createNativeStackNavigator<RootStackParamList>();
   return (
     <RootStack.Navigator
       initialRouteName="root"
-      screenOptions={{headerShown: false}}>
+      screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="root" component={Root} />
       <RootStack.Screen name="intro" component={Onboarding} />
       <RootStack.Screen name="appScreens" component={Tabs} />
       <RootStack.Screen
         name="authScreens"
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
         component={LoginScreen}
-      />
-
-      <RootStack.Screen
-        name="collectionDetails"
-        options={{headerShown: false}}
-        component={CollectionDetailsScreen}
-      />
-      <RootStack.Screen
-        name="NFTDetailsPage"
-        options={{headerShown: false}}
-        component={NFTDetailsScreen}
-      />
-      <RootStack.Screen
-        name="walletNFTDetails"
-        component={WalletNFTDetailsScreen}
-        options={{headerShown: false}}
       />
       <RootStack.Screen
         name="OffsetScreen"
         component={OffsetScreen}
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
       />
     </RootStack.Navigator>
   );
@@ -88,7 +74,7 @@ export function CoinWalletStackFun() {
   return (
     <CoinWalletStack.Navigator
       initialRouteName="coinWallet"
-      screenOptions={{headerShown: false}}>
+      screenOptions={{ headerShown: false }}>
       <CoinWalletStack.Screen name="coinWallet" component={CoinWallet} />
       {/*<HomeStack.Screen name="coinWallet" component={TransactionExample} />*/}
       <CoinWalletStack.Screen
@@ -140,13 +126,23 @@ type StakeStackParamList = {
   ValidatorDetailsScreen: undefined;
 };
 
+
+type MarketplaceStackParamList = {
+  marketplace: undefined;
+  collectionDetails: undefined;
+  NFTDetailsPage: undefined;
+  walletNFTDetails: undefined;
+  OffsetScreen: undefined;
+  BuyNFT: undefined;
+};
+
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 
 export function HomeScreenStack() {
   return (
     <HomeStack.Navigator
       initialRouteName="D.Energy"
-      screenOptions={{headerShown: false}}>
+      screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="D.Energy" component={Drex} />
       <HomeStack.Screen name="account" component={Account} />
       <HomeStack.Screen name="ProfileSettings" component={ProfileSetting} />
@@ -167,7 +163,7 @@ export function WalletStack() {
   return (
     <walletStack.Navigator
       initialRouteName="wallet"
-      screenOptions={{headerShown: false}}>
+      screenOptions={{ headerShown: false }}>
       <walletStack.Screen name="wallet" component={Wallet} />
       <walletStack.Screen
         name="coinWalletStack"
@@ -182,7 +178,7 @@ export function StakeStackFun() {
   return (
     <StakeStack.Navigator
       initialRouteName="stake"
-      screenOptions={{headerShown: false}}>
+      screenOptions={{ headerShown: false }}>
       <StakeStack.Screen name="stake" component={Stake} />
       <StakeStack.Screen
         name="ValidatorDetailsScreen"
@@ -193,9 +189,42 @@ export function StakeStackFun() {
   );
 }
 
+const MarketplaceStack = createNativeStackNavigator<MarketplaceStackParamList>();
+
+export function MarketplaceStackFun() {
+  return (
+    <MarketplaceStack.Navigator initialRouteName="marketplace" screenOptions={{ headerShown: false }}>
+      <MarketplaceStack.Screen
+        name="marketplace"
+        component={CollectionListingPage}
+      />
+      <MarketplaceStack.Screen
+        name="collectionDetails"
+        component={CollectionDetailsScreen}
+      />
+      <MarketplaceStack.Screen
+        name="NFTDetailsPage"
+        component={NFTDetailsScreen}
+      />
+      <MarketplaceStack.Screen
+        name="walletNFTDetails"
+        component={WalletNFTDetailsScreen}
+      />
+      <MarketplaceStack.Screen
+        name="OffsetScreen"
+        component={OffsetScreen}
+      />
+      <MarketplaceStack.Screen
+        name="BuyNFT"
+        component={BuyNFTScreen}
+      />
+    </MarketplaceStack.Navigator>
+  );
+}
+
 export function NavigationWrapper() {
   return (
-    <View style={{flex: 1}}>
+    <View style={{ flex: 1 }}>
       <NavigationContainer ref={navigationRef}>
         <RootScreenStack />
       </NavigationContainer>

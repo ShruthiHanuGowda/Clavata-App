@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
   Text,
@@ -16,17 +16,19 @@ import ContractInfo from '../../../Componants/MarketPlace/ContractInfo';
 import ActivityList from '../../../Componants/MarketPlace/ActivityList';
 import BuyModal from '../../../Componants/MarketPlace/BuySellModal/BuyModal';
 import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
-import {NftToken} from '../../../types/types';
-import {useCompleteNft} from '../../../hooks/useCompleteNft';
+import { NftToken } from '../../../types/types';
+import { useCompleteNft } from '../../../hooks/useCompleteNft';
 import useNftActivity from '../../../hooks/useNftActivity';
-import {Header} from '../../../Componants';
-import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import { Header } from '../../../Componants';
+import { navigateBack } from '../../../Navigation/NavigationFunctions';
+import { useNavigation } from '@react-navigation/native';
 
-const NFTDetailsScreen = ({route}: any) => {
-  const {nft} = route.params;
+const NFTDetailsScreen = ({ route }: any) => {
+  const { nft } = route.params;
   const [isBuyModalVisible, setIsBuyModalVisible] = useState(false);
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const navigation = useNavigation<any>();
 
   const {
     nft: combinedNft,
@@ -65,6 +67,13 @@ const NFTDetailsScreen = ({route}: any) => {
     setIsRefreshing(false);
   };
 
+  const navigateToBuyNFT = (sellerAddress: string) => {
+    navigation.navigate('BuyNFT', {
+      nftToBuy: combinedNft,
+      currentSeller: sellerAddress,
+    });
+  };
+
   const owners = combinedNft?.marketData?.activeAsks || [];
 
   if (isLoading || !combinedNft) {
@@ -81,7 +90,7 @@ const NFTDetailsScreen = ({route}: any) => {
       <Header
         headerTitle={combinedNft.name}
         backBtn={() => navigateBack()}
-        containerStyle={{backgroundColor: '#f9fafa'}}
+        containerStyle={{ backgroundColor: '#f9fafa' }}
         hideBorder
       />
       <ScrollView
@@ -98,7 +107,7 @@ const NFTDetailsScreen = ({route}: any) => {
         <Text style={styles.sectionTitle}>👑 Owners</Text>
         <OwnerList
           owners={owners}
-          onBuyPress={() => setIsBuyModalVisible(true)}
+          onBuyPress={(seller) => navigateToBuyNFT(seller?.seller?.id)}
           onSellPress={() => setIsSellModalVisible(true)}
         />
 
@@ -113,7 +122,7 @@ const NFTDetailsScreen = ({route}: any) => {
         )}
       </ScrollView>
 
-      <BuyModal
+      {/* <BuyModal
         visible={isBuyModalVisible}
         onClose={() => {
           setIsBuyModalVisible(false);
@@ -121,7 +130,7 @@ const NFTDetailsScreen = ({route}: any) => {
           refetchActivity();
         }}
         nftToBuy={combinedNft}
-      />
+      /> */}
 
       <SellModal
         visible={isSellModalVisible}

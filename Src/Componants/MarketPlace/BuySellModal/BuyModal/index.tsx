@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,23 +13,23 @@ import ApproveAndConfirmStage from './ApproveAndConfirmStage';
 import ConfirmStage from './ConfirmStage';
 import TransactionConfirmed from './TransactionConfirmed';
 
-import {useWallet} from '../../../../../screens/Provider/WalletProvider';
-import {useMagic} from '../../../../../screens/Provider/MagicProvider';
-import {useAuth} from '../../../../../screens/Provider/authProvider';
+import { useWallet } from '../../../../../screens/Provider/WalletProvider';
+import { useMagic } from '../../../../../screens/Provider/MagicProvider';
+import { useAuth } from '../../../../../screens/Provider/authProvider';
 
-import {getMinAsk, getMinAskPrice} from '../../../../hooks/marketPlace';
-import {requiresApproval} from '../../../../hooks/marketplace/requiresApproval';
+import { getMinAsk, getMinAskPrice } from '../../../../hooks/marketPlace';
+import { requiresApproval } from '../../../../hooks/marketplace/requiresApproval';
 import {
   getNftMarketContract,
   useERC20,
 } from '../../../../hooks/marketplace/useContracts';
-import {useCallWithGasPrice} from '../../../../hooks/marketplace/useCallWithGasPrice';
+import { useCallWithGasPrice } from '../../../../hooks/marketplace/useCallWithGasPrice';
 import useApproveConfirmTransaction from '../../../../hooks/marketplace/useApproveConfirmTransaction';
 
-import {TOKEN_CONTRACTS} from '../../../../constants';
-import {NftToken} from '../../../../types/types';
-import {MaxUint256} from 'ethers';
-import {SnackBarMessage} from '../../../../utils/snackBar';
+import { TOKEN_CONTRACTS } from '../../../../constants';
+import { NftToken } from '../../../../types/types';
+import { MaxUint256 } from 'ethers';
+import { SnackBarMessage } from '../../../../utils/snackBar';
 
 enum BuyingStage {
   REVIEW = 'REVIEW',
@@ -65,11 +65,11 @@ const BuyModal: React.FC<BuyModalProps> = ({
   );
   const [confirmedTxHash, setConfirmedTxHash] = useState<string>('');
 
-  const {refreshBalance, getBalance} = useWallet();
-  const {magic_denergy} = useMagic();
-  const {userDetails} = useAuth();
-  const {callWithGasPrice} = useCallWithGasPrice();
-  const {balance} = getBalance('WUSDC');
+  const { refreshBalance, getBalance } = useWallet();
+  const { magic_denergy } = useMagic();
+  const { userDetails } = useAuth();
+  const { callWithGasPrice } = useCallWithGasPrice();
+  const { balance } = getBalance('WUSDC');
 
   const account = userDetails?.denergyWallet as `0x${string}`;
   const nftPrice = getMinAskPrice(nftToBuy?.marketData?.activeAsks ?? []);
@@ -92,7 +92,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
     refreshBalance('WUSDC');
   }, [paymentCurrency]);
 
-  const {isApproved, isApproving, isConfirming, handleApprove, handleConfirm} =
+  const { isApproved, isApproving, isConfirming, handleApprove, handleConfirm } =
     useApproveConfirmTransaction({
       onRequiresApproval: () => {
         return requiresApproval(
@@ -110,7 +110,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
           MaxUint256,
         ]);
       },
-      onApproveSuccess: async ({receipt}) => {
+      onApproveSuccess: async ({ receipt }) => {
         SnackBarMessage(
           `Contract approved - you can now buy NFT with ${paymentCurrency}!`,
           'success',
@@ -124,7 +124,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
           BigInt(quantity),
         ]);
       },
-      onSuccess: ({receipt}) => {
+      onSuccess: ({ receipt }) => {
         console.log(receipt);
         SnackBarMessage(`Your NFT has been sent to your wallet`, 'success');
         setConfirmedTxHash(receipt.hash);
@@ -160,7 +160,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={{padding: 16}}>
+          <ScrollView contentContainerStyle={{ padding: 16 }}>
             {stage === BuyingStage.REVIEW && (
               <ReviewStage
                 nftToBuy={nftToBuy}

@@ -82,7 +82,6 @@ export const getCollectionsMarketData = async (): Promise<Collection[]> => {
         const askTotal = activeAsks.reduce((sum: bigint, ask: any) => {
           return sum + BigInt(ask.amount || 0);
         }, BigInt(0));
-        console.log('askTotal', askTotal);
 
         if (existing) {
           const currentTotal = BigInt(existing.totalAskAmount || '0');
