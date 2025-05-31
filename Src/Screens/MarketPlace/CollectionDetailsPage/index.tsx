@@ -76,29 +76,43 @@ const CollectionDetailsScreen = ({ route }: any) => {
           style={styles.container}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }>
-          {isLoading && <Spinner />}
-          <View style={styles.collectionDetails}>
-            {!isLoading && !error && collection && (
-              <>
-                <DetailRow label="Country" value={collection?.country} />
-                <DetailRow label="Type" value={collection?.type} />
-                <DetailRow label="Year" value={collection?.year} />
-              </>
-            )
-            }
-            {!isLoading && error && <Text style={styles.errorText}>
-              Failed to load collection data
-            </Text>}
-          </View>
+          }
+        >
+          {isLoading && (
+            <View style={styles.loaderContainer}>
+              <Spinner />
+            </View>
+          )}
 
+          {!isLoading && !error && collection && (
+            <View style={styles.collectionDetails}>
+              <DetailRow label="Country" value={collection?.country} />
+              <DetailRow label="Type" value={collection?.type} />
+              <DetailRow label="Year" value={collection?.year} />
+            </View>
+          )}
+          {!isLoading && error && (
+            <Text style={styles.errorText}>Failed to load collection data</Text>
+          )}
+
+          {/* Show NFT list section */}
           <View style={styles.nftListContainer}>
             <Text style={styles.nftSectionTitle}>Certificates</Text>
-            {nftsLoading ? (
-              <Spinner />
-            ) : nftsError ? (
+
+            {/* Show loader when NFTs are loading */}
+            {nftsLoading && (
+              <View style={styles.loaderContainer}>
+                <Spinner />
+              </View>
+            )}
+
+            {/* Show error if there was an issue loading NFTs */}
+            {nftsError && (
               <Text style={styles.errorText}>{nftsError}</Text>
-            ) : nfts.length > 0 ? (
+            )}
+
+            {/* Show NFTs if they are available */}
+            {!nftsLoading && nfts.length > 0 ? (
               <View style={styles.nftList}>
                 {nfts.map((nft: any) => {
                   const currentAsk = getMinAsk(nft.activeAsks ?? []);
@@ -108,7 +122,7 @@ const CollectionDetailsScreen = ({ route }: any) => {
 
                   const nftData = {
                     ...nft,
-                    name: `${collection?.collectionName} #${nft.tokenId}`,
+                    name: `${collection?.collectionName || 'Unknown Collection'} #${nft.tokenId ?? 'Unknown Token'}`,
                   };
 
                   return (
@@ -122,7 +136,9 @@ const CollectionDetailsScreen = ({ route }: any) => {
                 })}
               </View>
             ) : (
-              <Text style={styles.noNftsText}>No NFTs in this collection</Text>
+              !nftsLoading && (
+                <Text style={styles.noNftsText}>No NFTs in this collection</Text>
+              )
             )}
           </View>
         </ScrollView>
@@ -224,6 +240,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: 'red',
     textAlign: 'center',
+    marginTop: 20,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginTop: 20,
   },
 });

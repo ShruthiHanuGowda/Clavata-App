@@ -1,0 +1,277 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Platform,
+} from 'react-native';
+import ReviewStage from './ReviewStage';
+import ApproveAndConfirmStage from './ApproveAndConfirmStage';
+import ConfirmStage from './ConfirmStage';
+import TransactionConfirmed from './TransactionConfirmed';
+import { NftToken } from '../../../types/types';
+import { useWallet } from '../../../../screens/Provider/WalletProvider';
+import { useMagic } from '../../../../screens/Provider/MagicProvider';
+import { useAuth } from '../../../../screens/Provider/authProvider';
+import { useCallWithGasPrice } from '../../../hooks/marketplace/useCallWithGasPrice';
+import { getMinAsk, getMinAskPrice } from '../../../hooks/marketPlace';
+import { TOKEN_CONTRACTS } from '../../../constants';
+import { getNftMarketContract, useERC20 } from '../../../hooks/marketplace/useContracts';
+import useApproveConfirmTransaction from '../../../hooks/marketplace/useApproveConfirmTransaction';
+import { requiresApproval } from '../../../hooks/marketplace/requiresApproval';
+import { MaxUint256 } from 'ethers';
+import { SnackBarMessage } from '../../../utils/snackBar';
+import { navigateBack } from '../../../Navigation/NavigationFunctions';
+import { Header } from '../../../Componants';
+
+enum BuyingStage {
+  REVIEW = 'REVIEW',
+  APPROVE_AND_CONFIRM = 'APPROVE_AND_CONFIRM',
+  CONFIRM = 'CONFIRM',
+  TX_CONFIRMED = 'TX_CONFIRMED',
+}
+
+const stageConfig = {
+  [BuyingStage.REVIEW]: {
+    title: 'Review Purchase',
+    showBack: false,
+  },
+  [BuyingStage.APPROVE_AND_CONFIRM]: {
+    title: 'Approve & Confirm',
+    showBack: true,
+  },
+  [BuyingStage.CONFIRM]: {
+    title: 'Confirm Transaction',
+    showBack: true,
+  },
+  [BuyingStage.TX_CONFIRMED]: {
+    title: 'Purchase Complete',
+    showBack: false,
+  },
+};
+
+interface BuyNFTScreenProps {
+  navigation: any;
+  route: {
+    params: {
+      nftToBuy: NftToken;
+      currentSeller?: string;
+    };
+  };
+}
+
+const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({ navigation, route }) => {
+  const { nftToBuy, currentSeller } = route.params;
+
+  const [stage, setStage] = useState<BuyingStage>(BuyingStage.REVIEW);
+  const [quantity, setQuantity] = useState<number>(1);
+  const [paymentCurrency, setPaymentCurrency] = useState<'USDC' | 'EURC'>(
+    'USDC',
+  );
+  const [confirmedTxHash, setConfirmedTxHash] = useState<string>('');
+
+  const { refreshBalance, getBalance } = useWallet();
+  const { magic_denergy } = useMagic();
+  const { userDetails } = useAuth();
+  const { callWithGasPrice } = useCallWithGasPrice();
+  const { balance } = getBalance('WUSDC');
+
+  const account = userDetails?.denergyWallet as `0x${string}`;
+  const nftPrice = getMinAskPrice(nftToBuy?.marketData?.activeAsks ?? []);
+  const availableQuantity =
+    getMinAsk(nftToBuy?.marketData?.activeAsks ?? []).amount ?? '0';
+  const seller =
+    currentSeller ||
+    getMinAsk(nftToBuy?.marketData?.activeAsks ?? []).seller?.id ||
+    '0x0000000000000000000000000000000000000000';
+
+  const usdcAddress = TOKEN_CONTRACTS.denergy.USDC as `0x${string}`;
+  const eurcAddress = TOKEN_CONTRACTS.denergy.EURC as `0x${string}`;
+  const tokenAddress = paymentCurrency === 'USDC' ? usdcAddress : eurcAddress;
+
+  const tokenContract = useERC20(tokenAddress);
+  const nftMarketContract = getNftMarketContract();
+  const marketAddress = TOKEN_CONTRACTS.nftMarket as `0x${string}`;
+
+  useEffect(() => {
+    refreshBalance('WUSDC');
+  }, [paymentCurrency]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      title: stageConfig[stage].title,
+      headerLeft: () =>
+        stageConfig[stage].showBack ? (
+          <TouchableOpacity onPress={handleGoBack} style={styles.headerButton}>
+            <Text style={styles.headerButtonText}>← Back</Text>
+          </TouchableOpacity>
+        ) : null,
+      headerRight: () =>
+        stage !== BuyingStage.TX_CONFIRMED ? (
+          <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
+            <Text style={styles.headerButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        ) : null,
+    });
+  }, [stage, navigation]);
+
+  const { isApproved, isApproving, isConfirming, handleApprove, handleConfirm } =
+    useApproveConfirmTransaction({
+      onRequiresApproval: () => {
+        return requiresApproval(
+          tokenAddress,
+          account,
+          marketAddress,
+          MaxUint256,
+          magic_denergy,
+        );
+      },
+      onApprove: () => {
+        return callWithGasPrice(tokenContract, 'approve', [
+          marketAddress,
+          MaxUint256,
+        ]);
+      },
+      onApproveSuccess: async ({ receipt }) => {
+        SnackBarMessage(
+          `Contract approved - you can now buy NFT with ${paymentCurrency}!`,
+          'success',
+        );
+      },
+      onConfirm: async () => {
+        const adjustedQuantity = BigInt(quantity * 1_000_000);
+        return callWithGasPrice(nftMarketContract, 'buyToken', [
+          nftToBuy.collectionAddress,
+          BigInt(nftToBuy.tokenId),
+          seller,
+          BigInt(adjustedQuantity),
+        ]);
+      },
+      onSuccess: ({ receipt }) => {
+        console.log(receipt);
+        SnackBarMessage(`Your NFT has been sent to your wallet`, 'success');
+        setConfirmedTxHash(receipt.hash);
+        setStage(BuyingStage.TX_CONFIRMED);
+      },
+    });
+
+  const handleGoBack = () => {
+    switch (stage) {
+      case BuyingStage.APPROVE_AND_CONFIRM:
+      case BuyingStage.CONFIRM:
+        setStage(BuyingStage.REVIEW);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleClose = () => {
+    navigation.goBack();
+  };
+
+  const handleComplete = () => {
+    navigation.navigate('Marketplace');
+  };
+
+  const renderStage = () => {
+    switch (stage) {
+      case BuyingStage.REVIEW:
+        return (
+          <ReviewStage
+            nftToBuy={nftToBuy}
+            quantity={quantity}
+            setQuantity={setQuantity}
+            nftPrice={Number(nftPrice)}
+            paymentCurrency={paymentCurrency}
+            setPaymentCurrency={setPaymentCurrency}
+            availableQuantity={parseFloat(availableQuantity)}
+            walletBalance={Number(balance)}
+            walletFetchStatus={'success'}
+            continueToNextStage={() =>
+              setStage(BuyingStage.APPROVE_AND_CONFIRM)
+            }
+          />
+        );
+
+      case BuyingStage.APPROVE_AND_CONFIRM:
+        return (
+          <ApproveAndConfirmStage
+            handleApprove={handleApprove}
+            isApproved={isApproved}
+            isApproving={isApproving}
+            isConfirming={isConfirming}
+            handleConfirm={handleConfirm}
+            nftToBuy={nftToBuy}
+            quantity={quantity}
+            nftPrice={Number(nftPrice)}
+            paymentCurrency={paymentCurrency}
+          />
+        );
+
+      case BuyingStage.CONFIRM:
+        return (
+          <ConfirmStage
+            isConfirming={isConfirming}
+            handleConfirm={handleConfirm}
+            nftToBuy={nftToBuy}
+            quantity={quantity}
+            nftPrice={Number(nftPrice)}
+            paymentCurrency={paymentCurrency}
+          />
+        );
+
+      case BuyingStage.TX_CONFIRMED:
+        return (
+          <TransactionConfirmed
+            txHash={confirmedTxHash}
+            onComplete={handleComplete}
+            nftToBuy={nftToBuy}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <Header
+        headerTitle={stageConfig[stage].title}
+        backBtn={() => navigateBack()}
+        containerStyle={{ backgroundColor: '#f9fafa' }}
+        hideBorder
+      />
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <View style={styles.content}>{renderStage()}</View>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f9fafa',
+    paddingTop: Platform.OS === 'ios' ? 0 : 20,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  headerButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  headerButtonText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+});
+
+export default BuyNFTScreen;

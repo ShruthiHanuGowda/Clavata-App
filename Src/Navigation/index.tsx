@@ -33,6 +33,8 @@ import ProfileSetting from '../Screens/AppScreens/Account/profilesetting';
 import AccountBeneficary from '../Screens/AppScreens/Beneficiaries/beneficary';
 import ContactUs from '../Screens/AppScreens/ContactUs';
 import Onboarding from '../Screens/Intro';
+import BuyNFTScreen from '../Screens/MarketPlace/BuyNFT';
+import CollectionListingPage from '../Screens/MarketPlace';
 
 function RootScreenStack() {
   const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -47,22 +49,6 @@ function RootScreenStack() {
         name="authScreens"
         options={{headerShown: false}}
         component={LoginScreen}
-      />
-
-      <RootStack.Screen
-        name="collectionDetails"
-        options={{headerShown: false}}
-        component={CollectionDetailsScreen}
-      />
-      <RootStack.Screen
-        name="NFTDetailsPage"
-        options={{headerShown: false}}
-        component={NFTDetailsScreen}
-      />
-      <RootStack.Screen
-        name="walletNFTDetails"
-        component={WalletNFTDetailsScreen}
-        options={{headerShown: false}}
       />
       <RootStack.Screen
         name="OffsetScreen"
@@ -140,6 +126,15 @@ type StakeStackParamList = {
   ValidatorDetailsScreen: undefined;
 };
 
+type MarketplaceStackParamList = {
+  marketplace: undefined;
+  collectionDetails: undefined;
+  NFTDetailsPage: undefined;
+  walletNFTDetails: undefined;
+  OffsetScreen: undefined;
+  BuyNFT: undefined;
+};
+
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 
 export function HomeScreenStack() {
@@ -156,6 +151,10 @@ export function HomeScreenStack() {
       <HomeStack.Screen
         name="transactionHistroy"
         component={TransactionHistory}
+      />
+      <HomeStack.Screen
+        name="walletNFTDetails"
+        component={WalletNFTDetailsScreen}
       />
     </HomeStack.Navigator>
   );
@@ -190,6 +189,32 @@ export function StakeStackFun() {
       />
       <StakeStack.Screen name="StakeScreen" component={StakeScreen} />
     </StakeStack.Navigator>
+  );
+}
+
+const MarketplaceStack =
+  createNativeStackNavigator<MarketplaceStackParamList>();
+
+export function MarketplaceStackFun() {
+  return (
+    <MarketplaceStack.Navigator
+      initialRouteName="marketplace"
+      screenOptions={{headerShown: false}}>
+      <MarketplaceStack.Screen
+        name="marketplace"
+        component={CollectionListingPage}
+      />
+      <MarketplaceStack.Screen
+        name="collectionDetails"
+        component={CollectionDetailsScreen}
+      />
+      <MarketplaceStack.Screen
+        name="NFTDetailsPage"
+        component={NFTDetailsScreen}
+      />
+      <MarketplaceStack.Screen name="OffsetScreen" component={OffsetScreen} />
+      <MarketplaceStack.Screen name="BuyNFT" component={BuyNFTScreen} />
+    </MarketplaceStack.Navigator>
   );
 }
 
