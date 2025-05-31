@@ -15,8 +15,8 @@ import NavigationWrapper from './Src/Navigation';
 import {AuthProvider} from './screens/Provider/authProvider';
 import {GraphQLProvider} from './screens/Provider/GraphQLProvider';
 import {WalletProvider} from './screens/Provider/WalletProvider';
-import {KycProvider} from './Src/CustomHooks/KYC/KYCProvider';
-import {KycServiceProvider} from './Src/CustomHooks/KYC/KycServiceProvider';
+import {GlobalKycProvider} from './Src/CustomHooks/GlobalKycProvider';
+import GlobalKycBottomSheet from './Src/CustomHooks/GlobalKycBottomSheet';
 
 export default function App() {
   Appearance.setColorScheme('light');
@@ -43,11 +43,10 @@ export default function App() {
             <AuthProvider>
               {/* <LoginScreen /> */}
               <WalletProvider>
-                <KycProvider>
-                  <KycServiceProvider>
-                    <NavigationWrapper />
-                  </KycServiceProvider>
-                </KycProvider>
+                <GlobalKycProvider>
+                  <NavigationWrapper />
+                  <GlobalKycBottomSheet />
+                </GlobalKycProvider>
               </WalletProvider>
             </AuthProvider>
             {/* <Navigation colorScheme={colorScheme} magicProps={magicProps} /> */}

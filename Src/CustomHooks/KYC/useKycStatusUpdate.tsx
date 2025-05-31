@@ -106,7 +106,10 @@ export const useKycStatusUpdate = () => {
       );
 
       if (extractedKycInfo) {
-        console.log('🚀 ~ useKycStatusUpdate ~ extractedKycInfo: ✅');
+        console.log(
+          '🚀 ~ useKycStatusUpdate ~ extractedKycInfo: ✅',
+          isVerified,
+        );
         updateUserDetails({
           kycDetails: extractedKycInfo,
           is_verified: isVerified,

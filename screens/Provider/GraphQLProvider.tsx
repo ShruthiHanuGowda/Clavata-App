@@ -20,7 +20,7 @@ const API_URL =
 const createApolloClient = (
   magicAccessToken: string = '',
 ): ApolloClient<NormalizedCacheObject> => {
-  console.log('Creating Apollo client with token:', magicAccessToken);
+  // console.log('Creating Apollo client with token:', magicAccessToken);
 
   return new ApolloClient({
     uri: API_URL,
