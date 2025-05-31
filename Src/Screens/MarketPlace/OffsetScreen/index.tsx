@@ -25,10 +25,12 @@ import RNFS from 'react-native-fs';
 import axios from 'axios';
 import {getBlockExploreLink} from '../../../utils/explorer';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
+import DatePicker from 'react-native-date-picker';
+import moment from 'moment';
 
 const PURPOSE_OPTIONS = [
-  {label: 'Scope 2 Emissions', value: 'scope_2_emissions'},
-  {label: 'Scope 3 Emissions', value: 'scope_3_emissions'},
+  {label: 'Scope 2 Emissions', value: 'Scope 2 Emissions'},
+  {label: 'Scope 3 Emissions', value: 'Scope 3 Emissions'},
 ];
 
 const TAX_RATE_PER_MWH = 0.1;
@@ -38,8 +40,8 @@ const OffsetScreen = ({route}: any) => {
   const {userDetails} = useAuth();
   const {magic_denergy} = useMagic();
   const [volume, setVolume] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
   const [purpose, setPurpose] = useState('');
   const [showPurposeDropdown, setShowPurposeDropdown] = useState(false);
   const [inputError, setInputError] = useState('');
@@ -49,6 +51,12 @@ const OffsetScreen = ({route}: any) => {
     nft?.marketData?.quantity,
   );
   const [calculatedTax, setCalculatedTax] = useState(0);
+  const [showStartDatePicker, setShowStartDatePicker] =
+    useState<boolean>(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState<boolean>(false);
+  const [dateFieldEditing, setDateFieldEditing] = useState<
+    'startDate' | 'endDate' | null
+  >(null);
 
   const account = userDetails?.userWallet;
   const walletAddress = userDetails?.userWallet;
@@ -102,52 +110,48 @@ const OffsetScreen = ({route}: any) => {
     }
   };
 
-  const handleDateChange = (field: string, text: string) => {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  const openDatePicker = (field: 'startDate' | 'endDate') => {
+    setDateFieldEditing(field);
+    if (field === 'startDate') {
+      setShowStartDatePicker(true);
+      setStartDate(new Date());
+    } else if (field === 'endDate') {
+      setShowEndDatePicker(true);
+      setEndDate(new Date());
+    }
+  };
+
+  const onStartDateChange = (selectedDate: Date) => {
+    setShowStartDatePicker(false);
+    setStartDate(selectedDate);
+
     let newErrors = {...dateErrors};
 
-    if (field === 'startDate') {
-      setStartDate(text);
-      if (text && !dateRegex.test(text)) {
-        newErrors.startDate = 'Please use YYYY-MM-DD format';
-      } else {
-        delete newErrors.startDate;
-      }
-    } else if (field === 'endDate') {
-      setEndDate(text);
-      if (text && !dateRegex.test(text)) {
-        newErrors.endDate = 'Please use YYYY-MM-DD format';
-      } else {
-        delete newErrors.endDate;
-      }
+    // Clear invalid format error (we assume the date picker always returns a valid Date)
+    delete newErrors.startDate;
+
+    if (endDate && selectedDate >= endDate) {
+      newErrors.dateRange = 'End date must be after start date';
+    } else {
+      delete newErrors.dateRange;
     }
 
-    if (
-      field === 'startDate' &&
-      endDate &&
-      dateRegex.test(text) &&
-      dateRegex.test(endDate)
-    ) {
-      const start = new Date(text);
-      const end = new Date(endDate);
-      if (start >= end) {
-        newErrors.dateRange = 'End date must be after start date';
-      } else {
-        delete newErrors.dateRange;
-      }
-    } else if (
-      field === 'endDate' &&
-      startDate &&
-      dateRegex.test(startDate) &&
-      dateRegex.test(text)
-    ) {
-      const start = new Date(startDate);
-      const end = new Date(text);
-      if (start >= end) {
-        newErrors.dateRange = 'End date must be after start date';
-      } else {
-        delete newErrors.dateRange;
-      }
+    setDateErrors(newErrors);
+  };
+
+  const onEndDateChange = (selectedDate: Date) => {
+    setShowEndDatePicker(false);
+    setEndDate(selectedDate);
+
+    let newErrors = {...dateErrors};
+
+    // Clear invalid format error (picker guarantees valid date)
+    delete newErrors.endDate;
+
+    if (startDate && startDate >= selectedDate) {
+      newErrors.dateRange = 'End date must be after start date';
+    } else {
+      delete newErrors.dateRange;
     }
 
     setDateErrors(newErrors);
@@ -167,8 +171,8 @@ const OffsetScreen = ({route}: any) => {
     const hasVolume = volume && volume.trim() !== '';
     const hasValidVolume =
       hasVolume && !inputError && !isNaN(Number(volume)) && Number(volume) > 0;
-    const hasStartDate = startDate && startDate.trim() !== '';
-    const hasEndDate = endDate && endDate.trim() !== '';
+    const hasStartDate = startDate && startDate;
+    const hasEndDate = endDate && endDate;
     const hasPurpose = purpose && purpose.trim() !== '';
     const hasNoDateErrors = Object.keys(dateErrors).length === 0;
 
@@ -359,13 +363,30 @@ const OffsetScreen = ({route}: any) => {
           <DText fontStyle="fontBold" style={styles.label}>
             Start Date *
           </DText>
-          <TextInput
-            style={[styles.input, dateErrors.startDate && styles.warningInput]}
-            value={startDate}
-            onChangeText={text => handleDateChange('startDate', text)}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor="#A0A0A0"
-          />
+
+          <View style={{position: 'relative'}}>
+            <TextInput
+              style={[styles.input, dateErrors.endDate && styles.warningInput]}
+              value={startDate && moment(startDate).format('YYYY-MM-DD')}
+              editable={false}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#A0A0A0"
+            />
+
+            <TouchableOpacity
+              onPress={() => openDatePicker('startDate')}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 1,
+              }}
+              activeOpacity={0.8}
+            />
+          </View>
+
           {dateErrors.startDate && (
             <DText style={styles.warningText}>{dateErrors.startDate}</DText>
           )}
@@ -376,13 +397,30 @@ const OffsetScreen = ({route}: any) => {
           <DText fontStyle="fontBold" style={styles.label}>
             End Date *
           </DText>
-          <TextInput
-            style={[styles.input, dateErrors.endDate && styles.warningInput]}
-            value={endDate}
-            onChangeText={text => handleDateChange('endDate', text)}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor="#A0A0A0"
-          />
+
+          <View style={{position: 'relative'}}>
+            <TextInput
+              style={[styles.input, dateErrors.endDate && styles.warningInput]}
+              value={endDate && moment(endDate).format('YYYY-MM-DD')}
+              editable={false}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#A0A0A0"
+            />
+
+            <TouchableOpacity
+              onPress={() => openDatePicker('endDate')}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 1,
+              }}
+              activeOpacity={0.8}
+            />
+          </View>
+
           {dateErrors.endDate && (
             <DText style={styles.warningText}>{dateErrors.endDate}</DText>
           )}
@@ -497,13 +535,14 @@ const OffsetScreen = ({route}: any) => {
         <View style={styles.successDetailRow}>
           <DText style={styles.successDetailLabel}>Period:</DText>
           <DText fontStyle="fontBold" style={styles.successDetailValue}>
-            {startDate} to {endDate}
+            {moment(startDate).format('YYYY-MM-DD')} to{' '}
+            {moment(endDate).format('YYYY-MM-DD')}
           </DText>
         </View>
         <View style={styles.successDetailRow}>
           <DText style={styles.successDetailLabel}>Purpose:</DText>
           <DText fontStyle="fontBold" style={styles.successDetailValue}>
-            {PURPOSE_OPTIONS.find(opt => opt.value === purpose)?.label}
+            {purpose}
           </DText>
         </View>
       </View>
@@ -583,6 +622,24 @@ const OffsetScreen = ({route}: any) => {
         }
       />
       {renderCurrentStep()}
+      <DatePicker
+        modal
+        open={showStartDatePicker}
+        date={startDate || new Date()}
+        mode="date"
+        maximumDate={new Date()}
+        onConfirm={onStartDateChange}
+        onCancel={() => setShowStartDatePicker(false)}
+      />
+
+      <DatePicker
+        modal
+        open={showEndDatePicker}
+        date={endDate || new Date()}
+        mode="date"
+        onConfirm={onEndDateChange}
+        onCancel={() => setShowEndDatePicker(false)}
+      />
     </View>
   );
 };
@@ -698,7 +755,7 @@ const styles = StyleSheet.create({
   warningText: {
     color: '#e74c3c',
     fontSize: 12,
-    marginTop: 4,
+    marginBottom: 4,
   },
   inputLabel: {
     position: 'absolute',

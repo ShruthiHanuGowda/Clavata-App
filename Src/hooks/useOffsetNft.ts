@@ -1,11 +1,17 @@
-import { useState } from 'react';
-import { BrowserProvider, Contract } from 'ethers';
-import { ERC1155_ABI, ERC20_ABI } from '../utils/Contracts';
-import { SnackBarMessage } from '../utils/snackBar';
-import { API_OFFSETTING_URL, DENERGY_USDC_ADDRESS, PLATFORM_SETTINGS_API_KEY, PLATFORM_SETTINGS_API_URL } from '../constants';
-import { useWallet } from '../../screens/Provider/WalletProvider';
-import { ApolloClient, HttpLink, InMemoryCache, useQuery } from '@apollo/client';
-import { LIST_PLATFORM_SETTINGS } from '../graphql/queries';
+import {useState} from 'react';
+import {BrowserProvider, Contract} from 'ethers';
+import {ERC1155_ABI, ERC20_ABI} from '../utils/Contracts';
+import {SnackBarMessage} from '../utils/snackBar';
+import {
+  API_OFFSETTING_URL,
+  DENERGY_USDC_ADDRESS,
+  PLATFORM_SETTINGS_API_KEY,
+  PLATFORM_SETTINGS_API_URL,
+} from '../constants';
+import {useWallet} from '../../screens/Provider/WalletProvider';
+import {ApolloClient, HttpLink, InMemoryCache, useQuery} from '@apollo/client';
+import {LIST_PLATFORM_SETTINGS} from '../graphql/queries';
+import {se} from 'date-fns/locale';
 
 const TREASURY_ADDRESS = '0x756Ba4Bd0eFEd10c5F5C3C76f15893d0bB2387A4';
 
@@ -19,16 +25,19 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
-export const useOffsetNft = (magic_denergy: any, account: any, walletAddress: any) => {
+export const useOffsetNft = (
+  magic_denergy: any,
+  account: any,
+  walletAddress: any,
+) => {
   const [isLoadingOffset, setIsLoadingOffset] = useState(false);
   const [redemptionUrl, setRedemptionUrl] = useState('');
   const [pdfDownloadUrl, setPdfDownloadUrl] = useState('');
   const [transactionHash, setTransactionHash] = useState('');
   const [offsetSuccess, setOffsetSuccess] = useState(false);
-  const { refreshBalance, getBalance } = useWallet();
+  const {refreshBalance, getBalance} = useWallet();
 
-
-  const { loading, error, data, refetch } = useQuery(LIST_PLATFORM_SETTINGS, {
+  const {loading, error, data, refetch} = useQuery(LIST_PLATFORM_SETTINGS, {
     client,
     variables: {
       filter: {
@@ -40,10 +49,13 @@ export const useOffsetNft = (magic_denergy: any, account: any, walletAddress: an
     },
   });
 
-  const treasurySetting = data?.listPlatformSettings?.items && data?.listPlatformSettings?.items.length > 0 && data?.listPlatformSettings?.items[0] || null;
+  const treasurySetting =
+    (data?.listPlatformSettings?.items &&
+      data?.listPlatformSettings?.items.length > 0 &&
+      data?.listPlatformSettings?.items[0]) ||
+    null;
 
   const dynamicTreasuryAddress = treasurySetting?.value || TREASURY_ADDRESS;
-
 
   const resetOffsetState = () => {
     setRedemptionUrl('');
@@ -56,27 +68,30 @@ export const useOffsetNft = (magic_denergy: any, account: any, walletAddress: an
     const maxQuantity = Number(nftQuantity / 1_000_000);
 
     if (!volume || volume.trim() === '') {
-      return { isValid: false, maxQuantity };
+      return {isValid: false, maxQuantity};
     }
 
     const numericVolume = Number(volume);
 
     if (isNaN(numericVolume) || numericVolume <= 0) {
-      return { isValid: false, maxQuantity };
+      return {isValid: false, maxQuantity};
     }
 
     if (numericVolume > maxQuantity) {
-      return { isValid: false, maxQuantity };
+      return {isValid: false, maxQuantity};
     }
 
-    return { isValid: true, maxQuantity };
+    return {isValid: true, maxQuantity};
   };
 
   const getAvailableQuantity = (nftQuantity: number) => {
     return Number(nftQuantity / 1_000_000);
   };
 
-  const checkWUSDCBalance = async (magicProvider: any, requiredAmount: number) => {
+  const checkWUSDCBalance = async (
+    magicProvider: any,
+    requiredAmount: number,
+  ) => {
     try {
       const balance = getBalance('WUSDC')?.balance ?? 0;
 
@@ -87,7 +102,7 @@ export const useOffsetNft = (magic_denergy: any, account: any, walletAddress: an
       };
     } catch (error) {
       console.error('Error checking WUSDC balance:', error);
-      return { hasEnoughBalance: false, balance: 0, required: requiredAmount };
+      return {hasEnoughBalance: false, balance: 0, required: requiredAmount};
     }
   };
 
@@ -109,7 +124,7 @@ export const useOffsetNft = (magic_denergy: any, account: any, walletAddress: an
       );
       await taxTransaction.wait();
 
-      return { success: true, hash: taxTransaction.hash };
+      return {success: true, hash: taxTransaction.hash};
     } catch (error) {
       console.error('Error sending WUSDC to treasury:', error);
       throw error;
@@ -117,7 +132,7 @@ export const useOffsetNft = (magic_denergy: any, account: any, walletAddress: an
   };
 
   const executeOffset = async (offsetData: any, nft: any) => {
-    const { volume, startDate, endDate, purpose, taxAmount } = offsetData;
+    const {volume, startDate, endDate, purpose, taxAmount} = offsetData;
 
     const validation = validateOffsetVolume(volume, nft?.marketData?.quantity);
     if (!validation.isValid) {
@@ -156,7 +171,8 @@ export const useOffsetNft = (magic_denergy: any, account: any, walletAddress: an
 
       if (balance < volumeInWei) {
         SnackBarMessage(
-          `Insufficient NFT balance. You have ${Number(balance) / 1_000_000
+          `Insufficient NFT balance. You have ${
+            Number(balance) / 1_000_000
           } MWh available`,
           'error',
         );
@@ -185,39 +201,38 @@ export const useOffsetNft = (magic_denergy: any, account: any, walletAddress: an
           return false;
         }
       }
-
+      const body = JSON.stringify({
+        volumeInput: volume,
+        periodStart: new Date(startDate),
+        periodEnd: new Date(endDate),
+        purpose,
+        nfts: [
+          {
+            contractAddr: nft?.collectionAddress,
+            tokenId: nft?.tokenId,
+            account: account,
+            transactionHash: receipt?.hash,
+          },
+        ],
+      });
       // console.log('Calling offset API...');
       const response = await fetch(API_OFFSETTING_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          volumeInput: volume,
-          startDate,
-          endDate,
-          purpose,
-          taxAmount,
-          nfts: [
-            {
-              contractAddr: nft?.collectionAddress,
-              tokenId: nft?.tokenId,
-              account: account,
-              hash: receipt?.hash,
-              walletAddress: walletAddress,
-            },
-          ],
-        }),
+        body: body,
       });
 
       const data = await response.json();
+      console.log(data);
 
-      if (data.statusCode === 200) {
-        const offsetData = JSON.parse(data.body);
+      if (data?.status === 'success') {
+        console.log(data?.data.redemptionStatementUrl);
 
-        setRedemptionUrl(offsetData?.data?.redemptionStatementUrl);
-        setPdfDownloadUrl(offsetData?.data?.pdfDownloadUrl);
+        setRedemptionUrl(data?.data?.redemptionStatementUrl);
+        setPdfDownloadUrl(data?.data?.pdfDownloadUrl);
         setOffsetSuccess(true);
 
         const newBalance = await collectionContract.balanceOf(
@@ -226,6 +241,7 @@ export const useOffsetNft = (magic_denergy: any, account: any, walletAddress: an
         );
 
         SnackBarMessage('Offset created successfully', 'success');
+
         return true;
       } else {
         SnackBarMessage(
