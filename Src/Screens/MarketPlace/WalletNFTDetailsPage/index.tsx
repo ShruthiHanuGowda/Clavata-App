@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import {Header, Tab} from '@rneui/base';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
@@ -29,6 +30,7 @@ import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {ERC1155_ABI} from '../../../utils/Contracts';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {SnackBarMessage} from '../../../utils/snackBar';
+import {useKycCheck} from '../../../CustomHooks/GlobalKycProvider';
 
 const width = Dimensions.get('window').width;
 
@@ -78,6 +80,8 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     nft?.marketData?.quantity,
   );
 
+  const {checkKYC, isKycCompleted, isKycSkipped} = useKycCheck();
+
   useEffect(() => {
     console.log('calling useEffect in WalletNFTDetailsScreen');
     // Fetch the current quantity from the API or any other source
@@ -124,15 +128,38 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     }
   };
 
-  const handleOffersClick = () => {
-    if (userDetails?.is_verified) {
+  const handleOffersClick = async () => {
+    if (isKycCompleted) {
       navigation.navigate('OffsetScreen', {nft});
     } else {
-      SnackBarMessage(
-        'Please complete your kyc to access this feature',
-        'error',
-      );
+      await checkKYC({
+        onSuccess: () => {
+          navigation.navigate('OffsetScreen', {nft});
+        },
+        onSkip: () => {
+          SnackBarMessage(
+            'Please complete your kyc to access this feature',
+            'error',
+          );
+        },
+        onError: error => {
+          SnackBarMessage(
+            'Please complete your kyc to access this feature',
+            'error',
+          );
+        },
+        showAlerts: false,
+      });
     }
+
+    // if (userDetails?.is_verified) {
+    //   navigation.navigate('OffsetScreen', {nft});
+    // } else {
+    // SnackBarMessage(
+    //   'Please complete your kyc to access this feature',
+    //   'error',
+    // );
+    // }
   };
 
   const {

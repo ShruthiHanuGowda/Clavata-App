@@ -648,10 +648,10 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
       }
 
       // If already skipped and not forcing, return skip
-      if (kycStatus.isSkipped && !forceShow) {
-        if (onSkip) onSkip();
-        return {result: KYC_RESULT.SKIP, message: 'KYC was previously skipped'};
-      }
+      // if (kycStatus.isSkipped && !forceShow) {
+      //   if (onSkip) onSkip();
+      //   return {result: KYC_RESULT.SKIP, message: 'KYC was previously skipped'};
+      // }
 
       // Show the bottom sheet
       showKycBottomSheet();

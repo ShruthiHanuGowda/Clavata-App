@@ -559,6 +559,7 @@ export default function LoginScreen() {
       const res = await magic.auth.loginWithEmailOTP({email: userEmail});
       console.log(res);
       console.log('call getUserMetaData 2 ✌️');
+      callbackExecutedRef.current = false;
       await getUserWallet({
         variables: {emailAddress: userEmail.toLowerCase()},
       });
