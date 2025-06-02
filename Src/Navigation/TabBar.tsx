@@ -136,6 +136,7 @@ const TabBar: React.FC<TabBarProps> = ({
 }) => {
   const {bottom} = useSafeAreaInsets();
 
+  console.log('bottom>>>>>', bottom);
   const reducer = (
     state: LayoutState[],
     action: LayoutAction,
@@ -165,7 +166,11 @@ const TabBar: React.FC<TabBarProps> = ({
   const circumference = radius * 2 * Math.PI;
 
   return (
-    <View style={[styles.tabBar, {paddingBottom: bottom}]}>
+    <View
+      style={[
+        styles.tabBar,
+        {paddingBottom: Platform.OS === 'android' ? bottom : 10},
+      ]}>
       <Svg
         width={110}
         height={70}
@@ -228,7 +233,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
-    height: 53,
+    // height: 53,
   },
   activeBackground: {
     position: 'absolute',

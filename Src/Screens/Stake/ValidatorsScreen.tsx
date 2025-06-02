@@ -219,7 +219,7 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
                 style={[
                   styles.validatorCard,
                   {
-                    marginBottom: index === validators.length - 1 ? '15%' : 16,
+                    marginBottom: index === validators.length - 1 ? '22%' : 16,
                   },
                 ]}>
                 {/* Validator Header */}

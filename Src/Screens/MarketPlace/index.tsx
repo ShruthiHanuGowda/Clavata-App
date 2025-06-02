@@ -58,16 +58,21 @@ const CollectionListingPage: React.FC = () => {
               <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
             }>
             <>
-              {collections?.map(collection => (
-                <CollectionCard
-                  key={collection.id}
-                  collection={collection}
-                  onPress={() =>
-                    navigate('collectionDetails', {
-                      contractAddress: collection.id,
-                    })
-                  }
-                />
+              {collections?.map((collection, index) => (
+                <View
+                  style={{
+                    marginBottom: index === collections.length - 1 ? 100 : 0,
+                  }}>
+                  <CollectionCard
+                    key={collection.id}
+                    collection={collection}
+                    onPress={() =>
+                      navigate('collectionDetails', {
+                        contractAddress: collection.id,
+                      })
+                    }
+                  />
+                </View>
               ))}
             </>
           </ScrollView>
