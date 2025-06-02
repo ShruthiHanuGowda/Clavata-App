@@ -13,7 +13,7 @@ import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import styles from '../../AuthScreens/styles';
 import {SCREEN_CONSTANT} from '../../../Navigation/constant';
 import {navigateTo} from '../../../utils/navigationService';
-import {WebView} from 'react-native-webview';
+
 import {
   useSendUSDCANDEURC,
   TOKEN_ADDRESSES,
