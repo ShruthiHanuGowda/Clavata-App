@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,34 +11,34 @@ import {
   Alert,
   Linking,
   Platform,
-  Share,
 } from 'react-native';
-import {Header} from '@rneui/base';
-import {fontsFamily} from '../../../Theme';
+import { Header } from '@rneui/base';
+import { fontsFamily } from '../../../Theme';
 import images from '../../../Theme/images';
-import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {DText} from '../../../Componants/DText';
-import {useOffsetNft} from '../../../hooks/useOffsetNft';
-import {useAuth} from '../../../../screens/Provider/authProvider';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import { navigateBack } from '../../../Navigation/NavigationFunctions';
+import { DText } from '../../../Componants/DText';
+import { useOffsetNft } from '../../../hooks/useOffsetNft';
+import { useAuth } from '../../../../screens/Provider/authProvider';
+import { useMagic } from '../../../../screens/Provider/MagicProvider';
 import RNFS from 'react-native-fs';
 import axios from 'axios';
-import {getBlockExploreLink} from '../../../utils/explorer';
-import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
+import { getBlockExploreLink } from '../../../utils/explorer';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import DatePicker from 'react-native-date-picker';
 import moment from 'moment';
+import Share from 'react-native-share';
 
 const PURPOSE_OPTIONS = [
-  {label: 'Scope 2 Emissions', value: 'Scope 2 Emissions'},
-  {label: 'Scope 3 Emissions', value: 'Scope 3 Emissions'},
+  { label: 'Scope 2 Emissions', value: 'Scope 2 Emissions' },
+  { label: 'Scope 3 Emissions', value: 'Scope 3 Emissions' },
 ];
 
 const TAX_RATE_PER_MWH = 0.1;
 
-const OffsetScreen = ({route}: any) => {
-  const {nft} = route.params;
-  const {userDetails} = useAuth();
-  const {magic_denergy} = useMagic();
+const OffsetScreen = ({ route }: any) => {
+  const { nft } = route.params;
+  const { userDetails } = useAuth();
+  const { magic_denergy } = useMagic();
   const [volume, setVolume] = useState('');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -125,7 +125,7 @@ const OffsetScreen = ({route}: any) => {
     setShowStartDatePicker(false);
     setStartDate(selectedDate);
 
-    let newErrors = {...dateErrors};
+    let newErrors = { ...dateErrors };
 
     // Clear invalid format error (we assume the date picker always returns a valid Date)
     delete newErrors.startDate;
@@ -143,7 +143,7 @@ const OffsetScreen = ({route}: any) => {
     setShowEndDatePicker(false);
     setEndDate(selectedDate);
 
-    let newErrors = {...dateErrors};
+    let newErrors = { ...dateErrors };
 
     // Clear invalid format error (picker guarantees valid date)
     delete newErrors.endDate;
@@ -215,7 +215,10 @@ const OffsetScreen = ({route}: any) => {
 
   const handleDownloadCertificate = async () => {
     try {
-      if (!pdfDownloadUrl) return;
+      // if (!pdfDownloadUrl) return;
+      let pdfDownloadUrl = "https://nfts-data.s3.me-central-1.amazonaws.com/redemption_statements/01JWQNY3D1TARZVV3JV9298MBQ.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAVRUVV6WQJST3SLWS%2F20250602%2Fme-central-1%2Fs3%2Faws4_request&X-Amz-Date=20250602T064051Z&X-Amz-Expires=86400&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEDkaDG1lLWNlbnRyYWwtMSJGMEQCIDdTB%2BeIzoUr86JCvdNxRVp49lGNwvB1BeDB5eLx%2Fx4iAiAo2azSF937crPeaMX1dNazY2Nds0beVBgVu%2FPxFIt4tyqKAwjo%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAAaDDM4MTQ5MjI2MjMwNCIMT75Yz4HBR55LzpA0Kt4C7aPuIXQmWMSUGb%2FpRFRNFFck65Lvmoi6VxfJ5ZjyKCxwzRx3umASA%2FutY9qbpi7XobRPppTwhLr4zB3X64Vfg6PZr337ccN2sCSwVs4DKEOZaeioPTOFoSIhg5%2BvQskK1Sztlhh2uD7cBDeuEpm0Ur%2F0tMmv7PiWD0oWhjix91jo5de3WsOfDTcaDuFcfjq8VKZBpmDe8dxEKQd0nkipwKa3CWCQvFI7RrFBBOyWxBkZTjvwE72xhKVns813c31v6ECwkplvpnZPN9Rg9n%2FCVvC9frwPEKMGk08emYY5EsOWHeYtKriaHnjiKlFBsFuwdgu6Rihf8qmbSJPQaRoYsYwDFN04tbVItKFTbDG4qbbqFV4YcoFmj%2BePgHNI%2B8ColBvjkkkukbe%2BBq%2Bp0lEZ5YjilaZ15j%2FQxrTXghMqPF5lBIMU5sCJJ3f%2BOWMdh7hySLcjaY0owa%2FFGgmBXFUw6o71wQY6nwGn5d6Eq5IVyWenzQNp3K6htG4cZ%2FPvKm9zOInF3e%2BUG1a4Jj%2Bfe7qjy%2B4lgE3UsFOEf%2F7mOOk5Iv291A5x6%2F%2FdKAv2z1LN8unbu5qGgRkv28SlStPZK7tcwDoKzyOHBK0%2FLSnFNu9HnY67e9RSHvijrQulcluqJ8dXA3Hwg9y4NYarw2xGm8Rg%2BBL99tyhUuoFzon7BZJMvYApGrgGoC8%3D&X-Amz-Signature=e09e6d9d2aa1f151dd5a075f82d235f57e443dfe47c562898b86cb63da87edbb&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22redemption_statement_01JWQNY3D1TARZVV3JV9298MBQ.pdf%22&response-content-type=application%2Fpdf"
+      console.log('Downloading certificate from:', pdfDownloadUrl);
+
 
       const timestamp = Math.floor(Date.now() / 1000);
       const fileName = `certificate_${timestamp}.pdf`;
@@ -242,13 +245,22 @@ const OffsetScreen = ({route}: any) => {
         Buffer.from(response.data).toString('base64'),
         'base64',
       );
+      console.log('Certificate downloaded to:', filePath);
 
       const shareUrl = Platform.OS === 'ios' ? filePath : `file://${filePath}`;
-      Share.share({
-        message: 'Here is your certificate:',
+
+      Share.open({
         url: shareUrl,
         title: 'Certificate Download Complete',
-      });
+        failOnCancel: false,
+        showAppsToView: true,
+      })
+        .then((res) => {
+          console.log(res);
+        })
+        .catch((err) => {
+          err && console.log(err);
+        });
     } catch (error) {
       console.log('Download error:', error);
       Alert.alert(
@@ -295,7 +307,7 @@ const OffsetScreen = ({route}: any) => {
 
   const renderForm = () => (
     <KeyboardAwareScrollView
-      contentContainerStyle={{flexGrow: 1}}
+      contentContainerStyle={{ flexGrow: 1 }}
       keyboardShouldPersistTaps="handled"
       style={styles.container}
       showsVerticalScrollIndicator={false}
@@ -364,7 +376,7 @@ const OffsetScreen = ({route}: any) => {
             Start Date *
           </DText>
 
-          <View style={{position: 'relative'}}>
+          <View style={{ position: 'relative' }}>
             <TextInput
               style={[styles.input, dateErrors.endDate && styles.warningInput]}
               value={startDate && moment(startDate).format('YYYY-MM-DD')}
@@ -398,7 +410,7 @@ const OffsetScreen = ({route}: any) => {
             End Date *
           </DText>
 
-          <View style={{position: 'relative'}}>
+          <View style={{ position: 'relative' }}>
             <TextInput
               style={[styles.input, dateErrors.endDate && styles.warningInput]}
               value={endDate && moment(endDate).format('YYYY-MM-DD')}
@@ -462,7 +474,7 @@ const OffsetScreen = ({route}: any) => {
                   style={[
                     styles.dropdownOption,
                     index === PURPOSE_OPTIONS.length - 1 &&
-                      styles.lastDropdownOption,
+                    styles.lastDropdownOption,
                   ]}
                   onPress={() => handlePurposeSelect(option)}
                   activeOpacity={0.8}>
@@ -605,7 +617,7 @@ const OffsetScreen = ({route}: any) => {
     <View style={styles.screenContainer}>
       <Header
         backgroundColor={'#FFF'}
-        containerStyle={{borderBottomWidth: 0}}
+        containerStyle={{ borderBottomWidth: 0 }}
         leftComponent={
           <TouchableOpacity
             onPress={() => navigateBack()}
@@ -809,7 +821,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     elevation: 5,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },

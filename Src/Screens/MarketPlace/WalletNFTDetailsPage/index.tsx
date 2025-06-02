@@ -10,31 +10,31 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import {Header, Tab} from '@rneui/base';
-import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {DText} from '../../../Componants/DText';
+import { Header, Tab } from '@rneui/base';
+import { navigateBack } from '../../../Navigation/NavigationFunctions';
+import { DText } from '../../../Componants/DText';
 import images from '../../../Theme/images';
 import LinearGradient from 'react-native-linear-gradient';
-import {fontsFamily} from '../../../Theme';
-import {useEffect, useMemo, useState} from 'react';
-import {formatQuantityMWh} from '../../../utils';
-import {useCompleteNft} from '../../../hooks/useCompleteNft';
-import {NftLocation} from '../../../types/types';
+import { fontsFamily } from '../../../Theme';
+import { useEffect, useMemo, useState } from 'react';
+import { formatQuantityMWh } from '../../../utils';
+import { useCompleteNft } from '../../../hooks/useCompleteNft';
+import { NftLocation } from '../../../types/types';
 import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
 import useApi from '../../../hooks/useApi';
-import {API_NFT_URL} from '../../../constants';
+import { API_NFT_URL } from '../../../constants';
 import useNftActivity from '../../../hooks/useNftActivity';
-import {useNavigation} from '@react-navigation/native';
-import {BrowserProvider, Contract} from 'ethers';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
-import {ERC1155_ABI} from '../../../utils/Contracts';
-import {useAuth} from '../../../../screens/Provider/authProvider';
-import {SnackBarMessage} from '../../../utils/snackBar';
-import {useKycCheck} from '../../../CustomHooks/GlobalKycProvider';
+import { useNavigation } from '@react-navigation/native';
+import { BrowserProvider, Contract } from 'ethers';
+import { useMagic } from '../../../../screens/Provider/MagicProvider';
+import { ERC1155_ABI } from '../../../utils/Contracts';
+import { useAuth } from '../../../../screens/Provider/authProvider';
+import { SnackBarMessage } from '../../../utils/snackBar';
+import { useKycCheck } from '../../../CustomHooks/GlobalKycProvider';
 
 const width = Dimensions.get('window').width;
 
-const ActionButton = ({icon, label, onPress}) => (
+const ActionButton = ({ icon, label, onPress }) => (
   <TouchableOpacity style={styles.actionContainer} onPress={onPress}>
     <View style={styles.actionIconWrapper}>
       <Image source={icon} style={styles.actionIcon} />
@@ -43,12 +43,12 @@ const ActionButton = ({icon, label, onPress}) => (
   </TouchableOpacity>
 );
 
-const NFTHeader = ({name, quantity}) => (
+const NFTHeader = ({ name, quantity }) => (
   <View style={styles.nftHeaderContainer}>
     <ImageBackground
       source={images.rectangle}
       resizeMode="cover"
-      imageStyle={{borderRadius: 7}}
+      imageStyle={{ borderRadius: 7 }}
       style={styles.nftImageBackground}>
       <Image source={images.rectangleDot} style={styles.nftOverlayImage} />
       <DText fontStyle="fontBold" style={styles.portfolio}>
@@ -57,7 +57,7 @@ const NFTHeader = ({name, quantity}) => (
       <DText
         fontStyle="fontBold"
         style={styles.totalAmount}
-        textProps={{numberOfLines: 1, ellipsizeMode: 'tail'}}>
+        textProps={{ numberOfLines: 1, ellipsizeMode: 'tail' }}>
         {name}
       </DText>
       <DText fontStyle="fontBold" style={styles.amount}>
@@ -67,11 +67,11 @@ const NFTHeader = ({name, quantity}) => (
   </View>
 );
 
-const WalletNFTDetailsScreen = ({route}: any) => {
-  const {nft} = route.params;
+const WalletNFTDetailsScreen = ({ route }: any) => {
+  const { nft } = route.params;
   const navigation = useNavigation();
-  const {magic_denergy} = useMagic();
-  const {userDetails} = useAuth();
+  const { magic_denergy } = useMagic();
+  const { userDetails } = useAuth();
 
   const [index, setIndex] = useState(0);
   const [clickedSellNft, setClickedSellNft] = useState<any>({});
@@ -80,7 +80,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     nft?.marketData?.quantity,
   );
 
-  const {checkKYC, isKycCompleted, isKycSkipped} = useKycCheck();
+  const { checkKYC, isKycCompleted, isKycSkipped } = useKycCheck();
 
   useEffect(() => {
     console.log('calling useEffect in WalletNFTDetailsScreen');
@@ -116,11 +116,11 @@ const WalletNFTDetailsScreen = ({route}: any) => {
   const handleCollectibleClick = (location?: NftLocation) => {
     switch (location) {
       case NftLocation.WALLET:
-        setClickedSellNft({nft, location, variant: 'sell'});
+        setClickedSellNft({ nft, location, variant: 'sell' });
         setIsSellModalVisible(true);
         break;
       case NftLocation.FORSALE:
-        setClickedSellNft({nft, location, variant: 'adjust'});
+        setClickedSellNft({ nft, location, variant: 'adjust' });
         setIsSellModalVisible(true);
         break;
       default:
@@ -130,11 +130,11 @@ const WalletNFTDetailsScreen = ({route}: any) => {
 
   const handleOffersClick = async () => {
     if (isKycCompleted) {
-      navigation.navigate('OffsetScreen', {nft});
+      navigation.navigate('OffsetScreen', { nft });
     } else {
       await checkKYC({
         onSuccess: () => {
-          navigation.navigate('OffsetScreen', {nft});
+          navigation.navigate('OffsetScreen', { nft });
         },
         onSkip: () => {
           SnackBarMessage(
@@ -168,9 +168,9 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     refetch,
   } = useCompleteNft(`${nft?.collectionAddress}-${nft?.tokenId}`);
 
-  const {data, isLoading: isCollectionLoading} = useApi<any>(
+  const { data, isLoading: isCollectionLoading } = useApi<any>(
     `${API_NFT_URL}/nftMarketplace_getCollectionTokens?contractAddress=${nft?.collectionAddress}&tokenId=${nft?.tokenId}`,
-    {method: 'GET'},
+    { method: 'GET' },
   );
 
   const hasTokenData = combinedNft?.tokenId && combinedNft?.collectionAddress;
@@ -205,7 +205,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     <View style={styles.container}>
       <Header
         backgroundColor={'#FFF'}
-        containerStyle={{borderBottomWidth: 0}}
+        containerStyle={{ borderBottomWidth: 0 }}
         leftComponent={
           <TouchableOpacity
             onPress={() => navigateBack()}
@@ -222,15 +222,15 @@ const WalletNFTDetailsScreen = ({route}: any) => {
         }
       />
       <ScrollView>
-        <View style={{marginTop: 5}}>
+        <View style={{ marginTop: 5 }}>
           <LinearGradient
             colors={['#FFFFFF', '#dcf2f1', '#FFFFFF']}
-            start={{x: 0, y: 1}}
-            end={{x: 0, y: 0}}
+            start={{ x: 0, y: 1 }}
+            end={{ x: 0, y: 0 }}
             useAngle={true}
             angle={330}
             locations={[0, 0, 0.25]}>
-            <View style={{paddingTop: 10, paddingBottom: 30}}>
+            <View style={{ paddingTop: 10, paddingBottom: 30 }}>
               <NFTHeader name={nft?.name} quantity={formattedQty} />
               <View style={styles.btnAlign}>
                 <ActionButton
@@ -266,8 +266,8 @@ const WalletNFTDetailsScreen = ({route}: any) => {
             value={index}
             onChange={setIndex}
             variant="primary"
-            indicatorStyle={{backgroundColor: 'transparent'}}
-            style={{backgroundColor: 'transparent'}}>
+            indicatorStyle={{ backgroundColor: 'transparent' }}
+            style={{ backgroundColor: 'transparent' }}>
             {TAB_ITEMS.map((tab, i) => (
               <Tab.Item
                 key={i}
@@ -288,7 +288,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
             ))}
           </Tab>
         </View>
-        <View style={{marginHorizontal: 25, marginTop: 20}}>
+        <View style={{ marginHorizontal: 25, marginTop: 20 }}>
           {index === 0 && (
             <View style={styles.detailsContainer}>
               {[
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 15,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,

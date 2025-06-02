@@ -14,8 +14,7 @@ interface Props {
 type NavigationProps = NavigationProp<any, any>;
 
 const MyCertificateCard = ({ nft, refresh, containerStyle }: Props) => {
-  const [clickedSellNft, setClickedSellNft] = useState<any>({});
-  const [isSellModalVisible, setIsSellModalVisible] = useState(false);
+
 
   const navigation = useNavigation<NavigationProps>();
   const handlePress = () => {
@@ -73,21 +72,6 @@ const MyCertificateCard = ({ nft, refresh, containerStyle }: Props) => {
           </View>
         </View>
       </TouchableOpacity>
-
-      {/* <SellModal
-        visible={isSellModalVisible}
-        onClose={() => {
-          setIsSellModalVisible(false);
-          setClickedSellNft(null);
-        }}
-        variant={clickedSellNft?.variant}
-        nftToSell={clickedSellNft?.nft || nft}
-        onSuccessSale={() => {
-          refresh();
-          setIsSellModalVisible(false);
-          setClickedSellNft(null);
-        }}
-      /> */}
     </>
   );
 };

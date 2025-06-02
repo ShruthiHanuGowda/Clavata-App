@@ -1,4 +1,4 @@
-import {CUSTOM_NETWORK_CHAIN_ID} from '../constants';
+import { CUSTOM_NETWORK_CHAIN_ID } from '../constants';
 
 const denergyTestnet = {
   id: 4442,
@@ -7,7 +7,7 @@ const denergyTestnet = {
   blockExplorers: {
     default: {
       name: 'Denergy Testnet',
-      url: 'https://explorer.denergytestnet.com/',
+      url: 'https://explorernew.denergytestnet.com/',
     },
   },
 };
