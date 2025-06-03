@@ -51,11 +51,8 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
     const notEnoughBalance = totalPayment > walletBalance;
 
     const handleQuantityChange = (val: string) => {
-        const number = parseInt(val.replace(/[^0-9]/g, ''), 10);
-        if (!isNaN(number) && number <= availableQuantity) {
-            setQuantity(number);
-        } else if (val === '') {
-            setQuantity(0);
+        if (val === '' || /^[0-9]*(?:[.])?[0-9]*$/.test(val)) {
+            setQuantity(val || 0);
         }
     };
 

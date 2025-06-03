@@ -53,9 +53,6 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
     const priceIsOutOfRange =
         priceAsFloat > MAX_PRICE || priceAsFloat < MIN_PRICE;
 
-    console.log('nftToSell', nftToSell);
-    console.log('price', price);
-
 
     const enforcer = (nextUserInput: string) => {
         if (nextUserInput === '' || /^[0-9]*(?:[.])?[0-9]*$/.test(nextUserInput)) {
@@ -168,12 +165,12 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
                     {quantityGreaterThanAvailable && (
                         <Text style={styles.errorText}>
                             Cannot sell more than{' '}
-                            {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))} MWh
+                            {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))}
                         </Text>
                     )}
                     {nftToSell?.marketData?.quantity && (
                         <Text style={styles.helperText}>
-                            Available: {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))} MWh
+                            Available: {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))}
                         </Text>
                     )}
                 </View>

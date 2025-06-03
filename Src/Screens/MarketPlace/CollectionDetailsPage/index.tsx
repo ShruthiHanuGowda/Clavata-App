@@ -119,7 +119,7 @@ const CollectionDetailsScreen = ({ route }: any) => {
             <View style={styles.sectionHeader}>
               <Text style={styles.nftSectionTitle}>Available Certificates</Text>
               <Text style={styles.nftCount}>
-                {nfts?.filter(nft => nft?.activeAsks?.length > 0).length || 0} items
+                {nfts?.filter(nft => (nft?.activeAsks ?? []).length > 0).length || 0} items
               </Text>
             </View>
 
