@@ -212,7 +212,7 @@ const CollectionListingPage: React.FC = () => {
                 <View
                   key={collection.id}
                   style={{
-                    marginBottom: index === filteredCollections.length - 1 ? 100 : 0,
+                    marginBottom: index === filteredCollections.length - 1 ? 150 : 0,
                   }}>
                   <CollectionCard
                     collection={collection}

@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   nftList: {
-    // paddingHorizontal: 12,
+    paddingHorizontal: 2,
     paddingBottom: 10,
     backgroundColor: '#fff',
   },
