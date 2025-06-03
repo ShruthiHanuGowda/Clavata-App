@@ -28,11 +28,10 @@ interface Validator {
 }
 
 // Props interface
-interface ValidatorsScreenProps {
-  // You can add props here if needed
-}
+interface ValidatorsScreenProps {}
 
-const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
+const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
+  console.log('🚀 ~ props:', props);
   // State for actual applied filters
   const [sortBy, setSortBy] = useState('Commission');
   const [filterStatus, setFilterStatus] = useState('All');

@@ -306,3 +306,31 @@ export interface UserActivity {
   buyTradeHistory: Transaction[];
   sellTradeHistory: Transaction[];
 }
+
+//REVIEW -  Stake types
+
+export interface NftDelegation {
+  id: string;
+  delegator: string;
+  erc1155Contract: string;
+  tokenId: string;
+  amount: string;
+  shares: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetNftDelegationsData {
+  nftdelegations: NftDelegation[];
+}
+
+export interface GetNftDelegationsVars {
+  first?: number;
+  skip?: number;
+  where?: {
+    delegator?: string;
+    [key: string]: any; // Extendable for other filter fields
+  };
+  orderBy?: string;
+  orderDirection?: 'asc' | 'desc';
+}

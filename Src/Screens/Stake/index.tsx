@@ -1,33 +1,185 @@
-import React, {useEffect, useState, JSX} from 'react';
+import React, {useEffect, useState, useCallback, JSX} from 'react';
 import {Header} from '@rneui/base';
-import {StyleSheet, View, Text, Button} from 'react-native';
+import {StyleSheet, View, Text, RefreshControl} from 'react-native';
 import {DText} from '../../Componants/DText';
 import {Tab} from '@rneui/base';
 import {fontsFamily} from '../../Theme';
 import StakeListingScreen from './StakeListingScreen';
 import ValidatorsScreen from './ValidatorsScreen';
-import StakeScreen from './StakeScreen';
 import useValidators from './Hooks/useValidators';
-// Define props interface for Stake component
+import {useAuth} from '../../../screens/Provider/authProvider';
+
+// Define interfaces
 interface StakeProps {
   // Add any props if needed
 }
 
-// Define type for fontsFamily
 interface FontFamily {
   MulishExtraBold: string;
   MulishBold: string;
   // Add other font properties as needed
 }
 
+interface NFTDelegation {
+  id: string;
+  amount: string;
+  createdAt: string;
+  delegator: string;
+  erc1155Contract: string;
+  shares: string;
+  tokenId: string;
+  updatedAt: string;
+  __typename?: string;
+}
+
+interface StakedAsset {
+  id: string;
+  stakeNumber: string;
+  validator: {
+    name: string;
+    description: string;
+  };
+  stake: {
+    nft: number;
+    watt: number;
+  };
+  startDate: string;
+  rewards: number;
+  status: 'active' | 'unbonding';
+  unbondingTime?: string;
+  finalRewards?: number;
+  originalData?: NFTDelegation;
+}
+
+// Props interfaces for child components
+interface StakeListingScreenProps {
+  stakedAssets: StakedAsset[];
+  loading: boolean;
+  error: any;
+  refreshing: boolean;
+  onRefresh: () => void;
+  onRetry: () => void;
+}
+
+interface ValidatorsScreenProps {
+  // Add validator-specific props here
+  refreshing: boolean;
+  onRefresh: () => void;
+}
+
 function Stake(props: StakeProps): JSX.Element {
   const [index, setIndex] = useState<number>(0);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [processedAssets, setProcessedAssets] = useState<StakedAsset[]>([]);
+
+  const {userDetails} = useAuth();
+  const {stakedPool} = useValidators();
+  const {
+    data: stakedPoolData,
+    loading: stakedPoolLoading,
+    error: stakedPoolError,
+    fetch: fetchStakedPool,
+  } = stakedPool;
+
   const TAB_ITEMS: readonly string[] = [
     'Total Pools',
     'Staked Pools',
     'Stoked EACs',
   ];
 
+  // Fetch staked pool data
+  const fetchStakedPoolData = useCallback(() => {
+    if (userDetails?.denergyWallet) {
+      fetchStakedPool({
+        delegatorAddress: userDetails.denergyWallet,
+        first: 20,
+        orderBy: 'createdAt',
+        orderDirection: 'desc',
+        skip: 0,
+      });
+    }
+  }, [userDetails?.denergyWallet, fetchStakedPool]);
+
+  // Initial data fetch
+  useEffect(() => {
+    if (isInitialLoad && userDetails?.denergyWallet) {
+      fetchStakedPoolData();
+      setIsInitialLoad(false);
+    }
+  }, [userDetails?.denergyWallet, fetchStakedPoolData, isInitialLoad]);
+
+  // Process API data into UI format
+  useEffect(() => {
+    if (stakedPoolData && Array.isArray(stakedPoolData)) {
+      const processed = stakedPoolData.map(
+        (item: NFTDelegation, index: number) => {
+          const startDate = new Date(parseInt(item.createdAt) * 1000)
+            .toISOString()
+            .split('T')[0];
+
+          const stakeAmount = parseInt(item.amount);
+          const tokenId = parseInt(item.tokenId);
+
+          return {
+            id: item.id,
+            stakeNumber: `Token ID ${tokenId}`,
+            validator: {
+              name: `Validator ${tokenId}`,
+              description: item.erc1155Contract.slice(0, 10) + '...',
+            },
+            stake: {
+              nft: stakeAmount,
+              watt: 0,
+            },
+            startDate: startDate,
+            rewards: Math.floor(Math.random() * 100),
+            status: 'active' as const,
+            originalData: item,
+          };
+        },
+      ) as StakedAsset[];
+
+      setProcessedAssets(processed);
+    }
+  }, [stakedPoolData]);
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchStakedPoolData();
+
+    // Reset refreshing state after fetch completes or after timeout
+    const timeoutId = setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+
+    // Also listen for when loading stops
+    if (!stakedPoolLoading) {
+      clearTimeout(timeoutId);
+      setRefreshing(false);
+    }
+
+    return () => clearTimeout(timeoutId);
+  }, [fetchStakedPoolData, stakedPoolLoading]);
+
+  // Handle retry for errors
+  const handleRetry = useCallback(() => {
+    setIsInitialLoad(true);
+    fetchStakedPoolData();
+  }, [fetchStakedPoolData]);
+
+  // Reset refreshing state when loading completes
+  useEffect(() => {
+    if (!stakedPoolLoading && refreshing) {
+      const timer = setTimeout(() => {
+        setRefreshing(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [stakedPoolLoading, refreshing]);
+
+  // Tab content components with props
   const TotalPoolsContent = (): JSX.Element => (
     <View style={styles.simpleContent}>
       <ValidatorsScreen />
@@ -36,19 +188,32 @@ function Stake(props: StakeProps): JSX.Element {
 
   const StakedPoolsContent = (): JSX.Element => (
     <View style={styles.simpleContent}>
-      <StakeListingScreen />
+      <StakeListingScreen
+        stakedAssets={processedAssets}
+        loading={stakedPoolLoading && !refreshing}
+        error={stakedPoolError}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        onRetry={handleRetry}
+      />
     </View>
   );
 
   const StokedPoolsContent = (): JSX.Element => (
     <View style={styles.simpleContent}>
-      <StakeListingScreen />
+      <StakeListingScreen
+        stakedAssets={processedAssets}
+        loading={stakedPoolLoading && !refreshing}
+        error={stakedPoolError}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        onRetry={handleRetry}
+      />
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* <Loader isShow={(loading)} /> */}
       <Header
         containerStyle={{
           borderBottomWidth: 0,
@@ -97,9 +262,6 @@ function Stake(props: StakeProps): JSX.Element {
           {index === 2 && <StokedPoolsContent />}
         </View>
       </View>
-      {/* <Portfolio />
-        <CategoryTab />
-        <Result /> */}
     </View>
   );
 }
@@ -120,14 +282,14 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   simpleContent: {
-    height: '100%',
+    flex: 1,
     backgroundColor: '#fff',
   },
   tabContentText: {
     // Add appropriate styles if needed
   },
   contentContainer: {
-    // Add appropriate styles if needed
+    flex: 1,
   },
 });
 

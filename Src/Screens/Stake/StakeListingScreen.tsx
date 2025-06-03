@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,29 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
+  Clipboard,
+  RefreshControl,
 } from 'react-native';
 import {fontsFamily} from '../../Theme';
 import {BottomSheet} from 'react-native-btr';
 import {DButton} from '../../Componants';
 
-// Define interfaces for our data types
+// Interface definitions
+interface NFTDelegation {
+  id: string;
+  amount: string;
+  createdAt: string;
+  delegator: string;
+  erc1155Contract: string;
+  shares: string;
+  tokenId: string;
+  updatedAt: string;
+  __typename?: string;
+}
+
 interface StakedAsset {
-  id: number;
+  id: string;
   stakeNumber: string;
   validator: {
     name: string;
@@ -28,54 +43,34 @@ interface StakedAsset {
   status: 'active' | 'unbonding';
   unbondingTime?: string;
   finalRewards?: number;
+  originalData?: NFTDelegation;
 }
 
-// Props interface
-interface StakedAssetsScreenProps {
-  // You can add props here if needed
+interface StakeListingScreenProps {
+  stakedAssets: StakedAsset[];
+  loading: boolean;
+  error: any;
+  refreshing: boolean;
+  onRefresh: () => void;
+  onRetry: () => void;
 }
 
-const StakedAssetsScreen: React.FC<StakedAssetsScreenProps> = () => {
-  // Sample data
-  const stakedAssets: StakedAsset[] = [
-    {
-      id: 1,
-      stakeNumber: 'Stake #1',
-      validator: {
-        name: 'Validator A',
-        description: 'GreenEnergy',
-      },
-      stake: {
-        nft: 50,
-        watt: 2000,
-      },
-      startDate: '2025-01-15',
-      rewards: 125,
-      status: 'active',
-    },
-    {
-      id: 2,
-      stakeNumber: 'Stake #2',
-      validator: {
-        name: 'Validator B',
-        description: '',
-      },
-      stake: {
-        nft: 25,
-        watt: 0,
-      },
-      startDate: '2025-01-10',
-      rewards: 0,
-      status: 'unbonding',
-      unbondingTime: '12 days remaining',
-      finalRewards: 45,
-    },
-  ];
-
+const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
+  stakedAssets,
+  loading,
+  error,
+  refreshing,
+  onRefresh,
+  onRetry,
+}) => {
   // State for bottom sheet
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [detailsSheetVisible, setDetailsSheetVisible] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<StakedAsset | null>(null);
   const [selectedAction, setSelectedAction] = useState<string>('');
+  const [expandedAddresses, setExpandedAddresses] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   const formatStake = (nft: number, watt: number) => {
     const formatNumber = (num: number) => {
@@ -105,6 +100,9 @@ const StakedAssetsScreen: React.FC<StakedAssetsScreenProps> = () => {
       setSelectedAsset(asset);
       setSelectedAction(action);
       setBottomSheetVisible(true);
+    } else if (action === 'Details') {
+      setSelectedAsset(asset);
+      setDetailsSheetVisible(true);
     } else {
       // Handle other actions directly without bottom sheet
       Alert.alert(
@@ -114,8 +112,46 @@ const StakedAssetsScreen: React.FC<StakedAssetsScreenProps> = () => {
     }
   };
 
+  const handleAddressPress = (address: string, type: string) => {
+    Alert.alert(`${type} Address`, address, [
+      {
+        text: 'Copy',
+        onPress: () => {
+          Clipboard.setString(address);
+          Alert.alert('Copied!', `${type} address copied to clipboard`);
+        },
+      },
+      {
+        text: 'Close',
+        style: 'cancel',
+      },
+    ]);
+  };
+
+  const toggleAddressExpansion = (assetId: string, addressType: string) => {
+    const key = `${assetId}-${addressType}`;
+    setExpandedAddresses(prev => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const formatAddress = (address: string, assetId: string, type: string) => {
+    const key = `${assetId}-${type}`;
+    const isExpanded = expandedAddresses[key];
+
+    if (isExpanded) {
+      return address;
+    }
+    // Show more characters for better readability on full-width display
+    return `${address.slice(0, 12)}...${address.slice(-8)}`;
+  };
+
   const executeAction = () => {
     if (selectedAsset && selectedAction) {
+      // Here you can use selectedAsset.originalData to access the original API data
+      console.log('Executing action on:', selectedAsset.originalData);
+
       Alert.alert(
         selectedAction,
         `${selectedAction} ${selectedAsset.stakeNumber} with ${selectedAsset.validator.name}`,
@@ -214,15 +250,68 @@ const StakedAssetsScreen: React.FC<StakedAssetsScreenProps> = () => {
     );
   };
 
-  return (
-    <View style={styles.container}>
-      {/* Stakes List */}
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyTitle}>No Staked Assets</Text>
+      <Text style={styles.emptySubtitle}>
+        You don't have any staked assets yet. Start staking to see them here.
+      </Text>
+    </View>
+  );
+
+  const renderErrorState = () => (
+    <View style={styles.errorContainer}>
+      <Text style={styles.errorTitle}>Error Loading Data</Text>
+      <Text style={styles.errorSubtitle}>
+        Failed to load staked assets. Please try again.
+      </Text>
+      <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+        <Text style={styles.retryButtonText}>Retry</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderLoadingState = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#009D94" />
+      <Text style={styles.loadingText}>Loading staked assets...</Text>
+    </View>
+  );
+
+  const renderContent = () => {
+    if (loading) {
+      return renderLoadingState();
+    }
+
+    if (error) {
+      return renderErrorState();
+    }
+
+    if (stakedAssets.length === 0) {
+      return renderEmptyState();
+    }
+
+    return (
       <ScrollView
-        bounces={false}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}>
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing || loading}
+            onRefresh={onRefresh}
+            colors={['#009D94']} // Android
+            tintColor="#009D94" // iOS
+            titleColor="#666"
+          />
+        }>
         {stakedAssets.map(renderStakeCard)}
       </ScrollView>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      {renderContent()}
 
       {/* Bottom Sheet for Actions */}
       <BottomSheet
@@ -249,7 +338,7 @@ const StakedAssetsScreen: React.FC<StakedAssetsScreenProps> = () => {
 
               <View style={styles.assetInfo}>
                 <Text style={styles.assetInfoText}>
-                  {selectedAsset.stakeNumber} - {selectedAsset.validator.name}
+                  {selectedAsset.stakeNumber}
                 </Text>
                 <Text style={styles.assetInfoText}>
                   Amount:{' '}
@@ -275,6 +364,181 @@ const StakedAssetsScreen: React.FC<StakedAssetsScreenProps> = () => {
           </DButton>
         </View>
       </BottomSheet>
+
+      {/* Details Bottom Sheet */}
+      <BottomSheet
+        visible={detailsSheetVisible}
+        onBackButtonPress={() => setDetailsSheetVisible(false)}
+        onBackdropPress={() => setDetailsSheetVisible(false)}>
+        <View style={styles.bottomSheetCard}>
+          <View style={styles.bottomSheetHeader}>
+            <Text style={styles.bottomSheetTitle}>Delegation Details</Text>
+            <TouchableOpacity
+              onPress={() => setDetailsSheetVisible(false)}
+              style={styles.closeButton}>
+              <Text style={styles.closeText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {selectedAsset && selectedAsset.originalData && (
+            <ScrollView
+              style={styles.detailsScrollView}
+              showsVerticalScrollIndicator={false}>
+              <View style={styles.detailsContent}>
+                {/* Token Information */}
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>
+                    Token Information
+                  </Text>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Token ID:</Text>
+                    <View style={styles.tokenIdBadge}>
+                      <Text style={styles.tokenIdText}>
+                        {selectedAsset.originalData.tokenId}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Amount:</Text>
+                    <View style={styles.amountBadge}>
+                      <Text style={styles.amountText}>
+                        {selectedAsset.originalData.amount}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Shares:</Text>
+                    <View style={styles.sharesBadge}>
+                      <Text style={styles.sharesText}>
+                        {(
+                          parseInt(selectedAsset.originalData.shares) / 1e18
+                        ).toLocaleString(undefined, {
+                          maximumFractionDigits: 2,
+                          minimumFractionDigits: 0,
+                        })}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Address Information */}
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>
+                    Address Information
+                  </Text>
+                  <View style={styles.addressDetailRow}>
+                    <Text style={styles.detailLabel}>Delegator Address:</Text>
+                    <TouchableOpacity
+                      style={styles.addressContainer}
+                      onPress={() =>
+                        handleAddressPress(
+                          selectedAsset.originalData!.delegator,
+                          'Delegator',
+                        )
+                      }>
+                      <Text style={styles.addressText}>
+                        {`${selectedAsset.originalData.delegator.slice(
+                          0,
+                          16,
+                        )}...${selectedAsset.originalData.delegator.slice(
+                          -10,
+                        )}`}
+                      </Text>
+                      <Text style={styles.copyIcon}>📋</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.addressDetailRow}>
+                    <Text style={styles.detailLabel}>Contract Address:</Text>
+                    <TouchableOpacity
+                      style={styles.addressContainer}
+                      onPress={() =>
+                        handleAddressPress(
+                          selectedAsset.originalData!.erc1155Contract,
+                          'Contract',
+                        )
+                      }>
+                      <Text style={styles.addressText}>
+                        {`${selectedAsset.originalData.erc1155Contract.slice(
+                          0,
+                          16,
+                        )}...${selectedAsset.originalData.erc1155Contract.slice(
+                          -10,
+                        )}`}
+                      </Text>
+                      <Text style={styles.copyIcon}>📋</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Timeline Information */}
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Timeline</Text>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Created:</Text>
+                    <Text style={styles.detailValue}>
+                      {new Date(
+                        parseInt(selectedAsset.originalData.createdAt) * 1000,
+                      ).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Updated:</Text>
+                    <Text style={styles.detailValue}>
+                      {new Date(
+                        parseInt(selectedAsset.originalData.updatedAt) * 1000,
+                      ).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Technical Information */}
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>
+                    Technical Details
+                  </Text>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Type:</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedAsset.originalData.__typename}
+                    </Text>
+                  </View>
+                  <View style={styles.addressDetailRow}>
+                    <Text style={styles.detailLabel}>Unique ID:</Text>
+                    <TouchableOpacity
+                      style={styles.addressContainer}
+                      onPress={() =>
+                        handleAddressPress(
+                          selectedAsset.originalData!.id,
+                          'Unique ID',
+                        )
+                      }>
+                      <Text style={styles.addressText}>
+                        {`${selectedAsset.originalData.id.slice(
+                          0,
+                          20,
+                        )}...${selectedAsset.originalData.id.slice(-12)}`}
+                      </Text>
+                      <Text style={styles.copyIcon}>📋</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      </BottomSheet>
     </View>
   );
 };
@@ -288,6 +552,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+    paddingTop: 10,
   },
   stakeCard: {
     backgroundColor: '#fff',
@@ -375,7 +640,9 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginBottom: 12,
+    minHeight: 32,
   },
   detailLabel: {
     fontSize: 14,
@@ -403,18 +670,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 6,
-  },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 6,
-  },
-  buttonIcon: {
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   restakeButton: {
     backgroundColor: '#6C63FF',
@@ -502,68 +757,6 @@ const styles = StyleSheet.create({
   bottomSheetContent: {
     marginBottom: 20,
   },
-  infoSection: {
-    backgroundColor: '#e9ecef',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  infoSectionTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#000',
-    fontFamily: fontsFamily?.MulishBold || 'sans-serif',
-    marginBottom: 2,
-  },
-  infoSectionValue: {
-    fontSize: 14,
-    color: '#333',
-    fontFamily: fontsFamily?.Mulish || 'sans-serif',
-    marginBottom: 10,
-  },
-  warningSection: {
-    backgroundColor: '#FFF9C4',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  warningHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  warningIcon: {
-    fontSize: 16,
-    marginRight: 6,
-  },
-  warningTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#000',
-    fontFamily: fontsFamily?.MulishBold || 'sans-serif',
-  },
-  warningList: {
-    gap: 6,
-  },
-  warningItem: {
-    fontSize: 14,
-    color: '#333',
-    fontFamily: fontsFamily?.Mulish || 'sans-serif',
-  },
-  receiveTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#000',
-    fontFamily: fontsFamily?.MulishBold || 'sans-serif',
-    marginBottom: 5,
-    marginTop: 5,
-  },
-  receiveItem: {
-    fontSize: 14,
-    color: '#333',
-    fontFamily: fontsFamily?.Mulish || 'sans-serif',
-    marginBottom: 10,
-  },
   confirmButton: {
     backgroundColor: '#009D94',
     borderRadius: 8,
@@ -578,7 +771,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontFamily: fontsFamily?.MulishBold || 'sans-serif',
   },
-  // New styles for highlighted warning
   warningContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -616,6 +808,167 @@ const styles = StyleSheet.create({
   assetInfo: {
     marginBottom: 20,
   },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#333',
+    marginTop: 15,
+    fontFamily: fontsFamily?.Mulish || 'sans-serif',
+    textAlign: 'center',
+  },
+  // Empty state and error handling styles
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+    fontFamily: fontsFamily?.MulishBold || 'sans-serif',
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    fontFamily: fontsFamily?.Mulish || 'sans-serif',
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+    marginBottom: 8,
+    fontFamily: fontsFamily?.MulishBold || 'sans-serif',
+  },
+  errorSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontFamily: fontsFamily?.Mulish || 'sans-serif',
+  },
+  retryButton: {
+    backgroundColor: '#009D94',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: fontsFamily?.MulishBold || 'sans-serif',
+  },
+  // Details Bottom Sheet Styles
+  detailsScrollView: {
+    maxHeight: 500,
+  },
+  detailsContent: {
+    paddingBottom: 20,
+  },
+  detailSection: {
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  detailSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#343a40',
+    fontFamily: fontsFamily?.MulishBold || 'sans-serif',
+    marginBottom: 12,
+  },
+  addressDetailRow: {
+    marginBottom: 12,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#212529',
+    fontFamily: fontsFamily?.Mulish || 'sans-serif',
+    flex: 1,
+    textAlign: 'right',
+  },
+  // Address styling
+  addressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    marginTop: 4,
+    minHeight: 44,
+  },
+  addressText: {
+    fontSize: 14,
+    color: '#007bff',
+    fontFamily: 'monospace',
+    flex: 1,
+    lineHeight: 20,
+  },
+  copyIcon: {
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  // Badge styles
+  amountBadge: {
+    backgroundColor: '#e7f3ff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#b3d7ff',
+  },
+  amountText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#0056b3',
+    fontFamily: fontsFamily?.MulishBold || 'sans-serif',
+  },
+  sharesBadge: {
+    backgroundColor: '#f0f9f0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#b3e6b3',
+  },
+  sharesText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#28a745',
+    fontFamily: fontsFamily?.MulishBold || 'sans-serif',
+  },
+  tokenIdBadge: {
+    backgroundColor: '#fff3cd',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#ffeaa7',
+  },
+  tokenIdText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#856404',
+    fontFamily: fontsFamily?.MulishBold || 'sans-serif',
+  },
 });
 
-export default StakedAssetsScreen;
+export default StakeListingScreen;

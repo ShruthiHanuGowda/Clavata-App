@@ -177,11 +177,9 @@ const StakeScreen: React.FC<StakeScreenProps> = () => {
       setTxStatus('failed');
 
       // Show error alert
-      Alert.alert(
-        'Staking Failed',
-        `There was an error while staking: ${err.message}`,
-        [{text: 'OK'}],
-      );
+      Alert.alert('Staking Failed', `Something went wrong while staking`, [
+        {text: 'OK'},
+      ]);
     } finally {
       if (txStatus !== 'success') {
         setTxStatus('idle');
@@ -197,7 +195,7 @@ const StakeScreen: React.FC<StakeScreenProps> = () => {
           <Text style={styles.loaderText}>Loading Collections...</Text>
         </View>
       ) : (
-        <View style={styles.mainContainer}>
+        <ScrollView style={styles.mainContainer}>
           <View style={styles.container}>
             <View style={styles.headerContainer}>
               <Pressable
@@ -325,7 +323,7 @@ const StakeScreen: React.FC<StakeScreenProps> = () => {
               </View>
             </BottomSheet>
           </View>
-        </View>
+        </ScrollView>
       )}
     </SafeAreaView>
   );
