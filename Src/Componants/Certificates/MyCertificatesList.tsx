@@ -34,6 +34,78 @@ const groupByCountry = (nfts: NftToken[]) => {
   }, {} as Record<string, NftToken[]>);
 };
 
+// Function to get country flag emoji
+const getCountryFlag = (countryName: string): string => {
+  const countryFlags: Record<string, string> = {
+    'United States': '🇺🇸',
+    'USA': '🇺🇸',
+    'Canada': '🇨🇦',
+    'United Kingdom': '🇬🇧',
+    'UK': '🇬🇧',
+    'Germany': '🇩🇪',
+    'France': '🇫🇷',
+    'Italy': '🇮🇹',
+    'Spain': '🇪🇸',
+    'Netherlands': '🇳🇱',
+    'Belgium': '🇧🇪',
+    'Switzerland': '🇨🇭',
+    'Austria': '🇦🇹',
+    'Sweden': '🇸🇪',
+    'Norway': '🇳🇴',
+    'Denmark': '🇩🇰',
+    'Finland': '🇫🇮',
+    'Poland': '🇵🇱',
+    'Czech Republic': '🇨🇿',
+    'Hungary': '🇭🇺',
+    'Portugal': '🇵🇹',
+    'Greece': '🇬🇷',
+    'Ireland': '🇮🇪',
+    'Luxembourg': '🇱🇺',
+    'Slovenia': '🇸🇮',
+    'Slovakia': '🇸🇰',
+    'Croatia': '🇭🇷',
+    'Romania': '🇷🇴',
+    'Bulgaria': '🇧🇬',
+    'Lithuania': '🇱🇹',
+    'Latvia': '🇱🇻',
+    'Estonia': '🇪🇪',
+    'Malta': '🇲🇹',
+    'Cyprus': '🇨🇾',
+    'Japan': '🇯🇵',
+    'China': '🇨🇳',
+    'India': '🇮🇳',
+    'South Korea': '🇰🇷',
+    'Australia': '🇦🇺',
+    'New Zealand': '🇳🇿',
+    'Brazil': '🇧🇷',
+    'Mexico': '🇲🇽',
+    'Argentina': '🇦🇷',
+    'Chile': '🇨🇱',
+    'Colombia': '🇨🇴',
+    'Peru': '🇵🇪',
+    'South Africa': '🇿🇦',
+    'Nigeria': '🇳🇬',
+    'Egypt': '🇪🇬',
+    'Morocco': '🇲🇦',
+    'Turkey': '🇹🇷',
+    'Russia': '🇷🇺',
+    'Ukraine': '🇺🇦',
+    'Israel': '🇮🇱',
+    'Saudi Arabia': '🇸🇦',
+    'UAE': '🇦🇪',
+    'United Arab Emirates': '🇦🇪',
+    'Thailand': '🇹🇭',
+    'Singapore': '🇸🇬',
+    'Malaysia': '🇲🇾',
+    'Indonesia': '🇮🇩',
+    'Philippines': '🇵🇭',
+    'Vietnam': '🇻🇳',
+    'Unknown': '🏳️',
+  };
+
+  return countryFlags[countryName] || '🌍';
+};
+
 if (
   Platform.OS === 'android' &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -85,12 +157,17 @@ const MyCertificatesList = ({
             <TouchableOpacity
               onPress={() => toggleCountry(country)}
               style={styles.headerContainer}>
-              <View>
-                <Text style={styles.countryTitle}>{country}</Text>
-                <Text style={styles.subTitle}>
-                  {countryNfts.length} Certificates • Total:{' '}
-                  {formatQuantityMWh(getTotalQuantity(countryNfts))}
-                </Text>
+              <View style={styles.headerLeft}>
+                <View style={styles.flagContainer}>
+                  <Text style={styles.flagEmoji}>{getCountryFlag(country)}</Text>
+                </View>
+                <View style={styles.headerTextContainer}>
+                  <Text style={styles.countryTitle}>{country}</Text>
+                  <Text style={styles.subTitle}>
+                    {countryNfts.length} Certificates • Total:{' '}
+                    {formatQuantityMWh(getTotalQuantity(countryNfts))}
+                  </Text>
+                </View>
               </View>
               <Text style={styles.toggleIcon}>{isOpen ? '▲' : '▼'}</Text>
             </TouchableOpacity>
@@ -144,6 +221,31 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  flagContainer: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  flagEmoji: {
+    fontSize: 18,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
   countryTitle: {
     fontFamily: fontsFamily.MulishBold,
     fontSize: 17,
@@ -159,7 +261,7 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   nftList: {
-    paddingHorizontal: 12,
+    // paddingHorizontal: 12,
     paddingBottom: 10,
     backgroundColor: '#fff',
   },

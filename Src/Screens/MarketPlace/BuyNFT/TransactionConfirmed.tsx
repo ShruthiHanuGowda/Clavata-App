@@ -9,6 +9,7 @@ import {
     ScrollView,
 } from 'react-native';
 import { getBlockExploreLink } from '../../../utils/explorer';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
 
 interface TransactionConfirmedProps {
     txHash: string;
@@ -54,7 +55,7 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
                         source={{
                             uri:
                                 nftToBuy?.image?.thumbnail ||
-                                'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
+                                NFT_DEFAULT_IMAGE_URL,
                         }}
                         style={styles.nftImage}
                     />

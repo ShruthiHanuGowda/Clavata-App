@@ -7,12 +7,13 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../../constants';
 
 interface EditStageProps {
   nftToSell: {
     name: string;
     collectionName: string;
-    image: {thumbnail: string};
+    image: { thumbnail: string };
     collectionAddress: string;
     tokenId: string;
   };
@@ -33,13 +34,13 @@ const EditStage: React.FC<EditStageProps> = ({
 
   const imageUrl =
     nftToSell?.image?.thumbnail ||
-    'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg';
+    NFT_DEFAULT_IMAGE_URL
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.nftInfo}>
-        <Image source={{uri: imageUrl}} style={styles.nftImage} />
-        <View style={{flex: 1}}>
+        <Image source={{ uri: imageUrl }} style={styles.nftImage} />
+        <View style={{ flex: 1 }}>
           <Text style={styles.nftName}>{nftToSell?.name}</Text>
           <Text style={styles.collectionName}>{nftToSell?.collectionName}</Text>
 

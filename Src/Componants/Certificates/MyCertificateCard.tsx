@@ -5,6 +5,7 @@ import { formatQuantityMWh } from '../../utils';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 // import SellModal from '../MarketPlace/BuySellModal/SellModal';
 import { DText } from '../DText';
+import { NFT_DEFAULT_IMAGE_URL } from '../../constants';
 
 interface Props {
   nft: NftToken;
@@ -14,11 +15,10 @@ interface Props {
 type NavigationProps = NavigationProp<any, any>;
 
 const MyCertificateCard = ({ nft, refresh, containerStyle }: Props) => {
-
-
   const navigation = useNavigation<NavigationProps>();
+
   const handlePress = () => {
-    navigation.navigate('walletNFTDetails', { nft });
+    navigation.navigate('walletNFTDetails', { nft, refresh });
   };
 
   const handleCollectibleClick = (location?: NftLocation) => {
@@ -36,18 +36,19 @@ const MyCertificateCard = ({ nft, refresh, containerStyle }: Props) => {
     // break;
     // }
   };
+
   return (
     <>
       <TouchableOpacity
         style={[styles.container]}
         onPress={() => handleCollectibleClick(nft.location)}
         activeOpacity={0.8}>
-        <View style={styles.image}>
+        <View style={styles.imageContainer}>
           <Image
             source={{
               uri:
                 nft.image?.thumbnail ||
-                'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
+                NFT_DEFAULT_IMAGE_URL,
             }}
             style={styles.thumbnail}
             resizeMode="cover"
@@ -91,19 +92,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  image: {
+  imageContainer: {
     height: 50,
     width: 50,
-    borderRadius: 25,
+    borderRadius: 8,
     backgroundColor: '#E5F8F5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    overflow: 'hidden',
   },
   thumbnail: {
-    height: '80%',
-    width: '80%',
-    borderRadius: 20,
+    height: '100%',
+    width: '100%',
+    borderRadius: 8,
   },
   rowContent: {
     flexDirection: 'row',

@@ -74,6 +74,20 @@ const NFTDetailsScreen = ({ route }: any) => {
     });
   };
 
+  const navigateToSellNFT = () => {
+    console.log('Navigating to SellNFT with nft:', nft);
+
+    navigation.navigate('SellNFT', {
+      variant: 'adjust',
+      nftToSell: nft,
+      refresh: () => {
+        refetch();
+        refetchActivity();
+      },
+
+    });
+  };
+
   const owners = combinedNft?.marketData?.activeAsks || [];
 
   if (isLoading || !combinedNft) {
@@ -100,15 +114,15 @@ const NFTDetailsScreen = ({ route }: any) => {
         }>
         <NFTHeader
           nft={combinedNft}
-          onBuyPress={() => setIsBuyModalVisible(true)}
-          onSellPress={() => setIsSellModalVisible(true)}
+          onBuyPress={(seller) => navigateToBuyNFT(seller)}
+          onSellPress={() => navigateToSellNFT()}
         />
 
         <Text style={styles.sectionTitle}>👑 Owners</Text>
         <OwnerList
           owners={owners}
           onBuyPress={(seller) => navigateToBuyNFT(seller?.seller?.id)}
-          onSellPress={() => setIsSellModalVisible(true)}
+          onSellPress={() => navigateToSellNFT()}
         />
 
         <Text style={styles.sectionTitle}>📄 Contract Info</Text>
@@ -132,7 +146,7 @@ const NFTDetailsScreen = ({ route }: any) => {
         nftToBuy={combinedNft}
       /> */}
 
-      <SellModal
+      {/* <SellModal
         visible={isSellModalVisible}
         onClose={() => {
           setIsSellModalVisible(false);
@@ -144,7 +158,7 @@ const NFTDetailsScreen = ({ route }: any) => {
           refetch();
           refetchActivity();
         }}
-      />
+      /> */}
     </SafeAreaView>
   );
 };

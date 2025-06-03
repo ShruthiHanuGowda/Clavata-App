@@ -6,6 +6,7 @@ import {
     StyleSheet,
     Image,
 } from 'react-native';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
 
 interface NFT {
     tokenId: string;
@@ -38,7 +39,7 @@ const SellStage: React.FC<SellStageProps> = ({
                     source={{
                         uri:
                             nftToSell?.image?.thumbnail ||
-                            'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
+                            NFT_DEFAULT_IMAGE_URL
                     }}
                     style={styles.nftImage}
                 />

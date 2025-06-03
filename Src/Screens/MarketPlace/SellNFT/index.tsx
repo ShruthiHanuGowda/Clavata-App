@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     View,
     Text,
@@ -28,6 +28,7 @@ import useApproveConfirmTransaction from '../../../hooks/marketplace/useApproveC
 import { isApprovedForAll } from '../../../hooks/marketplace/requiresApproval';
 import { SnackBarMessage } from '../../../utils/snackBar';
 import ApproveAndConfirmStage from './ApproveAndConfirmStage';
+import { getAccountAskPrice, getAccountNFTQuantity } from '../../../utils';
 
 enum SellingStage {
     SELL = 'SELL',
@@ -49,6 +50,7 @@ interface SellScreenProps {
         params: {
             variant?: 'sell' | 'adjust' | 'transfer';
             nftToSell: NftToken;
+            refresh: () => void;
         };
     };
 }
@@ -92,7 +94,7 @@ const getToastText = (variant: string, stage: SellingStage) => {
 };
 
 const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
-    const { variant = 'sell', nftToSell } = route.params;
+    const { variant = 'sell', nftToSell, refresh } = route.params;
 
     const [stage, setStage] = useState<SellingStage>(
         variant === 'sell'
@@ -141,6 +143,17 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
         !transferAddress ||
         (transferAddress.length > 0 && !isAddress(transferAddress));
 
+    useEffect(() => {
+        if (account) {
+            const askPrice = getAccountAskPrice(nftToSell?.marketData?.activeAsks ?? [], account)
+            console.log(askPrice, 'askPrice');
+
+            setCurrentAskPrice(askPrice)
+            const accountNFTQuantity = getAccountNFTQuantity(nftToSell?.marketData?.activeAsks ?? [], account)
+            setQuantity((Number(accountNFTQuantity) / 1_000_000).toString());
+        }
+    }, [account])
+
     const goBack = () => {
         setQuantity('');
         setTransferAddress('');
@@ -187,9 +200,11 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
                 setStage(SellingStage.APPROVE_AND_CONFIRM_SELL);
                 break;
             case SellingStage.EDIT:
+                setPrice(currentAskPrice.toString())
                 setStage(SellingStage.ADJUST_PRICE);
                 break;
             case SellingStage.ADJUST_PRICE:
+                setPrice(currentAskPrice.toString())
                 setStage(SellingStage.CONFIRM_ADJUST_PRICE);
                 break;
             case SellingStage.REMOVE_FROM_MARKET:
@@ -204,8 +219,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
     };
 
     const onSuccessSale = () => {
-        // Handle success actions like refreshing parent screen data
-        // You might want to pass a callback through navigation params
+        refresh?.();
     };
 
     const { isApproving, isApproved, isConfirming, handleApprove, handleConfirm } =
@@ -305,8 +319,6 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
             navigation.goBack();
         }
     };
-
-    console.log('SellNFTScreen rendered with stage:', stage);
 
 
     return (

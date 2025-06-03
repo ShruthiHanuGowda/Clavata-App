@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -8,26 +8,172 @@ import {
   View,
   ActivityIndicator,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
-import {navigate} from '../../Navigation/NavigationFunctions';
+import { navigate } from '../../Navigation/NavigationFunctions';
 import CollectionCard from '../../Componants/MarketPlace/CollectionCard';
-import {useMagic} from '../../../screens/Provider/MagicProvider';
+import { useMagic } from '../../../screens/Provider/MagicProvider';
 import useCollections from '../../hooks/useCollections';
-import {Header} from '@rneui/base';
-import {DText} from '../../Componants/DText';
+import { Header } from '@rneui/base';
+import { DText } from '../../Componants/DText';
+
+type FilterType = 'all' | 'country' | 'type' | 'year';
 
 const CollectionListingPage: React.FC = () => {
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const {setActiveNetwork} = useMagic();
+  const { setActiveNetwork } = useMagic();
+  const { collections, loading: isLoading, refetch } = useCollections();
 
-  const {collections, loading: isLoading, refetch} = useCollections();
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [selectedType, setSelectedType] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>('');
 
   useEffect(() => {
     setActiveNetwork('denergy');
   }, []);
 
+  // Extract unique values for filter options
+  const filterOptions = useMemo(() => {
+    const countries = [...new Set(collections?.map(c => c.country).filter(Boolean))];
+    const types = [...new Set(collections?.map(c => c.type).filter(Boolean))];
+    const years = [...new Set(collections?.map(c => c.year?.toString()).filter(Boolean))];
+
+    return {
+      countries: countries.sort(),
+      types: types.sort(),
+      years: years.sort((a, b) => b.localeCompare(a)) // Latest years first
+    };
+  }, [collections]);
+
+  // Filter collections based on active filter and selections
+  const filteredCollections = useMemo(() => {
+    if (!collections) return [];
+
+    return collections.filter(collection => {
+      switch (activeFilter) {
+        case 'country':
+          return selectedCountry ? collection.country === selectedCountry : true;
+        case 'type':
+          return selectedType ? collection.type === selectedType : true;
+        case 'year':
+          return selectedYear ? collection.year?.toString() === selectedYear : true;
+        default:
+          return true;
+      }
+    });
+  }, [collections, activeFilter, selectedCountry, selectedType, selectedYear]);
+
   const onRefresh = () => {
     refetch();
+  };
+
+  const handleFilterChange = (filter: FilterType) => {
+    setActiveFilter(filter);
+    // Reset selections when changing filter type
+    if (filter !== 'country') setSelectedCountry('');
+    if (filter !== 'type') setSelectedType('');
+    if (filter !== 'year') setSelectedYear('');
+  };
+
+  const renderFilterTabs = () => (
+    <View style={styles.filterContainer}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScrollView}>
+        {[
+          { key: 'all', label: 'All' },
+          { key: 'country', label: 'By Country' },
+          { key: 'type', label: 'By Type' },
+          { key: 'year', label: 'By Year' },
+        ].map((filter) => (
+          <TouchableOpacity
+            key={filter.key}
+            style={[
+              styles.filterTab,
+              activeFilter === filter.key && styles.activeFilterTab,
+            ]}
+            onPress={() => handleFilterChange(filter.key as FilterType)}
+          >
+            <Text
+              style={[
+                styles.filterTabText,
+                activeFilter === filter.key && styles.activeFilterTabText,
+              ]}
+            >
+              {filter.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  const renderSubFilters = () => {
+    if (activeFilter === 'all') return null;
+
+    let options: string[] = [];
+    let selectedValue = '';
+    let onSelect = (value: string) => { };
+
+    switch (activeFilter) {
+      case 'country':
+        options = filterOptions.countries;
+        selectedValue = selectedCountry;
+        onSelect = setSelectedCountry;
+        break;
+      case 'type':
+        options = filterOptions.types;
+        selectedValue = selectedType;
+        onSelect = setSelectedType;
+        break;
+      case 'year':
+        options = filterOptions.years;
+        selectedValue = selectedYear;
+        onSelect = setSelectedYear;
+        break;
+    }
+
+    if (options.length === 0) return null;
+
+    return (
+      <View style={styles.subFilterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity
+            style={[
+              styles.subFilterTab,
+              !selectedValue && styles.activeSubFilterTab,
+            ]}
+            onPress={() => onSelect('')}
+          >
+            <Text
+              style={[
+                styles.subFilterTabText,
+                !selectedValue && styles.activeSubFilterTabText,
+              ]}
+            >
+              All {activeFilter === 'country' ? 'Countries' : activeFilter === 'type' ? 'Types' : 'Years'}
+            </Text>
+          </TouchableOpacity>
+          {options.map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={[
+                styles.subFilterTab,
+                selectedValue === option && styles.activeSubFilterTab,
+              ]}
+              onPress={() => onSelect(option)}
+            >
+              <Text
+                style={[
+                  styles.subFilterTabText,
+                  selectedValue === option && styles.activeSubFilterTabText,
+                ]}
+              >
+                {option}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
   };
 
   return (
@@ -52,19 +198,23 @@ const CollectionListingPage: React.FC = () => {
               </View>
             }
           />
+
+          {renderFilterTabs()}
+          {renderSubFilters()}
+
           <ScrollView
             contentContainerStyle={styles.gridContainer}
             refreshControl={
               <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
             }>
             <>
-              {collections?.map((collection, index) => (
+              {filteredCollections?.map((collection, index) => (
                 <View
+                  key={collection.id}
                   style={{
-                    marginBottom: index === collections.length - 1 ? 100 : 0,
+                    marginBottom: index === filteredCollections.length - 1 ? 100 : 0,
                   }}>
                   <CollectionCard
-                    key={collection.id}
                     collection={collection}
                     onPress={() =>
                       navigate('collectionDetails', {
@@ -74,6 +224,13 @@ const CollectionListingPage: React.FC = () => {
                   />
                 </View>
               ))}
+              {filteredCollections?.length === 0 && (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>
+                    No collections found for the selected filter
+                  </Text>
+                </View>
+              )}
             </>
           </ScrollView>
         </View>
@@ -112,6 +269,75 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 18,
     color: '#81c8c3',
+  },
+  filterContainer: {
+    backgroundColor: '#FFF',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  filterScrollView: {
+    paddingHorizontal: 10,
+  },
+  filterTab: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    marginRight: 10,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  activeFilterTab: {
+    backgroundColor: '#81c8c3',
+    borderColor: '#81c8c3',
+  },
+  filterTabText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  activeFilterTabText: {
+    color: '#FFF',
+  },
+  subFilterContainer: {
+    backgroundColor: '#FFF',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  subFilterTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginRight: 8,
+    borderRadius: 16,
+    backgroundColor: '#f8f8f8',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  activeSubFilterTab: {
+    backgroundColor: '#81c8c3',
+    borderColor: '#81c8c3',
+  },
+  subFilterTabText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '400',
+  },
+  activeSubFilterTabText: {
+    color: '#FFF',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });
 

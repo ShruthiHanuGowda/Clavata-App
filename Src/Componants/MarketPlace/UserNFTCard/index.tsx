@@ -1,17 +1,17 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   Image,
   StyleSheet,
-  Dimensions,
   TouchableOpacity,
 } from 'react-native';
-import {NavigationProp, useNavigation} from '@react-navigation/native';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 import Spinner from '../Spinner';
-import {NftLocation, NftToken} from '../../../types/types';
+import { NftLocation, NftToken } from '../../../types/types';
 import SellModal from '../BuySellModal/SellModal';
-import {formatQuantityMWh} from '../../../utils';
+import { formatQuantityMWh } from '../../../utils';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
 
 interface UserNFTCardProps {
   nft: NftToken;
@@ -26,7 +26,7 @@ interface SellNftProps {
 
 type NavigationProps = NavigationProp<any, any>;
 
-const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
+const UserNFTCard: React.FC<UserNFTCardProps> = ({ nft, refresh }) => {
   const [imageLoaded, setImageLoaded] = useState<boolean>(false);
   const [clickedSellNft, setClickedSellNft] = useState<SellNftProps>({});
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
@@ -34,28 +34,16 @@ const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
   const navigation = useNavigation<NavigationProps>();
 
   const handlePress = () => {
-    navigation.navigate('NFTDetailsPage', {nft});
+    navigation.navigate('walletNFTDetails', { nft, refresh });
   };
 
-  const handleCollectibleClick = (location?: NftLocation) => {
-    switch (location) {
-      case NftLocation.WALLET:
-        setClickedSellNft({nft, location, variant: 'sell'});
-        setIsSellModalVisible(true);
-        break;
-      case NftLocation.FORSALE:
-        setClickedSellNft({nft, location, variant: 'adjust'});
-        setIsSellModalVisible(true);
-        break;
-      default:
-        handlePress();
-        break;
-    }
+  const handleCollectibleClick = () => {
+    handlePress();
   };
 
   return (
     <TouchableOpacity
-      onPress={() => handleCollectibleClick(nft.location)}
+      onPress={() => handleCollectibleClick()}
       style={styles.card}>
       <View style={styles.imageContainer}>
         {!imageLoaded && (
@@ -67,19 +55,34 @@ const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
           source={{
             uri:
               nft.image?.thumbnail ||
-              'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
+              NFT_DEFAULT_IMAGE_URL,
           }}
           style={styles.image}
           onLoad={() => setImageLoaded(true)}
         />
       </View>
 
-      <Text style={styles.name} numberOfLines={1}>
-        {nft.name}
-      </Text>
-      <Text style={styles.qty}>
-        Qty: {formatQuantityMWh(Number(nft.marketData?.quantity ?? 0))}
-      </Text>
+      <View style={styles.contentContainer}>
+        <View style={styles.textContent}>
+          <Text style={styles.name} numberOfLines={2}>
+            {nft.name}
+          </Text>
+          <Text style={styles.qty}>
+            Qty: {formatQuantityMWh(Number(nft.marketData?.quantity ?? 0))}
+          </Text>
+        </View>
+
+        <View style={styles.statusContainer}>
+          <View style={styles.onSaleTag}>
+            <Text style={styles.onSaleText}>● On Sale</Text>
+          </View>
+          {nft.marketData?.price && (
+            <Text style={styles.priceText}>
+              ${Number(nft.marketData.price).toLocaleString()}
+            </Text>
+          )}
+        </View>
+      </View>
 
       <SellModal
         visible={isSellModalVisible}
@@ -98,27 +101,35 @@ const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
 
 const styles = StyleSheet.create({
   card: {
-    width: '46%',
+    width: '100%',
+    flexDirection: 'row',
     borderRadius: 12,
-    backgroundColor: '#fff',
-    padding: 10,
-    marginBottom: 12,
-    marginRight: 12,
+    backgroundColor: '#ffffff',
+    padding: 12,
+    marginBottom: 8,
     alignItems: 'center',
     elevation: 3,
     shadowColor: '#000',
     shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: {width: 0, height: 2},
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    minHeight: 80,
   },
   imageContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: 10,
+    width: 60,
+    height: 60,
+    borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#f1f1f1',
+    backgroundColor: '#f8fafc',
     position: 'relative',
-    marginBottom: 8,
+    marginRight: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
   },
   image: {
     width: '100%',
@@ -129,45 +140,62 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#e2e8f0',
+  },
+  contentContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  textContent: {
+    flex: 1,
+    marginRight: 10,
   },
   name: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 3,
+    lineHeight: 20,
   },
   qty: {
-    fontSize: 12,
-    color: '#555',
-    marginBottom: 6,
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
   },
-  priceWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e6f4ea',
+  statusContainer: {
+    alignItems: 'flex-end',
+  },
+  onSaleTag: {
+    backgroundColor: '#10b981',
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 20,
+    borderRadius: 16,
+    elevation: 1,
+    shadowColor: '#10b981',
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    marginBottom: 3,
+  },
+  onSaleText: {
+    fontSize: 10,
+    color: '#ffffff',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   priceText: {
-    fontSize: 13,
-    color: '#2e7d32',
-    fontWeight: '500',
-  },
-  priceIcon: {
-    width: 14,
-    height: 14,
-    marginRight: 5,
-  },
-  notForSale: {
-    fontSize: 12,
-    color: '#b71c1c',
-    backgroundColor: '#fdecea',
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderRadius: 15,
+    fontSize: 14,
+    color: '#059669',
+    fontWeight: '700',
+    textAlign: 'right',
   },
 });
 

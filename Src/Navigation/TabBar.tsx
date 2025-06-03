@@ -1,4 +1,4 @@
-import React, {useEffect, useReducer, useRef} from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import {
   Image,
   LayoutChangeEvent,
@@ -7,8 +7,8 @@ import {
   Text,
   View,
 } from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {Circle, Path, Svg} from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Circle, Path, Svg } from 'react-native-svg';
 import images from '../Theme/images';
 import fontsFamily from '../Theme/fontsFamily';
 
@@ -47,7 +47,7 @@ interface NavigationIconProps {
   route: TabIconKeys;
 }
 
-const NavigationIcon: React.FC<NavigationIconProps> = ({isFocused, route}) => {
+const NavigationIcon: React.FC<NavigationIconProps> = ({ isFocused, route }) => {
   return <Image source={isFocused ? tabIconsActive[route] : tabIcons[route]} />;
 };
 
@@ -89,14 +89,14 @@ const TabBarComponent: React.FC<TabBarComponentProps> = ({
   return (
     <Pressable onPress={onPress} onLayout={onLayout} style={styles.component}>
       <View
-        style={[styles.componentCircle, {transform: [{scale: active ? 1 : 0}]}]}
+        style={[styles.componentCircle, { transform: [{ scale: active ? 1 : 0 }] }]}
       />
-      <View style={[styles.iconContainer, {opacity: active ? 1 : 0.5}]}>
+      <View style={[styles.iconContainer, { opacity: active ? 1 : 0.5 }]}>
         <NavigationIcon route={name} isFocused={active} />
         {active && (
           <>
             <Text
-              style={[styles.text, {fontFamily: fontsFamily.MulishSemiBold}]}>
+              style={[styles.text, { fontFamily: fontsFamily.MulishSemiBold }]}>
               {options.tabBarLabel || name}
             </Text>
             <View style={styles.dot} />
@@ -130,28 +130,27 @@ interface TabBarProps {
 }
 
 const TabBar: React.FC<TabBarProps> = ({
-  state: {index: activeIndex, routes},
+  state: { index: activeIndex, routes },
   navigation,
   descriptors,
 }) => {
-  const {bottom} = useSafeAreaInsets();
+  const { bottom } = useSafeAreaInsets();
 
-  console.log('bottom>>>>>', bottom);
   const reducer = (
     state: LayoutState[],
     action: LayoutAction,
   ): LayoutState[] => {
-    return [...state, {x: action.x, index: action.index}];
+    return [...state, { x: action.x, index: action.index }];
   };
 
   const [layout, dispatch] = useReducer(reducer, []);
 
   const handleLayout = (event: LayoutChangeEvent, index: number) => {
-    dispatch({x: event?.nativeEvent?.layout?.x, index});
+    dispatch({ x: event?.nativeEvent?.layout?.x, index });
   };
 
   let xOffset = 0;
-  const item = [...layout].find(({index}) => index === activeIndex);
+  const item = [...layout].find(({ index }) => index === activeIndex);
   if (!item) {
     xOffset = -25;
   } else {
@@ -169,7 +168,7 @@ const TabBar: React.FC<TabBarProps> = ({
     <View
       style={[
         styles.tabBar,
-        {paddingBottom: Platform.OS === 'android' ? bottom : 10},
+        { paddingBottom: Platform.OS === 'android' ? bottom : 10 },
       ]}>
       <Svg
         width={110}
@@ -181,7 +180,7 @@ const TabBar: React.FC<TabBarProps> = ({
             top: -24,
             left: 16,
             transform: [
-              {translateX: typeof xOffset === 'number' ? xOffset : 1},
+              { translateX: typeof xOffset === 'number' ? xOffset : 1 },
             ],
           },
         ]}>
@@ -202,7 +201,7 @@ const TabBar: React.FC<TabBarProps> = ({
       <View style={styles.tabBarContainer}>
         {routes.map((route, index) => {
           const active = index === activeIndex;
-          const {options} = descriptors[route.key];
+          const { options } = descriptors[route.key];
 
           return (
             <TabBarComponent

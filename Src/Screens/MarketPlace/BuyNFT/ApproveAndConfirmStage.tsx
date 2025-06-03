@@ -7,6 +7,7 @@ import {
     ActivityIndicator,
     Image,
 } from 'react-native';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
 
 interface ApproveAndConfirmStageProps {
     isApproved: boolean;
@@ -51,7 +52,7 @@ const ApproveAndConfirmStage: React.FC<ApproveAndConfirmStageProps> = ({
                         source={{
                             uri:
                                 nftToBuy?.image?.thumbnail ||
-                                'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
+                                NFT_DEFAULT_IMAGE_URL,
                         }}
                         style={styles.nftImage}
                     />

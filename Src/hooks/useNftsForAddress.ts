@@ -1,15 +1,15 @@
-import {useState, useEffect, useCallback, useMemo} from 'react';
-import {getCompleteAccountNftData} from './marketPlace';
-import {ApiCollections, NftToken} from '../types/types';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { getCompleteAccountNftData } from './marketPlace';
+import { ApiCollections, NftToken } from '../types/types';
 import useApi from './useApi';
-import {API_NFT_URL} from '../constants';
+import { API_NFT_URL } from '../constants';
 
-export const useNftsForAddress = ({account}: {account: `0x${string}`}) => {
+export const useNftsForAddress = ({ account }: { account: `0x${string}` }) => {
   const [nfts, setNfts] = useState<NftToken[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<null | unknown>(null);
 
-  const {data: collections, isLoading: isLoadingCollections} =
+  const { data: collections, isLoading: isLoadingCollections } =
     useApi<ApiCollections>(`${API_NFT_URL}/nftMarketplace_getCollections`, {
       method: 'GET',
     });
@@ -17,6 +17,8 @@ export const useNftsForAddress = ({account}: {account: `0x${string}`}) => {
   const collectionsRes = collections?.data ?? {};
 
   const fetchData = useCallback(async () => {
+    console.log("Fetching NFT data for account:", account);
+
     if (
       !account ||
       !collectionsRes ||
@@ -59,9 +61,12 @@ export const useNftsForAddress = ({account}: {account: `0x${string}`}) => {
 
   return {
     nfts,
-    isLoading,
+    isLoading: Boolean(isLoading || isLoadingCollections),
     error,
     totalQuantity,
-    refresh: fetchData,
+    refresh: () => {
+      console.log("Refreshing11 NFT data for account:", account);
+      fetchData();
+    },
   };
 };

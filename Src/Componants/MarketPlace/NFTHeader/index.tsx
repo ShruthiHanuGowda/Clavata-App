@@ -1,13 +1,14 @@
 import React from 'react';
-import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
-import {NftToken, TokenMarketData} from '../../../types/types';
-import {getMinAsk, getMinAskPrice, isOwnNft} from '../../../hooks/marketPlace';
-import {useAuth} from '../../../../screens/Provider/authProvider';
-import {formatQuantityMWh} from '../../../utils';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { NftToken, TokenMarketData } from '../../../types/types';
+import { getMinAsk, getMinAskPrice, isOwnNft } from '../../../hooks/marketPlace';
+import { useAuth } from '../../../../screens/Provider/authProvider';
+import { formatQuantityMWh } from '../../../utils';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
 
 interface NFTHeaderProps {
   nft: NftToken | null;
-  onBuyPress: () => void;
+  onBuyPress: (owner: string) => void;
   onSellPress: () => void;
 }
 
@@ -16,7 +17,7 @@ const NFTHeader: React.FC<NFTHeaderProps> = ({
   onBuyPress,
   onSellPress,
 }) => {
-  const {userDetails} = useAuth();
+  const { userDetails } = useAuth();
   const price = getMinAskPrice(nft?.marketData?.activeAsks ?? []);
   const minAsk = getMinAsk(nft?.marketData?.activeAsks ?? []);
 
@@ -54,7 +55,7 @@ const NFTHeader: React.FC<NFTHeaderProps> = ({
         {!isOwn && (
           <TouchableOpacity
             style={styles.buyButton}
-            onPress={onBuyPress}
+            onPress={() => onBuyPress(minAsk?.seller?.id ?? '')}
             disabled={!nft?.marketData?.isTradable}>
             <Text style={styles.buyButtonText}>Buy Now</Text>
           </TouchableOpacity>
@@ -64,7 +65,7 @@ const NFTHeader: React.FC<NFTHeaderProps> = ({
         source={{
           uri:
             nft?.image?.thumbnail ||
-            'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
+            NFT_DEFAULT_IMAGE_URL
         }}
         style={styles.nftImage}
       />
@@ -86,10 +87,10 @@ const styles = StyleSheet.create({
     paddingRight: 10,
     justifyContent: 'center',
   },
-  title: {fontSize: 24, fontWeight: '700', color: '#333'},
-  description: {fontSize: 14, color: '#666', marginVertical: 5},
-  price: {fontSize: 16, color: '#2ecc71', marginVertical: 4},
-  qty: {fontSize: 14, color: '#888', marginBottom: 10},
+  title: { fontSize: 24, fontWeight: '700', color: '#333' },
+  description: { fontSize: 14, color: '#666', marginVertical: 5 },
+  price: { fontSize: 16, color: '#2ecc71', marginVertical: 4 },
+  qty: { fontSize: 14, color: '#888', marginBottom: 10 },
   buyButton: {
     backgroundColor: '#81c8c3',
     paddingVertical: 8,
@@ -97,7 +98,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignSelf: 'flex-start',
   },
-  buyButtonText: {color: '#fff', fontWeight: '600', fontSize: 14},
+  buyButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
   nftImage: {
     width: 120,
     height: 120,
