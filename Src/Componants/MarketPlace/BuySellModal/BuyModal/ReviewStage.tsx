@@ -9,11 +9,12 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import {useMagic} from '../../../../../screens/Provider/MagicProvider';
-import {BrowserProvider, hexlify, toUtf8Bytes} from 'ethers';
-import {useAuth} from '../../../../../screens/Provider/authProvider';
-import {Magic} from '@magic-sdk/react-native-bare';
-import {formatQuantityMWh} from '../../../../utils';
+import { useMagic } from '../../../../../screens/Provider/MagicProvider';
+import { BrowserProvider, hexlify, toUtf8Bytes } from 'ethers';
+import { useAuth } from '../../../../../screens/Provider/authProvider';
+import { Magic } from '@magic-sdk/react-native-bare';
+import { formatQuantityMWh } from '../../../../utils';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../../constants';
 
 interface ReviewStageProps {
   nftToBuy: {
@@ -68,7 +69,7 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
           source={{
             uri:
               nftToBuy?.image?.thumbnail ||
-              'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
+              NFT_DEFAULT_IMAGE_URL,
           }}
           style={styles.nftImage}
         />
@@ -153,7 +154,7 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
         style={[
           styles.button,
           (notEnoughBalance || !quantity || quantityExceeds) &&
-            styles.disabledButton,
+          styles.disabledButton,
         ]}
         disabled={notEnoughBalance || !quantity || quantityExceeds}
         onPress={continueToNextStage}>

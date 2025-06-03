@@ -252,6 +252,9 @@ export const getCompleteAccountNftData = async (
     walletNftIdsWithCollectionAddress,
   );
 
+  console.log("metadataForAllNfts:", metadataForAllNfts);
+
+
   const onChainForSaleNfts = await getNftsMarketData({});
 
   const walletTokenIds = walletNftIdsWithCollectionAddress
@@ -269,6 +272,7 @@ export const getCompleteAccountNftData = async (
       collection: {
         id: nft.collectionAddress,
       },
+      metadataUrl: nft.metadataUrl || null,
     })) as TokenMarketData[];
 
   const completeNftData = combineNftMarketAndMetadata(
@@ -303,20 +307,23 @@ export const fetchWalletTokenIdsForCollections = async (
         const balances = await Promise.all(
           tokenIds.map(async tokenId => {
             const balance = await contract.balanceOf(account, tokenId);
+            const metadataUrl = await contract.uri(tokenId);
             return {
               tokenId: tokenId.toString(),
               balance: balance.toString(),
+              metadataUrl,
             };
           }),
         );
 
         return balances
           .filter(({ balance }) => Number(balance) > 0)
-          .map(({ tokenId, balance }) => ({
+          .map(({ tokenId, balance, metadataUrl }) => ({
             tokenId,
             collectionAddress,
             nftLocation: NftLocation.WALLET,
             quantity: balance,
+            metadataUrl
           }));
       } catch (error) {
         console.error(
@@ -435,6 +442,7 @@ export const combineNftMarketAndMetadata = (
     if (marketData && walletNft) {
       marketData = { ...marketData, quantity: walletNft.quantity };
     }
+
     const location = getNftLocationForMarketNft(
       nft.tokenId,
       tokenIdsInWallet,

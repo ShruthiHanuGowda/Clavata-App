@@ -56,24 +56,6 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
                 )}
             </View>
 
-            {/* Transaction Details */}
-            <View style={styles.detailsSection}>
-                <Text style={styles.detailsTitle}>Transaction Details</Text>
-                <View style={styles.detailsCard}>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Network:</Text>
-                        <Text style={styles.detailValue}>Ethereum</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Transaction Type:</Text>
-                        <Text style={styles.detailValue}>Smart Contract Interaction</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Estimated Gas:</Text>
-                        <Text style={styles.detailValue}>~0.001-0.005 ETH</Text>
-                    </View>
-                </View>
-            </View>
 
             {/* Warning Section */}
             {!isConfirming && (

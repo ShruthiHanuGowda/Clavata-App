@@ -6,6 +6,7 @@ import {
     Image,
     TouchableOpacity,
 } from 'react-native';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
 
 interface EditStageProps {
     nftToSell: {
@@ -28,10 +29,9 @@ const EditStage: React.FC<EditStageProps> = ({
     continueToAdjustPriceStage,
     continueToRemoveFromMarketStage,
 }) => {
-    const isDelist = ['0x000...example'].includes(nftToSell?.collectionAddress);
     const imageUrl =
         nftToSell?.image?.thumbnail ||
-        'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg';
+        NFT_DEFAULT_IMAGE_URL;
 
     return (
         <View style={styles.container}>
@@ -49,7 +49,7 @@ const EditStage: React.FC<EditStageProps> = ({
             <View style={styles.listingCard}>
                 <Text style={styles.cardTitle}>Current Listing Details</Text>
 
-                {currentPrice && (
+                {currentPrice?.toString() && (
                     <View style={styles.priceSection}>
                         <Text style={styles.priceLabel}>Your Listing Price</Text>
                         <View style={styles.priceRow}>
@@ -64,7 +64,7 @@ const EditStage: React.FC<EditStageProps> = ({
                     </View>
                 )}
 
-                {lowestPrice && (
+                {lowestPrice?.toString() && (
                     <View style={styles.priceSection}>
                         <Text style={styles.priceLabel}>Current Floor Price</Text>
                         <View style={styles.priceRow}>
@@ -74,12 +74,12 @@ const EditStage: React.FC<EditStageProps> = ({
                                 }}
                                 style={styles.currencyIcon}
                             />
-                            <Text style={styles.floorPrice}>{lowestPrice} MWh</Text>
+                            <Text style={styles.floorPrice}>{lowestPrice} USDC</Text>
                         </View>
                     </View>
                 )}
 
-                {currentPrice && lowestPrice && (
+                {currentPrice?.toString() && lowestPrice?.toString() && (
                     <View style={styles.comparisonSection}>
                         <Text style={[
                             styles.comparisonText,
@@ -104,9 +104,8 @@ const EditStage: React.FC<EditStageProps> = ({
                     style={[
                         styles.actionCard,
                         styles.adjustCard,
-                        isDelist && styles.disabledCard,
                     ]}
-                    disabled={isDelist}
+
                     onPress={continueToAdjustPriceStage}>
                     <View style={styles.actionContent}>
                         <View style={styles.actionIcon}>
@@ -115,23 +114,17 @@ const EditStage: React.FC<EditStageProps> = ({
                         <View style={styles.actionDetails}>
                             <Text style={[
                                 styles.actionTitle,
-                                isDelist && styles.disabledText
                             ]}>
-                                {isDelist ? 'Adjust Price (Disabled)' : 'Adjust Sale Price'}
+                                {'Adjust Sale Price'}
                             </Text>
                             <Text style={[
                                 styles.actionDescription,
-                                isDelist && styles.disabledText
+
                             ]}>
-                                {isDelist
-                                    ? 'This collection has been delisted'
-                                    : 'Change your listing price to be more competitive'
-                                }
+                                Change your listing price to be more competitive
                             </Text>
                         </View>
-                        {!isDelist && (
-                            <Text style={styles.actionArrow}>→</Text>
-                        )}
+
                     </View>
                 </TouchableOpacity>
 

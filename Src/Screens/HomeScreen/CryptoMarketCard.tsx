@@ -1,15 +1,15 @@
 import React from 'react';
-import {Image, StyleSheet, View, TouchableOpacity} from 'react-native';
-import {Svg} from 'react-native-svg';
-import {CartesianChart, Line} from 'victory-native';
-import {DText} from '../../Componants/DText';
-import {marketIcons} from '../../Theme/variable';
-import {navigateTo} from '../../utils/navigationService';
-import {ScreenWidth} from '@rneui/base';
-import {useFont} from '@shopify/react-native-skia';
-import {fontsFamily} from '../../Theme';
+import { Image, StyleSheet, View, TouchableOpacity } from 'react-native';
+import { Svg } from 'react-native-svg';
+import { CartesianChart, Line } from 'victory-native';
+import { DText } from '../../Componants/DText';
+import { marketIcons } from '../../Theme/variable';
+import { navigateTo } from '../../utils/navigationService';
+import { ScreenWidth } from '@rneui/base';
+import { useFont } from '@shopify/react-native-skia';
+import { fontsFamily } from '../../Theme';
 
-const marketIconColors: {[key: string]: string} = {
+const marketIconColors: { [key: string]: string } = {
   WATT: '#045E19',
   BTC: '#F7931A30',
   USDT: '#26A17B',
@@ -51,17 +51,18 @@ export default function CryptoMarketCard({
       <View
         style={[
           marketStyles.image,
-          {
-            backgroundColor: marketIconColors[code],
-          },
         ]}>
-        <Image source={marketIcons[code]} />
+        <Image
+          source={marketIcons[code]}
+          style={marketStyles.coinIcon}
+          resizeMode="contain"
+        />
       </View>
       <View style={marketStyles.info}>
         <DText
           style={marketStyles.coinTitle}
           fontStyle="fontBold"
-          textProps={{numberOfLines: 1}}>
+          textProps={{ numberOfLines: 1 }}>
           {title}
         </DText>
         <DText style={marketStyles.coinCode} fontStyle="fontSemiBold">
@@ -76,16 +77,14 @@ export default function CryptoMarketCard({
             alignItems: 'center',
             bottom: 0,
           }}>
-          <View style={{height: height, width: width, backgroundColor: '#fff'}}>
+          {/* <View style={{ height: height, width: width, backgroundColor: '#fff' }}>
             <CartesianChart
               data={chartData}
               xKey="x"
               yKeys={['y']}
-              axisOptions={{lineColor: '#fff'}}
-              frame={{lineColor: '#fff'}}>
-              {/* 👇 render function exposes various data, such as points. */}
-              {({points}) => (
-                // 👇 and we'll use the Line component to render a line path.
+              axisOptions={{ lineColor: '#fff' }}
+              frame={{ lineColor: '#fff' }}>
+              {({ points }) => (
                 <Line
                   points={points.y}
                   color={growth >= 0 ? '#029471' : '#F42121'}
@@ -94,7 +93,7 @@ export default function CryptoMarketCard({
               )}
             </CartesianChart>
           </View>
-          {/* </Svg> */}
+
           {growth >= 0 ? (
             <DText fontStyle="fontRegular" style={marketStyles.growth}>
               +{growth}%
@@ -103,9 +102,9 @@ export default function CryptoMarketCard({
             <DText fontStyle="fontRegular" style={marketStyles.dip}>
               -{dip}%
             </DText>
-          )}
+          )} */}
         </View>
-        <View style={{alignItems: 'flex-end'}}>
+        <View style={{ alignItems: 'flex-end' }}>
           <DText style={marketStyles.usd} fontStyle="fontExtraBold">
             {balance ? Number(balance).toFixed(2) : '0.0'}
           </DText>
@@ -127,13 +126,18 @@ const marketStyles = StyleSheet.create({
     width: ScreenWidth - 40,
   },
   image: {
-    backgroundColor: '#D5F5F1',
+    backgroundColor: 'transparent',
     height: 37,
     width: 37,
-    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
+  },
+  coinIcon: {
+    width: 40, // Fixed width
+    height: 40, // Fixed height
+    maxWidth: 40, // Prevent expansion
+    maxHeight: 40, // Prevent expansion
   },
   coinTitle: {
     color: '#515151',

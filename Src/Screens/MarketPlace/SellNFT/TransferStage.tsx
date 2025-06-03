@@ -10,6 +10,7 @@ import {
 import { NftToken } from '../../../types/types';
 import { useAuth } from '../../../../screens/Provider/authProvider';
 import { formatQuantityMWh } from '../../../utils';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
 
 interface TransferStageProps {
     nftToSell: NftToken;
@@ -106,7 +107,7 @@ const TransferStage = ({
                     source={{
                         uri:
                             nftToSell?.image?.thumbnail ||
-                            'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
+                            NFT_DEFAULT_IMAGE_URL
                     }}
                     style={styles.nftImage}
                 />

@@ -49,5 +49,6 @@ export const PLATFORM_SETTINGS_API_URL = "https://z5xzy7dsije2hgtxlkl7q6mzve.app
 
 export const PLATFORM_SETTINGS_API_KEY = 'da2-mefhraz6cvgxbctio2efrac6ke';
 
-export const STAKED_API_URL ='https://nftmarket-subgraph.wattswaps.com/subgraphs/name/nftstaking-subgraph'
-  
+export const STAKED_API_URL = 'https://nftmarket-subgraph.wattswaps.com/subgraphs/name/nftstaking-subgraph'
+
+export const NFT_DEFAULT_IMAGE_URL = "https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg";

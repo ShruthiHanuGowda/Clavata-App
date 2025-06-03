@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { DText } from '../../Componants/DText';
 import CryptoMarketCard from './CryptoMarketCard';
 import { fontsFamily } from '../../Theme';
 import { useWallet } from '../../../screens/Provider/WalletProvider';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../../screens/Provider/authProvider';
 import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList';
 import { useNftsForAddress } from '../../hooks/useNftsForAddress';
@@ -12,6 +12,7 @@ export default function CryptoMarketPlace(props: any) {
   const { getBalance, refreshBalance, isBalanceLoading, refreshAllBalances } =
     useWallet();
   const { userDetails } = useAuth();
+  const navigation = useNavigation<any>();
 
   const account = (userDetails?.userWallet ??
     '0x0000000000000000000000000000000000000000') as `0x${string}`;
@@ -143,7 +144,6 @@ export default function CryptoMarketPlace(props: any) {
       <View style={marketPlaceStyles.divider} />
       <View style={marketPlaceStyles.myCryptosContainer}>
         <Text style={marketPlaceStyles.HeaderFont}>Other Assets</Text>
-
         {ethereumCoins.map(crypto => (
           <CryptoMarketCard
             loading={props.loading}
@@ -154,7 +154,19 @@ export default function CryptoMarketPlace(props: any) {
       </View>
       <View style={marketPlaceStyles.divider} />
       <View style={marketPlaceStyles.myCryptosContainer}>
-        <Text style={marketPlaceStyles.HeaderFont}>My Certificates</Text>
+        <View style={marketPlaceStyles.headerRow}>
+          <Text style={marketPlaceStyles.HeaderFont}>My Certificates</Text>
+          <TouchableOpacity
+            style={marketPlaceStyles.myListingsButton}
+            onPress={() => {
+              navigation.navigate('UserNFTs', {
+                account: account,
+              });
+            }}
+          >
+            <Text style={marketPlaceStyles.myListingsButtonText}>My Listings</Text>
+          </TouchableOpacity>
+        </View>
         <MyCertificatesList
           nfts={nfts ?? []}
           isLoading={isLoading}
@@ -194,6 +206,23 @@ const marketPlaceStyles = StyleSheet.create({
   myCryptosContainer: {
     marginTop: 20,
     // marginBottom: 30,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  myListingsButton: {
+    backgroundColor: '#81c8c3',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  myListingsButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   divider: {
     borderTopColor: '#E8E8E8',

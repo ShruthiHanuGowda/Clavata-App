@@ -37,6 +37,7 @@ import BuyNFTScreen from '../Screens/MarketPlace/BuyNFT';
 import CollectionListingPage from '../Screens/MarketPlace';
 import SellScreen from '../Screens/MarketPlace/SellNFT';
 import SellNFTScreen from '../Screens/MarketPlace/SellNFT';
+import UserNFTsScreen from '../Screens/MarketPlace/UserNFTsScreen';
 
 function RootScreenStack() {
   const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -135,6 +136,7 @@ type MarketplaceStackParamList = {
   walletNFTDetails: undefined;
   OffsetScreen: undefined;
   BuyNFT: undefined;
+  UserNFTs: undefined;
 };
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -159,6 +161,7 @@ export function HomeScreenStack() {
         component={WalletNFTDetailsScreen}
       />
       <HomeStack.Screen name="SellNFT" component={SellNFTScreen} />
+      <MarketplaceStack.Screen name="UserNFTs" component={UserNFTsScreen} />
     </HomeStack.Navigator>
   );
 }

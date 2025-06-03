@@ -68,7 +68,7 @@ const CollectionDetailsScreen = ({ route }: any) => {
       <Header
         headerTitle={'Available Certificates'}
         backBtn={() => navigateBack()}
-        containerStyle={{ backgroundColor: '#f9f9f9' }}
+        containerStyle={{ backgroundColor: '#f8fafc' }}
         hideBorder
       />
       <View style={{ flex: 1 }}>
@@ -77,6 +77,7 @@ const CollectionDetailsScreen = ({ route }: any) => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          showsVerticalScrollIndicator={false}
         >
           {isLoading && (
             <View style={styles.loaderContainer}>
@@ -86,18 +87,41 @@ const CollectionDetailsScreen = ({ route }: any) => {
 
           {!isLoading && !error && collection && (
             <View style={styles.collectionDetails}>
-              <DetailRow label="Country" value={collection?.country} />
-              <DetailRow label="Type" value={collection?.type} />
-              <DetailRow label="Year" value={collection?.year} />
+              <Text style={styles.collectionTitle}>Collection Details</Text>
+              <View style={styles.detailsGrid}>
+                <DetailCard
+                  icon="🌍"
+                  label="Country"
+                  value={collection?.country}
+                />
+                <DetailCard
+                  icon="⚡"
+                  label="Type"
+                  value={collection?.type}
+                />
+                <DetailCard
+                  icon="📅"
+                  label="Year"
+                  value={collection?.year?.toString()}
+                />
+              </View>
             </View>
           )}
+
           {!isLoading && error && (
-            <Text style={styles.errorText}>Failed to load collection data</Text>
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>Failed to load collection data</Text>
+            </View>
           )}
 
           {/* Show NFT list section */}
           <View style={styles.nftListContainer}>
-            <Text style={styles.nftSectionTitle}>Certificates</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.nftSectionTitle}>Available Certificates</Text>
+              <Text style={styles.nftCount}>
+                {nfts?.filter(nft => nft?.activeAsks?.length > 0).length || 0} items
+              </Text>
+            </View>
 
             {/* Show loader when NFTs are loading */}
             {nftsLoading && (
@@ -108,12 +132,14 @@ const CollectionDetailsScreen = ({ route }: any) => {
 
             {/* Show error if there was an issue loading NFTs */}
             {nftsError && (
-              <Text style={styles.errorText}>{nftsError}</Text>
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{nftsError}</Text>
+              </View>
             )}
 
             {/* Show NFTs if they are available */}
             {!nftsLoading && nfts.length > 0 ? (
-              <View style={styles.nftList}>
+              <View style={styles.nftGrid}>
                 {nfts.map((nft: any) => {
                   const currentAsk = getMinAsk(nft.activeAsks ?? []);
                   const hasAsks = nft?.activeAsks?.length > 0;
@@ -122,8 +148,8 @@ const CollectionDetailsScreen = ({ route }: any) => {
 
                   const nftData = {
                     ...nft,
-                    name: `${collection?.collectionName || 'Unknown Collection'} #${nft.tokenId ?? 'Unknown Token'}`,
-                  };
+                    name: nft?.collection?.name ?? "",
+                  }
 
                   return (
                     <NFTCard
@@ -137,7 +163,13 @@ const CollectionDetailsScreen = ({ route }: any) => {
               </View>
             ) : (
               !nftsLoading && (
-                <Text style={styles.noNftsText}>No NFTs in this collection</Text>
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateIcon}>📜</Text>
+                  <Text style={styles.emptyStateTitle}>No Certificates Available</Text>
+                  <Text style={styles.emptyStateSubtitle}>
+                    There are currently no certificates for sale in this collection
+                  </Text>
+                </View>
               )
             )}
           </View>
@@ -147,106 +179,145 @@ const CollectionDetailsScreen = ({ route }: any) => {
   );
 };
 
-const DetailRow = ({
+const DetailCard = ({
+  icon,
   label,
   value,
 }: {
+  icon: string;
   label: string;
   value: string | null | undefined;
 }) => (
-  <View style={styles.bulletRow}>
-    <Text style={styles.bulletPoint}>{'\u2022'}</Text>
-    <Text style={styles.bulletText}>
-      <Text style={styles.detailsLabel}>{label}: </Text>
-      <Text style={styles.detailsValue}>{value || '-'}</Text>
-    </Text>
+  <View style={styles.detailCard}>
+    <Text style={styles.detailIcon}>{icon}</Text>
+    <Text style={styles.detailLabel}>{label}</Text>
+    <Text style={styles.detailValue}>{value || '-'}</Text>
   </View>
 );
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f8fafc',
   },
   container: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
-    paddingTop: 20,
+    backgroundColor: '#f8fafc',
   },
   collectionDetails: {
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginHorizontal: 12,
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    margin: 16,
+    marginTop: 8,
   },
-  detailsHeader: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 10,
-    color: '#1C1C1C',
+  collectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 16,
+    textAlign: 'center',
   },
-  bulletRow: {
+  detailsGrid: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  detailCard: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  detailIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  detailLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: 4,
   },
-  bulletPoint: {
-    fontSize: 18,
-    color: '#6B6B6B',
-    marginRight: 6,
-    lineHeight: 22,
-  },
-  bulletText: {
-    flex: 1,
-    fontSize: 15,
-    color: '#2D2D2D',
-    lineHeight: 22,
-  },
-  detailsLabel: {
-    fontWeight: '600',
-    color: '#555',
-  },
-  detailsValue: {
-    color: '#2D2D2D',
+  detailValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e293b',
+    textAlign: 'center',
   },
   nftListContainer: {
     paddingBottom: 30,
     marginTop: 24,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
   nftSectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  nftCount: {
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  nftGrid: {
+    paddingHorizontal: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+  },
+  emptyStateIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-    marginHorizontal: 12,
-  },
-  nftList: {
-    paddingHorizontal: 10,
-  },
-  noNftsText: {
-    fontSize: 15,
-    color: '#777',
+    color: '#374151',
+    marginBottom: 8,
     textAlign: 'center',
-    marginTop: 20,
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  errorContainer: {
+    margin: 16,
+    padding: 20,
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
   },
   errorText: {
     fontSize: 15,
-    color: 'red',
+    color: '#dc2626',
     textAlign: 'center',
-    marginTop: 20,
+    fontWeight: '500',
   },
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 40,
   },
 });
 

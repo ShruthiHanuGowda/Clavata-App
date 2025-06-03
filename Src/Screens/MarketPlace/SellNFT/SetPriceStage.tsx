@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { NftToken } from '../../../types/types';
 import { formatQuantityMWh } from '../../../utils';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
 
 interface SetPriceStageProps {
     nftToSell: NftToken;
@@ -51,6 +52,10 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
     const priceAsFloat = parseFloat(price);
     const priceIsOutOfRange =
         priceAsFloat > MAX_PRICE || priceAsFloat < MIN_PRICE;
+
+    console.log('nftToSell', nftToSell);
+    console.log('price', price);
+
 
     const enforcer = (nextUserInput: string) => {
         if (nextUserInput === '' || /^[0-9]*(?:[.])?[0-9]*$/.test(nextUserInput)) {
@@ -96,7 +101,7 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
                     source={{
                         uri:
                             nftToSell?.image?.thumbnail ||
-                            'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
+                            NFT_DEFAULT_IMAGE_URL,
                     }}
                     style={styles.nftImage}
                 />

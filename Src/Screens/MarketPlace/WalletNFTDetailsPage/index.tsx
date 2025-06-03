@@ -19,8 +19,7 @@ import { fontsFamily } from '../../../Theme';
 import { useEffect, useMemo, useState } from 'react';
 import { formatQuantityMWh } from '../../../utils';
 import { useCompleteNft } from '../../../hooks/useCompleteNft';
-import { NftLocation } from '../../../types/types';
-import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
+import { NftLocation, NftToken } from '../../../types/types';
 import useApi from '../../../hooks/useApi';
 import { API_NFT_URL } from '../../../constants';
 import useNftActivity from '../../../hooks/useNftActivity';
@@ -31,6 +30,7 @@ import { ERC1155_ABI } from '../../../utils/Contracts';
 import { useAuth } from '../../../../screens/Provider/authProvider';
 import { SnackBarMessage } from '../../../utils/snackBar';
 import { useKycCheck } from '../../../CustomHooks/GlobalKycProvider';
+import { RefreshControl } from 'react-native-gesture-handler';
 
 const width = Dimensions.get('window').width;
 
@@ -68,7 +68,7 @@ const NFTHeader = ({ name, quantity }) => (
 );
 
 const WalletNFTDetailsScreen = ({ route }: any) => {
-  const { nft } = route.params;
+  const { nft, refresh } = route.params;
   const navigation = useNavigation();
   const { magic_denergy } = useMagic();
   const { userDetails } = useAuth();
@@ -79,12 +79,11 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
   const [currentQuantity, setCurrentQuantity] = useState(
     nft?.marketData?.quantity,
   );
+  const [refreshing, setRefreshing] = useState(false);
 
   const { checkKYC, isKycCompleted, isKycSkipped } = useKycCheck();
 
   useEffect(() => {
-    console.log('calling useEffect in WalletNFTDetailsScreen');
-    // Fetch the current quantity from the API or any other source
     const fetchCurrentQuantity = async () => {
       try {
         const magicProvider = new BrowserProvider(
@@ -101,7 +100,6 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
           userDetails?.denergyWallet,
           nft?.tokenId,
         );
-        console.log('Fetched current quantity:', balance);
 
         setCurrentQuantity(balance);
       } catch (error) {
@@ -116,12 +114,27 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
   const handleCollectibleClick = (location?: NftLocation) => {
     switch (location) {
       case NftLocation.WALLET:
-        setClickedSellNft({ nft, location, variant: 'sell' });
-        setIsSellModalVisible(true);
+        navigation.navigate('SellNFT', {
+          variant: 'sell',
+          nftToSell: nft,
+          refresh: () => {
+            refetch();
+            refresh();
+            refetchActivity();
+          },
+
+        });
         break;
       case NftLocation.FORSALE:
-        setClickedSellNft({ nft, location, variant: 'adjust' });
-        setIsSellModalVisible(true);
+        navigation.navigate('SellNFT', {
+          variant: 'adjust',
+          nftToSell: nft,
+          refresh: () => {
+            refetch();
+            refresh();
+            refetchActivity();
+          },
+        });
         break;
       default:
         break;
@@ -162,6 +175,19 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
     // }
   };
 
+  const handleSendNft = (nftToken: NftToken, variant: string) => {
+
+    navigation.navigate('SellNFT', {
+      variant: variant,
+      nftToSell: nftToken,
+      refresh: () => {
+        Alert.alert('NFT Sold')
+        refetch();
+        refetchActivity();
+      },
+    });
+  }
+
   const {
     nft: combinedNft,
     loading: isLoading,
@@ -201,6 +227,13 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
     );
   }
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    refetch();
+    refetchActivity();
+    setRefreshing(false);
+  };
+
   return (
     <View style={styles.container}>
       <Header
@@ -221,7 +254,9 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
           </View>
         }
       />
-      <ScrollView>
+      <ScrollView refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }>
         <View style={{ marginTop: 5 }}>
           <LinearGradient
             colors={['#FFFFFF', '#dcf2f1', '#FFFFFF']}
@@ -244,12 +279,7 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
                   icon={images.sendIcon}
                   label="Send"
                   onPress={() => {
-                    setClickedSellNft({
-                      nft,
-                      location: nft.location,
-                      variant: 'transfer',
-                    });
-                    setIsSellModalVisible(true);
+                    handleSendNft(nft, "transfer");
                   }}
                 />
                 <ActionButton
@@ -423,7 +453,7 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
           )}
         </View>
       </ScrollView>
-      <SellModal
+      {/* <SellModal
         visible={isSellModalVisible}
         onClose={() => {
           setIsSellModalVisible(false);
@@ -437,7 +467,7 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
           refetch();
           refetchActivity();
         }}
-      />
+      /> */}
     </View>
   );
 };
@@ -635,7 +665,6 @@ const styles = StyleSheet.create({
     color: '#666',
     width: 50,
   },
-
   activityValue: {
     fontFamily: fontsFamily.MulishBold,
     fontSize: 13,

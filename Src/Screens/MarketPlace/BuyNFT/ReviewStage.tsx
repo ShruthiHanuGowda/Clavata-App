@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { formatQuantityMWh } from '../../../utils';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
 
 interface ReviewStageProps {
     nftToBuy: {
@@ -65,7 +66,7 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
                     source={{
                         uri:
                             nftToBuy?.image?.thumbnail ||
-                            'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
+                            NFT_DEFAULT_IMAGE_URL
                     }}
                     style={styles.nftImage}
                 />
