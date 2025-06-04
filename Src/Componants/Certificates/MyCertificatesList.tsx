@@ -47,8 +47,6 @@ const MyCertificatesList = ({
   refresh,
   containerStyle,
 }: Props) => {
-  console.log("nfts", nfts);
-
   const groupedNfts = groupByCountry(nfts);
   const [openCountries, setOpenCountries] = useState<Record<string, boolean>>(
     {},
@@ -105,7 +103,6 @@ const MyCertificatesList = ({
       {Object.entries(groupedNfts).map(([country, countryNfts]) => {
         const isOpen = openCountries[country] ?? false;
         const countryImageUrl = getCountryImage(countryNfts);
-        console.log(`Country: ${country}, NFTs: ${countryNfts.length}`);
 
         return (
           <View key={country} style={[styles.groupContainer, containerStyle]}>
