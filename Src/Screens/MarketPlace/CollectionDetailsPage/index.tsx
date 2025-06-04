@@ -18,6 +18,7 @@ import { API_NFT_URL } from '../../../constants';
 import { Header } from '../../../Componants';
 import { navigateBack } from '../../../Navigation/NavigationFunctions';
 import NFTCard from '../../../Componants/MarketPlace/NFTCard';
+import { getCountryFlag, getEnergyTypeIcon } from '../../../utils';
 
 const CollectionDetailsScreen = ({ route }: any) => {
   const { contractAddress } = route.params;
@@ -90,12 +91,12 @@ const CollectionDetailsScreen = ({ route }: any) => {
               <Text style={styles.collectionTitle}>Collection Details</Text>
               <View style={styles.detailsGrid}>
                 <DetailCard
-                  icon="🌍"
+                  icon={getCountryFlag(collection?.country || '')}
                   label="Country"
                   value={collection?.country}
                 />
                 <DetailCard
-                  icon="⚡"
+                  icon={getEnergyTypeIcon(collection?.type || '')}
                   label="Type"
                   value={collection?.type}
                 />
@@ -143,6 +144,7 @@ const CollectionDetailsScreen = ({ route }: any) => {
                 {nfts.map((nft: any) => {
                   const currentAsk = getMinAsk(nft.activeAsks ?? []);
                   const hasAsks = nft?.activeAsks?.length > 0;
+                  console.log(nft?.activeAsks, "activeAsks");
 
                   if (!hasAsks) return null;
 
@@ -151,12 +153,17 @@ const CollectionDetailsScreen = ({ route }: any) => {
                     name: nft?.collection?.name ?? "",
                   }
 
+                  const totalQuantity = nft?.activeAsks?.reduce(
+                    (total: number, ask: any) => total + Number(ask.amount || 0),
+                    0
+                  );
+
                   return (
                     <NFTCard
                       key={nft.tokenId}
                       nft={nftData}
                       currentAskPrice={Number(currentAsk?.askPrice) || 0}
-                      quantity={Number(currentAsk?.amount) || 0}
+                      quantity={totalQuantity || 0}
                     />
                   );
                 })}

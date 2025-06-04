@@ -63,7 +63,7 @@ const NFTCard: React.FC<NFTCardProps> = ({
 
       <View style={styles.cardContent}>
         <Text style={styles.nftTitle} numberOfLines={1}>
-          {nft.collection?.name || 'Unknown Collection'}
+          {nft.collection?.name || 'Unknown Collection'} #{nft?.tokenId}
         </Text>
 
         <View style={styles.bottomRow}>
@@ -71,7 +71,7 @@ const NFTCard: React.FC<NFTCardProps> = ({
             {formatQuantityMWh(quantity)}
           </Text>
           <Text style={styles.priceText}>
-            ${currentAskPrice}/MWh
+            from ${currentAskPrice} per MWh
           </Text>
         </View>
       </View>

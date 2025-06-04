@@ -13,7 +13,7 @@ import {
 import MyCertificateCard from './MyCertificateCard';
 import { NftToken } from '../../types/types';
 import { fontsFamily } from '../../Theme';
-import { formatQuantityMWh } from '../../utils';
+import { formatQuantityMWh, getCountryFlag } from '../../utils';
 import { N } from 'ethers';
 
 interface Props {
@@ -32,78 +32,6 @@ const groupByCountry = (nfts: NftToken[]) => {
     acc[country].push(nft);
     return acc;
   }, {} as Record<string, NftToken[]>);
-};
-
-// Function to get country flag emoji
-const getCountryFlag = (countryName: string): string => {
-  const countryFlags: Record<string, string> = {
-    'United States': '🇺🇸',
-    'USA': '🇺🇸',
-    'Canada': '🇨🇦',
-    'United Kingdom': '🇬🇧',
-    'UK': '🇬🇧',
-    'Germany': '🇩🇪',
-    'France': '🇫🇷',
-    'Italy': '🇮🇹',
-    'Spain': '🇪🇸',
-    'Netherlands': '🇳🇱',
-    'Belgium': '🇧🇪',
-    'Switzerland': '🇨🇭',
-    'Austria': '🇦🇹',
-    'Sweden': '🇸🇪',
-    'Norway': '🇳🇴',
-    'Denmark': '🇩🇰',
-    'Finland': '🇫🇮',
-    'Poland': '🇵🇱',
-    'Czech Republic': '🇨🇿',
-    'Hungary': '🇭🇺',
-    'Portugal': '🇵🇹',
-    'Greece': '🇬🇷',
-    'Ireland': '🇮🇪',
-    'Luxembourg': '🇱🇺',
-    'Slovenia': '🇸🇮',
-    'Slovakia': '🇸🇰',
-    'Croatia': '🇭🇷',
-    'Romania': '🇷🇴',
-    'Bulgaria': '🇧🇬',
-    'Lithuania': '🇱🇹',
-    'Latvia': '🇱🇻',
-    'Estonia': '🇪🇪',
-    'Malta': '🇲🇹',
-    'Cyprus': '🇨🇾',
-    'Japan': '🇯🇵',
-    'China': '🇨🇳',
-    'India': '🇮🇳',
-    'South Korea': '🇰🇷',
-    'Australia': '🇦🇺',
-    'New Zealand': '🇳🇿',
-    'Brazil': '🇧🇷',
-    'Mexico': '🇲🇽',
-    'Argentina': '🇦🇷',
-    'Chile': '🇨🇱',
-    'Colombia': '🇨🇴',
-    'Peru': '🇵🇪',
-    'South Africa': '🇿🇦',
-    'Nigeria': '🇳🇬',
-    'Egypt': '🇪🇬',
-    'Morocco': '🇲🇦',
-    'Turkey': '🇹🇷',
-    'Russia': '🇷🇺',
-    'Ukraine': '🇺🇦',
-    'Israel': '🇮🇱',
-    'Saudi Arabia': '🇸🇦',
-    'UAE': '🇦🇪',
-    'United Arab Emirates': '🇦🇪',
-    'Thailand': '🇹🇭',
-    'Singapore': '🇸🇬',
-    'Malaysia': '🇲🇾',
-    'Indonesia': '🇮🇩',
-    'Philippines': '🇵🇭',
-    'Vietnam': '🇻🇳',
-    'Unknown': '🏳️',
-  };
-
-  return countryFlags[countryName] || '🌍';
 };
 
 if (

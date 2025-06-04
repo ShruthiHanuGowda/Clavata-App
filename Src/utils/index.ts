@@ -46,3 +46,89 @@ export function isOwnNft(accountAddress: `0x${string}` | undefined, data: { askP
   }
   return data.some(ask => ask.seller.id.toLowerCase() === accountAddress.toLowerCase());
 }
+
+
+export const getCountryFlag = (countryName: string): string => {
+  const countryFlags: Record<string, string> = {
+    'United States': '🇺🇸',
+    'USA': '🇺🇸',
+    'Canada': '🇨🇦',
+    'United Kingdom': '🇬🇧',
+    'UK': '🇬🇧',
+    'Germany': '🇩🇪',
+    'France': '🇫🇷',
+    'Italy': '🇮🇹',
+    'Spain': '🇪🇸',
+    'Netherlands': '🇳🇱',
+    'Belgium': '🇧🇪',
+    'Switzerland': '🇨🇭',
+    'Austria': '🇦🇹',
+    'Sweden': '🇸🇪',
+    'Norway': '🇳🇴',
+    'Denmark': '🇩🇰',
+    'Finland': '🇫🇮',
+    'Poland': '🇵🇱',
+    'Czech Republic': '🇨🇿',
+    'Hungary': '🇭🇺',
+    'Portugal': '🇵🇹',
+    'Greece': '🇬🇷',
+    'Ireland': '🇮🇪',
+    'Luxembourg': '🇱🇺',
+    'Slovenia': '🇸🇮',
+    'Slovakia': '🇸🇰',
+    'Croatia': '🇭🇷',
+    'Romania': '🇷🇴',
+    'Bulgaria': '🇧🇬',
+    'Lithuania': '🇱🇹',
+    'Latvia': '🇱🇻',
+    'Estonia': '🇪🇪',
+    'Malta': '🇲🇹',
+    'Cyprus': '🇨🇾',
+    'Japan': '🇯🇵',
+    'China': '🇨🇳',
+    'India': '🇮🇳',
+    'South Korea': '🇰🇷',
+    'Australia': '🇦🇺',
+    'New Zealand': '🇳🇿',
+    'Brazil': '🇧🇷',
+    'Mexico': '🇲🇽',
+    'Argentina': '🇦🇷',
+    'Chile': '🇨🇱',
+    'Colombia': '🇨🇴',
+    'Peru': '🇵🇪',
+    'South Africa': '🇿🇦',
+    'Nigeria': '🇳🇬',
+    'Egypt': '🇪🇬',
+    'Morocco': '🇲🇦',
+    'Turkey': '🇹🇷',
+    'Russia': '🇷🇺',
+    'Ukraine': '🇺🇦',
+    'Israel': '🇮🇱',
+    'Saudi Arabia': '🇸🇦',
+    'UAE': '🇦🇪',
+    'United Arab Emirates': '🇦🇪',
+    'Thailand': '🇹🇭',
+    'Singapore': '🇸🇬',
+    'Malaysia': '🇲🇾',
+    'Indonesia': '🇮🇩',
+    'Philippines': '🇵🇭',
+    'Vietnam': '🇻🇳',
+    'Unknown': '🏳️',
+  };
+
+  return countryFlags[countryName] || '🌍';
+};
+
+export const getEnergyTypeIcon = (type: string): string => {
+  const typeIcons: Record<string, string> = {
+    'Solar': '☀️',
+    'Wind': '💨',
+    'Hydro-Electric': '💧',
+    'Geothermal': '🌋',
+    'Biomass': '🌿',
+    'Nuclear': '⚛️',
+    'Unknown': '❓'
+  };
+
+  return typeIcons[type] || '🔋';
+};
