@@ -13,6 +13,7 @@ import {
 import {fontsFamily} from '../../Theme';
 import {BottomSheet} from 'react-native-btr';
 import {DButton} from '../../Componants';
+import {navigateTo} from '../../utils/navigationService';
 
 // Interface definitions
 interface NFTDelegation {
@@ -63,6 +64,11 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
   onRefresh,
   onRetry,
 }) => {
+  console.log(
+    '🚀 ~ StakeListingScreen ~ stakedAssets:',
+    JSON.stringify(stakedAssets),
+  );
+
   // State for bottom sheet
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [detailsSheetVisible, setDetailsSheetVisible] = useState(false);
@@ -152,11 +158,14 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
       // Here you can use selectedAsset.originalData to access the original API data
       console.log('Executing action on:', selectedAsset.originalData);
 
-      Alert.alert(
-        selectedAction,
-        `${selectedAction} ${selectedAsset.stakeNumber} with ${selectedAsset.validator.name}`,
-      );
+      // Alert.alert(
+      //   selectedAction,
+      //   `${selectedAction} ${selectedAsset.stakeNumber} with ${selectedAsset.validator.name}`,
+      // );
       setBottomSheetVisible(false);
+      navigateTo('UnstakeScreen', {
+        stakingData: selectedAsset,
+      });
     }
   };
 
