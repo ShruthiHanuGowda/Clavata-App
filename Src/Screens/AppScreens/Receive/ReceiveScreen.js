@@ -9,6 +9,7 @@ import {DText} from '../../../Componants/DText';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 const ReceiveScreen = ({route}) => {
   const {coinCode} = route.params;
+  console.log('🚀 ~ ReceiveScreen ~ coinCode:', coinCode);
   const {userDetails} = useAuth();
   return (
     <View style={styles.container}>

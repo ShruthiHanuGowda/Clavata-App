@@ -1,15 +1,15 @@
 import React from 'react';
-import { Image, StyleSheet, View, TouchableOpacity } from 'react-native';
-import { Svg } from 'react-native-svg';
-import { CartesianChart, Line } from 'victory-native';
-import { DText } from '../../Componants/DText';
-import { marketIcons } from '../../Theme/variable';
-import { navigateTo } from '../../utils/navigationService';
-import { ScreenWidth } from '@rneui/base';
-import { useFont } from '@shopify/react-native-skia';
-import { fontsFamily } from '../../Theme';
+import {Image, StyleSheet, View, TouchableOpacity} from 'react-native';
+import {Svg} from 'react-native-svg';
+import {CartesianChart, Line} from 'victory-native';
+import {DText} from '../../Componants/DText';
+import {marketIcons} from '../../Theme/variable';
+import {navigateTo} from '../../utils/navigationService';
+import {ScreenWidth} from '@rneui/base';
+import {useFont} from '@shopify/react-native-skia';
+import {fontsFamily} from '../../Theme';
 
-const marketIconColors: { [key: string]: string } = {
+const marketIconColors: {[key: string]: string} = {
   WATT: '#045E19',
   BTC: '#F7931A30',
   USDT: '#26A17B',
@@ -48,10 +48,7 @@ export default function CryptoMarketCard({
         })
       }
       activeOpacity={0.5}>
-      <View
-        style={[
-          marketStyles.image,
-        ]}>
+      <View style={[marketStyles.image]}>
         <Image
           source={marketIcons[code]}
           style={marketStyles.coinIcon}
@@ -62,7 +59,7 @@ export default function CryptoMarketCard({
         <DText
           style={marketStyles.coinTitle}
           fontStyle="fontBold"
-          textProps={{ numberOfLines: 1 }}>
+          textProps={{numberOfLines: 1}}>
           {title}
         </DText>
         <DText style={marketStyles.coinCode} fontStyle="fontSemiBold">
@@ -104,7 +101,7 @@ export default function CryptoMarketCard({
             </DText>
           )} */}
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
+        <View style={{alignItems: 'flex-end'}}>
           <DText style={marketStyles.usd} fontStyle="fontExtraBold">
             {balance ? Number(balance).toFixed(2) : '0.0'}
           </DText>

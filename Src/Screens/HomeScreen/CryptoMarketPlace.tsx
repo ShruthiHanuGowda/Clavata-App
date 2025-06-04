@@ -1,24 +1,25 @@
-import React, { useCallback, useEffect } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { DText } from '../../Componants/DText';
+import React, {useCallback, useEffect} from 'react';
+import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {DText} from '../../Componants/DText';
 import CryptoMarketCard from './CryptoMarketCard';
-import { fontsFamily } from '../../Theme';
-import { useWallet } from '../../../screens/Provider/WalletProvider';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useAuth } from '../../../screens/Provider/authProvider';
+import {fontsFamily} from '../../Theme';
+import {useWallet} from '../../../screens/Provider/WalletProvider';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {useAuth} from '../../../screens/Provider/authProvider';
 import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList';
-import { useNftsForAddress } from '../../hooks/useNftsForAddress';
+import {useNftsForAddress} from '../../hooks/useNftsForAddress';
+import {navigateTo} from '../../utils/navigationService';
+import {SCREEN_CONSTANT} from '../../Navigation/constant';
 export default function CryptoMarketPlace(props: any) {
-  const { getBalance, refreshBalance, isBalanceLoading, refreshAllBalances } =
+  const {getBalance, refreshBalance, isBalanceLoading, refreshAllBalances} =
     useWallet();
-  const { userDetails } = useAuth();
+  const {userDetails} = useAuth();
   const navigation = useNavigation<any>();
 
   const account = (userDetails?.userWallet ??
     '0x0000000000000000000000000000000000000000') as `0x${string}`;
 
-
-  const { nfts, isLoading, refresh } = useNftsForAddress({
+  const {nfts, isLoading, refresh} = useNftsForAddress({
     account: account,
   });
 
@@ -34,11 +35,11 @@ export default function CryptoMarketPlace(props: any) {
       code: 'ETH',
       coinValue: 'ETH',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
       operationsTypes: ['Send', 'Receive'],
       growth: 0,
@@ -49,11 +50,11 @@ export default function CryptoMarketPlace(props: any) {
       title: 'USDC Coin',
       code: 'USDC',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
@@ -64,11 +65,11 @@ export default function CryptoMarketPlace(props: any) {
       title: 'EURC Coin',
       code: 'EURC',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
@@ -82,11 +83,11 @@ export default function CryptoMarketPlace(props: any) {
       title: 'Watt Coin',
       code: 'WATT',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
       operationsTypes: ['Send', 'Receive'],
       growth: 0,
@@ -97,11 +98,11 @@ export default function CryptoMarketPlace(props: any) {
       title: 'wUSDC Coin',
       code: 'WUSDC',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
@@ -112,11 +113,11 @@ export default function CryptoMarketPlace(props: any) {
       title: 'wEURC Coin',
       code: 'WEURC',
       chartData: [
-        { x: 1, y: 0 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
-        { x: 4, y: 0 },
-        { x: 5, y: 0 },
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+        {x: 3, y: 0},
+        {x: 4, y: 0},
+        {x: 5, y: 0},
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
@@ -156,16 +157,33 @@ export default function CryptoMarketPlace(props: any) {
       <View style={marketPlaceStyles.myCryptosContainer}>
         <View style={marketPlaceStyles.headerRow}>
           <Text style={marketPlaceStyles.HeaderFont}>My Certificates</Text>
-          <TouchableOpacity
-            style={marketPlaceStyles.myListingsButton}
-            onPress={() => {
-              navigation.navigate('UserNFTs', {
-                account: account,
-              });
-            }}
-          >
-            <Text style={marketPlaceStyles.myListingsButtonText}>My Listings</Text>
-          </TouchableOpacity>
+          <View style={marketPlaceStyles.headerRow}>
+            <TouchableOpacity
+              style={marketPlaceStyles.myListingsButton}
+              onPress={() => {
+                navigation.navigate('UserNFTs', {
+                  account: account,
+                });
+              }}>
+              <Text style={marketPlaceStyles.myListingsButtonText}>
+                My Listings
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[marketPlaceStyles.myListingsButton, {marginLeft: 10}]}
+              onPress={() => {
+                navigateTo('coinWalletStack', {
+                  screen: SCREEN_CONSTANT.RECIEVESCREEN,
+                  params: {
+                    coinCode: 'NFT',
+                  },
+                });
+              }}>
+              <Text style={marketPlaceStyles.myListingsButtonText}>
+                Receive
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <MyCertificatesList
           nfts={nfts ?? []}

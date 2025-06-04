@@ -8,13 +8,50 @@ import Share from 'react-native-share';
 import QRCode from 'react-native-qrcode-svg';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {SnackBarMessage} from '../../../utils/snackBar';
+import RNFS from 'react-native-fs';
 const ShowQr = ({coinCode, address, name}) => {
   const saveQrToDisk = async () => {};
+  const [downloading, setDownloading] = useState(false);
+
   const [qrCodeRef, setQrCodeRef] = useState();
 
   const copy = () => {
     Clipboard.setString(address);
     SnackBarMessage('Address is copied!', 'default');
+  };
+
+  const saveToPhotoLibrary = async base64Data => {
+    console.log('🚀 ~ ShowQr ~ base64Data:', base64Data);
+    try {
+      setDownloading(true);
+
+      // For this method, you'll need to install @react-native-camera-roll/camera-roll
+      // npm install @react-native-camera-roll/camera-roll
+
+      const CameraRoll =
+        require('@react-native-camera-roll/camera-roll').CameraRoll;
+
+      // Convert base64 to local file first
+      const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
+      const tempPath = `${
+        RNFS.CachesDirectoryPath
+      }/temp_image_${Date.now()}.png`;
+
+      await RNFS.writeFile(tempPath, cleanBase64, 'base64');
+
+      // Save to photo library
+      await CameraRoll.save(`file://${tempPath}`, {type: 'photo'});
+
+      // Clean up temp file
+      await RNFS.unlink(tempPath);
+
+      SnackBarMessage('Image saved to photo library', 'success');
+    } catch (error) {
+      console.error('Save to library error:', error);
+      SnackBarMessage('Failed to save image to photo library', 'error');
+    } finally {
+      setDownloading(false);
+    }
   };
   const onShare = async () => {
     if (qrCodeRef) {
@@ -55,7 +92,13 @@ const ShowQr = ({coinCode, address, name}) => {
         </View>
 
         <View style={styles.qrBtnAlign}>
-          <TouchableOpacity style={styles.downloadBtn} onPress={saveQrToDisk}>
+          <TouchableOpacity
+            style={styles.downloadBtn}
+            onPress={() => {
+              qrCodeRef.toDataURL(data => {
+                saveToPhotoLibrary(data);
+              });
+            }}>
             <DText fontStyle="fontBold" style={styles.downloadText}>
               Download
             </DText>

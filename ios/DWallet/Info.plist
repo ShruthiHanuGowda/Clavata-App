@@ -44,6 +44,12 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 
 	<string>D Wallet needs access to your photo library to allow you to upload existing identity documents for KYC verification.</string>
+
+	<key>NSPhotoLibraryAddUsageDescription</key>
+
+	<string>D Wallet needs access to your photo library to allow you to upload existing identity documents for KYC verification.</string>
+
+
 	<key>UIAppFonts</key>
 	<array>
 		<string>Mulish-Bold.ttf</string>
