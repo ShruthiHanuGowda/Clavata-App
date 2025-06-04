@@ -3,8 +3,9 @@ export const formatQuantityMWh = (
   unit: boolean = true,
 ): string => {
   const mwh = quantity / 1_000_000;
-  return `${mwh % 1 === 0 ? mwh.toFixed(0) : mwh.toFixed(2)} ${unit ? 'MWh' : ''
-    }`;
+  return `${mwh % 1 === 0 ? mwh.toFixed(0) : mwh.toFixed(2)} ${
+    unit ? 'MWh' : ''
+  }`;
 };
 
 export const formatPrice = (price: number | undefined): string => {
@@ -13,13 +14,17 @@ export const formatPrice = (price: number | undefined): string => {
   return `$${adjustedPrice.toFixed(2)} per MWh`;
 };
 
-
-export function getAccountAskPrice(data: { askPrice: string, seller: { id: string } }[], accountId: `0x${string}`): number {
+export function getAccountAskPrice(
+  data: {askPrice: string; seller: {id: string}}[],
+  accountId: `0x${string}`,
+): number {
   if (!Array.isArray(data) || data.length === 0) {
     return 0;
   }
 
-  const accountData = data.find(item => item.seller.id.toLowerCase() === accountId.toLowerCase());
+  const accountData = data.find(
+    item => item.seller.id.toLowerCase() === accountId.toLowerCase(),
+  );
   if (!accountData) {
     return 0;
   }
@@ -27,93 +32,102 @@ export function getAccountAskPrice(data: { askPrice: string, seller: { id: strin
   return parseFloat(accountData.askPrice);
 }
 
-export function getAccountNFTQuantity(data: { askPrice: string, seller: { id: string }, amount: string }[], accountId: `0x${string}`): string {
+export function getAccountNFTQuantity(
+  data: {askPrice: string; seller: {id: string}; amount: string}[],
+  accountId: `0x${string}`,
+): string {
   if (!Array.isArray(data) || data.length === 0) {
-    return "0";
+    return '0';
   }
 
-  const accountData = data.find(item => item.seller.id.toLowerCase() === accountId.toLowerCase());
+  const accountData = data.find(
+    item => item.seller.id.toLowerCase() === accountId.toLowerCase(),
+  );
   if (!accountData) {
-    return "0";
+    return '0';
   }
 
   return accountData.amount;
 }
 
-export function isOwnNft(accountAddress: `0x${string}` | undefined, data: { askPrice: string, seller: { id: string } }[]): boolean {
+export function isOwnNft(
+  accountAddress: `0x${string}` | undefined,
+  data: {askPrice: string; seller: {id: string}}[],
+): boolean {
   if (!accountAddress) {
-    return false
+    return false;
   }
-  return data.some(ask => ask.seller.id.toLowerCase() === accountAddress.toLowerCase());
+  return data.some(
+    ask => ask.seller.id.toLowerCase() === accountAddress.toLowerCase(),
+  );
 }
-
 
 export const getCountryFlag = (countryName: string): string => {
   const countryFlags: Record<string, string> = {
     'United States': '🇺🇸',
-    'USA': '🇺🇸',
-    'Canada': '🇨🇦',
+    USA: '🇺🇸',
+    Canada: '🇨🇦',
     'United Kingdom': '🇬🇧',
-    'UK': '🇬🇧',
-    'Germany': '🇩🇪',
-    'France': '🇫🇷',
-    'Italy': '🇮🇹',
-    'Spain': '🇪🇸',
-    'Netherlands': '🇳🇱',
-    'Belgium': '🇧🇪',
-    'Switzerland': '🇨🇭',
-    'Austria': '🇦🇹',
-    'Sweden': '🇸🇪',
-    'Norway': '🇳🇴',
-    'Denmark': '🇩🇰',
-    'Finland': '🇫🇮',
-    'Poland': '🇵🇱',
+    UK: '🇬🇧',
+    Germany: '🇩🇪',
+    France: '🇫🇷',
+    Italy: '🇮🇹',
+    Spain: '🇪🇸',
+    Netherlands: '🇳🇱',
+    Belgium: '🇧🇪',
+    Switzerland: '🇨🇭',
+    Austria: '🇦🇹',
+    Sweden: '🇸🇪',
+    Norway: '🇳🇴',
+    Denmark: '🇩🇰',
+    Finland: '🇫🇮',
+    Poland: '🇵🇱',
     'Czech Republic': '🇨🇿',
-    'Hungary': '🇭🇺',
-    'Portugal': '🇵🇹',
-    'Greece': '🇬🇷',
-    'Ireland': '🇮🇪',
-    'Luxembourg': '🇱🇺',
-    'Slovenia': '🇸🇮',
-    'Slovakia': '🇸🇰',
-    'Croatia': '🇭🇷',
-    'Romania': '🇷🇴',
-    'Bulgaria': '🇧🇬',
-    'Lithuania': '🇱🇹',
-    'Latvia': '🇱🇻',
-    'Estonia': '🇪🇪',
-    'Malta': '🇲🇹',
-    'Cyprus': '🇨🇾',
-    'Japan': '🇯🇵',
-    'China': '🇨🇳',
-    'India': '🇮🇳',
+    Hungary: '🇭🇺',
+    Portugal: '🇵🇹',
+    Greece: '🇬🇷',
+    Ireland: '🇮🇪',
+    Luxembourg: '🇱🇺',
+    Slovenia: '🇸🇮',
+    Slovakia: '🇸🇰',
+    Croatia: '🇭🇷',
+    Romania: '🇷🇴',
+    Bulgaria: '🇧🇬',
+    Lithuania: '🇱🇹',
+    Latvia: '🇱🇻',
+    Estonia: '🇪🇪',
+    Malta: '🇲🇹',
+    Cyprus: '🇨🇾',
+    Japan: '🇯🇵',
+    China: '🇨🇳',
+    India: '🇮🇳',
     'South Korea': '🇰🇷',
-    'Australia': '🇦🇺',
+    Australia: '🇦🇺',
     'New Zealand': '🇳🇿',
-    'Brazil': '🇧🇷',
-    'Mexico': '🇲🇽',
-    'Argentina': '🇦🇷',
-    'Chile': '🇨🇱',
-    'Colombia': '🇨🇴',
-    'Peru': '🇵🇪',
+    Brazil: '🇧🇷',
+    Mexico: '🇲🇽',
+    Argentina: '🇦🇷',
+    Chile: '🇨🇱',
+    Colombia: '🇨🇴',
+    Peru: '🇵🇪',
     'South Africa': '🇿🇦',
-    'Nigeria': '🇳🇬',
-    'Egypt': '🇪🇬',
-    'Morocco': '🇲🇦',
-    'Turkey': '🇹🇷',
-    'Russia': '🇷🇺',
-    'Ukraine': '🇺🇦',
-    'Israel': '🇮🇱',
+    Nigeria: '🇳🇬',
+    Egypt: '🇪🇬',
+    Morocco: '🇲🇦',
+    Turkey: '🇹🇷',
+    Russia: '🇷🇺',
+    Ukraine: '🇺🇦',
+    Israel: '🇮🇱',
     'Saudi Arabia': '🇸🇦',
-    'UAE': '🇦🇪',
+    UAE: '🇦🇪',
     'United Arab Emirates': '🇦🇪',
-    'Thailand': '🇹🇭',
-    'Singapore': '🇸🇬',
-    'Malaysia': '🇲🇾',
-    'Indonesia': '🇮🇩',
-    'Philippines': '🇵🇭',
-    'Vietnam': '🇻🇳',
-    'Unknown': '🏳️',
+    Thailand: '🇹🇭',
+    Singapore: '🇸🇬',
+    Malaysia: '🇲🇾',
+    Indonesia: '🇮🇩',
+    Philippines: '🇵🇭',
+    Vietnam: '🇻🇳',
+    Unknown: '🏳️',
   };
 
   return countryFlags[countryName] || '🌍';
@@ -121,13 +135,13 @@ export const getCountryFlag = (countryName: string): string => {
 
 export const getEnergyTypeIcon = (type: string): string => {
   const typeIcons: Record<string, string> = {
-    'Solar': '☀️',
-    'Wind': '💨',
+    Solar: '☀️',
+    Wind: '💨',
     'Hydro-Electric': '💧',
-    'Geothermal': '🌋',
-    'Biomass': '🌿',
-    'Nuclear': '⚛️',
-    'Unknown': '❓'
+    Geothermal: '🌋',
+    Biomass: '🌿',
+    Nuclear: '⚛️',
+    Unknown: '❓',
   };
 
   return typeIcons[type] || '🔋';

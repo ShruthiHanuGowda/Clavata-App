@@ -229,11 +229,11 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
         <View style={styles.actionButtons}>
           {asset.status === 'active' ? (
             <>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[styles.actionButton, styles.restakeButton]}
                 onPress={() => handleAction(asset, 'Restake')}>
                 <Text style={styles.restakeButtonText}>Restake</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
               <TouchableOpacity
                 style={[styles.actionButton, styles.unstakeButton]}

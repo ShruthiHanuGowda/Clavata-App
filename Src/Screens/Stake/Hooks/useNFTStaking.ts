@@ -304,7 +304,7 @@ export const useNFTStaking = () => {
 
         // Refresh balances if needed
         console.log('[NFT Staking] Refreshing NFT balance');
-        refreshBalance('NFT');
+        // refreshBalance('NFT');
 
         // Call success callback if provided
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
@@ -402,7 +402,7 @@ export const useNFTStaking = () => {
         );
 
         // Convert values to proper format
-        const amountInWei = parseUnits(amount, 18); // Adjust decimals as needed
+        const amountInWei = parseUnits(amount, 6); // Adjust decimals as needed
         const tokenIdBigInt = BigInt(tokenId);
         console.log(`[NFT Staking] Amount in Wei: ${amountInWei.toString()}`);
 
@@ -414,6 +414,7 @@ export const useNFTStaking = () => {
           VALIDATOR_ADDRESS, // Use the imported validator address
           tokenIdBigInt,
           amountInWei,
+          {gasLimit: 9000000},
         );
         console.log(`[NFT Staking] Transaction submitted: ${tx.hash}`);
 
@@ -437,7 +438,7 @@ export const useNFTStaking = () => {
 
         // Refresh balances if needed
         console.log('[NFT Staking] Refreshing NFT balance');
-        refreshBalance('NFT');
+        // refreshBalance('NFT');
 
         // Call success callback if provided
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
