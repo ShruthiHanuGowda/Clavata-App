@@ -32,16 +32,15 @@ const CollectionListingPage: React.FC = () => {
     setActiveNetwork('denergy');
   }, []);
 
-  // Extract unique values for filter options
   const filterOptions = useMemo(() => {
-    const countries = [...new Set(collections?.map(c => c.country).filter(Boolean))];
-    const types = [...new Set(collections?.map(c => c.type).filter(Boolean))];
-    const years = [...new Set(collections?.map(c => c.year?.toString()).filter(Boolean))];
+    const countries = [...new Set(collections?.map(c => c.country).filter((item): item is string => Boolean(item)))];
+    const types = [...new Set(collections?.map(c => c.type).filter((item): item is string => Boolean(item)))];
+    const years = [...new Set(collections?.map(c => c.year?.toString()).filter((item): item is string => Boolean(item)))];
 
     return {
       countries: countries.sort(),
       types: types.sort(),
-      years: years.sort((a, b) => b.localeCompare(a)) // Latest years first
+      years: years.sort((a, b) => (b || '').localeCompare(a || ''))
     };
   }, [collections]);
 

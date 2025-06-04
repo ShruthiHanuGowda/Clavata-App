@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import {Collection} from '../../../types/types';
-import {formatQuantityMWh} from '../../../utils';
+import { Collection } from '../../../types/types';
+import { formatQuantityMWh } from '../../../utils';
 
 interface CollectionCardProps {
   collection: Collection & {
@@ -35,7 +35,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
           <Image
             source={{
               uri:
-                collection?.banner?.large ||
+                collection?.collection_image ||
                 'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
             }}
             style={styles.bannerImage}

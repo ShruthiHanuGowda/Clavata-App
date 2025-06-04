@@ -64,4 +64,9 @@ export default {
   help: require('../assets/images/help.png'),
   history: require('../assets/images/history.png'),
   closeIcon: require('../assets/images/closeIcon.png'),
+  energySolarIcon: require('../assets/images/energytype/solar_nft_icon.png'),
+  energyWindIcon: require('../assets/images/energytype/wind_nft_icon.png'),
+  energyHydroIcon: require('../assets/images/energytype/hydro_nft_icon.png'),
+  energyGeothermalIcon: require('../assets/images/energytype/geothermal_nft_icon.png'),
+  energynuclearIcon: require('../assets/images/energytype/nuclear_nft_icon.png'),
 };

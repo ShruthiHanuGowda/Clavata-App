@@ -6,6 +6,7 @@ import {
   Text,
   View,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,7 +19,6 @@ import { API_NFT_URL } from '../../../constants';
 import { Header } from '../../../Componants';
 import { navigateBack } from '../../../Navigation/NavigationFunctions';
 import NFTCard from '../../../Componants/MarketPlace/NFTCard';
-import { getCountryFlag, getEnergyTypeIcon } from '../../../utils';
 
 const CollectionDetailsScreen = ({ route }: any) => {
   const { contractAddress } = route.params;
@@ -64,6 +64,9 @@ const CollectionDetailsScreen = ({ route }: any) => {
     setRefreshing(false);
   };
 
+  console.log(collection, "collection");
+
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <Header
@@ -86,23 +89,25 @@ const CollectionDetailsScreen = ({ route }: any) => {
             </View>
           )}
 
+
           {!isLoading && !error && collection && (
             <View style={styles.collectionDetails}>
               <Text style={styles.collectionTitle}>Collection Details</Text>
               <View style={styles.detailsGrid}>
                 <DetailCard
-                  icon={getCountryFlag(collection?.country || '')}
+                  icon={collection?.country_image}
                   label="Country"
                   value={collection?.country}
                 />
                 <DetailCard
-                  icon={getEnergyTypeIcon(collection?.type || '')}
+                  icon={collection?.energy_type_image}
                   label="Type"
                   value={collection?.type}
                 />
                 <DetailCard
                   icon="📅"
                   label="Year"
+                  isStringIcon={true}
                   value={collection?.year?.toString()}
                 />
               </View>
@@ -144,7 +149,7 @@ const CollectionDetailsScreen = ({ route }: any) => {
                 {nfts.map((nft: any) => {
                   const currentAsk = getMinAsk(nft.activeAsks ?? []);
                   const hasAsks = nft?.activeAsks?.length > 0;
-                  console.log(nft?.activeAsks, "activeAsks");
+
 
                   if (!hasAsks) return null;
 
@@ -190,17 +195,26 @@ const DetailCard = ({
   icon,
   label,
   value,
+  isStringIcon = false,
 }: {
-  icon: string;
+  icon: any;
   label: string;
   value: string | null | undefined;
-}) => (
-  <View style={styles.detailCard}>
-    <Text style={styles.detailIcon}>{icon}</Text>
-    <Text style={styles.detailLabel}>{label}</Text>
-    <Text style={styles.detailValue}>{value || '-'}</Text>
-  </View>
-);
+  isStringIcon?: boolean;
+}) => {
+
+  return (
+    <View style={styles.detailCard}>
+      {!isStringIcon ? (
+        <Image source={{ uri: icon }} style={styles.detailImage} resizeMode="contain" />
+      ) : (
+        <Text style={styles.detailIcon}>{icon}</Text>
+      )}
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={styles.detailValue}>{value || '-'}</Text>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -243,6 +257,11 @@ const styles = StyleSheet.create({
   },
   detailIcon: {
     fontSize: 24,
+    marginBottom: 8,
+  },
+  detailImage: {
+    width: 32,
+    height: 32,
     marginBottom: 8,
   },
   detailLabel: {
