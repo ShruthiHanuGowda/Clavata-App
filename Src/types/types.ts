@@ -86,6 +86,9 @@ export interface NftToken {
   collectionAddress: Address;
   totalListed: string;
   image: Image;
+  collection_image?: string;
+  country_image?: string;
+  energy_type_image?: string;
   attributes?: NftAttribute[];
   createdAt?: string;
   updatedAt?: string;
@@ -146,10 +149,9 @@ export interface Collection {
   totalSupply: string;
   verified: boolean;
   avatar: string;
-  banner: {
-    large: string;
-    small: string;
-  };
+  collection_image?: string;
+  country_image?: string;
+  energy_type_image?: string;
   attributes?: NftAttribute[];
 }
 
@@ -184,6 +186,9 @@ export interface ApiCollection {
   createdAt: string;
   updatedAt: string;
   avatar: string;
+  country_image?: string;
+  energy_type_image?: string;
+  collection_image?: string;
   banner: {
     large: string;
     small: string;
@@ -250,6 +255,9 @@ export interface ApiResponseSpecificToken {
       country?: string;
       type?: string;
       ownerAddress?: string;
+      country_image?: string;
+      energy_type_image?: string;
+      collection_image?: string;
     };
   };
 }
