@@ -32,22 +32,84 @@ import {
   useMutation,
 } from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../../../graphql/queries';
+import { marketIcons } from '../../../Theme/variable';
 
 const width = Dimensions.get('window').width;
+
+// Function to get coin icon
+const getCoinIcon = (coinCode: string) => {
+  return marketIcons[coinCode] || images.usdc;
+};
+
+// Move PortfolioHeader outside the component to prevent recreation on each render
+const PortfolioHeader = ({ coinCode, balance, balanceUsd }) => (
+  <View style={styles.portfolioHeaderContainer}>
+    <View style={styles.portfolioCard}>
+      <View style={styles.portfolioCardHeader}>
+        <Text style={styles.portfolioLabel}>Portfolio</Text>
+      </View>
+      <View style={styles.coinHeaderContainer}>
+        <Image 
+          source={getCoinIcon(coinCode)} 
+          style={styles.coinIcon}
+          resizeMode="contain"
+        />
+        <Text style={styles.coinCodeTitle} numberOfLines={2} ellipsizeMode="tail">
+          {coinCode || 'Unknown Coin'}
+        </Text>
+      </View>
+      <View style={styles.balanceContainer}>
+        <Text style={styles.balanceLabel}>Balance</Text>
+        <Text style={styles.balanceValue}>
+          {balance || '0'} (${balanceUsd || '0.00'})
+        </Text>
+      </View>
+    </View>
+  </View>
+);
+
 export default function CoinWallet(props) {
+  // Add error boundary state
+  const [hasError, setHasError] = useState(false);
+  
+  // Safely extract props with fallbacks
+  const coinCode = props?.route?.params?.coinCode || 'Unknown';
+  const operationsTypes = props?.route?.params?.operationsTypes || [];
+  
   const [createTransactionHistoryMobile] = useMutation(
     CREATE_TRANSACTION_HISTORY_MOBILE,
+    {
+      // Add error handling for GraphQL mutations
+      onError: (error) => {
+        console.error('Transaction history mutation error:', error);
+      }
+    }
   );
-  const coinCode = props?.route?.params?.coinCode;
-  const operationsTypes = props?.route?.params?.operationsTypes;
-  const {getBalance} = useWallet();
-  const {userDetails} = useAuth();
-
-  const {balance, balanceUsd} = getBalance(coinCode);
+  
+  // Add safe hook calls with error handling
+  let getBalance, userDetails, balance = '0', balanceUsd = '0.00';
+  
+  try {
+    const walletHook = useWallet();
+    const authHook = useAuth();
+    
+    getBalance = walletHook?.getBalance;
+    userDetails = authHook?.userDetails;
+    
+    if (getBalance && coinCode && coinCode !== 'Unknown') {
+      const balanceData = getBalance(coinCode);
+      balance = balanceData?.balance || '0';
+      balanceUsd = balanceData?.balanceUsd || '0.00';
+    }
+  } catch (error) {
+    console.error('Hook error:', error);
+    setHasError(true);
+  }
 
   const [toggleValue, setToggleValue] = useState('day');
   const [index, setIndex] = useState(0);
-  //NOTE - Use for Graph UI
+  
+  // Use static data for graph to prevent crashes
   const graphData = {
     label: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     values: [12, 15, 18, 22, 28, 25, 30],
@@ -56,6 +118,36 @@ export default function CoinWallet(props) {
   const TAB_ITEMS = ['Price History', 'Transaction History'];
   const toggleOptions = ['week', 'day'];
 
+  // Add error boundary rendering
+  if (hasError) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Something went wrong</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => {
+              setHasError(false);
+              // You might want to reload or navigate back
+            }}
+          >
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Safe navigation function
+  const handleBackNavigation = () => {
+    try {
+      navigateBack();
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback navigation or error handling
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Header
@@ -63,413 +155,46 @@ export default function CoinWallet(props) {
         containerStyle={{borderBottomWidth: 0}}
         leftComponent={
           <TouchableOpacity
-            onPress={() => navigateBack()}
+            onPress={handleBackNavigation}
             style={styles.iconContainer}>
             <Image source={images.back} />
           </TouchableOpacity>
         }
         centerComponent={
           <View style={styles.nameContainer}>
+            <Image 
+              source={getCoinIcon(coinCode)} 
+              style={styles.headerCoinIcon}
+              resizeMode="contain"
+            />
             <DText fontStyle="fontBold" style={styles.headerTitle}>
               {coinCode}
             </DText>
           </View>
         }
       />
-      <ScrollView
-      // refreshControl={
-      //   <RefreshControl
-      //     refreshing={pullToRefreshLoading}
-      //     onRefresh={() => {
-      //       setPullToRefreshLoading(true);
-      //       init();
-      //     }}
-      //   />
-      // }
-      >
+      <View style={{flex: 1}}>
+        {/* Fixed Header Section */}
         <View style={{marginTop: 5}}>
           <LinearGradient
-            colors={['#FFFFFF', '#dcf2f1', '#FFFFFF']}
-            start={{x: 0, y: 1}}
-            end={{x: 0, y: 0}}
-            useAngle={true}
-            angle={330}
-            locations={[0, 0, 0.25]}>
+            colors={['#F8FFFE', '#E8F8F7', '#F8FFFE']}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}>
             <View style={{paddingTop: 10, paddingBottom: 30}}>
-              <View
-                style={{
-                  flex: 2,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginHorizontal: 20,
-                }}>
-                <ImageBackground
-                  source={images.rectangle}
-                  resizeMode="cover"
-                  imageStyle={{borderRadius: 7}}
-                  style={{
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: 180,
-                    width: '100%',
-                  }}>
-                  <Image
-                    source={images.rectangleDot}
-                    style={{
-                      alignSelf: 'flex-end',
-                      height: '100%',
-                      width: '38%',
-                    }}
-                  />
-                  <DText fontStyle="fontBold" style={styles.portfolio}>
-                    PORTFOLIO
-                  </DText>
-                  <DText fontStyle="fontBold" style={styles.totalAmount}>
-                    {/* {coinData?.tokenBalance || 0} */}
-                    {parseFloat(balance).toFixed(2)}
-                  </DText>
-                  <DText
-                    fontStyle="fontBold"
-                    style={{
-                      color: '#FFFF',
-                      fontSize: 20,
-                      position: 'absolute',
-                      bottom: 50,
-                    }}>
-                    {coinCode}
-                    {/* {coinCode == 'DREXS' ? 'DRECs' : coinCode} */}
-                  </DText>
-                  {coinCode !== 'USD' && (
-                    <DText fontStyle="fontBold" style={styles.usd}>
-                      $ {balanceUsd}
-                      {/* {coinData?.fiatBalance
-                        ? parseFloat(coinData?.fiatBalance)
-                        : 0} */}
-                    </DText>
-                  )}
-                </ImageBackground>
-              </View>
-              {/* <Button
-                title="Send ETH"
-                onPress={async () => {
-                  try {
-                    const {data} = await createTransactionHistoryMobile({
-                      variables: {
-                        input: {
-                          transactionHash: 'weqwdsa',
-                          method: 'asd',
-                          createdAt: 'sdd',
-                          from: 'sda',
-                          to: 'asd',
-                          amount: 1.1,
-                          txnFee: 1.2,
-                          coinCode: 'USDC',
-                          transactionStatus: 'asdd',
-                        },
-                      },
-                    });
-                    console.log('data', data);
-                  } catch (error) {
-                    console.log('error', error);
-                    throw new Error(error);
-                  }
-                }}
-              /> */}
+              <PortfolioHeader 
+                coinCode={coinCode} 
+                balance={balance} 
+                balanceUsd={balanceUsd} 
+              />
+
               <View style={styles.btnAlign}>
-                {renderOperationButtons(operationsTypes, coinCode)}
-                {/* <>
-                  <OperationButton
-                    name={'Send'}
-                    image={images.sendIcon}
-                    onPress={() =>
-                      navigateTo(SCREEN_CONSTANT?.VERIFYADDRESS, {
-                        coinCode: coinCode,
-                      })
-                    }
-                  />
-                  <OperationButton
-                    name={'Receive'}
-                    image={images.receiveIcon}
-                    onPress={() =>
-                      navigateTo(SCREEN_CONSTANT.RECIEVESCREEN, {
-                        coinCode: coinCode,
-                      })
-                    }
-                  />
-                </> */}
-                {/*{coinCode === 'ETH' && (*/}
-                {/*  <>*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Send'}*/}
-                {/*      image={images.sendIcon}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.VERIFYADDRESS, {*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Receive'}*/}
-                {/*      image={images.receiveIcon}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.RECIEVESCREEN, {*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*  </>*/}
-                {/*)}*/}
-
-                {/*<>*/}
-                {/*  <OperationButton*/}
-                {/*    name={'Trade'}*/}
-                {/*    image={images.buyIcon}*/}
-                {/*    onPress={() => navigateTo('trade')}*/}
-                {/*  />*/}
-                {/*  <OperationButton*/}
-                {/*    name={'Send'}*/}
-                {/*    image={images.sendIcon}*/}
-                {/*    onPress={() => navigateTo('send')}*/}
-                {/*  />*/}
-                {/*  <OperationButton*/}
-                {/*    name={'Receive'}*/}
-                {/*    image={images.receiveIcon}*/}
-                {/*    onPress={() => navigateTo('receive')}*/}
-                {/*  />*/}
-                {/*  <OperationButton*/}
-                {/*    name={'Swap'}*/}
-                {/*    image={images.swapcoin}*/}
-                {/*    onPress={() => navigateTo('bridge')} //FIXME - This should be used in bridge navigation*/}
-                {/*  />*/}
-                {/*</>*/}
-
-                {/*{coinCode === 'USDC' && (*/}
-                {/*  <>*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Send'}*/}
-                {/*      image={images.sendIcon}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.VERIFYADDRESS, {*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Receive'}*/}
-                {/*      image={images.receiveIcon}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.RECIEVESCREEN, {*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Bridge'}*/}
-                {/*      image={images.swapcoin}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.TRANSFERCOIN, {*/}
-                {/*      //       coinData: coinData,*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*  </>*/}
-                {/*)}*/}
-                {/*{coinCode === 'WUSDC' && (*/}
-                {/*  <>*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Trade'}*/}
-                {/*      image={images.buyIcon}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.BUYCOIN, {*/}
-                {/*      //       coinData: coinData,*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Send'}*/}
-                {/*      image={images.sendIcon}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.VERIFYADDRESS, {*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Receive'}*/}
-                {/*      image={images.receiveIcon}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.RECIEVESCREEN, {*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Bridge'}*/}
-                {/*      image={images.swapcoin}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.TRANSFERCOIN, {*/}
-                {/*      //       coinData: coinData,*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*  </>*/}
-                {/*)}*/}
-
-                {/*{coinCode === 'EURC' && (*/}
-                {/*  <>*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Send'}*/}
-                {/*      image={images.sendIcon}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.VERIFYADDRESS, {*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Receive'}*/}
-                {/*      image={images.receiveIcon}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.RECIEVESCREEN, {*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Bridge'}*/}
-                {/*      image={images.swapcoin}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.TRANSFERCOIN, {*/}
-                {/*      //       coinData: coinData,*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*  </>*/}
-                {/*)}*/}
-                {/*{coinCode === 'WEURC' && (*/}
-                {/*  <>*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Send'}*/}
-                {/*      image={images.sendIcon}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.VERIFYADDRESS, {*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Receive'}*/}
-                {/*      image={images.receiveIcon}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.RECIEVESCREEN, {*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*    <OperationButton*/}
-                {/*      name={'Bridge'}*/}
-                {/*      image={images.swapcoin}*/}
-                {/*      //   onPress={() =>*/}
-                {/*      //     navigateTo(SCREEN_CONSTANT.TRANSFERCOIN, {*/}
-                {/*      //       coinData: coinData,*/}
-                {/*      //       coinCode: coinCode,*/}
-                {/*      //     })*/}
-                {/*      //   }*/}
-                {/*    />*/}
-                {/*  </>*/}
-                {/*)}*/}
-
-                {/* <>
-                {(coinCode == 'WATT' || coinCode == 'DREXS') &&
-                  <OperationButton
-                    name={'Trade'}
-                    image={images.buyIcon}
-                    onPress={() =>
-                      navigateTo(SCREEN_CONSTANT.BUYCOIN,
-                        { coinData: coinData, coinCode: coinCode })
-                    }
-                  />
+                {operationsTypes && operationsTypes.length > 0 && 
+                  renderOperationButtons(operationsTypes, coinCode)
                 }
-                {(coinCode == 'DREXS') &&
-                  <OperationButton
-                    name={'Stake'}
-                    image={images.stakeIcon}
-                    onPress={() =>
-                      navigateTo(SCREEN_CONSTANT.STAKEDREXS)
-                    }
-                  />
-                }
-                {(coinCode !== 'USD') ?
-                  <>
-                    <OperationButton
-                      name={'Send'}
-                      image={images.sendIcon}
-                      onPress={() =>
-                        navigateTo(SCREEN_CONSTANT.LISTBENEFICIARIES,
-                          { coinCode: coinCode })
-                      }
-                    />
-                    <OperationButton
-                      name={'Receive'}
-                      image={images.receiveIcon}
-                      onPress={() =>
-                        navigateTo(SCREEN_CONSTANT.RECIEVESCREEN,
-                          { coinCode: coinCode })
-                      }
-                    />
-                    <OperationButton
-                    name={'Swap'}
-                    image={images.swapcoin}
-                    onPress={() =>
-                      navigateTo(SCREEN_CONSTANT.SWAPCOIN,
-                        { coinData: coinData, coinCode: coinCode })
-                    }
-                  />
-
-                  </> :
-                  <>
-                    <OperationButton
-                      name={'Deposit'}
-                      image={images.sendIcon}
-                      onPress={() =>
-                        navigateTo(SCREEN_CONSTANT.DEPOSIT,
-                          { coinCode: coinCode })
-                      }
-                    />
-                    <OperationButton
-                      name={'Withdraw'}
-                      image={images.receiveIcon}
-                      onPress={() =>
-                        navigateTo(SCREEN_CONSTANT.WITHDRAW,
-                          { coinCode: coinCode })
-                      }
-                    />
-                  </>
-                }
-                {coinCode === 'USDC' &&  <OperationButton
-                    name={'Bridge'}
-                    image={images.swapcoin}
-                    onPress={() =>
-                      navigateTo(SCREEN_CONSTANT.TRANSFERCOIN,
-                        { coinData: coinData, coinCode: coinCode })
-                    }
-                  />}
-                  {coinCode === 'WUSDC' &&  <OperationButton
-                    name={'Bridge'}
-                    image={images.swapcoin}
-                    onPress={() =>
-                      navigateTo(SCREEN_CONSTANT.TRANSFERCOIN,
-                        { coinData: coinData, coinCode: coinCode })
-                    }
-                  />}
-                  </> */}
               </View>
             </View>
           </LinearGradient>
+
           <Tab
             value={index}
             onChange={setIndex}
@@ -499,76 +224,78 @@ export default function CoinWallet(props) {
               );
             })}
           </Tab>
-          <View style={{marginHorizontal: 25, marginTop: 20}}>
-            {index === 0 && coinCode !== 'USD' ? (
-              <>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                  }}>
-                  <Text style={style.HeaderFont}>This Week Average</Text>
-                  <View style={style.toggleView}>
-                    {toggleOptions.map((item, i) => {
-                      return (
-                        <TouchableOpacity
-                          key={i}
-                          style={[styles.toggleButton]}
-                          onPress={() => {
-                            setToggleValue(item);
-                          }}>
-                          <Text
-                            style={[
-                              style.toggleItemStyle,
-                              toggleValue == item
-                                ? styles.activeButton
-                                : styles.inActiveButtn,
-                            ]}>
-                            {item}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-                <View
-                  style={{
-                    marginRight: 1,
-                    alignItems: 'center',
-                    flexDirection: 'row',
-                  }}>
-                  <Text style={style.usdvalue}>
-                    $0.05{/* ${coinData?.fiatValue || 0}{' '} */}
-                  </Text>
-                  <Image
-                    source={images.sharePriceIcon}
-                    style={{height: 10, width: 15, marginLeft: 2}}
-                    resizeMode="contain"
-                  />
-                  <Text style={style.Today}>(+0.00%)</Text>
-                </View>
-                <View style={{left: -20}}>
-                  {graphData && (
-                    <PriceHistoryGraph
-                      labels={graphData?.label}
-                      toggleValue={toggleValue}
-                      data={graphData?.values}
-                    />
-                  )}
-                </View>
-              </>
-            ) : (
-              <MiniTransactionHistory
-                coinCode={coinCode}
-                // name={profile?.name}
-              />
-            )}
-          </View>
         </View>
-      </ScrollView>
+        
+        {/* Scrollable Content Section */}
+        <View style={{flex: 1, marginHorizontal: 25, marginTop: 20}}>
+          {index === 0 && coinCode !== 'USD' ? (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                }}>
+                <Text style={style.HeaderFont}>This Week Average</Text>
+                <View style={style.toggleView}>
+                  {toggleOptions.map((item, i) => {
+                    return (
+                      <TouchableOpacity
+                        key={i}
+                        style={[styles.toggleButton]}
+                        onPress={() => {
+                          setToggleValue(item);
+                        }}>
+                        <Text
+                          style={[
+                            style.toggleItemStyle,
+                            toggleValue == item
+                              ? styles.activeButton
+                              : styles.inActiveButtn,
+                          ]}>
+                          {item}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+              <View
+                style={{
+                  marginRight: 1,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                }}>
+                <Text style={style.usdvalue}>
+                  $0.05
+                </Text>
+                <Image
+                  source={images.sharePriceIcon}
+                  style={{height: 10, width: 15, marginLeft: 2}}
+                  resizeMode="contain"
+                />
+                <Text style={style.Today}>(+0.00%)</Text>
+              </View>
+              <View style={{left: -20}}>
+                {graphData && (
+                  <PriceHistoryGraph
+                    labels={graphData?.label}
+                    toggleValue={toggleValue}
+                    data={graphData?.values}
+                  />
+                )}
+              </View>
+            </ScrollView>
+          ) : (
+            <MiniTransactionHistory
+              coinCode={coinCode}
+            />
+          )}
+        </View>
+      </View>
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -582,6 +309,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  headerCoinIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 8,
+  },
   headerTitle: {
     fontSize: 18,
     color: '#2C2C2C',
@@ -590,6 +322,10 @@ const styles = StyleSheet.create({
     color: '#989898',
     fontSize: 18,
     marginLeft: 8,
+  },
+  headerSection: {
+    paddingTop: 8,
+    paddingBottom: 20,
   },
   portfolio: {
     top: 10,
@@ -609,6 +345,74 @@ const styles = StyleSheet.create({
     color: '#FFFF',
     fontSize: 12,
     position: 'absolute',
+  },
+  portfolioHeaderContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  portfolioCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  portfolioCardHeader: {
+    marginBottom: 12,
+  },
+  coinHeaderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  coinIcon: {
+    width: 32,
+    height: 32,
+    marginRight: 12,
+  },
+  portfolioLabel: {
+    fontSize: 14,
+    color: '#009D94',
+    fontFamily: fontsFamily.MulishBold,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  coinCodeTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+    fontFamily: fontsFamily.MulishExtraBold,
+    lineHeight: 32,
+    flex: 1,
+  },
+  balanceContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  balanceLabel: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontFamily: fontsFamily.MulishBold,
+    fontWeight: '600',
+  },
+  balanceValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    fontFamily: fontsFamily.MulishExtraBold,
   },
   btnAlign: {
     flexDirection: 'row',
@@ -637,5 +441,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: fontsFamily.MulishSemiBold,
     marginBottom: 20,
+  },
+  // Error handling styles
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#FF0000',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#009D94',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

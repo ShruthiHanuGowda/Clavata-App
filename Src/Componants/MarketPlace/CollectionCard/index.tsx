@@ -45,7 +45,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
 
         <View style={styles.collectionInfo}>
           <Text style={styles.collectionName}>{collection?.name}</Text>
-          <Text style={styles.collectionText}>
+          {/* <Text style={styles.collectionText}>
             Country: {collection?.country ?? '-'}
           </Text>
           <Text style={styles.collectionText}>
@@ -53,7 +53,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
           </Text>
           <Text style={styles.collectionText}>
             Year: {collection?.year ?? '-'}
-          </Text>
+          </Text> */}
           <Text style={styles.collectionText}>
             Total Available Quantity:{' '}
             {formatQuantityMWh(Number(collection?.totalAskAmount ?? 0))}
