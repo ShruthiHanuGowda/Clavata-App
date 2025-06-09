@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import DatePicker from 'react-native-date-picker';
 import moment from 'moment';
 import Share from 'react-native-share';
+import LottieView from 'lottie-react-native';
 
 const PURPOSE_OPTIONS = [
   { label: 'Scope 2 Emissions', value: 'Scope 2 Emissions' },
@@ -58,11 +59,15 @@ const OffsetScreen = ({ route }: any) => {
     'startDate' | 'endDate' | null
   >(null);
 
+   const animationRef = useRef<any>(null);
+
   const account = userDetails?.userWallet;
   const walletAddress = userDetails?.userWallet;
 
   const {
     isLoadingOffset,
+    currentProcessingStep,
+    stepProgress,
     redemptionUrl,
     pdfDownloadUrl,
     transactionHash,
@@ -81,7 +86,15 @@ const OffsetScreen = ({ route }: any) => {
     }
   }, [offsetSuccess, redemptionUrl]);
 
-  // Calculate tax whenever volume changes
+  useEffect(() => {
+      if (animationRef.current) {
+        setTimeout(() => {
+          animationRef.current.play();
+        }, 300);
+      }
+    }, [animationRef]);
+
+
   useEffect(() => {
     if (volume && !isNaN(Number(volume)) && Number(volume) > 0) {
       const tax = Number(volume) * TAX_RATE_PER_MWH;
@@ -497,22 +510,80 @@ const OffsetScreen = ({ route }: any) => {
     </KeyboardAwareScrollView>
   );
 
-  const renderProcessing = () => (
-    <View style={styles.centerContainer}>
-      <View style={styles.processingContainer}>
-        <ActivityIndicator size="large" color="#81c8c3" />
-        <DText fontStyle="fontBold" style={styles.processingTitle}>
-          Processing Offset...
-        </DText>
-        <DText style={styles.processingSubtitle}>Burning tokens ....</DText>
-        {calculatedTax > 0 && (
-          <DText style={styles.processingFeeText}>
-            Fee: {calculatedTax.toFixed(4)} WUSDC
+  const renderProcessing = () => {
+    return (
+      <View style={styles.container}>
+        {/* Header Section similar to other screens */}
+        <View style={styles.headerSection}>
+          <View style={styles.iconContainer}>
+            <Text style={styles.iconText}>⚡</Text>
+          </View>
+          <DText fontStyle="fontBold" style={styles.title}>
+            Processing Offset...
           </DText>
-        )}
+          <DText style={styles.subtitle}>
+            {currentProcessingStep || 'Initializing...'}
+          </DText>
+        </View>
+
+        {/* Animation Section */}
+        <View style={styles.animationSection}>
+          <LottieView
+            ref={animationRef}
+            source={require('../../../assets/animations/processing.json')}
+            autoPlay={true}
+            loop={true}
+            style={styles.lottieProcessingAnimation}
+            speed={1}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Progress Section */}
+        <View style={styles.progressSection}>
+          {/* Progress Bar */}
+          <View style={styles.progressBarContainer}>
+            <View style={styles.progressBarBackground}>
+              <View 
+                style={[
+                  styles.progressBarFill, 
+                  { width: `${stepProgress}%` }
+                ]} 
+              />
+            </View>
+            <DText style={styles.progressText}>
+              {stepProgress}% Complete
+            </DText>
+          </View>
+
+          {/* Step Indicators */}
+          <View style={styles.stepIndicatorsContainer}>
+            {[10, 20, 30, 50, 70, 85, 95, 100].map((progress, index) => (
+              <View 
+                key={index}
+                style={[
+                  styles.stepIndicator,
+                  stepProgress >= progress && styles.stepIndicatorActive
+                ]}
+              />
+            ))}
+          </View>
+
+          {/* Fee Information */}
+          {calculatedTax > 0 && (
+            <View style={styles.feeInfoContainer}>
+              <DText style={styles.feeInfoText}>
+                Transaction Fee: {calculatedTax.toFixed(4)} WUSDC
+              </DText>
+            </View>
+          )}
+        </View>
+
+        {/* Spacer to push content up */}
+        <View style={styles.spacer} />
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderSuccess = () => (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -873,10 +944,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
   },
-  taxTotalValue: {
-    fontSize: 14,
-    color: '#555',
-  },
   button: {
     backgroundColor: '#81c8c3',
     padding: 14,
@@ -892,29 +959,76 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  processingContainer: {
+  animationSection: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 40,
   },
-  processingTitle: {
-    fontSize: 20,
-    color: '#1A1A1A',
-    marginTop: 20,
-    textAlign: 'center',
+  lottieProcessingAnimation: {
+    width: 250,
+    height: 250,
   },
-  processingSubtitle: {
+  progressSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  progressBarContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 10,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#81c8c3',
+    borderRadius: 5,
+  },
+  progressText: {
     fontSize: 16,
-    color: '#666',
-    marginTop: 8,
-    textAlign: 'center',
+    color: '#1A1A1A',
+    fontWeight: '600',
   },
-  processingFeeText: {
+  stepIndicatorsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    gap: 12,
+  },
+  stepIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E0E0E0',
+  },
+  stepIndicatorActive: {
+    backgroundColor: '#81c8c3',
+  },
+  feeInfoContainer: {
+    backgroundColor: '#F0FBF9',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#B8E6E1',
+    alignItems: 'center',
+  },
+  feeInfoText: {
     fontSize: 14,
-    color: '#555',
-    marginTop: 8,
-    textAlign: 'center',
-    fontWeight: 'bold',
+    color: '#81c8c3',
+    fontWeight: '600',
   },
+  spacer: {
+    flex: 0.5,
+  },
+  // Success Screen Styles
   successDetailsContainer: {
     backgroundColor: '#F0FBF9',
     padding: 20,
