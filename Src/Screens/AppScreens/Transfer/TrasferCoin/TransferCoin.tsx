@@ -10,10 +10,12 @@ import {
   Pressable,
   ImageSourcePropType,
   Alert,
+  Linking,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {CustomImageButton, Header, RadioButton} from '../../../../Componants';
+import Clipboard from '@react-native-clipboard/clipboard';
 import {BottomSheet} from 'react-native-btr';
+import {CustomImageButton, Header, RadioButton} from '../../../../Componants';
 import {Animation, Colors, fontsFamily, Images} from '../../../../Theme';
 import {SCREEN_CONSTANT} from '../../../../Navigation/constant';
 import {navigateTo} from '../../../../utils/navigationService';
@@ -30,6 +32,7 @@ import {useAuth} from '../../../../../screens/Provider/authProvider';
 import {useBridge} from '../../../../hooks/useBridge';
 import LottieView from 'lottie-react-native';
 import LoadingScreenWithStep from '../../../../Componants/Loading/LoadingScreenWIthStep';
+import {getBlockExploreLink} from '../../../../utils/explorer';
 
 // Define types
 type TokenKey = 'USDC' | 'WUSDC' | 'EURC' | 'WEURC';
@@ -171,12 +174,15 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     currentProcessingStep,
     stepProgress,
     bridgeSuccess,
+    transactionHash,
     bridgeUSDC,
     bridgeEURC,
     bridgeWUSDC,
     bridgeWEURC,
     resetBridgeState,
   } = useBridge();
+
+  
 
   const initialCoinCode = props?.route?.params?.coinCode || 'USDC';
 
@@ -440,7 +446,11 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     // });
   };
 
-  // Render loading screen
+  const formatTxHash = (hash: string): string => {
+    if (!hash) return '';
+    return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
+  };
+
   const renderProcessing = (): ReactElement => {
     const operationType = transactionType === 0 ? 'Deposit' : 'Withdrawal';
     const networkFrom = transactionType === 0 ? 'Ethereum' : 'DENERGY';
@@ -475,19 +485,96 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
   const renderSuccess = (): ReactElement => {
     const operationType = transactionType === 0 ? 'Deposit' : 'Withdrawal';
+    const sourceNetwork = transactionType === 0 ? 'ETH' : 'DENERGY';
+    const targetNetwork = transactionType === 0 ? 'DENERGY' : 'ETH';
+
+    const handleViewExplorer = () => {
+      if (!transactionHash) {
+        Alert.alert('Error', 'Transaction hash not available');
+        return;
+      }
+
+      const explorerUrl = getBlockExploreLink(transactionHash, 'transaction');
+
+      Linking.openURL(explorerUrl).catch(err => {
+        console.error('Failed to open explorer:', err);
+        Alert.alert('Error', 'Could not open explorer');
+      });
+    };
+    
+    const handleCopyHash = () => {
+    if (!transactionHash) {
+      Alert.alert('Error', 'Transaction hash not available');
+      return;
+    }
+
+    Clipboard.setString(transactionHash);
+    Alert.alert('Copied!', 'Transaction hash copied to clipboard');
+  };
 
     return (
-      <LoadingScreenWithStep
-        title={`${operationType} Successful!`}
-        subtitle={`Your ${selectedToken} has been successfully bridged to ${selectedTargetToken}`}
-        icon="✅"
-        progress={100}
-        showProgressBar={false}
-        showStepIndicators={false}
-        containerStyle={{justifyContent: 'center'}}
-        titleStyle={{color: '#4CAF50'}}
-        iconBackgroundColor="#E8F5E8"
-      />
+      <View style={successStyles.container}>
+        {/* Success Icon and Title */}
+        <View style={successStyles.headerSection}>
+          <View style={successStyles.successIconContainer}>
+            <Text style={successStyles.successIcon}>✅</Text>
+          </View>
+          <DText fontStyle="fontBold" style={successStyles.title}>
+            {operationType} Successful!
+          </DText>
+          <DText style={successStyles.subtitle}>
+            Your bridge transaction completed successfully
+          </DText>
+        </View>
+
+        {/* Main Info Card */}
+        <View style={successStyles.infoCard}>
+          {/* Amount Section */}
+          <View style={successStyles.amountSection}>
+            <DText style={successStyles.amountLabel}>Amount Bridged</DText>
+            <DText fontStyle="fontBold" style={successStyles.amountValue}>
+              {amount} {selectedToken}
+            </DText>
+            <View style={successStyles.networkFlow}>
+              <View style={successStyles.networkBadge}>
+                <DText style={successStyles.networkText}>{sourceNetwork}</DText>
+              </View>
+              <View style={successStyles.arrowContainer}>
+                <Text style={successStyles.arrow}>→</Text>
+              </View>
+              <View style={successStyles.networkBadge}>
+                <DText style={successStyles.networkText}>{targetNetwork}</DText>
+              </View>
+            </View>
+          </View>
+
+          {/* Transaction Hash Section */}
+         {transactionHash && (
+          <View style={successStyles.hashSection}>
+            <DText style={successStyles.hashLabel}>Transaction Hash</DText>
+            <View style={successStyles.hashContainer}>
+              <Pressable 
+                style={successStyles.hashDisplay}
+                onPress={handleCopyHash}>
+                <Text style={successStyles.hashText}>
+                  {formatTxHash(transactionHash)}
+                </Text>
+                <Text style={successStyles.copyIcon}>📋</Text>
+              </Pressable>
+              <Pressable
+                style={successStyles.explorerButton}
+                onPress={handleViewExplorer}
+              >
+                <Text style={successStyles.explorerIcon}>🔍</Text>
+              </Pressable>
+            </View>
+            <DText style={successStyles.hashHint}>
+              Tap hash to copy • Tap 🔍 to view on explorer
+            </DText>
+          </View>
+        )}
+        </View>
+      </View>
     );
   };
 
@@ -646,7 +733,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         <RadioButton
           PROP={options}
           selectedOption={selectedOption}
-          selectedValue={value => selectedValue(value as TokenKey)}
+          selectedValue={(value: TokenKey) => selectedValue(value as TokenKey)}
         />
 
         <CustomImageButton
@@ -743,6 +830,191 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     </SafeAreaView>
   );
 }
+
+const successStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
+  },
+  headerSection: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  successIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#E8F5E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#4CAF50',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  successIcon: {
+    fontSize: 50,
+  },
+  title: {
+    fontSize: 28,
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  infoCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  amountSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9ECEF',
+  },
+  amountLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  amountValue: {
+    fontSize: 32,
+    color: '#1A1A1A',
+    marginBottom: 16,
+  },
+  networkFlow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  networkBadge: {
+    backgroundColor: '#81c8c3',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  networkText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  arrowContainer: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E9ECEF',
+  },
+  arrow: {
+    fontSize: 16,
+    color: '#81c8c3',
+    fontWeight: 'bold',
+  },
+  hashSection: {
+    marginBottom: 24,
+  },
+  hashLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  hashContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  hashDisplay: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  hashText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+    fontFamily: 'monospace',
+    fontWeight: '600',
+    flex: 1,
+  },
+  copyIcon: {
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  hashHint: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  explorerButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#81c8c3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#81c8c3',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  explorerIcon: {
+    fontSize: 20,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  statItem: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  statIcon: {
+    fontSize: 24,
+  },
+  statText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+});
 
 const styles = StyleSheet.create({
   screen: {

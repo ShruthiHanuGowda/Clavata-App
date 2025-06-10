@@ -56,6 +56,7 @@ export const useBridge = () => {
   const [currentProcessingStep, setCurrentProcessingStep] = useState('');
   const [stepProgress, setStepProgress] = useState(0);
   const [bridgeSuccess, setBridgeSuccess] = useState(false);
+  const [transactionHash, setTransactionHash] = useState<string>('');
 
   // Get magic instance from the provider
   const {magic_sepolia, magic_denergy, setActiveNetwork} = useMagic();
@@ -101,6 +102,7 @@ export const useBridge = () => {
     setCurrentProcessingStep('');
     setStepProgress(0);
     setBridgeSuccess(false);
+    setTransactionHash('');
     setError(null);
   };
 
@@ -119,6 +121,8 @@ export const useBridge = () => {
           throw new Error('Magic SDK not available');
         }
 
+        console.log('amount', amount);
+        
         setIsLoading(true);
         setError(null);
         resetBridgeState();
@@ -145,7 +149,7 @@ export const useBridge = () => {
         try {
           const balance = await usdcContract.balanceOf(
             await signer.getAddress(),
-          );
+          );    
         } catch (err) {
           // Balance check failed, continue anyway
         }
@@ -154,11 +158,14 @@ export const useBridge = () => {
         updateProcessingStep('DEPOSIT', 'APPROVING_TOKEN');
         const approveTx = await usdcContract.approve(
           bankAddress,
-          parseUnits(amount, 6), // USDC has 6 decimals
+          parseUnits(amount, 6),
         );
+        console.log('Approve transaction:', approveTx);
         
         updateProcessingStep('DEPOSIT', 'WAITING_APPROVAL');
         const approvalReceipt = await approveTx.wait();
+        console.log('Approval receipt:', approvalReceipt);
+        
 
         // Deposit USDC to bridge
         updateProcessingStep('DEPOSIT', 'DEPOSITING');
@@ -166,9 +173,12 @@ export const useBridge = () => {
           usdcAddress,
           parseUnits(amount, 6),
         );
+        console.log('Deposit transaction:', depositTx);
+        
         
         updateProcessingStep('DEPOSIT', 'WAITING_DEPOSIT');
         const receipt = await depositTx.wait();
+        setTransactionHash(receipt.hash)
 
         // Get user address from Auth provider
         const userAddress = userDetails?.denergyWallet || '';
@@ -273,6 +283,8 @@ export const useBridge = () => {
         
         updateProcessingStep('DEPOSIT', 'WAITING_DEPOSIT');
         const receipt = await depositTx.wait();
+        setTransactionHash(receipt.hash)
+
 
         // Get user address from Auth provider
         const userAddress = userDetails?.denergyWallet || '';
@@ -380,6 +392,7 @@ export const useBridge = () => {
         
         updateProcessingStep('WITHDRAW', 'WAITING_BURN');
         const receipt = await depositTx.wait();
+        setTransactionHash(receipt.hash);
 
         // Get user address from Auth provider
         const userAddress = userDetails?.ethereumWallet || '';
@@ -541,6 +554,7 @@ export const useBridge = () => {
     currentProcessingStep,
     stepProgress,
     bridgeSuccess,
+    transactionHash,
     bridgeUSDC,
     bridgeEURC,
     bridgeWUSDC,
