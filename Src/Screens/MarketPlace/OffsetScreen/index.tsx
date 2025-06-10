@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -12,33 +12,35 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import { Header } from '@rneui/base';
-import { fontsFamily } from '../../../Theme';
+import {Header} from '@rneui/base';
+import {Animation, fontsFamily} from '../../../Theme';
 import images from '../../../Theme/images';
-import { navigateBack } from '../../../Navigation/NavigationFunctions';
-import { DText } from '../../../Componants/DText';
-import { useOffsetNft } from '../../../hooks/useOffsetNft';
-import { useAuth } from '../../../../screens/Provider/authProvider';
-import { useMagic } from '../../../../screens/Provider/MagicProvider';
+import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import {DText} from '../../../Componants/DText';
+import {useOffsetNft} from '../../../hooks/useOffsetNft';
+import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import RNFS from 'react-native-fs';
 import axios from 'axios';
-import { getBlockExploreLink } from '../../../utils/explorer';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {getBlockExploreLink} from '../../../utils/explorer';
+import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import DatePicker from 'react-native-date-picker';
 import moment from 'moment';
 import Share from 'react-native-share';
+import LottieView from 'lottie-react-native';
+import LoadingScreenWithStep from '../../../Componants/Loading/LoadingScreenWIthStep';
 
 const PURPOSE_OPTIONS = [
-  { label: 'Scope 2 Emissions', value: 'Scope 2 Emissions' },
-  { label: 'Scope 3 Emissions', value: 'Scope 3 Emissions' },
+  {label: 'Scope 2 Emissions', value: 'Scope 2 Emissions'},
+  {label: 'Scope 3 Emissions', value: 'Scope 3 Emissions'},
 ];
 
 const TAX_RATE_PER_MWH = 0.1;
 
-const OffsetScreen = ({ route }: any) => {
-  const { nft } = route.params;
-  const { userDetails } = useAuth();
-  const { magic_denergy } = useMagic();
+const OffsetScreen = ({route}: any) => {
+  const {nft} = route.params;
+  const {userDetails} = useAuth();
+  const {magic_denergy} = useMagic();
   const [volume, setVolume] = useState('');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -58,11 +60,15 @@ const OffsetScreen = ({ route }: any) => {
     'startDate' | 'endDate' | null
   >(null);
 
+  const animationRef = useRef<any>(null);
+
   const account = userDetails?.userWallet;
   const walletAddress = userDetails?.userWallet;
 
   const {
     isLoadingOffset,
+    currentProcessingStep,
+    stepProgress,
     redemptionUrl,
     pdfDownloadUrl,
     transactionHash,
@@ -81,7 +87,14 @@ const OffsetScreen = ({ route }: any) => {
     }
   }, [offsetSuccess, redemptionUrl]);
 
-  // Calculate tax whenever volume changes
+  useEffect(() => {
+    if (animationRef.current) {
+      setTimeout(() => {
+        animationRef.current.play();
+      }, 300);
+    }
+  }, [animationRef]);
+
   useEffect(() => {
     if (volume && !isNaN(Number(volume)) && Number(volume) > 0) {
       const tax = Number(volume) * TAX_RATE_PER_MWH;
@@ -125,7 +138,7 @@ const OffsetScreen = ({ route }: any) => {
     setShowStartDatePicker(false);
     setStartDate(selectedDate);
 
-    let newErrors = { ...dateErrors };
+    let newErrors = {...dateErrors};
 
     // Clear invalid format error (we assume the date picker always returns a valid Date)
     delete newErrors.startDate;
@@ -143,7 +156,7 @@ const OffsetScreen = ({ route }: any) => {
     setShowEndDatePicker(false);
     setEndDate(selectedDate);
 
-    let newErrors = { ...dateErrors };
+    let newErrors = {...dateErrors};
 
     // Clear invalid format error (picker guarantees valid date)
     delete newErrors.endDate;
@@ -252,10 +265,10 @@ const OffsetScreen = ({ route }: any) => {
         failOnCancel: false,
         showAppsToView: true,
       })
-        .then((res) => {
+        .then(res => {
           console.log(res);
         })
-        .catch((err) => {
+        .catch(err => {
           err && console.log(err);
         });
     } catch (error) {
@@ -304,7 +317,7 @@ const OffsetScreen = ({ route }: any) => {
 
   const renderForm = () => (
     <KeyboardAwareScrollView
-      contentContainerStyle={{ flexGrow: 1 }}
+      contentContainerStyle={{flexGrow: 1}}
       keyboardShouldPersistTaps="handled"
       style={styles.container}
       showsVerticalScrollIndicator={false}
@@ -373,7 +386,7 @@ const OffsetScreen = ({ route }: any) => {
             Start Date *
           </DText>
 
-          <View style={{ position: 'relative' }}>
+          <View style={{position: 'relative'}}>
             <TextInput
               style={[styles.input, dateErrors.endDate && styles.warningInput]}
               value={startDate && moment(startDate).format('YYYY-MM-DD')}
@@ -407,7 +420,7 @@ const OffsetScreen = ({ route }: any) => {
             End Date *
           </DText>
 
-          <View style={{ position: 'relative' }}>
+          <View style={{position: 'relative'}}>
             <TextInput
               style={[styles.input, dateErrors.endDate && styles.warningInput]}
               value={endDate && moment(endDate).format('YYYY-MM-DD')}
@@ -471,7 +484,7 @@ const OffsetScreen = ({ route }: any) => {
                   style={[
                     styles.dropdownOption,
                     index === PURPOSE_OPTIONS.length - 1 &&
-                    styles.lastDropdownOption,
+                      styles.lastDropdownOption,
                   ]}
                   onPress={() => handlePurposeSelect(option)}
                   activeOpacity={0.8}>
@@ -497,22 +510,28 @@ const OffsetScreen = ({ route }: any) => {
     </KeyboardAwareScrollView>
   );
 
-  const renderProcessing = () => (
-    <View style={styles.centerContainer}>
-      <View style={styles.processingContainer}>
-        <ActivityIndicator size="large" color="#81c8c3" />
-        <DText fontStyle="fontBold" style={styles.processingTitle}>
-          Processing Offset...
-        </DText>
-        <DText style={styles.processingSubtitle}>Burning tokens ....</DText>
-        {calculatedTax > 0 && (
-          <DText style={styles.processingFeeText}>
-            Fee: {calculatedTax.toFixed(4)} WUSDC
-          </DText>
-        )}
-      </View>
-    </View>
-  );
+  const renderProcessing = () => {
+    return (
+      <LoadingScreenWithStep
+        title="Processing Offset..."
+        subtitle={currentProcessingStep || 'Initializing...'}
+        icon="⚡"
+        progress={stepProgress}
+        showProgressBar={true}
+        showStepIndicators={true}
+        stepIndicatorCount={8}
+        feeInfo={
+          calculatedTax > 0
+            ? `Transaction Fee: ${calculatedTax.toFixed(4)} WUSDC`
+            : undefined
+        }
+        animationSource={Animation.processingAnimation}
+        progressBarColor="#81c8c3"
+        backgroundColor="#FFF"
+        iconBackgroundColor="#E8F8F7"
+      />
+    );
+  };
 
   const renderSuccess = () => (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -614,7 +633,7 @@ const OffsetScreen = ({ route }: any) => {
     <View style={styles.screenContainer}>
       <Header
         backgroundColor={'#FFF'}
-        containerStyle={{ borderBottomWidth: 0 }}
+        containerStyle={{borderBottomWidth: 0}}
         leftComponent={
           <TouchableOpacity
             onPress={() => navigateBack()}
@@ -818,7 +837,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
@@ -873,10 +892,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
   },
-  taxTotalValue: {
-    fontSize: 14,
-    color: '#555',
-  },
   button: {
     backgroundColor: '#81c8c3',
     padding: 14,
@@ -892,29 +907,76 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  processingContainer: {
+  animationSection: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 40,
   },
-  processingTitle: {
-    fontSize: 20,
-    color: '#1A1A1A',
-    marginTop: 20,
-    textAlign: 'center',
+  lottieProcessingAnimation: {
+    width: 250,
+    height: 250,
   },
-  processingSubtitle: {
+  progressSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  progressBarContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 10,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#81c8c3',
+    borderRadius: 5,
+  },
+  progressText: {
     fontSize: 16,
-    color: '#666',
-    marginTop: 8,
-    textAlign: 'center',
+    color: '#1A1A1A',
+    fontWeight: '600',
   },
-  processingFeeText: {
+  stepIndicatorsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    gap: 12,
+  },
+  stepIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E0E0E0',
+  },
+  stepIndicatorActive: {
+    backgroundColor: '#81c8c3',
+  },
+  feeInfoContainer: {
+    backgroundColor: '#F0FBF9',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#B8E6E1',
+    alignItems: 'center',
+  },
+  feeInfoText: {
     fontSize: 14,
-    color: '#555',
-    marginTop: 8,
-    textAlign: 'center',
-    fontWeight: 'bold',
+    color: '#81c8c3',
+    fontWeight: '600',
   },
+  spacer: {
+    flex: 0.5,
+  },
+  // Success Screen Styles
   successDetailsContainer: {
     backgroundColor: '#F0FBF9',
     padding: 20,
