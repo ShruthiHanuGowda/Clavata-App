@@ -24,12 +24,14 @@ import styles from './styles';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
+import {formatQuantityMWh} from '../../../utils';
 // Interface for component props
 interface StakeScreenProps {
   // You can add props here if needed
 }
 
-const StakeScreen: React.FC<StakeScreenProps> = () => {
+const StakeScreen: React.FC<StakeScreenProps> = props => {
+  const validatorId = props?.route?.params?.validatorId;
   const {userDetails} = useAuth();
   const {
     nfts,
@@ -46,7 +48,7 @@ const StakeScreen: React.FC<StakeScreenProps> = () => {
     isLoading: isNFTStakingLoading,
     error: nftStakingError,
     delegateERC1155,
-  } = useNFTStaking();
+  } = useNFTStaking(validatorId);
 
   const {setActiveNetwork} = useMagic();
 
@@ -237,7 +239,9 @@ const StakeScreen: React.FC<StakeScreenProps> = () => {
                     {formatContractAddress(selectedNFT.contractAddress)}
                   </Text>
                   <Text style={styles.nftDetailText}>
-                    Quantity: {selectedNFT.marketData?.quantity || 'N/A'}
+                    Quantity:{' '}
+                    {formatQuantityMWh(selectedNFT.marketData?.quantity) ||
+                      'N/A'}
                   </Text>
                   <Text style={styles.nftDetailText}>
                     Location: {selectedNFT.location}

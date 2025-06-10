@@ -10,12 +10,10 @@ import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useWallet} from '../../../../screens/Provider/WalletProvider';
 import {STAKING_CONTRACT_ABI, ERC1155_ABI} from '../../../utils/Contracts';
-import {STAKING_ADDRESS, STAKING_VALIDATOR_ADDRESS} from '../../../constants';
+import {STAKING_ADDRESS} from '../../../constants';
 
 // Contract address for the staking contract
 const STAKING_CONTRACT_ADDRESS = STAKING_ADDRESS;
-// Validator address imported from constants
-const VALIDATOR_ADDRESS = STAKING_VALIDATOR_ADDRESS;
 
 // Event interfaces for the event listeners
 interface DelegateEvent {
@@ -56,9 +54,10 @@ type SuccessCallback = (result: StakingSuccess) => void;
 
 /**
  * Custom hook for NFT staking operations
+ * @param validatorAddress - Dynamic validator address to use for staking operations
  * @returns Staking state and functions
  */
-export const useNFTStaking = () => {
+export const useNFTStaking = (validatorAddress?: string) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isApproved, setIsApproved] = useState<boolean>(false);
@@ -210,15 +209,21 @@ export const useNFTStaking = () => {
       amount: string,
       onSuccess?: SuccessCallback,
     ): Promise<TransactionReceipt | undefined> => {
+      // Validate that validator address is provided
+      if (!validatorAddress) {
+        const errorMsg = 'Validator address is required for staking';
+        console.error(`[NFT Staking] ${errorMsg}`);
+        setError(errorMsg);
+        throw new Error(errorMsg);
+      }
+
       console.log(
         `[NFT Staking] Starting delegate process for token ${tokenId}`,
       );
       console.log(
         `[NFT Staking] Contract: ${erc1155Contract}, Amount: ${amount}`,
       );
-      console.log(
-        `[NFT Staking] Using validator address: ${VALIDATOR_ADDRESS}`,
-      );
+      console.log(`[NFT Staking] Using validator address: ${validatorAddress}`);
 
       await setActiveNetwork('denergy');
       console.log('[NFT Staking] Network set to denergy');
@@ -283,12 +288,12 @@ export const useNFTStaking = () => {
         const tokenIdBigInt = BigInt(tokenId);
         console.log(`[NFT Staking] Amount in Wei: ${amountInWei.toString()}`);
 
-        // Call the delegateERC1155 function
+        // Call the delegateERC1155 function with dynamic validator address
         console.log('[NFT Staking] Submitting delegate transaction...');
         const tx = await stakingContract.delegateERC1155(
           erc1155Contract,
           delegatorAddress,
-          VALIDATOR_ADDRESS, // Use the imported validator address
+          validatorAddress, // Use the dynamic validator address
           tokenIdBigInt,
           amountInWei,
           {gasLimit: 9000000},
@@ -312,7 +317,7 @@ export const useNFTStaking = () => {
           const successData: StakingSuccess = {
             txHash: receipt.hash,
             userAddress: delegatorAddress,
-            validatorAddress: VALIDATOR_ADDRESS,
+            validatorAddress: validatorAddress,
             erc1155Contract: erc1155Contract,
             tokenId: tokenId,
             amount: amount,
@@ -343,6 +348,7 @@ export const useNFTStaking = () => {
       setActiveNetwork,
       checkApproval,
       setApproval,
+      validatorAddress, // Add validatorAddress as dependency
     ],
   );
 
@@ -362,15 +368,21 @@ export const useNFTStaking = () => {
     ): Promise<
       {receipt: TransactionReceipt; completionTime: string} | undefined
     > => {
+      // Validate that validator address is provided
+      if (!validatorAddress) {
+        const errorMsg = 'Validator address is required for unstaking';
+        console.error(`[NFT Staking] ${errorMsg}`);
+        setError(errorMsg);
+        throw new Error(errorMsg);
+      }
+
       console.log(
         `[NFT Staking] Starting undelegate process for token ${tokenId}`,
       );
       console.log(
         `[NFT Staking] Contract: ${erc1155Contract}, Amount: ${amount}`,
       );
-      console.log(
-        `[NFT Staking] Using validator address: ${VALIDATOR_ADDRESS}`,
-      );
+      console.log(`[NFT Staking] Using validator address: ${validatorAddress}`);
 
       await setActiveNetwork('denergy');
       console.log('[NFT Staking] Network set to denergy');
@@ -406,12 +418,12 @@ export const useNFTStaking = () => {
         const tokenIdBigInt = BigInt(tokenId);
         console.log(`[NFT Staking] Amount in Wei: ${amountInWei.toString()}`);
 
-        // Call the undelegateERC1155 function
+        // Call the undelegateERC1155 function with dynamic validator address
         console.log('[NFT Staking] Submitting undelegate transaction...');
         const tx = await stakingContract.undelegateERC1155(
           erc1155Contract,
           delegatorAddress,
-          VALIDATOR_ADDRESS, // Use the imported validator address
+          validatorAddress, // Use the dynamic validator address
           tokenIdBigInt,
           amountInWei,
           {gasLimit: 9000000},
@@ -446,7 +458,7 @@ export const useNFTStaking = () => {
           const successData: StakingSuccess = {
             txHash: receipt.hash,
             userAddress: delegatorAddress,
-            validatorAddress: VALIDATOR_ADDRESS,
+            validatorAddress: validatorAddress,
             erc1155Contract: erc1155Contract,
             tokenId: tokenId,
             amount: amount,
@@ -473,7 +485,13 @@ export const useNFTStaking = () => {
         console.log('[NFT Staking] Undelegate process finished');
       }
     },
-    [magic_denergy, userDetails, refreshBalance, setActiveNetwork],
+    [
+      magic_denergy,
+      userDetails,
+      refreshBalance,
+      setActiveNetwork,
+      validatorAddress,
+    ],
   );
 
   /**
@@ -663,7 +681,7 @@ export const useNFTStaking = () => {
 
   console.log(
     '[NFT Staking] Hook initialized with validator:',
-    VALIDATOR_ADDRESS,
+    validatorAddress || 'No validator address provided',
   );
 
   return {

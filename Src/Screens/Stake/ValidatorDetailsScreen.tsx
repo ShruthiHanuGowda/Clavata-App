@@ -53,7 +53,7 @@ const ValidatorDetailsScreen = ({
 
   // Get the validatorId from route params (assuming it's passed when navigating)
   const validatorId = route.params?.validatorId || 'val_001';
-
+  console.log('validatorId', validatorId);
   // Use our custom hook
   const {singleValidator} = useValidators();
 
@@ -204,20 +204,31 @@ const ValidatorDetailsScreen = ({
         <View style={styles.validatorNameContainer}>
           <Text style={styles.validatorName}>{validator.name}</Text>
           <View style={styles.validatorIdContainer}>
-            <Text style={styles.validatorId}>ID: {validator.validatorId}</Text>
+            <Text style={styles.validatorId}>ID: </Text>
+            <Text>
+              {`${validator.validatorId.slice(
+                0,
+                16,
+              )}...${validator.validatorId.slice(-10)}`}
+            </Text>
+            {/* <Text style={styles.validatorId}>ID: {validator.validatorId}</Text> */}
           </View>
         </View>
 
         {/* Description Section */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Description:</Text>
-          <Text style={styles.description}>"{validator.description}"</Text>
+          {/* <Text style={styles.sectionTitle}>Description:</Text>
+          <Text style={styles.description}>"{validator.description}"</Text> */}
 
           <View style={styles.row}>
             <Text style={styles.label}>Public Key: </Text>
             <TouchableOpacity>
               <Text style={styles.link}>
-                {validator.publicKey} (Click to copy)
+                {`${validator.publicKey.slice(
+                  0,
+                  16,
+                )}...${validator.publicKey.slice(-10)} (Click to copy)`}
+                {/* {validator.publicKey} (Click to copy) */}
               </Text>
             </TouchableOpacity>
           </View>

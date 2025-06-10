@@ -14,6 +14,7 @@ import {fontsFamily} from '../../Theme';
 import {BottomSheet} from 'react-native-btr';
 import {DButton} from '../../Componants';
 import {navigateTo} from '../../utils/navigationService';
+import {formatQuantityMWh} from '../../utils';
 
 // Interface definitions
 interface NFTDelegation {
@@ -89,7 +90,7 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
     if (watt > 0) {
       return `${nft} NFT + ${formatNumber(watt)} Watt`;
     }
-    return `${nft} NFT`;
+    return `${nft}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -185,7 +186,9 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
           </View>
           <View style={styles.stakeAmountContainer}>
             <Text style={styles.stakeAmount}>
-              {formatStake(asset.stake.nft, asset.stake.watt)}
+              {formatQuantityMWh(
+                parseFloat(formatStake(asset.stake.nft, asset.stake.watt)),
+              )}
             </Text>
           </View>
         </View>
@@ -411,11 +414,13 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
                     <Text style={styles.detailLabel}>Amount:</Text>
                     <View style={styles.amountBadge}>
                       <Text style={styles.amountText}>
-                        {selectedAsset.originalData.amount}
+                        {formatQuantityMWh(
+                          parseFloat(selectedAsset.originalData.amount),
+                        )}
                       </Text>
                     </View>
                   </View>
-                  <View style={styles.detailRow}>
+                  {/* <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Shares:</Text>
                     <View style={styles.sharesBadge}>
                       <Text style={styles.sharesText}>
@@ -427,7 +432,7 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
                         })}
                       </Text>
                     </View>
-                  </View>
+                  </View> */}
                 </View>
 
                 {/* Address Information */}
