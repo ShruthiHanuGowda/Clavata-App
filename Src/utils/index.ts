@@ -1,3 +1,5 @@
+import {Images} from '../Theme';
+
 export const formatQuantityMWh = (
   quantity: number,
   unit: boolean = true,
@@ -135,12 +137,12 @@ export const getCountryFlag = (countryName: string): string => {
 
 export const getEnergyTypeIcon = (type: string): string => {
   const typeIcons: Record<string, string> = {
-    Solar: '☀️',
-    Wind: '💨',
-    'Hydro-Electric': '💧',
-    Geothermal: '🌋',
-    Biomass: '🌿',
-    Nuclear: '⚛️',
+    Solar: Images.energySolarIcon || '☀️',
+    Wind: Images.energyWindIcon || '💨',
+    'Hydro-Electric': Images.energyHydroIcon || '💧',
+    Geothermal: Images.energyGeothermalIcon || '🌋',
+    Biomass: Images.energyGeothermalIcon || '🌱',
+    Nuclear: Images.energynuclearIcon || '☢️',
     Unknown: '❓',
   };
 

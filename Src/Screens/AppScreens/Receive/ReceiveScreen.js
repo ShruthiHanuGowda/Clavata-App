@@ -11,6 +11,8 @@ const ReceiveScreen = ({route}) => {
   const {coinCode} = route.params;
   console.log('🚀 ~ ReceiveScreen ~ coinCode:', coinCode);
   const {userDetails} = useAuth();
+  console.log("coinCode:", coinCode);
+  
   return (
     <View style={styles.container}>
       <Header
@@ -24,7 +26,7 @@ const ReceiveScreen = ({route}) => {
         centerComponent={
           <View style={styles.nameContainer}>
             <DText fontStyle="fontBold" style={styles.headerTitle}>
-              {coinCode} Wallet
+              {coinCode === 'NFT' ? 'Wallet' : `${coinCode} Wallet`}
             </DText>
           </View>
         }

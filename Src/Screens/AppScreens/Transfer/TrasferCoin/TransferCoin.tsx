@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Image,
@@ -11,23 +11,23 @@ import {
   ImageSourcePropType,
   Alert,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {CustomImageButton, Header, RadioButton} from '../../../../Componants';
-import {BottomSheet} from 'react-native-btr';
-import {Colors, fontsFamily, Images} from '../../../../Theme';
-import {SCREEN_CONSTANT} from '../../../../Navigation/constant';
-import {navigateTo} from '../../../../utils/navigationService';
-import {TouchableOpacity} from 'react-native-gesture-handler';
-import {Path, Svg} from 'react-native-svg';
-import {ScreenWidth} from '@rneui/base';
-import {marketIcons} from '../../../../Theme/variable';
-import {DText} from '../../../../Componants/DText';
-import {navigateBack} from '../../../../Navigation/NavigationFunctions';
-import {useWallet} from '../../../../../screens/Provider/WalletProvider';
-import {ReactElement} from 'react';
-import {useMagic} from '../../../../../screens/Provider/MagicProvider';
-import {useAuth} from '../../../../../screens/Provider/authProvider';
-import {useBridge} from '../../../../hooks/useBridge';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { CustomImageButton, Header, RadioButton } from '../../../../Componants';
+import { BottomSheet } from 'react-native-btr';
+import { Colors, fontsFamily, Images } from '../../../../Theme';
+import { SCREEN_CONSTANT } from '../../../../Navigation/constant';
+import { navigateTo } from '../../../../utils/navigationService';
+import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Path, Svg } from 'react-native-svg';
+import { ScreenWidth } from '@rneui/base';
+import { marketIcons } from '../../../../Theme/variable';
+import { DText } from '../../../../Componants/DText';
+import { navigateBack } from '../../../../Navigation/NavigationFunctions';
+import { useWallet } from '../../../../../screens/Provider/WalletProvider';
+import { ReactElement } from 'react';
+import { useMagic } from '../../../../../screens/Provider/MagicProvider';
+import { useAuth } from '../../../../../screens/Provider/authProvider';
+import { useBridge } from '../../../../hooks/useBridge';
 // Define types
 type TokenKey = 'USDC' | 'WUSDC' | 'EURC' | 'WEURC';
 
@@ -79,17 +79,17 @@ interface FeeApiResponse {
 
 // Token definitions
 const TOKENS: Record<TokenKey, TokenInfo> = {
-  USDC: {name: 'USDC', wrapped: 'WUSDC', network: 'ETH'},
-  WUSDC: {name: 'wUSDC', unwrapped: 'USDC', network: 'DENERGY'},
-  EURC: {name: 'EURC', wrapped: 'WEURC', network: 'ETH'},
-  WEURC: {name: 'wEURC', unwrapped: 'EURC', network: 'DENERGY'},
+  USDC: { name: 'USDC', wrapped: 'WUSDC', network: 'ETH' },
+  WUSDC: { name: 'wUSDC', unwrapped: 'USDC', network: 'DENERGY' },
+  EURC: { name: 'EURC', wrapped: 'WEURC', network: 'ETH' },
+  WEURC: { name: 'wEURC', unwrapped: 'EURC', network: 'DENERGY' },
 };
 
 const allCoins: TokenOption[] = [
-  {key: 'USDC', text: 'USDC'},
-  {key: 'WUSDC', text: 'wUSDC'},
-  {key: 'EURC', text: 'EURC'},
-  {key: 'WEURC', text: 'wEURC'},
+  { key: 'USDC', text: 'USDC' },
+  { key: 'WUSDC', text: 'wUSDC' },
+  { key: 'EURC', text: 'EURC' },
+  { key: 'WEURC', text: 'wEURC' },
 ];
 
 // Helper function to format amounts
@@ -144,7 +144,7 @@ const networkFeeApi = async (
 };
 
 export default function TransferCoin(props: TransferCoinProps): ReactElement {
-  const {getBalance} = useWallet();
+  const { getBalance } = useWallet();
   const {
     isLoading: bridgeLoading,
     error: bridgeError,
@@ -180,7 +180,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   const [options, setOptions] = useState<TokenOption[]>([]);
 
   // Get balance for the selected token
-  const {balance: tokenBalance, balanceUsd: tokenBalanceUsd}: TokenBalance =
+  const { balance: tokenBalance, balanceUsd: tokenBalanceUsd }: TokenBalance =
     getBalance(selectedToken);
 
   // Update target token whenever source token changes
@@ -215,8 +215,8 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         coinCode === 'WUSDC'
           ? 'USDC'
           : coinCode === 'WEURC'
-          ? 'EURC'
-          : coinCode,
+            ? 'EURC'
+            : coinCode,
       );
     } else {
       // Withdraw options - wrapped tokens
@@ -227,8 +227,8 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         coinCode === 'USDC'
           ? 'WUSDC'
           : coinCode === 'EURC'
-          ? 'WEURC'
-          : coinCode,
+            ? 'WEURC'
+            : coinCode,
       );
     }
   }, [transactionType]);
@@ -440,7 +440,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
           </View>
         )}
 
-        <View style={[styles.balanceInnerView, {marginBottom: 15}]}>
+        <View style={[styles.balanceInnerView, { marginBottom: 15 }]}>
           <Text style={styles.networkLabel}>
             {transactionType === 0 ? 'To DENERGY Network' : 'To ETH Network'}
           </Text>
@@ -465,12 +465,12 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         }}
         style={[
           styles.tabButton,
-          {backgroundColor: transactionType === 0 ? '#000' : '#fff'},
+          { backgroundColor: transactionType === 0 ? '#000' : '#fff' },
         ]}>
         <Text
           style={[
             styles.tabButtonText,
-            {color: transactionType === 0 ? '#fff' : '#000'},
+            { color: transactionType === 0 ? '#fff' : '#000' },
           ]}>
           Deposit
         </Text>
@@ -484,12 +484,12 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         }}
         style={[
           styles.tabButton,
-          {backgroundColor: transactionType === 1 ? '#000' : '#fff'},
+          { backgroundColor: transactionType === 1 ? '#000' : '#fff' },
         ]}>
         <Text
           style={[
             styles.tabButtonText,
-            {color: transactionType === 1 ? '#fff' : '#000'},
+            { color: transactionType === 1 ? '#fff' : '#000' },
           ]}>
           Withdraw
         </Text>
@@ -506,7 +506,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         style={styles.tokenDropdown}
         activeOpacity={1}
         onPress={isSelectable ? () => toggleBottomView('press') : undefined}>
-        <Image source={marketIcons[tokenKey] as ImageSourcePropType} />
+        <Image source={marketIcons[tokenKey] as ImageSourcePropType} style={{ width: 24, height: 24 }} />
         <Text style={styles.tokenDropdownText}>
           {getDisplayTokenName(tokenKey)}
         </Text>

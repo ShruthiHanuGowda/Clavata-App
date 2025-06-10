@@ -9,12 +9,12 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Image,
 } from 'react-native';
 import MyCertificateCard from './MyCertificateCard';
 import { NftToken } from '../../types/types';
 import { fontsFamily } from '../../Theme';
 import { formatQuantityMWh, getCountryFlag } from '../../utils';
-import { N } from 'ethers';
 
 interface Props {
   nfts: NftToken[];
@@ -51,6 +51,7 @@ const MyCertificatesList = ({
   const [openCountries, setOpenCountries] = useState<Record<string, boolean>>(
     {},
   );
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const toggleCountry = (country: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -67,6 +68,28 @@ const MyCertificatesList = ({
     }, 0);
   };
 
+  // Helper function to get country flag image from the first NFT of each country
+  const getCountryImage = (countryNfts: NftToken[]) => {
+    return countryNfts[0]?.country_image;
+  };
+
+  // Helper function to validate URL
+  const isValidUrl = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleImageError = (country: string) => {
+    setImageErrors(prev => ({
+      ...prev,
+      [country]: true,
+    }));
+  };
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -79,6 +102,7 @@ const MyCertificatesList = ({
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       {Object.entries(groupedNfts).map(([country, countryNfts]) => {
         const isOpen = openCountries[country] ?? false;
+        const countryImageUrl = getCountryImage(countryNfts);
 
         return (
           <View key={country} style={[styles.groupContainer, containerStyle]}>
@@ -87,7 +111,16 @@ const MyCertificatesList = ({
               style={styles.headerContainer}>
               <View style={styles.headerLeft}>
                 <View style={styles.flagContainer}>
-                  <Text style={styles.flagEmoji}>{getCountryFlag(country)}</Text>
+                  {countryImageUrl && isValidUrl(countryImageUrl) && !imageErrors[country] ? (
+                    <Image
+                      source={{ uri: countryImageUrl }}
+                      style={styles.flag}
+                      resizeMode="contain"
+                      onError={() => handleImageError(country)}
+                    />
+                  ) : (
+                    <Text style={styles.flagEmoji}>{getCountryFlag(country)}</Text>
+                  )}
                 </View>
                 <View style={styles.headerTextContainer}>
                   <Text style={styles.countryTitle}>{country}</Text>
@@ -167,6 +200,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  flag: {
+    width: 18,
+    height: 18,
+    borderRadius: 2,
   },
   flagEmoji: {
     fontSize: 18,

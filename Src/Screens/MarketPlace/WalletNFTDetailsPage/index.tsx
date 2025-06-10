@@ -21,7 +21,7 @@ import { formatQuantityMWh } from '../../../utils';
 import { useCompleteNft } from '../../../hooks/useCompleteNft';
 import { NftLocation, NftToken } from '../../../types/types';
 import useApi from '../../../hooks/useApi';
-import { API_NFT_URL } from '../../../constants';
+import { API_NFT_URL, NFT_DEFAULT_IMAGE_URL } from '../../../constants';
 import useNftActivity from '../../../hooks/useNftActivity';
 import { useNavigation } from '@react-navigation/native';
 import { BrowserProvider, Contract } from 'ethers';
@@ -34,7 +34,13 @@ import { RefreshControl } from 'react-native-gesture-handler';
 
 const width = Dimensions.get('window').width;
 
-const ActionButton = ({ icon, label, onPress }) => (
+interface ActionButtonProps {
+  icon: any;
+  label: string;
+  onPress: () => void;
+}
+
+const ActionButton = ({ icon, label, onPress }: ActionButtonProps) => (
   <TouchableOpacity style={styles.actionContainer} onPress={onPress}>
     <View style={styles.actionIconWrapper}>
       <Image source={icon} style={styles.actionIcon} />
@@ -43,27 +49,44 @@ const ActionButton = ({ icon, label, onPress }) => (
   </TouchableOpacity>
 );
 
-const NFTHeader = ({ name, quantity }) => (
+interface NFTHeaderProps {
+  name: string;
+  quantity: string;
+  imageUrl: string | null;
+}
+
+const NFTHeader = ({ name, quantity, imageUrl }: NFTHeaderProps) => (
   <View style={styles.nftHeaderContainer}>
-    <ImageBackground
-      source={images.rectangle}
-      resizeMode="cover"
-      imageStyle={{ borderRadius: 7 }}
-      style={styles.nftImageBackground}>
-      <Image source={images.rectangleDot} style={styles.nftOverlayImage} />
-      <DText fontStyle="fontBold" style={styles.portfolio}>
-        NFT Details
-      </DText>
-      <DText
-        fontStyle="fontBold"
-        style={styles.totalAmount}
-        textProps={{ numberOfLines: 1, ellipsizeMode: 'tail' }}>
+    {/* NFT Image Card */}
+    <View style={styles.nftImageCard}>
+      <View style={styles.nftImageContainer}>
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.nftSquareImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.nftPlaceholderImage}>
+            <Image source={images.rectangleDot} style={styles.placeholderIcon} />
+          </View>
+        )}
+      </View>
+    </View>
+
+    {/* NFT Info Card */}
+    <View style={styles.nftInfoCard}>
+      <View style={styles.nftInfoHeader}>
+        <Text style={styles.nftDetailsLabel}>Certificate Details</Text>
+      </View>
+      <Text style={styles.nftName} numberOfLines={2} ellipsizeMode="tail">
         {name}
-      </DText>
-      <DText fontStyle="fontBold" style={styles.amount}>
-        {quantity}
-      </DText>
-    </ImageBackground>
+      </Text>
+      <View style={styles.quantityContainer}>
+        <Text style={styles.quantityLabel}>Quantity</Text>
+        <Text style={styles.quantityValue}>{quantity}</Text>
+      </View>
+    </View>
   </View>
 );
 
@@ -122,7 +145,6 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
             refresh();
             refetchActivity();
           },
-
         });
         break;
       case NftLocation.FORSALE:
@@ -164,24 +186,14 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
         showAlerts: false,
       });
     }
-
-    // if (userDetails?.is_verified) {
-    //   navigation.navigate('OffsetScreen', {nft});
-    // } else {
-    // SnackBarMessage(
-    //   'Please complete your kyc to access this feature',
-    //   'error',
-    // );
-    // }
   };
 
   const handleSendNft = (nftToken: NftToken, variant: string) => {
-
     navigation.navigate('SellNFT', {
       variant: variant,
       nftToSell: nftToken,
       refresh: () => {
-        Alert.alert('NFT Sold')
+        Alert.alert('NFT Sent')
         refetch();
         refetchActivity();
       },
@@ -193,6 +205,9 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
     loading: isLoading,
     refetch,
   } = useCompleteNft(`${nft?.collectionAddress}-${nft?.tokenId}`);
+
+  console.log('Combined NFT:', combinedNft);
+
 
   const { data, isLoading: isCollectionLoading } = useApi<any>(
     `${API_NFT_URL}/nftMarketplace_getCollectionTokens?contractAddress=${nft?.collectionAddress}&tokenId=${nft?.tokenId}`,
@@ -221,7 +236,7 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
   if (isLoading || isCollectionLoading || !combinedNft) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#81c8c3" />
+        <ActivityIndicator size="large" color="#009D94" />
         <Text style={styles.loadingText}>Fetching NFT Details...</Text>
       </View>
     );
@@ -238,236 +253,196 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
     <View style={styles.container}>
       <Header
         backgroundColor={'#FFF'}
-        containerStyle={{ borderBottomWidth: 0 }}
+        containerStyle={styles.headerContainer}
         leftComponent={
           <TouchableOpacity
             onPress={() => navigateBack()}
-            style={styles.iconContainer}>
-            <Image source={images.back} />
+            style={styles.backButton}>
+            <Image source={images.back} style={styles.backIcon} />
           </TouchableOpacity>
         }
         centerComponent={
           <View style={styles.nameContainer}>
-            <DText fontStyle="fontBold" style={styles.headerTitle}>
-              NFTs
-            </DText>
+            <Text style={styles.headerTitle}>Certificate</Text>
           </View>
         }
       />
-      <ScrollView refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }>
-        <View style={{ marginTop: 5 }}>
-          <LinearGradient
-            colors={['#FFFFFF', '#dcf2f1', '#FFFFFF']}
-            start={{ x: 0, y: 1 }}
-            end={{ x: 0, y: 0 }}
-            useAngle={true}
-            angle={330}
-            locations={[0, 0, 0.25]}>
-            <View style={{ paddingTop: 10, paddingBottom: 30 }}>
-              <NFTHeader name={nft?.name} quantity={formattedQty} />
-              <View style={styles.btnAlign}>
-                <ActionButton
-                  icon={images.swapcoin}
-                  label={
-                    nft.location === NftLocation.WALLET ? 'Sell' : 'Modify'
-                  }
-                  onPress={() => handleCollectibleClick(nft.location)}
-                />
-                <ActionButton
-                  icon={images.sendIcon}
-                  label="Send"
-                  onPress={() => {
-                    handleSendNft(nft, "transfer");
-                  }}
-                />
-                <ActionButton
-                  icon={images.buyIcon}
-                  label="Offset"
-                  onPress={() => {
-                    handleOffersClick();
-                  }}
-                />
-              </View>
-            </View>
-          </LinearGradient>
+
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }>
+
+        {/* Header Section with Gradient */}
+        <LinearGradient
+          colors={['#F8FFFE', '#E8F8F7', '#F8FFFE']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerSection}>
+
+          <NFTHeader
+            name={nft?.name}
+            quantity={formattedQty}
+            imageUrl={combinedNft?.image?.thumbnail || NFT_DEFAULT_IMAGE_URL}
+          />
+
+          {/* Action Buttons */}
+          <View style={styles.actionButtonsContainer}>
+            <ActionButton
+              icon={images.swapcoin}
+              label={nft.location === NftLocation.WALLET ? 'Sell' : 'Modify'}
+              onPress={() => handleCollectibleClick(nft.location)}
+            />
+            <ActionButton
+              icon={images.sendIcon}
+              label="Send"
+              onPress={() => handleSendNft(nft, "transfer")}
+            />
+            <ActionButton
+              icon={images.buyIcon}
+              label="Offset"
+              onPress={() => handleOffersClick()}
+            />
+          </View>
+        </LinearGradient>
+
+        {/* Tab Section */}
+        <View style={styles.tabSection}>
           <Tab
             value={index}
             onChange={setIndex}
             variant="primary"
-            indicatorStyle={{ backgroundColor: 'transparent' }}
-            style={{ backgroundColor: 'transparent' }}>
+            indicatorStyle={styles.tabIndicator}
+            style={styles.tabContainer}>
             {TAB_ITEMS.map((tab, i) => (
               <Tab.Item
                 key={i}
                 containerStyle={active => ({
-                  borderBottomColor: active ? '#009D94' : '#E1E1E1',
-                  borderBottomWidth: active ? 2 : 1.4,
+                  borderBottomColor: active ? '#009D94' : '#E5E5E5',
+                  borderBottomWidth: active ? 3 : 1,
                   backgroundColor: 'transparent',
+                  paddingVertical: 1,
                 })}
                 title={tab}
                 titleStyle={active => ({
-                  color: active ? '#000' : '#989898',
-                  fontFamily: active
-                    ? fontsFamily.MulishExtraBold
-                    : fontsFamily.MulishBold,
-                  fontSize: 14,
+                  color: active ? '#009D94' : '#6B7280',
+                  fontFamily: active ? fontsFamily.MulishExtraBold : fontsFamily.MulishBold,
+                  fontSize: 16,
+                  fontWeight: active ? '800' : '600',
                 })}
               />
             ))}
           </Tab>
         </View>
-        <View style={{ marginHorizontal: 25, marginTop: 20 }}>
+
+        {/* Content Section */}
+        <View style={styles.contentSection}>
           {index === 0 && (
             <View style={styles.detailsContainer}>
               {[
-                [
-                  'Collection Name',
-                  `${data?.collectionDetails?.collectionName}`,
-                ],
-                ['Symbol', `${data?.collectionDetails?.symbol}`],
-                ['Year', `${data?.collectionDetails?.year}`],
-                ['Country', `${data?.collectionDetails?.country}`],
-                [
-                  'Contract Address',
-                  `${data?.collectionDetails?.contractAddress}`,
-                ],
-                ['Owner Address', `${data?.collectionDetails?.ownerAddress}`],
-                ['Type', `${data?.collectionDetails?.type}`],
-                ['Token ID', `${data?.tokenId}`],
-                [
-                  'Metadata URL',
-                  `${combinedNft?.marketData?.metadataUrl ?? '-'}`,
-                ],
-                [
-                  'Trade Volume (USDC)',
-                  `${combinedNft?.marketData?.tradeVolumeUSDC ?? '-'}`,
-                ],
-                [
-                  'Latest Traded Price (USDC)',
-                  `${combinedNft?.marketData?.latestTradedPriceInUSDC ?? '-'}`,
-                ],
-                [
-                  'Total Trades',
-                  `${combinedNft?.marketData?.totalTrades ?? 0}`,
-                ],
-                ['Total Listed', `${nft?.marketData?.totalListed ?? 0}`],
+                ['Collection Name', `${data?.collectionDetails?.collectionName || '-'}`],
+                ['Symbol', `${data?.collectionDetails?.symbol || '-'}`],
+                ['Year', `${data?.collectionDetails?.year || '-'}`],
+                ['Country', `${data?.collectionDetails?.country || '-'}`],
+                ['Contract Address', `${data?.collectionDetails?.contractAddress || '-'}`],
+                ['Owner Address', `${data?.collectionDetails?.ownerAddress || '-'}`],
+                ['Type', `${data?.collectionDetails?.type || '-'}`],
+                ['Token ID', `${data?.tokenId || '-'}`],
+                ['Metadata URL', `${combinedNft?.marketData?.metadataUrl || '-'}`],
+                ['Trade Volume (USDC)', `${combinedNft?.marketData?.tradeVolumeUSDC || '-'}`],
+                ['Latest Traded Price (USDC)', `${combinedNft?.marketData?.latestTradedPriceInUSDC || '-'}`],
+                ['Total Trades', `${combinedNft?.marketData?.totalTrades || 0}`],
+                ['Total Listed', `${nft?.marketData?.totalListed || 0}`],
               ].map(([title, value], idx) => (
                 <View key={idx} style={styles.detailRow}>
-                  <Text
-                    style={styles.detailTitle}
-                    numberOfLines={1}
-                    ellipsizeMode="tail">
+                  <Text style={styles.detailTitle} numberOfLines={1}>
                     {title}
                   </Text>
-                  <Text
-                    style={styles.detailValue}
-                    numberOfLines={1}
-                    ellipsizeMode="tail">
+                  <Text style={styles.detailValue} numberOfLines={1} ellipsizeMode="tail">
                     {value}
                   </Text>
                 </View>
               ))}
             </View>
           )}
+
           {index === 1 && (
-            <>
+            <View>
               {owners.length > 0 ? (
                 owners.map((item, idx) => (
-                  <View key={idx} style={styles.sellerContainer}>
-                    <View style={styles.sellerRow}>
-                      <Text style={styles.sellerLabel}>Price:</Text>
-                      <Text style={styles.sellerValue}>
-                        $ {item.askPrice} Per MWh
-                      </Text>
+                  <View key={idx} style={styles.sellerCard}>
+                    <View style={styles.sellerHeader}>
+                      <Text style={styles.sellerTitle}>Seller #{idx + 1}</Text>
+                      <Text style={styles.sellerPrice}>${item.askPrice}/MWh</Text>
                     </View>
-                    <View style={styles.sellerRow}>
-                      <Text style={styles.sellerLabel}>Qty:</Text>
-                      <Text style={styles.sellerValue}>
-                        {formatQuantityMWh(Number(item.amount ?? 0))}
-                      </Text>
-                    </View>
-                    <View style={styles.sellerRow}>
-                      <Text style={styles.sellerLabel}>Seller:</Text>
-                      <Text
-                        style={styles.sellerValue}
-                        numberOfLines={1}
-                        ellipsizeMode="middle">
-                        {item.seller.id}
-                      </Text>
+                    <View style={styles.sellerInfo}>
+                      <View style={styles.sellerInfoRow}>
+                        <Text style={styles.sellerLabel}>Quantity:</Text>
+                        <Text style={styles.sellerValue}>
+                          {formatQuantityMWh(Number(item.amount ?? 0))}
+                        </Text>
+                      </View>
+                      <View style={styles.sellerInfoRow}>
+                        <Text style={styles.sellerLabel}>Address:</Text>
+                        <Text style={styles.sellerAddress} numberOfLines={1} ellipsizeMode="middle">
+                          {item.seller.id}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 ))
               ) : (
-                <Text style={styles.emptyText}>No sellers found.</Text>
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>No sellers found</Text>
+                  <Text style={styles.emptySubtext}>This NFT is not currently listed for sale</Text>
+                </View>
               )}
-            </>
+            </View>
           )}
+
           {index === 2 && (
             <View>
               {activity && activity.length > 0 ? (
                 activity.map((item, idx) => (
                   <View key={idx} style={styles.activityCard}>
                     <View style={styles.activityHeader}>
-                      <Text style={styles.activityEvent}>
-                        {item.marketEvent}
-                      </Text>
+                      <View style={styles.activityEventContainer}>
+                        <Text style={styles.activityEvent}>{item.marketEvent}</Text>
+                        <Text style={styles.activityDate}>
+                          {new Date(Number(item.timestamp) * 1000).toLocaleDateString()}
+                        </Text>
+                      </View>
                       <Text style={styles.activityPrice}>${item.price}</Text>
                     </View>
 
-                    <View style={styles.activityDetailRow}>
-                      <Text style={styles.activityLabel}>From</Text>
-                      <Text
-                        style={styles.activityValue}
-                        numberOfLines={1}
-                        ellipsizeMode="middle">
-                        {item.seller ?? '-'}
-                      </Text>
-                    </View>
-
-                    <View style={styles.activityDetailRow}>
-                      <Text style={styles.activityLabel}>To</Text>
-                      <Text
-                        style={styles.activityValue}
-                        numberOfLines={1}
-                        ellipsizeMode="middle">
-                        {item.buyer ?? '-'}
-                      </Text>
-                    </View>
-
-                    <View style={styles.activityDetailRow}>
-                      <Text style={styles.activityLabel}>Date</Text>
-                      <Text style={styles.activityValue}>
-                        {new Date(
-                          Number(item.timestamp) * 1000,
-                        ).toLocaleString()}
-                      </Text>
+                    <View style={styles.activityDetails}>
+                      <View style={styles.activityDetailRow}>
+                        <Text style={styles.activityLabel}>From:</Text>
+                        <Text style={styles.activityValue} numberOfLines={1} ellipsizeMode="middle">
+                          {item.seller || '-'}
+                        </Text>
+                      </View>
+                      <View style={styles.activityDetailRow}>
+                        <Text style={styles.activityLabel}>To:</Text>
+                        <Text style={styles.activityValue} numberOfLines={1} ellipsizeMode="middle">
+                          {item.buyer || '-'}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 ))
               ) : (
-                <Text style={styles.emptyText}>No activity available.</Text>
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>No activity yet</Text>
+                  <Text style={styles.emptySubtext}>Transaction history will appear here</Text>
+                </View>
               )}
             </View>
           )}
         </View>
       </ScrollView>
-      {/* <SellModal
-        visible={isSellModalVisible}
-        onClose={() => {
-          setIsSellModalVisible(false);
-          setClickedSellNft(null);
-        }}
-        variant={clickedSellNft?.variant}
-        nftToSell={clickedSellNft?.nft || nft}
-        onSuccessSale={() => {
-          setIsSellModalVisible(false);
-          setClickedSellNft(null);
-          refetch();
-          refetchActivity();
-        }}
-      /> */}
     </View>
   );
 };
@@ -475,55 +450,147 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 16,
     fontSize: 16,
-    color: '#7f8c8d',
+    color: '#6B7280',
+    fontFamily: fontsFamily.MulishBold,
   },
-  iconContainer: {
+  headerContainer: {
+    borderBottomWidth: 0,
+    paddingBottom: 5,
+    paddingTop: 5,
+    elevation: 0,
+    shadowOpacity: 0,
+    height: 100,
+  },
+  backButton: {
     position: 'relative',
     marginRight: 10,
+  },
+  backIcon: {
+    width: 20,
+    height: 20,
+  },
+  headerTitle: {
+    fontSize: 18,
+    color: '#2C2C2C',
+    fontFamily: fontsFamily.MulishExtraBold,
   },
   nameContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
-    color: '#2C2C2C',
+  scrollView: {
+    flex: 1,
   },
-  portfolio: {
-    top: 10,
-    color: '#FFFF',
-    fontSize: 12,
-    lineHeight: 20,
-    position: 'absolute',
-    marginTop: 10,
+  headerSection: {
+    paddingTop: 8,
+    paddingBottom: 20,
   },
-  totalAmount: {
-    color: '#FFFF',
-    fontSize: 30,
-    position: 'absolute',
+  nftHeaderContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
   },
-  amount: {
-    color: '#FFFF',
+  nftImageCard: {
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  nftImageContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#009D94',
+  },
+  nftSquareImage: {
+    width: '100%',
+    height: '100%',
+  },
+  nftPlaceholderImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderIcon: {
+    width: 40,
+    height: 40,
+    opacity: 0.5,
+  },
+  nftInfoCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  nftInfoHeader: {
+    marginBottom: 8,
+  },
+  nftDetailsLabel: {
+    fontSize: 14,
+    color: '#009D94',
+    fontFamily: fontsFamily.MulishBold,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  nftName: {
     fontSize: 20,
-    position: 'absolute',
-    bottom: 50,
+    fontWeight: '800',
+    color: '#111827',
+    fontFamily: fontsFamily.MulishExtraBold,
+    marginBottom: 12,
+    lineHeight: 26,
   },
-  btnAlign: {
+  quantityContainer: {
     flexDirection: 'row',
-    marginTop: 20,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  quantityLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: fontsFamily.MulishBold,
+    fontWeight: '600',
+  },
+  quantityValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    fontFamily: fontsFamily.MulishExtraBold,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    marginTop: 15,
+    marginBottom: 20,
     justifyContent: 'space-around',
-    width: width - 60,
     alignItems: 'center',
     marginHorizontal: 30,
   },
@@ -546,138 +613,205 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#00201B',
   },
-  nftHeaderContainer: {
-    flex: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 20,
+  tabSection: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
-  nftImageBackground: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 180,
-    width: '100%',
+  tabContainer: {
+    backgroundColor: 'transparent',
   },
-  nftOverlayImage: {
-    alignSelf: 'flex-end',
-    height: '100%',
-    width: '38%',
+  tabIndicator: {
+    backgroundColor: 'transparent',
+  },
+  contentSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 32,
   },
   detailsContainer: {
-    margin: 5,
-    padding: 15,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#009D94',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    marginBottom: 20,
+    borderColor: '#E5E7EB',
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   detailTitle: {
     flex: 1,
+    fontSize: 14,
+    color: '#6B7280',
     fontFamily: fontsFamily.MulishBold,
-    fontSize: 14,
-    color: '#555',
-    marginRight: 10,
+    fontWeight: '600',
+    marginRight: 16,
   },
-
   detailValue: {
-    flex: 1,
-    fontFamily: fontsFamily.MulishExtraBold,
+    flex: 1.5,
     fontSize: 14,
-    color: '#222',
+    color: '#111827',
+    fontFamily: fontsFamily.MulishExtraBold,
+    fontWeight: '700',
     textAlign: 'right',
   },
-  sellerContainer: {
-    marginBottom: 15,
-    padding: 15,
-    backgroundColor: '#F0FBFB',
-    borderRadius: 8,
+  sellerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#D2EFEF',
+    borderColor: '#E5E7EB',
   },
-  sellerRow: {
+  sellerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  sellerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    fontFamily: fontsFamily.MulishExtraBold,
+  },
+  sellerPrice: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#009D94',
+    fontFamily: fontsFamily.MulishExtraBold,
+  },
+  sellerInfo: {
+    gap: 8,
+  },
+  sellerInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   sellerLabel: {
-    fontFamily: fontsFamily.MulishBold,
     fontSize: 14,
-    color: '#444',
-    flex: 1,
+    color: '#6B7280',
+    fontFamily: fontsFamily.MulishBold,
+    fontWeight: '600',
   },
   sellerValue: {
-    fontFamily: fontsFamily.MulishExtraBold,
     fontSize: 14,
-    color: '#111',
-    flex: 1,
-    textAlign: 'right',
+    color: '#111827',
+    fontFamily: fontsFamily.MulishExtraBold,
+    fontWeight: '700',
   },
-
+  sellerAddress: {
+    fontSize: 12,
+    color: '#111827',
+    fontFamily: fontsFamily.Mulish,
+    fontWeight: '500',
+    maxWidth: 120,
+  },
   activityCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 15,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#E0F0EF',
+    borderColor: '#E5E7EB',
   },
-
   activityHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
-
+  activityEventContainer: {
+    flex: 1,
+  },
   activityEvent: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
     fontFamily: fontsFamily.MulishExtraBold,
-    fontSize: 16,
-    color: '#00201B',
+    marginBottom: 4,
   },
-
+  activityDate: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: fontsFamily.Mulish,
+    fontWeight: '500',
+  },
   activityPrice: {
-    fontFamily: fontsFamily.MulishBold,
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '800',
     color: '#009D94',
+    fontFamily: fontsFamily.MulishExtraBold,
   },
-
+  activityDetails: {
+    gap: 8,
+  },
   activityDetailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    alignItems: 'center',
   },
-
   activityLabel: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 13,
-    color: '#666',
-    width: 50,
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: fontsFamily.MulishBold,
+    fontWeight: '600',
+    width: 60,
   },
   activityValue: {
-    fontFamily: fontsFamily.MulishBold,
-    fontSize: 13,
-    color: '#111',
     flex: 1,
+    fontSize: 12,
+    color: '#111827',
+    fontFamily: fontsFamily.Mulish,
+    fontWeight: '500',
     textAlign: 'right',
   },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 32,
+  },
   emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6B7280',
     fontFamily: fontsFamily.MulishBold,
-    fontSize: 14,
-    color: '#999',
+    marginBottom: 8,
     textAlign: 'center',
-    marginTop: 20,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontFamily: fontsFamily.Mulish,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 
