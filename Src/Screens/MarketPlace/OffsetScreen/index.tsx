@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -12,34 +12,35 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import { Header } from '@rneui/base';
-import { fontsFamily } from '../../../Theme';
+import {Header} from '@rneui/base';
+import {Animation, fontsFamily} from '../../../Theme';
 import images from '../../../Theme/images';
-import { navigateBack } from '../../../Navigation/NavigationFunctions';
-import { DText } from '../../../Componants/DText';
-import { useOffsetNft } from '../../../hooks/useOffsetNft';
-import { useAuth } from '../../../../screens/Provider/authProvider';
-import { useMagic } from '../../../../screens/Provider/MagicProvider';
+import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import {DText} from '../../../Componants/DText';
+import {useOffsetNft} from '../../../hooks/useOffsetNft';
+import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import RNFS from 'react-native-fs';
 import axios from 'axios';
-import { getBlockExploreLink } from '../../../utils/explorer';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {getBlockExploreLink} from '../../../utils/explorer';
+import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import DatePicker from 'react-native-date-picker';
 import moment from 'moment';
 import Share from 'react-native-share';
 import LottieView from 'lottie-react-native';
+import LoadingScreenWithStep from '../../../Componants/Loading/LoadingScreenWIthStep';
 
 const PURPOSE_OPTIONS = [
-  { label: 'Scope 2 Emissions', value: 'Scope 2 Emissions' },
-  { label: 'Scope 3 Emissions', value: 'Scope 3 Emissions' },
+  {label: 'Scope 2 Emissions', value: 'Scope 2 Emissions'},
+  {label: 'Scope 3 Emissions', value: 'Scope 3 Emissions'},
 ];
 
 const TAX_RATE_PER_MWH = 0.1;
 
-const OffsetScreen = ({ route }: any) => {
-  const { nft } = route.params;
-  const { userDetails } = useAuth();
-  const { magic_denergy } = useMagic();
+const OffsetScreen = ({route}: any) => {
+  const {nft} = route.params;
+  const {userDetails} = useAuth();
+  const {magic_denergy} = useMagic();
   const [volume, setVolume] = useState('');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -59,7 +60,7 @@ const OffsetScreen = ({ route }: any) => {
     'startDate' | 'endDate' | null
   >(null);
 
-   const animationRef = useRef<any>(null);
+  const animationRef = useRef<any>(null);
 
   const account = userDetails?.userWallet;
   const walletAddress = userDetails?.userWallet;
@@ -87,13 +88,12 @@ const OffsetScreen = ({ route }: any) => {
   }, [offsetSuccess, redemptionUrl]);
 
   useEffect(() => {
-      if (animationRef.current) {
-        setTimeout(() => {
-          animationRef.current.play();
-        }, 300);
-      }
-    }, [animationRef]);
-
+    if (animationRef.current) {
+      setTimeout(() => {
+        animationRef.current.play();
+      }, 300);
+    }
+  }, [animationRef]);
 
   useEffect(() => {
     if (volume && !isNaN(Number(volume)) && Number(volume) > 0) {
@@ -138,7 +138,7 @@ const OffsetScreen = ({ route }: any) => {
     setShowStartDatePicker(false);
     setStartDate(selectedDate);
 
-    let newErrors = { ...dateErrors };
+    let newErrors = {...dateErrors};
 
     // Clear invalid format error (we assume the date picker always returns a valid Date)
     delete newErrors.startDate;
@@ -156,7 +156,7 @@ const OffsetScreen = ({ route }: any) => {
     setShowEndDatePicker(false);
     setEndDate(selectedDate);
 
-    let newErrors = { ...dateErrors };
+    let newErrors = {...dateErrors};
 
     // Clear invalid format error (picker guarantees valid date)
     delete newErrors.endDate;
@@ -265,10 +265,10 @@ const OffsetScreen = ({ route }: any) => {
         failOnCancel: false,
         showAppsToView: true,
       })
-        .then((res) => {
+        .then(res => {
           console.log(res);
         })
-        .catch((err) => {
+        .catch(err => {
           err && console.log(err);
         });
     } catch (error) {
@@ -317,7 +317,7 @@ const OffsetScreen = ({ route }: any) => {
 
   const renderForm = () => (
     <KeyboardAwareScrollView
-      contentContainerStyle={{ flexGrow: 1 }}
+      contentContainerStyle={{flexGrow: 1}}
       keyboardShouldPersistTaps="handled"
       style={styles.container}
       showsVerticalScrollIndicator={false}
@@ -386,7 +386,7 @@ const OffsetScreen = ({ route }: any) => {
             Start Date *
           </DText>
 
-          <View style={{ position: 'relative' }}>
+          <View style={{position: 'relative'}}>
             <TextInput
               style={[styles.input, dateErrors.endDate && styles.warningInput]}
               value={startDate && moment(startDate).format('YYYY-MM-DD')}
@@ -420,7 +420,7 @@ const OffsetScreen = ({ route }: any) => {
             End Date *
           </DText>
 
-          <View style={{ position: 'relative' }}>
+          <View style={{position: 'relative'}}>
             <TextInput
               style={[styles.input, dateErrors.endDate && styles.warningInput]}
               value={endDate && moment(endDate).format('YYYY-MM-DD')}
@@ -484,7 +484,7 @@ const OffsetScreen = ({ route }: any) => {
                   style={[
                     styles.dropdownOption,
                     index === PURPOSE_OPTIONS.length - 1 &&
-                    styles.lastDropdownOption,
+                      styles.lastDropdownOption,
                   ]}
                   onPress={() => handlePurposeSelect(option)}
                   activeOpacity={0.8}>
@@ -512,76 +512,24 @@ const OffsetScreen = ({ route }: any) => {
 
   const renderProcessing = () => {
     return (
-      <View style={styles.container}>
-        {/* Header Section similar to other screens */}
-        <View style={styles.headerSection}>
-          <View style={styles.iconContainer}>
-            <Text style={styles.iconText}>⚡</Text>
-          </View>
-          <DText fontStyle="fontBold" style={styles.title}>
-            Processing Offset...
-          </DText>
-          <DText style={styles.subtitle}>
-            {currentProcessingStep || 'Initializing...'}
-          </DText>
-        </View>
-
-        {/* Animation Section */}
-        <View style={styles.animationSection}>
-          <LottieView
-            ref={animationRef}
-            source={require('../../../assets/animations/processing.json')}
-            autoPlay={true}
-            loop={true}
-            style={styles.lottieProcessingAnimation}
-            speed={1}
-            resizeMode="contain"
-          />
-        </View>
-
-        {/* Progress Section */}
-        <View style={styles.progressSection}>
-          {/* Progress Bar */}
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBarBackground}>
-              <View 
-                style={[
-                  styles.progressBarFill, 
-                  { width: `${stepProgress}%` }
-                ]} 
-              />
-            </View>
-            <DText style={styles.progressText}>
-              {stepProgress}% Complete
-            </DText>
-          </View>
-
-          {/* Step Indicators */}
-          <View style={styles.stepIndicatorsContainer}>
-            {[10, 20, 30, 50, 70, 85, 95, 100].map((progress, index) => (
-              <View 
-                key={index}
-                style={[
-                  styles.stepIndicator,
-                  stepProgress >= progress && styles.stepIndicatorActive
-                ]}
-              />
-            ))}
-          </View>
-
-          {/* Fee Information */}
-          {calculatedTax > 0 && (
-            <View style={styles.feeInfoContainer}>
-              <DText style={styles.feeInfoText}>
-                Transaction Fee: {calculatedTax.toFixed(4)} WUSDC
-              </DText>
-            </View>
-          )}
-        </View>
-
-        {/* Spacer to push content up */}
-        <View style={styles.spacer} />
-      </View>
+      <LoadingScreenWithStep
+        title="Processing Offset..."
+        subtitle={currentProcessingStep || 'Initializing...'}
+        icon="⚡"
+        progress={stepProgress}
+        showProgressBar={true}
+        showStepIndicators={true}
+        stepIndicatorCount={8}
+        feeInfo={
+          calculatedTax > 0
+            ? `Transaction Fee: ${calculatedTax.toFixed(4)} WUSDC`
+            : undefined
+        }
+        animationSource={Animation.processingAnimation}
+        progressBarColor="#81c8c3"
+        backgroundColor="#FFF"
+        iconBackgroundColor="#E8F8F7"
+      />
     );
   };
 
@@ -685,7 +633,7 @@ const OffsetScreen = ({ route }: any) => {
     <View style={styles.screenContainer}>
       <Header
         backgroundColor={'#FFF'}
-        containerStyle={{ borderBottomWidth: 0 }}
+        containerStyle={{borderBottomWidth: 0}}
         leftComponent={
           <TouchableOpacity
             onPress={() => navigateBack()}
@@ -889,7 +837,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },

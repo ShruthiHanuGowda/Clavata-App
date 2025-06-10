@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {
   View,
   Image,
@@ -11,23 +11,26 @@ import {
   ImageSourcePropType,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { CustomImageButton, Header, RadioButton } from '../../../../Componants';
-import { BottomSheet } from 'react-native-btr';
-import { Colors, fontsFamily, Images } from '../../../../Theme';
-import { SCREEN_CONSTANT } from '../../../../Navigation/constant';
-import { navigateTo } from '../../../../utils/navigationService';
-import { TouchableOpacity } from 'react-native-gesture-handler';
-import { Path, Svg } from 'react-native-svg';
-import { ScreenWidth } from '@rneui/base';
-import { marketIcons } from '../../../../Theme/variable';
-import { DText } from '../../../../Componants/DText';
-import { navigateBack } from '../../../../Navigation/NavigationFunctions';
-import { useWallet } from '../../../../../screens/Provider/WalletProvider';
-import { ReactElement } from 'react';
-import { useMagic } from '../../../../../screens/Provider/MagicProvider';
-import { useAuth } from '../../../../../screens/Provider/authProvider';
-import { useBridge } from '../../../../hooks/useBridge';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {CustomImageButton, Header, RadioButton} from '../../../../Componants';
+import {BottomSheet} from 'react-native-btr';
+import {Animation, Colors, fontsFamily, Images} from '../../../../Theme';
+import {SCREEN_CONSTANT} from '../../../../Navigation/constant';
+import {navigateTo} from '../../../../utils/navigationService';
+import {TouchableOpacity} from 'react-native-gesture-handler';
+import {Path, Svg} from 'react-native-svg';
+import {ScreenWidth} from '@rneui/base';
+import {marketIcons} from '../../../../Theme/variable';
+import {DText} from '../../../../Componants/DText';
+import {navigateBack} from '../../../../Navigation/NavigationFunctions';
+import {useWallet} from '../../../../../screens/Provider/WalletProvider';
+import {ReactElement} from 'react';
+import {useMagic} from '../../../../../screens/Provider/MagicProvider';
+import {useAuth} from '../../../../../screens/Provider/authProvider';
+import {useBridge} from '../../../../hooks/useBridge';
+import LottieView from 'lottie-react-native';
+import LoadingScreenWithStep from '../../../../Componants/Loading/LoadingScreenWIthStep';
+
 // Define types
 type TokenKey = 'USDC' | 'WUSDC' | 'EURC' | 'WEURC';
 
@@ -77,19 +80,38 @@ interface FeeApiResponse {
   };
 }
 
+interface LoadingScreenProps {
+  title?: string;
+  subtitle?: string;
+  icon?: string;
+  progress?: number;
+  showProgressBar?: boolean;
+  showStepIndicators?: boolean;
+  stepIndicatorCount?: number;
+  feeInfo?: string;
+  animationSource?: any;
+  animationStyle?: object;
+  containerStyle?: object;
+  titleStyle?: object;
+  subtitleStyle?: object;
+  progressBarColor?: string;
+  backgroundColor?: string;
+  iconBackgroundColor?: string;
+}
+
 // Token definitions
 const TOKENS: Record<TokenKey, TokenInfo> = {
-  USDC: { name: 'USDC', wrapped: 'WUSDC', network: 'ETH' },
-  WUSDC: { name: 'wUSDC', unwrapped: 'USDC', network: 'DENERGY' },
-  EURC: { name: 'EURC', wrapped: 'WEURC', network: 'ETH' },
-  WEURC: { name: 'wEURC', unwrapped: 'EURC', network: 'DENERGY' },
+  USDC: {name: 'USDC', wrapped: 'WUSDC', network: 'ETH'},
+  WUSDC: {name: 'wUSDC', unwrapped: 'USDC', network: 'DENERGY'},
+  EURC: {name: 'EURC', wrapped: 'WEURC', network: 'ETH'},
+  WEURC: {name: 'wEURC', unwrapped: 'EURC', network: 'DENERGY'},
 };
 
 const allCoins: TokenOption[] = [
-  { key: 'USDC', text: 'USDC' },
-  { key: 'WUSDC', text: 'wUSDC' },
-  { key: 'EURC', text: 'EURC' },
-  { key: 'WEURC', text: 'wEURC' },
+  {key: 'USDC', text: 'USDC'},
+  {key: 'WUSDC', text: 'wUSDC'},
+  {key: 'EURC', text: 'EURC'},
+  {key: 'WEURC', text: 'wEURC'},
 ];
 
 // Helper function to format amounts
@@ -114,10 +136,9 @@ const initiateSwapApi = async (
   params: SwapApiParams,
 ): Promise<[Error | null, SwapApiResponse | null]> => {
   try {
-    // Simulated API response
     const result: SwapApiResponse = {
       data: {
-        conversionAmountInUsd: parseFloat(params.amount) * 0.98, // 2% conversion rate loss
+        conversionAmountInUsd: parseFloat(params.amount) * 0.98,
         conversionAmount: parseFloat(params.amount) * 0.98,
       },
     };
@@ -131,10 +152,9 @@ const networkFeeApi = async (
   params: SwapApiParams,
 ): Promise<[Error | null, FeeApiResponse | null]> => {
   try {
-    // Simulated API response
     const result: FeeApiResponse = {
       data: {
-        networkFee: parseFloat(params.amount) * 0.01, // 1% network fee
+        networkFee: parseFloat(params.amount) * 0.01,
       },
     };
     return [null, result];
@@ -144,14 +164,18 @@ const networkFeeApi = async (
 };
 
 export default function TransferCoin(props: TransferCoinProps): ReactElement {
-  const { getBalance } = useWallet();
+  const {getBalance} = useWallet();
   const {
     isLoading: bridgeLoading,
     error: bridgeError,
+    currentProcessingStep,
+    stepProgress,
+    bridgeSuccess,
     bridgeUSDC,
     bridgeEURC,
     bridgeWUSDC,
     bridgeWEURC,
+    resetBridgeState,
   } = useBridge();
 
   const initialCoinCode = props?.route?.params?.coinCode || 'USDC';
@@ -178,25 +202,32 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [visible, setVisible] = useState<boolean>(false);
   const [options, setOptions] = useState<TokenOption[]>([]);
+  const [currentStep, setCurrentStep] = useState<
+    'form' | 'processing' | 'success'
+  >('form');
 
   // Get balance for the selected token
-  const { balance: tokenBalance, balanceUsd: tokenBalanceUsd }: TokenBalance =
+  const {balance: tokenBalance, balanceUsd: tokenBalanceUsd}: TokenBalance =
     getBalance(selectedToken);
+
+  // Handle bridge success
+  useEffect(() => {
+    if (bridgeSuccess) {
+      setCurrentStep('success');
+    }
+  }, [bridgeSuccess]);
 
   // Update target token whenever source token changes
   useEffect(() => {
     const token = TOKENS[selectedToken];
     if (token) {
       if (transactionType === 0) {
-        // Deposit
         setTargetToken(token.wrapped || 'WUSDC');
       } else {
-        // Withdraw
         setTargetToken(token.unwrapped || 'USDC');
       }
     }
 
-    // Reset amount when token changes
     setAmount('');
     setAmountInTokens('0');
     setUsdValue(0);
@@ -207,7 +238,6 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   // Update available options when transaction type changes
   useEffect(() => {
     if (transactionType === 0) {
-      // Deposit options - non-wrapped tokens
       setOptions(
         allCoins.filter(coin => coin.key === 'USDC' || coin.key === 'EURC'),
       );
@@ -215,11 +245,10 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         coinCode === 'WUSDC'
           ? 'USDC'
           : coinCode === 'WEURC'
-            ? 'EURC'
-            : coinCode,
+          ? 'EURC'
+          : coinCode,
       );
     } else {
-      // Withdraw options - wrapped tokens
       setOptions(
         allCoins.filter(coin => coin.key === 'WUSDC' || coin.key === 'WEURC'),
       );
@@ -227,8 +256,8 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         coinCode === 'USDC'
           ? 'WUSDC'
           : coinCode === 'EURC'
-            ? 'WEURC'
-            : coinCode,
+          ? 'WEURC'
+          : coinCode,
       );
     }
   }, [transactionType]);
@@ -238,10 +267,8 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     const validateAndInitiateSwap = async (): Promise<void> => {
       const cleanAmount = sanitizeInputValue(amount);
 
-      // Reset errors and values first
       setErrorMessage(null);
 
-      // Skip processing for empty or zero amounts
       if (
         !cleanAmount ||
         parseFloat(cleanAmount) === 0 ||
@@ -253,7 +280,6 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         return;
       }
 
-      // Check if amount exceeds balance
       if (parseFloat(cleanAmount) > parseFloat(tokenBalance)) {
         setErrorMessage('Insufficient balance');
         setUsdValue(0);
@@ -262,7 +288,6 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         return;
       }
 
-      // Amount is valid, initiate swap
       await initiateSwap(cleanAmount);
     };
 
@@ -274,23 +299,12 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     try {
       setIsLoading(true);
 
-      // Prepare API params
       const params: SwapApiParams = {
         sourceCoin: selectedToken,
         amount: val,
         targetCoin: selectedTargetToken,
       };
-      console.log(
-        '🚀 ~ initiateSwap ~ params: SwapApiParams.selectedTargetToken:',
-        selectedToken,
-      );
-      console.log('🚀 ~ initiateSwap ~ params: SwapApiParams.val:', val);
-      console.log(
-        '🚀 ~ initiateSwap ~ params: SwapApiParams.selectedToken:',
-        selectedToken,
-      );
 
-      // Call APIs
       const [error, result] = await initiateSwapApi(params);
       const [feeError, feeResult] = await networkFeeApi(params);
 
@@ -299,9 +313,8 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
       }
 
       setIsLoading(false);
-      // setUsdValue(result.data.conversionAmountInUsd);
       setAmountInTokens(val);
-      setNetworkFee('0');
+      setNetworkFee(0);
     } catch (error) {
       setIsLoading(false);
       setErrorMessage('Error fetching conversion data');
@@ -331,65 +344,48 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
   // Handle transaction submission
   const onSubmit = async (): Promise<void> => {
+    setCurrentStep('processing');
+    resetBridgeState();
+
     if (selectedToken === 'USDC') {
       try {
         await bridgeUSDC(amount, result => {
-          console.log('Bridge successful:');
-
-          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
-            amount: result?.amount,
-            coinCode: 'USDC',
-            name: 'WUSDC',
-          });
+          console.log('Bridge successful:', result);
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        setCurrentStep('form');
       }
     }
     if (selectedToken === 'EURC') {
       try {
         await bridgeEURC(amount, result => {
-          console.log('Bridge successful:');
-
-          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
-            amount: result?.amount,
-            coinCode: 'EURC',
-            name: 'WEURC',
-          });
+          console.log('Bridge successful:', result);
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        setCurrentStep('form');
       }
     }
     if (selectedToken === 'WUSDC') {
       try {
         await bridgeWUSDC(amount, result => {
-          console.log('Bridge successful:');
-
-          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
-            amount: result?.amount,
-            coinCode: 'WUSdC',
-            name: 'USDC',
-          });
+          console.log('Bridge successful:', result);
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        setCurrentStep('form');
       }
     }
 
     if (selectedToken === 'WEURC') {
       try {
         await bridgeWEURC(amount, result => {
-          console.log('Bridge successful:');
-
-          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
-            amount: result?.amount,
-            coinCode: 'WEURC',
-            name: 'EURC',
-          });
+          console.log('Bridge successful:', result);
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        setCurrentStep('form');
       }
     }
   };
@@ -417,6 +413,108 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     return token ? token.name : tokenKey;
   };
 
+  // Handle success navigation
+  const handleSuccessNavigation = (): void => {
+    const targetCoinCode =
+      transactionType === 0
+        ? selectedToken === 'USDC'
+          ? 'USDC'
+          : 'EURC'
+        : selectedToken === 'WUSDC'
+        ? 'WUSDC'
+        : 'WEURC';
+
+    const targetName =
+      transactionType === 0
+        ? selectedToken === 'USDC'
+          ? 'WUSDC'
+          : 'WEURC'
+        : selectedToken === 'WUSDC'
+        ? 'USDC'
+        : 'EURC';
+    navigateTo('D.Energy');
+    // navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
+    //   amount: amount,
+    //   coinCode: targetCoinCode,
+    //   name: targetName,
+    // });
+  };
+
+  // Render loading screen
+  const renderProcessing = (): ReactElement => {
+    const operationType = transactionType === 0 ? 'Deposit' : 'Withdrawal';
+    const networkFrom = transactionType === 0 ? 'Ethereum' : 'DENERGY';
+    const networkTo = transactionType === 0 ? 'DENERGY' : 'Ethereum';
+
+    return (
+      <LoadingScreenWithStep
+        title={`Processing ${operationType}...`}
+        subtitle={
+          currentProcessingStep ||
+          `Bridging ${selectedToken} from ${networkFrom} to ${networkTo}`
+        }
+        icon={transactionType === 0 ? '📥' : '📤'}
+        progress={stepProgress}
+        showProgressBar={true}
+        showStepIndicators={true}
+        animationSource={Animation.processingAnimation}
+        stepIndicatorCount={9}
+        feeInfo={
+          networkFee > 0
+            ? `Network Fee: ${formatAmount(
+                networkFee.toString(),
+              )} ${selectedToken}`
+            : undefined
+        }
+        progressBarColor="#81c8c3"
+        backgroundColor="#FFF"
+        iconBackgroundColor="#E8F8F7"
+      />
+    );
+  };
+
+  const renderSuccess = (): ReactElement => {
+    const operationType = transactionType === 0 ? 'Deposit' : 'Withdrawal';
+
+    return (
+      <LoadingScreenWithStep
+        title={`${operationType} Successful!`}
+        subtitle={`Your ${selectedToken} has been successfully bridged to ${selectedTargetToken}`}
+        icon="✅"
+        progress={100}
+        showProgressBar={false}
+        showStepIndicators={false}
+        containerStyle={{justifyContent: 'center'}}
+        titleStyle={{color: '#4CAF50'}}
+        iconBackgroundColor="#E8F5E8"
+      />
+    );
+  };
+
+  // Render current step
+  const renderCurrentStep = (): ReactElement => {
+    switch (currentStep) {
+      case 'processing':
+        return renderProcessing();
+      case 'success':
+        return (
+          <View style={styles.screen}>
+            {renderSuccess()}
+            <CustomImageButton
+              backgroundImage={Images.buttonBg}
+              label="Continue"
+              labelStyle={styles.buttonLabelStyle}
+              onPress={handleSuccessNavigation}
+              containerWrapper={styles.submitButtonContainer}
+              bgImg={styles.submitButtonImage}
+            />
+          </View>
+        );
+      default:
+        return renderForm();
+    }
+  };
+
   // RENDER COMPONENTS
   const renderBalanceInfo = (): ReactElement => (
     <View style={styles.balanceInfoContainer}>
@@ -440,7 +538,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
           </View>
         )}
 
-        <View style={[styles.balanceInnerView, { marginBottom: 15 }]}>
+        <View style={[styles.balanceInnerView, {marginBottom: 15}]}>
           <Text style={styles.networkLabel}>
             {transactionType === 0 ? 'To DENERGY Network' : 'To ETH Network'}
           </Text>
@@ -465,12 +563,12 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         }}
         style={[
           styles.tabButton,
-          { backgroundColor: transactionType === 0 ? '#000' : '#fff' },
+          {backgroundColor: transactionType === 0 ? '#000' : '#fff'},
         ]}>
         <Text
           style={[
             styles.tabButtonText,
-            { color: transactionType === 0 ? '#fff' : '#000' },
+            {color: transactionType === 0 ? '#fff' : '#000'},
           ]}>
           Deposit
         </Text>
@@ -484,12 +582,12 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         }}
         style={[
           styles.tabButton,
-          { backgroundColor: transactionType === 1 ? '#000' : '#fff' },
+          {backgroundColor: transactionType === 1 ? '#000' : '#fff'},
         ]}>
         <Text
           style={[
             styles.tabButtonText,
-            { color: transactionType === 1 ? '#fff' : '#000' },
+            {color: transactionType === 1 ? '#fff' : '#000'},
           ]}>
           Withdraw
         </Text>
@@ -506,7 +604,10 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         style={styles.tokenDropdown}
         activeOpacity={1}
         onPress={isSelectable ? () => toggleBottomView('press') : undefined}>
-        <Image source={marketIcons[tokenKey] as ImageSourcePropType} style={{ width: 24, height: 24 }} />
+        <Image
+          source={marketIcons[tokenKey] as ImageSourcePropType}
+          style={{width: 24, height: 24}}
+        />
         <Text style={styles.tokenDropdownText}>
           {getDisplayTokenName(tokenKey)}
         </Text>
@@ -560,15 +661,9 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     </BottomSheet>
   );
 
-  // MAIN RENDER
-  return (
-    <SafeAreaView style={styles.screen}>
-      <Header
-        headerTitle="Bridge"
-        hideBorder={true}
-        backBtn={() => navigateBack()}
-      />
-
+  // Main form component
+  const renderForm = (): ReactElement => (
+    <>
       {renderTransactionTypeTabs()}
 
       <ScrollView keyboardShouldPersistTaps="handled" style={styles.container}>
@@ -623,7 +718,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
       {/* Submit button */}
       <CustomImageButton
         backgroundImage={Images.buttonBg}
-        label={bridgeLoading ? 'Sending...' : 'Next'}
+        label={bridgeLoading ? 'Processing...' : 'Bridge'}
         labelStyle={styles.buttonLabelStyle}
         onPress={onSubmit}
         containerWrapper={styles.submitButtonContainer}
@@ -633,6 +728,18 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
       {/* Token selection modal */}
       {renderTokenSelectionModal()}
+    </>
+  );
+
+  // MAIN RENDER
+  return (
+    <SafeAreaView style={styles.screen}>
+      <Header
+        headerTitle="Bridge"
+        hideBorder={true}
+        backBtn={() => navigateBack()}
+      />
+      {renderCurrentStep()}
     </SafeAreaView>
   );
 }
@@ -646,7 +753,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
-  // Tabs styles
   tabsContainer: {
     height: 40,
     width: '80%',
@@ -672,7 +778,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 15,
   },
-  // Token dropdown styles
   tokenDropdownContainer: {
     justifyContent: 'center',
     alignItems: 'center',

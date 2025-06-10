@@ -11,7 +11,6 @@ import {
 import {useWallet} from '../../screens/Provider/WalletProvider';
 import {ApolloClient, HttpLink, InMemoryCache, useQuery} from '@apollo/client';
 import {LIST_PLATFORM_SETTINGS} from '../graphql/queries';
-import {se} from 'date-fns/locale';
 
 const TREASURY_ADDRESS = '0x756Ba4Bd0eFEd10c5F5C3C76f15893d0bB2387A4';
 
