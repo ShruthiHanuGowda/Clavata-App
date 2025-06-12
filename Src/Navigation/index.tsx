@@ -39,6 +39,8 @@ import SellScreen from '../Screens/MarketPlace/SellNFT';
 import SellNFTScreen from '../Screens/MarketPlace/SellNFT';
 import UserNFTsScreen from '../Screens/MarketPlace/UserNFTsScreen';
 import UnstakeScreen from '../Screens/Stake/UnstakeScreen';
+import News from '../Screens/NewsScreens/News';
+import NewsDetail from '../Screens/NewsScreens/NewsDetail';
 
 function RootScreenStack() {
   const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -153,6 +155,8 @@ export function HomeScreenStack() {
       <HomeStack.Screen name="coinWalletStack" component={CoinWalletStackFun} />
       <HomeStack.Screen name="beneficary" component={AccountBeneficary} />
       <HomeStack.Screen name="contactus" component={ContactUs} />
+      <HomeStack.Screen name="News" component={News} />
+      <HomeStack.Screen name="NewsDetail" component={NewsDetail} />
       <HomeStack.Screen
         name="transactionHistroy"
         component={TransactionHistory}

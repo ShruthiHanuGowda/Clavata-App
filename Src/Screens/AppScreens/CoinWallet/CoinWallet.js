@@ -32,7 +32,7 @@ import {
   useMutation,
 } from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../../../graphql/queries';
-import { marketIcons } from '../../../Theme/variable';
+import {marketIcons} from '../../../Theme/variable';
 
 const width = Dimensions.get('window').width;
 
@@ -42,19 +42,22 @@ const getCoinIcon = (coinCode: string) => {
 };
 
 // Move PortfolioHeader outside the component to prevent recreation on each render
-const PortfolioHeader = ({ coinCode, balance, balanceUsd }) => (
+const PortfolioHeader = ({coinCode, balance, balanceUsd}) => (
   <View style={styles.portfolioHeaderContainer}>
     <View style={styles.portfolioCard}>
       <View style={styles.portfolioCardHeader}>
         <Text style={styles.portfolioLabel}>Portfolio</Text>
       </View>
       <View style={styles.coinHeaderContainer}>
-        <Image 
-          source={getCoinIcon(coinCode)} 
+        <Image
+          source={getCoinIcon(coinCode)}
           style={styles.coinIcon}
           resizeMode="contain"
         />
-        <Text style={styles.coinCodeTitle} numberOfLines={2} ellipsizeMode="tail">
+        <Text
+          style={styles.coinCodeTitle}
+          numberOfLines={2}
+          ellipsizeMode="tail">
           {coinCode || 'Unknown Coin'}
         </Text>
       </View>
@@ -71,31 +74,34 @@ const PortfolioHeader = ({ coinCode, balance, balanceUsd }) => (
 export default function CoinWallet(props) {
   // Add error boundary state
   const [hasError, setHasError] = useState(false);
-  
+
   // Safely extract props with fallbacks
   const coinCode = props?.route?.params?.coinCode || 'Unknown';
   const operationsTypes = props?.route?.params?.operationsTypes || [];
-  
+
   const [createTransactionHistoryMobile] = useMutation(
     CREATE_TRANSACTION_HISTORY_MOBILE,
     {
       // Add error handling for GraphQL mutations
-      onError: (error) => {
+      onError: error => {
         console.error('Transaction history mutation error:', error);
-      }
-    }
+      },
+    },
   );
-  
+
   // Add safe hook calls with error handling
-  let getBalance, userDetails, balance = '0', balanceUsd = '0.00';
-  
+  let getBalance,
+    userDetails,
+    balance = '0',
+    balanceUsd = '0.00';
+
   try {
     const walletHook = useWallet();
     const authHook = useAuth();
-    
+
     getBalance = walletHook?.getBalance;
     userDetails = authHook?.userDetails;
-    
+
     if (getBalance && coinCode && coinCode !== 'Unknown') {
       const balanceData = getBalance(coinCode);
       balance = balanceData?.balance || '0';
@@ -108,7 +114,7 @@ export default function CoinWallet(props) {
 
   const [toggleValue, setToggleValue] = useState('day');
   const [index, setIndex] = useState(0);
-  
+
   // Use static data for graph to prevent crashes
   const graphData = {
     label: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -124,13 +130,12 @@ export default function CoinWallet(props) {
       <View style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Something went wrong</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.retryButton}
             onPress={() => {
               setHasError(false);
               // You might want to reload or navigate back
-            }}
-          >
+            }}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -162,8 +167,8 @@ export default function CoinWallet(props) {
         }
         centerComponent={
           <View style={styles.nameContainer}>
-            <Image 
-              source={getCoinIcon(coinCode)} 
+            <Image
+              source={getCoinIcon(coinCode)}
               style={styles.headerCoinIcon}
               resizeMode="contain"
             />
@@ -181,16 +186,16 @@ export default function CoinWallet(props) {
             start={{x: 0, y: 0}}
             end={{x: 1, y: 1}}>
             <View style={{paddingTop: 10, paddingBottom: 30}}>
-              <PortfolioHeader 
-                coinCode={coinCode} 
-                balance={balance} 
-                balanceUsd={balanceUsd} 
+              <PortfolioHeader
+                coinCode={coinCode}
+                balance={balance}
+                balanceUsd={balanceUsd}
               />
 
               <View style={styles.btnAlign}>
-                {operationsTypes && operationsTypes.length > 0 && 
-                  renderOperationButtons(operationsTypes, coinCode)
-                }
+                {operationsTypes &&
+                  operationsTypes.length > 0 &&
+                  renderOperationButtons(operationsTypes, coinCode)}
               </View>
             </View>
           </LinearGradient>
@@ -225,7 +230,7 @@ export default function CoinWallet(props) {
             })}
           </Tab>
         </View>
-        
+
         {/* Scrollable Content Section */}
         <View style={{flex: 1, marginHorizontal: 25, marginTop: 20}}>
           {index === 0 && coinCode !== 'USD' ? (
@@ -265,9 +270,7 @@ export default function CoinWallet(props) {
                   alignItems: 'center',
                   flexDirection: 'row',
                 }}>
-                <Text style={style.usdvalue}>
-                  $0.05
-                </Text>
+                <Text style={style.usdvalue}>$0.05</Text>
                 <Image
                   source={images.sharePriceIcon}
                   style={{height: 10, width: 15, marginLeft: 2}}
@@ -286,9 +289,7 @@ export default function CoinWallet(props) {
               </View>
             </ScrollView>
           ) : (
-            <MiniTransactionHistory
-              coinCode={coinCode}
-            />
+            <MiniTransactionHistory coinCode={coinCode} />
           )}
         </View>
       </View>
@@ -358,7 +359,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,

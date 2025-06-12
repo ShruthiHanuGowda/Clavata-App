@@ -1,5 +1,5 @@
-import React, { useCallback, useRef } from 'react';
-import { Header } from '@rneui/base';
+import React, {useCallback, useRef} from 'react';
+import {Header} from '@rneui/base';
 import {
   Image,
   RefreshControl,
@@ -9,24 +9,24 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
-import { View } from 'react-native';
+import {View} from 'react-native';
 
 import StakingActivities from './StakingActivities';
 import CryptoMarketPlace from './CryptoMarketPlace';
 import BalanceCarousal from './BalanceCarousal';
-import { Path, Svg } from 'react-native-svg';
-import { useFocusEffect, useScrollToTop } from '@react-navigation/native';
-import { navigateTo } from '../../utils/navigationService';
-import { useWallet } from '../../../screens/Provider/WalletProvider';
-import { useAuth } from '../../../screens/Provider/authProvider';
-import { useNftsForAddress } from '../../hooks/useNftsForAddress';
-import { useMutation } from '@apollo/client';
-import { UPDATE_KYC_STATUS } from '../../graphql/queries';
-import { DText } from '../../Componants/DText';
-import { fontsFamily, Images } from '../../Theme';
+import {Path, Svg} from 'react-native-svg';
+import {useFocusEffect, useScrollToTop} from '@react-navigation/native';
+import {navigateTo} from '../../utils/navigationService';
+import {useWallet} from '../../../screens/Provider/WalletProvider';
+import {useAuth} from '../../../screens/Provider/authProvider';
+import {useNftsForAddress} from '../../hooks/useNftsForAddress';
+import {useMutation} from '@apollo/client';
+import {UPDATE_KYC_STATUS} from '../../graphql/queries';
+import {DText} from '../../Componants/DText';
+import {fontsFamily, Images} from '../../Theme';
 
 function HomeHeader(props: any) {
-  const { userDetails } = useAuth();
+  const {userDetails} = useAuth();
   function getUsernameFromEmail(email: string) {
     return email.split('@')[0];
   }
@@ -83,15 +83,15 @@ function HomeHeader(props: any) {
   );
 }
 
-export default function HomeScreen({ navigation }: any) {
-  const { refreshAllBalances } = useWallet();
-  const { userDetails } = useAuth();
+export default function HomeScreen({navigation}: any) {
+  const {refreshAllBalances} = useWallet();
+  const {userDetails} = useAuth();
   const account = userDetails?.denergyWallet;
-  const { refresh, totalQuantity, isLoading } = useNftsForAddress({
+  const {refresh, totalQuantity, isLoading} = useNftsForAddress({
     account: account!,
   });
 
-  const [updateKycStatus, { loading, error, data }] = useMutation(
+  const [updateKycStatus, {loading, error, data}] = useMutation(
     UPDATE_KYC_STATUS,
     {
       onCompleted: data => {
@@ -155,18 +155,18 @@ export default function HomeScreen({ navigation }: any) {
           loading={isLoading}
           // drecsData={drecsData}
           drecsOwned={totalQuantity}
-        // {...balanceData}
+          // {...balanceData}
         />
         <StakingActivities
           drecsStaked={0}
           drecsOwned={totalQuantity}
           loading={isLoading}
-        // {...drecsData}
+          // {...drecsData}
         />
         <CryptoMarketPlace
         // loading={loading} {...balanceData}
         />
-        <View style={{ marginTop: 30, marginHorizontal: 20 }}>
+        <View style={{marginTop: 30, marginHorizontal: 20}}>
           <Text
             style={{
               fontFamily: fontsFamily.MulishBold,
@@ -185,7 +185,8 @@ export default function HomeScreen({ navigation }: any) {
             alignItems: 'center',
             margin: 10,
             paddingBottom: 40,
-          }}>
+          }}
+          onPress={() => navigateTo('News')}>
           <DText
             style={{
               color: '#009D94',
