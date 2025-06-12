@@ -5,21 +5,17 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {DText} from '../../Componants/DText';
 import {BottomSheet} from 'react-native-btr';
-import ContactCard from './Componants/ContactCard'; // Adjust the import path as needed
-
-interface WalletAddress {
-  type: string;
-  address: string;
-}
-
+import ContactCard from './Componants/ContactCard';
+import {useAddressBooks} from './Hooks/AddressBookGraphql';
+import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 interface Contact {
-  id: string;
+  beneficiaryAddress: string;
   name: string;
-  walletAddress: string[];
+  walletAddress: string;
   chain: string;
 }
 
@@ -27,62 +23,31 @@ interface ContactModalProps {
   visible: boolean;
   onClose: () => void;
   onSelectAddress: (address: string, contact: Contact) => void;
-  contacts?: Contact[];
   title?: string;
   searchPlaceholder?: string;
   emptyMessage?: string;
 }
 
-// Default contacts - you can replace this with your actual data
-const defaultContacts: Contact[] = [
-  {
-    id: '1',
-    name: 'Alice Johnson',
-    walletAddress: ['0x742d35Cc6454C532535E4Ed3F8b6c5C7F3a8b3F1'],
-    chain: 'Ethereum',
-  },
-  {
-    id: '2',
-    name: 'Alice Johnson',
-    walletAddress: ['0x742d35Cc6454C532535E4Ed3F8b6c5C7F3a8b3F1'],
-    chain: 'Denergy',
-  },
-  {
-    id: '3',
-    name: 'Bob Smith',
-    walletAddress: [
-      '0x8ba1f109551bD432803012645Hac136c22416cc8',
-      'dw1xy9z8a7b6c5d4e3f2g1h0i9j8k7l6m5n4o3p2q1r0s9t8u',
-    ],
-    chain: 'Polygon',
-  },
-  {
-    id: '4',
-    name: 'Carol Williams',
-    walletAddress: ['0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db'],
-    chain: 'BSC',
-  },
-  {
-    id: '5',
-    name: 'David Brown',
-    walletAddress: [
-      '0x0F5D2fB29fb7d3CFeE444a200298f468908cC942',
-      'dw1ab2cd3ef4gh5ij6kl7mn8op9qr0st1uv2wx3yz4ab5cd6ef',
-    ],
-    chain: 'Ethereum',
-  },
-];
-
 const ContactModal: React.FC<ContactModalProps> = ({
   visible,
   onClose,
   onSelectAddress,
-  contacts = defaultContacts,
   title = 'Select Contact',
   searchPlaceholder = 'Search contacts...',
   emptyMessage = 'No contacts found',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+
+  const {
+    loading: listLoading,
+    data: addressBooks,
+    error: listError,
+    refetch: refetchList,
+  } = useAddressBooks();
+
+  const contacts = useMemo(() => {
+    return addressBooks || [];
+  }, [addressBooks]);
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
@@ -93,12 +58,12 @@ const ContactModal: React.FC<ContactModalProps> = ({
       return contacts;
     } else {
       return contacts.filter(
-        contact =>
+        (contact: Contact) =>
           contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           contact.chain.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          contact.walletAddress.some(address =>
-            address.toLowerCase().includes(searchQuery.toLowerCase()),
-          ),
+          contact.beneficiaryAddress
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()),
       );
     }
   }, [contacts, searchQuery]);
@@ -121,7 +86,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
     ({item}: {item: Contact}) => (
       <ContactCard
         name={item.name}
-        walletAddress={item.walletAddress}
+        beneficiaryAddress={item.beneficiaryAddress}
         chain={item.chain}
         mode="select"
         onAddressSelect={address => handleAddressSelect(address, item)}
@@ -130,18 +95,51 @@ const ContactModal: React.FC<ContactModalProps> = ({
     [handleAddressSelect],
   );
 
-  const keyExtractor = useCallback((item: Contact) => item.id, []);
+  const keyExtractor = useCallback(
+    (item: Contact, index: number) =>
+      item.beneficiaryAddress + index.toString(),
+    [],
+  );
 
-  const renderEmptyState = useCallback(
-    () => (
+  const renderEmptyState = useCallback(() => {
+    if (listLoading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#009D94" />
+          <DText style={styles.loadingText}>Loading contacts...</DText>
+        </View>
+      );
+    }
+
+    if (listError) {
+      return (
+        <View style={styles.errorContainer}>
+          <DText style={styles.errorText}>Failed to load contacts</DText>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => refetchList()}>
+            <DText style={styles.retryButtonText}>Retry</DText>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
       <View style={styles.emptyState}>
-        <DText style={styles.emptyStateText}>
+        <View style={styles.emptyIconContainer}>
+          <AntDesignIcon name="contacts" size={50} color="#009D94" />
+        </View>
+        <DText style={styles.emptyStateTitle}>
           {searchQuery ? emptyMessage : 'No contacts available'}
         </DText>
+        <DText style={styles.emptyStateSubtitle}>
+          {searchQuery
+            ? 'Try adjusting your search terms'
+            : 'Add contacts in your address book first'}
+        </DText>
       </View>
-    ),
-    [searchQuery, emptyMessage],
-  );
+    );
+  }, [searchQuery, emptyMessage, listLoading, listError, refetchList]);
 
   const renderHeader = () => (
     <View style={styles.headerContent}>
@@ -153,20 +151,56 @@ const ContactModal: React.FC<ContactModalProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Search Input */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder={searchPlaceholder}
-          placeholderTextColor="#999"
-          value={searchQuery}
-          onChangeText={handleSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-      </View>
+      {/* Search Input - Only show if we have contacts or are searching */}
+      {(contacts.length > 0 || searchQuery) && (
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder={searchPlaceholder}
+            placeholderTextColor="#999"
+            value={searchQuery}
+            onChangeText={handleSearch}
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+        </View>
+      )}
+
+      {/* Loading indicator for header */}
+      {listLoading && contacts.length === 0 && (
+        <View style={styles.headerLoadingContainer}>
+          <ActivityIndicator size="small" color="#009D94" />
+          <DText style={styles.headerLoadingText}>Loading contacts...</DText>
+        </View>
+      )}
     </View>
   );
+
+  const renderContent = () => {
+    // Show loading in main area only if we have no contacts yet
+    if (listLoading && contacts.length === 0) {
+      return (
+        <View style={styles.mainLoadingContainer}>
+          <ActivityIndicator size="large" color="#009D94" />
+          <DText style={styles.loadingText}>Loading contacts...</DText>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={filteredData}
+        renderItem={renderContact}
+        keyExtractor={keyExtractor}
+        ListEmptyComponent={renderEmptyState}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContainer}
+        style={styles.flatListStyle}
+        refreshing={listLoading && contacts.length > 0}
+        onRefresh={refetchList}
+      />
+    );
+  };
 
   return (
     <BottomSheet
@@ -175,16 +209,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
       onBackdropPress={handleClose}>
       <View style={styles.bottomSheetCard}>
         {renderHeader()}
-
-        <FlatList
-          data={filteredData}
-          renderItem={renderContact}
-          keyExtractor={keyExtractor}
-          ListEmptyComponent={renderEmptyState}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContainer}
-          style={styles.flatListStyle}
-        />
+        {renderContent()}
       </View>
     </BottomSheet>
   );
@@ -196,8 +221,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 10,
-    maxHeight: '95%', // Changed from 80% to 95% to cover almost entire screen
-    minHeight: '90%', // Added minimum height for consistency
+    maxHeight: '95%',
+    minHeight: '90%',
+    width: '100%',
   },
   headerContent: {
     paddingHorizontal: 20,
@@ -238,11 +264,63 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
+  headerLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  headerLoadingText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+  },
+  mainLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+    paddingBottom: 100,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 12,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF6B6B',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#009D94',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   flatListStyle: {
     flex: 1,
   },
   listContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     paddingBottom: 30,
     paddingTop: 10,
     flexGrow: 1,
@@ -251,7 +329,27 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 50,
+    paddingBottom: 50,
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    marginBottom: 16,
+  },
+  emptyIcon: {
+    fontSize: 48,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   emptyStateText: {
     fontSize: 16,

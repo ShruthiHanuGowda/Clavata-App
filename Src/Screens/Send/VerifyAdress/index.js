@@ -18,7 +18,7 @@ import {SnackBarMessage} from '../../../utils/snackBar';
 import {navigateTo} from '../../../utils/navigationService';
 import {CustomImageButton} from '../../../Componants';
 import ContactModal from '../../AddressBookScreens/ContactModal';
-
+import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 export const VerifyAddress = props => {
   const [senderAddress, setSenderAddress] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -103,11 +103,12 @@ export const VerifyAddress = props => {
               style={style.iconButton}
               onPress={openContactModal}
               activeOpacity={0.7}>
-              {Images.contactIcon ? (
+              <AntDesignIcon name="contacts" size={24} color="#009D94" />
+              {/* {Images.contactIcon ? (
                 <Image source={Images.contactIcon} style={style.iconStyle} />
               ) : (
                 <DText style={style.contactIconText}>👥</DText>
-              )}
+              )} */}
             </TouchableOpacity>
 
             {/* QR Scan Icon */}
@@ -115,7 +116,8 @@ export const VerifyAddress = props => {
               style={style.iconButton}
               onPress={handleQRScan}
               activeOpacity={0.7}>
-              <Image source={Images.qrCodeIcon} style={style.iconStyle} />
+              <AntDesignIcon name="qrcode" size={24} color="#009D94" />
+              {/* <Image source={Images.qrCodeIcon} style={style.iconStyle} /> */}
             </TouchableOpacity>
           </View>
         </View>

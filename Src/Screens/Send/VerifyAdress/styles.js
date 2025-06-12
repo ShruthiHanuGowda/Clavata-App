@@ -75,7 +75,7 @@ export default StyleSheet.create({
   // FIXED: iconButton - removed background color, better sizing
   iconButton: {
     padding: 8,
-    marginLeft: 4,
+    marginLeft: 0,
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',

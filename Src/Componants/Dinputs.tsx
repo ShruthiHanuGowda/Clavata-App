@@ -27,6 +27,9 @@ interface DTextInputProps {
     | 'decimal-pad'
     | 'numeric'
     | 'url';
+  multiline?: boolean;
+  numberOfLines?: number;
+  editable?: boolean;
 }
 
 interface DEmailInputProps {

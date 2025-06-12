@@ -6,7 +6,7 @@ import {DText} from '../../../Componants/DText';
 
 interface ContactCardProps {
   name: string;
-  walletAddress: string[];
+  beneficiaryAddress: string;
   chain: string;
   onPress?: () => void;
   mode?: 'copy' | 'select'; // New prop to determine functionality
@@ -15,7 +15,7 @@ interface ContactCardProps {
 
 const ContactCard: React.FC<ContactCardProps> = ({
   name,
-  walletAddress,
+  beneficiaryAddress,
   chain,
   onPress,
   mode = 'copy',
@@ -46,8 +46,30 @@ const ContactCard: React.FC<ContactCardProps> = ({
     return address;
   };
 
+  const getChainInitial = (chainName: string) => {
+    return chainName.charAt(0).toUpperCase();
+  };
+
+  const getChainColor = (chainName: string) => {
+    // Generate a consistent color based on chain name
+    const colors = [
+      '#009D94',
+      '#6C63FF',
+      '#FF6B6B',
+      '#4ECDC4',
+      '#45B7D1',
+      '#96CEB4',
+      '#FECA57',
+      '#FF9FF3',
+      '#54A0FF',
+      '#5F27CD',
+    ];
+    const index = chainName.length % colors.length;
+    return colors[index];
+  };
+
   return (
-    <View style={styles.cardContainer}>
+    <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
       <View style={styles.cardContent}>
         {/* Header with name and chain */}
         <View style={styles.headerRow}>
@@ -55,42 +77,50 @@ const ContactCard: React.FC<ContactCardProps> = ({
             <DText fontStyle="fontBold" style={styles.contactName}>
               {name}
             </DText>
-            <View style={styles.chainBadge}>
-              <DText style={styles.chainText}>{chain}</DText>
+          </View>
+          <View style={styles.chainContainer}>
+            <View
+              style={[
+                styles.chainIcon,
+                {backgroundColor: getChainColor(chain)},
+              ]}>
+              <DText style={styles.chainInitial}>
+                {getChainInitial(chain)}
+              </DText>
             </View>
+            <DText style={styles.chainText}>{chain}</DText>
           </View>
         </View>
 
-        {/* Wallet addresses */}
-        <View style={styles.addressesContainer}>
-          {walletAddress.map((address, index) => (
-            <View key={index} style={styles.addressRow}>
-              <View style={styles.addressInfo}>
-                <DText style={styles.addressText}>
-                  {truncateAddress(address)}
-                </DText>
-              </View>
-              <TouchableOpacity
-                style={[
-                  styles.copyButton,
-                  mode === 'select' ? styles.selectButton : styles.copyButton,
-                ]}
-                onPress={() => handleAddressAction(address)}>
-                <DText
-                  style={[
-                    styles.copyButtonText,
-                    mode === 'select'
-                      ? styles.selectButtonText
-                      : styles.copyButtonText,
-                  ]}>
-                  {mode === 'select' ? 'Select' : 'Copy'}
-                </DText>
-              </TouchableOpacity>
+        {/* Beneficiary Address */}
+        <View style={styles.addressContainer}>
+          <View style={styles.addressRow}>
+            <View style={styles.addressInfo}>
+              <DText style={styles.addressLabel}>Address</DText>
+              <DText style={styles.addressText}>
+                {truncateAddress(beneficiaryAddress)}
+              </DText>
             </View>
-          ))}
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                mode === 'select' ? styles.selectButton : styles.copyButton,
+              ]}
+              onPress={() => handleAddressAction(beneficiaryAddress)}>
+              <DText
+                style={[
+                  styles.actionButtonText,
+                  mode === 'select'
+                    ? styles.selectButtonText
+                    : styles.copyButtonText,
+                ]}>
+                {mode === 'select' ? 'Select' : 'Copy'}
+              </DText>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -116,7 +146,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   nameSection: {
     flex: 1,
@@ -126,44 +156,63 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     marginBottom: 4,
   },
-  chainBadge: {
-    backgroundColor: '#009D94',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+  chainContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  chainText: {
+  chainIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  chainInitial: {
     fontSize: 12,
     color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  chainText: {
+    fontSize: 14,
+    color: '#666',
     fontWeight: '500',
   },
-  addressesContainer: {
-    marginTop: 8,
+  addressContainer: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
   },
   addressRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   addressInfo: {
     flex: 1,
     marginRight: 12,
-    justifyContent: 'center',
+  },
+  addressLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+    fontWeight: '500',
   },
   addressText: {
     fontSize: 14,
     color: '#333',
     fontFamily: 'monospace',
+    lineHeight: 18,
   },
-  copyButton: {
-    backgroundColor: '#009D94',
+  actionButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  copyButton: {
+    backgroundColor: '#009D94',
   },
   copyButtonText: {
     fontSize: 12,
@@ -172,13 +221,14 @@ const styles = StyleSheet.create({
   },
   selectButton: {
     backgroundColor: '#6C63FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
   },
   selectButtonText: {
     fontSize: 12,
     color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  actionButtonText: {
+    fontSize: 12,
     fontWeight: '600',
   },
 });
