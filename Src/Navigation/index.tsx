@@ -41,6 +41,7 @@ import UserNFTsScreen from '../Screens/MarketPlace/UserNFTsScreen';
 import UnstakeScreen from '../Screens/Stake/UnstakeScreen';
 import News from '../Screens/NewsScreens/News';
 import NewsDetail from '../Screens/NewsScreens/NewsDetail';
+import AddressBook from '../Screens/AddressBookScreens/AddressBook';
 
 function RootScreenStack() {
   const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -152,6 +153,7 @@ export function HomeScreenStack() {
       <HomeStack.Screen name="D.Energy" component={Drex} />
       <HomeStack.Screen name="account" component={Account} />
       <HomeStack.Screen name="ProfileSettings" component={ProfileSetting} />
+      <HomeStack.Screen name="AddressBook" component={AddressBook} />
       <HomeStack.Screen name="coinWalletStack" component={CoinWalletStackFun} />
       <HomeStack.Screen name="beneficary" component={AccountBeneficary} />
       <HomeStack.Screen name="contactus" component={ContactUs} />

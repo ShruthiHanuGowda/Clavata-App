@@ -17,9 +17,11 @@ import {isAddress} from 'ethers';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import {navigateTo} from '../../../utils/navigationService';
 import {CustomImageButton} from '../../../Componants';
+import ContactModal from '../../AddressBookScreens/ContactModal';
 
 export const VerifyAddress = props => {
   const [senderAddress, setSenderAddress] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
   const coinCode = props?.route?.params?.coinCode;
 
   function isValidEthereumAddress(address) {
@@ -39,6 +41,25 @@ export const VerifyAddress = props => {
       console.error(err);
     }
   }
+
+  const handleSelectAddress = (address, contact) => {
+    setSenderAddress(address);
+    console.log('Selected:', address, 'from', contact.name);
+    SnackBarMessage(`Address selected from ${contact.name}`, 'success');
+  };
+
+  const openContactModal = () => {
+    setModalVisible(true);
+  };
+
+  const closeContactModal = () => {
+    setModalVisible(false);
+  };
+
+  const handleQRScan = () => {
+    // Add your QR scan logic here
+    console.log('QR Scan pressed');
+  };
 
   return (
     <View style={style.container}>
@@ -60,23 +81,56 @@ export const VerifyAddress = props => {
           </View>
         }
       />
+
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={style.scrollViewContainer}>
-        <TouchableOpacity style={style.addressInputWrap}>
+        <View style={style.addressInputWrap}>
           <TextInput
             onChangeText={data => {
               setSenderAddress(data);
             }}
             value={senderAddress}
-            placeholderTextColor={'#000'}
+            placeholderTextColor={'#999'}
             placeholder="Enter wallet Address"
-            style={style.addressInput}></TextInput>
-          <Pressable style={{right: 10}} onPress={() => ''}>
-            <Image source={Images.qrCodeIcon} style={{height: 25, width: 25}} />
-          </Pressable>
-        </TouchableOpacity>
+            style={style.addressInput}
+          />
+
+          {/* Icons Container */}
+          <View style={style.iconsContainer}>
+            {/* Contact Selection Icon */}
+            <TouchableOpacity
+              style={style.iconButton}
+              onPress={openContactModal}
+              activeOpacity={0.7}>
+              {Images.contactIcon ? (
+                <Image source={Images.contactIcon} style={style.iconStyle} />
+              ) : (
+                <DText style={style.contactIconText}>👥</DText>
+              )}
+            </TouchableOpacity>
+
+            {/* QR Scan Icon */}
+            <TouchableOpacity
+              style={style.iconButton}
+              onPress={handleQRScan}
+              activeOpacity={0.7}>
+              <Image source={Images.qrCodeIcon} style={style.iconStyle} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Selected Address Display */}
+        {senderAddress && (
+          <View style={style.selectedAddressContainer}>
+            <DText style={style.selectedAddressLabel}>Selected Address:</DText>
+            <DText style={style.selectedAddressText} numberOfLines={1}>
+              {senderAddress}
+            </DText>
+          </View>
+        )}
       </ScrollView>
+
       <CustomImageButton
         disable={!senderAddress}
         backgroundImage={Images.buttonBg}
@@ -85,6 +139,16 @@ export const VerifyAddress = props => {
         onPress={() => isValidEthereumAddress(senderAddress)}
         containerWrapper={style.bottomButton}
         bgImg={style.buttonImage}
+      />
+
+      {/* Contact Modal */}
+      <ContactModal
+        visible={modalVisible}
+        onClose={closeContactModal}
+        onSelectAddress={handleSelectAddress}
+        title="Choose Recipient"
+        searchPlaceholder="Search contacts..."
+        emptyMessage="No contacts found"
       />
     </View>
   );
