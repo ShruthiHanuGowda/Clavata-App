@@ -29,7 +29,7 @@ const chains = [denergyTestnet, sepoliaETHTestnet];
 export function getBlockExploreLink(
   data: string | number | undefined | null,
   type: 'transaction' | 'token' | 'address' | 'block' | 'countdown',
-  chainIdOverride?: number,
+  chainIdOverride?: number|string,
 ): string {
   const chainId = chainIdOverride || CUSTOM_NETWORK_CHAIN_ID;
   const chain = chains.find(c => c.id === chainId);

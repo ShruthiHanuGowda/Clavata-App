@@ -63,7 +63,7 @@ const PortfolioHeader = ({coinCode, balance, balanceUsd}) => (
       </View>
       <View style={styles.balanceContainer}>
         <Text style={styles.balanceLabel}>Balance</Text>
-        <Text style={styles.balanceValue}>
+        <Text style={styles.balanceValue} numberOfLines={2} ellipsizeMode="tail">
           {balance || '0'} (${balanceUsd || '0.00'})
         </Text>
       </View>
@@ -414,6 +414,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     fontFamily: fontsFamily.MulishExtraBold,
+    maxWidth: '70%',
   },
   btnAlign: {
     flexDirection: 'row',

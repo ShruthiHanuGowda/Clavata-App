@@ -182,8 +182,6 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     resetBridgeState,
   } = useBridge();
 
-  
-
   const initialCoinCode = props?.route?.params?.coinCode || 'USDC';
 
   // State management
@@ -467,7 +465,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         progress={stepProgress}
         showProgressBar={true}
         showStepIndicators={true}
-        animationSource={Animation.processingAnimation}
+        animationSource={Animation.bridgeAnimation}
         stepIndicatorCount={9}
         feeInfo={
           networkFee > 0
@@ -494,30 +492,37 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         return;
       }
 
-      const explorerUrl = getBlockExploreLink(transactionHash, 'transaction');
+      const explorerUrl = getBlockExploreLink(transactionHash, 'transaction', sourceNetwork === 'ETH' ? 11155111 : '');
 
       Linking.openURL(explorerUrl).catch(err => {
         console.error('Failed to open explorer:', err);
         Alert.alert('Error', 'Could not open explorer');
       });
     };
-    
-    const handleCopyHash = () => {
-    if (!transactionHash) {
-      Alert.alert('Error', 'Transaction hash not available');
-      return;
-    }
 
-    Clipboard.setString(transactionHash);
-    Alert.alert('Copied!', 'Transaction hash copied to clipboard');
-  };
+    const handleCopyHash = () => {
+      if (!transactionHash) {
+        Alert.alert('Error', 'Transaction hash not available');
+        return;
+      }
+
+      Clipboard.setString(transactionHash);
+      Alert.alert('Copied!', 'Transaction hash copied to clipboard');
+    };
 
     return (
       <View style={successStyles.container}>
         {/* Success Icon and Title */}
         <View style={successStyles.headerSection}>
           <View style={successStyles.successIconContainer}>
-            <Text style={successStyles.successIcon}>✅</Text>
+            <LottieView
+              source={Animation.transferSuccessAnimation}
+              autoPlay
+              duration={1000}
+              loop={false}
+              style={successStyles.successAnimation}
+              speed={2}
+            />
           </View>
           <DText fontStyle="fontBold" style={successStyles.title}>
             {operationType} Successful!
@@ -549,30 +554,29 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
           </View>
 
           {/* Transaction Hash Section */}
-         {transactionHash && (
-          <View style={successStyles.hashSection}>
-            <DText style={successStyles.hashLabel}>Transaction Hash</DText>
-            <View style={successStyles.hashContainer}>
-              <Pressable 
-                style={successStyles.hashDisplay}
-                onPress={handleCopyHash}>
-                <Text style={successStyles.hashText}>
-                  {formatTxHash(transactionHash)}
-                </Text>
-                <Text style={successStyles.copyIcon}>📋</Text>
-              </Pressable>
-              <Pressable
-                style={successStyles.explorerButton}
-                onPress={handleViewExplorer}
-              >
-                <Text style={successStyles.explorerIcon}>🔍</Text>
-              </Pressable>
+          {transactionHash && (
+            <View style={successStyles.hashSection}>
+              <DText style={successStyles.hashLabel}>Transaction Hash</DText>
+              <View style={successStyles.hashContainer}>
+                <Pressable
+                  style={successStyles.hashDisplay}
+                  onPress={handleCopyHash}>
+                  <Text style={successStyles.hashText}>
+                    {formatTxHash(transactionHash)}
+                  </Text>
+                  <Text style={successStyles.copyIcon}>📋</Text>
+                </Pressable>
+                <Pressable
+                  style={successStyles.explorerButton}
+                  onPress={handleViewExplorer}>
+                  <Text style={successStyles.explorerIcon}>🔍</Text>
+                </Pressable>
+              </View>
+              <DText style={successStyles.hashHint}>
+                Tap hash to copy • Tap 🔍 to view on explorer
+              </DText>
             </View>
-            <DText style={successStyles.hashHint}>
-              Tap hash to copy • Tap 🔍 to view on explorer
-            </DText>
-          </View>
-        )}
+          )}
         </View>
       </View>
     );
@@ -857,6 +861,10 @@ const successStyles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+  },
+  successAnimation: {
+    width: 80,
+    height: 80,
   },
   successIcon: {
     fontSize: 50,
