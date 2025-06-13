@@ -1,4 +1,4 @@
-import React, {JSX, useState, useCallback, useMemo} from 'react';
+import React, {JSX, useState, useCallback, useMemo, useEffect} from 'react';
 import {
   Image,
   TouchableOpacity,
@@ -7,16 +7,25 @@ import {
   TextInput,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import {DText} from '../../../Componants/DText';
 import {Header} from '@rneui/base';
 import images from '../../../Theme/images';
 import {navigateBack, navigateTo} from '../../../utils/navigationService';
 import ContactCard from '../Componants/ContactCard';
-import {useAddressBooks} from '../Hooks/AddressBookGraphql';
+import {
+  useAddressBookByWallet,
+  useDeleteAddressBook,
+} from '../Hooks/AddressBookGraphql';
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 import {Colors} from '../../../Theme';
+import {useAuth} from '../../../../screens/Provider/authProvider';
+import {SnackBarMessage} from '../../../utils/snackBar';
+
 interface Contact {
+  id: string;
   beneficiaryAddress: string;
   name: string;
   walletAddress: string;
@@ -29,19 +38,39 @@ interface AddressBookProps {
 
 function AddressBook(props: AddressBookProps): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('');
+  const [deletingContactId, setDeletingContactId] = useState<string | null>(
+    null,
+  ); // Track which contact is being deleted
+  const {userDetails} = useAuth();
 
+  // Using the updated hook with wallet address
   const {
     loading: listLoading,
     data: addressBooks,
     error: listError,
     refetch: refetchList,
-  } = useAddressBooks();
+  } = useAddressBookByWallet(userDetails?.denergyWallet ?? null);
+
+  // Using the delete hook
+  const {
+    loading: deleteLoading,
+    error: deleteError,
+    deleteAddressBook,
+  } = useDeleteAddressBook();
 
   console.log(
     'addressBooks',
     JSON.stringify(addressBooks),
     listLoading,
     listError,
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (userDetails?.denergyWallet) {
+        refetchList();
+      }
+    }, [userDetails?.denergyWallet, refetchList]),
   );
 
   const contacts = useMemo(() => {
@@ -55,8 +84,85 @@ function AddressBook(props: AddressBookProps): JSX.Element {
   const handleCreateBeneficiary = useCallback(() => {
     // Navigate to create beneficiary screen
     console.log('Navigate to create beneficiary');
-    // You can implement navigation here
+    navigateTo('CreateAddress');
   }, []);
+
+  const handleEditContact = useCallback(
+    (contactId: string) => {
+      // Find the contact to edit
+      const contactToEdit = contacts.find(contact => contact.id === contactId);
+
+      if (contactToEdit) {
+        console.log('Editing contact:', contactToEdit.name, 'ID:', contactId);
+        console.log('Contact data being passed:', contactToEdit);
+
+        // Navigate to CreateAddress screen in edit mode
+        navigateTo('CreateAddress', {
+          editMode: true,
+          contactToEdit: contactToEdit,
+        });
+      } else {
+        console.error('Contact not found for editing:', contactId);
+        Alert.alert('Error', 'Contact not found. Please try again.');
+      }
+    },
+    [contacts],
+  );
+
+  const handleDeleteContact = useCallback(
+    async (contactId: string, contactName: string) => {
+      // Show single confirmation dialog before deleting
+      Alert.alert(
+        'Delete Contact',
+        `Are you sure you want to delete "${contactName}" from your address book?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                setDeletingContactId(contactId);
+
+                // Get wallet address for refetch
+                const walletAddress = userDetails?.denergyWallet;
+                if (!walletAddress) {
+                  throw new Error('Wallet address not found');
+                }
+
+                // Call the actual delete API
+                await deleteAddressBook(contactId, walletAddress);
+
+                console.log(
+                  `Contact deleted: ${contactName} (ID: ${contactId})`,
+                );
+
+                SnackBarMessage('Contact deleted successfully', 'success');
+
+                // Refresh the list after successful deletion
+                await refetchList();
+              } catch (error) {
+                console.error('Error deleting contact:', error);
+
+                // Show error message
+                Alert.alert(
+                  'Delete Failed',
+                  'Unable to delete contact. Please try again.',
+                  [{text: 'OK'}],
+                );
+              } finally {
+                setDeletingContactId(null);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [deleteAddressBook, userDetails?.denergyWallet, refetchList],
+  );
 
   const filteredData = useMemo(() => {
     if (searchQuery.trim() === '') {
@@ -79,22 +185,30 @@ function AddressBook(props: AddressBookProps): JSX.Element {
         name={item.name}
         beneficiaryAddress={item.beneficiaryAddress}
         chain={item.chain}
+        contactId={item.id}
         onPress={() => {
-          console.log('Contact pressed:', item.name);
+          // Disable press when deleting
+          if (deletingContactId === item.id) return;
+          console.log('Contact pressed:', item.name, 'ID:', item.id);
         }}
+        onEdit={handleEditContact}
+        onDelete={handleDeleteContact}
+        showEditButton={deletingContactId !== item.id} // Hide edit button when deleting
+        showDeleteButton={deletingContactId !== item.id} // Hide menu when deleting
+        isDeleting={deletingContactId === item.id} // Pass deleting state to card
       />
     ),
-    [],
+    [handleEditContact, handleDeleteContact, deletingContactId],
   );
 
   const keyExtractor = useCallback(
     (item: Contact, index: number) =>
-      item.beneficiaryAddress + index.toString(),
+      item.id || `${item.beneficiaryAddress}-${index}`,
     [],
   );
 
   const renderEmptyState = useCallback(() => {
-    if (listLoading) {
+    if (listLoading && contacts.length === 0) {
       return (
         <View style={localStyles.loadingContainer}>
           <ActivityIndicator size="large" color="#009D94" />
@@ -146,19 +260,8 @@ function AddressBook(props: AddressBookProps): JSX.Element {
     listError,
     refetchList,
     handleCreateBeneficiary,
+    contacts.length,
   ]);
-
-  const renderLoadingOverlay = () => {
-    if (listLoading && contacts.length === 0) {
-      return (
-        <View style={localStyles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#009D94" />
-          <DText style={localStyles.loadingText}>Loading contacts...</DText>
-        </View>
-      );
-    }
-    return null;
-  };
 
   return (
     <View style={localStyles.container}>
@@ -222,6 +325,7 @@ function AddressBook(props: AddressBookProps): JSX.Element {
         contentContainerStyle={localStyles.listContainer}
         refreshing={listLoading && contacts.length > 0}
         onRefresh={refetchList}
+        extraData={deletingContactId} // Force re-render when delete state changes
       />
     </View>
   );
@@ -240,7 +344,6 @@ const localStyles = StyleSheet.create({
   },
   iconContainer: {
     paddingHorizontal: 8,
-    // bottom: 10,
   },
   nameContainer: {
     flex: 1,
@@ -251,7 +354,6 @@ const localStyles = StyleSheet.create({
     color: '#1a1a1a',
   },
   addButton: {
-    // backgroundColor: '#009D94',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -279,17 +381,6 @@ const localStyles = StyleSheet.create({
   listContainer: {
     paddingBottom: 20,
     flexGrow: 1,
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 245, 245, 0.8)',
-    zIndex: 1,
   },
   loadingContainer: {
     flex: 1,

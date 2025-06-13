@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useMemo} from 'react';
+import React, {useState, useCallback, useMemo, useEffect} from 'react';
 import {
   View,
   StyleSheet,
@@ -14,11 +14,15 @@ import {
 } from 'react-native';
 import {BottomSheet} from 'react-native-btr';
 import Icon from 'react-native-vector-icons/Entypo';
+import {v4 as uuidv4} from 'uuid';
 import {DTextInput} from '../../../Componants/Dinputs';
 import {DButton} from '../../../Componants';
 import images from '../../../Theme/images';
 import {navigateBack} from '../../../utils/navigationService';
-import {useCreateAddressBook} from '../Hooks/AddressBookGraphql'; // Import the hook
+import {
+  useCreateAddressBook,
+  useUpdateAddressBook,
+} from '../Hooks/AddressBookGraphql';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 
@@ -26,6 +30,16 @@ interface CreateAddressProps {
   onSave?: (data: CreateAddressData) => void;
   onCancel?: () => void;
   loading?: boolean;
+  // Route props for React Navigation
+  route?: {
+    params?: {
+      editMode?: boolean;
+      contactToEdit?: Contact | null;
+    };
+  };
+  // Edit mode props (fallback if not using navigation)
+  editMode?: boolean;
+  contactToEdit?: Contact | null;
 }
 
 interface CreateAddressData {
@@ -34,30 +48,41 @@ interface CreateAddressData {
   chain: string;
 }
 
+interface Contact {
+  id: string;
+  beneficiaryAddress: string;
+  name: string;
+  walletAddress: string;
+  chain: string;
+}
+
 interface ChainOption {
   id: string;
   name: string;
-  color: string;
+  image: any; // Changed from color to image
 }
 
-// Available chains - you can modify this based on your supported chains
+// Available chains - only Ethereum and DEnergy
 const AVAILABLE_CHAINS: ChainOption[] = [
-  {id: 'ETH', name: 'Ethereum', color: '#627EEA'},
-  {id: 'DEnergy', name: 'DEnergy', color: '#009D94'},
-  {id: 'BTC', name: 'Bitcoin', color: '#F7931A'},
-  {id: 'BNB', name: 'BNB Chain', color: '#F3BA2F'},
-  {id: 'MATIC', name: 'Polygon', color: '#8247E5'},
-  {id: 'SOL', name: 'Solana', color: '#9945FF'},
+  {id: 'ETH', name: 'Ethereum', image: images.ethereum},
+  {id: 'DEnergy', name: 'DEnergy', image: images.watt},
 ];
-
-// Static wallet address for dEnergy
 
 const CreateAddress: React.FC<CreateAddressProps> = ({
   onSave,
   onCancel,
   loading: externalLoading = false,
+  route,
+  editMode: propEditMode = false,
+  contactToEdit: propContactToEdit = null,
 }) => {
   const {userDetails} = useAuth();
+
+  // Extract route parameters if using React Navigation
+  const routeParams = route?.params || {};
+  const editMode = routeParams.editMode || propEditMode;
+  const contactToEdit = routeParams.contactToEdit || propContactToEdit;
+
   const [formData, setFormData] = useState<CreateAddressData>({
     beneficiaryAddress: '',
     name: '',
@@ -68,12 +93,48 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
   const [isNameValid, setIsNameValid] = useState(false);
   const [isAddressValid, setIsAddressValid] = useState(false);
 
-  // Use the GraphQL mutation hook
+  // Use the GraphQL mutation hooks
   const {
     createAddressBook,
-    loading: mutationLoading,
-    error: mutationError,
+    loading: createLoading,
+    error: createError,
   } = useCreateAddressBook();
+
+  const {
+    updateAddressBook,
+    loading: updateLoading,
+    error: updateError,
+  } = useUpdateAddressBook();
+
+  // Initialize form data when in edit mode
+  useEffect(() => {
+    console.log('CreateAddress useEffect triggered:', {
+      editMode,
+      contactToEdit,
+      routeParams: route?.params,
+    });
+
+    if (editMode && contactToEdit) {
+      console.log('Pre-filling form with contact data:', contactToEdit);
+      setFormData({
+        beneficiaryAddress: contactToEdit.beneficiaryAddress,
+        name: contactToEdit.name,
+        chain: contactToEdit.chain,
+      });
+      setIsNameValid(contactToEdit.name.trim().length >= 2);
+      setIsAddressValid(contactToEdit.beneficiaryAddress.trim().length >= 10);
+    } else {
+      console.log('Not in edit mode or no contact to edit');
+      // Reset form when not in edit mode
+      setFormData({
+        beneficiaryAddress: '',
+        name: '',
+        chain: '',
+      });
+      setIsNameValid(false);
+      setIsAddressValid(false);
+    }
+  }, [editMode, contactToEdit, route?.params]);
 
   const selectedChain = useMemo(() => {
     return AVAILABLE_CHAINS.find(chain => chain.id === formData.chain);
@@ -136,43 +197,106 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
       return;
     }
 
-    try {
-      // Prepare the input for the GraphQL mutation
-      const createAddressBookInput = {
-        name: formData.name.trim(),
-        beneficiaryAddress: formData.beneficiaryAddress.trim(),
-        chain: formData.chain,
-        walletAddress: userDetails?.denergyWallet, // Static dEnergy wallet address
-        // Add any other required fields based on your CreateAddressBookInput type
-      };
-
-      // Call the GraphQL mutation
-      const result = await createAddressBook(createAddressBookInput);
-
-      if (result) {
-        SnackBarMessage('Contact added successfully!');
-
-        // Call the onSave prop if provided (for any additional handling)
-        if (onSave) {
-          onSave(formData);
-        }
-
-        // Reset form after successful save
-        setFormData({beneficiaryAddress: '', name: '', chain: ''});
-        navigateBack();
-      }
-    } catch (error) {
-      console.error('Error creating address book:', error);
-      Alert.alert(
-        'Error',
-        mutationError
-          ? `Failed to add contact: ${mutationError.message}`
-          : 'Failed to add contact. Please try again.',
-      );
+    if (!userDetails?.denergyWallet) {
+      Alert.alert('Error', 'User wallet address not found. Please try again.');
+      return;
     }
-  }, [formData, validateForm, createAddressBook, onSave, mutationError]);
+
+    try {
+      if (editMode && contactToEdit) {
+        // Update existing contact
+        const updateInput = {
+          id: contactToEdit.id,
+          name: formData.name.trim(),
+          beneficiaryAddress: formData.beneficiaryAddress.trim(),
+          chain: formData.chain,
+          walletAddress: userDetails.denergyWallet,
+        };
+
+        console.log('Updating address book with input:', updateInput);
+
+        const result = await updateAddressBook(updateInput);
+
+        if (result) {
+          console.log('Address book updated successfully:', result);
+          SnackBarMessage('Contact updated successfully!');
+        }
+      } else {
+        // Create new contact
+        const uniqueId = uuidv4();
+
+        const createInput = {
+          id: uniqueId,
+          name: formData.name.trim(),
+          beneficiaryAddress: formData.beneficiaryAddress.trim(),
+          chain: formData.chain,
+          walletAddress: userDetails.denergyWallet,
+        };
+
+        console.log('Creating address book with input:', createInput);
+
+        const result = await createAddressBook(createInput);
+
+        if (result) {
+          console.log('Address book created successfully:', result);
+          SnackBarMessage('Contact added successfully!');
+        }
+      }
+
+      // Call the onSave prop if provided (for any additional handling)
+      if (onSave) {
+        onSave(formData);
+      }
+
+      // Reset form after successful save
+      setFormData({beneficiaryAddress: '', name: '', chain: ''});
+      setIsNameValid(false);
+      setIsAddressValid(false);
+      navigateBack();
+    } catch (error) {
+      console.error(
+        `Error ${editMode ? 'updating' : 'creating'} address book:`,
+        error,
+      );
+
+      // More detailed error handling
+      let errorMessage = `Failed to ${
+        editMode ? 'update' : 'add'
+      } contact. Please try again.`;
+      const currentError = editMode ? updateError : createError;
+
+      if (currentError) {
+        errorMessage = `Failed to ${editMode ? 'update' : 'add'} contact: ${
+          currentError.message
+        }`;
+      } else if (error instanceof Error) {
+        errorMessage = `Failed to ${editMode ? 'update' : 'add'} contact: ${
+          error.message
+        }`;
+      }
+
+      Alert.alert('Error', errorMessage);
+    }
+  }, [
+    formData,
+    validateForm,
+    createAddressBook,
+    updateAddressBook,
+    onSave,
+    createError,
+    updateError,
+    userDetails,
+    editMode,
+    contactToEdit,
+  ]);
 
   const handleCancel = useCallback(() => {
+    // Reset form state
+    setFormData({beneficiaryAddress: '', name: '', chain: ''});
+    setErrors({});
+    setIsNameValid(false);
+    setIsAddressValid(false);
+
     if (onCancel) {
       onCancel();
     } else {
@@ -180,45 +304,19 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
     }
   }, [onCancel]);
 
-  const getChainInitial = (chainName: string) => {
-    return chainName.charAt(0).toUpperCase();
-  };
-
   const isFormValid = useMemo(() => {
     return (
       isNameValid &&
       isAddressValid &&
       formData.chain &&
       formData.name.trim().length >= 2 &&
-      formData.beneficiaryAddress.trim().length >= 10
+      formData.beneficiaryAddress.trim().length >= 10 &&
+      userDetails?.denergyWallet // Ensure wallet address is available
     );
-  }, [isNameValid, isAddressValid, formData]);
+  }, [isNameValid, isAddressValid, formData, userDetails]);
 
   // Combine loading states
-  const isLoading = mutationLoading || externalLoading;
-
-  const renderChainItem = useCallback(
-    ({item}: {item: ChainOption}) => (
-      <TouchableOpacity
-        style={localStyles.optionItem}
-        onPress={() => handleChainSelect(item)}>
-        <View style={localStyles.chainOptionContent}>
-          <View style={[localStyles.chainIcon, {backgroundColor: item.color}]}>
-            <Text style={localStyles.chainInitial}>
-              {getChainInitial(item.name)}
-            </Text>
-          </View>
-          <View style={localStyles.chainInfo}>
-            <Text style={localStyles.chainName}>{item.name}</Text>
-            <Text style={localStyles.chainId}>{item.id}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    ),
-    [handleChainSelect],
-  );
-
-  const keyExtractorChain = useCallback((item: ChainOption) => item.id, []);
+  const isLoading = createLoading || updateLoading || externalLoading;
 
   return (
     <SafeAreaView style={localStyles.mainContainer}>
@@ -229,7 +327,9 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
             <Pressable onPress={handleCancel} style={localStyles.iconContainer}>
               <Image source={images.back} style={{width: 20, height: 20}} />
             </Pressable>
-            <Text style={localStyles.header}>Add Contact</Text>
+            <Text style={localStyles.header}>
+              {editMode ? 'Edit Contact' : 'Add Contact'}
+            </Text>
           </View>
 
           {/* Contact Name Input */}
@@ -264,15 +364,11 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
             onPress={() => setBottomSheetVisible(true)}>
             {selectedChain ? (
               <View style={localStyles.selectedChainContent}>
-                <View
-                  style={[
-                    localStyles.chainIcon,
-                    {backgroundColor: selectedChain.color},
-                  ]}>
-                  <Text style={localStyles.chainInitial}>
-                    {getChainInitial(selectedChain.name)}
-                  </Text>
-                </View>
+                <Image
+                  source={selectedChain.image}
+                  style={localStyles.chainImage}
+                  resizeMode="contain"
+                />
                 <Text style={localStyles.dropdownLabel}>
                   {selectedChain.name}
                 </Text>
@@ -320,20 +416,41 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
           </View>
 
           {/* Show mutation error if any */}
-          {mutationError && (
+          {(createError || updateError) && (
             <Text style={localStyles.errorText}>
-              Error: {mutationError.message}
+              Error: {(createError || updateError)?.message}
             </Text>
           )}
 
-          {/* Add Contact Button */}
+          {/* Wallet address validation */}
+          {!userDetails?.denergyWallet && (
+            <Text style={localStyles.errorText}>
+              Wallet address not found. Please check your account setup.
+            </Text>
+          )}
+
+          {/* Save Button */}
           <DButton
             onPress={handleSave}
             loading={isLoading}
-            style={localStyles.saveButton}
+            style={[
+              localStyles.saveButton,
+              (!isFormValid || isLoading) && localStyles.saveButtonDisabled,
+            ]}
             disabled={!isFormValid || isLoading}>
-            <Text style={localStyles.saveButtonText}>
-              {isLoading ? 'Adding...' : 'Add Contact'}
+            <Text
+              style={[
+                localStyles.saveButtonText,
+                (!isFormValid || isLoading) &&
+                  localStyles.saveButtonTextDisabled,
+              ]}>
+              {isLoading
+                ? editMode
+                  ? 'Updating...'
+                  : 'Adding...'
+                : editMode
+                ? 'Update Contact'
+                : 'Add Contact'}
             </Text>
           </DButton>
 
@@ -357,18 +474,20 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
                   AVAILABLE_CHAINS.map((chain: ChainOption, index: number) => (
                     <TouchableOpacity
                       key={index}
-                      style={localStyles.optionItem}
+                      style={[
+                        localStyles.optionItem,
+                        // Remove border from last item
+                        index === AVAILABLE_CHAINS.length - 1 && {
+                          borderBottomWidth: 0,
+                        },
+                      ]}
                       onPress={() => handleChainSelect(chain)}>
                       <View style={localStyles.chainOptionContent}>
-                        <View
-                          style={[
-                            localStyles.bottomSheetChainIcon,
-                            {backgroundColor: chain.color},
-                          ]}>
-                          <Text style={localStyles.bottomSheetChainInitial}>
-                            {getChainInitial(chain.name)}
-                          </Text>
-                        </View>
+                        <Image
+                          source={chain.image}
+                          style={localStyles.bottomSheetChainImage}
+                          resizeMode="contain"
+                        />
                         <View style={localStyles.chainInfo}>
                           <Text style={localStyles.optionText}>
                             {chain.name}
@@ -417,7 +536,6 @@ const localStyles = StyleSheet.create({
     color: '#1a1a1a',
     flex: 1,
   },
-
   uniformContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
@@ -442,31 +560,17 @@ const localStyles = StyleSheet.create({
     color: '#1a1a1a',
     marginLeft: 8,
   },
-  chainIcon: {
+  chainImage: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginRight: 8,
   },
-  chainInitial: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  bottomSheetChainIcon: {
+  bottomSheetChainImage: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginRight: 12,
-  },
-  bottomSheetChainInitial: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
   },
   chainInfo: {
     flex: 1,
@@ -481,6 +585,25 @@ const localStyles = StyleSheet.create({
     marginBottom: 16,
     marginLeft: 4,
   },
+  infoContainer: {
+    backgroundColor: '#F0F8FF',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#009D94',
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#009D94',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#1a1a1a',
+    fontFamily: 'monospace',
+  },
   saveButton: {
     backgroundColor: '#009D94',
     borderRadius: 8,
@@ -489,26 +612,32 @@ const localStyles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 40,
   },
+  saveButtonDisabled: {
+    backgroundColor: '#cccccc',
+  },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  saveButtonTextDisabled: {
+    color: '#999999',
   },
   bottomSheetCard: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 10,
-    maxHeight: '80%',
-    minHeight: '50%',
+    paddingBottom: 20, // Add bottom padding
     width: '100%',
+    // Remove fixed heights to auto-size based on content
   },
   bottomSheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12, // Reduced from 16 to make more compact
     borderBottomWidth: 1,
     borderBottomColor: '#EFEFEF',
   },
@@ -528,11 +657,11 @@ const localStyles = StyleSheet.create({
     fontWeight: 'bold',
   },
   optionsContainer: {
-    flex: 1,
+    // Remove flex: 1 to auto-size based on content
   },
   optionItem: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12, // Reduced from 16 to make more compact
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
     backgroundColor: '#FFFFFF',

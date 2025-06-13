@@ -1,20 +1,30 @@
 import {HttpLink, InMemoryCache} from '@apollo/client';
 import {ApolloClient} from '@apollo/client';
 import {useState, useEffect, useCallback} from 'react';
-import {ADDRESS_BOOK_API_KEY, ADDRESS_BOOK_API_URL} from '../../../constants'; // Update these constants as needed
-import {CREATE_ADDRESS_BOOK, LIST_ADDRESS_BOOKS} from './AddressBookQueries';
+import {ADDRESS_BOOK_API_KEY, ADDRESS_BOOK_API_URL} from '../../../constants';
+import {
+  CREATE_ADDRESS_BOOK,
+  UPDATE_ADDRESS_BOOK,
+  DELETE_ADDRESS_BOOK,
+  LIST_ADDRESS_BOOKS_BY_WALLET,
+} from './AddressBookQueries';
 import {
   ListAddressBooksData,
+  ListAddressBooksVariables,
   AddressBook,
   CreateAddressBookInput,
   CreateAddressBookData,
+  UpdateAddressBookInput,
+  UpdateAddressBookData,
+  DeleteAddressBookInput,
+  DeleteAddressBookData,
 } from './type';
 
 const client = new ApolloClient({
   link: new HttpLink({
-    uri: ADDRESS_BOOK_API_URL, // Update this to your address book API URL
+    uri: ADDRESS_BOOK_API_URL,
     headers: {
-      'x-api-key': ADDRESS_BOOK_API_KEY, // Update this to your address book API key
+      'x-api-key': ADDRESS_BOOK_API_KEY,
     },
     includeExtensions: true,
   }),
@@ -28,48 +38,6 @@ const client = new ApolloClient({
     },
   },
 });
-
-// Custom hook for listing address books
-export const useAddressBooks = () => {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [data, setData] = useState<AddressBook[] | null>(null);
-  const [error, setError] = useState<any>(null);
-
-  const fetchAddressBooks = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await client.query<ListAddressBooksData>({
-        query: LIST_ADDRESS_BOOKS,
-        fetchPolicy: 'network-only',
-      });
-
-      setData(result.data.listAddressBooks?.items || []);
-    } catch (err) {
-      console.error('Failed to fetch address books', err);
-      setError(err);
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const refetch = useCallback(() => {
-    return fetchAddressBooks();
-  }, [fetchAddressBooks]);
-
-  useEffect(() => {
-    fetchAddressBooks();
-  }, [fetchAddressBooks]);
-
-  return {
-    loading,
-    data,
-    error,
-    refetch,
-  };
-};
 
 // Custom hook for creating address books
 export const useCreateAddressBook = () => {
@@ -87,6 +55,15 @@ export const useCreateAddressBook = () => {
           variables: {
             createaddressbookinput: input,
           },
+          // Refetch all queries that might be affected by this mutation
+          refetchQueries: [
+            {
+              query: LIST_ADDRESS_BOOKS_BY_WALLET,
+              variables: {walletAddress: input.walletAddress},
+            },
+          ],
+          // Also clear the cache for this query to ensure fresh data
+          awaitRefetchQueries: true,
         });
 
         return result.data?.createAddressBook || null;
@@ -108,32 +85,127 @@ export const useCreateAddressBook = () => {
   };
 };
 
-// Custom hook for finding address book by wallet address
-export const useAddressBookByWallet = (walletAddress: string | null) => {
+// Custom hook for updating address books
+export const useUpdateAddressBook = () => {
   const [loading, setLoading] = useState<boolean>(false);
-  const [data, setData] = useState<AddressBook | null>(null);
   const [error, setError] = useState<any>(null);
 
-  const fetchAddressBookByWallet = useCallback(async (wallet: string) => {
+  const updateAddressBook = useCallback(
+    async (input: UpdateAddressBookInput) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const result = await client.mutate<UpdateAddressBookData>({
+          mutation: UPDATE_ADDRESS_BOOK,
+          variables: {
+            updateaddressbookinput: input,
+          },
+          // Refetch all queries that might be affected by this mutation
+          refetchQueries: [
+            {
+              query: LIST_ADDRESS_BOOKS_BY_WALLET,
+              variables: {walletAddress: input.walletAddress},
+            },
+          ],
+          // Also clear the cache for this query to ensure fresh data
+          awaitRefetchQueries: true,
+        });
+
+        return result.data?.updateAddressBook || null;
+      } catch (err) {
+        console.error('Failed to update address book', err);
+        setError(err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  return {
+    loading,
+    error,
+    updateAddressBook,
+  };
+};
+
+// Custom hook for deleting address books
+export const useDeleteAddressBook = () => {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<any>(null);
+
+  const deleteAddressBook = useCallback(
+    async (id: string, walletAddress: string) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const input: DeleteAddressBookInput = {id};
+
+        const result = await client.mutate<DeleteAddressBookData>({
+          mutation: DELETE_ADDRESS_BOOK,
+          variables: {
+            deleteaddressbookinput: input,
+          },
+          // Refetch all queries that might be affected by this mutation
+          refetchQueries: [
+            {
+              query: LIST_ADDRESS_BOOKS_BY_WALLET,
+              variables: {walletAddress},
+            },
+          ],
+          // Also clear the cache for this query to ensure fresh data
+          awaitRefetchQueries: true,
+        });
+
+        return result.data?.deleteAddressBook || null;
+      } catch (err) {
+        console.error('Failed to delete address book', err);
+        setError(err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  return {
+    loading,
+    error,
+    deleteAddressBook,
+  };
+};
+
+// Custom hook for finding address books by wallet address
+export const useAddressBookByWallet = (walletAddress: string | null) => {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [data, setData] = useState<AddressBook[]>([]);
+  const [error, setError] = useState<any>(null);
+
+  const fetchAddressBooksByWallet = useCallback(async (wallet: string) => {
     setLoading(true);
     setError(null);
 
     try {
+      const variables: ListAddressBooksVariables = {
+        walletAddress: wallet,
+      };
+
       const result = await client.query<ListAddressBooksData>({
-        query: LIST_ADDRESS_BOOKS,
+        query: LIST_ADDRESS_BOOKS_BY_WALLET,
+        variables,
         fetchPolicy: 'network-only',
       });
 
       const addressBooks = result.data.listAddressBooks?.items || [];
-      const foundAddressBook = addressBooks.find(
-        book => book.walletAddress === wallet,
-      );
-
-      setData(foundAddressBook || null);
+      setData(addressBooks);
     } catch (err) {
-      console.error('Failed to fetch address book by wallet', err);
+      console.error('Failed to fetch address books by wallet', err);
       setError(err);
-      setData(null);
+      setData([]);
     } finally {
       setLoading(false);
     }
@@ -141,20 +213,20 @@ export const useAddressBookByWallet = (walletAddress: string | null) => {
 
   const refetch = useCallback(() => {
     if (walletAddress) {
-      return fetchAddressBookByWallet(walletAddress);
+      return fetchAddressBooksByWallet(walletAddress);
     }
     return Promise.resolve();
-  }, [fetchAddressBookByWallet, walletAddress]);
+  }, [fetchAddressBooksByWallet, walletAddress]);
 
   useEffect(() => {
     if (walletAddress) {
-      fetchAddressBookByWallet(walletAddress);
+      fetchAddressBooksByWallet(walletAddress);
     } else {
-      setData(null);
+      setData([]);
       setError(null);
       setLoading(false);
     }
-  }, [fetchAddressBookByWallet, walletAddress]);
+  }, [fetchAddressBooksByWallet, walletAddress]);
 
   return {
     loading,

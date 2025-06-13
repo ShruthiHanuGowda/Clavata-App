@@ -59,9 +59,9 @@ export const NEWS_API_URL =
 export const NEWS_API_KEY = 'da2-gaeekkkmyzduppwbp3fftryhj4';
 
 export const ADDRESS_BOOK_API_URL =
-  'https://7zjf7fhbabbvzmxdwt5b56om54.appsync-api.me-central-1.amazonaws.com/graphql';
+  'https://jf7gnnptu5avrbi35y5zyjcvvm.appsync-api.me-central-1.amazonaws.com/graphql';
 
-export const ADDRESS_BOOK_API_KEY = 'da2-55yqfl2yibfdhavylknimpxmtm';
+export const ADDRESS_BOOK_API_KEY = 'da2-7najvwkoefectg7udgke7wco7i';
 
 export const NFT_DEFAULT_IMAGE_URL =
   'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg';

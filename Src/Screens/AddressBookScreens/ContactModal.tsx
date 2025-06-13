@@ -10,8 +10,10 @@ import {
 import {DText} from '../../Componants/DText';
 import {BottomSheet} from 'react-native-btr';
 import ContactCard from './Componants/ContactCard';
-import {useAddressBooks} from './Hooks/AddressBookGraphql';
+import {useAddressBookByWallet} from './Hooks/AddressBookGraphql';
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
+import {useAuth} from '../../../screens/Provider/authProvider';
+
 interface Contact {
   beneficiaryAddress: string;
   name: string;
@@ -38,12 +40,14 @@ const ContactModal: React.FC<ContactModalProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
+  const {userDetails} = useAuth();
+
   const {
     loading: listLoading,
     data: addressBooks,
     error: listError,
     refetch: refetchList,
-  } = useAddressBooks();
+  } = useAddressBookByWallet(userDetails?.denergyWallet ?? null);
 
   const contacts = useMemo(() => {
     return addressBooks || [];

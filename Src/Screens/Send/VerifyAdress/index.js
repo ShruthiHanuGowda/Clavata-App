@@ -44,8 +44,6 @@ export const VerifyAddress = props => {
 
   const handleSelectAddress = (address, contact) => {
     setSenderAddress(address);
-    console.log('Selected:', address, 'from', contact.name);
-    SnackBarMessage(`Address selected from ${contact.name}`, 'success');
   };
 
   const openContactModal = () => {
