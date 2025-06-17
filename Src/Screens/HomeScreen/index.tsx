@@ -28,13 +28,14 @@ import {fontsFamily, Images} from '../../Theme';
 function HomeHeader(props: any) {
   const {userDetails} = useAuth();
   function getUsernameFromEmail(email: string) {
+    if (!email) return '';
     return email.split('@')[0];
   }
 
   const username: any =
     userDetails && userDetails?.kycDetails?.firstName
       ? userDetails?.kycDetails?.firstName
-      : getUsernameFromEmail(userDetails.emailAddress);
+      : getUsernameFromEmail(userDetails?.emailAddress);
   return (
     <Header
       containerStyle={{

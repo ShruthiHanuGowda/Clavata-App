@@ -52,7 +52,7 @@ export const parseDataAndReturnFixedInfo = (data: any) => {
     // If fixedInfo is not found, return null
     console.warn('fixedInfo not found in the provided data');
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error parsing data:', error.message);
     return null;
   }
@@ -257,6 +257,7 @@ export default function LoginScreen() {
   const handleUserData = useCallback(
     async (data: UserData): Promise<void> => {
       try {
+        console.log('🚀 ~ handleUserData ~ data:', data);
         if (data?.getUserWalletAddress) {
           const result = await checkAllNetworks();
           console.log('Network check results:', result);
@@ -429,7 +430,8 @@ export default function LoginScreen() {
     try {
       // First check primary network
       const primaryNetworkData = await checkPrimaryNetworkAuth();
-
+      console.log("primaryNetworkData",primaryNetworkData);
+      
       // Only proceed if logged in to primary network
       if (!primaryNetworkData.isLoggedIn) {
         console.log(
@@ -442,23 +444,31 @@ export default function LoginScreen() {
       }
 
       // Check other networks
-      const sepoliaNetworkData = await checkSepoliaNetworkAuth();
-      const denergyNetworkData = await checkDenergyNetworkAuth();
+      // const sepoliaNetworkData = await checkSepoliaNetworkAuth();
+      // const denergyNetworkData = await checkDenergyNetworkAuth();
 
       // Collect all public addresses
+      // const addresses = {
+      //   primary: primaryNetworkData.publicAddress,
+      //   sepolia: sepoliaNetworkData.publicAddress,
+      //   denergy: denergyNetworkData.publicAddress,
+      // };
       const addresses = {
         primary: primaryNetworkData.publicAddress,
-        sepolia: sepoliaNetworkData.publicAddress,
-        denergy: denergyNetworkData.publicAddress,
+        sepolia: primaryNetworkData.publicAddress,
+        denergy: primaryNetworkData.publicAddress,
       };
+
+      console.log("🚀 ~ checkAllNetworks ~ addresses:", addresses);
+      
 
       return {
         isLoggedIn: true,
         addresses,
         networkData: {
           primary: primaryNetworkData,
-          sepolia: sepoliaNetworkData,
-          denergy: denergyNetworkData,
+          sepolia: primaryNetworkData,
+          denergy: primaryNetworkData,
         },
       };
     } catch (error) {

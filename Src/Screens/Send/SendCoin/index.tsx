@@ -265,9 +265,9 @@ export default function SendCoin(props: SendCoinProps): any{
             ...transactionResult,
           });
           setTransactionHash(transactionResult.txHash || '');
-          refreshBalance(coinCode);
           updateProcessingStep('COMPLETED');
           setCurrentStep('success');
+          refreshBalance(coinCode);
         });
       }
       if (coinCode === 'USDC') {
@@ -286,9 +286,9 @@ export default function SendCoin(props: SendCoinProps): any{
             ...transactionResult,
           });
           setTransactionHash(transactionResult.txHash || '');
-          refreshBalance(coinCode);
           updateProcessingStep('COMPLETED');
           setCurrentStep('success');
+          refreshBalance(coinCode);
         });
       }
       if (coinCode === 'EURC') {
@@ -307,9 +307,9 @@ export default function SendCoin(props: SendCoinProps): any{
             ...transactionResult,
           });
           setTransactionHash(transactionResult.txHash || '');
-          refreshBalance(coinCode);
           updateProcessingStep('COMPLETED');
           setCurrentStep('success');
+          refreshBalance(coinCode);
         });
       }
       if (coinCode === 'WATT') {
@@ -336,9 +336,9 @@ export default function SendCoin(props: SendCoinProps): any{
               ...transactionResult,
             });
             setTransactionHash(transactionResult.txHash || '');
-            refreshBalance(coinCode);
             updateProcessingStep('COMPLETED');
             setCurrentStep('success');
+            refreshBalance(coinCode);
           });
         } catch (err) {
           console.error('Failed to send WATT:', err);
@@ -364,9 +364,9 @@ export default function SendCoin(props: SendCoinProps): any{
               ...transactionResult,
             });
             setTransactionHash(transactionResult.txHash || '');
-            refreshBalance(coinCode);
             updateProcessingStep('COMPLETED');
             setCurrentStep('success');
+            refreshBalance(coinCode);
           },
         );
       }
@@ -388,9 +388,9 @@ export default function SendCoin(props: SendCoinProps): any{
               ...transactionResult,
             });
             setTransactionHash(transactionResult.txHash || '');
-            refreshBalance(coinCode);
             updateProcessingStep('COMPLETED');
             setCurrentStep('success');
+            refreshBalance(coinCode);
           },
         );
       }
@@ -428,7 +428,7 @@ export default function SendCoin(props: SendCoinProps): any{
         showProgressBar={true}
         showStepIndicators={true}
         animationSource={Animation.transferStartAnimation}
-        stepIndicatorCount={10} // Increased to match number of steps
+        stepIndicatorCount={10}
         feeInfo={result?.gasFee ? `Gas Fee: ${result.gasFee} ETH` : undefined}
         progressBarColor="#81c8c3"
         backgroundColor="#FFF"

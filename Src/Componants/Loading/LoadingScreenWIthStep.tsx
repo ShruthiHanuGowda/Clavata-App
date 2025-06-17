@@ -49,7 +49,7 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
   useEffect(() => {
     if (animationRef.current && animationSource) {
       setTimeout(() => {
-        animationRef.current.play();
+        animationRef?.current?.play();
       }, 300);
     }
   }, [animationRef, animationSource]);

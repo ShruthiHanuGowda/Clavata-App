@@ -4,6 +4,7 @@ export const SEPOLIA_RPC_URL =
   'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
 export const CUSTOM_NETWORK = 'denergy';
 export const CUSTOM_NETWORK_CHAIN_ID = 4442;
+export const SEPOLIA_CHAIN_ID = 11155111;
 
 export const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238';
 export const BANK_ADDRESS = '0x16b7cc8f9a30cb3306731621742400b228564f94';
