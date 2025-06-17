@@ -5,7 +5,7 @@ export interface Blog {
   author_name: string;
   tags: string[];
   status: string;
-  image: string;
+  image_url: string;
 }
 
 export interface ListBlogsData {

@@ -174,7 +174,7 @@ function NewsDetail(props: StakeProps): JSX.Element {
         {/* Hero Image */}
         <View style={styles.imageContainer}>
           <Image
-            source={blog.image ? {uri: blog.image} : images.newsPlaceholder}
+            source={blog.image_url ? {uri: blog.image_url} : images.newsPlaceholder}
             style={styles.heroImage}
             defaultSource={images.newsPlaceholder}
           />
@@ -296,7 +296,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     justifyContent: 'center',
-    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,

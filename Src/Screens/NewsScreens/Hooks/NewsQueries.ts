@@ -7,6 +7,7 @@ export const LIST_BLOGS = gql`
         id
         title
         author_name
+        image_url
         tags
       }
     }
@@ -20,6 +21,7 @@ export const GET_BLOG_BY_ID = gql`
       title
       content
       author_name
+      image_url
       tags
     }
   }

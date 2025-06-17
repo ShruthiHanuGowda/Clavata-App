@@ -24,7 +24,7 @@ const NewsCard: React.FC<NewsCardProps> = ({blog, onPress}) => {
       <View style={styles.cardContent}>
         {/* Image */}
         <Image
-          source={blog.image ? {uri: blog.image} : images.newsPlaceholder}
+          source={blog.image_url ? {uri: blog.image_url} : images.newsPlaceholder}
           style={styles.newsImage}
           defaultSource={images.newsPlaceholder}
         />
