@@ -65,7 +65,7 @@ export const useNftsForAddress = ({ account }: { account: `0x${string}` }) => {
     error,
     totalQuantity,
     refresh: () => {
-      console.log("Refreshing11 NFT data for account:", account);
+      console.log("Refreshing NFT data for account:", account);
       fetchData();
     },
   };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, {useEffect, useState, useMemo} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -12,19 +12,20 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
-import { navigate } from '../../Navigation/NavigationFunctions';
+import {navigate} from '../../Navigation/NavigationFunctions';
 import CollectionCard from '../../Componants/MarketPlace/CollectionCard';
-import { useMagic } from '../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../../screens/Provider/MagicProvider';
 import useCollections from '../../hooks/useCollections';
-import { Header } from '@rneui/base';
-import { DText } from '../../Componants/DText';
+import {Header} from '@rneui/base';
+import {DText} from '../../Componants/DText';
+import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
 
 type SortType = 'name' | 'country' | 'type' | 'year';
 type FilterType = 'all' | 'country' | 'type' | 'year' | 'status';
 
 const CollectionListingPage: React.FC = () => {
-  const { setActiveNetwork } = useMagic();
-  const { collections, loading: isLoading, refetch } = useCollections();
+  const {setActiveNetwork} = useMagic();
+  const {collections, loading: isLoading, refetch} = useCollections();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<SortType>('name');
@@ -39,10 +40,27 @@ const CollectionListingPage: React.FC = () => {
   }, []);
 
   const filterOptions = useMemo(() => {
-    const countries = [...new Set(collections?.map(c => c.country).filter((item): item is string => Boolean(item)))];
-    const types = [...new Set(collections?.map(c => c.type).filter((item): item is string => Boolean(item)))];
-    const years = [...new Set(collections?.map(c => c.year?.toString()).filter((item): item is string => Boolean(item)))];
-
+    const countries = [
+      ...new Set(
+        collections
+          ?.map(c => c.country)
+          .filter((item): item is string => Boolean(item)),
+      ),
+    ];
+    const types = [
+      ...new Set(
+        collections
+          ?.map(c => c.type)
+          .filter((item): item is string => Boolean(item)),
+      ),
+    ];
+    const years = [
+      ...new Set(
+        collections
+          ?.map(c => c.year?.toString())
+          .filter((item): item is string => Boolean(item)),
+      ),
+    ];
 
     return {
       countries: countries.sort(),
@@ -57,7 +75,8 @@ const CollectionListingPage: React.FC = () => {
 
     let filtered = collections.filter(collection => {
       // Search filter
-      const matchesSearch = !searchQuery ||
+      const matchesSearch =
+        !searchQuery ||
         collection.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         collection.country?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         collection.type?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -66,11 +85,13 @@ const CollectionListingPage: React.FC = () => {
       let matchesFilter = true;
 
       if (filterBy === 'country') {
-        matchesFilter = !selectedCountry || collection.country === selectedCountry;
+        matchesFilter =
+          !selectedCountry || collection.country === selectedCountry;
       } else if (filterBy === 'type') {
         matchesFilter = !selectedType || collection.type === selectedType;
       } else if (filterBy === 'year') {
-        matchesFilter = !selectedYear || collection.year?.toString() === selectedYear;
+        matchesFilter =
+          !selectedYear || collection.year?.toString() === selectedYear;
       }
 
       return matchesSearch && matchesFilter;
@@ -93,7 +114,15 @@ const CollectionListingPage: React.FC = () => {
     });
 
     return filtered;
-  }, [collections, searchQuery, sortBy, filterBy, selectedCountry, selectedType, selectedYear]);
+  }, [
+    collections,
+    searchQuery,
+    sortBy,
+    filterBy,
+    selectedCountry,
+    selectedType,
+    selectedYear,
+  ]);
 
   const onRefresh = () => {
     refetch();
@@ -110,7 +139,9 @@ const CollectionListingPage: React.FC = () => {
   const getFilterLabel = () => {
     switch (filterBy) {
       case 'country':
-        return selectedCountry ? `Country: ${selectedCountry}` : 'Filter by Country';
+        return selectedCountry
+          ? `Country: ${selectedCountry}`
+          : 'Filter by Country';
       case 'type':
         return selectedType ? `Type: ${selectedType}` : 'Filter by Type';
       case 'year':
@@ -136,16 +167,14 @@ const CollectionListingPage: React.FC = () => {
       <View style={styles.sortFilterRow}>
         <TouchableOpacity
           style={styles.sortButton}
-          onPress={() => setShowSortModal(true)}
-        >
+          onPress={() => setShowSortModal(true)}>
           <Text style={styles.sortButtonText}>{getSortLabel()}</Text>
           <Text style={styles.dropdownIcon}>▼</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.filterButton}
-          onPress={() => setShowSortModal(true)}
-        >
+          onPress={() => setShowSortModal(true)}>
           <Text style={styles.filterButtonText}>{getFilterLabel()}</Text>
         </TouchableOpacity>
       </View>
@@ -154,11 +183,16 @@ const CollectionListingPage: React.FC = () => {
 
   const getSortLabel = () => {
     switch (sortBy) {
-      case 'name': return 'Sort by Name';
-      case 'country': return 'Sort by Country';
-      case 'type': return 'Sort by Type';
-      case 'year': return 'Sort by Year';
-      default: return 'Sort by Name';
+      case 'name':
+        return 'Sort by Name';
+      case 'country':
+        return 'Sort by Country';
+      case 'type':
+        return 'Sort by Type';
+      case 'year':
+        return 'Sort by Year';
+      default:
+        return 'Sort by Name';
     }
   };
 
@@ -167,8 +201,7 @@ const CollectionListingPage: React.FC = () => {
       visible={showSortModal}
       transparent={true}
       animationType="slide"
-      onRequestClose={() => setShowSortModal(false)}
-    >
+      onRequestClose={() => setShowSortModal(false)}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
@@ -179,34 +212,33 @@ const CollectionListingPage: React.FC = () => {
           </View>
 
           <ScrollView
-            contentContainerStyle={{ paddingBottom: 20 }}
-            showsVerticalScrollIndicator={false}
-          >
+            contentContainerStyle={{paddingBottom: 20}}
+            showsVerticalScrollIndicator={false}>
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Sort By:</Text>
               {[
-                { key: 'name', label: 'Name' },
-                { key: 'country', label: 'Country' },
-                { key: 'type', label: 'Type' },
-                { key: 'year', label: 'Year' },
-              ].map((option) => (
+                {key: 'name', label: 'Name'},
+                {key: 'country', label: 'Country'},
+                {key: 'type', label: 'Type'},
+                {key: 'year', label: 'Year'},
+              ].map(option => (
                 <TouchableOpacity
                   key={option.key}
                   style={[
                     styles.optionItem,
                     sortBy === option.key && styles.selectedOption,
                   ]}
-                  onPress={() => setSortBy(option.key as SortType)}
-                >
+                  onPress={() => setSortBy(option.key as SortType)}>
                   <Text
                     style={[
                       styles.optionText,
                       sortBy === option.key && styles.selectedOptionText,
-                    ]}
-                  >
+                    ]}>
                     {option.label}
                   </Text>
-                  {sortBy === option.key && <Text style={styles.checkMark}>✓</Text>}
+                  {sortBy === option.key && (
+                    <Text style={styles.checkMark}>✓</Text>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
@@ -214,29 +246,29 @@ const CollectionListingPage: React.FC = () => {
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Filter By:</Text>
               {[
-                { key: 'all', label: 'All' },
-                { key: 'country', label: 'Country' },
-                { key: 'type', label: 'Type' },
-                { key: 'year', label: 'Year' },
-                { key: 'status', label: 'Status' },
-              ].map((option) => (
+                {key: 'all', label: 'All'},
+                {key: 'country', label: 'Country'},
+                {key: 'type', label: 'Type'},
+                {key: 'year', label: 'Year'},
+                {key: 'status', label: 'Status'},
+              ].map(option => (
                 <TouchableOpacity
                   key={option.key}
                   style={[
                     styles.optionItem,
                     filterBy === option.key && styles.selectedOption,
                   ]}
-                  onPress={() => handleFilterChange(option.key as FilterType)}
-                >
+                  onPress={() => handleFilterChange(option.key as FilterType)}>
                   <Text
                     style={[
                       styles.optionText,
                       filterBy === option.key && styles.selectedOptionText,
-                    ]}
-                  >
+                    ]}>
                     {option.label}
                   </Text>
-                  {filterBy === option.key && <Text style={styles.checkMark}>✓</Text>}
+                  {filterBy === option.key && (
+                    <Text style={styles.checkMark}>✓</Text>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
@@ -254,109 +286,114 @@ const CollectionListingPage: React.FC = () => {
                 <TouchableOpacity
                   style={[
                     styles.optionItem,
-                    (
-                      (filterBy === 'country' && !selectedCountry) ||
+                    ((filterBy === 'country' && !selectedCountry) ||
                       (filterBy === 'type' && !selectedType) ||
-                      (filterBy === 'year' && !selectedYear)
-                    ) && styles.selectedOption,
+                      (filterBy === 'year' && !selectedYear)) &&
+                      styles.selectedOption,
                   ]}
                   onPress={() => {
                     if (filterBy === 'country') setSelectedCountry('');
                     if (filterBy === 'type') setSelectedType('');
                     if (filterBy === 'year') setSelectedYear('');
-
-                  }}
-                >
+                  }}>
                   <Text
                     style={[
                       styles.optionText,
-                      (
-                        (filterBy === 'country' && !selectedCountry) ||
+                      ((filterBy === 'country' && !selectedCountry) ||
                         (filterBy === 'type' && !selectedType) ||
-                        (filterBy === 'year' && !selectedYear)
-                      ) && styles.selectedOptionText,
-                    ]}
-                  >
-                    All {filterBy === 'country' ? 'Countries' : filterBy === 'type' ? 'Types' : filterBy === 'year' ? 'Years' : 'Statuses'}
+                        (filterBy === 'year' && !selectedYear)) &&
+                        styles.selectedOptionText,
+                    ]}>
+                    All{' '}
+                    {filterBy === 'country'
+                      ? 'Countries'
+                      : filterBy === 'type'
+                      ? 'Types'
+                      : filterBy === 'year'
+                      ? 'Years'
+                      : 'Statuses'}
                   </Text>
-                  {(
-                    (filterBy === 'country' && !selectedCountry) ||
+                  {((filterBy === 'country' && !selectedCountry) ||
                     (filterBy === 'type' && !selectedType) ||
-                    (filterBy === 'year' && !selectedYear)
-                  ) && <Text style={styles.checkMark}>✓</Text>}
+                    (filterBy === 'year' && !selectedYear)) && (
+                    <Text style={styles.checkMark}>✓</Text>
+                  )}
                 </TouchableOpacity>
 
                 {/* Dynamic options based on filter type */}
-                {filterBy === 'country' && filterOptions.countries.map((country) => (
-                  <TouchableOpacity
-                    key={country}
-                    style={[
-                      styles.optionItem,
-                      selectedCountry === country && styles.selectedOption,
-                    ]}
-                    onPress={() => setSelectedCountry(country)}
-                  >
-                    <Text
+                {filterBy === 'country' &&
+                  filterOptions.countries.map(country => (
+                    <TouchableOpacity
+                      key={country}
                       style={[
-                        styles.optionText,
-                        selectedCountry === country && styles.selectedOptionText,
+                        styles.optionItem,
+                        selectedCountry === country && styles.selectedOption,
                       ]}
-                    >
-                      {country}
-                    </Text>
-                    {selectedCountry === country && <Text style={styles.checkMark}>✓</Text>}
-                  </TouchableOpacity>
-                ))}
+                      onPress={() => setSelectedCountry(country)}>
+                      <Text
+                        style={[
+                          styles.optionText,
+                          selectedCountry === country &&
+                            styles.selectedOptionText,
+                        ]}>
+                        {country}
+                      </Text>
+                      {selectedCountry === country && (
+                        <Text style={styles.checkMark}>✓</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
 
-                {filterBy === 'type' && filterOptions.types.map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.optionItem,
-                      selectedType === type && styles.selectedOption,
-                    ]}
-                    onPress={() => setSelectedType(type)}
-                  >
-                    <Text
+                {filterBy === 'type' &&
+                  filterOptions.types.map(type => (
+                    <TouchableOpacity
+                      key={type}
                       style={[
-                        styles.optionText,
-                        selectedType === type && styles.selectedOptionText,
+                        styles.optionItem,
+                        selectedType === type && styles.selectedOption,
                       ]}
-                    >
-                      {type}
-                    </Text>
-                    {selectedType === type && <Text style={styles.checkMark}>✓</Text>}
-                  </TouchableOpacity>
-                ))}
+                      onPress={() => setSelectedType(type)}>
+                      <Text
+                        style={[
+                          styles.optionText,
+                          selectedType === type && styles.selectedOptionText,
+                        ]}>
+                        {type}
+                      </Text>
+                      {selectedType === type && (
+                        <Text style={styles.checkMark}>✓</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
 
-                {filterBy === 'year' && filterOptions.years.map((year) => (
-                  <TouchableOpacity
-                    key={year}
-                    style={[
-                      styles.optionItem,
-                      selectedYear === year && styles.selectedOption,
-                    ]}
-                    onPress={() => setSelectedYear(year)}
-                  >
-                    <Text
+                {filterBy === 'year' &&
+                  filterOptions.years.map(year => (
+                    <TouchableOpacity
+                      key={year}
                       style={[
-                        styles.optionText,
-                        selectedYear === year && styles.selectedOptionText,
+                        styles.optionItem,
+                        selectedYear === year && styles.selectedOption,
                       ]}
-                    >
-                      {year}
-                    </Text>
-                    {selectedYear === year && <Text style={styles.checkMark}>✓</Text>}
-                  </TouchableOpacity>
-                ))}
+                      onPress={() => setSelectedYear(year)}>
+                      <Text
+                        style={[
+                          styles.optionText,
+                          selectedYear === year && styles.selectedOptionText,
+                        ]}>
+                        {year}
+                      </Text>
+                      {selectedYear === year && (
+                        <Text style={styles.checkMark}>✓</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
               </View>
             )}
           </ScrollView>
 
           <TouchableOpacity
             style={styles.applyButton}
-            onPress={() => setShowSortModal(false)}
-          >
+            onPress={() => setShowSortModal(false)}>
             <Text style={styles.applyButtonText}>Apply Filters</Text>
           </TouchableOpacity>
         </View>
@@ -368,8 +405,14 @@ const CollectionListingPage: React.FC = () => {
     <View style={styles.container}>
       {isLoading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#81c8c3" />
-          <Text style={styles.loaderText}>Loading Collections...</Text>
+          {/* <ActivityIndicator size="large" color="#81c8c3" />
+          <Text style={styles.loaderText}>Loading Collections...</Text> */}
+          <LoaderAnimation
+            size="large"
+            // color="#007AFF"
+            showText={true}
+            text="Loading Collections..."
+          />
         </View>
       ) : (
         <View style={styles.container}>
@@ -399,7 +442,8 @@ const CollectionListingPage: React.FC = () => {
                 <View
                   key={collection.id}
                   style={{
-                    marginBottom: index === processedCollections.length - 1 ? 150 : 0,
+                    marginBottom:
+                      index === processedCollections.length - 1 ? 150 : 0,
                   }}>
                   <CollectionCard
                     collection={collection}
@@ -416,8 +460,7 @@ const CollectionListingPage: React.FC = () => {
                   <Text style={styles.emptyStateText}>
                     {searchQuery
                       ? `No collections found matching "${searchQuery}"`
-                      : 'No collections found for the selected filter'
-                    }
+                      : 'No collections found for the selected filter'}
                   </Text>
                 </View>
               )}

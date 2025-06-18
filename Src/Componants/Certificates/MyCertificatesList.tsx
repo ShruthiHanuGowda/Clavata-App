@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   ScrollView,
   View,
@@ -12,9 +12,10 @@ import {
   Image,
 } from 'react-native';
 import MyCertificateCard from './MyCertificateCard';
-import { NftToken } from '../../types/types';
-import { fontsFamily } from '../../Theme';
-import { formatQuantityMWh, getCountryFlag } from '../../utils';
+import {NftToken} from '../../types/types';
+import {fontsFamily} from '../../Theme';
+import {formatQuantityMWh, getCountryFlag} from '../../utils';
+import {MediumLoader} from '../Loading/LoaderAnimation';
 
 interface Props {
   nfts: NftToken[];
@@ -93,7 +94,26 @@ const MyCertificatesList = ({
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='small' color="#009D94" />
+        {/* <ActivityIndicator size='small' color="#009D94" /> */}
+        <MediumLoader
+          color="#009D94"
+          size={'large'}
+          speed={1.5}
+          showText
+          text="Loading certificates..."
+        />
+      </View>
+    );
+  }
+
+  if (!nfts || nfts.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyIcon}>📜</Text>
+        <Text style={styles.emptyTitle}>No Certificates</Text>
+        <TouchableOpacity style={styles.refreshButton} onPress={refresh}>
+          <Text style={styles.refreshButtonText}>Refresh</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -111,15 +131,19 @@ const MyCertificatesList = ({
               style={styles.headerContainer}>
               <View style={styles.headerLeft}>
                 <View style={styles.flagContainer}>
-                  {countryImageUrl && isValidUrl(countryImageUrl) && !imageErrors[country] ? (
+                  {countryImageUrl &&
+                  isValidUrl(countryImageUrl) &&
+                  !imageErrors[country] ? (
                     <Image
-                      source={{ uri: countryImageUrl }}
+                      source={{uri: countryImageUrl}}
                       style={styles.flag}
                       resizeMode="contain"
                       onError={() => handleImageError(country)}
                     />
                   ) : (
-                    <Text style={styles.flagEmoji}>{getCountryFlag(country)}</Text>
+                    <Text style={styles.flagEmoji}>
+                      {getCountryFlag(country)}
+                    </Text>
                   )}
                 </View>
                 <View style={styles.headerTextContainer}>
@@ -154,7 +178,6 @@ const MyCertificatesList = ({
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    // padding: 10,
     paddingBottom: 20,
   },
   loadingContainer: {
@@ -162,12 +185,43 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+  },
+  emptyIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontFamily: fontsFamily.MulishBold,
+    fontSize: 16,
+    color: '#6A6A6A',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  refreshButton: {
+    backgroundColor: '#009D94',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  refreshButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: fontsFamily.MulishBold,
+    textAlign: 'center',
+  },
+  // Existing styles
   groupContainer: {
     marginBottom: 12,
     backgroundColor: '#fff',
     borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
@@ -196,7 +250,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,

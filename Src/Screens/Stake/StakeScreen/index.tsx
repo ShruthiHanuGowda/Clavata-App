@@ -25,6 +25,7 @@ import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
 import {formatQuantityMWh} from '../../../utils';
+import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
 // Interface for component props
 interface StakeScreenProps {
   // You can add props here if needed
@@ -193,8 +194,14 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
     <SafeAreaView style={styles.mainContainer}>
       {isNFTLoading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#008060" />
-          <Text style={styles.loaderText}>Loading Collections...</Text>
+          {/* <ActivityIndicator size="large" color="#008060" />
+          <Text style={styles.loaderText}>Loading Collections...</Text> */}
+          <LoaderAnimation
+            size="large"
+            color="#008060"
+            showText={true}
+            text="Loading Collections..."
+          />
         </View>
       ) : (
         <ScrollView style={styles.mainContainer}>

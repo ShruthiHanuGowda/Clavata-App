@@ -33,6 +33,7 @@ import {useBridge} from '../../../../hooks/useBridge';
 import LottieView from 'lottie-react-native';
 import LoadingScreenWithStep from '../../../../Componants/Loading/LoadingScreenWIthStep';
 import {getBlockExploreLink} from '../../../../utils/explorer';
+import {SnackBarMessage} from '../../../../utils/snackBar';
 
 // Define types
 type TokenKey = 'USDC' | 'WUSDC' | 'EURC' | 'WEURC';
@@ -358,6 +359,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
         setCurrentStep('form');
       }
     }
@@ -368,6 +370,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
         setCurrentStep('form');
       }
     }
@@ -378,6 +381,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
         setCurrentStep('form');
       }
     }
@@ -389,6 +393,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
         setCurrentStep('form');
       }
     }
@@ -492,7 +497,11 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         return;
       }
 
-      const explorerUrl = getBlockExploreLink(transactionHash, 'transaction', sourceNetwork === 'ETH' ? 11155111 : '');
+      const explorerUrl = getBlockExploreLink(
+        transactionHash,
+        'transaction',
+        sourceNetwork === 'ETH' ? 11155111 : '',
+      );
 
       Linking.openURL(explorerUrl).catch(err => {
         console.error('Failed to open explorer:', err);
@@ -703,12 +712,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
           {getDisplayTokenName(tokenKey)}
         </Text>
         {isSelectable && (
-          <Svg
-            width="15"
-            height="8"
-            viewBox="0 0 15 8"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
+          <Svg width="15" height="8" viewBox="0 0 15 8" fill="none">
             <Path
               d="M13.2599 1.24914L8.36988 6.13914C7.79238 6.71664 6.84738 6.71664 6.26988 6.13914L1.37988 1.24914"
               stroke="#292D32"
