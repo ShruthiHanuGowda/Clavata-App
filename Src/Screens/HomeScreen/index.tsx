@@ -160,14 +160,6 @@ export default function HomeScreen({navigation}: any) {
           drecsOwned={totalQuantity}
           // {...balanceData}
         />
-        <Button
-          title="Play Sound"
-          onPress={() => {
-            const timer = setTimeout(() => {
-              playSuccessSound();
-            }, 500);
-          }}
-        />
         <StakingActivities
           drecsStaked={0}
           drecsOwned={totalQuantity}

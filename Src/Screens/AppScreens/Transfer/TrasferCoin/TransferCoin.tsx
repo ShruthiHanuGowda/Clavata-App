@@ -212,18 +212,21 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     'form' | 'processing' | 'success'
   >('form');
 
-  // Get balance for the selected token
   const {balance: tokenBalance, balanceUsd: tokenBalanceUsd}: TokenBalance =
     getBalance(selectedToken);
 
-  // Handle bridge success
+  const {
+    playSuccessSound,
+    isLoaded: soundLoaded,
+    error: soundError,
+  } = useSuccessSound();
+
   useEffect(() => {
     if (bridgeSuccess) {
       setCurrentStep('success');
     }
   }, [bridgeSuccess]);
 
-  // Update target token whenever source token changes
   useEffect(() => {
     const token = TOKENS[selectedToken];
     if (token) {
@@ -299,6 +302,26 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
     validateAndInitiateSwap();
   }, [amount, tokenBalance]);
+
+  useEffect(() => {
+    if (currentStep === 'success') {
+      const timer = setTimeout(() => {
+        if (soundLoaded) {
+          console.log('Playing success sound...');
+          playSuccessSound();
+        } else {
+          console.log(
+            'Sound not loaded yet, isLoaded:',
+            soundLoaded,
+            'error:',
+            soundError,
+          );
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, soundLoaded, playSuccessSound, soundError]);
 
   // API call to get swap details
   const initiateSwap = async (val: string): Promise<void> => {
@@ -488,18 +511,9 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   };
 
   const renderSuccess = (): ReactElement => {
-    const {playSuccessSound} = useSuccessSound();
     const operationType = transactionType === 0 ? 'Deposit' : 'Withdrawal';
     const sourceNetwork = transactionType === 0 ? 'ETH' : 'DENERGY';
     const targetNetwork = transactionType === 0 ? 'DENERGY' : 'ETH';
-
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        playSuccessSound();
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }, []);
 
     const handleViewExplorer = () => {
       if (!transactionHash) {
