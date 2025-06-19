@@ -153,7 +153,7 @@ export default function SendCoin(props: SendCoinProps): any {
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep, soundLoaded, playSuccessSound, soundError]);
+  }, [currentStep, soundLoaded, soundError]);
 
   // Processing steps configuration similar to Bridge
   const SEND_PROCESSING_STEPS: any = {

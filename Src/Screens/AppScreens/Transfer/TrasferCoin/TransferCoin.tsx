@@ -321,7 +321,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep, soundLoaded, playSuccessSound, soundError]);
+  }, [currentStep, soundLoaded, soundError]);
 
   // API call to get swap details
   const initiateSwap = async (val: string): Promise<void> => {

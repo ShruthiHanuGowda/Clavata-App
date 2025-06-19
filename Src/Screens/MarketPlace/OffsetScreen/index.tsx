@@ -129,7 +129,7 @@ const OffsetScreen = ({route}: any) => {
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep, soundLoaded, playSuccessSound, soundError]);
+  }, [currentStep, soundLoaded, soundError]);
 
   const handleInputChange = (text: string) => {
     setVolume(text);
