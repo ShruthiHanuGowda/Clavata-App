@@ -550,7 +550,7 @@ export default function SendCoin(props: SendCoinProps): any {
     };
 
     return (
-      <View style={successStyles.container}>
+      <ScrollView style={successStyles.container}>
         {/* Success Icon and Title */}
         <View style={successStyles.headerSection}>
           <View style={successStyles.successIconContainer}>
@@ -632,7 +632,7 @@ export default function SendCoin(props: SendCoinProps): any {
           containerWrapper={successStyles.submitButtonContainer}
           bgImg={successStyles.submitButtonImage}
         />
-      </View>
+      </ScrollView>
     );
   };
 
