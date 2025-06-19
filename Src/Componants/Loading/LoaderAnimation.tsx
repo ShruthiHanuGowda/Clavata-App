@@ -1,37 +1,37 @@
 import React from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 import LottieView from 'lottie-react-native';
-import { Animation } from '../../Theme';
+import {Animation} from '../../Theme';
 
 interface LoaderAnimationProps {
   // Size options
   size?: 'small' | 'medium' | 'large' | number;
-  
+
   // Color customization
   color?: string;
-  
+
   // Animation speed
   speed?: number;
-  
+
   // Show/hide text
   showText?: boolean;
   text?: string;
   textStyle?: object;
-  
+
   // Container styling
   style?: object;
   containerStyle?: object;
-  
+
   // Animation source
   source?: any; // For custom animation JSON
-  
+
   // Animation behavior
   autoPlay?: boolean;
   loop?: boolean;
-  
+
   // Layout options
   direction?: 'vertical' | 'horizontal';
-  
+
   // Accessibility
   accessibilityLabel?: string;
 }
@@ -53,7 +53,7 @@ const LoaderAnimation: React.FC<LoaderAnimationProps> = ({
 }) => {
   const getSizeValue = () => {
     if (typeof size === 'number') return size;
-    
+
     switch (size) {
       case 'small':
         return 24;
@@ -71,21 +71,19 @@ const LoaderAnimation: React.FC<LoaderAnimationProps> = ({
   const defaultSource = source || Animation.loaderAnimation;
 
   const containerDirection = direction === 'horizontal' ? 'row' : 'column';
-  const textMargin = direction === 'horizontal' 
-    ? { marginLeft: 8 } 
-    : { marginTop: 8 };
+  const textMargin =
+    direction === 'horizontal' ? {marginLeft: 8} : {marginTop: 8};
 
   return (
-    <View 
+    <View
       style={[
-        styles.container, 
-        { flexDirection: containerDirection },
-        containerStyle
+        styles.container,
+        {flexDirection: containerDirection},
+        containerStyle,
       ]}
       accessible={true}
       accessibilityLabel={accessibilityLabel}
-      accessibilityRole="progressbar"
-    >
+      accessibilityRole="progressbar">
       <LottieView
         source={defaultSource}
         autoPlay={autoPlay}
@@ -98,24 +96,18 @@ const LoaderAnimation: React.FC<LoaderAnimationProps> = ({
           },
           style,
         ]}
-        colorFilters={[
-          {
-            keypath: '**',
-            color: color,
-          },
-        ]}
+        // colorFilters={[
+        //   {
+        //     keypath: '**',
+        //     color: color,
+        //   },
+        // ]}
         resizeMode="contain"
       />
-      
+
       {showText && (
-        <Text 
-          style={[
-            styles.loadingText,
-            { color: color },
-            textMargin,
-            textStyle,
-          ]}
-        >
+        <Text
+          style={[styles.loadingText, {color: color}, textMargin, textStyle]}>
           {text}
         </Text>
       )}
@@ -137,21 +129,21 @@ export const LargeLoader = (props: Partial<LoaderAnimationProps>) => (
 
 export const FullScreenLoader = (props: Partial<LoaderAnimationProps>) => (
   <View style={styles.fullScreenContainer}>
-    <LoaderAnimation 
-      size="large" 
-      showText={true} 
-      text="Loading..." 
-      {...props} 
+    <LoaderAnimation
+      size="large"
+      showText={true}
+      text="Loading..."
+      {...props}
     />
   </View>
 );
 
 export const InlineLoader = (props: Partial<LoaderAnimationProps>) => (
-  <LoaderAnimation 
-    size="small" 
-    direction="horizontal" 
-    showText={true} 
-    {...props} 
+  <LoaderAnimation
+    size="small"
+    direction="horizontal"
+    showText={true}
+    {...props}
   />
 );
 

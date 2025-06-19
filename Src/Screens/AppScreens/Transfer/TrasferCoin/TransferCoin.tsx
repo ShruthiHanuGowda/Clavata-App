@@ -34,6 +34,7 @@ import LottieView from 'lottie-react-native';
 import LoadingScreenWithStep from '../../../../Componants/Loading/LoadingScreenWIthStep';
 import {getBlockExploreLink} from '../../../../utils/explorer';
 import {SnackBarMessage} from '../../../../utils/snackBar';
+import {useSuccessSound} from '../../../../hooks/useSuccessSound';
 
 // Define types
 type TokenKey = 'USDC' | 'WUSDC' | 'EURC' | 'WEURC';
@@ -487,9 +488,18 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   };
 
   const renderSuccess = (): ReactElement => {
+    const {playSuccessSound} = useSuccessSound();
     const operationType = transactionType === 0 ? 'Deposit' : 'Withdrawal';
     const sourceNetwork = transactionType === 0 ? 'ETH' : 'DENERGY';
     const targetNetwork = transactionType === 0 ? 'DENERGY' : 'ETH';
+
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        playSuccessSound();
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }, []);
 
     const handleViewExplorer = () => {
       if (!transactionHash) {

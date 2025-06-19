@@ -58,6 +58,7 @@
     "react-native-screens": "~4.10.0",
     "react-native-share": "^12.0.9",
     "react-native-snackbar": "^2.9.0",
+    "react-native-sound": "^0.11.2",
     "react-native-svg": "^15.12.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-webview": "^13.3.0",
