@@ -133,7 +133,6 @@ const WalletNFTDetailsScreen = ({route}: any) => {
 
   const {checkKYC, isKycCompleted, isKycSkipped} = useKycCheck();
 
-  // Fetch NFT metadata from contract
   const fetchNftMetadata = async () => {
     try {
       setMetadataLoading(true);
@@ -155,16 +154,13 @@ const WalletNFTDetailsScreen = ({route}: any) => {
         signer,
       );
 
-      // Get metadata URI from contract
       const metadataUri: string = await collectionContract.uri(nft.tokenId);
 
       if (metadataUri) {
-        // Fetch metadata JSON from S3
         const response = await fetch(metadataUri);
         const metadata: NFTMetadata = await response.json();
 
         setNftMetadata(metadata);
-        console.log('NFT Metadata fetched:', metadata);
       }
     } catch (error) {
       console.error('Error fetching NFT metadata:', error);
