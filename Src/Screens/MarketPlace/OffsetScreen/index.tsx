@@ -33,7 +33,7 @@ import {useSuccessSound} from '../../../hooks/useSuccessSound';
 
 const PURPOSE_OPTIONS = [
   {label: 'Scope 2 Emissions', value: 'Scope 2 Emissions'},
-  {label: 'Scope 3 Emissions', value: 'Scope 3 Emissions'},
+  // {label: 'Scope 3 Emissions', value: 'Scope 3 Emissions'},
 ];
 
 const TAX_RATE_PER_MWH = 0.1;

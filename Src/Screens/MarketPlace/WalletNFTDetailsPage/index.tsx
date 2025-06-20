@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import {Header, Tab} from '@rneui/base';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
@@ -312,6 +313,21 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     return attribute ? String(attribute.value) : '-';
   };
 
+  const openURL = async (url: string) => {
+    if (url && url !== '-') {
+      try {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        } else {
+          Alert.alert('Error', 'Cannot open this URL');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to open URL');
+      }
+    }
+  };
+
   if (isLoading || isCollectionLoading) {
     return (
       <View style={styles.screenContainer}>
@@ -333,14 +349,6 @@ const WalletNFTDetailsScreen = ({route}: any) => {
         />
         <View style={styles.loadingContainer}>
           <View style={styles.loadingContent}>
-            {/* <View style={styles.loadingIconContainer}>
-              <Text style={styles.loadingIcon}>📄</Text>
-            </View> */}
-            {/* <ActivityIndicator
-              size="large"
-              color="#009D94"
-              style={styles.spinner}
-            /> */}
             <LoaderAnimation size={'large'} />
             <Text style={styles.loadingText}>Fetching NFT Details...</Text>
             <Text style={styles.loadingSubtext}>
@@ -451,80 +459,151 @@ const WalletNFTDetailsScreen = ({route}: any) => {
         {/* Content Section */}
         <View style={styles.contentSection}>
           {index === 0 && (
-            <View style={styles.detailsContainer}>
-              {/* Enhanced details with metadata */}
-              {[
-                // Collection data
-                [
-                  'Collection Name',
-                  `${data?.collectionDetails?.collectionName || '-'}`,
-                ],
-                ['Symbol', `${data?.collectionDetails?.symbol || '-'}`],
-                ['Token ID', `${data?.tokenId || '-'}`],
-                [
-                  'Contract Address',
-                  `${data?.collectionDetails?.contractAddress || '-'}`,
-                ],
-
-                // Metadata attributes
-                ['Energy Type', getAttributeValue('Energy Type')],
-                ['Country', getAttributeValue('Country')],
-                ['Facility Name', getAttributeValue('Facility Name')],
-                ['Volume (MWh)', getAttributeValue('Volume (MWh)')],
-                [
-                  'Production Start Date',
-                  getAttributeValue('Production Start Date'),
-                ],
-                [
-                  'Production End Date',
-                  getAttributeValue('Production End Date'),
-                ],
-                [
-                  'Facility Commissioning Date',
-                  getAttributeValue('Facility Commissioning Date'),
-                ],
-                ['Standard', getAttributeValue('Standard')],
-                ['Year', getAttributeValue('Year')],
-                ['Registry', getAttributeValue('Registry')],
-                ['Fuel Code', getAttributeValue('Fuel code')],
-                ['Coordinates', getAttributeValue('cordinates')],
-
-                // Market data
-                [
-                  'Owner Address',
-                  `${data?.collectionDetails?.ownerAddress || '-'}`,
-                ],
-                ['Type', `${data?.collectionDetails?.type || '-'}`],
-                [
-                  'Metadata URL',
-                  `${combinedNft?.marketData?.metadataUrl || '-'}`,
-                ],
-                [
-                  'Trade Volume (USDC)',
-                  `${combinedNft?.marketData?.tradeVolumeUSDC || '-'}`,
-                ],
-                [
-                  'Latest Traded Price (USDC)',
-                  `${combinedNft?.marketData?.latestTradedPriceInUSDC || '-'}`,
-                ],
-                [
-                  'Total Trades',
-                  `${combinedNft?.marketData?.totalTrades || 0}`,
-                ],
-                ['Total Listed', `${nft?.marketData?.totalListed || 0}`],
-              ].map(([title, value], idx) => (
-                <View key={idx} style={styles.detailRow}>
-                  <Text style={styles.detailTitle} numberOfLines={1}>
-                    {title}
-                  </Text>
-                  <Text
-                    style={styles.detailValue}
-                    numberOfLines={1}
-                    ellipsizeMode="tail">
-                    {value}
-                  </Text>
+            <View>
+              {/* Certificate Details Section */}
+              <View style={styles.categoryCard}>
+                <View style={styles.categoryHeader}>
+                  <View style={styles.categoryIconContainer}>
+                    <Text style={styles.categoryIcon}>📜</Text>
+                  </View>
+                  <Text style={styles.categoryTitle}>Certificate Details</Text>
                 </View>
-              ))}
+                <View style={styles.categoryContent}>
+                  {[
+                    ['Energy Type', getAttributeValue('Energy Type')],
+                    ['Country', getAttributeValue('Country')],
+                    ['Year', getAttributeValue('Year')],
+                    ['Registry', getAttributeValue('Registry')],
+                    ['Standard', getAttributeValue('Standard')],
+                    [
+                      'Production Start Date',
+                      getAttributeValue('Production Start Date'),
+                    ],
+                    [
+                      'Production End Date',
+                      getAttributeValue('Production End Date'),
+                    ],
+                  ].map(([title, value], idx) => (
+                    <View
+                      key={idx}
+                      style={[
+                        styles.detailRow,
+                        idx === 6 && styles.lastDetailRow,
+                      ]}>
+                      <Text style={styles.detailTitle} numberOfLines={1}>
+                        {title}
+                      </Text>
+                      <Text
+                        style={styles.detailValue}
+                        numberOfLines={1}
+                        ellipsizeMode="tail">
+                        {value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* Device Details Section */}
+              <View style={styles.categoryCard}>
+                <View style={styles.categoryHeader}>
+                  <View style={styles.categoryIconContainer}>
+                    <Text style={styles.categoryIcon}>⚡</Text>
+                  </View>
+                  <Text style={styles.categoryTitle}>Device Details</Text>
+                </View>
+                <View style={styles.categoryContent}>
+                  {[
+                    ['Facility Name', getAttributeValue('Facility Name')],
+                    [
+                      'Facility Commissioning Date',
+                      getAttributeValue('Facility Commissioning Date'),
+                    ],
+                    ['Fuel Code', getAttributeValue('Fuel code')],
+                    ['Coordinates', getAttributeValue('cordinates')],
+                  ].map(([title, value], idx) => (
+                    <View
+                      key={idx}
+                      style={[
+                        styles.detailRow,
+                        idx === 3 && styles.lastDetailRow,
+                      ]}>
+                      <Text style={styles.detailTitle} numberOfLines={1}>
+                        {title}
+                      </Text>
+                      <Text
+                        style={styles.detailValue}
+                        numberOfLines={1}
+                        ellipsizeMode="tail">
+                        {value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* NFT Details Section */}
+              <View style={styles.categoryCard}>
+                <View style={styles.categoryHeader}>
+                  <View style={styles.categoryIconContainer}>
+                    <Text style={styles.categoryIcon}>🔗</Text>
+                  </View>
+                  <Text style={styles.categoryTitle}>NFT Details</Text>
+                </View>
+                <View style={styles.categoryContent}>
+                  {[
+                    ['Symbol', `${data?.collectionDetails?.symbol || '-'}`],
+                    ['Token ID', `${data?.tokenId || '-'}`],
+                    [
+                      'Contract Address',
+                      `${data?.collectionDetails?.contractAddress || '-'}`,
+                    ],
+                  ].map(([title, value], idx) => (
+                    <View key={idx} style={styles.detailRow}>
+                      <Text style={styles.detailTitle} numberOfLines={1}>
+                        {title}
+                      </Text>
+                      <Text
+                        style={styles.detailValue}
+                        numberOfLines={1}
+                        ellipsizeMode="tail">
+                        {value}
+                      </Text>
+                    </View>
+                  ))}
+
+                  {/* Special handling for Metadata URL with link */}
+                  <View style={styles.lastDetailRow}>
+                    <Text style={styles.detailTitle} numberOfLines={1}>
+                      Metadata URL
+                    </Text>
+                    {combinedNft?.marketData?.metadataUrl &&
+                    combinedNft?.marketData?.metadataUrl !== '-' ? (
+                      <TouchableOpacity
+                        style={styles.linkContainer}
+                        onPress={() =>
+                          openURL(combinedNft?.marketData?.metadataUrl ?? '')
+                        }
+                        activeOpacity={0.7}>
+                        <Text
+                          style={styles.linkText}
+                          numberOfLines={1}
+                          ellipsizeMode="tail">
+                          View Metadata
+                        </Text>
+                        <Text style={styles.linkIcon}>🔗</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text
+                        style={styles.detailValue}
+                        numberOfLines={1}
+                        ellipsizeMode="tail">
+                        -
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
             </View>
           )}
 
@@ -646,27 +725,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loadingIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#F0FBF9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  loadingIcon: {
-    fontSize: 32,
-  },
-  spinner: {
-    marginBottom: 16,
-  },
   loadingText: {
     fontSize: 18,
     color: '#1A1A1A',
     fontFamily: fontsFamily.MulishBold,
     textAlign: 'center',
     marginBottom: 8,
+    marginTop: 16,
   },
   loadingSubtext: {
     fontSize: 14,
@@ -844,10 +909,12 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 32,
   },
-  detailsContainer: {
+
+  // Updated Category Card Styles
+  categoryCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.06,
@@ -856,13 +923,55 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FFFE',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  categoryIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#009D94',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  categoryIcon: {
+    fontSize: 16,
+  },
+  categoryTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#009D94',
+    fontFamily: fontsFamily.MulishExtraBold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  categoryContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
   detailRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    minHeight: 44,
+  },
+  lastDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 0,
+    minHeight: 44,
   },
   detailTitle: {
     flex: 1,
@@ -870,16 +979,42 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontFamily: fontsFamily.MulishBold,
     fontWeight: '600',
-    marginRight: 16,
+    marginRight: 12,
   },
   detailValue: {
-    flex: 1.5,
+    flex: 1.2,
     fontSize: 14,
     color: '#111827',
     fontFamily: fontsFamily.MulishExtraBold,
     fontWeight: '700',
     textAlign: 'right',
   },
+  linkContainer: {
+    flex: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F8F7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#B8E6E3',
+    marginLeft: 8,
+  },
+  linkText: {
+    fontSize: 13,
+    color: '#009D94',
+    fontFamily: fontsFamily.MulishBold,
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  linkIcon: {
+    fontSize: 12,
+    color: '#009D94',
+  },
+
+  // Seller Card Styles
   sellerCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -941,6 +1076,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     maxWidth: 120,
   },
+
+  // Activity Card Styles
   activityCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -1008,6 +1145,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'right',
   },
+
+  // Empty State Styles
   emptyState: {
     alignItems: 'center',
     paddingVertical: 48,
