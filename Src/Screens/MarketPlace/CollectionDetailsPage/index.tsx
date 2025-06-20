@@ -44,6 +44,8 @@ const CollectionDetailsScreen = ({route}: any) => {
     refetch: nftsRefetch,
   } = useNfts(contractAddress);
 
+  console.log(nfts, 'nfts');
+
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -159,6 +161,9 @@ const CollectionDetailsScreen = ({route}: any) => {
                   const nftData = {
                     ...nft,
                     name: nft?.collection?.name ?? '',
+                    image: {
+                      thumbnail: nft?.metadata?.image,
+                    },
                   };
 
                   const totalQuantity = nft?.activeAsks?.reduce(

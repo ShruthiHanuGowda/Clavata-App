@@ -167,13 +167,22 @@ const OffsetScreen = ({route}: any) => {
 
     let newErrors = {...dateErrors};
 
-    // Clear invalid format error (we assume the date picker always returns a valid Date)
+    // Clear invalid format error
     delete newErrors.startDate;
 
-    if (endDate && selectedDate >= endDate) {
-      newErrors.dateRange = 'End date must be after start date';
-    } else {
-      delete newErrors.dateRange;
+    if (endDate) {
+      const startMoment = moment(selectedDate).startOf('day');
+      const endMoment = moment(endDate).startOf('day');
+
+      if (startMoment.isSameOrAfter(endMoment)) {
+        if (startMoment.isSame(endMoment)) {
+          newErrors.dateRange = 'Start date and end date cannot be the same';
+        } else {
+          newErrors.dateRange = 'End date must be after start date';
+        }
+      } else {
+        delete newErrors.dateRange;
+      }
     }
 
     setDateErrors(newErrors);
@@ -185,13 +194,22 @@ const OffsetScreen = ({route}: any) => {
 
     let newErrors = {...dateErrors};
 
-    // Clear invalid format error (picker guarantees valid date)
+    // Clear invalid format error
     delete newErrors.endDate;
 
-    if (startDate && startDate >= selectedDate) {
-      newErrors.dateRange = 'End date must be after start date';
-    } else {
-      delete newErrors.dateRange;
+    if (startDate) {
+      const startMoment = moment(startDate).startOf('day');
+      const endMoment = moment(selectedDate).startOf('day');
+
+      if (startMoment.isSameOrAfter(endMoment)) {
+        if (startMoment.isSame(endMoment)) {
+          newErrors.dateRange = 'Start date and end date cannot be the same';
+        } else {
+          newErrors.dateRange = 'End date must be after start date';
+        }
+      } else {
+        delete newErrors.dateRange;
+      }
     }
 
     setDateErrors(newErrors);
