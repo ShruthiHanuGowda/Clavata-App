@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { NftLocation, NftToken } from '../../types/types';
-import { formatQuantityMWh } from '../../utils';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
+import React, {useState} from 'react';
+import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
+import {NftLocation, NftToken} from '../../types/types';
+import {formatQuantityMWh} from '../../utils';
+import {NavigationProp, useNavigation} from '@react-navigation/native';
 // import SellModal from '../MarketPlace/BuySellModal/SellModal';
-import { DText } from '../DText';
-import { NFT_DEFAULT_IMAGE_URL } from '../../constants';
+import {DText} from '../DText';
+import {NFT_DEFAULT_IMAGE_URL} from '../../constants';
 
 interface Props {
   nft: NftToken;
@@ -14,11 +14,11 @@ interface Props {
 }
 type NavigationProps = NavigationProp<any, any>;
 
-const MyCertificateCard = ({ nft, refresh, containerStyle }: Props) => {
+const MyCertificateCard = ({nft, refresh, containerStyle}: Props) => {
   const navigation = useNavigation<NavigationProps>();
 
   const handlePress = () => {
-    navigation.navigate('walletNFTDetails', { nft, refresh });
+    navigation.navigate('walletNFTDetails', {nft, refresh});
   };
 
   const handleCollectibleClick = (location?: NftLocation) => {
@@ -46,9 +46,8 @@ const MyCertificateCard = ({ nft, refresh, containerStyle }: Props) => {
         <View style={styles.imageContainer}>
           <Image
             source={{
-              uri:
-                nft.image?.thumbnail ||
-                NFT_DEFAULT_IMAGE_URL,
+              // uri: nft.image?.thumbnail || NFT_DEFAULT_IMAGE_URL,
+              uri: nft.energy_type_image || NFT_DEFAULT_IMAGE_URL,
             }}
             style={styles.thumbnail}
             resizeMode="cover"
@@ -59,7 +58,7 @@ const MyCertificateCard = ({ nft, refresh, containerStyle }: Props) => {
           <DText
             style={styles.name}
             fontStyle="fontBold"
-            textProps={{ numberOfLines: 1, ellipsizeMode: 'tail' }}>
+            textProps={{numberOfLines: 1, ellipsizeMode: 'tail'}}>
             {nft.name}
           </DText>
 
@@ -87,14 +86,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   imageContainer: {
-    height: 50,
-    width: 50,
+    height: 30,
+    width: 30,
     borderRadius: 8,
     backgroundColor: '#E5F8F5',
     alignItems: 'center',

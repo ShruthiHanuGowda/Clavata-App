@@ -40,6 +40,19 @@ interface ActionButtonProps {
   onPress: () => void;
 }
 
+interface NFTMetadata {
+  name: string;
+  description: string;
+  image: string;
+  energy_type_image?: string;
+  country_image?: string;
+  external_url?: string;
+  attributes: Array<{
+    trait_type: string;
+    value: string | number;
+  }>;
+}
+
 const ActionButton = ({icon, label, onPress}: ActionButtonProps) => (
   <TouchableOpacity style={styles.actionContainer} onPress={onPress}>
     <View style={styles.actionIconWrapper}>
@@ -53,16 +66,17 @@ interface NFTHeaderProps {
   name: string;
   quantity: string;
   imageUrl: string | null;
+  metadata?: NFTMetadata | null;
 }
 
-const NFTHeader = ({name, quantity, imageUrl}: NFTHeaderProps) => (
+const NFTHeader = ({name, quantity, imageUrl, metadata}: NFTHeaderProps) => (
   <View style={styles.nftHeaderContainer}>
     {/* NFT Image Card */}
     <View style={styles.nftImageCard}>
       <View style={styles.nftImageContainer}>
-        {imageUrl ? (
+        {metadata?.image || imageUrl ? (
           <Image
-            source={{uri: imageUrl}}
+            source={{uri: metadata?.image || imageUrl}}
             style={styles.nftSquareImage}
             resizeMode="cover"
           />
@@ -83,8 +97,16 @@ const NFTHeader = ({name, quantity, imageUrl}: NFTHeaderProps) => (
         <Text style={styles.nftDetailsLabel}>Certificate Details</Text>
       </View>
       <Text style={styles.nftName} numberOfLines={2} ellipsizeMode="tail">
-        {name}
+        {metadata?.name || name}
       </Text>
+      {metadata?.description && (
+        <Text
+          style={styles.nftDescription}
+          numberOfLines={3}
+          ellipsizeMode="tail">
+          {metadata.description}
+        </Text>
+      )}
       <View style={styles.quantityContainer}>
         <Text style={styles.quantityLabel}>Quantity</Text>
         <Text style={styles.quantityValue}>{quantity}</Text>
@@ -106,8 +128,50 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     nft?.marketData?.quantity,
   );
   const [refreshing, setRefreshing] = useState(false);
+  const [nftMetadata, setNftMetadata] = useState<NFTMetadata | null>(null);
+  const [metadataLoading, setMetadataLoading] = useState(false);
 
   const {checkKYC, isKycCompleted, isKycSkipped} = useKycCheck();
+
+  // Fetch NFT metadata from contract
+  const fetchNftMetadata = async () => {
+    try {
+      setMetadataLoading(true);
+      setActiveNetwork('denergy');
+
+      if (!nft?.collectionAddress || !nft?.tokenId) {
+        console.error('Missing collection address or token ID in NFT data.');
+        return;
+      }
+
+      const magicProvider = new BrowserProvider(
+        magic_denergy.rpcProvider as any,
+      );
+      const signer = await magicProvider.getSigner();
+
+      const collectionContract = new Contract(
+        nft.collectionAddress,
+        ERC1155_ABI,
+        signer,
+      );
+
+      // Get metadata URI from contract
+      const metadataUri: string = await collectionContract.uri(nft.tokenId);
+
+      if (metadataUri) {
+        // Fetch metadata JSON from S3
+        const response = await fetch(metadataUri);
+        const metadata: NFTMetadata = await response.json();
+
+        setNftMetadata(metadata);
+        console.log('NFT Metadata fetched:', metadata);
+      }
+    } catch (error) {
+      console.error('Error fetching NFT metadata:', error);
+    } finally {
+      setMetadataLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchCurrentQuantity = async () => {
@@ -144,6 +208,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     };
 
     fetchCurrentQuantity();
+    fetchNftMetadata(); // Fetch metadata when component mounts
   }, []);
 
   const TAB_ITEMS = ['Details', 'Sellers', 'Activity'];
@@ -244,6 +309,15 @@ const WalletNFTDetailsScreen = ({route}: any) => {
 
   const owners = combinedNft?.marketData?.activeAsks || [];
 
+  // Helper function to get attribute value
+  const getAttributeValue = (traitType: string): string => {
+    if (!nftMetadata?.attributes) return '-';
+    const attribute = nftMetadata.attributes.find(
+      attr => attr.trait_type === traitType,
+    );
+    return attribute ? String(attribute.value) : '-';
+  };
+
   if (isLoading || isCollectionLoading || !combinedNft) {
     return (
       <View style={styles.loadingContainer}>
@@ -257,6 +331,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     setRefreshing(true);
     refetch();
     refetchActivity();
+    fetchNftMetadata(); // Refetch metadata on refresh
     setRefreshing(false);
   };
 
@@ -298,6 +373,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
               data?.collectionDetails?.energy_type_image ||
               NFT_DEFAULT_IMAGE_URL
             }
+            metadata={nftMetadata}
           />
 
           {/* Action Buttons */}
@@ -355,24 +431,49 @@ const WalletNFTDetailsScreen = ({route}: any) => {
         <View style={styles.contentSection}>
           {index === 0 && (
             <View style={styles.detailsContainer}>
+              {/* Enhanced details with metadata */}
               {[
+                // Collection data
                 [
                   'Collection Name',
                   `${data?.collectionDetails?.collectionName || '-'}`,
                 ],
                 ['Symbol', `${data?.collectionDetails?.symbol || '-'}`],
-                ['Year', `${data?.collectionDetails?.year || '-'}`],
-                ['Country', `${data?.collectionDetails?.country || '-'}`],
+                ['Token ID', `${data?.tokenId || '-'}`],
                 [
                   'Contract Address',
                   `${data?.collectionDetails?.contractAddress || '-'}`,
                 ],
+
+                // Metadata attributes
+                ['Energy Type', getAttributeValue('Energy Type')],
+                ['Country', getAttributeValue('Country')],
+                ['Facility Name', getAttributeValue('Facility Name')],
+                ['Volume (MWh)', getAttributeValue('Volume (MWh)')],
+                [
+                  'Production Start Date',
+                  getAttributeValue('Production Start Date'),
+                ],
+                [
+                  'Production End Date',
+                  getAttributeValue('Production End Date'),
+                ],
+                [
+                  'Facility Commissioning Date',
+                  getAttributeValue('Facility Commissioning Date'),
+                ],
+                ['Standard', getAttributeValue('Standard')],
+                ['Year', getAttributeValue('Year')],
+                ['Registry', getAttributeValue('Registry')],
+                ['Fuel Code', getAttributeValue('Fuel code')],
+                ['Coordinates', getAttributeValue('cordinates')],
+
+                // Market data
                 [
                   'Owner Address',
                   `${data?.collectionDetails?.ownerAddress || '-'}`,
                 ],
                 ['Type', `${data?.collectionDetails?.type || '-'}`],
-                ['Token ID', `${data?.tokenId || '-'}`],
                 [
                   'Metadata URL',
                   `${combinedNft?.marketData?.metadataUrl || '-'}`,
@@ -403,6 +504,52 @@ const WalletNFTDetailsScreen = ({route}: any) => {
                   </Text>
                 </View>
               ))}
+
+              {/* Additional Images Section */}
+              {/* {(nftMetadata?.energy_type_image ||
+                nftMetadata?.country_image) && (
+                <View style={styles.additionalImagesContainer}>
+                  <Text style={styles.additionalImagesTitle}>
+                    Additional Images
+                  </Text>
+                  <View style={styles.additionalImagesRow}>
+                    {nftMetadata?.energy_type_image && (
+                      <View style={styles.additionalImageContainer}>
+                        <Image
+                          source={{uri: nftMetadata.energy_type_image}}
+                          style={styles.additionalImage}
+                          resizeMode="contain"
+                        />
+                        <Text style={styles.additionalImageLabel}>
+                          Energy Type
+                        </Text>
+                      </View>
+                    )}
+                    {nftMetadata?.country_image && (
+                      <View style={styles.additionalImageContainer}>
+                        <Image
+                          source={{uri: nftMetadata.country_image}}
+                          style={styles.additionalImage}
+                          resizeMode="contain"
+                        />
+                        <Text style={styles.additionalImageLabel}>
+                          Country Flag
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )} */}
+
+              {/* External URL */}
+              {/* {nftMetadata?.external_url && (
+                <TouchableOpacity style={styles.externalUrlContainer}>
+                  <Text style={styles.externalUrlText}>Visit External URL</Text>
+                  <Text style={styles.externalUrl}>
+                    {nftMetadata.external_url}
+                  </Text>
+                </TouchableOpacity>
+              )} */}
             </View>
           )}
 
@@ -572,8 +719,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    // borderWidth: 2,
-    // borderColor: '#009D94',
   },
   nftSquareImage: {
     width: '100%',
@@ -620,8 +765,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#111827',
     fontFamily: fontsFamily.MulishExtraBold,
-    marginBottom: 12,
+    marginBottom: 8,
     lineHeight: 26,
+  },
+  nftDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: fontsFamily.Mulish,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -721,6 +873,58 @@ const styles = StyleSheet.create({
     fontFamily: fontsFamily.MulishExtraBold,
     fontWeight: '700',
     textAlign: 'right',
+  },
+  additionalImagesContainer: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  additionalImagesTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    fontFamily: fontsFamily.MulishExtraBold,
+    marginBottom: 12,
+  },
+  additionalImagesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  additionalImageContainer: {
+    alignItems: 'center',
+  },
+  additionalImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  additionalImageLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: fontsFamily.MulishBold,
+    textAlign: 'center',
+  },
+  externalUrlContainer: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#F8FFFE',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0F0EF',
+  },
+  externalUrlText: {
+    fontSize: 14,
+    color: '#009D94',
+    fontFamily: fontsFamily.MulishBold,
+    marginBottom: 4,
+  },
+  externalUrl: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontFamily: fontsFamily.Mulish,
   },
   sellerCard: {
     backgroundColor: '#FFFFFF',

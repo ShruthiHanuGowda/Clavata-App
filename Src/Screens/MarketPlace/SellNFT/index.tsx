@@ -148,7 +148,6 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
         nftToSell?.marketData?.activeAsks ?? [],
         account,
       );
-      console.log(askPrice, 'askPrice');
 
       setCurrentAskPrice(askPrice);
       const accountNFTQuantity = getAccountNFTQuantity(
