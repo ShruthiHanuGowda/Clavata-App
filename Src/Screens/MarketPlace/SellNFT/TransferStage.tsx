@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {useAuth} from '../../../../screens/Provider/authProvider';
 import {formatQuantityMWh} from '../../../utils';
 import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
 import {isAddress} from 'ethers';
+import ContactModal from '../../AddressBookScreens/ContactModal';
+import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 
 interface TransferStageProps {
   nftToSell: NftToken;
@@ -33,6 +35,8 @@ const TransferStage = ({
   continueToNextStage,
 }: TransferStageProps) => {
   const {userDetails} = useAuth();
+  const [modalVisible, setModalVisible] = useState(false);
+
   const transferAddressEqualsConnectedAddress =
     transferAddress.toLowerCase() === userDetails?.denergyWallet.toLowerCase();
 
@@ -53,6 +57,19 @@ const TransferStage = ({
       isQtyInvalid ||
       quantityGreaterThanAvailable,
   );
+
+  const handleSelectAddress = (address: string, contact: any) => {
+    setTransferAddress(address);
+    setModalVisible(false);
+  };
+
+  const openContactModal = () => {
+    setModalVisible(true);
+  };
+
+  const closeContactModal = () => {
+    setModalVisible(false);
+  };
 
   const getAddressErrorText = () => {
     if (isInvalidTransferAddress) {
@@ -87,26 +104,6 @@ const TransferStage = ({
       </View>
 
       {/* NFT Card */}
-      {/* <View style={styles.nftCard}>
-                <Image
-                    source={{
-                        uri:
-                            nftToSell?.image?.thumbnail ||
-                            'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg',
-                    }}
-                    style={styles.nftImage}
-                />
-                <View style={styles.nftDetails}>
-                    <Text style={styles.nftName}>{nftToSell?.name}</Text>
-                    <Text style={styles.collectionName}>{nftToSell?.collectionName}</Text>
-                    <Text style={styles.tokenId}>Token ID: #{nftToSell?.tokenId}</Text>
-                    {nftToSell?.marketData?.quantity && (
-                        <Text style={styles.availableQuantity}>
-                            Available: {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))} MWh
-                        </Text>
-                    )}
-                </View>
-            </View> */}
       <View style={styles.nftCard}>
         <Image
           source={{
@@ -151,6 +148,14 @@ const TransferStage = ({
               autoCorrect={false}
               multiline={false}
             />
+
+            {/* Contact Selection Icon */}
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={openContactModal}
+              activeOpacity={0.7}>
+              <AntDesignIcon name="contacts" size={23} color="#81c8c3" />
+            </TouchableOpacity>
           </View>
           {getAddressErrorText() && (
             <Text style={styles.errorText}>{getAddressErrorText()}</Text>
@@ -243,6 +248,16 @@ const TransferStage = ({
           <Text style={styles.confirmButtonText}>Continue to Confirmation</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Contact Modal */}
+      <ContactModal
+        visible={modalVisible}
+        onClose={closeContactModal}
+        onSelectAddress={handleSelectAddress}
+        title="Choose Recipient"
+        searchPlaceholder="Search contacts..."
+        emptyMessage="No contacts found"
+      />
     </View>
   );
 };
@@ -357,6 +372,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1a1a1a',
     paddingVertical: 12,
+  },
+  iconButton: {
+    padding: 0,
+    marginLeft: 8,
+    borderRadius: 6,
+    // backgroundColor: 'rgba(129, 200, 195, 0.1)',
   },
   unitLabel: {
     fontSize: 16,
