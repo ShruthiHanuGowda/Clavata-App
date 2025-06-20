@@ -1,5 +1,15 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, TextInput, ScrollView, Alert, Button, StyleSheet, Pressable, Linking} from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  Alert,
+  Button,
+  StyleSheet,
+  Pressable,
+  Linking,
+} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './style';
 import {CustomImageButton, DButton, Header} from '../../../Componants';
@@ -28,6 +38,7 @@ import {
   useSendDenergyUSDCAndEURC,
   TOKEN_ADDRESSES_DENERGY,
 } from '../../../hooks/useSendDenergyUSDCAndEURC';
+import {useSuccessSound} from '../../../hooks/useSuccessSound';
 
 // Define types for route params
 interface RouteParams {
@@ -67,7 +78,7 @@ interface TransactionResult {
   totalCost: string | bigint | undefined;
 }
 
-export default function SendCoin(props: SendCoinProps): any{
+export default function SendCoin(props: SendCoinProps): any {
   const {coinCode, user} = props.route.params;
   const webviewRef = useRef(null);
   const {getBalance, refreshBalance} = useWallet();
@@ -76,10 +87,18 @@ export default function SendCoin(props: SendCoinProps): any{
   const {magic_sepolia, setActiveNetwork, activeNetwork, magic_denergy} =
     useMagic();
   const {userDetails} = useAuth();
-  
+  const {
+    playSuccessSound,
+    isLoaded: soundLoaded,
+    error: soundError,
+  } = useSuccessSound();
+
   // Enhanced loading and transaction state
-  const [currentStep, setCurrentStep] = useState<'form' | 'processing' | 'success'>('form');
-  const [currentProcessingStep, setCurrentProcessingStep] = useState<string>('');
+  const [currentStep, setCurrentStep] = useState<
+    'form' | 'processing' | 'success'
+  >('form');
+  const [currentProcessingStep, setCurrentProcessingStep] =
+    useState<string>('');
   const [stepProgress, setStepProgress] = useState<number>(0);
   const [transactionHash, setTransactionHash] = useState<string>('');
 
@@ -113,88 +132,135 @@ export default function SendCoin(props: SendCoinProps): any{
     sendTransaction: sendWattTransaction,
     validateTransaction,
   } = useSendWatt(magic_denergy, userDetails?.denergyWallet ?? undefined);
-  
+
   const [result, setResult] = useState<TransactionResult | null>(null);
+
+  useEffect(() => {
+    if (currentStep === 'success') {
+      const timer = setTimeout(() => {
+        if (soundLoaded) {
+          console.log('Playing success sound...');
+          playSuccessSound();
+        } else {
+          console.log(
+            'Sound not loaded yet, isLoaded:',
+            soundLoaded,
+            'error:',
+            soundError,
+          );
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, soundLoaded, soundError]);
 
   // Processing steps configuration similar to Bridge
   const SEND_PROCESSING_STEPS: any = {
     ETH: {
-      INITIALIZING: { text: 'Initializing ETH transfer...', progress: 8 },
-      SWITCHING_NETWORK: { text: 'Switching to Ethereum network...', progress: 16 },
-      CHECKING_BALANCE: { text: 'Checking ETH balance...', progress: 24 },
-      ESTIMATING_GAS: { text: 'Estimating gas fees...', progress: 32 },
-      PREPARING_TX: { text: 'Preparing transaction...', progress: 40 },
-      SIGNING_TX: { text: 'Signing transaction...', progress: 56 },
-      BROADCASTING: { text: 'Broadcasting to network...', progress: 72 },
-      CONFIRMING: { text: 'Waiting for confirmation...', progress: 88 },
-      UPDATING_RECORDS: { text: 'Updating transaction records...', progress: 96 },
-      COMPLETED: { text: 'ETH transfer completed successfully!', progress: 100 }
+      INITIALIZING: {text: 'Initializing ETH transfer...', progress: 8},
+      SWITCHING_NETWORK: {
+        text: 'Switching to Ethereum network...',
+        progress: 16,
+      },
+      CHECKING_BALANCE: {text: 'Checking ETH balance...', progress: 24},
+      ESTIMATING_GAS: {text: 'Estimating gas fees...', progress: 32},
+      PREPARING_TX: {text: 'Preparing transaction...', progress: 40},
+      SIGNING_TX: {text: 'Signing transaction...', progress: 56},
+      BROADCASTING: {text: 'Broadcasting to network...', progress: 72},
+      CONFIRMING: {text: 'Waiting for confirmation...', progress: 88},
+      UPDATING_RECORDS: {text: 'Updating transaction records...', progress: 96},
+      COMPLETED: {text: 'ETH transfer completed successfully!', progress: 100},
     },
     USDC: {
-      INITIALIZING: { text: 'Initializing USDC transfer...', progress: 8 },
-      SWITCHING_NETWORK: { text: 'Switching to Ethereum network...', progress: 16 },
-      CHECKING_BALANCE: { text: 'Checking USDC balance...', progress: 24 },
-      CHECKING_ALLOWANCE: { text: 'Checking token allowance...', progress: 32 },
-      ESTIMATING_GAS: { text: 'Estimating gas fees...', progress: 40 },
-      PREPARING_TX: { text: 'Preparing token transfer...', progress: 48 },
-      SIGNING_TX: { text: 'Signing transaction...', progress: 64 },
-      BROADCASTING: { text: 'Broadcasting to network...', progress: 80 },
-      CONFIRMING: { text: 'Waiting for confirmation...', progress: 92 },
-      UPDATING_RECORDS: { text: 'Updating transaction records...', progress: 96 },
-      COMPLETED: { text: 'USDC transfer completed successfully!', progress: 100 }
+      INITIALIZING: {text: 'Initializing USDC transfer...', progress: 8},
+      SWITCHING_NETWORK: {
+        text: 'Switching to Ethereum network...',
+        progress: 16,
+      },
+      CHECKING_BALANCE: {text: 'Checking USDC balance...', progress: 24},
+      CHECKING_ALLOWANCE: {text: 'Checking token allowance...', progress: 32},
+      ESTIMATING_GAS: {text: 'Estimating gas fees...', progress: 40},
+      PREPARING_TX: {text: 'Preparing token transfer...', progress: 48},
+      SIGNING_TX: {text: 'Signing transaction...', progress: 64},
+      BROADCASTING: {text: 'Broadcasting to network...', progress: 80},
+      CONFIRMING: {text: 'Waiting for confirmation...', progress: 92},
+      UPDATING_RECORDS: {text: 'Updating transaction records...', progress: 96},
+      COMPLETED: {text: 'USDC transfer completed successfully!', progress: 100},
     },
     EURC: {
-      INITIALIZING: { text: 'Initializing EURC transfer...', progress: 8 },
-      SWITCHING_NETWORK: { text: 'Switching to Ethereum network...', progress: 16 },
-      CHECKING_BALANCE: { text: 'Checking EURC balance...', progress: 24 },
-      CHECKING_ALLOWANCE: { text: 'Checking token allowance...', progress: 32 },
-      ESTIMATING_GAS: { text: 'Estimating gas fees...', progress: 40 },
-      PREPARING_TX: { text: 'Preparing token transfer...', progress: 48 },
-      SIGNING_TX: { text: 'Signing transaction...', progress: 64 },
-      BROADCASTING: { text: 'Broadcasting to network...', progress: 80 },
-      CONFIRMING: { text: 'Waiting for confirmation...', progress: 92 },
-      UPDATING_RECORDS: { text: 'Updating transaction records...', progress: 96 },
-      COMPLETED: { text: 'EURC transfer completed successfully!', progress: 100 }
+      INITIALIZING: {text: 'Initializing EURC transfer...', progress: 8},
+      SWITCHING_NETWORK: {
+        text: 'Switching to Ethereum network...',
+        progress: 16,
+      },
+      CHECKING_BALANCE: {text: 'Checking EURC balance...', progress: 24},
+      CHECKING_ALLOWANCE: {text: 'Checking token allowance...', progress: 32},
+      ESTIMATING_GAS: {text: 'Estimating gas fees...', progress: 40},
+      PREPARING_TX: {text: 'Preparing token transfer...', progress: 48},
+      SIGNING_TX: {text: 'Signing transaction...', progress: 64},
+      BROADCASTING: {text: 'Broadcasting to network...', progress: 80},
+      CONFIRMING: {text: 'Waiting for confirmation...', progress: 92},
+      UPDATING_RECORDS: {text: 'Updating transaction records...', progress: 96},
+      COMPLETED: {text: 'EURC transfer completed successfully!', progress: 100},
     },
     WATT: {
-      INITIALIZING: { text: 'Initializing WATT transfer...', progress: 8 },
-      SWITCHING_NETWORK: { text: 'Switching to DENERGY network...', progress: 16 },
-      VALIDATING_ADDRESS: { text: 'Validating recipient address...', progress: 24 },
-      CHECKING_BALANCE: { text: 'Checking WATT balance...', progress: 32 },
-      ESTIMATING_GAS: { text: 'Estimating transaction fees...', progress: 40 },
-      PREPARING_TX: { text: 'Preparing WATT transfer...', progress: 48 },
-      SIGNING_TX: { text: 'Signing transaction...', progress: 64 },
-      BROADCASTING: { text: 'Broadcasting to DENERGY network...', progress: 80 },
-      CONFIRMING: { text: 'Waiting for confirmation...', progress: 92 },
-      UPDATING_RECORDS: { text: 'Updating transaction records...', progress: 96 },
-      COMPLETED: { text: 'WATT transfer completed successfully!', progress: 100 }
+      INITIALIZING: {text: 'Initializing WATT transfer...', progress: 8},
+      SWITCHING_NETWORK: {
+        text: 'Switching to DENERGY network...',
+        progress: 16,
+      },
+      VALIDATING_ADDRESS: {
+        text: 'Validating recipient address...',
+        progress: 24,
+      },
+      CHECKING_BALANCE: {text: 'Checking WATT balance...', progress: 32},
+      ESTIMATING_GAS: {text: 'Estimating transaction fees...', progress: 40},
+      PREPARING_TX: {text: 'Preparing WATT transfer...', progress: 48},
+      SIGNING_TX: {text: 'Signing transaction...', progress: 64},
+      BROADCASTING: {text: 'Broadcasting to DENERGY network...', progress: 80},
+      CONFIRMING: {text: 'Waiting for confirmation...', progress: 92},
+      UPDATING_RECORDS: {text: 'Updating transaction records...', progress: 96},
+      COMPLETED: {text: 'WATT transfer completed successfully!', progress: 100},
     },
     WUSDC: {
-      INITIALIZING: { text: 'Initializing wUSDC transfer...', progress: 8 },
-      SWITCHING_NETWORK: { text: 'Switching to DENERGY network...', progress: 16 },
-      CHECKING_BALANCE: { text: 'Checking wUSDC balance...', progress: 24 },
-      CHECKING_ALLOWANCE: { text: 'Checking token allowance...', progress: 32 },
-      ESTIMATING_GAS: { text: 'Estimating transaction fees...', progress: 40 },
-      PREPARING_TX: { text: 'Preparing wrapped token transfer...', progress: 48 },
-      SIGNING_TX: { text: 'Signing transaction...', progress: 64 },
-      BROADCASTING: { text: 'Broadcasting to DENERGY network...', progress: 80 },
-      CONFIRMING: { text: 'Waiting for confirmation...', progress: 92 },
-      UPDATING_RECORDS: { text: 'Updating transaction records...', progress: 96 },
-      COMPLETED: { text: 'wUSDC transfer completed successfully!', progress: 100 }
+      INITIALIZING: {text: 'Initializing wUSDC transfer...', progress: 8},
+      SWITCHING_NETWORK: {
+        text: 'Switching to DENERGY network...',
+        progress: 16,
+      },
+      CHECKING_BALANCE: {text: 'Checking wUSDC balance...', progress: 24},
+      CHECKING_ALLOWANCE: {text: 'Checking token allowance...', progress: 32},
+      ESTIMATING_GAS: {text: 'Estimating transaction fees...', progress: 40},
+      PREPARING_TX: {text: 'Preparing wrapped token transfer...', progress: 48},
+      SIGNING_TX: {text: 'Signing transaction...', progress: 64},
+      BROADCASTING: {text: 'Broadcasting to DENERGY network...', progress: 80},
+      CONFIRMING: {text: 'Waiting for confirmation...', progress: 92},
+      UPDATING_RECORDS: {text: 'Updating transaction records...', progress: 96},
+      COMPLETED: {
+        text: 'wUSDC transfer completed successfully!',
+        progress: 100,
+      },
     },
     WEURC: {
-      INITIALIZING: { text: 'Initializing wEURC transfer...', progress: 8 },
-      SWITCHING_NETWORK: { text: 'Switching to DENERGY network...', progress: 16 },
-      CHECKING_BALANCE: { text: 'Checking wEURC balance...', progress: 24 },
-      CHECKING_ALLOWANCE: { text: 'Checking token allowance...', progress: 32 },
-      ESTIMATING_GAS: { text: 'Estimating transaction fees...', progress: 40 },
-      PREPARING_TX: { text: 'Preparing wrapped token transfer...', progress: 48 },
-      SIGNING_TX: { text: 'Signing transaction...', progress: 64 },
-      BROADCASTING: { text: 'Broadcasting to DENERGY network...', progress: 80 },
-      CONFIRMING: { text: 'Waiting for confirmation...', progress: 92 },
-      UPDATING_RECORDS: { text: 'Updating transaction records...', progress: 96 },
-      COMPLETED: { text: 'wEURC transfer completed successfully!', progress: 100 }
-    }
+      INITIALIZING: {text: 'Initializing wEURC transfer...', progress: 8},
+      SWITCHING_NETWORK: {
+        text: 'Switching to DENERGY network...',
+        progress: 16,
+      },
+      CHECKING_BALANCE: {text: 'Checking wEURC balance...', progress: 24},
+      CHECKING_ALLOWANCE: {text: 'Checking token allowance...', progress: 32},
+      ESTIMATING_GAS: {text: 'Estimating transaction fees...', progress: 40},
+      PREPARING_TX: {text: 'Preparing wrapped token transfer...', progress: 48},
+      SIGNING_TX: {text: 'Signing transaction...', progress: 64},
+      BROADCASTING: {text: 'Broadcasting to DENERGY network...', progress: 80},
+      CONFIRMING: {text: 'Waiting for confirmation...', progress: 92},
+      UPDATING_RECORDS: {text: 'Updating transaction records...', progress: 96},
+      COMPLETED: {
+        text: 'wEURC transfer completed successfully!',
+        progress: 100,
+      },
+    },
   };
 
   const updateProcessingStep = (stepKey: string) => {
@@ -219,13 +285,18 @@ export default function SendCoin(props: SendCoinProps): any{
     if (!steps) return;
 
     const stepKeys = Object.keys(steps).filter(key => key !== 'COMPLETED');
-    
+
     for (const stepKey of stepKeys) {
       updateProcessingStep(stepKey);
       // Add realistic delays between steps
-      const delay = stepKey === 'CONFIRMING' ? 2000 : 
-                   stepKey === 'BROADCASTING' ? 1500 : 
-                   stepKey === 'SIGNING_TX' ? 1200 : 800;
+      const delay =
+        stepKey === 'CONFIRMING'
+          ? 2000
+          : stepKey === 'BROADCASTING'
+          ? 1500
+          : stepKey === 'SIGNING_TX'
+          ? 1200
+          : 800;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   };
@@ -245,10 +316,10 @@ export default function SendCoin(props: SendCoinProps): any{
     console.log(coinCode);
     setCurrentStep('processing');
     resetSendState();
-    
+
     // Start the enhanced processing simulation
     const processingPromise = simulateProcessingSteps();
-    
+
     try {
       // Use the sendTransaction method from our hook with a success callback
       await setActiveNetwork('sepolia');
@@ -394,10 +465,9 @@ export default function SendCoin(props: SendCoinProps): any{
           },
         );
       }
-      
+
       // Wait for processing simulation to complete
       await processingPromise;
-      
     } catch (err: any) {
       setResult({
         gasFee: '',
@@ -417,12 +487,17 @@ export default function SendCoin(props: SendCoinProps): any{
   };
 
   const renderProcessing = (): any => {
-    const networkName = ['ETH', 'USDC', 'EURC'].includes(coinCode) ? 'Ethereum' : 'DENERGY';
-    
+    const networkName = ['ETH', 'USDC', 'EURC'].includes(coinCode)
+      ? 'Ethereum'
+      : 'DENERGY';
+
     return (
       <LoadingScreenWithStep
         title={`Sending ${coinCode}...`}
-        subtitle={currentProcessingStep || `Processing your ${coinCode} transaction on ${networkName}`}
+        subtitle={
+          currentProcessingStep ||
+          `Processing your ${coinCode} transaction on ${networkName}`
+        }
         icon="📤"
         progress={stepProgress}
         showProgressBar={true}
@@ -438,22 +513,28 @@ export default function SendCoin(props: SendCoinProps): any{
   };
 
   const renderSuccess = (): any => {
-    const networkName = ['ETH', 'USDC', 'EURC'].includes(coinCode) ? 'Ethereum' : 'DENERGY';
+    const networkName = ['ETH', 'USDC', 'EURC'].includes(coinCode)
+      ? 'Ethereum'
+      : 'DENERGY';
 
     const handleViewExplorer = () => {
       if (!transactionHash) {
         Alert.alert('Error', 'Transaction hash not available');
         return;
       }
-      
-      const explorerUrl = getBlockExploreLink(transactionHash, 'transaction', networkName === 'Ethereum' ? 11155111 : '');
+
+      const explorerUrl = getBlockExploreLink(
+        transactionHash,
+        'transaction',
+        networkName === 'Ethereum' ? 11155111 : '',
+      );
 
       Linking.openURL(explorerUrl).catch(err => {
         console.error('Failed to open explorer:', err);
         Alert.alert('Error', 'Could not open explorer');
       });
     };
-    
+
     const handleCopyHash = () => {
       if (!transactionHash) {
         Alert.alert('Error', 'Transaction hash not available');
@@ -469,7 +550,7 @@ export default function SendCoin(props: SendCoinProps): any{
     };
 
     return (
-      <View style={successStyles.container}>
+      <ScrollView style={successStyles.container}>
         {/* Success Icon and Title */}
         <View style={successStyles.headerSection}>
           <View style={successStyles.successIconContainer}>
@@ -496,7 +577,12 @@ export default function SendCoin(props: SendCoinProps): any{
           <View style={successStyles.amountSection}>
             <DText style={successStyles.amountLabel}>Amount Sent</DText>
             <DText fontStyle="fontBold" style={successStyles.amountValue}>
-              {wattAmount} {coinCode === 'WUSDC' ? 'wUSDC' : coinCode === 'WEURC' ? 'wEURC' : coinCode}
+              {wattAmount}{' '}
+              {coinCode === 'WUSDC'
+                ? 'wUSDC'
+                : coinCode === 'WEURC'
+                ? 'wEURC'
+                : coinCode}
             </DText>
             <View style={successStyles.networkFlow}>
               <View style={successStyles.networkBadge}>
@@ -516,7 +602,7 @@ export default function SendCoin(props: SendCoinProps): any{
             <View style={successStyles.hashSection}>
               <DText style={successStyles.hashLabel}>Transaction Hash</DText>
               <View style={successStyles.hashContainer}>
-                <Pressable 
+                <Pressable
                   style={successStyles.hashDisplay}
                   onPress={handleCopyHash}>
                   <Text style={successStyles.hashText}>
@@ -526,8 +612,7 @@ export default function SendCoin(props: SendCoinProps): any{
                 </Pressable>
                 <Pressable
                   style={successStyles.explorerButton}
-                  onPress={handleViewExplorer}
-                >
+                  onPress={handleViewExplorer}>
                   <Text style={successStyles.explorerIcon}>🔍</Text>
                 </Pressable>
               </View>
@@ -547,7 +632,7 @@ export default function SendCoin(props: SendCoinProps): any{
           containerWrapper={successStyles.submitButtonContainer}
           bgImg={successStyles.submitButtonImage}
         />
-      </View>
+      </ScrollView>
     );
   };
 

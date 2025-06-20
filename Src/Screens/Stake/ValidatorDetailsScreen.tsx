@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import images from '../../Theme/images';
 import useValidators from './Hooks/useValidators';
+import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
 
 // Define interfaces for our data types
 interface Validator {
@@ -146,8 +147,14 @@ const ValidatorDetailsScreen = ({
           <View style={styles.spacer} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#009D94" />
-          <Text style={styles.loadingText}>Loading validator data...</Text>
+          {/* <ActivityIndicator size="large" color="#009D94" />
+          <Text style={styles.loadingText}>Loading validator data...</Text> */}
+          <LoaderAnimation
+            size="large"
+            color="#009D94"
+            showText={true}
+            text="Loading validator data..."
+          />
         </View>
       </SafeAreaView>
     );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   ScrollView,
   Text,
@@ -16,15 +16,16 @@ import ContractInfo from '../../../Componants/MarketPlace/ContractInfo';
 import ActivityList from '../../../Componants/MarketPlace/ActivityList';
 import BuyModal from '../../../Componants/MarketPlace/BuySellModal/BuyModal';
 import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
-import { NftToken } from '../../../types/types';
-import { useCompleteNft } from '../../../hooks/useCompleteNft';
+import {NftToken} from '../../../types/types';
+import {useCompleteNft} from '../../../hooks/useCompleteNft';
 import useNftActivity from '../../../hooks/useNftActivity';
-import { Header } from '../../../Componants';
-import { navigateBack } from '../../../Navigation/NavigationFunctions';
-import { useNavigation } from '@react-navigation/native';
+import {Header} from '../../../Componants';
+import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import {useNavigation} from '@react-navigation/native';
+import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
 
-const NFTDetailsScreen = ({ route }: any) => {
-  const { nft } = route.params;
+const NFTDetailsScreen = ({route}: any) => {
+  const {nft} = route.params;
   const [isBuyModalVisible, setIsBuyModalVisible] = useState(false);
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -84,7 +85,6 @@ const NFTDetailsScreen = ({ route }: any) => {
         refetch();
         refetchActivity();
       },
-
     });
   };
 
@@ -93,8 +93,13 @@ const NFTDetailsScreen = ({ route }: any) => {
   if (isLoading || !combinedNft) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#81c8c3" />
-        <Text style={styles.loadingText}>Fetching NFT Details...</Text>
+        {/* <ActivityIndicator size="large" color="#81c8c3" />
+        <Text style={styles.loadingText}>Fetching NFT Details...</Text> */}
+        <LoaderAnimation
+          size="large"
+          showText={true}
+          text="Fetching Certificate Details..."
+        />
       </View>
     );
   }
@@ -104,7 +109,7 @@ const NFTDetailsScreen = ({ route }: any) => {
       <Header
         headerTitle={combinedNft.name}
         backBtn={() => navigateBack()}
-        containerStyle={{ backgroundColor: '#f9fafa' }}
+        containerStyle={{backgroundColor: '#f9fafa'}}
         hideBorder
       />
       <ScrollView
@@ -114,14 +119,14 @@ const NFTDetailsScreen = ({ route }: any) => {
         }>
         <NFTHeader
           nft={combinedNft}
-          onBuyPress={(seller) => navigateToBuyNFT(seller)}
+          onBuyPress={seller => navigateToBuyNFT(seller)}
           onSellPress={() => navigateToSellNFT()}
         />
 
         <Text style={styles.sectionTitle}>👑 Owners</Text>
         <OwnerList
           owners={owners}
-          onBuyPress={(seller) => navigateToBuyNFT(seller?.seller?.id)}
+          onBuyPress={seller => navigateToBuyNFT(seller?.seller?.id)}
           onSellPress={() => navigateToSellNFT()}
         />
 

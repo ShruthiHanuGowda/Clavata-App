@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import {useEffect, useState} from 'react';
 import {
   ScrollView,
   Animated,
@@ -8,20 +8,21 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 import Spinner from '../../../Componants/MarketPlace/Spinner';
 import useNfts from '../../../hooks/useNfts';
-import { getMinAsk } from '../../../hooks/marketPlace';
-import { ApiCollection, ApiSingleCollectionResponse } from '../../../types/types';
+import {getMinAsk} from '../../../hooks/marketPlace';
+import {ApiCollection, ApiSingleCollectionResponse} from '../../../types/types';
 import useApi from '../../../hooks/useApi';
-import { API_NFT_URL } from '../../../constants';
-import { Header } from '../../../Componants';
-import { navigateBack } from '../../../Navigation/NavigationFunctions';
+import {API_NFT_URL} from '../../../constants';
+import {Header} from '../../../Componants';
+import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import NFTCard from '../../../Componants/MarketPlace/NFTCard';
+import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
 
-const CollectionDetailsScreen = ({ route }: any) => {
-  const { contractAddress } = route.params;
+const CollectionDetailsScreen = ({route}: any) => {
+  const {contractAddress} = route.params;
   const [fadeAnim] = useState(new Animated.Value(0));
   const [collection, setCollection] = useState<ApiCollection | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -33,7 +34,7 @@ const CollectionDetailsScreen = ({ route }: any) => {
     refetch,
   } = useApi<ApiSingleCollectionResponse>(
     `${API_NFT_URL}/nftMarketplace_getCollections/?contractAddress=${contractAddress}`,
-    { method: 'GET' },
+    {method: 'GET'},
   );
 
   const {
@@ -64,31 +65,29 @@ const CollectionDetailsScreen = ({ route }: any) => {
     setRefreshing(false);
   };
 
-  console.log(collection, "collection");
-
+  console.log(collection, 'collection');
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <Header
         headerTitle={'Available Certificates'}
         backBtn={() => navigateBack()}
-        containerStyle={{ backgroundColor: '#f8fafc' }}
+        containerStyle={{backgroundColor: '#f8fafc'}}
         hideBorder
       />
-      <View style={{ flex: 1 }}>
+      <View style={{flex: 1}}>
         <ScrollView
           style={styles.container}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-          showsVerticalScrollIndicator={false}
-        >
+          showsVerticalScrollIndicator={false}>
           {isLoading && (
             <View style={styles.loaderContainer}>
-              <Spinner />
+              {/* <Spinner /> */}
+              <LoaderAnimation size="large" />
             </View>
           )}
-
 
           {!isLoading && !error && collection && (
             <View style={styles.collectionDetails}>
@@ -116,7 +115,9 @@ const CollectionDetailsScreen = ({ route }: any) => {
 
           {!isLoading && error && (
             <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>Failed to load collection data</Text>
+              <Text style={styles.errorText}>
+                Failed to load collection data
+              </Text>
             </View>
           )}
 
@@ -125,14 +126,17 @@ const CollectionDetailsScreen = ({ route }: any) => {
             <View style={styles.sectionHeader}>
               <Text style={styles.nftSectionTitle}>Available Certificates</Text>
               <Text style={styles.nftCount}>
-                {nfts?.filter(nft => (nft?.activeAsks ?? []).length > 0).length || 0} items
+                {nfts?.filter(nft => (nft?.activeAsks ?? []).length > 0)
+                  .length || 0}{' '}
+                items
               </Text>
             </View>
 
             {/* Show loader when NFTs are loading */}
             {nftsLoading && (
               <View style={styles.loaderContainer}>
-                <Spinner />
+                {/* <Spinner /> */}
+                <LoaderAnimation size="large" />
               </View>
             )}
 
@@ -150,17 +154,17 @@ const CollectionDetailsScreen = ({ route }: any) => {
                   const currentAsk = getMinAsk(nft.activeAsks ?? []);
                   const hasAsks = nft?.activeAsks?.length > 0;
 
-
                   if (!hasAsks) return null;
 
                   const nftData = {
                     ...nft,
-                    name: nft?.collection?.name ?? "",
-                  }
+                    name: nft?.collection?.name ?? '',
+                  };
 
                   const totalQuantity = nft?.activeAsks?.reduce(
-                    (total: number, ask: any) => total + Number(ask.amount || 0),
-                    0
+                    (total: number, ask: any) =>
+                      total + Number(ask.amount || 0),
+                    0,
                   );
 
                   return (
@@ -177,9 +181,12 @@ const CollectionDetailsScreen = ({ route }: any) => {
               !nftsLoading && (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyStateIcon}>📜</Text>
-                  <Text style={styles.emptyStateTitle}>No Certificates Available</Text>
+                  <Text style={styles.emptyStateTitle}>
+                    No Certificates Available
+                  </Text>
                   <Text style={styles.emptyStateSubtitle}>
-                    There are currently no certificates for sale in this collection
+                    There are currently no certificates for sale in this
+                    collection
                   </Text>
                 </View>
               )
@@ -202,11 +209,14 @@ const DetailCard = ({
   value: string | null | undefined;
   isStringIcon?: boolean;
 }) => {
-
   return (
     <View style={styles.detailCard}>
       {!isStringIcon ? (
-        <Image source={{ uri: icon }} style={styles.detailImage} resizeMode="contain" />
+        <Image
+          source={{uri: icon}}
+          style={styles.detailImage}
+          resizeMode="contain"
+        />
       ) : (
         <Text style={styles.detailIcon}>{icon}</Text>
       )}
@@ -248,7 +258,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,

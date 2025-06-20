@@ -33,6 +33,8 @@ import {useBridge} from '../../../../hooks/useBridge';
 import LottieView from 'lottie-react-native';
 import LoadingScreenWithStep from '../../../../Componants/Loading/LoadingScreenWIthStep';
 import {getBlockExploreLink} from '../../../../utils/explorer';
+import {SnackBarMessage} from '../../../../utils/snackBar';
+import {useSuccessSound} from '../../../../hooks/useSuccessSound';
 
 // Define types
 type TokenKey = 'USDC' | 'WUSDC' | 'EURC' | 'WEURC';
@@ -210,18 +212,21 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     'form' | 'processing' | 'success'
   >('form');
 
-  // Get balance for the selected token
   const {balance: tokenBalance, balanceUsd: tokenBalanceUsd}: TokenBalance =
     getBalance(selectedToken);
 
-  // Handle bridge success
+  const {
+    playSuccessSound,
+    isLoaded: soundLoaded,
+    error: soundError,
+  } = useSuccessSound();
+
   useEffect(() => {
     if (bridgeSuccess) {
       setCurrentStep('success');
     }
   }, [bridgeSuccess]);
 
-  // Update target token whenever source token changes
   useEffect(() => {
     const token = TOKENS[selectedToken];
     if (token) {
@@ -298,6 +303,26 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     validateAndInitiateSwap();
   }, [amount, tokenBalance]);
 
+  useEffect(() => {
+    if (currentStep === 'success') {
+      const timer = setTimeout(() => {
+        if (soundLoaded) {
+          console.log('Playing success sound...');
+          playSuccessSound();
+        } else {
+          console.log(
+            'Sound not loaded yet, isLoaded:',
+            soundLoaded,
+            'error:',
+            soundError,
+          );
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, soundLoaded, soundError]);
+
   // API call to get swap details
   const initiateSwap = async (val: string): Promise<void> => {
     try {
@@ -358,6 +383,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
         setCurrentStep('form');
       }
     }
@@ -368,6 +394,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
         setCurrentStep('form');
       }
     }
@@ -378,6 +405,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
         setCurrentStep('form');
       }
     }
@@ -389,6 +417,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
         setCurrentStep('form');
       }
     }
@@ -492,7 +521,11 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         return;
       }
 
-      const explorerUrl = getBlockExploreLink(transactionHash, 'transaction', sourceNetwork === 'ETH' ? 11155111 : '');
+      const explorerUrl = getBlockExploreLink(
+        transactionHash,
+        'transaction',
+        sourceNetwork === 'ETH' ? 11155111 : '',
+      );
 
       Linking.openURL(explorerUrl).catch(err => {
         console.error('Failed to open explorer:', err);
@@ -703,12 +736,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
           {getDisplayTokenName(tokenKey)}
         </Text>
         {isSelectable && (
-          <Svg
-            width="15"
-            height="8"
-            viewBox="0 0 15 8"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
+          <Svg width="15" height="8" viewBox="0 0 15 8" fill="none">
             <Path
               d="M13.2599 1.24914L8.36988 6.13914C7.79238 6.71664 6.84738 6.71664 6.26988 6.13914L1.37988 1.24914"
               stroke="#292D32"

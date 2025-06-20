@@ -1,11 +1,7 @@
-import React, { useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-} from 'react-native';
+import React, {useRef, useEffect} from 'react';
+import {View, Text, StyleSheet} from 'react-native';
 import LottieView from 'lottie-react-native';
-import { DText } from '../DText'; // Adjust the import path as needed
+import {DText} from '../DText'; // Adjust the import path as needed
 
 interface LoadingScreenWithStepProps {
   title?: string;
@@ -48,9 +44,13 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
 
   useEffect(() => {
     if (animationRef.current && animationSource) {
+      const controller = new AbortController();
+
       setTimeout(() => {
-        animationRef?.current?.play();
+        animationRef.current.play();
       }, 300);
+
+      return () => controller.abort();
     }
   }, [animationRef, animationSource]);
 
@@ -63,16 +63,14 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
           <View
             style={[
               styles.progressBarFill,
-              { 
+              {
                 width: `${progress}%`,
-                backgroundColor: progressBarColor
-              }
+                backgroundColor: progressBarColor,
+              },
             ]}
           />
         </View>
-        <DText style={styles.progressText}>
-          {progress}% Complete
-        </DText>
+        <DText style={styles.progressText}>{progress}% Complete</DText>
       </View>
     );
   };
@@ -81,29 +79,32 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
     if (!showStepIndicators) return null;
 
     const stepProgress = Math.floor(progress / (100 / stepIndicatorCount));
-    const indicators = Array.from({ length: stepIndicatorCount }, (_, index) => (
+    const indicators = Array.from({length: stepIndicatorCount}, (_, index) => (
       <View
         key={index}
         style={[
           styles.stepIndicator,
-          index < stepProgress && [styles.stepIndicatorActive, { backgroundColor: progressBarColor }]
+          index < stepProgress && [
+            styles.stepIndicatorActive,
+            {backgroundColor: progressBarColor},
+          ],
         ]}
       />
     ));
 
-    return (
-      <View style={styles.stepIndicatorsContainer}>
-        {indicators}
-      </View>
-    );
+    return <View style={styles.stepIndicatorsContainer}>{indicators}</View>;
   };
 
   const renderFeeInfo = () => {
     if (!feeInfo) return null;
 
     return (
-      <View style={[styles.feeInfoContainer, { borderColor: progressBarColor + '40' }]}>
-        <DText style={[styles.feeInfoText, { color: progressBarColor }]}>
+      <View
+        style={[
+          styles.feeInfoContainer,
+          {borderColor: progressBarColor + '40'},
+        ]}>
+        <DText style={[styles.feeInfoText, {color: progressBarColor}]}>
           {feeInfo}
         </DText>
       </View>
@@ -121,6 +122,7 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
           style={[styles.lottieAnimation, animationStyle]}
           speed={1}
           resizeMode="contain"
+          key={Math.random().toString()}
         />
       );
     }
@@ -130,24 +132,24 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor }, containerStyle]}>
+    <View style={[styles.container, {backgroundColor}, containerStyle]}>
       {/* Header Section */}
       <View style={styles.headerSection}>
-        <View style={[styles.iconContainer, { backgroundColor: iconBackgroundColor }]}>
+        <View
+          style={[
+            styles.iconContainer,
+            {backgroundColor: iconBackgroundColor},
+          ]}>
           <Text style={styles.iconText}>{icon}</Text>
         </View>
         <DText fontStyle="fontBold" style={[styles.title, titleStyle]}>
           {title}
         </DText>
-        <DText style={[styles.subtitle, subtitleStyle]}>
-          {subtitle}
-        </DText>
+        <DText style={[styles.subtitle, subtitleStyle]}>{subtitle}</DText>
       </View>
 
       {/* Animation Section */}
-      <View style={styles.animationSection}>
-        {renderAnimation()}
-      </View>
+      <View style={styles.animationSection}>{renderAnimation()}</View>
 
       {/* Progress Section */}
       <View style={styles.progressSection}>

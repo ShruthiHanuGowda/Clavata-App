@@ -10,27 +10,27 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Header, Tab } from '@rneui/base';
-import { navigateBack } from '../../../Navigation/NavigationFunctions';
-import { DText } from '../../../Componants/DText';
+import {Header, Tab} from '@rneui/base';
+import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import {DText} from '../../../Componants/DText';
 import images from '../../../Theme/images';
 import LinearGradient from 'react-native-linear-gradient';
-import { fontsFamily } from '../../../Theme';
-import { useEffect, useMemo, useState } from 'react';
-import { formatQuantityMWh } from '../../../utils';
-import { useCompleteNft } from '../../../hooks/useCompleteNft';
-import { NftLocation, NftToken } from '../../../types/types';
+import {fontsFamily} from '../../../Theme';
+import {useEffect, useMemo, useState} from 'react';
+import {formatQuantityMWh} from '../../../utils';
+import {useCompleteNft} from '../../../hooks/useCompleteNft';
+import {NftLocation, NftToken} from '../../../types/types';
 import useApi from '../../../hooks/useApi';
-import { API_NFT_URL, NFT_DEFAULT_IMAGE_URL } from '../../../constants';
+import {API_NFT_URL, NFT_DEFAULT_IMAGE_URL} from '../../../constants';
 import useNftActivity from '../../../hooks/useNftActivity';
-import { useNavigation } from '@react-navigation/native';
-import { BrowserProvider, Contract } from 'ethers';
-import { useMagic } from '../../../../screens/Provider/MagicProvider';
-import { ERC1155_ABI } from '../../../utils/Contracts';
-import { useAuth } from '../../../../screens/Provider/authProvider';
-import { SnackBarMessage } from '../../../utils/snackBar';
-import { useKycCheck } from '../../../CustomHooks/GlobalKycProvider';
-import { RefreshControl } from 'react-native-gesture-handler';
+import {useNavigation} from '@react-navigation/native';
+import {BrowserProvider, Contract} from 'ethers';
+import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {ERC1155_ABI} from '../../../utils/Contracts';
+import {useAuth} from '../../../../screens/Provider/authProvider';
+import {SnackBarMessage} from '../../../utils/snackBar';
+import {useKycCheck} from '../../../CustomHooks/GlobalKycProvider';
+import {RefreshControl} from 'react-native-gesture-handler';
 
 const width = Dimensions.get('window').width;
 
@@ -40,7 +40,7 @@ interface ActionButtonProps {
   onPress: () => void;
 }
 
-const ActionButton = ({ icon, label, onPress }: ActionButtonProps) => (
+const ActionButton = ({icon, label, onPress}: ActionButtonProps) => (
   <TouchableOpacity style={styles.actionContainer} onPress={onPress}>
     <View style={styles.actionIconWrapper}>
       <Image source={icon} style={styles.actionIcon} />
@@ -55,20 +55,23 @@ interface NFTHeaderProps {
   imageUrl: string | null;
 }
 
-const NFTHeader = ({ name, quantity, imageUrl }: NFTHeaderProps) => (
+const NFTHeader = ({name, quantity, imageUrl}: NFTHeaderProps) => (
   <View style={styles.nftHeaderContainer}>
     {/* NFT Image Card */}
     <View style={styles.nftImageCard}>
       <View style={styles.nftImageContainer}>
         {imageUrl ? (
           <Image
-            source={{ uri: imageUrl }}
+            source={{uri: imageUrl}}
             style={styles.nftSquareImage}
             resizeMode="cover"
           />
         ) : (
           <View style={styles.nftPlaceholderImage}>
-            <Image source={images.rectangleDot} style={styles.placeholderIcon} />
+            <Image
+              source={images.rectangleDot}
+              style={styles.placeholderIcon}
+            />
           </View>
         )}
       </View>
@@ -90,11 +93,11 @@ const NFTHeader = ({ name, quantity, imageUrl }: NFTHeaderProps) => (
   </View>
 );
 
-const WalletNFTDetailsScreen = ({ route }: any) => {
-  const { nft, refresh } = route.params;
+const WalletNFTDetailsScreen = ({route}: any) => {
+  const {nft, refresh} = route.params;
   const navigation = useNavigation();
-  const { magic_denergy } = useMagic();
-  const { userDetails } = useAuth();
+  const {magic_denergy} = useMagic();
+  const {userDetails} = useAuth();
 
   const [index, setIndex] = useState(0);
   const [clickedSellNft, setClickedSellNft] = useState<any>({});
@@ -104,7 +107,7 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
   );
   const [refreshing, setRefreshing] = useState(false);
 
-  const { checkKYC, isKycCompleted, isKycSkipped } = useKycCheck();
+  const {checkKYC, isKycCompleted, isKycSkipped} = useKycCheck();
 
   useEffect(() => {
     const fetchCurrentQuantity = async () => {
@@ -165,11 +168,11 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
 
   const handleOffersClick = async () => {
     if (isKycCompleted) {
-      navigation.navigate('OffsetScreen', { nft });
+      navigation.navigate('OffsetScreen', {nft});
     } else {
       await checkKYC({
         onSuccess: () => {
-          navigation.navigate('OffsetScreen', { nft });
+          navigation.navigate('OffsetScreen', {nft});
         },
         onSkip: () => {
           SnackBarMessage(
@@ -193,12 +196,12 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
       variant: variant,
       nftToSell: nftToken,
       refresh: () => {
-        Alert.alert('NFT Sent')
+        Alert.alert('NFT Sent');
         refetch();
         refetchActivity();
       },
     });
-  }
+  };
 
   const {
     nft: combinedNft,
@@ -206,13 +209,12 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
     refetch,
   } = useCompleteNft(`${nft?.collectionAddress}-${nft?.tokenId}`);
 
-  console.log('Combined NFT:', combinedNft);
-
-
-  const { data, isLoading: isCollectionLoading } = useApi<any>(
+  const {data, isLoading: isCollectionLoading} = useApi<any>(
     `${API_NFT_URL}/nftMarketplace_getCollectionTokens?contractAddress=${nft?.collectionAddress}&tokenId=${nft?.tokenId}`,
-    { method: 'GET' },
+    {method: 'GET'},
   );
+
+  console.log(data, 'data');
 
   const hasTokenData = combinedNft?.tokenId && combinedNft?.collectionAddress;
 
@@ -274,18 +276,19 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
-
         {/* Header Section with Gradient */}
         <LinearGradient
           colors={['#F8FFFE', '#E8F8F7', '#F8FFFE']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
           style={styles.headerSection}>
-
           <NFTHeader
             name={nft?.name}
             quantity={formattedQty}
-            imageUrl={combinedNft?.image?.thumbnail || NFT_DEFAULT_IMAGE_URL}
+            imageUrl={
+              data?.collectionDetails?.energy_type_image ||
+              NFT_DEFAULT_IMAGE_URL
+            }
           />
 
           {/* Action Buttons */}
@@ -298,7 +301,7 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
             <ActionButton
               icon={images.sendIcon}
               label="Send"
-              onPress={() => handleSendNft(nft, "transfer")}
+              onPress={() => handleSendNft(nft, 'transfer')}
             />
             <ActionButton
               icon={images.buyIcon}
@@ -328,7 +331,9 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
                 title={tab}
                 titleStyle={active => ({
                   color: active ? '#009D94' : '#6B7280',
-                  fontFamily: active ? fontsFamily.MulishExtraBold : fontsFamily.MulishBold,
+                  fontFamily: active
+                    ? fontsFamily.MulishExtraBold
+                    : fontsFamily.MulishBold,
                   fontSize: 16,
                   fontWeight: active ? '800' : '600',
                 })}
@@ -342,25 +347,49 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
           {index === 0 && (
             <View style={styles.detailsContainer}>
               {[
-                ['Collection Name', `${data?.collectionDetails?.collectionName || '-'}`],
+                [
+                  'Collection Name',
+                  `${data?.collectionDetails?.collectionName || '-'}`,
+                ],
                 ['Symbol', `${data?.collectionDetails?.symbol || '-'}`],
                 ['Year', `${data?.collectionDetails?.year || '-'}`],
                 ['Country', `${data?.collectionDetails?.country || '-'}`],
-                ['Contract Address', `${data?.collectionDetails?.contractAddress || '-'}`],
-                ['Owner Address', `${data?.collectionDetails?.ownerAddress || '-'}`],
+                [
+                  'Contract Address',
+                  `${data?.collectionDetails?.contractAddress || '-'}`,
+                ],
+                [
+                  'Owner Address',
+                  `${data?.collectionDetails?.ownerAddress || '-'}`,
+                ],
                 ['Type', `${data?.collectionDetails?.type || '-'}`],
                 ['Token ID', `${data?.tokenId || '-'}`],
-                ['Metadata URL', `${combinedNft?.marketData?.metadataUrl || '-'}`],
-                ['Trade Volume (USDC)', `${combinedNft?.marketData?.tradeVolumeUSDC || '-'}`],
-                ['Latest Traded Price (USDC)', `${combinedNft?.marketData?.latestTradedPriceInUSDC || '-'}`],
-                ['Total Trades', `${combinedNft?.marketData?.totalTrades || 0}`],
+                [
+                  'Metadata URL',
+                  `${combinedNft?.marketData?.metadataUrl || '-'}`,
+                ],
+                [
+                  'Trade Volume (USDC)',
+                  `${combinedNft?.marketData?.tradeVolumeUSDC || '-'}`,
+                ],
+                [
+                  'Latest Traded Price (USDC)',
+                  `${combinedNft?.marketData?.latestTradedPriceInUSDC || '-'}`,
+                ],
+                [
+                  'Total Trades',
+                  `${combinedNft?.marketData?.totalTrades || 0}`,
+                ],
                 ['Total Listed', `${nft?.marketData?.totalListed || 0}`],
               ].map(([title, value], idx) => (
                 <View key={idx} style={styles.detailRow}>
                   <Text style={styles.detailTitle} numberOfLines={1}>
                     {title}
                   </Text>
-                  <Text style={styles.detailValue} numberOfLines={1} ellipsizeMode="tail">
+                  <Text
+                    style={styles.detailValue}
+                    numberOfLines={1}
+                    ellipsizeMode="tail">
                     {value}
                   </Text>
                 </View>
@@ -375,7 +404,9 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
                   <View key={idx} style={styles.sellerCard}>
                     <View style={styles.sellerHeader}>
                       <Text style={styles.sellerTitle}>Seller #{idx + 1}</Text>
-                      <Text style={styles.sellerPrice}>${item.askPrice}/MWh</Text>
+                      <Text style={styles.sellerPrice}>
+                        ${item.askPrice}/MWh
+                      </Text>
                     </View>
                     <View style={styles.sellerInfo}>
                       <View style={styles.sellerInfoRow}>
@@ -386,7 +417,10 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
                       </View>
                       <View style={styles.sellerInfoRow}>
                         <Text style={styles.sellerLabel}>Address:</Text>
-                        <Text style={styles.sellerAddress} numberOfLines={1} ellipsizeMode="middle">
+                        <Text
+                          style={styles.sellerAddress}
+                          numberOfLines={1}
+                          ellipsizeMode="middle">
                           {item.seller.id}
                         </Text>
                       </View>
@@ -396,7 +430,9 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
               ) : (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyText}>No sellers found</Text>
-                  <Text style={styles.emptySubtext}>This NFT is not currently listed for sale</Text>
+                  <Text style={styles.emptySubtext}>
+                    This NFT is not currently listed for sale
+                  </Text>
                 </View>
               )}
             </View>
@@ -409,9 +445,13 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
                   <View key={idx} style={styles.activityCard}>
                     <View style={styles.activityHeader}>
                       <View style={styles.activityEventContainer}>
-                        <Text style={styles.activityEvent}>{item.marketEvent}</Text>
+                        <Text style={styles.activityEvent}>
+                          {item.marketEvent}
+                        </Text>
                         <Text style={styles.activityDate}>
-                          {new Date(Number(item.timestamp) * 1000).toLocaleDateString()}
+                          {new Date(
+                            Number(item.timestamp) * 1000,
+                          ).toLocaleDateString()}
                         </Text>
                       </View>
                       <Text style={styles.activityPrice}>${item.price}</Text>
@@ -420,13 +460,19 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
                     <View style={styles.activityDetails}>
                       <View style={styles.activityDetailRow}>
                         <Text style={styles.activityLabel}>From:</Text>
-                        <Text style={styles.activityValue} numberOfLines={1} ellipsizeMode="middle">
+                        <Text
+                          style={styles.activityValue}
+                          numberOfLines={1}
+                          ellipsizeMode="middle">
                           {item.seller || '-'}
                         </Text>
                       </View>
                       <View style={styles.activityDetailRow}>
                         <Text style={styles.activityLabel}>To:</Text>
-                        <Text style={styles.activityValue} numberOfLines={1} ellipsizeMode="middle">
+                        <Text
+                          style={styles.activityValue}
+                          numberOfLines={1}
+                          ellipsizeMode="middle">
                           {item.buyer || '-'}
                         </Text>
                       </View>
@@ -436,7 +482,9 @@ const WalletNFTDetailsScreen = ({ route }: any) => {
               ) : (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyText}>No activity yet</Text>
-                  <Text style={styles.emptySubtext}>Transaction history will appear here</Text>
+                  <Text style={styles.emptySubtext}>
+                    Transaction history will appear here
+                  </Text>
                 </View>
               )}
             </View>
@@ -504,7 +552,7 @@ const styles = StyleSheet.create({
   nftImageCard: {
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
@@ -515,8 +563,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#009D94',
+    // borderWidth: 2,
+    // borderColor: '#009D94',
   },
   nftSquareImage: {
     width: '100%',
@@ -540,7 +588,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
@@ -634,7 +682,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
@@ -671,7 +719,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
@@ -732,7 +780,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,

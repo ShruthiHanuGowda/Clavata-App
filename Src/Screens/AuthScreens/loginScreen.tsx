@@ -11,12 +11,13 @@ import {
 import 'react-native-get-random-values';
 import '@ethersproject/shims'; // for ethers.js
 import {ethers} from 'ethers';
+import LottieView from 'lottie-react-native'; // Add this import
 import styles from './styles';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import {navReset} from '../../Navigation/NavigationFunctions';
 import {DButton, Header} from '../../Componants';
-import {Colors, Images} from '../../Theme';
+import {Animation, Colors, Images} from '../../Theme';
 import {DEmailInput} from '../../Componants/Dinputs';
 import {useLazyQuery} from '@apollo/client';
 import {GET_USER_WALLET_ADDRESS} from '../../graphql/queries';
@@ -25,6 +26,9 @@ import {useApolloClientContext} from '../../../screens/Provider/GraphQLProvider'
 
 // REPLACE: Import the new global KYC system instead of old providers
 import {useKycCheck} from '../../CustomHooks/GlobalKycProvider';
+
+// Import your Lottie JSON file
+// import loadingAnimation from '../../assets/animations/loading.json'; // Adjust path as needed
 
 // Keep your existing utility function
 export const parseDataAndReturnFixedInfo = (data: any) => {
@@ -80,7 +84,7 @@ export default function LoginScreen() {
 
   // Use refs to track callback execution and KYC processes
   const callbackExecutedRef = useRef(false);
-  const kycCompletionTimeoutRef = useRef(null);
+  const kycCompletionTimeoutRef = useRef<any>(null);
   const kycPollingIntervalRef = useRef(null);
 
   // OPTIMIZED: Query to check if user exists in DB - WITHOUT inline callbacks
@@ -253,108 +257,12 @@ export default function LoginScreen() {
     }
   }, [checkKYC, isKycCompleted, kycInProgress, navigateToApp]);
 
-  // ENHANCED: Handle user data from query with improved KYC flow
-  const handleUserData = useCallback(
-    async (data: UserData): Promise<void> => {
-      try {
-        console.log('🚀 ~ handleUserData ~ data:', data);
-        if (data?.getUserWalletAddress) {
-          const result = await checkAllNetworks();
-          console.log('Network check results:', result);
-
-          // User exists in DB - store data in context
-          const apiData: UserAuth = {
-            date: data.getUserWalletAddress.date || new Date().toISOString(),
-            denergyWallet: data.getUserWalletAddress
-              .denergyWallet as `0x${string}`,
-            ethereumWallet: data.getUserWalletAddress
-              .ethereumWallet as `0x${string}`,
-            userWallet: data.getUserWalletAddress.userWallet || null,
-            emailAddress: data.getUserWalletAddress.emailAddress || null,
-            is_verified: data.getUserWalletAddress.is_verified || false,
-            kycDetails: data.getUserWalletAddress.kycDetails,
-            accessToken: data.getUserWalletAddress.accessToken,
-            applicantId: data.getUserWalletAddress.applicantId,
-          };
-
-          // Process KYC details if they exist
-          if (apiData.kycDetails && typeof apiData.kycDetails === 'string') {
-            const kycDetailsParsed = JSON.parse(apiData.kycDetails);
-
-            const extractedKycInfo: ExtractedKycInfo | null =
-              parseDataAndReturnFixedInfo(kycDetailsParsed);
-
-            if (extractedKycInfo) {
-              console.log('Successfully extracted KYC info:', extractedKycInfo);
-              apiData.kycDetails = extractedKycInfo;
-            } else {
-              console.log(
-                'Failed to extract KYC info, keeping original kycDetails',
-              );
-            }
-          }
-
-          await updateUserData(apiData, true);
-          setIsUserLogin(true);
-          const isVerified: boolean =
-            apiData?.is_verified === true || apiData?.is_verified === 'true';
-          console.log(
-            '🚀 ~ handleUserData ~ isVerified:',
-            isVerified,
-            'isKycCompleted:',
-            isKycCompleted,
-            'kycInProgress:',
-            kycInProgress,
-          );
-
-          // ENHANCED: Better KYC logic with state checking
-          if (
-            !isVerified &&
-            !isKycCompleted &&
-            !isKycSkipped &&
-            !kycInProgress
-          ) {
-            console.log('🚦 Starting KYC process for existing user...');
-
-            // Use shorter delay for better UX
-            setTimeout(() => {
-              handleKycProcess();
-            }, 300);
-          } else {
-            console.log(
-              '🎯 User verified or KYC already completed, navigating to app',
-            );
-            navigateToApp();
-          }
-
-          setLoading(false);
-          setIsScreenLoading(false);
-        } else {
-          // New session but user not in DB
-          console.log('User session active but not found in database');
-          prepareNewUserData();
-        }
-      } catch (error) {
-        console.error('Error handling user data:', error);
-        setLoading(false);
-        setIsScreenLoading(false);
-      }
-    },
-    [
-      checkAllNetworks,
-      updateUserData,
-      isKycCompleted,
-      isKycSkipped,
-      kycInProgress,
-      handleKycProcess,
-      navigateToApp,
-    ],
-  );
-
   // Check if user is logged in to primary network - memoized
   const checkPrimaryNetworkAuth = useCallback(async () => {
     try {
       const isLoggedIn = await magic.user.isLoggedIn();
+      console.log('User is logged in:', isLoggedIn);
+
       if (isLoggedIn) {
         const userData = await magic.user.getInfo();
         await updateClientWithToken();
@@ -485,6 +393,103 @@ export default function LoginScreen() {
     checkDenergyNetworkAuth,
   ]);
 
+  // ENHANCED: Handle user data from query with improved KYC flow
+  const handleUserData = useCallback(
+    async (data: UserData): Promise<void> => {
+      try {
+        if (data?.getUserWalletAddress) {
+          const result = await checkAllNetworks();
+          console.log('Network check results:', result);
+
+          // User exists in DB - store data in context
+          const apiData: UserAuth = {
+            date: data.getUserWalletAddress.date || new Date().toISOString(),
+            denergyWallet: data.getUserWalletAddress
+              .denergyWallet as `0x${string}`,
+            ethereumWallet: data.getUserWalletAddress
+              .ethereumWallet as `0x${string}`,
+            userWallet: data.getUserWalletAddress.userWallet || null,
+            emailAddress: data.getUserWalletAddress.emailAddress || null,
+            is_verified: data.getUserWalletAddress.is_verified || false,
+            kycDetails: data.getUserWalletAddress.kycDetails,
+            accessToken: data.getUserWalletAddress.accessToken,
+            applicantId: data.getUserWalletAddress.applicantId,
+          };
+
+          // Process KYC details if they exist
+          if (apiData.kycDetails && typeof apiData.kycDetails === 'string') {
+            const kycDetailsParsed = JSON.parse(apiData.kycDetails);
+
+            const extractedKycInfo: ExtractedKycInfo | null =
+              parseDataAndReturnFixedInfo(kycDetailsParsed);
+
+            if (extractedKycInfo) {
+              console.log('Successfully extracted KYC info:', extractedKycInfo);
+              apiData.kycDetails = extractedKycInfo;
+            } else {
+              console.log(
+                'Failed to extract KYC info, keeping original kycDetails',
+              );
+            }
+          }
+
+          await updateUserData(apiData, true);
+          setIsUserLogin(true);
+          const isVerified: boolean =
+            apiData?.is_verified === true || apiData?.is_verified === 'true';
+          console.log(
+            '🚀 ~ handleUserData ~ isVerified:',
+            isVerified,
+            'isKycCompleted:',
+            isKycCompleted,
+            'kycInProgress:',
+            kycInProgress,
+          );
+
+          // ENHANCED: Better KYC logic with state checking
+          if (
+            !isVerified &&
+            !isKycCompleted &&
+            !isKycSkipped &&
+            !kycInProgress
+          ) {
+            console.log('🚦 Starting KYC process for existing user...');
+
+            // Use shorter delay for better UX
+            setTimeout(() => {
+              handleKycProcess();
+            }, 300);
+          } else {
+            console.log(
+              '🎯 User verified or KYC already completed, navigating to app',
+            );
+            navigateToApp();
+          }
+
+          setLoading(false);
+          setIsScreenLoading(false);
+        } else {
+          // New session but user not in DB
+          console.log('User session active but not found in database');
+          prepareNewUserData();
+        }
+      } catch (error) {
+        console.error('Error handling user data:', error);
+        setLoading(false);
+        setIsScreenLoading(false);
+      }
+    },
+    [
+      checkAllNetworks,
+      updateUserData,
+      isKycCompleted,
+      isKycSkipped,
+      kycInProgress,
+      handleKycProcess,
+      navigateToApp,
+    ],
+  );
+
   // ENHANCED: Create wallets and prepare user data for new users
   const prepareNewUserData = useCallback(async () => {
     try {
@@ -557,7 +562,7 @@ export default function LoginScreen() {
   useEffect(() => {
     console.log('Checking user session');
     checkUserSession();
-  }, []); // Empty dependency array - only runs once on mount
+  }, []);
 
   // OPTIMIZED: Handle login with email OTP - memoized
   const loginEmailOTP = useCallback(async () => {
@@ -598,8 +603,6 @@ export default function LoginScreen() {
   // NEW: Additional effect to listen for KYC completion changes
   useEffect(() => {
     if (isKycCompleted && kycInProgress) {
-      console.log('🎉 KYC completion detected via useEffect');
-
       // Clear any ongoing processes
       if (kycPollingIntervalRef.current) {
         clearInterval(kycPollingIntervalRef.current);
@@ -619,6 +622,55 @@ export default function LoginScreen() {
     }
   }, [isKycCompleted, kycInProgress, navigateToApp]);
 
+  const LoadingScreen = ({message}: {message: string}) => (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        paddingHorizontal: 20,
+      }}>
+      <LottieView
+        source={Animation.loaderAnimation}
+        autoPlay
+        loop
+        style={{
+          width: 150,
+          height: 150,
+        }}
+        speed={1}
+        colorFilters={[
+          {
+            keypath: 'layer_name',
+            color: Colors?.success || '#4CAF50',
+          },
+        ]}
+      />
+
+      <Text
+        style={{
+          marginTop: 20,
+          fontSize: 16,
+          color: '#333',
+          textAlign: 'center',
+          fontWeight: '500',
+        }}>
+        {message}
+      </Text>
+
+      <Text
+        style={{
+          marginTop: 8,
+          fontSize: 14,
+          color: '#666',
+          textAlign: 'center',
+        }}>
+        Please wait...
+      </Text>
+    </View>
+  );
+
   return (
     <SafeAreaView
       style={{
@@ -627,18 +679,9 @@ export default function LoginScreen() {
         paddingTop: Platform.OS === 'ios' ? 0 : 20,
       }}>
       {isScreenLoading ? (
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: '#fff',
-          }}>
-          <ActivityIndicator size="large" color={Colors?.success} />
-          <Text style={{marginTop: 20}}>
-            {kycInProgress ? 'Processing KYC...' : 'Checking session...'}
-          </Text>
-        </View>
+        <LoadingScreen
+          message={kycInProgress ? 'Processing KYC...' : 'Checking session...'}
+        />
       ) : (
         <View style={{flex: 1}}>
           <Header headerTitle="Login" hideBorder={true} hideBackIcon={true} />

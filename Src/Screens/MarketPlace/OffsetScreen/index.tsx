@@ -29,6 +29,7 @@ import moment from 'moment';
 import Share from 'react-native-share';
 import LottieView from 'lottie-react-native';
 import LoadingScreenWithStep from '../../../Componants/Loading/LoadingScreenWIthStep';
+import {useSuccessSound} from '../../../hooks/useSuccessSound';
 
 const PURPOSE_OPTIONS = [
   {label: 'Scope 2 Emissions', value: 'Scope 2 Emissions'},
@@ -61,6 +62,12 @@ const OffsetScreen = ({route}: any) => {
   >(null);
 
   const animationRef = useRef<any>(null);
+
+  const {
+    playSuccessSound,
+    isLoaded: soundLoaded,
+    error: soundError,
+  } = useSuccessSound();
 
   const account = userDetails?.userWallet;
   const walletAddress = userDetails?.userWallet;
@@ -103,6 +110,26 @@ const OffsetScreen = ({route}: any) => {
       setCalculatedTax(0);
     }
   }, [volume]);
+
+  useEffect(() => {
+    if (currentStep === 'success') {
+      const timer = setTimeout(() => {
+        if (soundLoaded) {
+          console.log('Playing success sound...');
+          playSuccessSound();
+        } else {
+          console.log(
+            'Sound not loaded yet, isLoaded:',
+            soundLoaded,
+            'error:',
+            soundError,
+          );
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, soundLoaded, soundError]);
 
   const handleInputChange = (text: string) => {
     setVolume(text);
@@ -533,90 +560,100 @@ const OffsetScreen = ({route}: any) => {
     );
   };
 
-  const renderSuccess = () => (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerSection}>
-        <View style={[styles.iconContainer, styles.successIconContainer]}>
-          <Text style={styles.successIconText}>✓</Text>
+  const renderSuccess = () => {
+    return (
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerSection}>
+          <View style={[styles.iconContainer, styles.successIconContainer]}>
+            {/* <Text style={styles.successIconText}>✓</Text> */}
+            <LottieView
+              source={Animation.transferSuccessAnimation}
+              autoPlay
+              duration={1000}
+              loop={false}
+              style={styles.successAnimation}
+              speed={2}
+            />
+          </View>
+          <DText fontStyle="fontBold" style={styles.title}>
+            Offset Successful!
+          </DText>
+          <DText style={styles.subtitle}>
+            Your offset has been completed successfully.
+          </DText>
         </View>
-        <DText fontStyle="fontBold" style={styles.title}>
-          Offset Successful!
-        </DText>
-        <DText style={styles.subtitle}>
-          Your offset has been completed successfully.
-        </DText>
-      </View>
 
-      <View style={styles.successDetailsContainer}>
-        <View style={styles.successDetailRow}>
-          <DText style={styles.successDetailLabel}>Volume Offset:</DText>
-          <DText fontStyle="fontBold" style={styles.successDetailValue}>
-            {volume} MWh
-          </DText>
+        <View style={styles.successDetailsContainer}>
+          <View style={styles.successDetailRow}>
+            <DText style={styles.successDetailLabel}>Volume Offset:</DText>
+            <DText fontStyle="fontBold" style={styles.successDetailValue}>
+              {volume} MWh
+            </DText>
+          </View>
+          <View style={styles.successDetailRow}>
+            <DText style={styles.successDetailLabel}>Transaction Fee:</DText>
+            <DText fontStyle="fontBold" style={styles.successDetailValue}>
+              {calculatedTax.toFixed(6)} WUSDC
+            </DText>
+          </View>
+          <View style={styles.successDetailRow}>
+            <DText style={styles.successDetailLabel}>Period:</DText>
+            <DText fontStyle="fontBold" style={styles.successDetailValue}>
+              {moment(startDate).format('YYYY-MM-DD')} to{' '}
+              {moment(endDate).format('YYYY-MM-DD')}
+            </DText>
+          </View>
+          <View style={styles.successDetailRow}>
+            <DText style={styles.successDetailLabel}>Purpose:</DText>
+            <DText fontStyle="fontBold" style={styles.successDetailValue}>
+              {purpose}
+            </DText>
+          </View>
         </View>
-        <View style={styles.successDetailRow}>
-          <DText style={styles.successDetailLabel}>Transaction Fee:</DText>
-          <DText fontStyle="fontBold" style={styles.successDetailValue}>
-            {calculatedTax.toFixed(6)} WUSDC
-          </DText>
-        </View>
-        <View style={styles.successDetailRow}>
-          <DText style={styles.successDetailLabel}>Period:</DText>
-          <DText fontStyle="fontBold" style={styles.successDetailValue}>
-            {moment(startDate).format('YYYY-MM-DD')} to{' '}
-            {moment(endDate).format('YYYY-MM-DD')}
-          </DText>
-        </View>
-        <View style={styles.successDetailRow}>
-          <DText style={styles.successDetailLabel}>Purpose:</DText>
-          <DText fontStyle="fontBold" style={styles.successDetailValue}>
-            {purpose}
-          </DText>
-        </View>
-      </View>
 
-      <View style={styles.certificateButtonsContainer}>
+        <View style={styles.certificateButtonsContainer}>
+          <TouchableOpacity
+            style={styles.certificateButton}
+            onPress={handleViewCertificate}
+            activeOpacity={0.8}>
+            <Text style={styles.certificateButtonIcon}>👁</Text>
+            <DText fontStyle="fontBold" style={styles.certificateButtonText}>
+              View Certificate
+            </DText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.certificateButton}
+            onPress={handleDownloadCertificate}
+            activeOpacity={0.8}>
+            <Text style={styles.certificateButtonIcon}>📥</Text>
+            <DText fontStyle="fontBold" style={styles.certificateButtonText}>
+              Download Certificate
+            </DText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.certificateButton}
+            onPress={handleExplorer}
+            activeOpacity={0.8}>
+            <Text style={styles.certificateButtonIcon}>🔍</Text>
+            <DText fontStyle="fontBold" style={styles.certificateButtonText}>
+              View on Explorer
+            </DText>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
-          style={styles.certificateButton}
-          onPress={handleViewCertificate}
+          style={styles.button}
+          onPress={() => navigateBack()}
           activeOpacity={0.8}>
-          <Text style={styles.certificateButtonIcon}>👁</Text>
-          <DText fontStyle="fontBold" style={styles.certificateButtonText}>
-            View Certificate
+          <DText fontStyle="fontBold" style={styles.buttonText}>
+            Done
           </DText>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.certificateButton}
-          onPress={handleDownloadCertificate}
-          activeOpacity={0.8}>
-          <Text style={styles.certificateButtonIcon}>📥</Text>
-          <DText fontStyle="fontBold" style={styles.certificateButtonText}>
-            Download Certificate
-          </DText>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.certificateButton}
-          onPress={handleExplorer}
-          activeOpacity={0.8}>
-          <Text style={styles.certificateButtonIcon}>🔍</Text>
-          <DText fontStyle="fontBold" style={styles.certificateButtonText}>
-            View on Explorer
-          </DText>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigateBack()}
-        activeOpacity={0.8}>
-        <DText fontStyle="fontBold" style={styles.buttonText}>
-          Done
-        </DText>
-      </TouchableOpacity>
-    </ScrollView>
-  );
+      </ScrollView>
+    );
+  };
 
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -710,8 +747,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  iconText: {
-    fontSize: 32,
+  // iconText: {
+  //   fontSize: 32,
+  // },
+  successAnimation: {
+    width: 80,
+    height: 80,
   },
   successIconContainer: {
     backgroundColor: '#E8F5E8',

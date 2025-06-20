@@ -13,6 +13,7 @@ import ContactCard from './Componants/ContactCard';
 import {useAddressBookByWallet} from './Hooks/AddressBookGraphql';
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 import {useAuth} from '../../../screens/Provider/authProvider';
+import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
 
 interface Contact {
   beneficiaryAddress: string;
@@ -109,8 +110,14 @@ const ContactModal: React.FC<ContactModalProps> = ({
     if (listLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#009D94" />
-          <DText style={styles.loadingText}>Loading contacts...</DText>
+          {/* <ActivityIndicator size="large" color="#009D94" />
+          <DText style={styles.loadingText}>Loading contacts...</DText> */}
+          <LoaderAnimation
+            size="large"
+            color="#009D94"
+            showText={true}
+            text="Loading contacts..."
+          />
         </View>
       );
     }
@@ -173,8 +180,14 @@ const ContactModal: React.FC<ContactModalProps> = ({
       {/* Loading indicator for header */}
       {listLoading && contacts.length === 0 && (
         <View style={styles.headerLoadingContainer}>
-          <ActivityIndicator size="small" color="#009D94" />
-          <DText style={styles.headerLoadingText}>Loading contacts...</DText>
+          {/* <ActivityIndicator size="small" color="#009D94" />
+          <DText style={styles.headerLoadingText}>Loading contacts...</DText> */}
+          <LoaderAnimation
+            size="small"
+            color="#009D94"
+            showText={true}
+            text="Loading contacts..."
+          />
         </View>
       )}
     </View>
@@ -185,8 +198,14 @@ const ContactModal: React.FC<ContactModalProps> = ({
     if (listLoading && contacts.length === 0) {
       return (
         <View style={styles.mainLoadingContainer}>
-          <ActivityIndicator size="large" color="#009D94" />
-          <DText style={styles.loadingText}>Loading contacts...</DText>
+          {/* <ActivityIndicator size="large" color="#009D94" />
+          <DText style={styles.loadingText}>Loading contacts...</DText> */}
+          <LoaderAnimation
+            size="large"
+            color="#009D94"
+            showText={true}
+            text="Loading contacts..."
+          />
         </View>
       );
     }

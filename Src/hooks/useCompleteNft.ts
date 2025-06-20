@@ -1,6 +1,7 @@
 import {useState, useEffect, useCallback} from 'react';
 import {NftLocation, NftToken} from '../types/types';
 import {getNftsMarketData} from './marketPlace';
+import { Contract } from 'ethers';
 
 export const useCompleteNft = (id: string) => {
   const [nft, setNft] = useState<NftToken | null>(null);
@@ -17,6 +18,18 @@ export const useCompleteNft = (id: string) => {
       };
 
       const [fetchedNfts] = (await getNftsMarketData(where, 1)) || [];
+
+      //  const contract = new Contract(collectionAddress as Address, erc1155CollectionABI as any, signer)
+      // const metadataUrl =  await contract.uri(tokenId)
+      // let image = {original: '', thumbnail: ''};
+      // if (metadataUrl) {
+      //   const metadataResponse = await fetch(metadataUrl);
+      //   const nftMetadata = await metadataResponse.json();
+      //   image = {
+      //     original: nftMetadata.image || '',
+      //     thumbnail: nftMetadata.image || '',
+      //   };
+      // }
 
       const nft: NftToken = {
         id: fetchedNfts?.id,

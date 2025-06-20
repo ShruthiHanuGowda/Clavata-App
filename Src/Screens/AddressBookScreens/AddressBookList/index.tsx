@@ -23,6 +23,7 @@ import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 import {Colors} from '../../../Theme';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {SnackBarMessage} from '../../../utils/snackBar';
+import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
 
 interface Contact {
   id: string;
@@ -211,8 +212,14 @@ function AddressBook(props: AddressBookProps): JSX.Element {
     if (listLoading && contacts.length === 0) {
       return (
         <View style={localStyles.loadingContainer}>
-          <ActivityIndicator size="large" color="#009D94" />
-          <DText style={localStyles.loadingText}>Loading contacts...</DText>
+          {/* <ActivityIndicator size="large" color="#009D94" />
+          <DText style={localStyles.loadingText}>Loading contacts...</DText> */}
+           <LoaderAnimation
+            size="large"
+            color="#009D94"
+            showText={true}
+            text="Loading contacts..."
+          />
         </View>
       );
     }

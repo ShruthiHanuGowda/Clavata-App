@@ -29,7 +29,7 @@ export const TOKEN_CONTRACTS = {
     USDC: USDC_ADDRESS,
     EURC: EURC_ADDRESS,
   },
-  nftMarket: '0x0b96034d2AF7c867Bde496Be8fE2D8ADFC532643',
+  nftMarket: '0xCb781C0608EF63437adF8Fc0cceCF17eb29BA263',
 };
 
 export const API_NFT_URL =

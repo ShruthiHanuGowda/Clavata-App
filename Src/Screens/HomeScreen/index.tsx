@@ -1,6 +1,7 @@
 import React, {useCallback, useRef} from 'react';
 import {Header} from '@rneui/base';
 import {
+  Button,
   Image,
   RefreshControl,
   SafeAreaView,
@@ -24,6 +25,7 @@ import {useMutation} from '@apollo/client';
 import {UPDATE_KYC_STATUS} from '../../graphql/queries';
 import {DText} from '../../Componants/DText';
 import {fontsFamily, Images} from '../../Theme';
+import {useSuccessSound} from '../../hooks/useSuccessSound';
 
 function HomeHeader(props: any) {
   const {userDetails} = useAuth();
@@ -86,6 +88,7 @@ function HomeHeader(props: any) {
 
 export default function HomeScreen({navigation}: any) {
   const {refreshAllBalances} = useWallet();
+  const {playSuccessSound} = useSuccessSound();
   const {userDetails} = useAuth();
   const account = userDetails?.denergyWallet;
   const {refresh, totalQuantity, isLoading} = useNftsForAddress({
