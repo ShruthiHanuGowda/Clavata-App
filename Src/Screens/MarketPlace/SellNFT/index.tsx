@@ -95,6 +95,26 @@ const getToastText = (variant: string, stage: SellingStage) => {
   }
   return 'Your NFT listing has been changed.';
 };
+const getSuccessType = (
+  variant: string,
+  stage: SellingStage,
+): 'sale' | 'transfer' | 'removal' | 'listing' => {
+  console.log('stage', stage);
+
+  if (stage === SellingStage.CONFIRM_REMOVE_FROM_MARKET) {
+    return 'removal';
+  }
+  if (stage === SellingStage.CONFIRM_TRANSFER) {
+    return 'transfer';
+  }
+  if (variant === 'sell') {
+    return 'listing';
+  }
+  if (variant === 'adjust') {
+    return 'listing';
+  }
+  return 'listing';
+};
 
 const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
   const {variant = 'sell', nftToSell, refresh} = route.params;
@@ -108,6 +128,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
       ? SellingStage.TRANSFER
       : SellingStage.SELL,
   );
+  const [prevStage, setprevStage] = useState(SellingStage.SELL);
 
   useMemo(
     () =>
@@ -305,6 +326,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
         if (!variant) return;
         console.log('receipt', receipt);
         setConfirmedTxHash(receipt.hash);
+        setprevStage(stage);
         SnackBarMessage(getToastText(variant, stage), 'success');
         setStage(SellingStage.TX_CONFIRMED);
         onSuccessSale();
@@ -322,25 +344,6 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
       // Navigate back normally
       navigation.goBack();
     }
-  };
-
-  const getSuccessType = (
-    variant: string,
-    stage: SellingStage,
-  ): 'sale' | 'transfer' | 'removal' | 'listing' => {
-    if (stage === SellingStage.CONFIRM_REMOVE_FROM_MARKET) {
-      return 'removal';
-    }
-    if (stage === SellingStage.CONFIRM_TRANSFER) {
-      return 'transfer';
-    }
-    if (variant === 'sell') {
-      return 'listing';
-    }
-    if (variant === 'adjust') {
-      return 'listing';
-    }
-    return 'listing';
   };
 
   return (
@@ -459,7 +462,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
           <TransactionConfirmed
             txHash={confirmedTxHash}
             onDismiss={handleClose}
-            successType={getSuccessType(variant, stage)}
+            successType={getSuccessType(variant, prevStage)}
           />
         )}
       </ScrollView>

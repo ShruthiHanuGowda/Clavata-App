@@ -20,6 +20,8 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
   message,
   successType = 'listing',
 }) => {
+  console.log(successType);
+
   const {
     playSuccessSound,
     isLoaded: soundLoaded,
