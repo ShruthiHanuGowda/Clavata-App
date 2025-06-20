@@ -225,8 +225,6 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     {method: 'GET'},
   );
 
-  console.log(data, 'data');
-
   const hasTokenData = combinedNft?.tokenId && combinedNft?.collectionAddress;
 
   const {
