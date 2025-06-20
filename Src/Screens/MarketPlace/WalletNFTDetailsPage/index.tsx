@@ -31,6 +31,7 @@ import {useAuth} from '../../../../screens/Provider/authProvider';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import {useKycCheck} from '../../../CustomHooks/GlobalKycProvider';
 import {RefreshControl} from 'react-native-gesture-handler';
+import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
 
 const width = Dimensions.get('window').width;
 
@@ -65,18 +66,17 @@ const ActionButton = ({icon, label, onPress}: ActionButtonProps) => (
 interface NFTHeaderProps {
   name: string;
   quantity: string;
-  imageUrl: string | null;
   metadata?: NFTMetadata | null;
 }
 
-const NFTHeader = ({name, quantity, imageUrl, metadata}: NFTHeaderProps) => (
+const NFTHeader = ({name, quantity, metadata}: NFTHeaderProps) => (
   <View style={styles.nftHeaderContainer}>
     {/* NFT Image Card */}
     <View style={styles.nftImageCard}>
       <View style={styles.nftImageContainer}>
-        {metadata?.image || imageUrl ? (
+        {metadata?.image ? (
           <Image
-            source={{uri: metadata?.image || imageUrl}}
+            source={{uri: metadata?.image || NFT_DEFAULT_IMAGE_URL}}
             style={styles.nftSquareImage}
             resizeMode="cover"
           />
@@ -122,8 +122,6 @@ const WalletNFTDetailsScreen = ({route}: any) => {
   const {userDetails} = useAuth();
 
   const [index, setIndex] = useState(0);
-  const [clickedSellNft, setClickedSellNft] = useState<any>({});
-  const [isSellModalVisible, setIsSellModalVisible] = useState(false);
   const [currentQuantity, setCurrentQuantity] = useState(
     nft?.marketData?.quantity,
   );
@@ -189,10 +187,10 @@ const WalletNFTDetailsScreen = ({route}: any) => {
           signer,
         );
 
-        console.log(userDetails);
+        console.log(signer.address);
 
         const balance = await collectionContract.balanceOf(
-          userDetails?.walletAddress,
+          signer.address,
           nft?.tokenId,
         );
         console.log(balance);
@@ -204,7 +202,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     };
 
     fetchCurrentQuantity();
-    fetchNftMetadata(); // Fetch metadata when component mounts
+    fetchNftMetadata();
   }, []);
 
   const TAB_ITEMS = ['Details', 'Sellers', 'Activity'];
@@ -316,9 +314,40 @@ const WalletNFTDetailsScreen = ({route}: any) => {
 
   if (isLoading || isCollectionLoading || !combinedNft) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#009D94" />
-        <Text style={styles.loadingText}>Fetching NFT Details...</Text>
+      <View style={styles.screenContainer}>
+        <Header
+          backgroundColor={'#FFF'}
+          containerStyle={{borderBottomWidth: 0}}
+          leftComponent={
+            <TouchableOpacity
+              onPress={() => navigateBack()}
+              style={styles.backButton}>
+              <Image source={images.back} style={styles.backIcon} />
+            </TouchableOpacity>
+          }
+          centerComponent={
+            <View style={styles.nameContainer}>
+              <Text style={styles.headerTitle}>Certificate</Text>
+            </View>
+          }
+        />
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingContent}>
+            {/* <View style={styles.loadingIconContainer}>
+              <Text style={styles.loadingIcon}>📄</Text>
+            </View> */}
+            {/* <ActivityIndicator
+              size="large"
+              color="#009D94"
+              style={styles.spinner}
+            /> */}
+            <LoaderAnimation size={'large'} />
+            <Text style={styles.loadingText}>Fetching NFT Details...</Text>
+            <Text style={styles.loadingSubtext}>
+              Please wait while we load your certificate
+            </Text>
+          </View>
+        </View>
       </View>
     );
   }
@@ -327,7 +356,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     setRefreshing(true);
     refetch();
     refetchActivity();
-    fetchNftMetadata(); // Refetch metadata on refresh
+    fetchNftMetadata();
     setRefreshing(false);
   };
 
@@ -365,10 +394,6 @@ const WalletNFTDetailsScreen = ({route}: any) => {
           <NFTHeader
             name={nft?.name}
             quantity={formattedQty}
-            imageUrl={
-              data?.collectionDetails?.energy_type_image ||
-              NFT_DEFAULT_IMAGE_URL
-            }
             metadata={nftMetadata}
           />
 
@@ -500,52 +525,6 @@ const WalletNFTDetailsScreen = ({route}: any) => {
                   </Text>
                 </View>
               ))}
-
-              {/* Additional Images Section */}
-              {/* {(nftMetadata?.energy_type_image ||
-                nftMetadata?.country_image) && (
-                <View style={styles.additionalImagesContainer}>
-                  <Text style={styles.additionalImagesTitle}>
-                    Additional Images
-                  </Text>
-                  <View style={styles.additionalImagesRow}>
-                    {nftMetadata?.energy_type_image && (
-                      <View style={styles.additionalImageContainer}>
-                        <Image
-                          source={{uri: nftMetadata.energy_type_image}}
-                          style={styles.additionalImage}
-                          resizeMode="contain"
-                        />
-                        <Text style={styles.additionalImageLabel}>
-                          Energy Type
-                        </Text>
-                      </View>
-                    )}
-                    {nftMetadata?.country_image && (
-                      <View style={styles.additionalImageContainer}>
-                        <Image
-                          source={{uri: nftMetadata.country_image}}
-                          style={styles.additionalImage}
-                          resizeMode="contain"
-                        />
-                        <Text style={styles.additionalImageLabel}>
-                          Country Flag
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              )} */}
-
-              {/* External URL */}
-              {/* {nftMetadata?.external_url && (
-                <TouchableOpacity style={styles.externalUrlContainer}>
-                  <Text style={styles.externalUrlText}>Visit External URL</Text>
-                  <Text style={styles.externalUrl}>
-                    {nftMetadata.external_url}
-                  </Text>
-                </TouchableOpacity>
-              )} */}
             </View>
           )}
 
@@ -652,17 +631,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  screenContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+  },
+  loadingContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F0FBF9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  loadingIcon: {
+    fontSize: 32,
+  },
+  spinner: {
+    marginBottom: 16,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 18,
+    color: '#1A1A1A',
     fontFamily: fontsFamily.MulishBold,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontFamily: fontsFamily.Mulish,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   headerContainer: {
     borderBottomWidth: 0,
@@ -673,8 +684,7 @@ const styles = StyleSheet.create({
     height: 100,
   },
   backButton: {
-    position: 'relative',
-    marginRight: 10,
+    padding: 8,
   },
   backIcon: {
     width: 20,
@@ -869,58 +879,6 @@ const styles = StyleSheet.create({
     fontFamily: fontsFamily.MulishExtraBold,
     fontWeight: '700',
     textAlign: 'right',
-  },
-  additionalImagesContainer: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  additionalImagesTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-    fontFamily: fontsFamily.MulishExtraBold,
-    marginBottom: 12,
-  },
-  additionalImagesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  additionalImageContainer: {
-    alignItems: 'center',
-  },
-  additionalImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  additionalImageLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: fontsFamily.MulishBold,
-    textAlign: 'center',
-  },
-  externalUrlContainer: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#F8FFFE',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0F0EF',
-  },
-  externalUrlText: {
-    fontSize: 14,
-    color: '#009D94',
-    fontFamily: fontsFamily.MulishBold,
-    marginBottom: 4,
-  },
-  externalUrl: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontFamily: fontsFamily.Mulish,
   },
   sellerCard: {
     backgroundColor: '#FFFFFF',
