@@ -139,9 +139,6 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
 
     const account = userDetails?.userWallet as `0x${string}`;
 
-    const isInvalidTransferAddress =
-        !transferAddress ||
-        (transferAddress.length > 0 && !isAddress(transferAddress));
 
     useEffect(() => {
         if (account) {
@@ -424,7 +421,6 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
                         continueToNextStage={continueToNextStage}
                         transferAddress={transferAddress}
                         setTransferAddress={setTransferAddress}
-                        isInvalidTransferAddress={isInvalidTransferAddress}
                         quantity={quantity}
                         setQuantity={setQuantity}
                     />

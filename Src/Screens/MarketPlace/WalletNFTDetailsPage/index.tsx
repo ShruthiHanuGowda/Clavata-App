@@ -96,7 +96,7 @@ const NFTHeader = ({name, quantity, imageUrl}: NFTHeaderProps) => (
 const WalletNFTDetailsScreen = ({route}: any) => {
   const {nft, refresh} = route.params;
   const navigation = useNavigation();
-  const {magic_denergy} = useMagic();
+  const {magic_denergy, setActiveNetwork} = useMagic();
   const {userDetails} = useAuth();
 
   const [index, setIndex] = useState(0);
@@ -112,26 +112,37 @@ const WalletNFTDetailsScreen = ({route}: any) => {
   useEffect(() => {
     const fetchCurrentQuantity = async () => {
       try {
+        setActiveNetwork('denergy');
+        if (!nft?.collectionAddress) {
+          console.error('Missing collection address in NFT data.');
+          return;
+        }
+
         const magicProvider = new BrowserProvider(
           magic_denergy.rpcProvider as any,
         );
         const signer = await magicProvider.getSigner();
+
         const collectionContract = new Contract(
-          nft?.collectionAddress,
+          nft.collectionAddress,
           ERC1155_ABI,
           signer,
         );
 
+        console.log(userDetails);
+
         const balance = await collectionContract.balanceOf(
-          userDetails?.denergyWallet,
+          userDetails?.walletAddress,
           nft?.tokenId,
         );
+        console.log(balance);
 
         setCurrentQuantity(balance);
       } catch (error) {
         console.error('Error fetching current quantity:', error);
       }
     };
+
     fetchCurrentQuantity();
   }, []);
 
