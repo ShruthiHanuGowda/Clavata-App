@@ -48,11 +48,13 @@ export const useCompleteNft = (id: string) => {
 
       
       if (!fetchedNfts) {
-        throw new Error('NFT not found');
+        setError('NFT not found');
+        setLoading(false);
+        return;
       }
       
       let metadata: NFTMetadata | null = null;
-      if (fetchedNfts.metadataUrl) {
+      if (fetchedNfts?.metadataUrl) {
         metadata = await fetchMetadata(fetchedNfts.metadataUrl);
       }
 

@@ -307,12 +307,12 @@ const WalletNFTDetailsScreen = ({route}: any) => {
   const getAttributeValue = (traitType: string): string => {
     if (!nftMetadata?.attributes) return '-';
     const attribute = nftMetadata.attributes.find(
-      attr => attr.trait_type === traitType,
+      attr => attr?.trait_type === traitType,
     );
     return attribute ? String(attribute.value) : '-';
   };
 
-  if (isLoading || isCollectionLoading || !combinedNft) {
+  if (isLoading || isCollectionLoading) {
     return (
       <View style={styles.screenContainer}>
         <Header
