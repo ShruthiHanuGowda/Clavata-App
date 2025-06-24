@@ -20,6 +20,7 @@ import {Header} from '../../../Componants';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import NFTCard from '../../../Componants/MarketPlace/NFTCard';
 import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
+import images from '../../../Theme/images';
 
 const CollectionDetailsScreen = ({route}: any) => {
   const {contractAddress} = route.params;
@@ -106,9 +107,8 @@ const CollectionDetailsScreen = ({route}: any) => {
                   value={collection?.type}
                 />
                 <DetailCard
-                  icon="📅"
+                  icon={images.calendar}
                   label="Year"
-                  isStringIcon={true}
                   value={collection?.year?.toString()}
                 />
               </View>
@@ -207,24 +207,18 @@ const DetailCard = ({
   icon,
   label,
   value,
-  isStringIcon = false,
 }: {
   icon: any;
   label: string;
   value: string | null | undefined;
-  isStringIcon?: boolean;
 }) => {
   return (
     <View style={styles.detailCard}>
-      {!isStringIcon ? (
-        <Image
-          source={{uri: icon}}
-          style={styles.detailImage}
-          resizeMode="contain"
-        />
-      ) : (
-        <Text style={styles.detailIcon}>{icon}</Text>
-      )}
+      <Image
+        source={typeof icon === 'string' ? {uri: icon} : icon}
+        style={styles.detailImage}
+        resizeMode="contain"
+      />
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{value || '-'}</Text>
     </View>

@@ -3,9 +3,10 @@ import {Images} from '../Theme';
 export const formatQuantityMWh = (
   quantity: number,
   unit: boolean = true,
+  decimal: number = 2,
 ): string => {
   const mwh = quantity / 1_000_000;
-  return `${mwh % 1 === 0 ? mwh.toFixed(0) : mwh.toFixed(2)} ${
+  return `${mwh % 1 === 0 ? mwh.toFixed(0) : mwh.toFixed(decimal)} ${
     unit ? 'MWh' : ''
   }`;
 };

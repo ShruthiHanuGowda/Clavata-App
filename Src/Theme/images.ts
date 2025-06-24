@@ -70,4 +70,5 @@ export default {
   energyGeothermalIcon: require('../assets/images/energytype/geothermal_nft_icon.png'),
   energynuclearIcon: require('../assets/images/energytype/nuclear_nft_icon.png'),
   newsPlaceholder: require('../assets/images/NewsPlaceholder.png'),
+  calendar: require('../assets/images/calendar.png'),
 };

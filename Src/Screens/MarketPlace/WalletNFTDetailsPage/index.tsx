@@ -622,7 +622,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
                       <View style={styles.sellerInfoRow}>
                         <Text style={styles.sellerLabel}>Quantity:</Text>
                         <Text style={styles.sellerValue}>
-                          {formatQuantityMWh(Number(item.amount ?? 0))}
+                          {formatQuantityMWh(Number(item.amount ?? 0), true)}
                         </Text>
                       </View>
                       <View style={styles.sellerInfoRow}>
