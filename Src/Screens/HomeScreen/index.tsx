@@ -90,7 +90,7 @@ export default function HomeScreen({navigation}: any) {
   const {refreshAllBalances} = useWallet();
   const {playSuccessSound} = useSuccessSound();
   const {userDetails} = useAuth();
-  const account = userDetails?.denergyWallet;
+  const account = userDetails?.userWallet;
   const {refresh, totalQuantity, isLoading} = useNftsForAddress({
     account: account!,
   });

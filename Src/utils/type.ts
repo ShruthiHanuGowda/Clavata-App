@@ -28,8 +28,6 @@ export interface UserWalletAddress {
   kycDetails?: string | ExtractedKycInfo;
   is_verified?: boolean | string;
   date?: string;
-  denergyWallet?: string;
-  ethereumWallet?: string;
   userWallet?: string;
   emailAddress?: string;
   accessToken?: string;
@@ -39,8 +37,6 @@ export interface UserWalletAddress {
 
 export interface UserAuth {
   date: string;
-  denergyWallet: `0x${string}`;
-  ethereumWallet: `0x${string}`;
   is_verified: boolean | string;
   userWallet: string | null;
   emailAddress: string | null;

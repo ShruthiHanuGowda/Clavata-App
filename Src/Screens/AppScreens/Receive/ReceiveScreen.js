@@ -11,8 +11,8 @@ const ReceiveScreen = ({route}) => {
   const {coinCode} = route.params;
   console.log('🚀 ~ ReceiveScreen ~ coinCode:', coinCode);
   const {userDetails} = useAuth();
-  console.log("coinCode:", coinCode);
-  
+  console.log('coinCode:', coinCode);
+
   return (
     <View style={styles.container}>
       <Header
@@ -38,8 +38,8 @@ const ReceiveScreen = ({route}) => {
             coinCode={coinCode}
             address={
               coinCode === 'ETH' || coinCode === 'USDC' || coinCode === 'EURC'
-                ? userDetails?.ethereumWallet
-                : userDetails?.denergyWallet
+                ? userDetails?.userWallet
+                : userDetails?.userWallet
             }
           />
         </View>

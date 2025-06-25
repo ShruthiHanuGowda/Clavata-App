@@ -184,6 +184,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     resetBridgeState,
   } = useBridge();
 
+  const {setActiveNetwork, activeNetwork} = useMagic();
   const initialCoinCode = props?.route?.params?.coinCode || 'USDC';
 
   // State management

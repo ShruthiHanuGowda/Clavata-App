@@ -1,4 +1,10 @@
-import React, {createContext, useContext, ReactNode, useState} from 'react';
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useState,
+  useEffect,
+} from 'react';
 import {Magic} from '@magic-sdk/react-native-bare';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {
@@ -7,106 +13,95 @@ import {
   SEPOLIA_CHAIN_ID,
   SEPOLIA_RPC_URL,
 } from '../../Src/constants.ts';
-
-// Network configuration constants - only Sepolia and Denergy
-export const NETWORKS = {
-  denergy: {
-    rpcUrl: CUSTOM_RPC_URL,
-    chainId: CUSTOM_NETWORK_CHAIN_ID, // Denergy chain ID
-  },
-};
-
-// Define the network type
-export type NetworkType = 'sepolia' | 'denergy' | 'default';
-
-// Define the shape of our context
+// Supported networks
+export type NetworkType = 'sepolia' | 'denergy';
 interface MagicContextType {
-  magic: Magic; // Current active Magic instance
-  magic_default: Magic; // Default instance with only API key
-  magic_sepolia: Magic; // Sepolia instance
-  magic_denergy: Magic; // Denergy instance
+  magic: Magic;
+  magic_default: Magic;
+  magic_sepolia: Magic;
+  magic_denergy: Magic;
   activeNetwork: NetworkType;
-  setActiveNetwork: (network: NetworkType) => void;
+  setActiveNetwork: (network: NetworkType) => Magic;
 }
-
-// Create the context with a default undefined value
 const MagicContext = createContext<MagicContextType | undefined>(undefined);
-
-// Provider props type
 interface MagicProviderProps {
   children: ReactNode;
   apiKey: string;
   initialNetwork?: NetworkType;
 }
-
 export const MagicProvider: React.FC<MagicProviderProps> = ({
   children,
   apiKey,
-  initialNetwork = 'default',
+  initialNetwork = 'sepolia',
 }) => {
-  const [activeNetwork, setActiveNetworkState] =
+  const [newActiveNetwork, setNewActiveNetwork] =
     useState<NetworkType>(initialNetwork);
-
-  const magic_default = new Magic(apiKey);
-
-  const magic_sepolia = new Magic(apiKey, {
-    network: {
-      rpcUrl: SEPOLIA_RPC_URL,
-      chainId: SEPOLIA_CHAIN_ID,
-    },
-  });
-
-  const magic_denergy = new Magic(apiKey, {
-    network: {
-      rpcUrl: CUSTOM_RPC_URL,
-      chainId: CUSTOM_NETWORK_CHAIN_ID,
-    },
-  });
-
-  const getMagicInstance = () => {
-    switch (activeNetwork) {
-      case 'sepolia':
-        return magic_sepolia;
-      case 'denergy':
-        return magic_denergy;
-      case 'default':
-      default:
-        return magic_default;
+  const [magic, setMagic] = useState<Magic>(new Magic(apiKey));
+  useEffect(() => {
+    let config: any;
+    if (newActiveNetwork === 'denergy') {
+      config = {
+        network: {
+          rpcUrl: CUSTOM_RPC_URL,
+          chainId: CUSTOM_NETWORK_CHAIN_ID,
+        },
+      };
+    } else {
+      config = {
+        network: {
+          rpcUrl: SEPOLIA_RPC_URL,
+          chainId: SEPOLIA_CHAIN_ID,
+        },
+      };
     }
+    const newMagicInstance = new Magic(apiKey, config);
+    setMagic(newMagicInstance);
+    return;
+  }, [newActiveNetwork, apiKey]);
+
+  const changeActiveNetwork = (activeNetwork: any) => {
+    let config: any;
+    if (activeNetwork === 'denergy') {
+      config = {
+        network: {
+          rpcUrl: CUSTOM_RPC_URL,
+          chainId: CUSTOM_NETWORK_CHAIN_ID,
+        },
+      };
+    } else {
+      config = {
+        network: {
+          rpcUrl: SEPOLIA_RPC_URL,
+          chainId: SEPOLIA_CHAIN_ID,
+        },
+      };
+    }
+    const newMagicInstance = new Magic(apiKey, config);
+    setNewActiveNetwork(activeNetwork);
+    setMagic(newMagicInstance);
+    return newMagicInstance;
   };
 
-  // Get current active Magic instance
-  const magic = getMagicInstance();
-
-  // Function to set active network
-  const setActiveNetwork = (network: NetworkType) => {
-    setActiveNetworkState(network);
-  };
-
-  // Create the value object to be provided by the context
   const contextValue: MagicContextType = {
     magic,
-    magic_default,
-    magic_sepolia,
-    magic_denergy,
-    activeNetwork,
-    setActiveNetwork,
+    magic_default: magic,
+    magic_sepolia: magic,
+    magic_denergy: magic,
+    activeNetwork: newActiveNetwork,
+    setActiveNetwork: changeActiveNetwork,
   };
-
   return (
     <MagicContext.Provider value={contextValue}>
       <SafeAreaProvider>
-        <magic.Relayer />
+        {magic && <magic.Relayer />}
         {children}
       </SafeAreaProvider>
     </MagicContext.Provider>
   );
 };
-
-// Custom hook to use the Magic context
 export const useMagic = (): MagicContextType => {
   const context = useContext(MagicContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useMagic must be used within a MagicProvider');
   }
   return context;

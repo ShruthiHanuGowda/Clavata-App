@@ -63,7 +63,7 @@ export const parseDataAndReturnFixedInfo = (data: any) => {
 };
 
 export default function LoginScreen() {
-  const {magic, magic_sepolia, magic_denergy, setActiveNetwork} = useMagic();
+  const {magic, setActiveNetwork} = useMagic();
   const {updateUserData, userDetails} = useAuth();
   const {updateClientWithToken} = useApolloClientContext();
 
@@ -85,7 +85,7 @@ export default function LoginScreen() {
   // Use refs to track callback execution and KYC processes
   const callbackExecutedRef = useRef(false);
   const kycCompletionTimeoutRef = useRef<any>(null);
-  const kycPollingIntervalRef = useRef(null);
+  const kycPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // OPTIMIZED: Query to check if user exists in DB - WITHOUT inline callbacks
   const [
@@ -283,9 +283,9 @@ export default function LoginScreen() {
   const checkSepoliaNetworkAuth = useCallback(async () => {
     try {
       await setActiveNetwork('sepolia');
-      const isLoggedIn = await magic_sepolia.user.isLoggedIn();
+      const isLoggedIn = await magic.user.isLoggedIn();
       if (isLoggedIn) {
-        const userData = await magic_sepolia.user.getInfo();
+        const userData = await magic.user.getInfo();
         return {
           isLoggedIn,
           publicAddress: userData?.publicAddress,
@@ -301,7 +301,7 @@ export default function LoginScreen() {
       );
       return {isLoggedIn: false, publicAddress: null, userData: null, error};
     }
-  }, [magic_sepolia.user, setActiveNetwork]);
+  }, [magic.user, setActiveNetwork]);
 
   // Check if user is logged in to Denergy network - memoized
   const checkDenergyNetworkAuth = useCallback(async () => {
@@ -309,11 +309,11 @@ export default function LoginScreen() {
       await setActiveNetwork('denergy');
       console.log('Attempting to get Denergy user info...');
 
-      const isLoggedIn = await magic_denergy.user.isLoggedIn();
+      const isLoggedIn = await magic.user.isLoggedIn();
       console.log('Is user logged in to Denergy?', isLoggedIn);
 
       if (isLoggedIn) {
-        const userData = await magic_denergy.user.getInfo();
+        const userData = await magic.user.getInfo();
 
         return {
           isLoggedIn,
@@ -331,15 +331,15 @@ export default function LoginScreen() {
       );
       return {isLoggedIn: false, publicAddress: null, userData: null, error};
     }
-  }, [magic_denergy.user, setActiveNetwork]);
+  }, [magic.user, setActiveNetwork]);
 
   // Main function to check all networks - memoized
   const checkAllNetworks = useCallback(async () => {
     try {
       // First check primary network
       const primaryNetworkData = await checkPrimaryNetworkAuth();
-      console.log("primaryNetworkData",primaryNetworkData);
-      
+      console.log('primaryNetworkData', primaryNetworkData);
+
       // Only proceed if logged in to primary network
       if (!primaryNetworkData.isLoggedIn) {
         console.log(
@@ -367,8 +367,7 @@ export default function LoginScreen() {
         denergy: primaryNetworkData.publicAddress,
       };
 
-      console.log("🚀 ~ checkAllNetworks ~ addresses:", addresses);
-      
+      console.log('🚀 ~ checkAllNetworks ~ addresses:', addresses);
 
       return {
         isLoggedIn: true,
@@ -404,10 +403,6 @@ export default function LoginScreen() {
           // User exists in DB - store data in context
           const apiData: UserAuth = {
             date: data.getUserWalletAddress.date || new Date().toISOString(),
-            denergyWallet: data.getUserWalletAddress
-              .denergyWallet as `0x${string}`,
-            ethereumWallet: data.getUserWalletAddress
-              .ethereumWallet as `0x${string}`,
             userWallet: data.getUserWalletAddress.userWallet || null,
             emailAddress: data.getUserWalletAddress.emailAddress || null,
             is_verified: data.getUserWalletAddress.is_verified || false,
@@ -494,13 +489,11 @@ export default function LoginScreen() {
   const prepareNewUserData = useCallback(async () => {
     try {
       const result = await checkAllNetworks();
-      setActiveNetwork('default');
+      setActiveNetwork('sepolia');
       const userData = await magic.user.getInfo();
 
       const walletData: any = {
         emailAddress: userData.email,
-        ethereumWallet: result?.networkData?.sepolia?.publicAddress,
-        denergyWallet: result?.networkData?.denergy?.publicAddress,
         userWallet: result?.networkData?.primary?.publicAddress,
         date: new Date().toISOString(),
         is_verified: false,

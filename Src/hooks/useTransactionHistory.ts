@@ -60,8 +60,8 @@ export const useTransactionHistory = (
   const emailAddress = coinCodesForDenergyWallet.includes(
     coinCode.toLocaleLowerCase(),
   )
-    ? userDetails?.denergyWallet
-    : userDetails?.ethereumWallet;
+    ? userDetails?.userWallet
+    : userDetails?.userWallet;
 
   // Transform transactions to format needed by ListItem component
   const transformTransactions = (

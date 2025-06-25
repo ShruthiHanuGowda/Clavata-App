@@ -78,12 +78,12 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
   const [confirmedTxHash, setConfirmedTxHash] = useState<string>('');
 
   const {refreshBalance, getBalance} = useWallet();
-  const {magic_denergy} = useMagic();
+  const {magic} = useMagic();
   const {userDetails} = useAuth();
   const {callWithGasPrice} = useCallWithGasPrice();
   const {balance} = getBalance('WUSDC');
 
-  const account = userDetails?.denergyWallet as `0x${string}`;
+  const account = userDetails?.userWallet as `0x${string}`;
   const nftPrice = getMinAskPrice(nftToBuy?.marketData?.activeAsks ?? []);
   const availableQuantity =
     getMinAsk(nftToBuy?.marketData?.activeAsks ?? []).amount ?? '0';
@@ -130,7 +130,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
           account,
           marketAddress,
           MaxUint256,
-          magic_denergy,
+          magic,
         );
       },
       onApprove: () => {

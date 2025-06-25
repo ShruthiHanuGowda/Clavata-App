@@ -84,8 +84,7 @@ export default function SendCoin(props: SendCoinProps): any {
   const {getBalance, refreshBalance} = useWallet();
   const {balance, balanceUsd}: BalanceInfo = getBalance(coinCode);
   const [wattAmount, setWattAmount] = useState<string>('0');
-  const {magic_sepolia, setActiveNetwork, activeNetwork, magic_denergy} =
-    useMagic();
+  const {setActiveNetwork, magic} = useMagic();
   const {userDetails} = useAuth();
   const {
     playSuccessSound,
@@ -106,32 +105,26 @@ export default function SendCoin(props: SendCoinProps): any {
     isLoading: ethIsLoading,
     error: ethError,
     sendTransaction: sendEthTransaction,
-  } = useSendEth(magic_sepolia, userDetails?.ethereumWallet ?? undefined);
+  } = useSendEth(magic, userDetails?.userWallet ?? undefined);
 
   const {
     isLoading: usdcIsLoading,
     error: usdcError,
     sendTransaction: sendUSDCTransaction,
-  } = useSendUSDCANDEURC(
-    magic_sepolia,
-    userDetails?.ethereumWallet ?? undefined,
-  );
+  } = useSendUSDCANDEURC(magic, userDetails?.userWallet ?? undefined);
 
   const {
     isLoading: usdcDenergyIsLoading,
     error: usdcDenergyError,
     sendTransaction: sendDenergyUSDCTransaction,
-  } = useSendDenergyUSDCAndEURC(
-    magic_denergy,
-    userDetails?.denergyWallet ?? undefined,
-  );
+  } = useSendDenergyUSDCAndEURC(magic, userDetails?.userWallet ?? undefined);
 
   const {
     isLoading: wattIsLoading,
     error: wattError,
     sendTransaction: sendWattTransaction,
     validateTransaction,
-  } = useSendWatt(magic_denergy, userDetails?.denergyWallet ?? undefined);
+  } = useSendWatt(magic, userDetails?.userWallet ?? undefined);
 
   const [result, setResult] = useState<TransactionResult | null>(null);
 

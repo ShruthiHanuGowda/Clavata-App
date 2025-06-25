@@ -119,7 +119,7 @@ const NFTHeader = ({name, quantity, metadata}: NFTHeaderProps) => (
 const WalletNFTDetailsScreen = ({route}: any) => {
   const {nft, refresh} = route.params;
   const navigation = useNavigation();
-  const {magic_denergy, setActiveNetwork} = useMagic();
+  const {magic, setActiveNetwork} = useMagic();
   const {userDetails} = useAuth();
 
   const [index, setIndex] = useState(0);
@@ -142,9 +142,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
         return;
       }
 
-      const magicProvider = new BrowserProvider(
-        magic_denergy.rpcProvider as any,
-      );
+      const magicProvider = new BrowserProvider(magic.rpcProvider as any);
       const signer = await magicProvider.getSigner();
 
       const collectionContract = new Contract(
@@ -177,9 +175,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
           return;
         }
 
-        const magicProvider = new BrowserProvider(
-          magic_denergy.rpcProvider as any,
-        );
+        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
 
         const collectionContract = new Contract(

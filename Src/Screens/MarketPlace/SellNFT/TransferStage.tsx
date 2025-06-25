@@ -38,7 +38,7 @@ const TransferStage = ({
   const [modalVisible, setModalVisible] = useState(false);
 
   const transferAddressEqualsConnectedAddress =
-    transferAddress.toLowerCase() === userDetails?.denergyWallet.toLowerCase();
+    transferAddress.toLowerCase() === userDetails?.userWallet.toLowerCase();
 
   const parsedQty = parseFloat(quantity);
   const quantityGreaterThanAvailable =

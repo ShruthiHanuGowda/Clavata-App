@@ -50,7 +50,7 @@ function AddressBook(props: AddressBookProps): JSX.Element {
     data: addressBooks,
     error: listError,
     refetch: refetchList,
-  } = useAddressBookByWallet(userDetails?.denergyWallet ?? null);
+  } = useAddressBookByWallet(userDetails?.userWallet ?? null);
 
   // Using the delete hook
   const {
@@ -68,10 +68,10 @@ function AddressBook(props: AddressBookProps): JSX.Element {
 
   useFocusEffect(
     useCallback(() => {
-      if (userDetails?.denergyWallet) {
+      if (userDetails?.userWallet) {
         refetchList();
       }
-    }, [userDetails?.denergyWallet, refetchList]),
+    }, [userDetails?.userWallet, refetchList]),
   );
 
   const contacts = useMemo(() => {
@@ -129,7 +129,7 @@ function AddressBook(props: AddressBookProps): JSX.Element {
                 setDeletingContactId(contactId);
 
                 // Get wallet address for refetch
-                const walletAddress = userDetails?.denergyWallet;
+                const walletAddress = userDetails?.userWallet;
                 if (!walletAddress) {
                   throw new Error('Wallet address not found');
                 }
@@ -162,7 +162,7 @@ function AddressBook(props: AddressBookProps): JSX.Element {
         ],
       );
     },
-    [deleteAddressBook, userDetails?.denergyWallet, refetchList],
+    [deleteAddressBook, userDetails?.userWallet, refetchList],
   );
 
   const filteredData = useMemo(() => {
@@ -214,7 +214,7 @@ function AddressBook(props: AddressBookProps): JSX.Element {
         <View style={localStyles.loadingContainer}>
           {/* <ActivityIndicator size="large" color="#009D94" />
           <DText style={localStyles.loadingText}>Loading contacts...</DText> */}
-           <LoaderAnimation
+          <LoaderAnimation
             size="large"
             color="#009D94"
             showText={true}

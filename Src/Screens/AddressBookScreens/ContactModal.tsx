@@ -48,7 +48,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
     data: addressBooks,
     error: listError,
     refetch: refetchList,
-  } = useAddressBookByWallet(userDetails?.denergyWallet ?? null);
+  } = useAddressBookByWallet(userDetails?.userWallet ?? null);
 
   const contacts = useMemo(() => {
     return addressBooks || [];

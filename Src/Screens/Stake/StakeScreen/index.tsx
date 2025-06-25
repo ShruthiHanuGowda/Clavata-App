@@ -41,8 +41,7 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
     refresh,
   } = useNftsForAddress({
     account:
-      userDetails?.denergyWallet ??
-      '0x0000000000000000000000000000000000000000',
+      userDetails?.userWallet ?? '0x0000000000000000000000000000000000000000',
   });
 
   const {

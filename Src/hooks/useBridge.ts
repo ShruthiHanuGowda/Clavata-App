@@ -51,7 +51,7 @@ export const useBridge = () => {
   const {refreshBalance} = useWallet();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // New states for loading screen
   const [currentProcessingStep, setCurrentProcessingStep] = useState('');
   const [stepProgress, setStepProgress] = useState(0);
@@ -59,7 +59,7 @@ export const useBridge = () => {
   const [transactionHash, setTransactionHash] = useState<string>('');
 
   // Get magic instance from the provider
-  const {magic_sepolia, magic_denergy, setActiveNetwork} = useMagic();
+  const {setActiveNetwork, magic: newMagic, activeNetwork} = useMagic();
 
   // Get user details from auth provider
   const {userDetails} = useAuth();
@@ -67,30 +67,57 @@ export const useBridge = () => {
   // Processing steps for different bridge operations
   const BRIDGE_PROCESSING_STEPS: any = {
     DEPOSIT: {
-      INITIALIZING: { text: 'Initializing deposit process...', progress: 5 },
-      SWITCHING_NETWORK: { text: 'Switching to Ethereum network...', progress: 15 },
-      CHECKING_BALANCE: { text: 'Checking token balance...', progress: 25 },
-      APPROVING_TOKEN: { text: 'Approving token spend...', progress: 40 },
-      WAITING_APPROVAL: { text: 'Waiting for approval confirmation...', progress: 55 },
-      DEPOSITING: { text: 'Depositing tokens to bridge...', progress: 70 },
-      WAITING_DEPOSIT: { text: 'Waiting for deposit confirmation...', progress: 85 },
-      API_CALL: { text: 'Updating bridge records...', progress: 95 },
-      COMPLETED: { text: 'Bridge deposit completed successfully!', progress: 100 }
+      INITIALIZING: {text: 'Initializing deposit process...', progress: 5},
+      SWITCHING_NETWORK: {
+        text: 'Switching to Ethereum network...',
+        progress: 15,
+      },
+      CHECKING_BALANCE: {text: 'Checking token balance...', progress: 25},
+      APPROVING_TOKEN: {text: 'Approving token spend...', progress: 40},
+      WAITING_APPROVAL: {
+        text: 'Waiting for approval confirmation...',
+        progress: 55,
+      },
+      DEPOSITING: {text: 'Depositing tokens to bridge...', progress: 70},
+      WAITING_DEPOSIT: {
+        text: 'Waiting for deposit confirmation...',
+        progress: 85,
+      },
+      API_CALL: {text: 'Updating bridge records...', progress: 95},
+      COMPLETED: {
+        text: 'Bridge deposit completed successfully!',
+        progress: 100,
+      },
     },
     WITHDRAW: {
-      INITIALIZING: { text: 'Initializing withdrawal process...', progress: 5 },
-      SWITCHING_NETWORK: { text: 'Switching to DENERGY network...', progress: 15 },
-      CHECKING_BALANCE: { text: 'Checking wrapped token balance...', progress: 25 },
-      APPROVING_TOKEN: { text: 'Approving wrapped token spend...', progress: 40 },
-      WAITING_APPROVAL: { text: 'Waiting for approval confirmation...', progress: 55 },
-      BURNING: { text: 'Burning wrapped tokens...', progress: 70 },
-      WAITING_BURN: { text: 'Waiting for burn confirmation...', progress: 85 },
-      API_CALL: { text: 'Processing withdrawal records...', progress: 95 },
-      COMPLETED: { text: 'Bridge withdrawal completed successfully!', progress: 100 }
-    }
+      INITIALIZING: {text: 'Initializing withdrawal process...', progress: 5},
+      SWITCHING_NETWORK: {
+        text: 'Switching to DENERGY network...',
+        progress: 15,
+      },
+      CHECKING_BALANCE: {
+        text: 'Checking wrapped token balance...',
+        progress: 25,
+      },
+      APPROVING_TOKEN: {text: 'Approving wrapped token spend...', progress: 40},
+      WAITING_APPROVAL: {
+        text: 'Waiting for approval confirmation...',
+        progress: 55,
+      },
+      BURNING: {text: 'Burning wrapped tokens...', progress: 70},
+      WAITING_BURN: {text: 'Waiting for burn confirmation...', progress: 85},
+      API_CALL: {text: 'Processing withdrawal records...', progress: 95},
+      COMPLETED: {
+        text: 'Bridge withdrawal completed successfully!',
+        progress: 100,
+      },
+    },
   };
 
-  const updateProcessingStep = (operationType: 'DEPOSIT' | 'WITHDRAW', stepKey: string) => {
+  const updateProcessingStep = (
+    operationType: 'DEPOSIT' | 'WITHDRAW',
+    stepKey: string,
+  ) => {
     const step = BRIDGE_PROCESSING_STEPS[operationType][stepKey];
     if (step) {
       setCurrentProcessingStep(step.text);
@@ -117,27 +144,28 @@ export const useBridge = () => {
       onSuccess?: SuccessCallback,
     ): Promise<TransactionReceipt | undefined> => {
       try {
-        if (!magic_sepolia) {
+        const magic = setActiveNetwork('sepolia');
+        if (!magic) {
           throw new Error('Magic SDK not available');
         }
 
         console.log('amount', amount);
-        
+
         setIsLoading(true);
         setError(null);
         resetBridgeState();
 
         updateProcessingStep('DEPOSIT', 'INITIALIZING');
-        
+
         updateProcessingStep('DEPOSIT', 'SWITCHING_NETWORK');
-        await setActiveNetwork('sepolia');
+        // await setActiveNetwork('sepolia');
 
         const usdcAddress = USDC_ADDRESS;
         const bankAddress = BANK_ADDRESS;
         const bridgeAddress = BRIDGE_ADDRESS;
 
         // Get Magic provider for signing transactions
-        const magicProvider = new BrowserProvider(magic_sepolia.rpcProvider as any);
+        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
 
         // Initialize contracts
@@ -149,7 +177,7 @@ export const useBridge = () => {
         try {
           const balance = await usdcContract.balanceOf(
             await signer.getAddress(),
-          );    
+          );
         } catch (err) {
           // Balance check failed, continue anyway
         }
@@ -161,11 +189,10 @@ export const useBridge = () => {
           parseUnits(amount, 6),
         );
         console.log('Approve transaction:', approveTx);
-        
+
         updateProcessingStep('DEPOSIT', 'WAITING_APPROVAL');
         const approvalReceipt = await approveTx.wait();
         console.log('Approval receipt:', approvalReceipt);
-        
 
         // Deposit USDC to bridge
         updateProcessingStep('DEPOSIT', 'DEPOSITING');
@@ -174,20 +201,19 @@ export const useBridge = () => {
           parseUnits(amount, 6),
         );
         console.log('Deposit transaction:', depositTx);
-        
-        
+
         updateProcessingStep('DEPOSIT', 'WAITING_DEPOSIT');
         const receipt = await depositTx.wait();
-        setTransactionHash(receipt.hash)
+        setTransactionHash(receipt.hash);
 
         // Get user address from Auth provider
-        const userAddress = userDetails?.denergyWallet || '';
+        const userAddress = userDetails?.userWallet || '';
 
         refreshBalance('USDC');
 
         // API call
         updateProcessingStep('DEPOSIT', 'API_CALL');
-        
+
         // Call success callback if provided
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
           const successData = {
@@ -197,7 +223,7 @@ export const useBridge = () => {
             sourceChain: 'ETH',
             coinCode: 'USDC',
           };
-          
+
           const transactionDetails = {
             amount,
             userAddress: userAddress,
@@ -206,7 +232,7 @@ export const useBridge = () => {
             coinCode: 'USDC',
           };
           apiCall(transactionDetails, 'depositErc20Token').then();
-          
+
           updateProcessingStep('DEPOSIT', 'COMPLETED');
           setBridgeSuccess(true);
           onSuccess(successData);
@@ -220,7 +246,7 @@ export const useBridge = () => {
         setIsLoading(false);
       }
     },
-    [magic_sepolia, userDetails],
+    [userDetails],
   );
 
   const bridgeEURC = useCallback(
@@ -229,7 +255,8 @@ export const useBridge = () => {
       onSuccess?: SuccessCallback,
     ): Promise<TransactionReceipt | undefined> => {
       try {
-        if (!magic_sepolia) {
+        const magic = setActiveNetwork('sepolia');
+        if (!magic) {
           throw new Error('Magic SDK not available');
         }
 
@@ -238,16 +265,16 @@ export const useBridge = () => {
         resetBridgeState();
 
         updateProcessingStep('DEPOSIT', 'INITIALIZING');
-        
+
         updateProcessingStep('DEPOSIT', 'SWITCHING_NETWORK');
-        await setActiveNetwork('sepolia');
+        // await setActiveNetwork('sepolia');
 
         const eurcAddress = EURC_ADDRESS;
         const bankAddress = BANK_ADDRESS;
         const bridgeAddress = BRIDGE_ADDRESS;
 
         // Get Magic provider for signing transactions
-        const magicProvider = new BrowserProvider(magic_sepolia.rpcProvider as any);
+        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
 
         // Initialize contracts
@@ -270,7 +297,7 @@ export const useBridge = () => {
           bankAddress,
           parseUnits(amount, 6), // EURC has 6 decimals
         );
-        
+
         updateProcessingStep('DEPOSIT', 'WAITING_APPROVAL');
         const approvalReceipt = await approveTx.wait();
 
@@ -280,14 +307,13 @@ export const useBridge = () => {
           eurcAddress,
           parseUnits(amount, 6),
         );
-        
+
         updateProcessingStep('DEPOSIT', 'WAITING_DEPOSIT');
         const receipt = await depositTx.wait();
-        setTransactionHash(receipt.hash)
-
+        setTransactionHash(receipt.hash);
 
         // Get user address from Auth provider
-        const userAddress = userDetails?.denergyWallet || '';
+        const userAddress = userDetails?.userWallet || '';
 
         refreshBalance('EURC');
 
@@ -302,7 +328,7 @@ export const useBridge = () => {
             sourceChain: 'ETH',
             coinCode: 'EURC',
           };
-          
+
           const transactionDetails = {
             amount,
             userAddress: userAddress,
@@ -311,7 +337,7 @@ export const useBridge = () => {
             coinCode: 'EURC',
           };
           apiCall(transactionDetails, 'depositErc20Token').then();
-          
+
           updateProcessingStep('DEPOSIT', 'COMPLETED');
           setBridgeSuccess(true);
           onSuccess(successData);
@@ -325,7 +351,7 @@ export const useBridge = () => {
         setIsLoading(false);
       }
     },
-    [magic_sepolia, userDetails],
+    [userDetails],
   );
 
   const bridgeWUSDC = useCallback(
@@ -334,25 +360,26 @@ export const useBridge = () => {
       onSuccess?: SuccessCallback,
     ): Promise<TransactionReceipt | undefined> => {
       try {
-        if (!magic_denergy) {
+        const magic = setActiveNetwork('denergy');
+        if (!magic) {
           throw new Error('Magic SDK not available');
         }
-        
+
         setIsLoading(true);
         setError(null);
         resetBridgeState();
 
         updateProcessingStep('WITHDRAW', 'INITIALIZING');
-        
+
         updateProcessingStep('WITHDRAW', 'SWITCHING_NETWORK');
-        await setActiveNetwork('denergy');
+        // await setActiveNetwork('denergy');
 
         const wusdcAddress = DENERGY_USDC_ADDRESS;
         const usdcAddress = USDC_ADDRESS;
         const destinationAddress = DESTINATION_ADDRESS;
 
         // Get Magic provider for signing transactions
-        const magicProvider = new BrowserProvider(magic_denergy.rpcProvider as any);
+        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
 
         // Initialize contracts
@@ -379,7 +406,7 @@ export const useBridge = () => {
           destinationAddress,
           parseUnits(amount, 6), // WUSDC has 6 decimals
         );
-        
+
         updateProcessingStep('WITHDRAW', 'WAITING_APPROVAL');
         const approvalReceipt = await approveTx.wait();
 
@@ -389,13 +416,13 @@ export const useBridge = () => {
           wusdcAddress,
           parseUnits(amount, 6),
         );
-        
+
         updateProcessingStep('WITHDRAW', 'WAITING_BURN');
         const receipt = await depositTx.wait();
         setTransactionHash(receipt.hash);
 
         // Get user address from Auth provider
-        const userAddress = userDetails?.ethereumWallet || '';
+        const userAddress = userDetails?.userWallet || '';
 
         refreshBalance('WUSDC');
 
@@ -422,7 +449,7 @@ export const useBridge = () => {
             destinationChainCode: 'ETH',
           };
           apiCall(transactionDetails, 'withdrawErc20Token').then();
-          
+
           updateProcessingStep('WITHDRAW', 'COMPLETED');
           setBridgeSuccess(true);
           onSuccess(successData);
@@ -436,7 +463,7 @@ export const useBridge = () => {
         setIsLoading(false);
       }
     },
-    [magic_denergy, userDetails],
+    [userDetails],
   );
 
   const bridgeWEURC = useCallback(
@@ -445,25 +472,27 @@ export const useBridge = () => {
       onSuccess?: SuccessCallback,
     ): Promise<TransactionReceipt | undefined> => {
       try {
-        if (!magic_denergy) {
+        const magic = setActiveNetwork('denergy');
+        if (!magic) {
           throw new Error('Magic SDK not available');
         }
-        
+
         setIsLoading(true);
         setError(null);
         resetBridgeState();
 
         updateProcessingStep('WITHDRAW', 'INITIALIZING');
-        
+
         updateProcessingStep('WITHDRAW', 'SWITCHING_NETWORK');
-        await setActiveNetwork('denergy');
+        // await setActiveNetwork('denergy');
+        // await setActiveNetwork('denergy');
 
         const weurcAddress = DENERGY_EURC_ADDRESS;
         const eurcAddress = EURC_ADDRESS;
         const destinationAddress = DESTINATION_ADDRESS;
 
         // Get Magic provider for signing transactions
-        const magicProvider = new BrowserProvider(magic_denergy.rpcProvider as any);
+        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
 
         // Initialize contracts
@@ -476,13 +505,13 @@ export const useBridge = () => {
 
         // Check WEURC balance before proceeding
         updateProcessingStep('WITHDRAW', 'CHECKING_BALANCE');
-        try {
-          const balance = await weurcContract.balanceOf(
-            await signer.getAddress(),
-          );
-        } catch (err) {
-          // Balance check failed, continue anyway
-        }
+        // try {
+        //   const balance = await weurcContract.balanceOf(
+        //     await signer.getAddress(),
+        //   );
+        // } catch (err) {
+        //   // Balance check failed, continue anyway
+        // }
 
         // Approve EURC to spend WEURC
         updateProcessingStep('WITHDRAW', 'APPROVING_TOKEN');
@@ -490,7 +519,7 @@ export const useBridge = () => {
           destinationAddress,
           parseUnits(amount, 6), // WEURC has 6 decimals
         );
-        
+
         updateProcessingStep('WITHDRAW', 'WAITING_APPROVAL');
         const approvalReceipt = await approveTx.wait();
 
@@ -500,12 +529,12 @@ export const useBridge = () => {
           weurcAddress,
           parseUnits(amount, 6),
         );
-        
+
         updateProcessingStep('WITHDRAW', 'WAITING_BURN');
         const receipt = await depositTx.wait();
 
         // Get user address from Auth provider
-        const userAddress = userDetails?.ethereumWallet || '';
+        const userAddress = userDetails?.userWallet || '';
 
         refreshBalance('WEURC');
 
@@ -531,7 +560,7 @@ export const useBridge = () => {
             destinationChainCode: 'ETH',
           };
           apiCall(transactionDetails, 'withdrawErc20Token').then();
-          
+
           updateProcessingStep('WITHDRAW', 'COMPLETED');
           setBridgeSuccess(true);
           onSuccess(successData);
@@ -545,7 +574,7 @@ export const useBridge = () => {
         setIsLoading(false);
       }
     },
-    [magic_denergy, userDetails],
+    [userDetails],
   );
 
   return {

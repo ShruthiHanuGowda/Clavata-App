@@ -41,7 +41,7 @@ const TAX_RATE_PER_MWH = 0.1;
 const OffsetScreen = ({route}: any) => {
   const {nft} = route.params;
   const {userDetails} = useAuth();
-  const {magic_denergy} = useMagic();
+  const {magic} = useMagic();
   const [volume, setVolume] = useState('');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -84,7 +84,7 @@ const OffsetScreen = ({route}: any) => {
     resetOffsetState,
     getAvailableQuantity,
     validateOffsetVolume,
-  } = useOffsetNft(magic_denergy, account, walletAddress);
+  } = useOffsetNft(magic, account, walletAddress);
 
   const availableQuantity = getAvailableQuantity(currentQuantity);
 

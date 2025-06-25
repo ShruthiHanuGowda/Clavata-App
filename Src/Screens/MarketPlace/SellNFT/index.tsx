@@ -152,7 +152,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
   const lowestPrice = getMinAskPrice(nftToSell?.marketData?.activeAsks ?? []);
   const {userDetails} = useAuth();
   const {callWithGasPrice} = useCallWithGasPrice();
-  const {magic_denergy} = useMagic();
+  const {magic} = useMagic();
 
   const collectionContract = useNftMarketCollectionContract(
     nftToSell?.collectionAddress,
@@ -256,7 +256,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
             nftToSell.collectionAddress,
             account,
             marketAddress,
-            magic_denergy,
+            magic,
           );
 
           return !isApproved;

@@ -197,7 +197,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
       return;
     }
 
-    if (!userDetails?.denergyWallet) {
+    if (!userDetails?.userWallet) {
       Alert.alert('Error', 'User wallet address not found. Please try again.');
       return;
     }
@@ -210,7 +210,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
           name: formData.name.trim(),
           beneficiaryAddress: formData.beneficiaryAddress.trim(),
           chain: formData.chain,
-          walletAddress: userDetails.denergyWallet,
+          walletAddress: userDetails.userWallet,
         };
 
         console.log('Updating address book with input:', updateInput);
@@ -230,7 +230,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
           name: formData.name.trim(),
           beneficiaryAddress: formData.beneficiaryAddress.trim(),
           chain: formData.chain,
-          walletAddress: userDetails.denergyWallet,
+          walletAddress: userDetails.userWallet,
         };
 
         console.log('Creating address book with input:', createInput);
@@ -311,7 +311,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
       formData.chain &&
       formData.name.trim().length >= 2 &&
       formData.beneficiaryAddress.trim().length >= 10 &&
-      userDetails?.denergyWallet // Ensure wallet address is available
+      userDetails?.userWallet // Ensure wallet address is available
     );
   }, [isNameValid, isAddressValid, formData, userDetails]);
 
@@ -423,7 +423,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
           )}
 
           {/* Wallet address validation */}
-          {!userDetails?.denergyWallet && (
+          {!userDetails?.userWallet && (
             <Text style={localStyles.errorText}>
               Wallet address not found. Please check your account setup.
             </Text>

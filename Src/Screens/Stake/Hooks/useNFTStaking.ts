@@ -63,7 +63,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
   const [isApproved, setIsApproved] = useState<boolean>(false);
 
   // Get magic instance from the provider (adjust network names as needed)
-  const {magic_denergy, setActiveNetwork} = useMagic();
+  const {magic, setActiveNetwork} = useMagic();
 
   // Get user details from auth provider
   const {userDetails} = useAuth();
@@ -88,13 +88,13 @@ export const useNFTStaking = (validatorAddress?: string) => {
       );
 
       try {
-        if (!magic_denergy) {
+        if (!magic) {
           console.error('[NFT Staking] Magic SDK not available');
           throw new Error('Magic SDK not available');
         }
 
         // Get Magic provider
-        const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
+        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
 
         // Create contract instance for the ERC1155 token
         const tokenContract = new Contract(
@@ -122,7 +122,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
         return false;
       }
     },
-    [magic_denergy],
+    [magic],
   );
 
   /**
@@ -143,7 +143,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
         setIsLoading(true);
         setError(null);
 
-        if (!magic_denergy) {
+        if (!magic) {
           console.error('[NFT Staking] Magic SDK not available');
           throw new Error('Magic SDK not available');
         }
@@ -152,7 +152,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
         console.log('[NFT Staking] Network set to denergy for approval');
 
         // Get Magic provider for signing transactions
-        const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
+        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
 
         // Create contract instance for the ERC1155 token
@@ -192,7 +192,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
         setIsLoading(false);
       }
     },
-    [magic_denergy, setActiveNetwork],
+    [magic, setActiveNetwork],
   );
 
   /**
@@ -229,7 +229,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
       console.log('[NFT Staking] Network set to denergy');
 
       try {
-        if (!magic_denergy) {
+        if (!magic) {
           console.error('[NFT Staking] Magic SDK not available');
           throw new Error('Magic SDK not available');
         }
@@ -239,7 +239,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
         console.log('[NFT Staking] Initializing provider and signer');
 
         // Get Magic provider for signing transactions
-        const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
+        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
         const delegatorAddress = await signer.getAddress();
         console.log(`[NFT Staking] Delegator address: ${delegatorAddress}`);
@@ -342,7 +342,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
       }
     },
     [
-      magic_denergy,
+      magic,
       userDetails,
       refreshBalance,
       setActiveNetwork,
@@ -388,7 +388,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
       console.log('[NFT Staking] Network set to denergy');
 
       try {
-        if (!magic_denergy) {
+        if (!magic) {
           console.error('[NFT Staking] Magic SDK not available');
           throw new Error('Magic SDK not available');
         }
@@ -398,7 +398,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
         console.log('[NFT Staking] Initializing provider and signer');
 
         // Get Magic provider for signing transactions
-        const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
+        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
         const delegatorAddress = await signer.getAddress();
         console.log(`[NFT Staking] Delegator address: ${delegatorAddress}`);
@@ -485,13 +485,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
         console.log('[NFT Staking] Undelegate process finished');
       }
     },
-    [
-      magic_denergy,
-      userDetails,
-      refreshBalance,
-      setActiveNetwork,
-      validatorAddress,
-    ],
+    [magic, userDetails, refreshBalance, setActiveNetwork, validatorAddress],
   );
 
   /**
@@ -502,7 +496,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
    */
   const listenForEvents = useCallback(
     (onDelegate?: DelegateCallback, onUnbond?: UnbondCallback) => {
-      if (!magic_denergy) {
+      if (!magic) {
         console.error(
           '[NFT Staking] Magic SDK not available for event listeners',
         );
@@ -517,7 +511,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
           console.log(
             '[NFT Staking] Initializing provider for event listeners',
           );
-          const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
+          const magicProvider = new BrowserProvider(magic.rpcProvider as any);
           const stakingContract = new Contract(
             STAKING_CONTRACT_ADDRESS,
             STAKING_CONTRACT_ABI,
@@ -627,9 +621,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
         console.log('[NFT Staking] Cleaning up event listeners');
         const cleanup = async () => {
           try {
-            const magicProvider = new BrowserProvider(
-              magic_denergy.rpcProvider,
-            );
+            const magicProvider = new BrowserProvider(magic.rpcProvider as any);
             const stakingContract = new Contract(
               STAKING_CONTRACT_ADDRESS,
               STAKING_CONTRACT_ABI,
@@ -647,19 +639,17 @@ export const useNFTStaking = (validatorAddress?: string) => {
         cleanup();
       };
     },
-    [magic_denergy],
+    [magic],
   );
 
   // Clean up event listeners when component unmounts
   useEffect(() => {
     return () => {
       const cleanup = async () => {
-        if (magic_denergy) {
+        if (magic) {
           try {
             console.log('[NFT Staking] Cleaning up event listeners on unmount');
-            const magicProvider = new BrowserProvider(
-              magic_denergy.rpcProvider,
-            );
+            const magicProvider = new BrowserProvider(magic.rpcProvider as any);
             const stakingContract = new Contract(
               STAKING_CONTRACT_ADDRESS,
               STAKING_CONTRACT_ABI,
@@ -677,7 +667,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
       };
       cleanup();
     };
-  }, [magic_denergy]);
+  }, [magic]);
 
   console.log(
     '[NFT Staking] Hook initialized with validator:',

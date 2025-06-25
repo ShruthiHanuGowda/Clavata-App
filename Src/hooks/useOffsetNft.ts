@@ -24,11 +24,7 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
-export const useOffsetNft = (
-  magic_denergy: any,
-  account: any,
-  walletAddress: any,
-) => {
+export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
   const [isLoadingOffset, setIsLoadingOffset] = useState(false);
   const [currentProcessingStep, setCurrentProcessingStep] = useState('');
   const [stepProgress, setStepProgress] = useState(0);
@@ -38,16 +34,15 @@ export const useOffsetNft = (
   const [offsetSuccess, setOffsetSuccess] = useState(false);
   const {refreshBalance, getBalance} = useWallet();
 
-
-  const PROCESSING_STEPS:any = {
-    VALIDATING: { text: 'Validating transaction details...', progress: 10 },
-    CHECKING_BALANCE: { text: 'Checking WUSDC balance...', progress: 20 },
-    CHECKING_NFT_BALANCE: { text: 'Verifying NFT balance...', progress: 30 },
-    BURNING_TOKENS: { text: 'Redeeming Certificates...', progress: 50 },
-    PROCESSING_TAX: { text: 'Processing transaction fee...', progress: 70 },
-    GENERATING_CERTIFICATE: { text: 'Generating certificate...', progress: 85 },
-    FINALIZING: { text: 'Finalizing offset...', progress: 95 },
-    COMPLETED: { text: 'Offset completed successfully!', progress: 100 }
+  const PROCESSING_STEPS: any = {
+    VALIDATING: {text: 'Validating transaction details...', progress: 10},
+    CHECKING_BALANCE: {text: 'Checking WUSDC balance...', progress: 20},
+    CHECKING_NFT_BALANCE: {text: 'Verifying NFT balance...', progress: 30},
+    BURNING_TOKENS: {text: 'Redeeming Certificates...', progress: 50},
+    PROCESSING_TAX: {text: 'Processing transaction fee...', progress: 70},
+    GENERATING_CERTIFICATE: {text: 'Generating certificate...', progress: 85},
+    FINALIZING: {text: 'Finalizing offset...', progress: 95},
+    COMPLETED: {text: 'Offset completed successfully!', progress: 100},
   };
 
   const updateProcessingStep = (stepKey: string) => {
@@ -162,15 +157,18 @@ export const useOffsetNft = (
 
     try {
       // Step 1: Validation
-      const validation = validateOffsetVolume(volume, nft?.marketData?.quantity);
+      const validation = validateOffsetVolume(
+        volume,
+        nft?.marketData?.quantity,
+      );
       if (!validation.isValid) {
         SnackBarMessage('Invalid volume entered', 'error');
         return false;
       }
 
-      const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
+      const magicProvider = new BrowserProvider(magic.rpcProvider);
       const signer = await magicProvider.getSigner();
-      const token = await magic_denergy.user.getIdToken();
+      const token = await magic.user.getIdToken();
 
       // Step 2: Check WUSDC balance if tax required
       if (taxAmount > 0) {
