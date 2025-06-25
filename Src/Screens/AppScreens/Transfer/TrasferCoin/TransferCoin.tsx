@@ -623,7 +623,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         return renderProcessing();
       case 'success':
         return (
-          <View style={styles.screen}>
+          <ScrollView style={styles.screen}>
             {renderSuccess()}
             <CustomImageButton
               backgroundImage={Images.buttonBg}
@@ -633,7 +633,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
               containerWrapper={styles.submitButtonContainer}
               bgImg={styles.submitButtonImage}
             />
-          </View>
+          </ScrollView>
         );
       default:
         return renderForm();
