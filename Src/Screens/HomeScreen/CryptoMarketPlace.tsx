@@ -89,7 +89,7 @@ export default function CryptoMarketPlace(props: any) {
         {x: 4, y: 0},
         {x: 5, y: 0},
       ],
-      operationsTypes: ['Send', 'Receive'],
+      operationsTypes: ['Send', 'Receive', 'Swap'],
       growth: 0,
       balance: formatValue(getBalance('WATT')?.balance), //props?.WATT?.fiatBalance
       dollar: formatValue(getBalance('WATT')?.balanceUsd), //props?.WATT?.tokenBalance
