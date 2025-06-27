@@ -212,6 +212,7 @@ export default function Swap(props: SwapProps) {
       setCurrentStep('processing');
       try {
         await approveToken();
+        setCurrentStep('confirmation');
       } catch (error: any) {
         Alert.alert(
           'Approval Failed',

@@ -8,10 +8,13 @@ import {
   Modal,
   ActivityIndicator,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 import {ScreenWidth} from '@rneui/base';
 import {fontsFamily} from '../../Theme';
 import {marketIcons} from '../../Theme/variable';
+
+const {height: screenHeight} = Dimensions.get('window');
 
 interface SwapConfirmationModalProps {
   visible: boolean;
@@ -55,15 +58,19 @@ export const SwapConfirmationModal: React.FC<SwapConfirmationModalProps> = ({
       onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          <ScrollView style={styles.modal} showsVerticalScrollIndicator={false}>
-            {/* Header */}
-            <View style={styles.header}>
-              <Text style={styles.title}>Confirm Swap</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Text style={styles.closeText}>✕</Text>
-              </TouchableOpacity>
-            </View>
+          {/* Header - Fixed at top */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Confirm Swap</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.closeText}>✕</Text>
+            </TouchableOpacity>
+          </View>
 
+          {/* Scrollable Content with calculated height */}
+          <ScrollView
+            style={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContentContainer}>
             {/* Swap Visual */}
             <View style={styles.swapVisual}>
               {/* From Token */}
@@ -190,7 +197,6 @@ export const SwapConfirmationModal: React.FC<SwapConfirmationModalProps> = ({
                   <Text style={styles.routeTokenText}>{toToken}</Text>
                 </View>
               </View>
-              {/* <Text style={styles.routeNote}>Direct swap via Uniswap V3</Text> */}
             </View>
 
             {/* Warnings */}
@@ -222,46 +228,18 @@ export const SwapConfirmationModal: React.FC<SwapConfirmationModalProps> = ({
               </View>
             )}
 
-            {/* Processing Steps Info */}
-            {/* <View style={styles.stepsContainer}>
-              <Text style={styles.stepsTitle}>What happens next?</Text>
-              <View style={styles.stepsList}>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>1</Text>
-                  </View>
-                  <Text style={styles.stepText}>Prepare swap parameters</Text>
-                </View>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>2</Text>
-                  </View>
-                  <Text style={styles.stepText}>Estimate gas requirements</Text>
-                </View>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>3</Text>
-                  </View>
-                  <Text style={styles.stepText}>
-                    Send transaction to network
-                  </Text>
-                </View>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>4</Text>
-                  </View>
-                  <Text style={styles.stepText}>Wait for confirmation</Text>
-                </View>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>5</Text>
-                  </View>
-                  <Text style={styles.stepText}>Update balances</Text>
-                </View>
-              </View>
-            </View> */}
+            {/* Terms */}
+            <Text style={styles.termsText}>
+              By confirming, you agree that this swap cannot be reversed and you
+              understand the risks involved with DeFi trading.
+            </Text>
 
-            {/* Action Buttons */}
+            {/* Extra padding to ensure content is scrollable above buttons */}
+            <View style={styles.bottomSpacer} />
+          </ScrollView>
+
+          {/* Fixed Action Buttons at bottom - ALWAYS VISIBLE */}
+          <View style={styles.fixedButtonContainer}>
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -281,13 +259,7 @@ export const SwapConfirmationModal: React.FC<SwapConfirmationModalProps> = ({
                 )}
               </TouchableOpacity>
             </View>
-
-            {/* Terms */}
-            <Text style={styles.termsText}>
-              By confirming, you agree that this swap cannot be reversed and you
-              understand the risks involved with DeFi trading.
-            </Text>
-          </ScrollView>
+          </View>
         </View>
       </View>
     </Modal>
@@ -304,16 +276,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
-  },
-  modal: {
-    padding: 24,
+    height: screenHeight * 0.9, // Fixed height
+    flexDirection: 'column',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    padding: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  scrollContent: {
+    flex: 1, // Takes remaining space
+  },
+  scrollContentContainer: {
+    padding: 20,
+    paddingTop: 8,
+  },
+  bottomSpacer: {
+    height: 20, // Extra space at bottom for scrolling
+  },
+  fixedButtonContainer: {
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingBottom: 34, // Extra padding for Android navigation
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    paddingBottom: 20,
   },
   title: {
     fontSize: 20,
@@ -526,13 +521,6 @@ const styles = StyleSheet.create({
     color: '#81c8c3',
     fontWeight: 'bold',
   },
-  routeNote: {
-    fontSize: 11,
-    fontFamily: fontsFamily.Mulish,
-    color: '#666',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
   warningContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -593,51 +581,6 @@ const styles = StyleSheet.create({
     color: '#1565C0',
     lineHeight: 16,
   },
-  stepsContainer: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  stepsTitle: {
-    fontSize: 14,
-    fontFamily: fontsFamily.MulishBold,
-    color: '#000',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  stepsList: {
-    gap: 8,
-  },
-  stepItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#81c8c3',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  stepNumberText: {
-    fontSize: 12,
-    fontFamily: fontsFamily.MulishBold,
-    color: '#fff',
-  },
-  stepText: {
-    fontSize: 12,
-    fontFamily: fontsFamily.Mulish,
-    color: '#666',
-    flex: 1,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
   cancelButton: {
     flex: 1,
     backgroundColor: '#F5F5F5',
@@ -669,5 +612,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
     paddingHorizontal: 8,
+    marginTop: 16,
   },
 });
