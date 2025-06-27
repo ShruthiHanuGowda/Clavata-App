@@ -83,10 +83,6 @@ export default function Wallet(props: WalletProps) {
 
   const account: `0x${string}` = userDetails?.userWallet;
 
-  const {nfts, isLoading, refresh} = useNftsForAddress({
-    account: account,
-  });
-
   const formatValue = (
     value: number | string | undefined | null,
     fixed?: number,
@@ -243,10 +239,19 @@ export default function Wallet(props: WalletProps) {
         contentContainerStyle={{paddingBottom: 50}}
         refreshControl={
           <RefreshControl
-            refreshing={isBalanceLoading}
-            onRefresh={() => {
-              refreshAllBalances();
-              refresh();
+            refreshing={isBalanceLoading || pullToRefreshLoading}
+            onRefresh={async () => {
+              setPullToRefreshLoading(true);
+              try {
+                await refreshAllBalances();
+
+                await refresh();
+                await init();
+              } catch (error) {
+                console.error('Error during refresh:', error);
+              } finally {
+                setPullToRefreshLoading(false);
+              }
             }}
           />
         }>
@@ -277,12 +282,7 @@ export default function Wallet(props: WalletProps) {
           <View style={style.dividerCoins} />
           <View style={style.myCryptosContainer}>
             <Text style={style.HeaderFont}>My Certificates</Text>
-            <MyCertificatesList
-              nfts={nfts ?? []}
-              isLoading={isLoading}
-              refresh={refresh}
-              // containerStyle={{ marginHorizontal: 20 }}
-            />
+            <MyCertificatesList />
           </View>
 
           {/* <FlatList

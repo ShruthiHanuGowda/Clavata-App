@@ -16,24 +16,15 @@ import {NftToken} from '../../types/types';
 import {fontsFamily} from '../../Theme';
 import {formatQuantityMWh, getCountryFlag} from '../../utils';
 import {MediumLoader} from '../Loading/LoaderAnimation';
+import {useNft} from '../../../screens/Provider/NftProvider';
 
 interface Props {
-  nfts: NftToken[];
-  isLoading: boolean;
   containerStyle?: object;
-  refresh: () => void;
+  // Removed props that are now handled by the provider:
+  // nfts: NftToken[];
+  // isLoading: boolean;
+  // refresh: () => void;
 }
-
-const groupByCountry = (nfts: NftToken[]) => {
-  return nfts.reduce((acc, nft) => {
-    const country = nft?.country || 'Unknown';
-    if (!acc[country]) {
-      acc[country] = [];
-    }
-    acc[country].push(nft);
-    return acc;
-  }, {} as Record<string, NftToken[]>);
-};
 
 if (
   Platform.OS === 'android' &&
@@ -42,17 +33,32 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const MyCertificatesList = ({
-  nfts,
-  isLoading,
-  refresh,
-  containerStyle,
-}: Props) => {
-  const groupedNfts = groupByCountry(nfts);
+const MyCertificatesList = ({containerStyle}: Props) => {
+  // Get data from the NFT provider
+  const {
+    nfts,
+    isLoading,
+    isRefreshing,
+    refresh,
+    groupedByCountry,
+    getTotalQuantityByCountry,
+    hasNfts,
+    error,
+    clearError,
+  } = useNft();
+
   const [openCountries, setOpenCountries] = useState<Record<string, boolean>>(
     {},
   );
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  const handleRefresh = async () => {
+    try {
+      await refresh();
+    } catch (error) {
+      console.error('Error refreshing certificates:', error);
+    }
+  };
 
   const toggleCountry = (country: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -60,13 +66,6 @@ const MyCertificatesList = ({
       ...prev,
       [country]: !prev[country],
     }));
-  };
-
-  const getTotalQuantity = (nfts: NftToken[]) => {
-    return nfts.reduce((sum, nft) => {
-      const qty = parseFloat(String(nft?.marketData?.quantity ?? '0'));
-      return sum + (isNaN(qty) ? 0 : qty);
-    }, 0);
   };
 
   // Helper function to get country flag image from the first NFT of each country
@@ -91,10 +90,30 @@ const MyCertificatesList = ({
     }));
   };
 
+  // Handle error state
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorIcon}>⚠️</Text>
+        <Text style={styles.errorTitle}>Error Loading Certificates</Text>
+        <Text style={styles.errorMessage}>
+          Unable to load your certificates. Please try again.
+        </Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => {
+            clearError();
+            handleRefresh();
+          }}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        {/* <ActivityIndicator size='small' color="#009D94" /> */}
         <MediumLoader
           color="#009D94"
           size={'large'}
@@ -106,13 +125,18 @@ const MyCertificatesList = ({
     );
   }
 
-  if (!nfts || nfts.length === 0) {
+  if (!hasNfts) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyIcon}>📜</Text>
         <Text style={styles.emptyTitle}>No Certificates</Text>
-        <TouchableOpacity style={styles.refreshButton} onPress={refresh}>
-          <Text style={styles.refreshButtonText}>Refresh</Text>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={handleRefresh}
+          disabled={isRefreshing}>
+          <Text style={styles.refreshButtonText}>
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -120,9 +144,10 @@ const MyCertificatesList = ({
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
-      {Object.entries(groupedNfts).map(([country, countryNfts]) => {
+      {Object.entries(groupedByCountry).map(([country, countryNfts]) => {
         const isOpen = openCountries[country] ?? false;
         const countryImageUrl = getCountryImage(countryNfts);
+        const totalQuantity = getTotalQuantityByCountry(country);
 
         return (
           <View key={country} style={[styles.groupContainer, containerStyle]}>
@@ -150,7 +175,7 @@ const MyCertificatesList = ({
                   <Text style={styles.countryTitle}>{country}</Text>
                   <Text style={styles.subTitle}>
                     {countryNfts.length} Certificates • Total:{' '}
-                    {formatQuantityMWh(getTotalQuantity(countryNfts))}
+                    {formatQuantityMWh(totalQuantity)}
                   </Text>
                 </View>
               </View>
@@ -163,7 +188,7 @@ const MyCertificatesList = ({
                   <MyCertificateCard
                     key={`${nft.tokenId}-${nft.collectionAddress}`}
                     nft={nft}
-                    refresh={refresh}
+                    refresh={handleRefresh}
                     containerStyle={containerStyle}
                   />
                 ))}
@@ -184,6 +209,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 40,
   },
   emptyContainer: {
     flex: 1,
@@ -210,6 +236,43 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   refreshButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: fontsFamily.MulishBold,
+    textAlign: 'center',
+  },
+  // Error state styles
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+  },
+  errorIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  errorTitle: {
+    fontFamily: fontsFamily.MulishBold,
+    fontSize: 16,
+    color: '#E74C3C',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: '#6A6A6A',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#E74C3C',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  retryButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontFamily: fontsFamily.MulishBold,
