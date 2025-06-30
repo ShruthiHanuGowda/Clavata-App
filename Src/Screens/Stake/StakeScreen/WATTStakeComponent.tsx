@@ -7,8 +7,7 @@ import {DButton} from '../../../Componants';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useWallet} from '../../../../screens/Provider/WalletProvider';
-// Import your WATT staking hook here
-// import {useWATTStaking} from '../Hooks/useWATTStaking';
+import {useWATTStaking} from '../Hooks/useWATTStaking';
 
 interface WATTStakeComponentProps {
   validatorId: string;
@@ -18,16 +17,16 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
   validatorId,
 }) => {
   const {userDetails} = useAuth();
-  const {setActiveNetwork} = useMagic();
+  const {setActiveNetwork, activeNetwork} = useMagic();
   const {getBalance} = useWallet();
 
-  // Uncomment when you have the WATT staking hook
-  // const {
-  //   isLoading: isWATTStakingLoading,
-  //   error: wattStakingError,
-  //   delegateWATT,
-  //   getWATTBalance,
-  // } = useWATTStaking(validatorId);
+  const {
+    isLoading: isWATTStakingLoading,
+    error: wattStakingError,
+    wattBalance,
+    delegateWATT,
+    getWATTBalance,
+  } = useWATTStaking(validatorId);
 
   // State for amount input
   const [amount, setAmount] = useState<string>('');
@@ -35,28 +34,20 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
   const [amountError, setAmountError] = useState<string>('');
   const [txHash, setTxHash] = useState<string>('');
   const [txStatus, setTxStatus] = useState<string>('idle'); // 'idle', 'staking', 'success', 'failed'
-  const [wattBalance, setWattBalance] = useState<string>(
-    getBalance('watt').balance,
-  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    setActiveNetwork('denergy');
-    // Fetch WATT balance when component mounts
-    // fetchWATTBalance();
-  }, []);
+    const initializeComponent = async () => {
+      if (activeNetwork !== 'denergy') {
+        await setActiveNetwork('denergy');
+      }
 
-  // Uncomment when you have the WATT balance fetching functionality
-  // const fetchWATTBalance = async () => {
-  //   try {
-  //     if (userDetails?.denergyWallet) {
-  //       const balance = await getWATTBalance(userDetails.denergyWallet);
-  //       setWattBalance(balance);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching WATT balance:', error);
-  //   }
-  // };
+      // Fetch latest WATT balance
+      await getWATTBalance();
+    };
+
+    initializeComponent();
+  }, [activeNetwork, setActiveNetwork, getWATTBalance]);
 
   // Validate amount input
   const validateAmount = (value: string): boolean => {
@@ -98,6 +89,8 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
 
   // Handle amount change
   const handleAmountChange = (value: string): void => {
+    console.log('Amount input changed:', value);
+
     const isValid = validateAmount(value);
 
     if (isValid) {
@@ -106,7 +99,7 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
     }
   };
 
-  const handleStakeSuccess = result => {
+  const handleStakeSuccess = (result: any) => {
     console.log('WATT Staking successful:', result);
     setTxHash(result.txHash);
     setTxStatus('success');
@@ -124,7 +117,11 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
     // Reset form
     setAmount('');
     setIsAmountValid(false);
-    // fetchWATTBalance(); // Refresh balance
+
+    // Refresh balance after successful staking
+    setTimeout(() => {
+      getWATTBalance();
+    }, 2000);
   };
 
   // Handle stake button press
@@ -147,27 +144,23 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
     setTxStatus('staking');
 
     try {
-      // Call delegateWATT function from your hook
-      // Replace this with actual WATT staking logic
-      // await delegateWATT(
-      //   amount, // Amount to stake
-      //   handleStakeSuccess, // Success callback
-      // );
-
-      // Temporary simulation - remove when implementing actual staking
-      setTimeout(() => {
-        handleStakeSuccess({
-          txHash: '0x' + Math.random().toString(16).substring(2, 42),
-        });
-      }, 2000);
-    } catch (err) {
+      // Call delegateWATT function from the hook
+      await delegateWATT(
+        amount, // Amount to stake
+        handleStakeSuccess, // Success callback
+      );
+    } catch (err: any) {
       console.error('WATT Staking failed:', err);
       setTxStatus('failed');
 
       // Show error alert
-      Alert.alert('WATT Staking Failed', `Something went wrong while staking`, [
-        {text: 'OK'},
-      ]);
+      Alert.alert(
+        'WATT Staking Failed',
+        `Something went wrong while staking: ${
+          err?.message || 'Unknown error'
+        }`,
+        [{text: 'OK'}],
+      );
     } finally {
       if (txStatus !== 'success') {
         setTxStatus('idle');
@@ -181,7 +174,7 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
     setIsAmountValid(parseFloat(wattBalance) > 0);
   };
 
-  if (isLoading) {
+  if (isLoading || isWATTStakingLoading) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#008060" />
@@ -204,6 +197,13 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
         keyboardOpeningTime={250}
         resetScrollToCoords={{x: 0, y: 0}}
         scrollEventThrottle={16}>
+        {/* Error Display */}
+        {wattStakingError && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>⚠️ {wattStakingError}</Text>
+          </View>
+        )}
+
         {/* Balance Display */}
         <View style={styles.balanceContainer}>
           <Text style={styles.balanceLabel}>Available WATT Balance</Text>
@@ -229,12 +229,6 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
               styles.amountInput,
               amountError ? styles.inputError : null,
             ]}
-            onFocus={() => {
-              // Small delay to ensure keyboard is open before scrolling
-              setTimeout(() => {
-                // Additional scroll handling if needed
-              }, 100);
-            }}
           />
 
           {amountError ? (
@@ -243,7 +237,7 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
         </View>
 
         {/* Staking Information */}
-        {/* <View style={styles.infoContainer}>
+        <View style={styles.infoContainer}>
           <Text style={styles.infoTitle}>Staking Information</Text>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Validator ID:</Text>
@@ -254,10 +248,10 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
             <Text style={styles.infoValue}>WATT Token</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Expected APY:</Text>
-            <Text style={styles.infoValue}>~12%</Text>
+            <Text style={styles.infoLabel}>Network:</Text>
+            <Text style={styles.infoValue}>Denergy</Text>
           </View>
-        </View> */}
+        </View>
 
         {/* Transaction Status */}
         {txStatus === 'success' && txHash && (
@@ -269,18 +263,34 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
             </Text>
           </View>
         )}
+
+        {txStatus === 'failed' && (
+          <View style={styles.failureContainer}>
+            <Text style={styles.failureText}>❌ Staking Failed</Text>
+            <Text style={styles.failureSubText}>Please try again</Text>
+          </View>
+        )}
       </KeyboardAwareScrollView>
 
       {/* Stake Button - Fixed at bottom */}
       <View style={styles.buttonContainer}>
         <DButton
           onPress={handleStake}
-          loading={txStatus === 'staking'}
+          loading={txStatus === 'staking' || isWATTStakingLoading}
           style={[
             styles.stakeButton,
-            (!isAmountValid || txStatus === 'staking') && styles.disabledButton,
+            (!isAmountValid ||
+              txStatus === 'staking' ||
+              isWATTStakingLoading ||
+              parseFloat(wattBalance) <= 0) &&
+              styles.disabledButton,
           ]}
-          disabled={!isAmountValid || txStatus === 'staking'}>
+          disabled={
+            !isAmountValid ||
+            txStatus === 'staking' ||
+            isWATTStakingLoading ||
+            parseFloat(wattBalance) <= 0
+          }>
           <Text style={styles.stakeButtonText}>
             {txStatus === 'staking' ? 'Staking WATT...' : 'Stake WATT'}
           </Text>
@@ -316,6 +326,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: '#666',
+  },
+  errorContainer: {
+    backgroundColor: '#FFE8E8',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF3B30',
   },
   balanceContainer: {
     backgroundColor: '#F8F9FA',
@@ -438,6 +456,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontFamily: 'monospace',
+  },
+  failureContainer: {
+    backgroundColor: '#FFE8E8',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  failureText: {
+    fontSize: 16,
+    color: '#FF3B30',
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  failureSubText: {
+    fontSize: 12,
+    color: '#666',
   },
 });
 

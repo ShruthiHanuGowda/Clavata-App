@@ -346,15 +346,17 @@ import {
 } from 'react-native';
 import {Tab} from '@rneui/base';
 import {Colors, fontsFamily} from '../../../Theme';
-import {navigateBack} from '../../../utils/navigationService';
-import images from '../../../Theme/images';
+// import {navigateBack} from '../../../utils/navigationService';
+// import images from '../../../Theme/images';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
-import styles from './styles';
+// import styles from './styles';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
 import {formatQuantityMWh} from '../../../utils';
 import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
+import NFTStakeComponent from './NFTStakeComponent';
+import WATTStakeComponent from './WATTStakeComponent';
 // Interface for component props
 interface StakeScreenProps {
   route?: {
@@ -380,7 +382,8 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
     refresh,
   } = useNftsForAddress({
     account:
-      userDetails?.userWallet ?? '0x0000000000000000000000000000000000000000',
+      (userDetails?.userWallet as `0x${string}` | undefined | `0x${string}`) ??
+      '0x0000000000000000000000000000000000000000',
   });
 
   const {
@@ -396,9 +399,9 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
 
   const TAB_ITEMS: readonly string[] = ['NFT Staking', 'WATT Staking'];
 
-  useEffect(() => {
-    setActiveNetwork('denergy');
-  }, []);
+  // useEffect(() => {
+  //   setActiveNetwork('denergy');
+  // }, []);
 
   // Tab content components
   const NFTStakingContent = (): React.ReactElement => (
@@ -415,7 +418,7 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
 
   return (
     <SafeAreaView style={styles.mainContainer}>
-      {isNFTLoading ? (
+      {false ? (
         <View style={styles.loaderContainer}>
           {/* <ActivityIndicator size="large" color="#008060" />
           <Text style={styles.loaderText}>Loading Collections...</Text> */}
@@ -426,44 +429,44 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
             text="Loading Collections..."
           />
         </View>
+      ) : (
+        <View style={styles.container}>
+          <View style={styles.tabContainer}>
+            <Tab
+              value={index}
+              onChange={setIndex}
+              variant="primary"
+              indicatorStyle={{
+                backgroundColor: 'transparent',
+              }}
+              style={{backgroundColor: 'transparent'}}>
+              {TAB_ITEMS.map((tab, i) => (
+                <Tab.Item
+                  key={i}
+                  containerStyle={(active: boolean) => ({
+                    borderBottomColor: active ? '#009D94' : '#E1E1E1',
+                    borderBottomWidth: active ? 2 : 1.4,
+                    backgroundColor: 'transparent',
+                  })}
+                  title={tab}
+                  titleStyle={(active: boolean) => ({
+                    color: active ? '#000' : '#989898',
+                    fontFamily: active
+                      ? (fontsFamily as FontFamily).MulishExtraBold
+                      : (fontsFamily as FontFamily).MulishBold,
+                    fontSize: 14,
+                  })}
+                />
+              ))}
+            </Tab>
+          </View>
 
-        {/* Tab Navigation */}
-        <View style={styles.tabContainer}>
-          <Tab
-            value={index}
-            onChange={setIndex}
-            variant="primary"
-            indicatorStyle={{
-              backgroundColor: 'transparent',
-            }}
-            style={{backgroundColor: 'transparent'}}>
-            {TAB_ITEMS.map((tab, i) => (
-              <Tab.Item
-                key={i}
-                containerStyle={(active: boolean) => ({
-                  borderBottomColor: active ? '#009D94' : '#E1E1E1',
-                  borderBottomWidth: active ? 2 : 1.4,
-                  backgroundColor: 'transparent',
-                })}
-                title={tab}
-                titleStyle={(active: boolean) => ({
-                  color: active ? '#000' : '#989898',
-                  fontFamily: active
-                    ? (fontsFamily as FontFamily).MulishExtraBold
-                    : (fontsFamily as FontFamily).MulishBold,
-                  fontSize: 14,
-                })}
-              />
-            ))}
-          </Tab>
+          <View style={styles.contentContainer}>
+            {index === 0 && <NFTStakingContent />}
+            {index === 1 && <WATTStakingContent />}
+          </View>
         </View>
-
-        {/* Tab Content */}
-        <View style={styles.contentContainer}>
-          {index === 0 && <NFTStakingContent />}
-          {index === 1 && <WATTStakingContent />}
-        </View>
-      </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -471,6 +474,12 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
+    backgroundColor: '#FFF',
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#FFF',
   },
   container: {

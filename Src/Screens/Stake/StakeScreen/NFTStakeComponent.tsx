@@ -29,6 +29,8 @@ interface NFTStakeComponentProps {
 
 const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
   const {userDetails} = useAuth();
+  console.log('userDetails', userDetails);
+
   const {
     nfts,
     isLoading: isNFTLoading,
@@ -36,7 +38,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
     refresh,
   } = useNftsForAddress({
     account:
-      userDetails?.denergyWallet ??
+      (userDetails?.userWallet as `0x${string}`) ??
       '0x0000000000000000000000000000000000000000',
   });
 
@@ -46,7 +48,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
     delegateERC1155,
   } = useNFTStaking(validatorId);
 
-  const {setActiveNetwork} = useMagic();
+  const {setActiveNetwork, activeNetwork} = useMagic();
 
   // State for dropdown visibility
   const [bottomSheetVisible, setBottomSheetVisible] = useState<boolean>(false);
@@ -62,8 +64,10 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
   const [txStatus, setTxStatus] = useState<string>('idle'); // 'idle', 'staking', 'success', 'failed'
 
   useEffect(() => {
-    setActiveNetwork('denergy');
-    refresh();
+    if (activeNetwork !== 'denergy') {
+      setActiveNetwork('denergy');
+      refresh();
+    }
   }, []);
 
   // Handle NFT selection
