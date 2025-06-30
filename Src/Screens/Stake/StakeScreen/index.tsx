@@ -349,9 +349,12 @@ import {Colors, fontsFamily} from '../../../Theme';
 import {navigateBack} from '../../../utils/navigationService';
 import images from '../../../Theme/images';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
-import NFTStakeComponent from './NFTStakeComponent';
-import WATTStakeComponent from './WATTStakeComponent';
-
+import styles from './styles';
+import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
+import {useNFTStaking} from '../Hooks/useNFTStaking';
+import {formatQuantityMWh} from '../../../utils';
+import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
 // Interface for component props
 interface StakeScreenProps {
   route?: {
@@ -369,6 +372,23 @@ interface FontFamily {
 
 const StakeScreen: React.FC<StakeScreenProps> = props => {
   const validatorId = props?.route?.params?.validatorId;
+  const {userDetails} = useAuth();
+  const {
+    nfts,
+    isLoading: isNFTLoading,
+    error,
+    refresh,
+  } = useNftsForAddress({
+    account:
+      userDetails?.userWallet ?? '0x0000000000000000000000000000000000000000',
+  });
+
+  const {
+    isLoading: isNFTStakingLoading,
+    error: nftStakingError,
+    delegateERC1155,
+  } = useNFTStaking(validatorId);
+
   const {setActiveNetwork} = useMagic();
 
   // State for tab management
@@ -395,15 +415,16 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
 
   return (
     <SafeAreaView style={styles.mainContainer}>
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.headerContainer}>
-          <Pressable
-            onPress={() => navigateBack()}
-            style={styles.iconContainer}>
-            <Image source={images.back} style={styles.backIcon} />
-          </Pressable>
-          <Text style={styles.header}>Stake</Text>
+      {isNFTLoading ? (
+        <View style={styles.loaderContainer}>
+          {/* <ActivityIndicator size="large" color="#008060" />
+          <Text style={styles.loaderText}>Loading Collections...</Text> */}
+          <LoaderAnimation
+            size="large"
+            color="#008060"
+            showText={true}
+            text="Loading Collections..."
+          />
         </View>
 
         {/* Tab Navigation */}

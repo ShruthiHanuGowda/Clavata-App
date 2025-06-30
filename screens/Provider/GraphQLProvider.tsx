@@ -72,6 +72,8 @@ export const GraphQLProvider: React.FC<AppProviderProps> = ({children}) => {
       console.log('User is logged in:', isLoggedIn);
       if (isLoggedIn) {
         const idToken = await magic.user.getIdToken({lifespan: 86400});
+        console.log('idToken', idToken);
+
         const clientWithToken = createApolloClient(idToken);
         setApolloClient(clientWithToken);
       } else {

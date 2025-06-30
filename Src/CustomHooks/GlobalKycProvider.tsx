@@ -343,7 +343,7 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
           levelName: 'basic-kyc-level',
         },
       });
-      console.log('🚀 ~ handleKYCToken ~ result:', result);
+      console.log('🚀 ~ handleKYCToken ~ result:111', result);
 
       let responseData = result.data?.createKYCVerification?.response;
       console.log('responseData', responseData);
@@ -355,6 +355,7 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
       let parsedData: any;
       if (typeof responseData === 'string') {
         parsedData = JSON.parse(responseData);
+        console.log('🚀 ~ handleKYCToken ~ parsedData:', parsedData);
       } else {
         parsedData = responseData;
       }
@@ -363,12 +364,13 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
       let bodyData: any;
       if (typeof parsedData.body === 'string') {
         bodyData = JSON.parse(parsedData.body);
+        console.log('🚀 ~ handleKYCToken ~ bodyData:', bodyData);
       } else {
         bodyData = parsedData.body || parsedData;
       }
 
       const token = bodyData?.accessTokenData?.token || null;
-      const userId = bodyData?.accessTokenData?.userId || null;
+      const userId = bodyData?.applicantId || null;
 
       if (token) {
         return {accessToken: token, userId};
@@ -435,7 +437,10 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
 
   // Handle verification completion
   const handleVerificationCompleted = useCallback(
-    async (applicantId: string, accessToken: string): Promise<void> => {
+    async (
+      applicantId: string | null,
+      accessToken: string | null,
+    ): Promise<void> => {
       setTimeout(async () => {
         try {
           await updateUserKycStatus(true, applicantId, accessToken);
@@ -480,6 +485,7 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
 
         // Get access token
         const tokenResult = await handleKYCToken();
+        console.log('🚀 ~ useCallback ~ tokenResult:', tokenResult);
         if (!tokenResult) {
           throw new Error('Could not obtain verification token');
         }
@@ -497,38 +503,40 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
                 event.newStatus.toLowerCase() === 'approved' ||
                 event.newStatus.toLowerCase() === 'pending'
               ) {
-                console.log('KYC Status changed to:', event.newStatus);
+                console.log('KYC Status changed to:', event.newStatus, userId);
+              }
+              if (event.newStatus.toLowerCase() === 'approved') {
+                handleVerificationCompleted(userId, accessToken);
               }
             },
             onLog: (event: SumSubLogEvent) => {
-              let applicantId: string | null = null;
-
-              if (
-                Platform.OS === 'ios' &&
-                event.message.includes('sdk.applicant:') &&
-                event.message.includes('reviewStatus=completed')
-              ) {
-                const applicantIdMatch = event.message.match(
-                  /applicantId=([a-zA-Z0-9]+)/,
-                );
-                if (applicantIdMatch && applicantIdMatch[1]) {
-                  applicantId = applicantIdMatch[1];
-                }
-              } else if (
-                Platform.OS === 'android' &&
-                event.message.includes('On Load Data Success for applicant:')
-              ) {
-                const applicantIdMatch = event.message.match(
-                  /On Load Data Success for applicant:\s*([a-zA-Z0-9]+)/,
-                );
-                if (applicantIdMatch && applicantIdMatch[1]) {
-                  applicantId = applicantIdMatch[1];
-                }
-              }
-
-              if (applicantId) {
-                handleVerificationCompleted(applicantId, accessToken);
-              }
+              // let applicantId: string | null = null;
+              // if (
+              //   Platform.OS === 'ios' &&
+              //   event.message.includes('sdk.applicant:') &&
+              //   event.message.includes('reviewStatus=completed')
+              // ) {
+              //   const applicantIdMatch = event.message.match(
+              //     /applicantId=([a-zA-Z0-9]+)/,
+              //   );
+              //   if (applicantIdMatch && applicantIdMatch[1]) {
+              //     applicantId = applicantIdMatch[1];
+              //   }
+              // } else if (
+              //   Platform.OS === 'android' &&
+              //   event.message.includes('On Load Data Success for applicant:')
+              // ) {
+              //   const applicantIdMatch = event.message.match(
+              //     /On Load Data Success for applicant:\s*([a-zA-Z0-9]+)/,
+              //   );
+              //   if (applicantIdMatch && applicantIdMatch[1]) {
+              //     applicantId = applicantIdMatch[1];
+              //   }
+              // }
+              // if (applicantId) {
+              //   console.log('🚀 ~ handleKYCToken ~ applicantId:', applicantId);
+              //   handleVerificationCompleted(applicantId, accessToken);
+              // }
             },
           })
           .withDebug(true)

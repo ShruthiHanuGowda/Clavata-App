@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {
   View,
   Image,
@@ -10,24 +10,32 @@ import {
   Pressable,
   ImageSourcePropType,
   Alert,
+  Linking,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { CustomImageButton, Header, RadioButton } from '../../../../Componants';
-import { BottomSheet } from 'react-native-btr';
-import { Colors, fontsFamily, Images } from '../../../../Theme';
-import { SCREEN_CONSTANT } from '../../../../Navigation/constant';
-import { navigateTo } from '../../../../utils/navigationService';
-import { TouchableOpacity } from 'react-native-gesture-handler';
-import { Path, Svg } from 'react-native-svg';
-import { ScreenWidth } from '@rneui/base';
-import { marketIcons } from '../../../../Theme/variable';
-import { DText } from '../../../../Componants/DText';
-import { navigateBack } from '../../../../Navigation/NavigationFunctions';
-import { useWallet } from '../../../../../screens/Provider/WalletProvider';
-import { ReactElement } from 'react';
-import { useMagic } from '../../../../../screens/Provider/MagicProvider';
-import { useAuth } from '../../../../../screens/Provider/authProvider';
-import { useBridge } from '../../../../hooks/useBridge';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import Clipboard from '@react-native-clipboard/clipboard';
+import {BottomSheet} from 'react-native-btr';
+import {CustomImageButton, Header, RadioButton} from '../../../../Componants';
+import {Animation, Colors, fontsFamily, Images} from '../../../../Theme';
+import {SCREEN_CONSTANT} from '../../../../Navigation/constant';
+import {navigateTo} from '../../../../utils/navigationService';
+import {TouchableOpacity} from 'react-native-gesture-handler';
+import {Path, Svg} from 'react-native-svg';
+import {ScreenWidth} from '@rneui/base';
+import {marketIcons} from '../../../../Theme/variable';
+import {DText} from '../../../../Componants/DText';
+import {navigateBack} from '../../../../Navigation/NavigationFunctions';
+import {useWallet} from '../../../../../screens/Provider/WalletProvider';
+import {ReactElement} from 'react';
+import {useMagic} from '../../../../../screens/Provider/MagicProvider';
+import {useAuth} from '../../../../../screens/Provider/authProvider';
+import {useBridge} from '../../../../hooks/useBridge';
+import LottieView from 'lottie-react-native';
+import LoadingScreenWithStep from '../../../../Componants/Loading/LoadingScreenWIthStep';
+import {getBlockExploreLink} from '../../../../utils/explorer';
+import {SnackBarMessage} from '../../../../utils/snackBar';
+import {useSuccessSound} from '../../../../hooks/useSuccessSound';
+
 // Define types
 type TokenKey = 'USDC' | 'WUSDC' | 'EURC' | 'WEURC';
 
@@ -77,19 +85,38 @@ interface FeeApiResponse {
   };
 }
 
+interface LoadingScreenProps {
+  title?: string;
+  subtitle?: string;
+  icon?: string;
+  progress?: number;
+  showProgressBar?: boolean;
+  showStepIndicators?: boolean;
+  stepIndicatorCount?: number;
+  feeInfo?: string;
+  animationSource?: any;
+  animationStyle?: object;
+  containerStyle?: object;
+  titleStyle?: object;
+  subtitleStyle?: object;
+  progressBarColor?: string;
+  backgroundColor?: string;
+  iconBackgroundColor?: string;
+}
+
 // Token definitions
 const TOKENS: Record<TokenKey, TokenInfo> = {
-  USDC: { name: 'USDC', wrapped: 'WUSDC', network: 'ETH' },
-  WUSDC: { name: 'wUSDC', unwrapped: 'USDC', network: 'DENERGY' },
-  EURC: { name: 'EURC', wrapped: 'WEURC', network: 'ETH' },
-  WEURC: { name: 'wEURC', unwrapped: 'EURC', network: 'DENERGY' },
+  USDC: {name: 'USDC', wrapped: 'WUSDC', network: 'ETH'},
+  WUSDC: {name: 'wUSDC', unwrapped: 'USDC', network: 'DENERGY'},
+  EURC: {name: 'EURC', wrapped: 'WEURC', network: 'ETH'},
+  WEURC: {name: 'wEURC', unwrapped: 'EURC', network: 'DENERGY'},
 };
 
 const allCoins: TokenOption[] = [
-  { key: 'USDC', text: 'USDC' },
-  { key: 'WUSDC', text: 'wUSDC' },
-  { key: 'EURC', text: 'EURC' },
-  { key: 'WEURC', text: 'wEURC' },
+  {key: 'USDC', text: 'USDC'},
+  {key: 'WUSDC', text: 'wUSDC'},
+  {key: 'EURC', text: 'EURC'},
+  {key: 'WEURC', text: 'wEURC'},
 ];
 
 // Helper function to format amounts
@@ -114,10 +141,9 @@ const initiateSwapApi = async (
   params: SwapApiParams,
 ): Promise<[Error | null, SwapApiResponse | null]> => {
   try {
-    // Simulated API response
     const result: SwapApiResponse = {
       data: {
-        conversionAmountInUsd: parseFloat(params.amount) * 0.98, // 2% conversion rate loss
+        conversionAmountInUsd: parseFloat(params.amount) * 0.98,
         conversionAmount: parseFloat(params.amount) * 0.98,
       },
     };
@@ -131,10 +157,9 @@ const networkFeeApi = async (
   params: SwapApiParams,
 ): Promise<[Error | null, FeeApiResponse | null]> => {
   try {
-    // Simulated API response
     const result: FeeApiResponse = {
       data: {
-        networkFee: parseFloat(params.amount) * 0.01, // 1% network fee
+        networkFee: parseFloat(params.amount) * 0.01,
       },
     };
     return [null, result];
@@ -144,16 +169,22 @@ const networkFeeApi = async (
 };
 
 export default function TransferCoin(props: TransferCoinProps): ReactElement {
-  const { getBalance } = useWallet();
+  const {getBalance} = useWallet();
   const {
     isLoading: bridgeLoading,
     error: bridgeError,
+    currentProcessingStep,
+    stepProgress,
+    bridgeSuccess,
+    transactionHash,
     bridgeUSDC,
     bridgeEURC,
     bridgeWUSDC,
     bridgeWEURC,
+    resetBridgeState,
   } = useBridge();
 
+  const {setActiveNetwork, activeNetwork} = useMagic();
   const initialCoinCode = props?.route?.params?.coinCode || 'USDC';
 
   // State management
@@ -178,25 +209,35 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [visible, setVisible] = useState<boolean>(false);
   const [options, setOptions] = useState<TokenOption[]>([]);
+  const [currentStep, setCurrentStep] = useState<
+    'form' | 'processing' | 'success'
+  >('form');
 
-  // Get balance for the selected token
-  const { balance: tokenBalance, balanceUsd: tokenBalanceUsd }: TokenBalance =
+  const {balance: tokenBalance, balanceUsd: tokenBalanceUsd}: TokenBalance =
     getBalance(selectedToken);
 
-  // Update target token whenever source token changes
+  const {
+    playSuccessSound,
+    isLoaded: soundLoaded,
+    error: soundError,
+  } = useSuccessSound();
+
+  useEffect(() => {
+    if (bridgeSuccess) {
+      setCurrentStep('success');
+    }
+  }, [bridgeSuccess]);
+
   useEffect(() => {
     const token = TOKENS[selectedToken];
     if (token) {
       if (transactionType === 0) {
-        // Deposit
         setTargetToken(token.wrapped || 'WUSDC');
       } else {
-        // Withdraw
         setTargetToken(token.unwrapped || 'USDC');
       }
     }
 
-    // Reset amount when token changes
     setAmount('');
     setAmountInTokens('0');
     setUsdValue(0);
@@ -207,7 +248,6 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   // Update available options when transaction type changes
   useEffect(() => {
     if (transactionType === 0) {
-      // Deposit options - non-wrapped tokens
       setOptions(
         allCoins.filter(coin => coin.key === 'USDC' || coin.key === 'EURC'),
       );
@@ -215,11 +255,10 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         coinCode === 'WUSDC'
           ? 'USDC'
           : coinCode === 'WEURC'
-            ? 'EURC'
-            : coinCode,
+          ? 'EURC'
+          : coinCode,
       );
     } else {
-      // Withdraw options - wrapped tokens
       setOptions(
         allCoins.filter(coin => coin.key === 'WUSDC' || coin.key === 'WEURC'),
       );
@@ -227,8 +266,8 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         coinCode === 'USDC'
           ? 'WUSDC'
           : coinCode === 'EURC'
-            ? 'WEURC'
-            : coinCode,
+          ? 'WEURC'
+          : coinCode,
       );
     }
   }, [transactionType]);
@@ -238,10 +277,8 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     const validateAndInitiateSwap = async (): Promise<void> => {
       const cleanAmount = sanitizeInputValue(amount);
 
-      // Reset errors and values first
       setErrorMessage(null);
 
-      // Skip processing for empty or zero amounts
       if (
         !cleanAmount ||
         parseFloat(cleanAmount) === 0 ||
@@ -253,7 +290,6 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         return;
       }
 
-      // Check if amount exceeds balance
       if (parseFloat(cleanAmount) > parseFloat(tokenBalance)) {
         setErrorMessage('Insufficient balance');
         setUsdValue(0);
@@ -262,35 +298,43 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         return;
       }
 
-      // Amount is valid, initiate swap
       await initiateSwap(cleanAmount);
     };
 
     validateAndInitiateSwap();
   }, [amount, tokenBalance]);
 
+  useEffect(() => {
+    if (currentStep === 'success') {
+      const timer = setTimeout(() => {
+        if (soundLoaded) {
+          console.log('Playing success sound...');
+          playSuccessSound();
+        } else {
+          console.log(
+            'Sound not loaded yet, isLoaded:',
+            soundLoaded,
+            'error:',
+            soundError,
+          );
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, soundLoaded, soundError]);
+
   // API call to get swap details
   const initiateSwap = async (val: string): Promise<void> => {
     try {
       setIsLoading(true);
 
-      // Prepare API params
       const params: SwapApiParams = {
         sourceCoin: selectedToken,
         amount: val,
         targetCoin: selectedTargetToken,
       };
-      console.log(
-        '🚀 ~ initiateSwap ~ params: SwapApiParams.selectedTargetToken:',
-        selectedToken,
-      );
-      console.log('🚀 ~ initiateSwap ~ params: SwapApiParams.val:', val);
-      console.log(
-        '🚀 ~ initiateSwap ~ params: SwapApiParams.selectedToken:',
-        selectedToken,
-      );
 
-      // Call APIs
       const [error, result] = await initiateSwapApi(params);
       const [feeError, feeResult] = await networkFeeApi(params);
 
@@ -299,9 +343,8 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
       }
 
       setIsLoading(false);
-      // setUsdValue(result.data.conversionAmountInUsd);
       setAmountInTokens(val);
-      setNetworkFee('0');
+      setNetworkFee(0);
     } catch (error) {
       setIsLoading(false);
       setErrorMessage('Error fetching conversion data');
@@ -331,65 +374,52 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
   // Handle transaction submission
   const onSubmit = async (): Promise<void> => {
+    setCurrentStep('processing');
+    resetBridgeState();
+
     if (selectedToken === 'USDC') {
       try {
         await bridgeUSDC(amount, result => {
-          console.log('Bridge successful:');
-
-          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
-            amount: result?.amount,
-            coinCode: 'USDC',
-            name: 'WUSDC',
-          });
+          console.log('Bridge successful:', result);
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
+        setCurrentStep('form');
       }
     }
     if (selectedToken === 'EURC') {
       try {
         await bridgeEURC(amount, result => {
-          console.log('Bridge successful:');
-
-          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
-            amount: result?.amount,
-            coinCode: 'EURC',
-            name: 'WEURC',
-          });
+          console.log('Bridge successful:', result);
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
+        setCurrentStep('form');
       }
     }
     if (selectedToken === 'WUSDC') {
       try {
         await bridgeWUSDC(amount, result => {
-          console.log('Bridge successful:');
-
-          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
-            amount: result?.amount,
-            coinCode: 'WUSdC',
-            name: 'USDC',
-          });
+          console.log('Bridge successful:', result);
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
+        setCurrentStep('form');
       }
     }
 
     if (selectedToken === 'WEURC') {
       try {
         await bridgeWEURC(amount, result => {
-          console.log('Bridge successful:');
-
-          navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
-            amount: result?.amount,
-            coinCode: 'WEURC',
-            name: 'EURC',
-          });
+          console.log('Bridge successful:', result);
         });
       } catch (error) {
         console.error('Bridge failed:', error);
+        SnackBarMessage('Bridge failed', 'error');
+        setCurrentStep('form');
       }
     }
   };
@@ -417,6 +447,199 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     return token ? token.name : tokenKey;
   };
 
+  // Handle success navigation
+  const handleSuccessNavigation = (): void => {
+    const targetCoinCode =
+      transactionType === 0
+        ? selectedToken === 'USDC'
+          ? 'USDC'
+          : 'EURC'
+        : selectedToken === 'WUSDC'
+        ? 'WUSDC'
+        : 'WEURC';
+
+    const targetName =
+      transactionType === 0
+        ? selectedToken === 'USDC'
+          ? 'WUSDC'
+          : 'WEURC'
+        : selectedToken === 'WUSDC'
+        ? 'USDC'
+        : 'EURC';
+    navigateTo('D.Energy');
+    // navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
+    //   amount: amount,
+    //   coinCode: targetCoinCode,
+    //   name: targetName,
+    // });
+  };
+
+  const formatTxHash = (hash: string): string => {
+    if (!hash) return '';
+    return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
+  };
+
+  const renderProcessing = (): ReactElement => {
+    const operationType = transactionType === 0 ? 'Deposit' : 'Withdrawal';
+    const networkFrom = transactionType === 0 ? 'Ethereum' : 'DENERGY';
+    const networkTo = transactionType === 0 ? 'DENERGY' : 'Ethereum';
+
+    return (
+      <LoadingScreenWithStep
+        title={`Processing ${operationType}...`}
+        subtitle={
+          currentProcessingStep ||
+          `Bridging ${selectedToken} from ${networkFrom} to ${networkTo}`
+        }
+        icon={transactionType === 0 ? '📥' : '📤'}
+        progress={stepProgress}
+        showProgressBar={true}
+        showStepIndicators={true}
+        animationSource={Animation.bridgeAnimation}
+        stepIndicatorCount={9}
+        feeInfo={
+          networkFee > 0
+            ? `Network Fee: ${formatAmount(
+                networkFee.toString(),
+              )} ${selectedToken}`
+            : undefined
+        }
+        progressBarColor="#81c8c3"
+        backgroundColor="#FFF"
+        iconBackgroundColor="#E8F8F7"
+      />
+    );
+  };
+
+  const renderSuccess = (): ReactElement => {
+    const operationType = transactionType === 0 ? 'Deposit' : 'Withdrawal';
+    const sourceNetwork = transactionType === 0 ? 'ETH' : 'DENERGY';
+    const targetNetwork = transactionType === 0 ? 'DENERGY' : 'ETH';
+
+    const handleViewExplorer = () => {
+      if (!transactionHash) {
+        Alert.alert('Error', 'Transaction hash not available');
+        return;
+      }
+
+      const explorerUrl = getBlockExploreLink(
+        transactionHash,
+        'transaction',
+        sourceNetwork === 'ETH' ? 11155111 : '',
+      );
+
+      Linking.openURL(explorerUrl).catch(err => {
+        console.error('Failed to open explorer:', err);
+        Alert.alert('Error', 'Could not open explorer');
+      });
+    };
+
+    const handleCopyHash = () => {
+      if (!transactionHash) {
+        Alert.alert('Error', 'Transaction hash not available');
+        return;
+      }
+
+      Clipboard.setString(transactionHash);
+      Alert.alert('Copied!', 'Transaction hash copied to clipboard');
+    };
+
+    return (
+      <View style={successStyles.container}>
+        {/* Success Icon and Title */}
+        <View style={successStyles.headerSection}>
+          <View style={successStyles.successIconContainer}>
+            <LottieView
+              source={Animation.transferSuccessAnimation}
+              autoPlay
+              duration={1000}
+              loop={false}
+              style={successStyles.successAnimation}
+              speed={2}
+            />
+          </View>
+          <DText fontStyle="fontBold" style={successStyles.title}>
+            {operationType} Successful!
+          </DText>
+          <DText style={successStyles.subtitle}>
+            Your bridge transaction completed successfully
+          </DText>
+        </View>
+
+        {/* Main Info Card */}
+        <View style={successStyles.infoCard}>
+          {/* Amount Section */}
+          <View style={successStyles.amountSection}>
+            <DText style={successStyles.amountLabel}>Amount Bridged</DText>
+            <DText fontStyle="fontBold" style={successStyles.amountValue}>
+              {amount} {selectedToken}
+            </DText>
+            <View style={successStyles.networkFlow}>
+              <View style={successStyles.networkBadge}>
+                <DText style={successStyles.networkText}>{sourceNetwork}</DText>
+              </View>
+              <View style={successStyles.arrowContainer}>
+                <Text style={successStyles.arrow}>→</Text>
+              </View>
+              <View style={successStyles.networkBadge}>
+                <DText style={successStyles.networkText}>{targetNetwork}</DText>
+              </View>
+            </View>
+          </View>
+
+          {/* Transaction Hash Section */}
+          {transactionHash && (
+            <View style={successStyles.hashSection}>
+              <DText style={successStyles.hashLabel}>Transaction Hash</DText>
+              <View style={successStyles.hashContainer}>
+                <Pressable
+                  style={successStyles.hashDisplay}
+                  onPress={handleCopyHash}>
+                  <Text style={successStyles.hashText}>
+                    {formatTxHash(transactionHash)}
+                  </Text>
+                  <Text style={successStyles.copyIcon}>📋</Text>
+                </Pressable>
+                <Pressable
+                  style={successStyles.explorerButton}
+                  onPress={handleViewExplorer}>
+                  <Text style={successStyles.explorerIcon}>🔍</Text>
+                </Pressable>
+              </View>
+              <DText style={successStyles.hashHint}>
+                Tap hash to copy • Tap 🔍 to view on explorer
+              </DText>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  // Render current step
+  const renderCurrentStep = (): ReactElement => {
+    switch (currentStep) {
+      case 'processing':
+        return renderProcessing();
+      case 'success':
+        return (
+          <ScrollView style={styles.screen}>
+            {renderSuccess()}
+            <CustomImageButton
+              backgroundImage={Images.buttonBg}
+              label="Continue"
+              labelStyle={styles.buttonLabelStyle}
+              onPress={handleSuccessNavigation}
+              containerWrapper={styles.submitButtonContainer}
+              bgImg={styles.submitButtonImage}
+            />
+          </ScrollView>
+        );
+      default:
+        return renderForm();
+    }
+  };
+
   // RENDER COMPONENTS
   const renderBalanceInfo = (): ReactElement => (
     <View style={styles.balanceInfoContainer}>
@@ -440,7 +663,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
           </View>
         )}
 
-        <View style={[styles.balanceInnerView, { marginBottom: 15 }]}>
+        <View style={[styles.balanceInnerView, {marginBottom: 15}]}>
           <Text style={styles.networkLabel}>
             {transactionType === 0 ? 'To DENERGY Network' : 'To ETH Network'}
           </Text>
@@ -465,12 +688,12 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         }}
         style={[
           styles.tabButton,
-          { backgroundColor: transactionType === 0 ? '#000' : '#fff' },
+          {backgroundColor: transactionType === 0 ? '#000' : '#fff'},
         ]}>
         <Text
           style={[
             styles.tabButtonText,
-            { color: transactionType === 0 ? '#fff' : '#000' },
+            {color: transactionType === 0 ? '#fff' : '#000'},
           ]}>
           Deposit
         </Text>
@@ -484,12 +707,12 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         }}
         style={[
           styles.tabButton,
-          { backgroundColor: transactionType === 1 ? '#000' : '#fff' },
+          {backgroundColor: transactionType === 1 ? '#000' : '#fff'},
         ]}>
         <Text
           style={[
             styles.tabButtonText,
-            { color: transactionType === 1 ? '#fff' : '#000' },
+            {color: transactionType === 1 ? '#fff' : '#000'},
           ]}>
           Withdraw
         </Text>
@@ -506,17 +729,15 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         style={styles.tokenDropdown}
         activeOpacity={1}
         onPress={isSelectable ? () => toggleBottomView('press') : undefined}>
-        <Image source={marketIcons[tokenKey] as ImageSourcePropType} style={{ width: 24, height: 24 }} />
+        <Image
+          source={marketIcons[tokenKey] as ImageSourcePropType}
+          style={{width: 24, height: 24}}
+        />
         <Text style={styles.tokenDropdownText}>
           {getDisplayTokenName(tokenKey)}
         </Text>
         {isSelectable && (
-          <Svg
-            width="15"
-            height="8"
-            viewBox="0 0 15 8"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
+          <Svg width="15" height="8" viewBox="0 0 15 8" fill="none">
             <Path
               d="M13.2599 1.24914L8.36988 6.13914C7.79238 6.71664 6.84738 6.71664 6.26988 6.13914L1.37988 1.24914"
               stroke="#292D32"
@@ -545,7 +766,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         <RadioButton
           PROP={options}
           selectedOption={selectedOption}
-          selectedValue={value => selectedValue(value as TokenKey)}
+          selectedValue={(value: TokenKey) => selectedValue(value as TokenKey)}
         />
 
         <CustomImageButton
@@ -560,15 +781,9 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     </BottomSheet>
   );
 
-  // MAIN RENDER
-  return (
-    <SafeAreaView style={styles.screen}>
-      <Header
-        headerTitle="Bridge"
-        hideBorder={true}
-        backBtn={() => navigateBack()}
-      />
-
+  // Main form component
+  const renderForm = (): ReactElement => (
+    <>
       {renderTransactionTypeTabs()}
 
       <ScrollView keyboardShouldPersistTaps="handled" style={styles.container}>
@@ -623,7 +838,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
       {/* Submit button */}
       <CustomImageButton
         backgroundImage={Images.buttonBg}
-        label={bridgeLoading ? 'Sending...' : 'Next'}
+        label={bridgeLoading ? 'Processing...' : 'Bridge'}
         labelStyle={styles.buttonLabelStyle}
         onPress={onSubmit}
         containerWrapper={styles.submitButtonContainer}
@@ -633,9 +848,210 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
       {/* Token selection modal */}
       {renderTokenSelectionModal()}
+    </>
+  );
+
+  // MAIN RENDER
+  return (
+    <SafeAreaView style={styles.screen}>
+      <Header
+        headerTitle="Bridge"
+        hideBorder={true}
+        backBtn={() => navigateBack()}
+      />
+      {renderCurrentStep()}
     </SafeAreaView>
   );
 }
+
+const successStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
+  },
+  headerSection: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  successIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#E8F5E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#4CAF50',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  successAnimation: {
+    width: 80,
+    height: 80,
+  },
+  successIcon: {
+    fontSize: 50,
+  },
+  title: {
+    fontSize: 28,
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  infoCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  amountSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9ECEF',
+  },
+  amountLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  amountValue: {
+    fontSize: 32,
+    color: '#1A1A1A',
+    marginBottom: 16,
+  },
+  networkFlow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  networkBadge: {
+    backgroundColor: '#81c8c3',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  networkText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  arrowContainer: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E9ECEF',
+  },
+  arrow: {
+    fontSize: 16,
+    color: '#81c8c3',
+    fontWeight: 'bold',
+  },
+  hashSection: {
+    marginBottom: 24,
+  },
+  hashLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  hashContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  hashDisplay: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  hashText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+    fontFamily: 'monospace',
+    fontWeight: '600',
+    flex: 1,
+  },
+  copyIcon: {
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  hashHint: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  explorerButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#81c8c3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#81c8c3',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  explorerIcon: {
+    fontSize: 20,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  statItem: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  statIcon: {
+    fontSize: 24,
+  },
+  statText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+});
 
 const styles = StyleSheet.create({
   screen: {
@@ -646,7 +1062,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
-  // Tabs styles
   tabsContainer: {
     height: 40,
     width: '80%',
@@ -672,7 +1087,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 15,
   },
-  // Token dropdown styles
   tokenDropdownContainer: {
     justifyContent: 'center',
     alignItems: 'center',

@@ -58,30 +58,27 @@ export const WalletProvider = ({children}: {children: ReactNode}) => {
 
   // Function to refresh a single token balance
   const refreshBalance = async (tokenSymbol: string): Promise<TokenBalance> => {
-    if (!userDetails?.ethereumWallet) {
+    if (!userDetails?.userWallet) {
       return {balance: '0', balanceUsd: '0'};
     }
     return await fetchSingleBalance(
-      userDetails.ethereumWallet,
-      userDetails.denergyWallet,
+      userDetails.userWallet,
+      userDetails.userWallet,
       tokenSymbol,
     );
   };
 
   // Function to refresh all wallet balances
   const refreshAllBalances = async (): Promise<void> => {
-    if (userDetails?.ethereumWallet) {
-      await fetchAllBalances(
-        userDetails.ethereumWallet,
-        userDetails.denergyWallet,
-      );
+    if (userDetails?.userWallet) {
+      await fetchAllBalances(userDetails.userWallet, userDetails.userWallet);
     }
   };
 
   // Fetch all balances whenever userDetails changes and a wallet address is available
   useEffect(() => {
-    if (userDetails?.ethereumWallet && userDetails?.denergyWallet) {
-      fetchAllBalances(userDetails.ethereumWallet, userDetails.denergyWallet);
+    if (userDetails?.userWallet && userDetails?.userWallet) {
+      fetchAllBalances(userDetails.userWallet, userDetails.userWallet);
     }
   }, [userDetails, fetchAllBalances]);
 

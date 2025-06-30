@@ -27,6 +27,9 @@ interface DTextInputProps {
     | 'decimal-pad'
     | 'numeric'
     | 'url';
+  multiline?: boolean;
+  numberOfLines?: number;
+  editable?: boolean;
 }
 
 interface DEmailInputProps {
@@ -47,7 +50,7 @@ export function DEmailInput({
   const handleOnChange = (text: string) => {
     let re = /\S+@\S+\.\S+/;
     let regex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/im;
-    setValue(text);
+    setValue(text.trim());
     setValid(re.test(text) || regex.test(text));
   };
 

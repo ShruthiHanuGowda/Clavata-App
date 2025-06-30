@@ -18,9 +18,9 @@ type Overrides = {
 
 export function useCallWithGasPrice() {
   // const gasPrice = useGasPrice();
-  const {magic_denergy} = useMagic();
+  const {magic} = useMagic();
 
-  const provider = new BrowserProvider(magic_denergy.rpcProvider as any);
+  const provider = new BrowserProvider(magic.rpcProvider as any);
 
   const callWithGasPrice = useCallback(
     async (

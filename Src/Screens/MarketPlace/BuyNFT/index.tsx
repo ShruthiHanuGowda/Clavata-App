@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -12,20 +12,24 @@ import ReviewStage from './ReviewStage';
 import ApproveAndConfirmStage from './ApproveAndConfirmStage';
 import ConfirmStage from './ConfirmStage';
 import TransactionConfirmed from './TransactionConfirmed';
-import { NftToken } from '../../../types/types';
-import { useWallet } from '../../../../screens/Provider/WalletProvider';
-import { useMagic } from '../../../../screens/Provider/MagicProvider';
-import { useAuth } from '../../../../screens/Provider/authProvider';
-import { useCallWithGasPrice } from '../../../hooks/marketplace/useCallWithGasPrice';
-import { getMinAsk, getMinAskPrice } from '../../../hooks/marketPlace';
-import { TOKEN_CONTRACTS } from '../../../constants';
-import { getNftMarketContract, useERC20 } from '../../../hooks/marketplace/useContracts';
+import {NftToken} from '../../../types/types';
+import {useWallet} from '../../../../screens/Provider/WalletProvider';
+import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useCallWithGasPrice} from '../../../hooks/marketplace/useCallWithGasPrice';
+import {getMinAsk, getMinAskPrice} from '../../../hooks/marketPlace';
+import {TOKEN_CONTRACTS} from '../../../constants';
+import {
+  getNftMarketContract,
+  useERC20,
+} from '../../../hooks/marketplace/useContracts';
 import useApproveConfirmTransaction from '../../../hooks/marketplace/useApproveConfirmTransaction';
-import { requiresApproval } from '../../../hooks/marketplace/requiresApproval';
-import { MaxUint256 } from 'ethers';
-import { SnackBarMessage } from '../../../utils/snackBar';
-import { navigateBack } from '../../../Navigation/NavigationFunctions';
-import { Header } from '../../../Componants';
+import {requiresApproval} from '../../../hooks/marketplace/requiresApproval';
+import {MaxUint256} from 'ethers';
+import {SnackBarMessage} from '../../../utils/snackBar';
+import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import {Header} from '../../../Componants';
+import {navigateTo} from '../../../utils/navigationService';
 
 enum BuyingStage {
   REVIEW = 'REVIEW',
@@ -63,8 +67,8 @@ interface BuyNFTScreenProps {
   };
 }
 
-const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({ navigation, route }) => {
-  const { nftToBuy, currentSeller } = route.params;
+const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
+  const {nftToBuy, currentSeller} = route.params;
 
   const [stage, setStage] = useState<BuyingStage>(BuyingStage.REVIEW);
   const [quantity, setQuantity] = useState<number>(1);
@@ -73,13 +77,13 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({ navigation, route }) => {
   );
   const [confirmedTxHash, setConfirmedTxHash] = useState<string>('');
 
-  const { refreshBalance, getBalance } = useWallet();
-  const { magic_denergy } = useMagic();
-  const { userDetails } = useAuth();
-  const { callWithGasPrice } = useCallWithGasPrice();
-  const { balance } = getBalance('WUSDC');
+  const {refreshBalance, getBalance} = useWallet();
+  const {magic} = useMagic();
+  const {userDetails} = useAuth();
+  const {callWithGasPrice} = useCallWithGasPrice();
+  const {balance} = getBalance('WUSDC');
 
-  const account = userDetails?.denergyWallet as `0x${string}`;
+  const account = userDetails?.userWallet as `0x${string}`;
   const nftPrice = getMinAskPrice(nftToBuy?.marketData?.activeAsks ?? []);
   const availableQuantity =
     getMinAsk(nftToBuy?.marketData?.activeAsks ?? []).amount ?? '0';
@@ -118,7 +122,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({ navigation, route }) => {
     });
   }, [stage, navigation]);
 
-  const { isApproved, isApproving, isConfirming, handleApprove, handleConfirm } =
+  const {isApproved, isApproving, isConfirming, handleApprove, handleConfirm} =
     useApproveConfirmTransaction({
       onRequiresApproval: () => {
         return requiresApproval(
@@ -126,7 +130,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({ navigation, route }) => {
           account,
           marketAddress,
           MaxUint256,
-          magic_denergy,
+          magic,
         );
       },
       onApprove: () => {
@@ -135,7 +139,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({ navigation, route }) => {
           MaxUint256,
         ]);
       },
-      onApproveSuccess: async ({ receipt }) => {
+      onApproveSuccess: async ({receipt}) => {
         SnackBarMessage(
           `Contract approved - you can now buy NFT with ${paymentCurrency}!`,
           'success',
@@ -143,6 +147,8 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({ navigation, route }) => {
       },
       onConfirm: async () => {
         const adjustedQuantity = BigInt(quantity * 1_000_000);
+        console.log(adjustedQuantity);
+
         return callWithGasPrice(nftMarketContract, 'buyToken', [
           nftToBuy.collectionAddress,
           BigInt(nftToBuy.tokenId),
@@ -150,7 +156,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({ navigation, route }) => {
           BigInt(adjustedQuantity),
         ]);
       },
-      onSuccess: ({ receipt }) => {
+      onSuccess: ({receipt}) => {
         console.log(receipt);
         SnackBarMessage(`Your NFT has been sent to your wallet`, 'success');
         setConfirmedTxHash(receipt.hash);
@@ -174,7 +180,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({ navigation, route }) => {
   };
 
   const handleComplete = () => {
-    navigation.navigate('Marketplace');
+    navigateTo('D.Energy');
   };
 
   const renderStage = () => {
@@ -243,7 +249,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({ navigation, route }) => {
       <Header
         headerTitle={stageConfig[stage].title}
         backBtn={() => navigateBack()}
-        containerStyle={{ backgroundColor: '#f9fafa' }}
+        containerStyle={{backgroundColor: '#f9fafa'}}
         hideBorder
       />
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />

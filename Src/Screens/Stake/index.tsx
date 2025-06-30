@@ -90,24 +90,24 @@ function Stake(props: StakeProps): JSX.Element {
 
   // Fetch staked pool data
   const fetchStakedPoolData = useCallback(() => {
-    if (userDetails?.denergyWallet) {
+    if (userDetails?.userWallet) {
       fetchStakedPool({
-        delegatorAddress: userDetails.denergyWallet,
+        delegatorAddress: userDetails.userWallet,
         first: 20,
         orderBy: 'createdAt',
         orderDirection: 'desc',
         skip: 0,
       });
     }
-  }, [userDetails?.denergyWallet, fetchStakedPool]);
+  }, [userDetails?.userWallet, fetchStakedPool]);
 
   // Initial data fetch
   useEffect(() => {
-    if (isInitialLoad && userDetails?.denergyWallet) {
+    if (isInitialLoad && userDetails?.userWallet) {
       fetchStakedPoolData();
       setIsInitialLoad(false);
     }
-  }, [userDetails?.denergyWallet, fetchStakedPoolData, isInitialLoad]);
+  }, [userDetails?.userWallet, fetchStakedPoolData, isInitialLoad]);
 
   // Process API data into UI format
   useEffect(() => {

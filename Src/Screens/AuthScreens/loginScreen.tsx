@@ -11,12 +11,13 @@ import {
 import 'react-native-get-random-values';
 import '@ethersproject/shims'; // for ethers.js
 import {ethers} from 'ethers';
+import LottieView from 'lottie-react-native'; // Add this import
 import styles from './styles';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import {navReset} from '../../Navigation/NavigationFunctions';
 import {DButton, Header} from '../../Componants';
-import {Colors, Images} from '../../Theme';
+import {Animation, Colors, Images} from '../../Theme';
 import {DEmailInput} from '../../Componants/Dinputs';
 import {useLazyQuery} from '@apollo/client';
 import {GET_USER_WALLET_ADDRESS} from '../../graphql/queries';
@@ -25,6 +26,9 @@ import {useApolloClientContext} from '../../../screens/Provider/GraphQLProvider'
 
 // REPLACE: Import the new global KYC system instead of old providers
 import {useKycCheck} from '../../CustomHooks/GlobalKycProvider';
+
+// Import your Lottie JSON file
+// import loadingAnimation from '../../assets/animations/loading.json'; // Adjust path as needed
 
 // Keep your existing utility function
 export const parseDataAndReturnFixedInfo = (data: any) => {
@@ -52,14 +56,14 @@ export const parseDataAndReturnFixedInfo = (data: any) => {
     // If fixedInfo is not found, return null
     console.warn('fixedInfo not found in the provided data');
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error parsing data:', error.message);
     return null;
   }
 };
 
 export default function LoginScreen() {
-  const {magic, magic_sepolia, magic_denergy, setActiveNetwork} = useMagic();
+  const {magic, setActiveNetwork} = useMagic();
   const {updateUserData, userDetails} = useAuth();
   const {updateClientWithToken} = useApolloClientContext();
 
@@ -80,8 +84,8 @@ export default function LoginScreen() {
 
   // Use refs to track callback execution and KYC processes
   const callbackExecutedRef = useRef(false);
-  const kycCompletionTimeoutRef = useRef(null);
-  const kycPollingIntervalRef = useRef(null);
+  const kycCompletionTimeoutRef = useRef<any>(null);
+  const kycPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // OPTIMIZED: Query to check if user exists in DB - WITHOUT inline callbacks
   const [
@@ -253,6 +257,141 @@ export default function LoginScreen() {
     }
   }, [checkKYC, isKycCompleted, kycInProgress, navigateToApp]);
 
+  // Check if user is logged in to primary network - memoized
+  const checkPrimaryNetworkAuth = useCallback(async () => {
+    try {
+      const isLoggedIn = await magic.user.isLoggedIn();
+      console.log('User is logged in:', isLoggedIn);
+
+      if (isLoggedIn) {
+        const userData = await magic.user.getInfo();
+        await updateClientWithToken();
+        return {
+          isLoggedIn,
+          publicAddress: userData?.publicAddress,
+          userData,
+        };
+      }
+      return {isLoggedIn, publicAddress: null, userData: null};
+    } catch (error) {
+      console.error('Primary network auth error:', error);
+      return {isLoggedIn: false, publicAddress: null, userData: null, error};
+    }
+  }, [magic.user, updateClientWithToken]);
+
+  // Check if user is logged in to Sepolia network - memoized
+  const checkSepoliaNetworkAuth = useCallback(async () => {
+    try {
+      await setActiveNetwork('sepolia');
+      const isLoggedIn = await magic.user.isLoggedIn();
+      if (isLoggedIn) {
+        const userData = await magic.user.getInfo();
+        return {
+          isLoggedIn,
+          publicAddress: userData?.publicAddress,
+          userData,
+        };
+      }
+
+      return {isLoggedIn, publicAddress: null, userData: null};
+    } catch (error) {
+      console.error(
+        'Sepolia network auth error:',
+        JSON.stringify(error, null, 2),
+      );
+      return {isLoggedIn: false, publicAddress: null, userData: null, error};
+    }
+  }, [magic.user, setActiveNetwork]);
+
+  // Check if user is logged in to Denergy network - memoized
+  const checkDenergyNetworkAuth = useCallback(async () => {
+    try {
+      await setActiveNetwork('denergy');
+      console.log('Attempting to get Denergy user info...');
+
+      const isLoggedIn = await magic.user.isLoggedIn();
+      console.log('Is user logged in to Denergy?', isLoggedIn);
+
+      if (isLoggedIn) {
+        const userData = await magic.user.getInfo();
+
+        return {
+          isLoggedIn,
+          publicAddress: userData?.publicAddress,
+          userData,
+        };
+      }
+
+      console.log('Need to authenticate on Denergy first');
+      return {isLoggedIn, publicAddress: null, userData: null};
+    } catch (error) {
+      console.error(
+        'Denergy network auth error:',
+        JSON.stringify(error, null, 2),
+      );
+      return {isLoggedIn: false, publicAddress: null, userData: null, error};
+    }
+  }, [magic.user, setActiveNetwork]);
+
+  // Main function to check all networks - memoized
+  const checkAllNetworks = useCallback(async () => {
+    try {
+      // First check primary network
+      const primaryNetworkData = await checkPrimaryNetworkAuth();
+      console.log('primaryNetworkData', primaryNetworkData);
+
+      // Only proceed if logged in to primary network
+      if (!primaryNetworkData.isLoggedIn) {
+        console.log(
+          'User not logged in to primary network. Please authenticate first.',
+        );
+        return {
+          isLoggedIn: false,
+          addresses: {},
+        };
+      }
+
+      // Check other networks
+      // const sepoliaNetworkData = await checkSepoliaNetworkAuth();
+      // const denergyNetworkData = await checkDenergyNetworkAuth();
+
+      // Collect all public addresses
+      // const addresses = {
+      //   primary: primaryNetworkData.publicAddress,
+      //   sepolia: sepoliaNetworkData.publicAddress,
+      //   denergy: denergyNetworkData.publicAddress,
+      // };
+      const addresses = {
+        primary: primaryNetworkData.publicAddress,
+        sepolia: primaryNetworkData.publicAddress,
+        denergy: primaryNetworkData.publicAddress,
+      };
+
+      console.log('🚀 ~ checkAllNetworks ~ addresses:', addresses);
+
+      return {
+        isLoggedIn: true,
+        addresses,
+        networkData: {
+          primary: primaryNetworkData,
+          sepolia: primaryNetworkData,
+          denergy: primaryNetworkData,
+        },
+      };
+    } catch (error) {
+      console.error('Error checking all networks:', error);
+      return {
+        isLoggedIn: false,
+        addresses: {},
+        error,
+      };
+    }
+  }, [
+    checkPrimaryNetworkAuth,
+    checkSepoliaNetworkAuth,
+    checkDenergyNetworkAuth,
+  ]);
+
   // ENHANCED: Handle user data from query with improved KYC flow
   const handleUserData = useCallback(
     async (data: UserData): Promise<void> => {
@@ -264,10 +403,6 @@ export default function LoginScreen() {
           // User exists in DB - store data in context
           const apiData: UserAuth = {
             date: data.getUserWalletAddress.date || new Date().toISOString(),
-            denergyWallet: data.getUserWalletAddress
-              .denergyWallet as `0x${string}`,
-            ethereumWallet: data.getUserWalletAddress
-              .ethereumWallet as `0x${string}`,
             userWallet: data.getUserWalletAddress.userWallet || null,
             emailAddress: data.getUserWalletAddress.emailAddress || null,
             is_verified: data.getUserWalletAddress.is_verified || false,
@@ -350,142 +485,15 @@ export default function LoginScreen() {
     ],
   );
 
-  // Check if user is logged in to primary network - memoized
-  const checkPrimaryNetworkAuth = useCallback(async () => {
-    try {
-      const isLoggedIn = await magic.user.isLoggedIn();
-      if (isLoggedIn) {
-        const userData = await magic.user.getInfo();
-        await updateClientWithToken();
-        return {
-          isLoggedIn,
-          publicAddress: userData?.publicAddress,
-          userData,
-        };
-      }
-      return {isLoggedIn, publicAddress: null, userData: null};
-    } catch (error) {
-      console.error('Primary network auth error:', error);
-      return {isLoggedIn: false, publicAddress: null, userData: null, error};
-    }
-  }, [magic.user, updateClientWithToken]);
-
-  // Check if user is logged in to Sepolia network - memoized
-  const checkSepoliaNetworkAuth = useCallback(async () => {
-    try {
-      await setActiveNetwork('sepolia');
-      const isLoggedIn = await magic_sepolia.user.isLoggedIn();
-      if (isLoggedIn) {
-        const userData = await magic_sepolia.user.getInfo();
-        return {
-          isLoggedIn,
-          publicAddress: userData?.publicAddress,
-          userData,
-        };
-      }
-
-      return {isLoggedIn, publicAddress: null, userData: null};
-    } catch (error) {
-      console.error(
-        'Sepolia network auth error:',
-        JSON.stringify(error, null, 2),
-      );
-      return {isLoggedIn: false, publicAddress: null, userData: null, error};
-    }
-  }, [magic_sepolia.user, setActiveNetwork]);
-
-  // Check if user is logged in to Denergy network - memoized
-  const checkDenergyNetworkAuth = useCallback(async () => {
-    try {
-      await setActiveNetwork('denergy');
-      console.log('Attempting to get Denergy user info...');
-
-      const isLoggedIn = await magic_denergy.user.isLoggedIn();
-      console.log('Is user logged in to Denergy?', isLoggedIn);
-
-      if (isLoggedIn) {
-        const userData = await magic_denergy.user.getInfo();
-
-        return {
-          isLoggedIn,
-          publicAddress: userData?.publicAddress,
-          userData,
-        };
-      }
-
-      console.log('Need to authenticate on Denergy first');
-      return {isLoggedIn, publicAddress: null, userData: null};
-    } catch (error) {
-      console.error(
-        'Denergy network auth error:',
-        JSON.stringify(error, null, 2),
-      );
-      return {isLoggedIn: false, publicAddress: null, userData: null, error};
-    }
-  }, [magic_denergy.user, setActiveNetwork]);
-
-  // Main function to check all networks - memoized
-  const checkAllNetworks = useCallback(async () => {
-    try {
-      // First check primary network
-      const primaryNetworkData = await checkPrimaryNetworkAuth();
-
-      // Only proceed if logged in to primary network
-      if (!primaryNetworkData.isLoggedIn) {
-        console.log(
-          'User not logged in to primary network. Please authenticate first.',
-        );
-        return {
-          isLoggedIn: false,
-          addresses: {},
-        };
-      }
-
-      // Check other networks
-      const sepoliaNetworkData = await checkSepoliaNetworkAuth();
-      const denergyNetworkData = await checkDenergyNetworkAuth();
-
-      // Collect all public addresses
-      const addresses = {
-        primary: primaryNetworkData.publicAddress,
-        sepolia: sepoliaNetworkData.publicAddress,
-        denergy: denergyNetworkData.publicAddress,
-      };
-
-      return {
-        isLoggedIn: true,
-        addresses,
-        networkData: {
-          primary: primaryNetworkData,
-          sepolia: sepoliaNetworkData,
-          denergy: denergyNetworkData,
-        },
-      };
-    } catch (error) {
-      console.error('Error checking all networks:', error);
-      return {
-        isLoggedIn: false,
-        addresses: {},
-        error,
-      };
-    }
-  }, [
-    checkPrimaryNetworkAuth,
-    checkSepoliaNetworkAuth,
-    checkDenergyNetworkAuth,
-  ]);
-
   // ENHANCED: Create wallets and prepare user data for new users
   const prepareNewUserData = useCallback(async () => {
     try {
       const result = await checkAllNetworks();
-      setActiveNetwork('default');
+      setActiveNetwork('sepolia');
       const userData = await magic.user.getInfo();
 
       const walletData: any = {
         emailAddress: userData.email,
-        ethereumWallet: result?.networkData?.sepolia?.publicAddress,
-        denergyWallet: result?.networkData?.denergy?.publicAddress,
         userWallet: result?.networkData?.primary?.publicAddress,
         date: new Date().toISOString(),
         is_verified: false,
@@ -547,7 +555,7 @@ export default function LoginScreen() {
   useEffect(() => {
     console.log('Checking user session');
     checkUserSession();
-  }, []); // Empty dependency array - only runs once on mount
+  }, []);
 
   // OPTIMIZED: Handle login with email OTP - memoized
   const loginEmailOTP = useCallback(async () => {
@@ -588,8 +596,6 @@ export default function LoginScreen() {
   // NEW: Additional effect to listen for KYC completion changes
   useEffect(() => {
     if (isKycCompleted && kycInProgress) {
-      console.log('🎉 KYC completion detected via useEffect');
-
       // Clear any ongoing processes
       if (kycPollingIntervalRef.current) {
         clearInterval(kycPollingIntervalRef.current);
@@ -609,6 +615,55 @@ export default function LoginScreen() {
     }
   }, [isKycCompleted, kycInProgress, navigateToApp]);
 
+  const LoadingScreen = ({message}: {message: string}) => (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        paddingHorizontal: 20,
+      }}>
+      <LottieView
+        source={Animation.loaderAnimation}
+        autoPlay
+        loop
+        style={{
+          width: 150,
+          height: 150,
+        }}
+        speed={1}
+        colorFilters={[
+          {
+            keypath: 'layer_name',
+            color: Colors?.success || '#4CAF50',
+          },
+        ]}
+      />
+
+      <Text
+        style={{
+          marginTop: 20,
+          fontSize: 16,
+          color: '#333',
+          textAlign: 'center',
+          fontWeight: '500',
+        }}>
+        {message}
+      </Text>
+
+      <Text
+        style={{
+          marginTop: 8,
+          fontSize: 14,
+          color: '#666',
+          textAlign: 'center',
+        }}>
+        Please wait...
+      </Text>
+    </View>
+  );
+
   return (
     <SafeAreaView
       style={{
@@ -617,18 +672,9 @@ export default function LoginScreen() {
         paddingTop: Platform.OS === 'ios' ? 0 : 20,
       }}>
       {isScreenLoading ? (
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: '#fff',
-          }}>
-          <ActivityIndicator size="large" color={Colors?.success} />
-          <Text style={{marginTop: 20}}>
-            {kycInProgress ? 'Processing KYC...' : 'Checking session...'}
-          </Text>
-        </View>
+        <LoadingScreen
+          message={kycInProgress ? 'Processing KYC...' : 'Checking session...'}
+        />
       ) : (
         <View style={{flex: 1}}>
           <Header headerTitle="Login" hideBorder={true} hideBackIcon={true} />

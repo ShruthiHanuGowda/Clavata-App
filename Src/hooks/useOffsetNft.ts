@@ -11,7 +11,6 @@ import {
 import {useWallet} from '../../screens/Provider/WalletProvider';
 import {ApolloClient, HttpLink, InMemoryCache, useQuery} from '@apollo/client';
 import {LIST_PLATFORM_SETTINGS} from '../graphql/queries';
-import {se} from 'date-fns/locale';
 
 const TREASURY_ADDRESS = '0x756Ba4Bd0eFEd10c5F5C3C76f15893d0bB2387A4';
 
@@ -25,17 +24,34 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
-export const useOffsetNft = (
-  magic_denergy: any,
-  account: any,
-  walletAddress: any,
-) => {
+export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
   const [isLoadingOffset, setIsLoadingOffset] = useState(false);
+  const [currentProcessingStep, setCurrentProcessingStep] = useState('');
+  const [stepProgress, setStepProgress] = useState(0);
   const [redemptionUrl, setRedemptionUrl] = useState('');
   const [pdfDownloadUrl, setPdfDownloadUrl] = useState('');
   const [transactionHash, setTransactionHash] = useState('');
   const [offsetSuccess, setOffsetSuccess] = useState(false);
   const {refreshBalance, getBalance} = useWallet();
+
+  const PROCESSING_STEPS: any = {
+    VALIDATING: {text: 'Validating transaction details...', progress: 10},
+    CHECKING_BALANCE: {text: 'Checking WUSDC balance...', progress: 20},
+    CHECKING_NFT_BALANCE: {text: 'Verifying NFT balance...', progress: 30},
+    BURNING_TOKENS: {text: 'Redeeming Certificates...', progress: 50},
+    PROCESSING_TAX: {text: 'Processing transaction fee...', progress: 70},
+    GENERATING_CERTIFICATE: {text: 'Generating certificate...', progress: 85},
+    FINALIZING: {text: 'Finalizing offset...', progress: 95},
+    COMPLETED: {text: 'Offset completed successfully!', progress: 100},
+  };
+
+  const updateProcessingStep = (stepKey: string) => {
+    const step = PROCESSING_STEPS[stepKey];
+    if (step) {
+      setCurrentProcessingStep(step.text);
+      setStepProgress(step.progress);
+    }
+  };
 
   const {loading, error, data, refetch} = useQuery(LIST_PLATFORM_SETTINGS, {
     client,
@@ -62,6 +78,8 @@ export const useOffsetNft = (
     setPdfDownloadUrl('');
     setTransactionHash('');
     setOffsetSuccess(false);
+    setCurrentProcessingStep('');
+    setStepProgress(0);
   };
 
   const validateOffsetVolume = (volume: string, nftQuantity: number) => {
@@ -134,21 +152,27 @@ export const useOffsetNft = (
   const executeOffset = async (offsetData: any, nft: any) => {
     const {volume, startDate, endDate, purpose, taxAmount} = offsetData;
 
-    const validation = validateOffsetVolume(volume, nft?.marketData?.quantity);
-    if (!validation.isValid) {
-      SnackBarMessage('Invalid volume entered', 'error');
-      return false;
-    }
-
     setIsLoadingOffset(true);
+    updateProcessingStep('VALIDATING');
 
     try {
-      const magicProvider = new BrowserProvider(magic_denergy.rpcProvider);
-      const signer = await magicProvider.getSigner();
-      const token = await magic_denergy.user.getIdToken();
+      // Step 1: Validation
+      const validation = validateOffsetVolume(
+        volume,
+        nft?.marketData?.quantity,
+      );
+      if (!validation.isValid) {
+        SnackBarMessage('Invalid volume entered', 'error');
+        return false;
+      }
 
+      const magicProvider = new BrowserProvider(magic.rpcProvider);
+      const signer = await magicProvider.getSigner();
+      const token = await magic.user.getIdToken();
+
+      // Step 2: Check WUSDC balance if tax required
       if (taxAmount > 0) {
-        // console.log('Checking WUSDC balance for tax payment...');
+        updateProcessingStep('CHECKING_BALANCE');
         const balanceCheck = await checkWUSDCBalance(magicProvider, taxAmount);
 
         if (!balanceCheck.hasEnoughBalance) {
@@ -160,6 +184,8 @@ export const useOffsetNft = (
         }
       }
 
+      // Step 3: Check NFT balance
+      updateProcessingStep('CHECKING_NFT_BALANCE');
       const collectionContract = new Contract(
         nft?.collectionAddress,
         ERC1155_ABI,
@@ -179,7 +205,8 @@ export const useOffsetNft = (
         return false;
       }
 
-      // console.log('Executing burn transaction...');
+      // Step 4: Burn tokens
+      updateProcessingStep('BURNING_TOKENS');
       const receipt = await collectionContract.burn(
         account,
         BigInt(nft?.tokenId),
@@ -187,20 +214,24 @@ export const useOffsetNft = (
       );
 
       await receipt.wait();
-      // console.log('Burn transaction successful:', receipt.hash);
+      console.log('Burn transaction successful:', receipt.hash);
       setTransactionHash(receipt?.hash);
 
+      // Step 5: Process tax payment
       if (taxAmount > 0) {
+        updateProcessingStep('PROCESSING_TAX');
         try {
           const taxResult = await sendWUSDCToTreasury(magicProvider, taxAmount);
-
-          // console.log('Tax payment successful:', taxResult?.hash);
+          console.log('Tax payment successful:', taxResult?.hash);
         } catch (taxError) {
           console.error('Tax payment failed:', taxError);
           SnackBarMessage('Tax payment failed. Please try again.', 'error');
           return false;
         }
       }
+
+      // Step 6: Generate certificate
+      updateProcessingStep('GENERATING_CERTIFICATE');
       const body = JSON.stringify({
         volumeInput: volume,
         periodStart: new Date(startDate),
@@ -215,7 +246,8 @@ export const useOffsetNft = (
           },
         ],
       });
-      // console.log('Calling offset API...');
+
+      console.log('Calling offset API...');
       const response = await fetch(API_OFFSETTING_URL, {
         method: 'POST',
         headers: {
@@ -228,7 +260,11 @@ export const useOffsetNft = (
       const data = await response.json();
       console.log(data);
 
+      // Step 7: Finalize
+      updateProcessingStep('FINALIZING');
+
       if (data?.status === 'success') {
+        updateProcessingStep('COMPLETED');
         console.log(data?.data.redemptionStatementUrl);
 
         setRedemptionUrl(data?.data?.redemptionStatementUrl);
@@ -272,6 +308,8 @@ export const useOffsetNft = (
 
   return {
     isLoadingOffset,
+    currentProcessingStep,
+    stepProgress,
     redemptionUrl,
     pdfDownloadUrl,
     transactionHash,

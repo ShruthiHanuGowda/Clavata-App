@@ -16,7 +16,7 @@ interface UserAuth {
   recoveryFactors: string[];
 }
 const LoginScreenNew: React.FC = (props: {magic: any; web3?: any}) => {
-  const {magic, magic_sepolia, magic_denergy, setActiveNetwork} = useMagic();
+  const {magic, setActiveNetwork} = useMagic();
   // const {magic} = props;
   // const {updateUserData, isAuthenticated, userDetails} = useAuth();
   // console.log(':rocket: ~ isAuthenticated:', isAuthenticated, userDetails);

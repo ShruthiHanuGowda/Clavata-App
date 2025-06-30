@@ -7,10 +7,7 @@ export const CREATE_USER_WALLETS = gql`
   ) {
     createUserWalletAddress(input: $createuserwalletaddressinput) {
       emailAddress
-      denergyWallet
-      ethereumWallet
       userWallet
-
       date
       applicantId
       accessToken
@@ -48,8 +45,6 @@ export const GET_USER_WALLET_ADDRESS = gql`
   query getUserWalletAddress($emailAddress: String!) {
     getUserWalletAddress(emailAddress: $emailAddress) {
       emailAddress
-      denergyWallet
-      ethereumWallet
       userWallet
       is_verified
       date

@@ -237,7 +237,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
 
             // Use the appropriate address for each token
             const addressToUse = info.useAddress;
-
+            
             if (addressToUse && ethers.isAddress(addressToUse)) {
               const balance = await contract.balanceOf(addressToUse);
               const formattedBalance = ethers.formatUnits(balance, 6);

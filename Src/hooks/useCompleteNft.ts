@@ -1,11 +1,39 @@
 import {useState, useEffect, useCallback} from 'react';
 import {NftLocation, NftToken} from '../types/types';
 import {getNftsMarketData} from './marketPlace';
+import { Contract } from 'ethers';
+
+// Metadata structure based on your JSON example
+interface NFTMetadata {
+  name: string;
+  description: string;
+  image: string;
+  energy_type_image: string;
+  country_image: string;
+  external_url: string;
+  attributes: Array<{
+    trait_type: string;
+    value: string | number;
+  }>;
+}
 
 export const useCompleteNft = (id: string) => {
   const [nft, setNft] = useState<NftToken | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchMetadata = async (metadataUrl: string): Promise<NFTMetadata | null> => {
+    try {
+      const response = await fetch(metadataUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch metadata: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching metadata:', error);
+      return null;
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -18,27 +46,45 @@ export const useCompleteNft = (id: string) => {
 
       const [fetchedNfts] = (await getNftsMarketData(where, 1)) || [];
 
+      
+      if (!fetchedNfts) {
+        setError('NFT not found');
+        setLoading(false);
+        return;
+      }
+      
+      let metadata: NFTMetadata | null = null;
+      if (fetchedNfts?.metadataUrl) {
+        metadata = await fetchMetadata(fetchedNfts.metadataUrl);
+      }
+
       const nft: NftToken = {
         id: fetchedNfts?.id,
         tokenId: fetchedNfts?.tokenId,
-        name: `${fetchedNfts?.collection?.name} #${fetchedNfts?.tokenId}`,
-        description: '',
+        name: metadata?.name || `${fetchedNfts?.collection?.name} #${fetchedNfts?.tokenId}`,
+        description: metadata?.description || '',
         collectionName: fetchedNfts?.collection?.name,
         collectionAddress: fetchedNfts?.collection?.id,
         totalListed: fetchedNfts?.totalListed || '0',
         image: {
-          original: '',
-          thumbnail: '',
+          original: metadata?.image || '',
+          thumbnail: metadata?.image || '', // Use same image for thumbnail, or create a separate thumbnail logic
         },
-        attributes: [],
+        attributes: metadata?.attributes || [],
         marketData: fetchedNfts,
         location: NftLocation.FORSALE,
+        // Add metadata fields to the NFT object
+        metadata: metadata ? {
+          energy_type_image: metadata.energy_type_image,
+          country_image: metadata.country_image,
+          external_url: metadata.external_url,
+        } : undefined,
       };
+      
       setNft(nft);
       setLoading(false);
-    } catch (err) {
+    } catch (err: any) {
       console.log(err);
-
       setLoading(false);
       setError(err.message || 'Failed to fetch NFT data');
     }
@@ -48,11 +94,11 @@ export const useCompleteNft = (id: string) => {
     if (id) {
       fetchData();
     }
-  }, [id]);
+  }, [id, fetchData]);
 
   const refetch = useCallback(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   return {
     nft,

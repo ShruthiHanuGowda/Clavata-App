@@ -240,10 +240,15 @@ export default function Account(props) {
           title="My Account"
           index={1}
         />
-        <MenuList
+        {/* <MenuList
           onPress={() => navigateTo('beneficary')}
           img={images.addbenificiaries}
           title="Saved Beneficiaries"
+        /> */}
+        <MenuList
+          onPress={() => navigateTo('AddressBook')}
+          img={images.addbenificiaries}
+          title="Address Book"
         />
         {/* <MenuList
           onPress={() => navigateTo(SCREEN_CONSTANT.FAQ)}

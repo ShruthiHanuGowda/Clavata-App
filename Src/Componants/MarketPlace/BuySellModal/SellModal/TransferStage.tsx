@@ -7,10 +7,10 @@ import {
   Image,
   TouchableOpacity,
 } from 'react-native';
-import { NftToken } from '../../../../types/types';
-import { useAuth } from '../../../../../screens/Provider/authProvider';
-import { formatQuantityMWh } from '../../../../utils';
-import { NFT_DEFAULT_IMAGE_URL } from '../../../../constants';
+import {NftToken} from '../../../../types/types';
+import {useAuth} from '../../../../../screens/Provider/authProvider';
+import {formatQuantityMWh} from '../../../../utils';
+import {NFT_DEFAULT_IMAGE_URL} from '../../../../constants';
 
 interface TransferStageProps {
   nftToSell: NftToken;
@@ -34,9 +34,9 @@ const TransferStage = ({
   isInvalidTransferAddress,
   continueToNextStage,
 }: TransferStageProps) => {
-  const { userDetails } = useAuth();
+  const {userDetails} = useAuth();
   const transferAddressEqualsConnectedAddress =
-    transferAddress.toLowerCase() === userDetails?.denergyWallet.toLowerCase();
+    transferAddress.toLowerCase() === userDetails?.userWallet?.toLowerCase();
 
   const parsedQty = parseFloat(quantity);
   const quantityGreaterThanAvailable =
@@ -46,10 +46,10 @@ const TransferStage = ({
 
   const showConfirmButtonDisabled = Boolean(
     isInvalidTransferAddress ||
-    !transferAddress ||
-    transferAddressEqualsConnectedAddress ||
-    isQtyInvalid ||
-    quantityGreaterThanAvailable,
+      !transferAddress ||
+      transferAddressEqualsConnectedAddress ||
+      isQtyInvalid ||
+      quantityGreaterThanAvailable,
   );
 
   const getErrorText = () => {
@@ -69,13 +69,11 @@ const TransferStage = ({
       <View style={styles.nftInfo}>
         <Image
           source={{
-            uri:
-              nftToSell?.image?.thumbnail ||
-              NFT_DEFAULT_IMAGE_URL
+            uri: nftToSell?.image?.thumbnail || NFT_DEFAULT_IMAGE_URL,
           }}
           style={styles.nftImage}
         />
-        <View style={{ flex: 1 }}>
+        <View style={{flex: 1}}>
           <Text style={styles.nftName}>{nftToSell?.name}</Text>
           <Text style={styles.collectionName}>{nftToSell?.collectionName}</Text>
           {/* {lowestPrice?.toString() && (
@@ -91,7 +89,7 @@ const TransferStage = ({
             styles.input,
             (isInvalidTransferAddress ||
               transferAddressEqualsConnectedAddress) &&
-            styles.warningInput,
+              styles.warningInput,
           ]}
           placeholder="Paste account address"
           value={transferAddress}

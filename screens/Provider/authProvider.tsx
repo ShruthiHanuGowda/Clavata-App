@@ -35,10 +35,10 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   };
 
   const handleSaveWalletToDB = async (user: UserAuth) => {
+    console.log('🚀 ~ handleSaveWalletToDB ~ user:', user);
+
     const walletData = {
       emailAddress: user.emailAddress,
-      ethereumWallet: user.ethereumWallet,
-      denergyWallet: user.denergyWallet,
       userWallet: user.userWallet,
       date: user.date,
       is_verified: user?.is_verified,
@@ -60,6 +60,8 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
 
   const updateUserData = async (userData: UserAuth, isExist: boolean) => {
     try {
+      console.log('🚀 ~ updateUserData ~ userData:', userData);
+
       updateUserDetails(userData);
       if (!isExist) {
         return await handleSaveWalletToDB(userData);
@@ -68,13 +70,15 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
       }
     } catch (error) {
       console.log('🚀 ~ updateUserData ~ error:', error);
-      throw new Error(error);
+      throw new Error(error instanceof Error ? error.message : String(error));
     }
   };
 
   // New function to update specific fields of userDetails
   const updateUserDetails = (partialUserData: Partial<UserAuth>) => {
     try {
+      console.log('🚀 ~ updateUserDetails ~ partialUserData:', partialUserData);
+
       setUserDetails(prevUserDetails => {
         // If no existing user details, create new object with partial data
         if (!prevUserDetails) {
@@ -84,6 +88,7 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
           return partialUserData as UserAuth;
         }
 
+        console.log('Existing user details found, merging with partial data');
         // Merge existing userDetails with new partial data
         return {
           ...prevUserDetails,
@@ -92,7 +97,7 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
       });
     } catch (error) {
       console.log('🚀 ~ updateUserData ~ error:', error);
-      throw new Error(error);
+      throw new Error(error instanceof Error ? error.message : String(error));
     }
   };
 

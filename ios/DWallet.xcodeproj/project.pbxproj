@@ -7,15 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0C402D35237D440AA0B6F703 /* Mulish-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 22CFD8B0B1DF45BB83E5ADE2 /* Mulish-ExtraBold.ttf */; };
 		0C80B921A6F3F58F76C31292 /* libPods-DWallet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-DWallet.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		67A6AF00A8F04020A7A09A4D /* Mulish-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A834B6072ABF4889902F9EBB /* Mulish-Regular.ttf */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		8BB9CA562E04122E0061942D /* success.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8BB9CA552E04122E0061942D /* success.mp3 */; };
 		B546173A53C5DB9AD545BB7E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
-		BB58F0A425EB4CBB969E654E /* Mulish-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7F4438A731F448C5A7253AAE /* Mulish-Bold.ttf */; };
-		C0C09EAADA314623AC47A8B6 /* Mulish-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3C81633A537F4A9BBC53F584 /* Mulish-SemiBold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,7 +28,26 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = DWallet/AppDelegate.swift; sourceTree = "<group>"; };
 		7F4438A731F448C5A7253AAE /* Mulish-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Mulish-Bold.ttf"; path = "../Src/Assets/Fonts/Mulish-Bold.ttf"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = DWallet/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		8B3DC4D42DFAFC0D00E1B3EF /* AntDesign.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = AntDesign.ttf; sourceTree = "<group>"; };
+		8B3DC4D62DFAFC2C00E1B3EF /* EvilIcons.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = EvilIcons.ttf; sourceTree = "<group>"; };
+		8B3DC4D82DFAFC4100E1B3EF /* Feather.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Feather.ttf; sourceTree = "<group>"; };
+		8B3DC4D92DFAFC4100E1B3EF /* FontAwesome.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = FontAwesome.ttf; sourceTree = "<group>"; };
+		8B3DC4DA2DFAFC4100E1B3EF /* FontAwesome5_Brands.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = FontAwesome5_Brands.ttf; sourceTree = "<group>"; };
+		8B3DC4DB2DFAFC4100E1B3EF /* FontAwesome5_Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = FontAwesome5_Regular.ttf; sourceTree = "<group>"; };
+		8B3DC4DC2DFAFC4100E1B3EF /* FontAwesome5_Solid.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = FontAwesome5_Solid.ttf; sourceTree = "<group>"; };
+		8B3DC4DD2DFAFC4100E1B3EF /* FontAwesome6_Brands.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = FontAwesome6_Brands.ttf; sourceTree = "<group>"; };
+		8B3DC4DE2DFAFC4100E1B3EF /* FontAwesome6_Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = FontAwesome6_Regular.ttf; sourceTree = "<group>"; };
+		8B3DC4DF2DFAFC4100E1B3EF /* FontAwesome6_Solid.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = FontAwesome6_Solid.ttf; sourceTree = "<group>"; };
+		8B3DC4E02DFAFC4100E1B3EF /* Fontisto.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Fontisto.ttf; sourceTree = "<group>"; };
+		8B3DC4E12DFAFC4100E1B3EF /* Foundation.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Foundation.ttf; sourceTree = "<group>"; };
+		8B3DC4E22DFAFC4100E1B3EF /* Ionicons.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Ionicons.ttf; sourceTree = "<group>"; };
+		8B3DC4E32DFAFC4100E1B3EF /* MaterialCommunityIcons.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = MaterialCommunityIcons.ttf; sourceTree = "<group>"; };
+		8B3DC4E42DFAFC4100E1B3EF /* MaterialIcons.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = MaterialIcons.ttf; sourceTree = "<group>"; };
+		8B3DC4E52DFAFC4100E1B3EF /* Octicons.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Octicons.ttf; sourceTree = "<group>"; };
+		8B3DC4E62DFAFC4100E1B3EF /* SimpleLineIcons.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SimpleLineIcons.ttf; sourceTree = "<group>"; };
+		8B3DC4E72DFAFC4100E1B3EF /* Zocial.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Zocial.ttf; sourceTree = "<group>"; };
 		8B7BE55E2DE874D000A66297 /* Entypo.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Entypo.ttf; sourceTree = "<group>"; };
+		8BB9CA552E04122E0061942D /* success.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = success.mp3; sourceTree = "<group>"; };
 		A834B6072ABF4889902F9EBB /* Mulish-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Mulish-Regular.ttf"; path = "../Src/Assets/Fonts/Mulish-Regular.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -56,6 +72,7 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
+				8BB9CA552E04122E0061942D /* success.mp3 */,
 			);
 			name = DWallet;
 			sourceTree = "<group>";
@@ -111,11 +128,29 @@
 		BE978A3B8CA54A70BE63A2ED /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				8B3DC4D82DFAFC4100E1B3EF /* Feather.ttf */,
+				8B3DC4D92DFAFC4100E1B3EF /* FontAwesome.ttf */,
+				8B3DC4DA2DFAFC4100E1B3EF /* FontAwesome5_Brands.ttf */,
+				8B3DC4DB2DFAFC4100E1B3EF /* FontAwesome5_Regular.ttf */,
+				8B3DC4DC2DFAFC4100E1B3EF /* FontAwesome5_Solid.ttf */,
+				8B3DC4DD2DFAFC4100E1B3EF /* FontAwesome6_Brands.ttf */,
+				8B3DC4DE2DFAFC4100E1B3EF /* FontAwesome6_Regular.ttf */,
+				8B3DC4DF2DFAFC4100E1B3EF /* FontAwesome6_Solid.ttf */,
+				8B3DC4E02DFAFC4100E1B3EF /* Fontisto.ttf */,
+				8B3DC4E12DFAFC4100E1B3EF /* Foundation.ttf */,
+				8B3DC4E22DFAFC4100E1B3EF /* Ionicons.ttf */,
+				8B3DC4E32DFAFC4100E1B3EF /* MaterialCommunityIcons.ttf */,
+				8B3DC4E42DFAFC4100E1B3EF /* MaterialIcons.ttf */,
+				8B3DC4E52DFAFC4100E1B3EF /* Octicons.ttf */,
+				8B3DC4E62DFAFC4100E1B3EF /* SimpleLineIcons.ttf */,
+				8B3DC4E72DFAFC4100E1B3EF /* Zocial.ttf */,
 				7F4438A731F448C5A7253AAE /* Mulish-Bold.ttf */,
 				22CFD8B0B1DF45BB83E5ADE2 /* Mulish-ExtraBold.ttf */,
 				A834B6072ABF4889902F9EBB /* Mulish-Regular.ttf */,
 				3C81633A537F4A9BBC53F584 /* Mulish-SemiBold.ttf */,
 				8B7BE55E2DE874D000A66297 /* Entypo.ttf */,
+				8B3DC4D42DFAFC0D00E1B3EF /* AntDesign.ttf */,
+				8B3DC4D62DFAFC2C00E1B3EF /* EvilIcons.ttf */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -182,11 +217,8 @@
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
+				8BB9CA562E04122E0061942D /* success.mp3 in Resources */,
 				B546173A53C5DB9AD545BB7E /* PrivacyInfo.xcprivacy in Resources */,
-				BB58F0A425EB4CBB969E654E /* Mulish-Bold.ttf in Resources */,
-				0C402D35237D440AA0B6F703 /* Mulish-ExtraBold.ttf in Resources */,
-				67A6AF00A8F04020A7A09A4D /* Mulish-Regular.ttf in Resources */,
-				C0C09EAADA314623AC47A8B6 /* Mulish-SemiBold.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -287,7 +319,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 44;
 				DEVELOPMENT_TEAM = X8G5F8WMN8;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = DWallet/Info.plist;
@@ -325,7 +357,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 44;
 				DEVELOPMENT_TEAM = X8G5F8WMN8;
 				INFOPLIST_FILE = DWallet/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DWallet;

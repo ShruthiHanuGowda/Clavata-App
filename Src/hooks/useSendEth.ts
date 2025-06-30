@@ -58,7 +58,8 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
 
       setIsLoading(true);
       setError(null);
-
+      console.log(magic.rpcProvider);
+      
       // Get Magic provider for signing transactions
       const magicProvider = new BrowserProvider(magic.rpcProvider);
       const signer = await magicProvider.getSigner();
@@ -68,7 +69,8 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
 
       // Estimate gas price
       const gasPrice = await infuraProvider.getFeeData();
-
+      console.log('🚀 ~ gasPrice:', gasPrice);
+      
       // Estimate gas limit for the transaction
       const gasEstimate = await infuraProvider.estimateGas({
         from: userAddress,
@@ -94,8 +96,13 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
         chainId: 11155111, // Sepolia chain ID
       });
 
+      console.log('🚀 ~ tx:', tx);
+      
+
       // Wait for transaction to be mined
       const receipt = await tx.wait();
+      console.log('🚀 ~ receipt:', receipt);
+      
       try {
         const {data} = await createTransactionHistoryMobile({
           variables: {

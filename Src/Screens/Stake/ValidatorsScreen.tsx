@@ -13,6 +13,7 @@ import {navigateTo} from '../../utils/navigationService';
 import {BottomSheet} from 'react-native-btr';
 import {DButton} from '../../Componants';
 import useValidators from './Hooks/useValidators';
+import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
 
 // Define interfaces for our data types
 interface Validator {
@@ -183,8 +184,14 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
       {isLoading && (
         // <View style={styles.loadingOverlay}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#009D94" />
-          <Text style={styles.loadingText}>Loading validators...</Text>
+          {/* <ActivityIndicator size="large" color="#009D94" />
+          <Text style={styles.loadingText}>Loading validators...</Text> */}
+          <LoaderAnimation
+            size="large"
+            color="#009D94"
+            showText={true}
+            text="Loading validators..."
+          />
           {/* </View> */}
         </View>
       )}

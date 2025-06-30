@@ -34,8 +34,8 @@ export default function MiniTransactionHistory({
   const wallet = coinCodesForDenergyWallet.includes(
     coinCode.toLocaleLowerCase(),
   )
-    ? userDetails?.denergyWallet
-    : userDetails?.ethereumWallet;
+    ? userDetails?.userWallet
+    : userDetails?.userWallet;
   const {
     transactions,
     formattedTransactions,
