@@ -22,6 +22,8 @@ import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
 import {formatQuantityMWh} from '../../../utils';
+import {useNft} from '../../../../screens/Provider/NftProvider';
+import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
 
 interface NFTStakeComponentProps {
   validatorId: string;
@@ -31,16 +33,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
   const {userDetails} = useAuth();
   console.log('userDetails', userDetails);
 
-  const {
-    nfts,
-    isLoading: isNFTLoading,
-    error,
-    refresh,
-  } = useNftsForAddress({
-    account:
-      (userDetails?.userWallet as `0x${string}`) ??
-      '0x0000000000000000000000000000000000000000',
-  });
+  const {nfts, isLoading, refresh} = useNft();
 
   const {
     isLoading: isNFTStakingLoading,
@@ -187,11 +180,18 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
     }
   };
 
-  if (isNFTLoading) {
+  if (isLoading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#008060" />
-        <Text style={styles.loaderText}>Loading NFT Collections...</Text>
+        {/* <ActivityIndicator size="large" color="#008060" />
+        <Text style={styles.loaderText}>Loading NFT Collections...</Text> */}
+        <LoaderAnimation
+          color="#009D94"
+          size={'large'}
+          speed={1.5}
+          showText
+          text="Loading NFTs..."
+        />
       </View>
     );
   }
