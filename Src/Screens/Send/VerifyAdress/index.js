@@ -19,9 +19,12 @@ import {navigateTo} from '../../../utils/navigationService';
 import {CustomImageButton} from '../../../Componants';
 import ContactModal from '../../AddressBookScreens/ContactModal';
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
+import QRCodeScannerModal from '../../../Componants/QRScan/QRCodeScannerModal';
+
 export const VerifyAddress = props => {
   const [senderAddress, setSenderAddress] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [qrScannerVisible, setQrScannerVisible] = useState(false); // Add QR scanner state
   const coinCode = props?.route?.params?.coinCode;
 
   function isValidEthereumAddress(address) {
@@ -54,9 +57,50 @@ export const VerifyAddress = props => {
     setModalVisible(false);
   };
 
+  // Updated QR scan handler
   const handleQRScan = () => {
-    // Add your QR scan logic here
-    console.log('QR Scan pressed');
+    setQrScannerVisible(true);
+  };
+
+  // Handle QR code scan result
+  const handleQRCodeScanned = data => {
+    console.log('QR Code scanned:', data);
+
+    // Extract address from QR code data
+    let extractedAddress = data;
+
+    // Handle different QR code formats
+    if (data.startsWith('ethereum:')) {
+      // Format: ethereum:0x1234567890abcdef...
+      extractedAddress = data.replace('ethereum:', '').split('?')[0];
+    } else if (data.startsWith('0x')) {
+      // Already a valid address format
+      extractedAddress = data;
+    } else {
+      // Try to find ethereum address pattern in the data
+      const addressMatch = data.match(/0x[a-fA-F0-9]{40}/);
+      if (addressMatch) {
+        extractedAddress = addressMatch[0];
+      }
+    }
+
+    // Validate the extracted address
+    if (isAddress(extractedAddress)) {
+      setSenderAddress(extractedAddress);
+      setQrScannerVisible(false);
+      SnackBarMessage('Address scanned successfully!', 'success');
+    } else {
+      setSenderAddress('');
+      setQrScannerVisible(false);
+      setTimeout(() => {
+        SnackBarMessage('Invalid wallet address in QR code', 'error');
+      }, 500);
+    }
+  };
+
+  // Close QR scanner
+  const closeQRScanner = () => {
+    setQrScannerVisible(false);
   };
 
   return (
@@ -102,11 +146,6 @@ export const VerifyAddress = props => {
               onPress={openContactModal}
               activeOpacity={0.7}>
               <AntDesignIcon name="contacts" size={24} color="#009D94" />
-              {/* {Images.contactIcon ? (
-                <Image source={Images.contactIcon} style={style.iconStyle} />
-              ) : (
-                <DText style={style.contactIconText}>👥</DText>
-              )} */}
             </TouchableOpacity>
 
             {/* QR Scan Icon */}
@@ -115,7 +154,6 @@ export const VerifyAddress = props => {
               onPress={handleQRScan}
               activeOpacity={0.7}>
               <AntDesignIcon name="qrcode" size={24} color="#009D94" />
-              {/* <Image source={Images.qrCodeIcon} style={style.iconStyle} /> */}
             </TouchableOpacity>
           </View>
         </View>
@@ -149,6 +187,17 @@ export const VerifyAddress = props => {
         title="Choose Recipient"
         searchPlaceholder="Search contacts..."
         emptyMessage="No contacts found"
+      />
+
+      {/* QR Code Scanner Modal */}
+      <QRCodeScannerModal
+        visible={qrScannerVisible}
+        onClose={closeQRScanner}
+        onCodeScanned={handleQRCodeScanned}
+        title="Scan Wallet Address"
+        codeTypes={['qr']}
+        showToggleButton={true}
+        animationType="slide"
       />
     </View>
   );

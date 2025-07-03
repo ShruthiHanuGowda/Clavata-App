@@ -25,7 +25,7 @@ export default StyleSheet.create({
     marginTop: 20,
   },
 
-  // FIXED: addressInputWrap - removed justifyContent conflicts and added proper padding
+  // FIXED: addressInputWrap - stable positioning with consistent height
   addressInputWrap: {
     flexDirection: 'row',
     borderWidth: 1,
@@ -34,20 +34,32 @@ export default StyleSheet.create({
     height: 52,
     alignItems: 'center',
     paddingLeft: 10,
-    paddingRight: 85, // Added padding for icons space
+    paddingRight: 85,
     width: '100%',
-    position: 'relative', // Added for absolute positioning of icons
+    position: 'relative',
+    // Added these properties to prevent position shifts
+    justifyContent: 'flex-start', // Ensure consistent horizontal alignment
+    alignSelf: 'stretch', // Maintain consistent width
   },
 
-  // FIXED: addressInput - removed fixed width, using flex instead
+  // FIXED: addressInput - prevent position changes during input
   addressInput: {
     color: '#000000',
-    flex: 1, // Use flex instead of fixed width
+    flex: 1,
     fontFamily: fontsFamily.MulishSemiBold,
     fontSize: 12,
     paddingHorizontal: 10,
-    height: '100%', // Full height of container
+    height: 52, // Fixed height matching container
+    // Critical fixes for position stability
     textAlignVertical: 'center', // Center text vertically
+    includeFontPadding: false, // Prevents font padding issues on Android
+    paddingVertical: 0, // Remove vertical padding that can cause shifts
+    margin: 0, // Remove any default margins
+    borderWidth: 0, // Remove any default borders
+    backgroundColor: 'transparent', // Ensure transparent background
+    // Prevent multiline behavior that can cause position shifts
+    multiline: false,
+    numberOfLines: 1,
   },
 
   bottomButton: {
@@ -61,7 +73,7 @@ export default StyleSheet.create({
     width: '100%',
   },
 
-  // FIXED: iconsContainer - better positioning
+  // FIXED: iconsContainer - stable absolute positioning
   iconsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -70,9 +82,12 @@ export default StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: 'center',
+    height: 52, // Match container height for consistency
+    // Prevent the icons from affecting input positioning
+    pointerEvents: 'box-none', // Allow touches to pass through to children
   },
 
-  // FIXED: iconButton - removed background color, better sizing
+  // FIXED: iconButton - consistent sizing
   iconButton: {
     padding: 8,
     marginLeft: 0,
@@ -81,6 +96,8 @@ export default StyleSheet.create({
     justifyContent: 'center',
     minHeight: 32,
     minWidth: 32,
+    // Ensure buttons don't affect input positioning
+    position: 'static',
   },
 
   // Icon styling
@@ -99,7 +116,7 @@ export default StyleSheet.create({
   // Selected address display container
   selectedAddressContainer: {
     backgroundColor: '#f8f9fa',
-    marginHorizontal: 21, // Match your margin
+    marginHorizontal: 21,
     marginTop: 12,
     padding: 15,
     borderRadius: 10,
