@@ -135,14 +135,14 @@ const WalletNFTDetailsScreen = ({route}: any) => {
   const fetchNftMetadata = async () => {
     try {
       setMetadataLoading(true);
-      setActiveNetwork('denergy');
+      const network = setActiveNetwork('denergy');
 
       if (!nft?.collectionAddress || !nft?.tokenId) {
         console.error('Missing collection address or token ID in NFT data.');
         return;
       }
 
-      const magicProvider = new BrowserProvider(magic.rpcProvider as any);
+      const magicProvider = new BrowserProvider(network.rpcProvider as any);
       const signer = await magicProvider.getSigner();
 
       const collectionContract = new Contract(
@@ -204,6 +204,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
 
   const TAB_ITEMS = ['Details', 'Sellers', 'Activity'];
 
+  console.log('nft', nft);
   const handleCollectibleClick = (location?: NftLocation) => {
     switch (location) {
       case NftLocation.WALLET:

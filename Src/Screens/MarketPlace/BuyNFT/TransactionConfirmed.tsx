@@ -79,7 +79,7 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
 
         <Text style={styles.successTitle}>Purchase Successful!</Text>
         <Text style={styles.successSubtitle}>
-          Your NFT has been successfully transferred to your wallet
+          Your Certificate has been successfully transferred to your wallet
         </Text>
       </View>
 
@@ -130,7 +130,7 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
             <View style={styles.stepContent}>
               <Text style={styles.stepTitle}>Check Your Wallet</Text>
               <Text style={styles.stepDescription}>
-                Your NFT is now available in your wallet
+                Your Certificate is now available in your wallet
               </Text>
             </View>
           </View>
@@ -139,7 +139,7 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
             <View style={styles.stepContent}>
               <Text style={styles.stepTitle}>View in Collection</Text>
               <Text style={styles.stepDescription}>
-                Browse your NFT collection and discover more
+                Browse your Certificate collection and discover more
               </Text>
             </View>
           </View>

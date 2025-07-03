@@ -31,14 +31,14 @@ const RemoveStage: React.FC<RemoveStageProps> = ({ continueToNextStage }) => {
                     <View style={styles.bulletPoint}>
                         <Text style={styles.bulletIcon}>•</Text>
                         <Text style={styles.bulletText}>
-                            Your NFT will be removed from the marketplace immediately
+                            Your Certificate will be removed from the marketplace immediately
                         </Text>
                     </View>
 
                     <View style={styles.bulletPoint}>
                         <Text style={styles.bulletIcon}>•</Text>
                         <Text style={styles.bulletText}>
-                            The NFT will be returned to your wallet
+                            The Certificate will be returned to your wallet
                         </Text>
                     </View>
 

@@ -177,7 +177,7 @@ export function DTextInput({
 }: DTextInputProps) {
   const handleOnChange = (text: string) => {
     setValue(text);
-    setValid(text.trim().length > 0);
+    setValid?.(text?.trim().length > 0);
   };
 
   return (

@@ -139,7 +139,7 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
 
     Alert.alert(
       'Unstaking Successful',
-      `Your NFT has been unstaked successfully!\n\nTransaction Hash: ${result.txHash.substring(
+      `Your Certificate has been unstaked successfully!\n\nTransaction Hash: ${result.txHash.substring(
         0,
         10,
       )}...`,

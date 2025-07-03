@@ -166,6 +166,33 @@ export function getMinAsk(
   return minItem;
 }
 
+export function getAskBySellerId(
+  activeAsks: {
+    id: string;
+    amount: string;
+    askPrice: string;
+    seller: {
+      id: string;
+    };
+  }[],
+  sellerId: string,
+):
+  | {
+      id: string;
+      amount: string;
+      askPrice: string;
+      seller: {
+        id: string;
+      };
+    }
+  | undefined {
+  if (!Array.isArray(activeAsks) || activeAsks.length === 0) {
+    return undefined;
+  }
+
+  return activeAsks.find(item => item.seller.id === sellerId);
+}
+
 export const sortActivity = ({
   askOrders = [],
   transactions = [],
@@ -252,7 +279,7 @@ export const getCompleteAccountNftData = async (
     walletNftIdsWithCollectionAddress,
   );
 
-  console.log('metadataForAllNfts', metadataForAllNfts);
+  // console.log('metadataForAllNfts', metadataForAllNfts);
 
   const onChainForSaleNfts = await getNftsMarketData({});
 
@@ -297,7 +324,7 @@ export const fetchWalletTokenIdsForCollections = async (
       const contract = new Contract(collectionAddress, ERC1155_ABI, provider);
 
       try {
-        const currentTokenIdRaw = await contract.currentTokenId();        
+        const currentTokenIdRaw = await contract.currentTokenId();
 
         const currentTokenId = Number(currentTokenIdRaw);
 
@@ -349,10 +376,11 @@ export const getNftsFromDifferentCollectionsApi = async (
     );
 
     let image = {original: '', thumbnail: ''};
+    let nftMetadata: any = {};
     const metadataUrl = nft.metadataUrl;
     if (metadataUrl) {
       const metadataResponse = await fetch(metadataUrl);
-      const nftMetadata = await metadataResponse.json();
+      nftMetadata = await metadataResponse.json();
       image = {
         original: nftMetadata.image || '',
         thumbnail: nftMetadata.image || '',
@@ -361,13 +389,14 @@ export const getNftsFromDifferentCollectionsApi = async (
 
     return {
       id: res?.tokenId ?? '',
-      tokenId: res?.tokenId ?? '',
-      name: `${res?.collectionDetails?.collectionName} #${res?.tokenId}`,
+      tokenId: res?.tokenId ?? nft.tokenId ?? '',
+      name: `${res?.collectionDetails?.collectionName ?? ''} #${
+        res?.tokenId ?? ''
+      }`,
       collectionName: res?.collectionDetails?.collectionName ?? '',
       collectionAddress: nft.collectionAddress as `0x${string}`,
       contractAddress: res?.contractAddress ?? '',
       totalListed: '0',
-      image,
       country_image: res?.collectionDetails?.country_image ?? '',
       energy_type_image: res?.collectionDetails?.energy_type_image ?? '',
       collection_image: res?.collectionDetails?.collection_image ?? '',
@@ -381,6 +410,8 @@ export const getNftsFromDifferentCollectionsApi = async (
       mintedVolume: res?.mintedVolume ?? '',
       createdAt: res?.createdAt ?? '',
       updatedAt: res?.updatedAt ?? '',
+      ...nftMetadata,
+      image,
     };
   });
 
@@ -477,6 +508,14 @@ export const getNftLocationForMarketNft = (
   accountId: string,
   collectionId?: string,
 ): NftLocation => {
+  console.log('getNftLocationForMarketNft called with', {
+    tokenId,
+    tokenIdsInWallet,
+    tokenIdsForSale,
+    accountId,
+    collectionId,
+  });
+
   const marketDataForSale = tokenIdsForSale.find(
     sale => sale.tokenId === tokenId && sale.collection.id === collectionId,
   );
@@ -495,7 +534,7 @@ export const getNftLocationForMarketNft = (
     return NftLocation.WALLET;
   }
 
-  console.error(
+  console.info(
     `Cannot determine location for tokenID ${tokenId}, defaulting to NftLocation.WALLET`,
   );
   return NftLocation.WALLET;

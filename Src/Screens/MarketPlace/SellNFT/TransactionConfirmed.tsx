@@ -52,28 +52,31 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
         return {
           icon: '🎉',
           title: title || 'Sale Completed!',
-          message: message || 'Your NFT has been successfully sold.',
+          message: message || 'Your Certificate has been successfully sold.',
           buttonText: 'Continue',
         };
       case 'transfer':
         return {
           icon: '📤',
           title: title || 'Transfer Completed!',
-          message: message || 'Your NFT has been successfully transferred.',
+          message:
+            message || 'Your Certificate has been successfully transferred.',
           buttonText: 'Done',
         };
       case 'removal':
         return {
           icon: '✅',
           title: title || 'Listing Removed!',
-          message: message || 'Your NFT has been returned to your wallet.',
+          message:
+            message || 'Your Certificate has been returned to your wallet.',
           buttonText: 'Done',
         };
       default:
         return {
           icon: '🎊',
           title: title || 'Listed Successfully!',
-          message: message || 'Your NFT is now available on the marketplace.',
+          message:
+            message || 'Your Certificate is now available on the marketplace.',
           buttonText: 'Done',
         };
     }
@@ -148,7 +151,7 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
           {successType === 'listing' && (
             <>
               <Text style={styles.infoText}>
-                • Your NFT is now live on the marketplace
+                • Your Certificate is now live on the marketplace
               </Text>
               <Text style={styles.infoText}>
                 • Buyers can discover and purchase it
@@ -177,7 +180,7 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
           {successType === 'removal' && (
             <>
               <Text style={styles.infoText}>
-                • Your NFT is back in your wallet
+                • Your Certificate is back in your wallet
               </Text>
               <Text style={styles.infoText}>• You can re-list it anytime</Text>
               <Text style={styles.infoText}>

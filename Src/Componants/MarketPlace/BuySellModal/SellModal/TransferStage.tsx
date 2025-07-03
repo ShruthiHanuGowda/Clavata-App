@@ -113,15 +113,16 @@ const TransferStage = ({
         {quantityGreaterThanAvailable && (
           <Text style={styles.warningText}>
             Cannot send more than{' '}
-            {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))} NFTs.
+            {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))}{' '}
+            Certicates.
           </Text>
         )}
       </View>
 
       <View style={styles.tipBox}>
         <Text style={styles.tipText}>
-          This action will send your NFT to the address above. Make sure it’s
-          the correct one.
+          This action will send your Certificate to the address above. Make sure
+          it’s the correct one.
         </Text>
       </View>
 

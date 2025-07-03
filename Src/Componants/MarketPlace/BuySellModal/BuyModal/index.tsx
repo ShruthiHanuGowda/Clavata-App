@@ -126,7 +126,10 @@ const BuyModal: React.FC<BuyModalProps> = ({
       },
       onSuccess: ({receipt}) => {
         console.log(receipt);
-        SnackBarMessage(`Your NFT has been sent to your wallet`, 'success');
+        SnackBarMessage(
+          `Your Certificate has been sent to your wallet`,
+          'success',
+        );
         setConfirmedTxHash(receipt.hash);
         setStage(BuyingStage.TX_CONFIRMED);
       },

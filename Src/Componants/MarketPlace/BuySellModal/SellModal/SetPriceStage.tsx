@@ -134,7 +134,7 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
         {quantityGreaterThanAvailable && (
           <Text style={styles.errorText}>
             Cannot sell more than{' '}
-            {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))} NFTs.
+            {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))} Certicates.
           </Text>
         )}
       </View>

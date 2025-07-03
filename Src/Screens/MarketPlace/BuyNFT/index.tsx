@@ -17,7 +17,11 @@ import {useWallet} from '../../../../screens/Provider/WalletProvider';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useCallWithGasPrice} from '../../../hooks/marketplace/useCallWithGasPrice';
-import {getMinAsk, getMinAskPrice} from '../../../hooks/marketPlace';
+import {
+  getAskBySellerId,
+  getMinAsk,
+  getMinAskPrice,
+} from '../../../hooks/marketPlace';
 import {TOKEN_CONTRACTS} from '../../../constants';
 import {
   getNftMarketContract,
@@ -85,12 +89,16 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
 
   const account = userDetails?.userWallet as `0x${string}`;
   const nftPrice = getMinAskPrice(nftToBuy?.marketData?.activeAsks ?? []);
-  const availableQuantity =
-    getMinAsk(nftToBuy?.marketData?.activeAsks ?? []).amount ?? '0';
+  const availableQuantity = currentSeller
+    ? getAskBySellerId(nftToBuy?.marketData?.activeAsks ?? [], currentSeller)
+        ?.amount
+    : getMinAsk(nftToBuy?.marketData?.activeAsks ?? []).amount ?? '0';
   const seller =
     currentSeller ||
     getMinAsk(nftToBuy?.marketData?.activeAsks ?? []).seller?.id ||
     '0x0000000000000000000000000000000000000000';
+
+  console.log('activeAsks', nftToBuy?.marketData?.activeAsks);
 
   const usdcAddress = TOKEN_CONTRACTS.denergy.USDC as `0x${string}`;
   const eurcAddress = TOKEN_CONTRACTS.denergy.EURC as `0x${string}`;
@@ -158,7 +166,10 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
       },
       onSuccess: ({receipt}) => {
         console.log(receipt);
-        SnackBarMessage(`Your NFT has been sent to your wallet`, 'success');
+        SnackBarMessage(
+          `Your Certificate has been sent to your wallet`,
+          'success',
+        );
         setConfirmedTxHash(receipt.hash);
         setStage(BuyingStage.TX_CONFIRMED);
       },
@@ -194,7 +205,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
             nftPrice={Number(nftPrice)}
             paymentCurrency={paymentCurrency}
             setPaymentCurrency={setPaymentCurrency}
-            availableQuantity={parseFloat(availableQuantity)}
+            availableQuantity={parseFloat(availableQuantity ?? '0')}
             walletBalance={Number(balance)}
             walletFetchStatus={'success'}
             continueToNextStage={() =>

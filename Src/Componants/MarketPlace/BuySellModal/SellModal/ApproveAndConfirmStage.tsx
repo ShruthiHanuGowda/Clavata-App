@@ -46,7 +46,7 @@ const ApproveAndConfirmStage: React.FC<ApproveAndConfirmStageProps> = ({
           <Text style={styles.description}>
             {variant === 'buy'
               ? 'Please enable USDC spending in your wallet'
-              : 'Please enable your NFT to be sent to the market'}
+              : 'Please enable your Certificate to be sent to the market'}
           </Text>
         )}
       </View>

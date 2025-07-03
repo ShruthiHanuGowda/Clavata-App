@@ -135,7 +135,7 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
     // Show success alert
     Alert.alert(
       'Staking Successful',
-      `Your NFT has been staked successfully!\n\nTransaction Hash: ${result.txHash.substring(
+      `Your Certificate has been staked successfully!\n\nTransaction Hash: ${result.txHash.substring(
         0,
         10,
       )}...`,

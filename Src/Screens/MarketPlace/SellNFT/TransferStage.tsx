@@ -99,7 +99,7 @@ const TransferStage = ({
       <View style={styles.header}>
         <Text style={styles.title}>Transfer NFT</Text>
         <Text style={styles.subtitle}>
-          Send your NFT to another wallet address
+          Send your Certificate to another wallet address
         </Text>
       </View>
 

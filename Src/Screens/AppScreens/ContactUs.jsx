@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import {View, Image, StyleSheet, TouchableOpacity} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Image, StyleSheet, TouchableOpacity, Alert} from 'react-native';
 import {Header, ScreenHeight, ScreenWidth} from '@rneui/base';
 import {DTextInput} from '../../Componants/Dinputs';
 import DButton from '../../Componants/Dbutton';
@@ -13,15 +13,89 @@ const initialValue = {
   message: '',
 };
 
+const validation = {
+  name: false,
+  subject: false,
+  message: false,
+};
+
 export default function ContactUs(props) {
-  const [disabled, setDisabled] = useState(true);
   const [data, setData] = useState(initialValue);
+  const [validationState, setValidationState] = useState(validation);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check if form is valid
+  const isFormValid =
+    validationState.name && validationState.subject && validationState.message;
 
   const handleBackPress = () => {
     navigateBack();
   };
 
-  const handleSendPress = async () => {};
+  const validateField = (field, value) => {
+    console.log('validateField', field, value);
+
+    switch (field) {
+      case 'name':
+        return value?.trim().length >= 2;
+      case 'subject':
+        return value?.trim().length >= 5;
+      case 'message':
+        return value?.trim().length >= 10;
+      default:
+        return false;
+    }
+  };
+
+  const updateField = (field, value) => {
+    setData(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    setValidationState(prev => ({
+      ...prev,
+      [field]: validateField(field, value),
+    }));
+  };
+
+  const handleSendPress = async () => {
+    if (!isFormValid) {
+      Alert.alert('Validation Error', 'Please fill all fields correctly.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await sendContactEmail(data);
+
+      Alert.alert('Success', 'Your message has been sent successfully!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            setData(initialValue);
+            setValidationState(validation);
+            navigateBack();
+          },
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send message. Please try again.');
+      console.error('Contact form error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const sendContactEmail = async formData => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        console.log('Sending email with data:', formData);
+        resolve();
+      }, 1000);
+    });
+  };
 
   return (
     <>
@@ -43,58 +117,44 @@ export default function ContactUs(props) {
       <View style={styles.container}>
         <View style={styles.content}>
           <DTextInput
-            placeholder="Name"
+            placeholder="Name *"
             value={data.name}
-            setValue={name => {
-              setData({
-                ...data,
-                name,
-              });
-            }}
+            setValue={value => updateField('name', value)}
+            setValid={value => validateField('name', data.name)}
             inputAccessoryViewID="sendEmail"
           />
+
           <DTextInput
-            containerStyle={{
-              marginTop: 33,
-            }}
+            containerStyle={styles.inputSpacing}
             value={data.subject}
-            placeholder="Subject"
-            setValue={subject => {
-              setData({
-                ...data,
-                subject,
-              });
-            }}
+            placeholder="Subject *"
+            setValue={value => updateField('subject', value)}
+            setValid={value => validateField('subject', data.subject)}
             inputAccessoryViewID="sendEmail"
           />
+
           <DTextInput
-            containerStyle={{
-              marginTop: 33,
-            }}
-            style={{
-              height: ScreenHeight / 4,
-            }}
+            containerStyle={styles.inputSpacing}
+            style={styles.messageInput}
             numberOfLines={10}
             multiline
-            placeholder="Message"
+            placeholder="Message *"
             value={data.message}
-            setValue={message => {
-              setData({
-                ...data,
-                message,
-              });
-            }}
+            setValue={value => updateField('message', value)}
+            setValid={value => validateField('message', data.message)}
             inputAccessoryViewID="sendEmail"
+            textAlignVertical="top"
           />
         </View>
-        <View style={{marginBottom: 30}}>
+
+        <View style={styles.buttonContainer}>
           <DButton
             onPress={handleSendPress}
             type="primary"
-            disabled={disabled}
+            disabled={!isFormValid || isSubmitting}
             style={styles.applyBtn}>
             <DText fontStyle="fontRegular" style={styles.btnText}>
-              Send Email
+              {isSubmitting ? 'Sending...' : 'Send Email'}
             </DText>
           </DButton>
         </View>
@@ -112,6 +172,7 @@ const styles = StyleSheet.create({
   },
   content: {
     width: ScreenWidth - 40,
+    paddingTop: 20,
   },
   title: {
     fontSize: 18,
@@ -120,6 +181,16 @@ const styles = StyleSheet.create({
   },
   nameContainer: {
     flexDirection: 'row',
+  },
+  inputSpacing: {
+    marginTop: 24,
+  },
+  messageInput: {
+    height: ScreenHeight / 4,
+    paddingTop: 16,
+  },
+  buttonContainer: {
+    marginBottom: 30,
   },
   applyBtn: {
     marginTop: 9,

@@ -81,15 +81,15 @@ const stagesWithBackButton = [
 
 const getToastText = (variant: string, stage: SellingStage) => {
   if (stage === SellingStage.CONFIRM_REMOVE_FROM_MARKET) {
-    return 'Your NFT has been returned to your wallet';
+    return 'Your Certificate has been returned to your wallet';
   }
   if (stage === SellingStage.CONFIRM_TRANSFER) {
-    return 'Your NFT has been transferred to another wallet';
+    return 'Your Certificate has been transferred to another wallet';
   }
   if (variant === 'sell') {
-    return 'Your NFT has been listed for sale!';
+    return 'Your Certificate has been listed for sale!';
   }
-  return 'Your NFT listing has been changed.';
+  return 'Your Certificate listing has been changed.';
 };
 
 const SellModal: React.FC<SellModalProps> = ({
@@ -232,7 +232,7 @@ const SellModal: React.FC<SellModalProps> = ({
       },
       onApproveSuccess: async ({receipt}) => {
         SnackBarMessage(
-          `Contract approved - you can now put your NFT for sale!`,
+          `Contract approved - you can now put your Certificate for sale!`,
           'success',
         );
       },
