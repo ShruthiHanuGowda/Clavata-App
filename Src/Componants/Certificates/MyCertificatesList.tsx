@@ -16,6 +16,7 @@ import {NftToken} from '../../types/types';
 import {fontsFamily} from '../../Theme';
 import {formatQuantityMWh, getCountryFlag} from '../../utils';
 import {MediumLoader} from '../Loading/LoaderAnimation';
+import {useNft} from '../../../screens/Provider/NftProvider';
 
 interface Props {
   nfts: NftToken[];
@@ -50,12 +51,9 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const MyCertificatesList = ({
-  nfts,
-  isLoading,
-  refresh,
-  containerStyle,
-}: Props) => {
+const MyCertificatesList = ({containerStyle}: Props) => {
+  const {nfts, isLoading, refresh} = useNft();
+
   const groupedNfts = groupByCountry(nfts);
   const [openCountries, setOpenCountries] = useState<Record<string, boolean>>(
     {},

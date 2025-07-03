@@ -519,7 +519,7 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
 
           <View style={styles.contentContainer}>
             {index === 0 && <NFTStakingContent />}
-            {index === 1 && <WATTStakingContent />}
+            {/* {index === 1 && <WATTStakingContent />} */}
           </View>
         </View>
       )}

@@ -1,6 +1,4 @@
-import {SafeAreaProvider} from 'react-native-safe-area-context';
 import React from 'react';
-import Navigation from './navigation';
 
 import {Magic} from '@magic-sdk/react-native-bare';
 import {OAuthExtension} from '@magic-ext/react-native-bare-oauth';
@@ -8,8 +6,7 @@ import Web3 from 'web3';
 import {ENV, API_KEY} from './config/env';
 import {GDKMSExtension} from '@magic-ext/gdkms';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {Appearance, View, useColorScheme} from 'react-native';
-import LoginScreenNew from './Src/Screens/AuthScreens/loginScreenNew';
+import {Appearance, View} from 'react-native';
 import {MagicProvider} from './screens/Provider/MagicProvider';
 import NavigationWrapper from './Src/Navigation';
 import {AuthProvider} from './screens/Provider/authProvider';
