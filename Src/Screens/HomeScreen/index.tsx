@@ -26,6 +26,7 @@ import {UPDATE_KYC_STATUS} from '../../graphql/queries';
 import {DText} from '../../Componants/DText';
 import {fontsFamily, Images} from '../../Theme';
 import {useSuccessSound} from '../../hooks/useSuccessSound';
+import { useNft } from '../../../screens/Provider/NftProvider';
 
 function HomeHeader(props: any) {
   const {userDetails} = useAuth();
@@ -91,9 +92,12 @@ export default function HomeScreen({navigation}: any) {
   const {playSuccessSound} = useSuccessSound();
   const {userDetails} = useAuth();
   const account = userDetails?.userWallet;
-  const {refresh, totalQuantity, isLoading} = useNftsForAddress({
-    account: account!,
-  });
+  const {
+    nfts,
+    isLoading,
+    totalQuantity,
+    refresh: refreshNfts,
+  } = useNft();
 
   const [updateKycStatus, {loading, error, data}] = useMutation(
     UPDATE_KYC_STATUS,
@@ -129,7 +133,7 @@ export default function HomeScreen({navigation}: any) {
 
   const onRefresh = () => {
     refreshAllBalances();
-    refresh();
+    refreshNfts();
   };
 
   useScrollToTop(scrollViewRef);

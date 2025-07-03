@@ -43,6 +43,7 @@ import News from '../Screens/NewsScreens/News';
 import NewsDetail from '../Screens/NewsScreens/NewsDetail';
 import AddressBookList from '../Screens/AddressBookScreens/AddressBookList';
 import CreateAddress from '../Screens/AddressBookScreens/CreateAddress';
+import Swap from '../Screens/Swap';
 
 function RootScreenStack() {
   const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -110,6 +111,7 @@ export function CoinWalletStackFun() {
         name={SCREEN_CONSTANT.SENDSUCCESS}
         component={sendSuccess}
       />
+      <CoinWalletStack.Screen name="swap" component={Swap} />
     </CoinWalletStack.Navigator>
   );
 }

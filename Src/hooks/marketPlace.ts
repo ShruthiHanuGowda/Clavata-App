@@ -279,8 +279,6 @@ export const getCompleteAccountNftData = async (
     walletNftIdsWithCollectionAddress,
   );
 
-  // console.log('metadataForAllNfts', metadataForAllNfts);
-
   const onChainForSaleNfts = await getNftsMarketData({});
 
   const walletTokenIds = walletNftIdsWithCollectionAddress
@@ -415,8 +413,6 @@ export const getNftsFromDifferentCollectionsApi = async (
     };
   });
 
-  console.log(from);
-
   const nfts = await Promise.all(promises);
 
   return nfts;
@@ -508,14 +504,6 @@ export const getNftLocationForMarketNft = (
   accountId: string,
   collectionId?: string,
 ): NftLocation => {
-  console.log('getNftLocationForMarketNft called with', {
-    tokenId,
-    tokenIdsInWallet,
-    tokenIdsForSale,
-    accountId,
-    collectionId,
-  });
-
   const marketDataForSale = tokenIdsForSale.find(
     sale => sale.tokenId === tokenId && sale.collection.id === collectionId,
   );

@@ -10,6 +10,7 @@ import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList
 import {useNftsForAddress} from '../../hooks/useNftsForAddress';
 import {navigateTo} from '../../utils/navigationService';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
+import {useNft} from '../../../screens/Provider/NftProvider';
 export default function CryptoMarketPlace(props: any) {
   const {getBalance, refreshBalance, isBalanceLoading, refreshAllBalances} =
     useWallet();
@@ -19,9 +20,9 @@ export default function CryptoMarketPlace(props: any) {
   const account = (userDetails?.userWallet ??
     '0x0000000000000000000000000000000000000000') as `0x${string}`;
 
-  const {nfts, isLoading, refresh} = useNftsForAddress({
-    account: account,
-  });
+  // const {nfts, isLoading, refresh} = useNftsForAddress({
+  //   account: account,
+  // });
 
   const formatValue = (value: any, fixed?: number) => {
     if (value === undefined || value === null) {
@@ -89,7 +90,7 @@ export default function CryptoMarketPlace(props: any) {
         {x: 4, y: 0},
         {x: 5, y: 0},
       ],
-      operationsTypes: ['Send', 'Receive'],
+      operationsTypes: ['Send', 'Receive', 'Swap'],
       growth: 0,
       balance: formatValue(getBalance('WATT')?.balance), //props?.WATT?.fiatBalance
       dollar: formatValue(getBalance('WATT')?.balanceUsd), //props?.WATT?.tokenBalance
@@ -185,11 +186,7 @@ export default function CryptoMarketPlace(props: any) {
             </TouchableOpacity>
           </View>
         </View>
-        <MyCertificatesList
-          nfts={nfts ?? []}
-          isLoading={isLoading}
-          refresh={refresh}
-        />
+        <MyCertificatesList />
       </View>
     </View>
   );

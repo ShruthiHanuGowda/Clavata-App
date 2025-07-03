@@ -17,6 +17,7 @@ import {GraphQLProvider} from './screens/Provider/GraphQLProvider';
 import {WalletProvider} from './screens/Provider/WalletProvider';
 import {GlobalKycProvider} from './Src/CustomHooks/GlobalKycProvider';
 import GlobalKycBottomSheet from './Src/CustomHooks/GlobalKycBottomSheet';
+import {NftProvider} from './screens/Provider/NftProvider';
 
 export default function App() {
   Appearance.setColorScheme('light');
@@ -44,7 +45,9 @@ export default function App() {
               {/* <LoginScreen /> */}
               <WalletProvider>
                 <GlobalKycProvider>
-                  <NavigationWrapper />
+                  <NftProvider>
+                    <NavigationWrapper />
+                  </NftProvider>
                   <GlobalKycBottomSheet />
                 </GlobalKycProvider>
               </WalletProvider>

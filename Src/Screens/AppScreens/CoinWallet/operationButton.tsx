@@ -73,7 +73,7 @@ const getOperationDestination = (operation: string): string => {
     trade: 'trade',
     send: SCREEN_CONSTANT?.VERIFYADDRESS,
     receive: SCREEN_CONSTANT.RECIEVESCREEN,
-    swap: 'bridge', // As per your FIXME comment
+    swap: 'swap',
     bridge: SCREEN_CONSTANT.TRANSFERCOIN,
   };
   return destinationsMap[operation.toLowerCase()] || operation.toLowerCase(); // Default fallback

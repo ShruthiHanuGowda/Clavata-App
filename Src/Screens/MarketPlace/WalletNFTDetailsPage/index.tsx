@@ -33,6 +33,7 @@ import {SnackBarMessage} from '../../../utils/snackBar';
 import {useKycCheck} from '../../../CustomHooks/GlobalKycProvider';
 import {RefreshControl} from 'react-native-gesture-handler';
 import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
+import {useNft} from '../../../../screens/Provider/NftProvider';
 
 const width = Dimensions.get('window').width;
 
@@ -202,6 +203,8 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     fetchNftMetadata();
   }, []);
 
+  const {refresh: refreshNfts} = useNft();
+
   const TAB_ITEMS = ['Details', 'Sellers', 'Activity'];
 
   console.log('nft', nft);
@@ -264,8 +267,9 @@ const WalletNFTDetailsScreen = ({route}: any) => {
       variant: variant,
       nftToSell: nftToken,
       refresh: () => {
-        Alert.alert('NFT Sent');
+        // Alert.alert('NFT Sent');
         refetch();
+        refreshNfts();
         refetchActivity();
       },
     });

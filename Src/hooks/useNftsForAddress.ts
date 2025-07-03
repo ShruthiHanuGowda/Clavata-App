@@ -33,7 +33,9 @@ export const useNftsForAddress = ({account}: {account: `0x${string}`}) => {
       setNfts([]);
       setError(null);
       const result = await getCompleteAccountNftData(account, collectionsRes);
+      console.log('Fetched NFT data:', result);
       setNfts(result);
+      console.log('NFTs set successfully:', nfts.length);
     } catch (err) {
       console.error('Error fetching NFT data:', err);
       setError(err);
