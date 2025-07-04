@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Pressable,
   Linking,
+  TouchableOpacity,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './style';
@@ -39,6 +40,7 @@ import {
   TOKEN_ADDRESSES_DENERGY,
 } from '../../../hooks/useSendDenergyUSDCAndEURC';
 import {useSuccessSound} from '../../../hooks/useSuccessSound';
+import {SnackBarMessage} from '../../../utils/snackBar';
 
 // Define types for route params
 interface RouteParams {
@@ -294,15 +296,62 @@ export default function SendCoin(props: SendCoinProps): any {
     }
   };
 
+  // Enhanced amount change handler with better precision
   const onChangeAmount = (val: string): void => {
-    const y = val.replace(/\s/g, '');
-    const x = y.replace(/[^\w\s\.]/gi, '');
-    const parts = x.split('.');
+    const cleaned = val.replace(/\s/g, '');
+    const sanitized = cleaned.replace(/[^\d.]/g, '');
+
+    // Handle multiple decimal points
+    const parts = sanitized.split('.');
     const wholePart = parts[0] || '';
     const decimalPart =
-      parts.length > 1 ? '.' + parts.slice(1).join('').substring(0, 5) : '';
+      parts.length > 1 ? '.' + parts.slice(1).join('').substring(0, 18) : '';
+
     const output = wholePart + decimalPart;
     setWattAmount(output);
+  };
+
+  // New function to handle max amount
+  const handleMaxAmount = (): void => {
+    if (balance && parseFloat(balance) > 0) {
+      if (coinCode === 'ETH') {
+        const maxAmount = Math.max(0, parseFloat(balance) - 0.001);
+        if (maxAmount > 0) {
+          setWattAmount(maxAmount.toString());
+        } else {
+          setWattAmount('0');
+          SnackBarMessage('Insufficient balance to send ETH', 'error');
+        }
+      } else {
+        setWattAmount(balance);
+      }
+    }
+  };
+
+  // Enhanced balance comparison with better precision handling
+  const isInsufficientBalance = (): boolean => {
+    if (!wattAmount || wattAmount === '0' || wattAmount === '') return false;
+
+    const amountNum = parseFloat(wattAmount);
+    const balanceNum = parseFloat(balance);
+
+    // Handle very small numbers with precision
+    return amountNum > balanceNum;
+  };
+
+  // Enhanced validation for send button
+  const isSendDisabled = (): boolean => {
+    return (
+      wattAmount === '0' ||
+      wattAmount === null ||
+      wattAmount === '' ||
+      isInsufficientBalance() ||
+      ethIsLoading ||
+      usdcIsLoading ||
+      wattIsLoading ||
+      usdcDenergyIsLoading ||
+      parseFloat(wattAmount) <= 0
+    );
   };
 
   const onVerify = async (): Promise<void> => {
@@ -470,6 +519,7 @@ export default function SendCoin(props: SendCoinProps): any {
         success: false,
         error: err.message || 'Transaction failed',
       });
+      SnackBarMessage(err.message || 'Transaction failed', 'error');
       setCurrentStep('form');
     }
   };
@@ -650,79 +700,17 @@ export default function SendCoin(props: SendCoinProps): any {
             <Text style={style.sendHeader}>SEND</Text>
           </View>
           <View style={{justifyContent: 'center', alignItems: 'center'}}>
-            <TextInput
-              keyboardType="decimal-pad"
-              value={wattAmount}
-              placeholder="0.0"
-              placeholderTextColor={'#000'}
-              onChangeText={(value: string) => onChangeAmount(value)}
-              style={{
-                color: '#000000',
-                alignItems: 'center',
-                borderBottomWidth: 1,
-                borderBottomColor: '#E7E7E7',
-                width: '90%',
-                justifyContent: 'center',
-                fontFamily: fontsFamily.MulishBold,
-                fontSize: 36,
-              }}></TextInput>
-            <View
-              style={{
-                borderWidth: 1,
-                borderColor: '#E8E8E8',
-                backgroundColor: '#E8E8E8',
-                padding: 10,
-                borderRadius: 7,
-                position: 'absolute',
-                right: 10,
-              }}>
-              <Text style={style.watt}>
-                {coinCode === 'WUSDC'
-                  ? 'wUSDC'
-                  : coinCode === 'WEURC'
-                  ? 'wEURC'
-                  : coinCode}
-              </Text>
-            </View>
-          </View>
-          {parseFloat(wattAmount) > parseFloat(balance) && (
-            <View style={{padding: 10}}>
-              <Text style={{color: '#F42121', fontSize: 12}}>
-                Insufficent balance
-              </Text>
-            </View>
-          )}
-          <View style={{justifyContent: 'center', alignItems: 'center'}}>
-            <View
-              style={{
-                borderWidth: 1,
-                borderColor: '#E0E0E0',
-                marginTop: 20,
-                borderRadius: 7,
-              }}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginVertical: 15,
-                  marginHorizontal: 15,
-                }}>
-                <Text
-                  style={{
-                    fontFamily: fontsFamily.Mulish,
-                    fontSize: 12,
-                    color: '#848484',
-                  }}>
-                  Available Tokens
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: fontsFamily.MulishBold,
-                    marginLeft: 10,
-                    color: '#000',
-                  }}>
-                  {balance}{' '}
+            <View style={enhancedStyles.inputContainer}>
+              <TextInput
+                keyboardType="decimal-pad"
+                value={wattAmount}
+                placeholder="0.0"
+                placeholderTextColor={'#000'}
+                onChangeText={(value: string) => onChangeAmount(value)}
+                style={enhancedStyles.amountInput}
+              />
+              <View style={enhancedStyles.tokenBadge}>
+                <Text style={style.watt}>
                   {coinCode === 'WUSDC'
                     ? 'wUSDC'
                     : coinCode === 'WEURC'
@@ -732,24 +720,48 @@ export default function SendCoin(props: SendCoinProps): any {
               </View>
             </View>
           </View>
+          {isInsufficientBalance() && (
+            <View style={{padding: 10}}>
+              <Text style={{color: '#F42121', fontSize: 12}}>
+                Insufficient balance
+              </Text>
+            </View>
+          )}
+          <View style={{justifyContent: 'center', alignItems: 'center'}}>
+            <View style={enhancedStyles.balanceContainer}>
+              <View style={enhancedStyles.balanceRow}>
+                <Text style={enhancedStyles.balanceLabel}>
+                  Available Tokens
+                </Text>
+                <Text style={enhancedStyles.balanceValue}>
+                  {balance}{' '}
+                  {coinCode === 'WUSDC'
+                    ? 'wUSDC'
+                    : coinCode === 'WEURC'
+                    ? 'wEURC'
+                    : coinCode}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={enhancedStyles.maxButton}
+                onPress={handleMaxAmount}
+                disabled={!balance || parseFloat(balance) <= 0}>
+                <Text style={enhancedStyles.maxButtonText}>MAX</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </ScrollView>
       <DButton
         type="primary"
         style={styles.loginBtnStyle}
-        disabled={
-          wattAmount === '0' ||
-          wattAmount === null ||
-          wattAmount === '' ||
-          parseFloat(wattAmount) > parseFloat(balance) ||
-          ethIsLoading ||
+        disabled={isSendDisabled()}
+        onPress={() => onVerify()}>
+        <Text style={[styles.loginText]}>
+          {ethIsLoading ||
           usdcIsLoading ||
           wattIsLoading ||
           usdcDenergyIsLoading
-        }
-        onPress={() => onVerify()}>
-        <Text style={[styles.loginText]}>
-          {ethIsLoading || usdcIsLoading || wattIsLoading
             ? 'Sending...'
             : 'Send'}
         </Text>
@@ -768,6 +780,84 @@ export default function SendCoin(props: SendCoinProps): any {
     </SafeAreaView>
   );
 }
+
+// Enhanced styles for better UX
+const enhancedStyles = StyleSheet.create({
+  inputContainer: {
+    width: '90%',
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E7E7E7',
+  },
+  amountInput: {
+    flex: 1,
+    color: '#000000',
+    fontFamily: fontsFamily.MulishBold,
+    fontSize: 36,
+    textAlign: 'left',
+    paddingRight: 10,
+  },
+  tokenBadge: {
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    backgroundColor: '#E8E8E8',
+    padding: 10,
+    borderRadius: 7,
+    position: 'absolute',
+    right: 0,
+  },
+  balanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginTop: 20,
+    borderRadius: 7,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    justifyContent: 'space-between',
+    width: '90%',
+  },
+  balanceRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  balanceLabel: {
+    fontFamily: fontsFamily.Mulish,
+    fontSize: 12,
+    color: '#848484',
+  },
+  balanceValue: {
+    fontFamily: fontsFamily.MulishBold,
+    marginLeft: 10,
+    color: '#000',
+    flex: 1,
+  },
+  maxButton: {
+    backgroundColor: '#81c8c3',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginLeft: 10,
+    shadowColor: '#81c8c3',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  maxButtonText: {
+    color: '#FFF',
+    fontFamily: fontsFamily.MulishBold,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+});
 
 const successStyles = StyleSheet.create({
   container: {
