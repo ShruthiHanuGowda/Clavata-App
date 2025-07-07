@@ -153,7 +153,7 @@ export default function Wallet(props: WalletProps) {
         {x: 4, y: 0},
         {x: 5, y: 0},
       ],
-      operationsTypes: ['Send', 'Receive'],
+      operationsTypes: ['Send', 'Receive', 'Swap'],
       growth: 0,
       balance: formatValue(getBalance('WATT')?.balance),
       dollar: formatValue(getBalance('WATT')?.balanceUsd),

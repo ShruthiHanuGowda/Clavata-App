@@ -27,8 +27,6 @@ interface Props {
 
 const groupByCountry = (nfts: NftToken[]) => {
   return nfts.reduce((acc, nft) => {
-    console.log('Grouping NFT:', nft?.attributes);
-
     const country =
       nft?.country ||
       (nft.attributes &&

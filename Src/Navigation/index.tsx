@@ -45,12 +45,43 @@ import AddressBookList from '../Screens/AddressBookScreens/AddressBookList';
 import CreateAddress from '../Screens/AddressBookScreens/CreateAddress';
 import Swap from '../Screens/Swap';
 
+// Extended RootStackParamList to include common screens
+type ExtendedRootStackParamList = RootStackParamList & {
+  // Common NFT/Marketplace screens
+  walletNFTDetails: undefined;
+  SellNFT: undefined;
+  UserNFTs: undefined;
+  BuyNFT: undefined;
+  NFTDetailsPage: undefined;
+  collectionDetails: undefined;
+
+  // Common transaction/wallet screens
+  transactionHistory: undefined;
+
+  // Common account screens
+  ProfileSettings: undefined;
+  AddressBook: undefined;
+  CreateAddress: undefined;
+  beneficary: undefined;
+  contactus: undefined;
+
+  // Common news screens
+  News: undefined;
+  NewsDetail: undefined;
+
+  // Common stake screens
+  ValidatorDetailsScreen: undefined;
+  StakeScreen: undefined;
+  UnstakeScreen: undefined;
+};
+
 function RootScreenStack() {
-  const RootStack = createNativeStackNavigator<RootStackParamList>();
+  const RootStack = createNativeStackNavigator<ExtendedRootStackParamList>();
   return (
     <RootStack.Navigator
       initialRouteName="root"
       screenOptions={{headerShown: false}}>
+      {/* Main navigation screens */}
       <RootStack.Screen name="root" component={Root} />
       <RootStack.Screen name="intro" component={Onboarding} />
       <RootStack.Screen name="appScreens" component={Tabs} />
@@ -64,6 +95,101 @@ function RootScreenStack() {
         component={OffsetScreen}
         options={{headerShown: false}}
       />
+
+      {/* Common NFT/Marketplace screens */}
+      <RootStack.Screen
+        name="walletNFTDetails"
+        component={WalletNFTDetailsScreen}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="SellNFT"
+        component={SellNFTScreen}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="UserNFTs"
+        component={UserNFTsScreen}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="BuyNFT"
+        component={BuyNFTScreen}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="NFTDetailsPage"
+        component={NFTDetailsScreen}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="collectionDetails"
+        component={CollectionDetailsScreen}
+        options={{headerShown: false}}
+      />
+
+      {/* Common transaction/wallet screens */}
+      <RootStack.Screen
+        name="transactionHistory"
+        component={TransactionHistory}
+        options={{headerShown: false}}
+      />
+
+      {/* Common account screens */}
+      <RootStack.Screen
+        name="ProfileSettings"
+        component={ProfileSetting}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="AddressBook"
+        component={AddressBookList}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="CreateAddress"
+        component={CreateAddress}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="beneficary"
+        component={AccountBeneficary}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="contactus"
+        component={ContactUs}
+        options={{headerShown: false}}
+      />
+
+      {/* Common news screens */}
+      <RootStack.Screen
+        name="News"
+        component={News}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="NewsDetail"
+        component={NewsDetail}
+        options={{headerShown: false}}
+      />
+
+      {/* Common stake screens */}
+      <RootStack.Screen
+        name="ValidatorDetailsScreen"
+        component={ValidatorDetailsScreen}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="StakeScreen"
+        component={StakeScreen}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="UnstakeScreen"
+        component={UnstakeScreen}
+        options={{headerShown: false}}
+      />
     </RootStack.Navigator>
   );
 }
@@ -75,6 +201,7 @@ type CoinWalletStackParamList = {
   [SCREEN_CONSTANT.TRANSFERCOIN]: undefined;
   [SCREEN_CONSTANT.SENDCOIN]: undefined;
   [SCREEN_CONSTANT.SENDSUCCESS]: undefined;
+  swap: undefined;
 };
 
 const CoinWalletStack = createNativeStackNavigator<CoinWalletStackParamList>();
@@ -85,11 +212,6 @@ export function CoinWalletStackFun() {
       initialRouteName="coinWallet"
       screenOptions={{headerShown: false}}>
       <CoinWalletStack.Screen name="coinWallet" component={CoinWallet} />
-      {/*<HomeStack.Screen name="coinWallet" component={TransactionExample} />*/}
-      <CoinWalletStack.Screen
-        name="transactionHistroy"
-        component={TransactionHistory}
-      />
       <CoinWalletStack.Screen
         name={SCREEN_CONSTANT.RECIEVESCREEN}
         component={ReceiveScreen}
@@ -102,7 +224,6 @@ export function CoinWalletStackFun() {
         name={SCREEN_CONSTANT.TRANSFERCOIN}
         component={TransferCoin}
       />
-
       <CoinWalletStack.Screen
         name={SCREEN_CONSTANT.SENDCOIN}
         component={SendCoin}
@@ -116,14 +237,11 @@ export function CoinWalletStackFun() {
   );
 }
 
+// Simplified stack param lists (removed common screens)
 type HomeStackParamList = {
   'D.Energy': undefined;
-  ProfileSettings: undefined;
   coinWalletStack: undefined;
-  trade: undefined;
   account: undefined;
-  contactus: undefined;
-  beneficary: undefined;
 };
 
 type WalletStackParamList = {
@@ -133,17 +251,10 @@ type WalletStackParamList = {
 
 type StakeStackParamList = {
   stake: undefined;
-  ValidatorDetailsScreen: undefined;
 };
 
 type MarketplaceStackParamList = {
   marketplace: undefined;
-  collectionDetails: undefined;
-  NFTDetailsPage: undefined;
-  walletNFTDetails: undefined;
-  OffsetScreen: undefined;
-  BuyNFT: undefined;
-  UserNFTs: undefined;
 };
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -155,24 +266,7 @@ export function HomeScreenStack() {
       screenOptions={{headerShown: false}}>
       <HomeStack.Screen name="D.Energy" component={Drex} />
       <HomeStack.Screen name="account" component={Account} />
-      <HomeStack.Screen name="ProfileSettings" component={ProfileSetting} />
-      <HomeStack.Screen name="AddressBook" component={AddressBookList} />
-      <HomeStack.Screen name="CreateAddress" component={CreateAddress} />
       <HomeStack.Screen name="coinWalletStack" component={CoinWalletStackFun} />
-      <HomeStack.Screen name="beneficary" component={AccountBeneficary} />
-      <HomeStack.Screen name="contactus" component={ContactUs} />
-      <HomeStack.Screen name="News" component={News} />
-      <HomeStack.Screen name="NewsDetail" component={NewsDetail} />
-      <HomeStack.Screen
-        name="transactionHistroy"
-        component={TransactionHistory}
-      />
-      <HomeStack.Screen
-        name="walletNFTDetails"
-        component={WalletNFTDetailsScreen}
-      />
-      <HomeStack.Screen name="SellNFT" component={SellNFTScreen} />
-      <MarketplaceStack.Screen name="UserNFTs" component={UserNFTsScreen} />
     </HomeStack.Navigator>
   );
 }
@@ -192,6 +286,7 @@ export function WalletStack() {
     </walletStack.Navigator>
   );
 }
+
 const StakeStack = createNativeStackNavigator<StakeStackParamList>();
 
 export function StakeStackFun() {
@@ -200,12 +295,6 @@ export function StakeStackFun() {
       initialRouteName="stake"
       screenOptions={{headerShown: false}}>
       <StakeStack.Screen name="stake" component={Stake} />
-      <StakeStack.Screen
-        name="ValidatorDetailsScreen"
-        component={ValidatorDetailsScreen}
-      />
-      <StakeStack.Screen name="StakeScreen" component={StakeScreen} />
-      <StakeStack.Screen name="UnstakeScreen" component={UnstakeScreen} />
     </StakeStack.Navigator>
   );
 }
@@ -222,16 +311,6 @@ export function MarketplaceStackFun() {
         name="marketplace"
         component={CollectionListingPage}
       />
-      <MarketplaceStack.Screen
-        name="collectionDetails"
-        component={CollectionDetailsScreen}
-      />
-      <MarketplaceStack.Screen
-        name="NFTDetailsPage"
-        component={NFTDetailsScreen}
-      />
-      <MarketplaceStack.Screen name="OffsetScreen" component={OffsetScreen} />
-      <MarketplaceStack.Screen name="BuyNFT" component={BuyNFTScreen} />
     </MarketplaceStack.Navigator>
   );
 }

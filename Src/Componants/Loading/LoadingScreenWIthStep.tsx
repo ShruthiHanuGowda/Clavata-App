@@ -47,7 +47,7 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
       const controller = new AbortController();
 
       setTimeout(() => {
-        animationRef.current.play();
+        animationRef?.current?.play();
       }, 300);
 
       return () => controller.abort();

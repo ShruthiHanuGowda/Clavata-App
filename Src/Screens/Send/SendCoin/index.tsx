@@ -433,7 +433,7 @@ export default function SendCoin(props: SendCoinProps): any {
         };
         await setActiveNetwork('denergy');
         try {
-          updateProcessingStep('VALIDATING_ADDRESS');
+          // updateProcessingStep('VALIDATING_ADDRESS');
           // Validate first
           const isValid = await validateTransaction(transactionDetails?.to);
           if (!isValid) {

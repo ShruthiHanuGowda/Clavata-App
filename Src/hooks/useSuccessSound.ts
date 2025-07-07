@@ -13,7 +13,7 @@ export const useSuccessSound = () => {
     const tryFormats = ['success.mp3'];
     let currentIndex = 0;
 
-    const loadSound = filename => {
+    const loadSound = (filename: string) => {
       console.log(`Trying to load: ${filename}`);
 
       const sound = new Sound(filename, Sound.MAIN_BUNDLE, error => {
@@ -30,7 +30,7 @@ export const useSuccessSound = () => {
           }
         } else {
           console.log(`Successfully loaded: ${filename}`);
-          console.log('Duration:', sound.getDuration());
+          // console.log('Duration:', sound.getDuration());
           sound.setVolume(1.0);
           soundRef.current = sound;
           setIsLoaded(true);
@@ -49,13 +49,13 @@ export const useSuccessSound = () => {
   }, []);
 
   const playSuccessSound = () => {
-    if (!isLoaded || !soundRef.current) {
+    if (!isLoaded || !soundRef.current || error) {
       console.log('Sound not loaded yet');
       return;
     }
 
-    soundRef.current.setCurrentTime(0);
-    soundRef.current.play((success: boolean) => {
+    soundRef?.current.setCurrentTime(0);
+    soundRef?.current.play((success: boolean) => {
       if (success) {
         console.log('Sound played successfully');
       } else {

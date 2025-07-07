@@ -185,8 +185,6 @@ const WalletNFTDetailsScreen = ({route}: any) => {
           signer,
         );
 
-        console.log(signer.address);
-
         const balance = await collectionContract.balanceOf(
           signer.address,
           nft?.tokenId,
@@ -207,7 +205,6 @@ const WalletNFTDetailsScreen = ({route}: any) => {
 
   const TAB_ITEMS = ['Details', 'Sellers', 'Activity'];
 
-  console.log('nft', nft);
   const handleCollectibleClick = (location?: NftLocation) => {
     switch (location) {
       case NftLocation.WALLET:
