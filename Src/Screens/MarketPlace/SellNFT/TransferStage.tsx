@@ -14,6 +14,8 @@ import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
 import {isAddress} from 'ethers';
 import ContactModal from '../../AddressBookScreens/ContactModal';
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
+import QRCodeScannerModal from '../../../Componants/QRScan/QRCodeScannerModal';
+import {SnackBarMessage} from '../../../utils/snackBar';
 
 interface TransferStageProps {
   nftToSell: NftToken;
@@ -36,6 +38,7 @@ const TransferStage = ({
 }: TransferStageProps) => {
   const {userDetails} = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
+  const [qrScannerVisible, setQrScannerVisible] = useState(false);
 
   const transferAddressEqualsConnectedAddress =
     transferAddress.toLowerCase() === userDetails?.userWallet.toLowerCase();
@@ -69,6 +72,50 @@ const TransferStage = ({
 
   const closeContactModal = () => {
     setModalVisible(false);
+  };
+
+  // QR Scanner functionality
+  const handleQRScan = () => {
+    setQrScannerVisible(true);
+  };
+
+  const handleQRCodeScanned = (data: string) => {
+    console.log('QR Code scanned:', data);
+
+    // Extract address from QR code data
+    let extractedAddress = data;
+
+    // Handle different QR code formats
+    if (data.startsWith('ethereum:')) {
+      // Format: ethereum:0x1234567890abcdef...
+      extractedAddress = data.replace('ethereum:', '').split('?')[0];
+    } else if (data.startsWith('0x')) {
+      // Already a valid address format
+      extractedAddress = data;
+    } else {
+      // Try to find ethereum address pattern in the data
+      const addressMatch = data.match(/0x[a-fA-F0-9]{40}/);
+      if (addressMatch) {
+        extractedAddress = addressMatch[0];
+      }
+    }
+
+    // Validate the extracted address
+    if (isAddress(extractedAddress)) {
+      setTransferAddress(extractedAddress);
+      setQrScannerVisible(false);
+      SnackBarMessage('Address scanned successfully!', 'success');
+    } else {
+      setTransferAddress('');
+      setQrScannerVisible(false);
+      setTimeout(() => {
+        SnackBarMessage('Invalid wallet address in QR code', 'error');
+      }, 500);
+    }
+  };
+
+  const closeQRScanner = () => {
+    setQrScannerVisible(false);
   };
 
   const getAddressErrorText = () => {
@@ -149,13 +196,24 @@ const TransferStage = ({
               multiline={false}
             />
 
-            {/* Contact Selection Icon */}
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={openContactModal}
-              activeOpacity={0.7}>
-              <AntDesignIcon name="contacts" size={23} color="#81c8c3" />
-            </TouchableOpacity>
+            {/* Icons Container */}
+            <View style={styles.iconsContainer}>
+              {/* Contact Selection Icon */}
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={openContactModal}
+                activeOpacity={0.7}>
+                <AntDesignIcon name="contacts" size={23} color="#81c8c3" />
+              </TouchableOpacity>
+
+              {/* QR Scan Icon */}
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleQRScan}
+                activeOpacity={0.7}>
+                <AntDesignIcon name="qrcode" size={23} color="#81c8c3" />
+              </TouchableOpacity>
+            </View>
           </View>
           {getAddressErrorText() && (
             <Text style={styles.errorText}>{getAddressErrorText()}</Text>
@@ -257,6 +315,17 @@ const TransferStage = ({
         title="Choose Recipient"
         searchPlaceholder="Search contacts..."
         emptyMessage="No contacts found"
+      />
+
+      {/* QR Code Scanner Modal */}
+      <QRCodeScannerModal
+        visible={qrScannerVisible}
+        onClose={closeQRScanner}
+        onCodeScanned={handleQRCodeScanned}
+        title="Scan Wallet Address"
+        codeTypes={['qr']}
+        showToggleButton={true}
+        animationType="slide"
       />
     </View>
   );
@@ -373,11 +442,14 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     paddingVertical: 12,
   },
+  iconsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   iconButton: {
-    padding: 0,
-    marginLeft: 8,
+    padding: 4,
     borderRadius: 6,
-    // backgroundColor: 'rgba(129, 200, 195, 0.1)',
   },
   unitLabel: {
     fontSize: 16,
