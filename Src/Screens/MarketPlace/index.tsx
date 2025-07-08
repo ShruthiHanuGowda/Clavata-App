@@ -23,7 +23,7 @@ import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
 type SortType = 'name' | 'country' | 'type' | 'year';
 type FilterType = 'all' | 'country' | 'type' | 'year' | 'status';
 
-const CollectionListingPage: React.FC = () => {
+const MarketPlace: React.FC = () => {
   const {setActiveNetwork} = useMagic();
   const {collections, loading: isLoading, refetch} = useCollections();
 
@@ -38,6 +38,25 @@ const CollectionListingPage: React.FC = () => {
   useEffect(() => {
     setActiveNetwork('denergy');
   }, []);
+
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return (
+      searchQuery.length > 0 ||
+      filterBy !== 'all' ||
+      selectedCountry !== '' ||
+      selectedType !== '' ||
+      selectedYear !== '' ||
+      sortBy !== 'name'
+    );
+  }, [
+    searchQuery,
+    filterBy,
+    selectedCountry,
+    selectedType,
+    selectedYear,
+    sortBy,
+  ]);
 
   const filterOptions = useMemo(() => {
     const countries = [
@@ -136,6 +155,17 @@ const CollectionListingPage: React.FC = () => {
     if (filter !== 'year') setSelectedYear('');
   };
 
+  // Reset all filters function
+  const resetAllFilters = () => {
+    setSearchQuery('');
+    setSortBy('name');
+    setFilterBy('all');
+    setSelectedCountry('');
+    setSelectedType('');
+    setSelectedYear('');
+    setShowSortModal(false);
+  };
+
   const getFilterLabel = () => {
     switch (filterBy) {
       case 'country':
@@ -162,6 +192,11 @@ const CollectionListingPage: React.FC = () => {
           onChangeText={setSearchQuery}
           placeholderTextColor="#999"
         />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Text style={styles.clearSearchIcon}>✕</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.sortFilterRow}>
@@ -178,6 +213,18 @@ const CollectionListingPage: React.FC = () => {
           <Text style={styles.filterButtonText}>{getFilterLabel()}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Reset button - only show when filters are active */}
+      {hasActiveFilters && (
+        <View style={styles.resetContainer}>
+          <TouchableOpacity
+            style={styles.resetButton}
+            onPress={resetAllFilters}>
+            <Text style={styles.resetIcon}>🔄</Text>
+            <Text style={styles.resetButtonText}>Reset All Filters</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 
@@ -206,9 +253,18 @@ const CollectionListingPage: React.FC = () => {
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Sort & Filter Options</Text>
-            <TouchableOpacity onPress={() => setShowSortModal(false)}>
-              <Text style={styles.closeButton}>✕</Text>
-            </TouchableOpacity>
+            <View style={styles.modalHeaderButtons}>
+              {hasActiveFilters && (
+                <TouchableOpacity
+                  style={styles.resetModalButton}
+                  onPress={resetAllFilters}>
+                  <Text style={styles.resetModalButtonText}>Reset All</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={() => setShowSortModal(false)}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView
@@ -320,7 +376,6 @@ const CollectionListingPage: React.FC = () => {
                   )}
                 </TouchableOpacity>
 
-                {/* Dynamic options based on filter type */}
                 {filterBy === 'country' &&
                   filterOptions.countries.map(country => (
                     <TouchableOpacity
@@ -462,6 +517,15 @@ const CollectionListingPage: React.FC = () => {
                       ? `No collections found matching "${searchQuery}"`
                       : 'No collections found for the selected filter'}
                   </Text>
+                  {hasActiveFilters && (
+                    <TouchableOpacity
+                      style={styles.resetEmptyStateButton}
+                      onPress={resetAllFilters}>
+                      <Text style={styles.resetEmptyStateButtonText}>
+                        Clear All Filters
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </>
@@ -505,7 +569,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#81c8c3',
   },
-  // New styles for search and sort UI
+  // Enhanced search and sort UI styles
   searchSortContainer: {
     backgroundColor: '#FFF',
     paddingHorizontal: 15,
@@ -533,6 +597,12 @@ const styles = StyleSheet.create({
     height: 40,
     fontSize: 16,
     color: '#333',
+  },
+  clearSearchIcon: {
+    fontSize: 16,
+    color: '#666',
+    paddingLeft: 8,
+    fontWeight: 'bold',
   },
   sortFilterRow: {
     flexDirection: 'row',
@@ -572,6 +642,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  // Reset button styles
+  resetContainer: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ff6b6b',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  resetIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  resetButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   // Modal styles
   modalOverlay: {
     flex: 1,
@@ -598,6 +695,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+  },
+  modalHeaderButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  resetModalButton: {
+    backgroundColor: '#ff6b6b',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginRight: 15,
+  },
+  resetModalButtonText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   closeButton: {
     fontSize: 20,
@@ -664,7 +777,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    marginBottom: 15,
+  },
+  resetEmptyStateButton: {
+    backgroundColor: '#81c8c3',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  resetEmptyStateButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
-export default CollectionListingPage;
+export default MarketPlace;

@@ -190,7 +190,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
           size={'large'}
           speed={1.5}
           showText
-          text="Loading NFTs..."
+          text="Loading Certificates..."
         />
       </View>
     );

@@ -16,7 +16,12 @@ export default function BalanceCarousal(props: Props) {
   const {getBalance} = useWallet();
   const wattBalance = getBalance('WATT')?.balance;
   const wusdcBalance = getBalance('WUSDC')?.balanceUsd;
-  const usdcBalance = getBalance('USDC')?.balanceUsd;
+  const weurcBalance = getBalance('WEURC')?.balanceUsd;
+  const wattBalanceUsd = getBalance('WATT')?.balanceUsd;
+
+  console.log('wusdcBalance', wusdcBalance);
+  console.log('weurcBalance', weurcBalance);
+  console.log('wattBalanceUsd', wattBalanceUsd);
 
   const [index, setIndex] = useState(1);
   const loading = props.loading && <></>;
@@ -97,7 +102,11 @@ export default function BalanceCarousal(props: Props) {
             <TabView.Item style={carousalStyles.tabItem}>
               <DText fontStyle="fontBold" style={carousalStyles.value}>
                 ${' '}
-                {Number(Number(wusdcBalance) + Number(usdcBalance)).toFixed(2)}
+                {Number(
+                  Number(wusdcBalance) +
+                    Number(weurcBalance) +
+                    Number(wattBalanceUsd),
+                ).toFixed(2)}
               </DText>
             </TabView.Item>
           </TabView>
