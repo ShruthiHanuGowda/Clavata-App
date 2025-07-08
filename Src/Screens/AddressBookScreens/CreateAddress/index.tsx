@@ -25,6 +25,7 @@ import {
 } from '../Hooks/AddressBookGraphql';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import {useAuth} from '../../../../screens/Provider/authProvider';
+import {isAddress} from 'ethers';
 
 interface CreateAddressProps {
   onSave?: (data: CreateAddressData) => void;
@@ -386,26 +387,37 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
 
           {/* Beneficiary Address Input */}
           <View>
-            <DTextInput
-              value={formData.beneficiaryAddress}
-              setValue={(value: string) => {
-                handleInputChange('beneficiaryAddress', value);
-                setIsAddressValid(value.trim().length >= 10);
-              }}
-              setValid={setIsAddressValid}
-              placeholder="Wallet Address"
-              multiline
-              numberOfLines={3}
-              containerStyle={[
+            <View
+              style={[
                 localStyles.uniformContainer,
                 {paddingHorizontal: 5, paddingVertical: 5},
                 errors.beneficiaryAddress ? localStyles.inputError : null,
-              ]}
-              editable={!!selectedChain} // Disable if no chain is selected
-            />
+              ]}>
+              <TextInput
+                value={formData.beneficiaryAddress}
+                onChangeText={(value: string) => {
+                  handleInputChange('beneficiaryAddress', value);
+                  setIsAddressValid(isAddress(value));
+                }}
+                placeholder="Wallet Address123"
+                multiline
+                numberOfLines={3}
+                // containerStyle={[
+                //   localStyles.uniformContainer,
+                //   {paddingHorizontal: 5, paddingVertical: 5},
+                //   errors.beneficiaryAddress ? localStyles.inputError : null,
+                // ]}
+                editable={!!selectedChain}
+              />
+            </View>
             {errors.beneficiaryAddress && (
               <Text style={localStyles.errorText}>
                 {errors.beneficiaryAddress}
+              </Text>
+            )}
+            {selectedChain && !isAddressValid && !errors.beneficiaryAddress && (
+              <Text style={localStyles.errorText}>
+                Please enter a valid wallet address
               </Text>
             )}
             {!selectedChain && !errors.beneficiaryAddress && (
