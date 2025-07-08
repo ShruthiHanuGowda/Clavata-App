@@ -13,6 +13,8 @@ import {
 import images from '../../Theme/images';
 import useValidators from './Hooks/useValidators';
 import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
+import {useKycCheck} from '../../CustomHooks/GlobalKycProvider';
+import {SnackBarMessage} from '../../utils/snackBar';
 
 // Define interfaces for our data types
 interface Validator {
@@ -51,6 +53,7 @@ const ValidatorDetailsScreen = ({
   const [delegators, setDelegators] = useState<Delegator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const {checkKYC, isKycCompleted, isKycSkipped} = useKycCheck();
 
   // Get the validatorId from route params (assuming it's passed when navigating)
   const validatorId = route.params?.validatorId || 'val_001';
@@ -131,6 +134,35 @@ const ValidatorDetailsScreen = ({
     const date = new Date(dateString);
     const options = {year: 'numeric', month: 'short', day: 'numeric'} as const;
     return date.toLocaleDateString('en-US', options);
+  };
+
+  const handleOffersClick = async () => {
+    if (isKycCompleted) {
+      navigation.navigate('StakeScreen', {
+        validatorId: validator.validatorId,
+      });
+    } else {
+      await checkKYC({
+        onSuccess: () => {
+          navigation.navigate('StakeScreen', {
+            validatorId: validator.validatorId,
+          });
+        },
+        onSkip: () => {
+          SnackBarMessage(
+            'Please complete your kyc to access this feature',
+            'error',
+          );
+        },
+        onError: error => {
+          SnackBarMessage(
+            'Please complete your kyc to access this feature',
+            'error',
+          );
+        },
+        showAlerts: false,
+      });
+    }
   };
 
   // Show loading state
@@ -329,9 +361,7 @@ const ValidatorDetailsScreen = ({
         <TouchableOpacity
           style={styles.stakeButton}
           onPress={() => {
-            navigation.navigate('StakeScreen', {
-              validatorId: validator.validatorId,
-            });
+            handleOffersClick();
           }}>
           <Text style={styles.stakeButtonText}>Stake</Text>
         </TouchableOpacity>
