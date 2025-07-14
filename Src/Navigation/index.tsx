@@ -44,6 +44,8 @@ import NewsDetail from '../Screens/NewsScreens/NewsDetail';
 import AddressBookList from '../Screens/AddressBookScreens/AddressBookList';
 import CreateAddress from '../Screens/AddressBookScreens/CreateAddress';
 import Swap from '../Screens/Swap';
+import NFTDetailHistory from '../Screens/MarketPlace/WalletNFTDetailsPage/NFTDetailHistory';
+// import NFTTransactionDetails from '../Screens/MarketPlace/WalletNFTDetailsPage/NFTTransactionDetails';
 
 // Extended RootStackParamList to include common screens
 type ExtendedRootStackParamList = RootStackParamList & {
@@ -100,6 +102,11 @@ function RootScreenStack() {
       <RootStack.Screen
         name="walletNFTDetails"
         component={WalletNFTDetailsScreen}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="NFTDetailHistory"
+        component={NFTDetailHistory}
         options={{headerShown: false}}
       />
       <RootStack.Screen

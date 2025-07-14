@@ -119,6 +119,7 @@ const NFTHeader = ({name, quantity, metadata}: NFTHeaderProps) => (
 
 const WalletNFTDetailsScreen = ({route}: any) => {
   const {nft, refresh} = route.params;
+  console.log('🚀 ~ WalletNFTDetailsScreen ~ nft:', JSON?.stringify(nft));
   const navigation = useNavigation();
   const {magic, setActiveNetwork} = useMagic();
   const {userDetails} = useAuth();
@@ -419,6 +420,17 @@ const WalletNFTDetailsScreen = ({route}: any) => {
               icon={images.buyIcon}
               label="Offset"
               onPress={() => handleOffersClick()}
+            />
+            <ActionButton
+              icon={images.buyIcon}
+              label="History"
+              onPress={() =>
+                navigation.navigate('NFTDetailHistory', {
+                  collectionAddress: nft?.collectionAddress,
+                  nftName: nft?.name,
+                  nftId: nft?.tokenId,
+                })
+              }
             />
           </View>
         </LinearGradient>

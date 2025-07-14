@@ -63,7 +63,10 @@ const PortfolioHeader = ({coinCode, balance, balanceUsd}) => (
       </View>
       <View style={styles.balanceContainer}>
         <Text style={styles.balanceLabel}>Balance</Text>
-        <Text style={styles.balanceValue} numberOfLines={2} ellipsizeMode="tail">
+        <Text
+          style={styles.balanceValue}
+          numberOfLines={2}
+          ellipsizeMode="tail">
           {balance || '0'} (${balanceUsd || '0.00'})
         </Text>
       </View>
