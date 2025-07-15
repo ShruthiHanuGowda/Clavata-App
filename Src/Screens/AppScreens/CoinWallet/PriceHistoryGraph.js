@@ -5,6 +5,42 @@ import {LineChart} from 'react-native-chart-kit';
 const PriceHistoryGraph = ({data, labels, toggleValue}) => {
   let showDotIndex = data.indexOf(Math.max(...data));
 
+  // Format labels based on toggle value and data type
+  const formatXLabel = (xValue) => {
+    if (!xValue) return '';
+    
+    // If it's already a formatted short label (like "Mon", "Tue", "08:00"), return as is
+    if (xValue.length <= 5) {
+      return xValue;
+    }
+    
+    // Handle date string format (YYYY-MM-DD or other date formats)
+    if (xValue.includes('-') && xValue.split('-').length === 3) {
+      const parts = xValue.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}`;
+      }
+    }
+    
+    // Handle timestamp or other formats
+    if (toggleValue === 'week') {
+      // Try to parse as date and get day name
+      const date = new Date(xValue);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', { weekday: 'short' });
+      }
+    } else if (toggleValue === 'day') {
+      // Try to parse as date and get hour
+      const date = new Date(xValue);
+      if (!isNaN(date.getTime())) {
+        return date.getHours().toString().padStart(2, '0') + ':00';
+      }
+    }
+    
+    // Fallback: return first few characters
+    return xValue.substring(0, 5);
+  };
+
   return (
     <View>
       <LineChart
@@ -20,11 +56,7 @@ const PriceHistoryGraph = ({data, labels, toggleValue}) => {
         }}
         width={Dimensions.get('window').width}
         height={220}
-        formatXLabel={xValue =>
-          toggleValue === 'week'
-            ? `${xValue.split('-')[2]}/${xValue.split('-')[1]}`
-            : xValue
-        }
+        formatXLabel={formatXLabel}
         chartConfig={{
           backgroundGradientFrom: '#FFFFFF',
           backgroundGradientFromOpacity: 0,
@@ -60,10 +92,11 @@ const PriceHistoryGraph = ({data, labels, toggleValue}) => {
         style={{
           marginVertical: 20,
           marginLeft: -20,
-          backgroundColor: '#fffff',
+          backgroundColor: '#ffffff',
         }}
       />
     </View>
   );
 };
+
 export default PriceHistoryGraph;

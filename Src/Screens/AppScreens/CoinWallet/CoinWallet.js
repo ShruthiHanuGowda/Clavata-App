@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ImageBackground,
   Button,
+  ActivityIndicator,
 } from 'react-native';
 import {fontsFamily, Images} from '../../../Theme';
 import style from './styles';
@@ -33,12 +34,146 @@ import {
 } from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../../../graphql/queries';
 import {marketIcons} from '../../../Theme/variable';
+import { PRICE_HISTORY_API_URL } from '../../../constants';
 
 const width = Dimensions.get('window').width;
 
-// Function to get coin icon
-const getCoinIcon = (coinCode: string) => {
+
+const formatCoinCodeForAPI = (coinCode) => {
+  if (!coinCode) return 'usd-coin';
+  
+  const coinMapping = {
+    "WATT": 'usd-coin',
+    'USDC': 'usd-coin',
+    'ETH': 'ethereum',
+    "WUSDC": 'usd-coin',
+    "EURC": 'stasis-eurs',
+    "WEURC": 'stasis-eurs',
+    'USD': 'usd-coin', 
+  };
+  
+  return coinMapping[coinCode.toUpperCase()] || coinCode.toLowerCase().replace(/\s+/g, '-');
+};
+
+const getCoinIcon = (coinCode) => {
   return marketIcons[coinCode] || images.usdc;
+};
+
+const useChartData = (coinCode, toggleValue) => {
+  const [chartData, setChartData] = useState({
+    labels: [],
+    values: [],
+    currentPrice: 0,
+    priceChange: 0,
+    priceChangePercent: 0,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchChartData = async () => {
+    if (!coinCode || coinCode === 'USD') return;
+    
+    setLoading(true);
+    setError(null);
+
+    try {
+      const apiCoinCode = formatCoinCodeForAPI(coinCode);
+      const response = await fetch(`${PRICE_HISTORY_API_URL}/${apiCoinCode}`);
+      
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success || !data.data || !data.data.prices) {
+        throw new Error('Invalid API response format');
+      }
+
+      const prices = data.data.prices;
+      
+      if (prices.length === 0) {
+        throw new Error('No price data available');
+      }
+
+      // Process data based on toggle value
+      const processedData = processChartData(prices, toggleValue);
+      setChartData(processedData);
+      
+    } catch (err) {
+      console.error('Chart data fetch error:', err);
+      setError(err.message);
+      
+      // Reset to empty state on error instead of showing mock data
+      setChartData({
+        labels: [],
+        values: [],
+        currentPrice: 0,
+        priceChange: 0,
+        priceChangePercent: 0,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchChartData();
+  }, [coinCode, toggleValue]);
+
+  return { chartData, loading, error, refetch: fetchChartData };
+};
+
+// Process chart data based on time period
+const processChartData = (prices, toggleValue) => {
+  if (!prices || prices.length === 0) {
+    return {
+      labels: [],
+      values: [],
+      currentPrice: 0,
+      priceChange: 0,
+      priceChangePercent: 0,
+    };
+  }
+
+  // Sort prices by timestamp
+  const sortedPrices = [...prices].sort((a, b) => a.timestamp - b.timestamp);
+  
+  let labels = [];
+  let values = [];
+  
+  if (toggleValue === 'day') {
+    // For daily view, show last 24 hours with hourly intervals
+    const last24Hours = sortedPrices.slice(-24);
+    labels = last24Hours.map(item => {
+      const date = new Date(item.timestamp);
+      return date.getHours().toString().padStart(2, '0') + ':00';
+    });
+    values = last24Hours.map(item => item.price);
+  } else {
+    // For weekly view, show last 7 days
+    const lastWeek = sortedPrices.slice(-7);
+    labels = lastWeek.map(item => {
+      const date = new Date(item.timestamp);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      return dayName;
+    });
+    values = lastWeek.map(item => item.price);
+  }
+
+  // Calculate price change
+  const currentPrice = sortedPrices[sortedPrices.length - 1]?.price || 0;
+  const previousPrice = sortedPrices[sortedPrices.length - 2]?.price || currentPrice;
+  const priceChange = currentPrice - previousPrice;
+  const priceChangePercent = previousPrice !== 0 ? (priceChange / previousPrice) * 100 : 0;
+
+  return {
+    labels,
+    values,
+    currentPrice,
+    priceChange,
+    priceChangePercent,
+  };
 };
 
 // Move PortfolioHeader outside the component to prevent recreation on each render
@@ -74,12 +209,54 @@ const PortfolioHeader = ({coinCode, balance, balanceUsd}) => (
   </View>
 );
 
+// Price display component
+const PriceDisplay = ({currentPrice, priceChange, priceChangePercent, loading, error}) => {
+  if (loading) {
+    return (
+      <View style={styles.priceDisplayContainer}>
+        <ActivityIndicator size="small" color="#009D94" />
+        <Text style={styles.loadingText}>Loading price data...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.priceDisplayContainer}>
+        <Text style={styles.noDataText}>No price data available</Text>
+      </View>
+    );
+  }
+
+  const isPositive = priceChange >= 0;
+  const changeColor = isPositive ? '#00C851' : '#FF4444';
+  const changeIcon = isPositive ? images.sharePriceIcon : images.sharePriceDownIcon;
+
+  return (
+    <View style={styles.priceDisplayContainer}>
+      <Text style={style.usdvalue}>
+        ${currentPrice.toFixed(4)}
+      </Text>
+      <Image
+        source={changeIcon}
+        style={{height: 10, width: 15, marginLeft: 2}}
+        resizeMode="contain"
+      />
+      <Text style={[style.Today, {color: changeColor}]}>
+        ({isPositive ? '+' : ''}{priceChangePercent.toFixed(2)}%)
+      </Text>
+    </View>
+  );
+};
+
 export default function CoinWallet(props) {
   // Add error boundary state
   const [hasError, setHasError] = useState(false);
 
   // Safely extract props with fallbacks
   const coinCode = props?.route?.params?.coinCode || 'Unknown';
+  console.log('coinCode', coinCode);
+  
   const operationsTypes = props?.route?.params?.operationsTypes || [];
 
   const [createTransactionHistoryMobile] = useMutation(
@@ -115,14 +292,11 @@ export default function CoinWallet(props) {
     setHasError(true);
   }
 
-  const [toggleValue, setToggleValue] = useState('day');
+  const [toggleValue, setToggleValue] = useState('week');
   const [index, setIndex] = useState(0);
 
-  // Use static data for graph to prevent crashes
-  const graphData = {
-    label: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    values: [12, 15, 18, 22, 28, 25, 30],
-  };
+  // Use the custom hook for chart data
+  const { chartData, loading, error, refetch } = useChartData(coinCode, toggleValue);
 
   const TAB_ITEMS = ['Price History', 'Transaction History'];
   const toggleOptions = ['week', 'day'];
@@ -137,7 +311,6 @@ export default function CoinWallet(props) {
             style={styles.retryButton}
             onPress={() => {
               setHasError(false);
-              // You might want to reload or navigate back
             }}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
@@ -152,7 +325,6 @@ export default function CoinWallet(props) {
       navigateBack();
     } catch (error) {
       console.error('Navigation error:', error);
-      // Fallback navigation or error handling
     }
   };
 
@@ -242,8 +414,11 @@ export default function CoinWallet(props) {
                 style={{
                   flexDirection: 'row',
                   justifyContent: 'space-between',
+                  alignItems: 'center',
                 }}>
-                <Text style={style.HeaderFont}>This Week Average</Text>
+                <Text style={style.HeaderFont}>
+                  {toggleValue === 'day' ? 'Today' : 'This Week'} Average
+                </Text>
                 <View style={style.toggleView}>
                   {toggleOptions.map((item, i) => {
                     return (
@@ -267,28 +442,41 @@ export default function CoinWallet(props) {
                   })}
                 </View>
               </View>
-              <View
-                style={{
-                  marginRight: 1,
-                  alignItems: 'center',
-                  flexDirection: 'row',
-                }}>
-                <Text style={style.usdvalue}>$0.05</Text>
-                <Image
-                  source={images.sharePriceIcon}
-                  style={{height: 10, width: 15, marginLeft: 2}}
-                  resizeMode="contain"
-                />
-                <Text style={style.Today}>(+0.00%)</Text>
-              </View>
+
+              <PriceDisplay
+                currentPrice={chartData.currentPrice}
+                priceChange={chartData.priceChange}
+                priceChangePercent={chartData.priceChangePercent}
+                loading={loading}
+                error={error}
+              />
+
+              {error && (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorBannerText}>
+                    Failed to load chart data
+                  </Text>
+                  <TouchableOpacity onPress={refetch} style={styles.retryLink}>
+                    <Text style={styles.retryLinkText}>Retry</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               <View style={{left: -20}}>
-                {graphData && (
+                {!loading && !error && chartData.labels.length > 0 ? (
                   <PriceHistoryGraph
-                    labels={graphData?.label}
+                    labels={chartData.labels}
                     toggleValue={toggleValue}
-                    data={graphData?.values}
+                    data={chartData.values}
                   />
-                )}
+                ) : !loading && (error || chartData.labels.length === 0) ? (
+                  <View style={styles.noDataContainer}>
+                    <Text style={styles.noDataText}>No chart data available</Text>
+                    <TouchableOpacity onPress={refetch} style={styles.retryButton}>
+                      <Text style={styles.retryText}>Retry</Text> 
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
               </View>
             </ScrollView>
           ) : (
@@ -447,6 +635,29 @@ const styles = StyleSheet.create({
     fontFamily: fontsFamily.MulishSemiBold,
     marginBottom: 20,
   },
+  // Price display styles
+  priceDisplayContainer: {
+    marginRight: 1,
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginVertical: 10,
+  },
+  loadingText: {
+    color: '#009D94',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  noDataText: {
+    color: '#6B7280',
+    fontSize: 16,
+    fontFamily: fontsFamily.MulishSemiBold,
+  },
+  noDataContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
   // Error handling styles
   errorContainer: {
     flex: 1,
@@ -465,10 +676,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
+    marginTop:4
   },
   retryText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  // Error banner styles
+  errorBanner: {
+    backgroundColor: '#FFF3CD',
+    borderColor: '#FFEAA7',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  errorBannerText: {
+    color: '#856404',
+    fontSize: 12,
+    flex: 1,
+  },
+  retryLink: {
+    marginLeft: 10,
+  },
+  retryLinkText: {
+    color: '#009D94',
+    fontSize: 12,
     fontWeight: '600',
   },
 });

@@ -66,3 +66,6 @@ export const ADDRESS_BOOK_API_KEY = 'da2-7najvwkoefectg7udgke7wco7i';
 
 export const NFT_DEFAULT_IMAGE_URL =
   'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg';
+
+export const PRICE_HISTORY_API_URL =
+  'https://rfgxvcfbo6.execute-api.me-central-1.amazonaws.com/default/historical';
