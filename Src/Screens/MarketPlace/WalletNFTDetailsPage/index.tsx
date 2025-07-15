@@ -422,15 +422,16 @@ const WalletNFTDetailsScreen = ({route}: any) => {
               onPress={() => handleOffersClick()}
             />
             <ActionButton
-              icon={images.buyIcon}
+              icon={images.history}
               label="History"
-              onPress={() =>
+              onPress={() => {
+                console.log('🚀 ~ NFTDetailHistory ~ nftName: NFT', nft);
                 navigation.navigate('NFTDetailHistory', {
                   collectionAddress: nft?.collectionAddress,
                   nftName: nft?.name,
                   nftId: nft?.tokenId,
-                })
-              }
+                });
+              }}
             />
           </View>
         </LinearGradient>

@@ -3,7 +3,7 @@ import moment from 'moment';
 import useApi from '../../../hooks/useApi';
 
 // Types for NFT transaction data
-interface NFTTransaction {
+export interface NFTTransaction {
   id: string;
   date: string;
   type: 'Mint' | 'Transfer' | 'Sale' | 'Burn';
@@ -13,7 +13,7 @@ interface NFTTransaction {
   currency?: string;
   from?: string;
   to?: string;
-  txHash?: string;
+  hash?: string;
   status: 'Success' | 'Pending' | 'Failed';
   blockNumber?: number;
   gasUsed?: number;
@@ -89,7 +89,7 @@ export const useNFTTransactionHistory = (
     error,
     refetch,
   } = useApi<NFTTransactionResponse>(
-    `https://explorernew.denergytestnet.com/api/v2/addresses/0xb74FDeef8fABf7364569aAcFF92305efDA21470e/transactions?filter=0x86bfdbab7459785a44b414995cb8396b7cca3afb`,
+    `https://explorernew.denergytestnet.com/api/v2/addresses/${walletAddress}/transactions?filter=${collectionAddress}`,
     {
       method: 'GET',
     },
@@ -99,7 +99,7 @@ export const useNFTTransactionHistory = (
   useEffect(() => {
     console?.log('apiResponse', JSON.stringify(apiResponse));
     if (apiResponse?.items) {
-      setAllTransactions(apiResponse?.items);
+      setAllTransactions(apiResponse.items as NFTTransaction[]);
     }
   }, [apiResponse, page]);
 
