@@ -76,3 +76,4 @@ ios/MagicBareRnExample/Info.plist
 
 yarn.lock
 ios/Podfile.lock
+.env

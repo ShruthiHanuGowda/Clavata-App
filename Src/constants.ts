@@ -1,71 +1,180 @@
 // network
-export const CUSTOM_RPC_URL = 'https://rpc.denergytestnet.com';
-export const SEPOLIA_RPC_URL =
-  'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
-export const CUSTOM_NETWORK = 'denergy';
-export const CUSTOM_NETWORK_CHAIN_ID = 4442;
-export const SEPOLIA_CHAIN_ID = 11155111;
 
-export const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238';
-export const BANK_ADDRESS = '0xa427CC7f6EA29CCff9b1f3910199C5b087821214';
-export const BRIDGE_ADDRESS = '0x986cFDe622234531c6232EcC117a48f6fC04e719';
-export const EURC_ADDRESS = '0x08210F9170F89Ab7658F0B5E3fF39b0E03C594D4';
-export const DENERGY_USDC_ADDRESS =
-  '0xA0C2961f003f97448c8351f94758e9D4e4b1033b';
-export const DENERGY_EURC_ADDRESS =
-  '0xe3dA95AB1bcb8C488ce79cC2ea978649B5435460';
-export const DESTINATION_ADDRESS = '0x4a76fd5b1fc842acb3d6c07aff3390fc718e9dd3';
-export const STAKING_ADDRESS = '0x0000000000000000000000000000000000000808';
-export const STAKING_VALIDATOR_ADDRESS =
-  'denergyvaloper1p5ldj55zchl940d6xtnel0ma2pu3hp5eye7hsl';
+import {
+  CUSTOM_RPC_URL as CUSTOM_RPC_URL_ENV,
+  SEPOLIA_RPC_URL as SEPOLIA_RPC_URL_ENV,
+  CUSTOM_NETWORK as CUSTOM_NETWORK_ENV,
+  CUSTOM_NETWORK_CHAIN_ID as CUSTOM_NETWORK_CHAIN_ID_STR,
+  SEPOLIA_CHAIN_ID as SEPOLIA_CHAIN_ID_STR,
+  USDC_ADDRESS as USDC_ADDRESS_ENV,
+  BANK_ADDRESS as BANK_ADDRESS_ENV,
+  BRIDGE_ADDRESS as BRIDGE_ADDRESS_ENV,
+  EURC_ADDRESS as EURC_ADDRESS_ENV,
+  DENERGY_USDC_ADDRESS as DENERGY_USDC_ADDRESS_ENV,
+  DENERGY_EURC_ADDRESS as DENERGY_EURC_ADDRESS_ENV,
+  DESTINATION_ADDRESS as DESTINATION_ADDRESS_ENV,
+  STAKING_ADDRESS as STAKING_ADDRESS_ENV,
+  STAKING_VALIDATOR_ADDRESS as STAKING_VALIDATOR_ADDRESS_ENV,
+  NFT_MARKET_ADDRESS as NFT_MARKET_ADDRESS_ENV,
+  API_NFT_URL as API_NFT_URL_ENV,
+  API_OFFSETTING_URL as API_OFFSETTING_URL_ENV,
+  GRAPH_API_NFTMARKET as GRAPH_API_NFTMARKET_ENV,
+  KYC_API_URL as KYC_API_URL_ENV,
+  KYC_API_KEY as KYC_API_KEY_ENV,
+  PLATFORM_SETTINGS_API_URL as PLATFORM_SETTINGS_API_URL_ENV,
+  PLATFORM_SETTINGS_API_KEY as PLATFORM_SETTINGS_API_KEY_ENV,
+  STAKED_API_URL as STAKED_API_URL_ENV,
+  NEWS_API_URL as NEWS_API_URL_ENV,
+  NEWS_API_KEY as NEWS_API_KEY_ENV,
+  ADDRESS_BOOK_API_URL as ADDRESS_BOOK_API_URL_ENV,
+  ADDRESS_BOOK_API_KEY as ADDRESS_BOOK_API_KEY_ENV,
+  NFT_DEFAULT_IMAGE_URL as NFT_DEFAULT_IMAGE_URL_ENV,
+  PRICE_HISTORY_API_URL as PRICE_HISTORY_API_URL_ENV,
+} from '@env';
 
-// contract token
+console.log('API_URL2', {
+  CUSTOM_RPC_URL_ENV,
+  SEPOLIA_RPC_URL_ENV,
+  CUSTOM_NETWORK_ENV,
+  CUSTOM_NETWORK_CHAIN_ID_STR,
+  SEPOLIA_CHAIN_ID_STR,
+  USDC_ADDRESS_ENV,
+  BANK_ADDRESS_ENV,
+  BRIDGE_ADDRESS_ENV,
+  EURC_ADDRESS_ENV,
+  DENERGY_USDC_ADDRESS_ENV,
+  DENERGY_EURC_ADDRESS_ENV,
+  DESTINATION_ADDRESS_ENV,
+  STAKING_ADDRESS_ENV,
+  STAKING_VALIDATOR_ADDRESS_ENV,
+  NFT_MARKET_ADDRESS_ENV,
+  API_NFT_URL_ENV,
+  API_OFFSETTING_URL_ENV,
+  GRAPH_API_NFTMARKET_ENV,
+  KYC_API_URL_ENV,
+  KYC_API_KEY_ENV,
+  PLATFORM_SETTINGS_API_URL_ENV,
+  PLATFORM_SETTINGS_API_KEY_ENV,
+  STAKED_API_URL_ENV,
+  NEWS_API_URL_ENV,
+  NEWS_API_KEY_ENV,
+  ADDRESS_BOOK_API_URL_ENV,
+  ADDRESS_BOOK_API_KEY_ENV,
+  NFT_DEFAULT_IMAGE_URL_ENV,
+  PRICE_HISTORY_API_URL_ENV,
+});
+
+// export const CUSTOM_RPC_URL = 'https://rpc.denergytestnet.com';
+// export const SEPOLIA_RPC_URL =
+//   'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
+// export const CUSTOM_NETWORK = 'denergy';
+// export const CUSTOM_NETWORK_CHAIN_ID = 4442;
+// export const SEPOLIA_CHAIN_ID = 11155111;
+
+// export const USDC_ADDRESS = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238';
+// export const BANK_ADDRESS = '0xa427CC7f6EA29CCff9b1f3910199C5b087821214';
+// export const BRIDGE_ADDRESS = '0x986cFDe622234531c6232EcC117a48f6fC04e719';
+// export const EURC_ADDRESS = '0x08210F9170F89Ab7658F0B5E3fF39b0E03C594D4';
+// export const DENERGY_USDC_ADDRESS =
+//   '0xA0C2961f003f97448c8351f94758e9D4e4b1033b';
+// export const DENERGY_EURC_ADDRESS =
+//   '0xe3dA95AB1bcb8C488ce79cC2ea978649B5435460';
+// export const DESTINATION_ADDRESS = '0x4a76fd5b1fc842acb3d6c07aff3390fc718e9dd3';
+// export const STAKING_ADDRESS = '0x0000000000000000000000000000000000000808';
+// export const STAKING_VALIDATOR_ADDRESS =
+//   'denergyvaloper1p5ldj55zchl940d6xtnel0ma2pu3hp5eye7hsl';
+
+// // contract token
+// export const TOKEN_CONTRACTS = {
+//   denergy: {
+//     USDC: DENERGY_USDC_ADDRESS,
+//     EURC: DENERGY_EURC_ADDRESS,
+//   },
+//   sepolia: {
+//     USDC: USDC_ADDRESS,
+//     EURC: EURC_ADDRESS,
+//   },
+//   nftMarket: '0x8f276Cc791886B563A915D22529238483433Ffc2',
+// };
+
+// export const API_NFT_URL =
+//   'https://y2veqyu78j.execute-api.me-central-1.amazonaws.com/default';
+
+// export const API_OFFSETTING_URL =
+//   'https://brh92tcajc.execute-api.me-central-1.amazonaws.com/Testing/evident-redeem';
+
+// export const GRAPH_API_NFTMARKET =
+//   'https://nftmarket-subgraph.wattswaps.com/subgraphs/name/nftmarket-subgraph';
+
+// export const KYC_API_URL =
+//   'https://gh6hwmywzjfvlghrmqctqmo42u.appsync-api.me-central-1.amazonaws.com/graphql';
+
+// export const KYC_API_KEY = 'da2-pamxpzqquvenlmpacbqq6ejwda';
+
+// export const PLATFORM_SETTINGS_API_URL =
+//   'https://z5xzy7dsije2hgtxlkl7q6mzve.appsync-api.me-central-1.amazonaws.com/graphql';
+
+// export const PLATFORM_SETTINGS_API_KEY = 'da2-mefhraz6cvgxbctio2efrac6ke';
+
+// export const STAKED_API_URL =
+//   'https://nftmarket-subgraph.wattswaps.com/subgraphs/name/nftstaking-subgraph';
+
+// export const NEWS_API_URL =
+//   'https://ug7ihehawff6vf4kylaobwvqxu.appsync-api.me-central-1.amazonaws.com/graphql';
+
+// export const NEWS_API_KEY = 'da2-gaeekkkmyzduppwbp3fftryhj4';
+
+// export const ADDRESS_BOOK_API_URL =
+//   'https://jf7gnnptu5avrbi35y5zyjcvvm.appsync-api.me-central-1.amazonaws.com/graphql';
+
+// export const ADDRESS_BOOK_API_KEY = 'da2-7najvwkoefectg7udgke7wco7i';
+
+// export const NFT_DEFAULT_IMAGE_URL =
+//   'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg';
+
+// export const PRICE_HISTORY_API_URL =
+//   'https://rfgxvcfbo6.execute-api.me-central-1.amazonaws.com/default/historical';
+
+export const CUSTOM_RPC_URL = CUSTOM_RPC_URL_ENV;
+export const SEPOLIA_RPC_URL = SEPOLIA_RPC_URL_ENV;
+export const CUSTOM_NETWORK = CUSTOM_NETWORK_ENV;
+export const CUSTOM_NETWORK_CHAIN_ID = CUSTOM_NETWORK_CHAIN_ID_STR;
+export const SEPOLIA_CHAIN_ID = SEPOLIA_CHAIN_ID_STR;
+
+export const USDC_ADDRESS = USDC_ADDRESS_ENV;
+export const BANK_ADDRESS = BANK_ADDRESS_ENV;
+export const BRIDGE_ADDRESS = BRIDGE_ADDRESS_ENV;
+export const EURC_ADDRESS = EURC_ADDRESS_ENV;
+export const DENERGY_USDC_ADDRESS = DENERGY_USDC_ADDRESS_ENV;
+export const DENERGY_EURC_ADDRESS = DENERGY_EURC_ADDRESS_ENV;
+export const DESTINATION_ADDRESS = DESTINATION_ADDRESS_ENV;
+export const STAKING_ADDRESS = STAKING_ADDRESS_ENV;
+export const STAKING_VALIDATOR_ADDRESS = STAKING_VALIDATOR_ADDRESS_ENV;
+export const NFT_MARKET_ADDRESS = NFT_MARKET_ADDRESS_ENV;
+
+export const API_NFT_URL = API_NFT_URL_ENV;
+export const API_OFFSETTING_URL = API_OFFSETTING_URL_ENV;
+export const GRAPH_API_NFTMARKET = GRAPH_API_NFTMARKET_ENV;
+export const KYC_API_URL = KYC_API_URL_ENV;
+export const KYC_API_KEY = KYC_API_KEY_ENV;
+export const PLATFORM_SETTINGS_API_URL = PLATFORM_SETTINGS_API_URL_ENV;
+export const PLATFORM_SETTINGS_API_KEY = PLATFORM_SETTINGS_API_KEY_ENV;
+export const STAKED_API_URL = STAKED_API_URL_ENV;
+export const NEWS_API_URL = NEWS_API_URL_ENV;
+export const NEWS_API_KEY = NEWS_API_KEY_ENV;
+export const ADDRESS_BOOK_API_URL = ADDRESS_BOOK_API_URL_ENV;
+export const ADDRESS_BOOK_API_KEY = ADDRESS_BOOK_API_KEY_ENV;
+export const NFT_DEFAULT_IMAGE_URL = NFT_DEFAULT_IMAGE_URL_ENV;
+export const PRICE_HISTORY_API_URL = PRICE_HISTORY_API_URL_ENV;
+
 export const TOKEN_CONTRACTS = {
   denergy: {
-    USDC: DENERGY_USDC_ADDRESS,
-    EURC: DENERGY_EURC_ADDRESS,
+    USDC: DENERGY_USDC_ADDRESS_ENV,
+    EURC: DENERGY_EURC_ADDRESS_ENV,
   },
   sepolia: {
-    USDC: USDC_ADDRESS,
-    EURC: EURC_ADDRESS,
+    USDC: USDC_ADDRESS_ENV,
+    EURC: EURC_ADDRESS_ENV,
   },
   nftMarket: '0x8f276Cc791886B563A915D22529238483433Ffc2',
 };
-
-export const API_NFT_URL =
-  'https://y2veqyu78j.execute-api.me-central-1.amazonaws.com/default';
-
-export const API_OFFSETTING_URL =
-  'https://brh92tcajc.execute-api.me-central-1.amazonaws.com/Testing/evident-redeem';
-
-export const GRAPH_API_NFTMARKET =
-  'https://nftmarket-subgraph.wattswaps.com/subgraphs/name/nftmarket-subgraph';
-
-export const KYC_API_URL =
-  'https://gh6hwmywzjfvlghrmqctqmo42u.appsync-api.me-central-1.amazonaws.com/graphql';
-
-export const KYC_API_KEY = 'da2-pamxpzqquvenlmpacbqq6ejwda';
-
-export const PLATFORM_SETTINGS_API_URL =
-  'https://z5xzy7dsije2hgtxlkl7q6mzve.appsync-api.me-central-1.amazonaws.com/graphql';
-
-export const PLATFORM_SETTINGS_API_KEY = 'da2-mefhraz6cvgxbctio2efrac6ke';
-
-export const STAKED_API_URL =
-  'https://nftmarket-subgraph.wattswaps.com/subgraphs/name/nftstaking-subgraph';
-
-export const NEWS_API_URL =
-  'https://ug7ihehawff6vf4kylaobwvqxu.appsync-api.me-central-1.amazonaws.com/graphql';
-
-export const NEWS_API_KEY = 'da2-gaeekkkmyzduppwbp3fftryhj4';
-
-export const ADDRESS_BOOK_API_URL =
-  'https://jf7gnnptu5avrbi35y5zyjcvvm.appsync-api.me-central-1.amazonaws.com/graphql';
-
-export const ADDRESS_BOOK_API_KEY = 'da2-7najvwkoefectg7udgke7wco7i';
-
-export const NFT_DEFAULT_IMAGE_URL =
-  'https://nfts-data.s3.me-central-1.amazonaws.com/wind.jpg';
-
-export const PRICE_HISTORY_API_URL =
-  'https://rfgxvcfbo6.execute-api.me-central-1.amazonaws.com/default/historical';
