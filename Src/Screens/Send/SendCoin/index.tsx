@@ -364,7 +364,7 @@ export default function SendCoin(props: SendCoinProps): any {
 
     try {
       // Use the sendTransaction method from our hook with a success callback
-      await setActiveNetwork('sepolia');
+      // await setActiveNetwork('sepolia');
       if (coinCode === 'ETH') {
         updateProcessingStep('SWITCHING_NETWORK');
         const transactionDetails = {
@@ -384,7 +384,7 @@ export default function SendCoin(props: SendCoinProps): any {
         });
       }
       if (coinCode === 'USDC') {
-        await setActiveNetwork('sepolia');
+        // await setActiveNetwork('sepolia');
         updateProcessingStep('SWITCHING_NETWORK');
         const transactionDetails = {
           to: user?.beneficiaryAddress,
@@ -405,7 +405,7 @@ export default function SendCoin(props: SendCoinProps): any {
         });
       }
       if (coinCode === 'EURC') {
-        await setActiveNetwork('sepolia');
+        // await setActiveNetwork('sepolia');
         updateProcessingStep('SWITCHING_NETWORK');
         const transactionDetails = {
           to: user?.beneficiaryAddress,
@@ -431,7 +431,7 @@ export default function SendCoin(props: SendCoinProps): any {
           to: user?.beneficiaryAddress,
           amount: wattAmount,
         };
-        await setActiveNetwork('denergy');
+        // await setActiveNetwork('denergy');
         try {
           // updateProcessingStep('VALIDATING_ADDRESS');
           // Validate first
@@ -460,7 +460,7 @@ export default function SendCoin(props: SendCoinProps): any {
         }
       }
       if (coinCode === 'WUSDC') {
-        await setActiveNetwork('denergy');
+        // await setActiveNetwork('denergy');
         updateProcessingStep('SWITCHING_NETWORK');
         const transactionDetails = {
           to: user?.beneficiaryAddress,
@@ -484,7 +484,7 @@ export default function SendCoin(props: SendCoinProps): any {
         );
       }
       if (coinCode === 'WEURC') {
-        await setActiveNetwork('denergy');
+        // await setActiveNetwork('denergy');
         updateProcessingStep('SWITCHING_NETWORK');
         const transactionDetails = {
           to: user?.beneficiaryAddress,

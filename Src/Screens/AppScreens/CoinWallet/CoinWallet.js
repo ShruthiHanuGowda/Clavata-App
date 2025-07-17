@@ -34,28 +34,31 @@ import {
 } from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../../../graphql/queries';
 import {marketIcons} from '../../../Theme/variable';
-import { PRICE_HISTORY_API_URL } from '../../../constants';
+import {PRICE_HISTORY_API_URL} from '../../../constants';
+import {useMagic} from '../../../../screens/Provider/MagicProvider';
 
 const width = Dimensions.get('window').width;
 
-
-const formatCoinCodeForAPI = (coinCode) => {
+const formatCoinCodeForAPI = coinCode => {
   if (!coinCode) return 'usd-coin';
-  
+
   const coinMapping = {
-    "WATT": 'usd-coin',
-    'USDC': 'usd-coin',
-    'ETH': 'ethereum',
-    "WUSDC": 'usd-coin',
-    "EURC": 'stasis-eurs',
-    "WEURC": 'stasis-eurs',
-    'USD': 'usd-coin', 
+    WATT: 'usd-coin',
+    USDC: 'usd-coin',
+    ETH: 'ethereum',
+    WUSDC: 'usd-coin',
+    EURC: 'stasis-eurs',
+    WEURC: 'stasis-eurs',
+    USD: 'usd-coin',
   };
-  
-  return coinMapping[coinCode.toUpperCase()] || coinCode.toLowerCase().replace(/\s+/g, '-');
+
+  return (
+    coinMapping[coinCode.toUpperCase()] ||
+    coinCode.toLowerCase().replace(/\s+/g, '-')
+  );
 };
 
-const getCoinIcon = (coinCode) => {
+const getCoinIcon = coinCode => {
   return marketIcons[coinCode] || images.usdc;
 };
 
@@ -72,26 +75,26 @@ const useChartData = (coinCode, toggleValue) => {
 
   const fetchChartData = async () => {
     if (!coinCode || coinCode === 'USD') return;
-    
+
     setLoading(true);
     setError(null);
 
     try {
       const apiCoinCode = formatCoinCodeForAPI(coinCode);
       const response = await fetch(`${PRICE_HISTORY_API_URL}/${apiCoinCode}`);
-      
+
       if (!response.ok) {
         throw new Error(`API request failed: ${response.status}`);
       }
 
       const data = await response.json();
-      
+
       if (!data.success || !data.data || !data.data.prices) {
         throw new Error('Invalid API response format');
       }
 
       const prices = data.data.prices;
-      
+
       if (prices.length === 0) {
         throw new Error('No price data available');
       }
@@ -99,11 +102,10 @@ const useChartData = (coinCode, toggleValue) => {
       // Process data based on toggle value
       const processedData = processChartData(prices, toggleValue);
       setChartData(processedData);
-      
     } catch (err) {
       console.error('Chart data fetch error:', err);
       setError(err.message);
-      
+
       // Reset to empty state on error instead of showing mock data
       setChartData({
         labels: [],
@@ -121,7 +123,7 @@ const useChartData = (coinCode, toggleValue) => {
     fetchChartData();
   }, [coinCode, toggleValue]);
 
-  return { chartData, loading, error, refetch: fetchChartData };
+  return {chartData, loading, error, refetch: fetchChartData};
 };
 
 // Process chart data based on time period
@@ -138,10 +140,10 @@ const processChartData = (prices, toggleValue) => {
 
   // Sort prices by timestamp
   const sortedPrices = [...prices].sort((a, b) => a.timestamp - b.timestamp);
-  
+
   let labels = [];
   let values = [];
-  
+
   if (toggleValue === 'day') {
     // For daily view, show last 24 hours with hourly intervals
     const last24Hours = sortedPrices.slice(-24);
@@ -155,7 +157,7 @@ const processChartData = (prices, toggleValue) => {
     const lastWeek = sortedPrices.slice(-7);
     labels = lastWeek.map(item => {
       const date = new Date(item.timestamp);
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayName = date.toLocaleDateString('en-US', {weekday: 'short'});
       return dayName;
     });
     values = lastWeek.map(item => item.price);
@@ -163,9 +165,11 @@ const processChartData = (prices, toggleValue) => {
 
   // Calculate price change
   const currentPrice = sortedPrices[sortedPrices.length - 1]?.price || 0;
-  const previousPrice = sortedPrices[sortedPrices.length - 2]?.price || currentPrice;
+  const previousPrice =
+    sortedPrices[sortedPrices.length - 2]?.price || currentPrice;
   const priceChange = currentPrice - previousPrice;
-  const priceChangePercent = previousPrice !== 0 ? (priceChange / previousPrice) * 100 : 0;
+  const priceChangePercent =
+    previousPrice !== 0 ? (priceChange / previousPrice) * 100 : 0;
 
   return {
     labels,
@@ -210,7 +214,13 @@ const PortfolioHeader = ({coinCode, balance, balanceUsd}) => (
 );
 
 // Price display component
-const PriceDisplay = ({currentPrice, priceChange, priceChangePercent, loading, error}) => {
+const PriceDisplay = ({
+  currentPrice,
+  priceChange,
+  priceChangePercent,
+  loading,
+  error,
+}) => {
   if (loading) {
     return (
       <View style={styles.priceDisplayContainer}>
@@ -230,33 +240,43 @@ const PriceDisplay = ({currentPrice, priceChange, priceChangePercent, loading, e
 
   const isPositive = priceChange >= 0;
   const changeColor = isPositive ? '#00C851' : '#FF4444';
-  const changeIcon = isPositive ? images.sharePriceIcon : images.sharePriceDownIcon;
+  const changeIcon = isPositive
+    ? images.sharePriceIcon
+    : images.sharePriceDownIcon;
 
   return (
     <View style={styles.priceDisplayContainer}>
-      <Text style={style.usdvalue}>
-        ${currentPrice.toFixed(4)}
-      </Text>
+      <Text style={style.usdvalue}>${currentPrice.toFixed(4)}</Text>
       <Image
         source={changeIcon}
         style={{height: 10, width: 15, marginLeft: 2}}
         resizeMode="contain"
       />
       <Text style={[style.Today, {color: changeColor}]}>
-        ({isPositive ? '+' : ''}{priceChangePercent.toFixed(2)}%)
+        ({isPositive ? '+' : ''}
+        {priceChangePercent.toFixed(2)}%)
       </Text>
     </View>
   );
 };
 
 export default function CoinWallet(props) {
+  const {setActiveNetwork, magic} = useMagic();
   // Add error boundary state
   const [hasError, setHasError] = useState(false);
 
   // Safely extract props with fallbacks
   const coinCode = props?.route?.params?.coinCode || 'Unknown';
   console.log('coinCode', coinCode);
-  
+
+  useEffect(() => {
+    if (coinCode === 'ETH' || coinCode === 'USDC' || coinCode === 'EURC') {
+      setActiveNetwork('sepolia');
+    } else {
+      setActiveNetwork('denergy');
+    }
+  }, [coinCode]);
+
   const operationsTypes = props?.route?.params?.operationsTypes || [];
 
   const [createTransactionHistoryMobile] = useMutation(
@@ -296,7 +316,10 @@ export default function CoinWallet(props) {
   const [index, setIndex] = useState(0);
 
   // Use the custom hook for chart data
-  const { chartData, loading, error, refetch } = useChartData(coinCode, toggleValue);
+  const {chartData, loading, error, refetch} = useChartData(
+    coinCode,
+    toggleValue,
+  );
 
   const TAB_ITEMS = ['Price History', 'Transaction History'];
   const toggleOptions = ['week', 'day'];
@@ -471,9 +494,13 @@ export default function CoinWallet(props) {
                   />
                 ) : !loading && (error || chartData.labels.length === 0) ? (
                   <View style={styles.noDataContainer}>
-                    <Text style={styles.noDataText}>No chart data available</Text>
-                    <TouchableOpacity onPress={refetch} style={styles.retryButton}>
-                      <Text style={styles.retryText}>Retry</Text> 
+                    <Text style={styles.noDataText}>
+                      No chart data available
+                    </Text>
+                    <TouchableOpacity
+                      onPress={refetch}
+                      style={styles.retryButton}>
+                      <Text style={styles.retryText}>Retry</Text>
                     </TouchableOpacity>
                   </View>
                 ) : null}
@@ -676,7 +703,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
-    marginTop:4
+    marginTop: 4,
   },
   retryText: {
     color: '#FFFFFF',
