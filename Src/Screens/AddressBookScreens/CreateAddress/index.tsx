@@ -399,7 +399,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
                   handleInputChange('beneficiaryAddress', value);
                   setIsAddressValid(isAddress(value));
                 }}
-                placeholder="Wallet Address123"
+                placeholder="Wallet Address"
                 multiline
                 numberOfLines={3}
                 // containerStyle={[
