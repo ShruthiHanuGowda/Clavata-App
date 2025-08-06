@@ -1,17 +1,14 @@
 import React, {useState} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, Button} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './styles';
 import {Header} from '../../../Componants';
 import {fontsFamily} from '../../../Theme';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import Clipboard from '@react-native-clipboard/clipboard';
+import {SnackBarMessage} from '../../../utils/snackBar';
 
 export default function ProfileSetting(props) {
   const {userDetails} = useAuth();
@@ -19,6 +16,7 @@ export default function ProfileSetting(props) {
   const toggleSwitch = () => {
     setIsEnabled(!isEnabled);
   };
+  const {magic} = useMagic();
 
   const formatKey = key => {
     // Replace camelCase with spaces
@@ -37,6 +35,12 @@ export default function ProfileSetting(props) {
       return value ? 'Verified' : 'Not Verified';
     }
     return value;
+  };
+
+  const copy = async () => {
+    const idToken = await magic.user.getIdToken({lifespan: 86400});
+    Clipboard.setString(idToken);
+    SnackBarMessage('Token Copied');
   };
 
   return (
@@ -98,6 +102,22 @@ export default function ProfileSetting(props) {
                   </View>
                 </View>
               ))}
+            <View style={styles.border}>
+              <View style={{flex: 0.4, paddingRight: 8}}>
+                <Text
+                  style={{
+                    fontFamily: fontsFamily.MulishSemiBold,
+                    fontSize: 12,
+                    lineHeight: 15,
+                    color: '#A1A1A1',
+                  }}>
+                  token
+                </Text>
+              </View>
+              <View style={{flex: 0.6, alignItems: 'flex-end'}}>
+                <Button title="Click to copy token" onPress={() => copy()} />
+              </View>
+            </View>
           </View>
         </View>
 

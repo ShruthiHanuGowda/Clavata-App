@@ -4,18 +4,10 @@ import styles from './styles';
 import moment from 'moment';
 import {Circle, Path, Svg} from 'react-native-svg';
 
-// {"_id": "64817bde1e01fdd8ed75728d",
-// "amount": 0.1,
-// "coinCode": "WATT",
-// "date": "2023-06-08T06:57:34.320Z",
-// "sequenceId": 217,
-// "status": "success",
-// "type": "send",
-// "usdAmount": 184, "userName": "savad pp"
-
 class ListItem extends React.PureComponent {
   render() {
     const {item, name, setSelectedItems} = this.props;
+    console.log('item', item);
 
     const receiveImg = (
       <Svg
@@ -213,17 +205,15 @@ class ListItem extends React.PureComponent {
               ...styles.amount,
               color: color,
             }}>
-            {item.change}{' '}
+            {item.change && item.change}{' '}
             {item.amount >= 0
               ? parseFloat(item.amount)
               : parseFloat(item.tokenAmount)}{' '}
-            {item.coinCode === 'WUSDC'
-              ? 'wUSDC'
-              : item.coinCode === 'WEURC'
-              ? 'wEURC'
-              : item.coinCode}
+            {item.coinCode}
           </Text>
-          <Text style={styles.time}>{moment(item.date).fromNow()}</Text>
+          <Text style={styles.time}>
+            {moment.unix(parseInt(item.timestamp)).fromNow()}
+          </Text>
         </View>
       </TouchableOpacity>
     );

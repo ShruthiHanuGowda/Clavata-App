@@ -4,7 +4,7 @@ import moment from 'moment';
 /**
  * Custom hook for managing transaction history with pagination
  * @param {number} initialLimit - Number of transactions to fetch per page
- * @param {string} contractAddress - Contract address for token transactions
+ * @param {string} contractAddress - Contract address for token transactions (optional)
  * @param {string} walletAddress - User's wallet address
  * @param {string} baseUrl - API base URL
  * @returns {Object} Transaction data and control functions
@@ -30,13 +30,12 @@ export const useTransactionHistory = (
    * @param {Object} transaction - Raw transaction data from API
    * @returns {Object} Formatted transaction object
    */
-  const formatTransaction = transaction => {
+  const formatTransaction = (transaction: any) => {
     try {
       const amount =
         parseFloat(transaction.value) /
         Math.pow(10, parseInt(transaction.tokenDecimal || 0));
       const date = new Date(parseInt(transaction.timeStamp) * 1000);
-
       // Determine transaction type based on from/to addresses
       let type = 'Transfer';
       if (transaction.from?.toLowerCase() === walletAddress?.toLowerCase()) {
@@ -54,9 +53,9 @@ export const useTransactionHistory = (
 
       // If transaction is very recent (< 5 minutes), mark as pending
       let status = 'Completed';
-      if (timeDiff < 300) {
-        status = 'Pending';
-      }
+      // if (timeDiff < 10) {
+      //   status = 'Pending';
+      // }
 
       return {
         id: transaction.hash,
@@ -89,13 +88,13 @@ export const useTransactionHistory = (
    * @param {Array} transactionList - Array of formatted transactions
    * @returns {Array} Array of sections with title and data
    */
-  const formatTransactionsForSectionList = transactionList => {
+  const formatTransactionsForSectionList = (transactionList: any) => {
     const REFERENCE = moment();
     const TODAY = REFERENCE.clone().startOf('day');
     const YESTERDAY = REFERENCE.clone().subtract(1, 'days').startOf('day');
     const A_WEEK_OLD = REFERENCE.clone().subtract(7, 'days').startOf('day');
 
-    const checkDate = momentDate => {
+    const checkDate = (momentDate: any) => {
       const isToday = momentDate.isSame(TODAY, 'd');
       const isYesterday = momentDate.isSame(YESTERDAY, 'd');
       const isWithinAWeek = momentDate.isAfter(A_WEEK_OLD);
@@ -109,7 +108,7 @@ export const useTransactionHistory = (
     };
 
     return Object.values(
-      transactionList.reduce((acc, item) => {
+      transactionList.reduce((acc: any, item: any) => {
         const formattedDate = moment(item.date).format('YYYY-MM-DD');
         const title = checkDate(moment(formattedDate));
 
@@ -139,8 +138,13 @@ export const useTransactionHistory = (
         setIsLoadingMore(true);
       }
 
-      // Build API URL
-      const url = `${baseUrl}?module=account&action=tokentx&address=${walletAddress}&contractaddress=${contractAddress}&sort=desc&page=${page}&offset=${initialLimit}`;
+      // Build API URL with conditional contractaddress parameter
+      let url = `${baseUrl}?module=account&action=tokentx&address=${walletAddress}&sort=desc&page=${page}&offset=${initialLimit}`;
+
+      // Only add contractaddress parameter if contractAddress is provided and not empty
+      if (contractAddress && contractAddress.trim() !== '') {
+        url += `&contractaddress=${contractAddress}`;
+      }
 
       console.log(`Fetching transactions: Page ${page}, URL: ${url}`);
 
@@ -158,6 +162,7 @@ export const useTransactionHistory = (
         const formattedData = data.result
           .map(formatTransaction)
           .filter(Boolean); // Remove any null entries from formatting errors
+        console.log(formattedData);
 
         if (page === 1) {
           // First page - replace all data
@@ -165,7 +170,7 @@ export const useTransactionHistory = (
           setTotalCount(formattedData.length);
         } else {
           // Subsequent pages - append data
-          setTransactions(prev => {
+          setTransactions((prev: any) => {
             const newTransactions = [...prev, ...formattedData];
             setTotalCount(newTransactions.length);
             return newTransactions;
@@ -194,7 +199,7 @@ export const useTransactionHistory = (
           setError(data.message || 'Failed to fetch transactions');
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching transactions:', err);
       setError(err.message || 'Network error occurred');
       setHasMoreData(false);
@@ -241,10 +246,10 @@ export const useTransactionHistory = (
    * @returns {Array} Filtered transactions
    */
   const filterTransactionsByDate = useCallback(
-    (startDate, endDate) => {
+    (startDate: string, endDate: string) => {
       if (!startDate && !endDate) return transactions;
 
-      return transactions.filter(transaction => {
+      return transactions.filter((transaction: any) => {
         const transactionDate = moment(transaction.date);
 
         if (startDate && transactionDate.isBefore(moment(startDate), 'day')) {
@@ -267,29 +272,28 @@ export const useTransactionHistory = (
    * @returns {Array} Filtered transactions
    */
   const filterTransactionsByType = useCallback(
-    type => {
+    (type: any) => {
       if (!type) return transactions;
-      return transactions.filter(transaction => transaction.type === type);
+      return transactions.filter(
+        (transaction: any) => transaction.type === type,
+      );
     },
     [transactions],
   );
 
-  // Initial load effect
+  // Initial load effect - Modified to work with or without contractAddress
   useEffect(() => {
-    if (walletAddress && contractAddress) {
+    if (walletAddress) {
       console.log('Initializing transaction history...', {
         walletAddress,
-        contractAddress,
+        contractAddress: contractAddress || 'Not provided',
       });
       setCurrentPage(1);
       setHasMoreData(true);
       setError(null);
       fetchTransactions(1, false);
     } else {
-      console.log('Missing required parameters:', {
-        walletAddress,
-        contractAddress,
-      });
+      console.log('Missing required wallet address');
       setTransactions([]);
       setTotalCount(0);
     }
