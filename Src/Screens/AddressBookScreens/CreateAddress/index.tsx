@@ -26,6 +26,7 @@ import {
 import {SnackBarMessage} from '../../../utils/snackBar';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {isAddress} from 'ethers';
+import {useMagic} from '../../../../screens/Provider/MagicProvider';
 
 interface CreateAddressProps {
   onSave?: (data: CreateAddressData) => void;
@@ -93,13 +94,14 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [isNameValid, setIsNameValid] = useState(false);
   const [isAddressValid, setIsAddressValid] = useState(false);
+  const {magic} = useMagic();
 
   // Use the GraphQL mutation hooks
   const {
     createAddressBook,
     loading: createLoading,
     error: createError,
-  } = useCreateAddressBook();
+  } = useCreateAddressBook(magic);
 
   const {
     updateAddressBook,

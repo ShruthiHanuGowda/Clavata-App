@@ -40,10 +40,11 @@ const client = new ApolloClient({
 });
 
 // Custom hook for creating address books
-export const useCreateAddressBook = () => {
+export const useCreateAddressBook = async magic => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<any>(null);
-
+  const token = await magic.user.getIdToken();
+  console.log('🚀 ~ useCreateAddressBook ~ token:', token);
   const createAddressBook = useCallback(
     async (input: CreateAddressBookInput) => {
       setLoading(true);
