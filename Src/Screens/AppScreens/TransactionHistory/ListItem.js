@@ -110,17 +110,17 @@ class ListItem extends React.PureComponent {
       </Svg>
     );
 
-    let color = item.change === '+' ? '#007E32' : '#DB0A0A';
+    let color = item.type === 'Deposit' ? '#007E32' : '#DB0A0A';
     let status;
 
     switch (item.type) {
-      case 'Received':
+      case 'Deposit':
         status = receiveImg;
         break;
-      case 'Sent':
+      case 'Transfer':
         status = sentImg;
         break;
-      case 'send':
+      case 'Withdrawal':
         status = sentImg;
         break;
       case 'Swap':

@@ -169,7 +169,7 @@ const TransactionFlatList = ({
         windowSize={10}
         removeClippedSubviews={true}
         getItemLayout={(data, index) => ({
-          length: 80, // Approximate item height
+          length: 80,
           offset: 80 * index,
           index,
         })}

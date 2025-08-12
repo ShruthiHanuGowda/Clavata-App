@@ -32,9 +32,9 @@ export const useTransactionHistory = (
    */
   const formatTransaction = (transaction: any) => {
     try {
+      let tokenDecimal = transaction.tokenDecimal || 18;
       const amount =
-        parseFloat(transaction.value) /
-        Math.pow(10, parseInt(transaction.tokenDecimal || 0));
+        parseFloat(transaction.value) / Math.pow(10, parseInt(tokenDecimal));
       const date = new Date(parseInt(transaction.timeStamp) * 1000);
       // Determine transaction type based on from/to addresses
       let type = 'Transfer';
@@ -72,7 +72,11 @@ export const useTransactionHistory = (
         gasPrice: transaction.gasPrice,
         timestamp: transaction.timeStamp,
         tokenName: transaction.tokenName,
-        tokenDecimal: transaction.tokenDecimal,
+        tokenDecimal: transaction?.tokenDecimal
+          ? transaction.tokenDecimal
+          : contractAddress
+          ? 6
+          : 18,
         confirmations: transaction.confirmations,
         contractAddress: transaction.contractAddress,
         originalData: transaction,
@@ -138,12 +142,12 @@ export const useTransactionHistory = (
         setIsLoadingMore(true);
       }
 
-      // Build API URL with conditional contractaddress parameter
-      let url = `${baseUrl}?module=account&action=tokentx&address=${walletAddress}&sort=desc&page=${page}&offset=${initialLimit}`;
+      let url;
 
-      // Only add contractaddress parameter if contractAddress is provided and not empty
       if (contractAddress && contractAddress.trim() !== '') {
-        url += `&contractaddress=${contractAddress}`;
+        url = `${baseUrl}?module=account&action=tokentx&address=${walletAddress}&sort=desc&page=${page}&offset=${initialLimit}&contractaddress=${contractAddress}`;
+      } else {
+        url = `${baseUrl}?module=account&action=txlist&address=${walletAddress}&sort=desc&page=${page}&offset=${initialLimit}`;
       }
 
       console.log(`Fetching transactions: Page ${page}, URL: ${url}`);
@@ -158,10 +162,9 @@ export const useTransactionHistory = (
       console.log('API Response:', data);
 
       if (data.message === 'OK' && Array.isArray(data.result)) {
-        // Format the transactions
         const formattedData = data.result
           .map(formatTransaction)
-          .filter(Boolean); // Remove any null entries from formatting errors
+          .filter(Boolean);
         console.log(formattedData);
 
         if (page === 1) {
