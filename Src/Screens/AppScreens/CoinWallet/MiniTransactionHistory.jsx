@@ -90,7 +90,7 @@ const MiniTransactionHistory = ({
       )}
 
       {/* Error Display */}
-      {error && (
+      {error && transactions.length === 0 && (
         <View style={{marginBottom: 16}}>
           <DText style={{color: 'red', fontSize: 12, textAlign: 'center'}}>
             {error}

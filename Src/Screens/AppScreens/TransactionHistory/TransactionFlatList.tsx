@@ -117,7 +117,7 @@ const TransactionFlatList = ({
           marginTop: 100,
         }}>
         <Text style={{fontSize: 16, color: '#666'}}>
-          {error ? `Error: ${error}` : 'No transactions found'}
+          {/* {error ? `Error: ${error}` : 'No transactions found'} */}
         </Text>
         {error && (
           <TouchableOpacity
