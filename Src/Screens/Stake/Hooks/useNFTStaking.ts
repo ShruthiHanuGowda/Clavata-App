@@ -143,26 +143,20 @@ export const useNFTStaking = (validatorAddress?: string) => {
         setIsLoading(true);
         setError(null);
 
-        if (!magic) {
-          console.error('[NFT Staking] Magic SDK not available');
-          throw new Error('Magic SDK not available');
-        }
-
-        await setActiveNetwork('denergy');
+        const magic = await setActiveNetwork('denergy');
         console.log('[NFT Staking] Network set to denergy for approval');
 
-        // Get Magic provider for signing transactions
         const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
 
-        // Create contract instance for the ERC1155 token
         const tokenContract = new Contract(
           erc1155Contract,
           ERC1155_ABI,
           signer,
         );
 
-        // Set approval
+        console.log('erc1155Contract', erc1155Contract);
+
         console.log(
           '[NFT Staking] Submitting setApprovalForAll transaction...',
         );
@@ -225,7 +219,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
       );
       console.log(`[NFT Staking] Using validator address: ${validatorAddress}`);
 
-      await setActiveNetwork('denergy');
+      const magic = await setActiveNetwork('denergy');
       console.log('[NFT Staking] Network set to denergy');
 
       try {

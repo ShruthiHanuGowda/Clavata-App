@@ -322,9 +322,9 @@ export const fetchWalletTokenIdsForCollections = async (
       const contract = new Contract(collectionAddress, ERC1155_ABI, provider);
 
       try {
-        const currentTokenIdRaw = await contract.currentTokenId();
+        const currentTokenIdRaw = await contract.totalTokenTypes();
 
-        const currentTokenId = Number(currentTokenIdRaw);
+        const currentTokenId = Number(currentTokenIdRaw) + 1 || 1;
 
         const tokenIds = Array.from({length: currentTokenId}, (_, i) => i + 1);
 
