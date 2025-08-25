@@ -102,7 +102,7 @@ export default function ProfileSetting(props) {
                   </View>
                 </View>
               ))}
-            <View style={styles.border}>
+            {/* <View style={styles.border}>
               <View style={{flex: 0.4, paddingRight: 8}}>
                 <Text
                   style={{
@@ -117,7 +117,7 @@ export default function ProfileSetting(props) {
               <View style={{flex: 0.6, alignItems: 'flex-end'}}>
                 <Button title="Click to copy token" onPress={() => copy()} />
               </View>
-            </View>
+            </View> */}
           </View>
         </View>
 

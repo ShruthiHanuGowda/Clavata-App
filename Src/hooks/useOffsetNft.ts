@@ -247,6 +247,8 @@ export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
         ],
       });
 
+      console.log(body);
+
       console.log('Calling offset API...');
       const response = await fetch(API_OFFSETTING_URL, {
         method: 'POST',
@@ -263,7 +265,7 @@ export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
       // Step 7: Finalize
       updateProcessingStep('FINALIZING');
 
-      if (data?.status === 'success') {
+      if (data?.success) {
         updateProcessingStep('COMPLETED');
         console.log(data?.data.redemptionStatementUrl);
 

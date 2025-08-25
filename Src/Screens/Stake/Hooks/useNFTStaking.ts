@@ -287,11 +287,20 @@ export const useNFTStaking = (validatorAddress?: string) => {
         const tx = await stakingContract.delegateERC1155(
           erc1155Contract,
           delegatorAddress,
-          validatorAddress, // Use the dynamic validator address
+          validatorAddress,
           tokenIdBigInt,
           amountInWei,
           {gasLimit: 9000000},
         );
+
+        console.log('payload', {
+          erc1155Contract,
+          delegatorAddress,
+          validatorAddress,
+          tokenIdBigInt,
+          amountInWei,
+        });
+
         console.log(`[NFT Staking] Transaction submitted: ${tx.hash}`);
 
         // Wait for the transaction to be mined
