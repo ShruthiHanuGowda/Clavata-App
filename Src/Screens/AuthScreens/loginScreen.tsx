@@ -11,7 +11,7 @@ import {
 import 'react-native-get-random-values';
 import '@ethersproject/shims'; // for ethers.js
 import {ethers} from 'ethers';
-import LottieView from 'lottie-react-native'; // Add this import
+import LottieView from 'lottie-react-native';
 import styles from './styles';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../screens/Provider/authProvider';
@@ -23,17 +23,11 @@ import {useLazyQuery} from '@apollo/client';
 import {GET_USER_WALLET_ADDRESS} from '../../graphql/queries';
 import {UserAuth, ExtractedKycInfo, Address, UserData} from '../../utils/type';
 import {useApolloClientContext} from '../../../screens/Provider/GraphQLProvider';
-
-// REPLACE: Import the new global KYC system instead of old providers
 import {useKycCheck} from '../../CustomHooks/GlobalKycProvider';
-
-// Import your Lottie JSON file
-// import loadingAnimation from '../../assets/animations/loading.json'; // Adjust path as needed
 
 // Keep your existing utility function
 export const parseDataAndReturnFixedInfo = (data: any) => {
   try {
-    // If data is a string, parse it as JSON
     let parsedData;
     if (typeof data === 'string') {
       parsedData = JSON.parse(data);
@@ -43,17 +37,14 @@ export const parseDataAndReturnFixedInfo = (data: any) => {
       throw new Error('Invalid data type. Expected string or object.');
     }
 
-    // Check if fullResponse exists and contains fixedInfo
     if (parsedData.fullResponse && parsedData.fullResponse.fixedInfo) {
       return parsedData.fullResponse.fixedInfo;
     }
 
-    // Check if fixedInfo exists directly on the data object
     if (parsedData.fixedInfo) {
       return parsedData.fixedInfo;
     }
 
-    // If fixedInfo is not found, return null
     console.warn('fixedInfo not found in the provided data');
     return null;
   } catch (error: any) {
@@ -66,10 +57,7 @@ export default function LoginScreen() {
   const {magic, setActiveNetwork} = useMagic();
   const {updateUserData, userDetails} = useAuth();
   const {updateClientWithToken} = useApolloClientContext();
-
-  // REPLACE: Use the simple global KYC hook instead of multiple providers
   const {checkKYC, isKycCompleted} = useKycCheck();
-  console.log('🚀 ~ LoginScreen ~ isKycCompleted:', isKycCompleted);
 
   // State management
   const [isUserLogin, setIsUserLogin] = useState(false);
@@ -78,8 +66,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [isScreenLoading, setIsScreenLoading] = useState(true);
   const [isKycSkipped, setIsKycSkipped] = useState(false);
-
-  // NEW: Add KYC tracking state
   const [kycInProgress, setKycInProgress] = useState(false);
 
   // Use refs to track callback execution and KYC processes
@@ -87,130 +73,110 @@ export default function LoginScreen() {
   const kycCompletionTimeoutRef = useRef<any>(null);
   const kycPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // OPTIMIZED: Query to check if user exists in DB - WITHOUT inline callbacks
+  // GraphQL query - WITHOUT callbacks to prevent re-execution issues
   const [
     getUserWallet,
     {data: userData, loading: queryLoading, error: queryError},
   ] = useLazyQuery(GET_USER_WALLET_ADDRESS, {
     fetchPolicy: 'no-cache',
-    // Removed onCompleted and onError callbacks to prevent them from running on every state change
   });
 
-  // OPTIMIZED: Handle userData changes with useEffect (runs only when userData actually changes)
+  // Handle userData changes
   useEffect(() => {
     if (userData && !callbackExecutedRef.current && !isKycSkipped) {
-      callbackExecutedRef.current = true; // Prevent multiple executions
-      console.log('call getUserMetaData success ✅', userData);
+      callbackExecutedRef.current = true;
+      console.log('✅ getUserMetaData success', userData);
       handleUserData(userData);
     }
   }, [userData, isKycSkipped]);
 
-  // OPTIMIZED: Handle query errors with useEffect
+  // Handle query errors
   useEffect(() => {
     if (queryError) {
-      console.error('Error fetching user data:', queryError);
+      console.error('❌ Error fetching user data:', queryError);
       setIsScreenLoading(false);
+      setLoading(false);
+
+      // Show user-friendly error
+      Alert.alert(
+        'Connection Error',
+        'Unable to fetch user data. Please check your connection and try again.',
+      );
     }
   }, [queryError]);
 
-  // Navigate to main app screens - memoized to prevent recreation
+  // Navigate to main app screens
   const navigateToApp = useCallback(() => {
-    console.log('Navigating to app screens');
+    console.log('🚀 Navigating to app screens');
     navReset('appScreens');
   }, []);
 
-  // NEW: Enhanced KYC process handler with multiple fallback mechanisms
+  // KYC process handler
   const handleKycProcess = useCallback(async () => {
     try {
       setKycInProgress(true);
-
       console.log('🚦 Starting KYC process...');
 
       await checkKYC({
         onSuccess: () => {
-          console.log('✅ KYC completed successfully, navigating to app');
+          console.log('✅ KYC completed successfully');
           setKycInProgress(false);
           setIsKycSkipped(true);
 
-          // Clear any polling intervals
           if (kycPollingIntervalRef.current) {
             clearInterval(kycPollingIntervalRef.current);
             kycPollingIntervalRef.current = null;
           }
-
-          // Clear timeout
           if (kycCompletionTimeoutRef.current) {
             clearTimeout(kycCompletionTimeoutRef.current);
             kycCompletionTimeoutRef.current = null;
           }
 
-          // Navigate with a slight delay to ensure state updates
-          setTimeout(() => {
-            navigateToApp();
-          }, 100);
+          setTimeout(() => navigateToApp(), 100);
         },
         onSkip: () => {
-          console.log('⏭️ KYC skipped, navigating to app');
+          console.log('⏭️ KYC skipped');
           setKycInProgress(false);
           setIsKycSkipped(true);
 
-          // Clear any polling intervals
           if (kycPollingIntervalRef.current) {
             clearInterval(kycPollingIntervalRef.current);
             kycPollingIntervalRef.current = null;
           }
-
-          // Clear timeout
           if (kycCompletionTimeoutRef.current) {
             clearTimeout(kycCompletionTimeoutRef.current);
             kycCompletionTimeoutRef.current = null;
           }
 
-          setTimeout(() => {
-            navigateToApp();
-          }, 100);
+          setTimeout(() => navigateToApp(), 100);
         },
         onError: error => {
           console.error('❌ KYC error:', error);
           setKycInProgress(false);
 
-          // Clear any polling intervals
           if (kycPollingIntervalRef.current) {
             clearInterval(kycPollingIntervalRef.current);
             kycPollingIntervalRef.current = null;
           }
-
-          // Clear timeout
           if (kycCompletionTimeoutRef.current) {
             clearTimeout(kycCompletionTimeoutRef.current);
             kycCompletionTimeoutRef.current = null;
           }
-
-          // Optionally navigate anyway or show error
-          // setTimeout(() => {
-          //   navigateToApp();
-          // }, 100);
         },
         showAlerts: false,
       });
 
-      // FALLBACK 1: Add polling mechanism to check KYC status
-      // This helps if the KYC provider doesn't immediately update the status
+      // Polling mechanism
       kycPollingIntervalRef.current = setInterval(async () => {
         try {
           console.log('🔄 Polling KYC status...');
-
-          // Check if KYC status has been updated
           if (isKycCompleted && kycInProgress) {
-            console.log('✅ KYC status updated to completed via polling');
+            console.log('✅ KYC status updated via polling');
 
-            // Clear polling
             if (kycPollingIntervalRef.current) {
               clearInterval(kycPollingIntervalRef.current);
               kycPollingIntervalRef.current = null;
             }
-
-            // Clear timeout
             if (kycCompletionTimeoutRef.current) {
               clearTimeout(kycCompletionTimeoutRef.current);
               kycCompletionTimeoutRef.current = null;
@@ -218,17 +184,14 @@ export default function LoginScreen() {
 
             setKycInProgress(false);
             setIsKycSkipped(true);
-
-            setTimeout(() => {
-              navigateToApp();
-            }, 100);
+            setTimeout(() => navigateToApp(), 100);
           }
         } catch (pollingError) {
           console.error('Error polling KYC status:', pollingError);
         }
-      }, 2000); // Check every 2 seconds
+      }, 2000);
 
-      // FALLBACK 2: Add timeout to prevent infinite waiting
+      // Timeout fallback
       kycCompletionTimeoutRef.current = setTimeout(() => {
         console.log('⏰ KYC process timeout - auto navigating');
 
@@ -240,12 +203,11 @@ export default function LoginScreen() {
         setKycInProgress(false);
         setIsKycSkipped(true);
         navigateToApp();
-      }, 60000); // 60 seconds timeout
+      }, 60000);
     } catch (error) {
       console.error('Error in KYC process:', error);
       setKycInProgress(false);
 
-      // Clear intervals and timeouts
       if (kycPollingIntervalRef.current) {
         clearInterval(kycPollingIntervalRef.current);
         kycPollingIntervalRef.current = null;
@@ -257,15 +219,18 @@ export default function LoginScreen() {
     }
   }, [checkKYC, isKycCompleted, kycInProgress, navigateToApp]);
 
-  // Check if user is logged in to primary network - memoized
+  // Network authentication functions
   const checkPrimaryNetworkAuth = useCallback(async () => {
     try {
       const isLoggedIn = await magic.user.isLoggedIn();
-      console.log('User is logged in:', isLoggedIn);
+      console.log('🔐 User is logged in:', isLoggedIn);
 
       if (isLoggedIn) {
         const userData = await magic.user.getInfo();
+        // CRITICAL: Update Apollo client with token BEFORE any GraphQL queries
         await updateClientWithToken();
+        console.log('🔑 Apollo client updated with auth token');
+
         return {
           isLoggedIn,
           publicAddress: userData?.publicAddress,
@@ -274,12 +239,11 @@ export default function LoginScreen() {
       }
       return {isLoggedIn, publicAddress: null, userData: null};
     } catch (error) {
-      console.error('Primary network auth error:', error);
+      console.error('❌ Primary network auth error:', error);
       return {isLoggedIn: false, publicAddress: null, userData: null, error};
     }
   }, [magic.user, updateClientWithToken]);
 
-  // Check if user is logged in to Sepolia network - memoized
   const checkSepoliaNetworkAuth = useCallback(async () => {
     try {
       await setActiveNetwork('sepolia');
@@ -292,29 +256,20 @@ export default function LoginScreen() {
           userData,
         };
       }
-
       return {isLoggedIn, publicAddress: null, userData: null};
     } catch (error) {
-      console.error(
-        'Sepolia network auth error:',
-        JSON.stringify(error, null, 2),
-      );
+      console.error('❌ Sepolia network auth error:', error);
       return {isLoggedIn: false, publicAddress: null, userData: null, error};
     }
   }, [magic.user, setActiveNetwork]);
 
-  // Check if user is logged in to Denergy network - memoized
   const checkDenergyNetworkAuth = useCallback(async () => {
     try {
       await setActiveNetwork('denergy');
-      console.log('Attempting to get Denergy user info...');
-
       const isLoggedIn = await magic.user.isLoggedIn();
-      console.log('Is user logged in to Denergy?', isLoggedIn);
 
       if (isLoggedIn) {
         const userData = await magic.user.getInfo();
-
         return {
           isLoggedIn,
           publicAddress: userData?.publicAddress,
@@ -322,52 +277,36 @@ export default function LoginScreen() {
         };
       }
 
-      console.log('Need to authenticate on Denergy first');
       return {isLoggedIn, publicAddress: null, userData: null};
     } catch (error) {
-      console.error(
-        'Denergy network auth error:',
-        JSON.stringify(error, null, 2),
-      );
+      console.error('❌ Denergy network auth error:', error);
       return {isLoggedIn: false, publicAddress: null, userData: null, error};
     }
   }, [magic.user, setActiveNetwork]);
 
-  // Main function to check all networks - memoized
   const checkAllNetworks = useCallback(async () => {
     try {
-      // First check primary network
+      // CRITICAL: First check primary network (this updates Apollo client token)
       const primaryNetworkData = await checkPrimaryNetworkAuth();
-      console.log('primaryNetworkData', primaryNetworkData);
+      console.log('🌐 Primary network data:', primaryNetworkData);
 
-      // Only proceed if logged in to primary network
       if (!primaryNetworkData.isLoggedIn) {
-        console.log(
-          'User not logged in to primary network. Please authenticate first.',
-        );
-        return {
-          isLoggedIn: false,
-          addresses: {},
-        };
+        console.log('❌ User not logged in to primary network');
+        return {isLoggedIn: false, addresses: {}};
       }
 
-      // Check other networks
+      // For simplicity, using primary address for all networks
+      // You can uncomment below if you need separate network addresses
       // const sepoliaNetworkData = await checkSepoliaNetworkAuth();
       // const denergyNetworkData = await checkDenergyNetworkAuth();
 
-      // Collect all public addresses
-      // const addresses = {
-      //   primary: primaryNetworkData.publicAddress,
-      //   sepolia: sepoliaNetworkData.publicAddress,
-      //   denergy: denergyNetworkData.publicAddress,
-      // };
       const addresses = {
         primary: primaryNetworkData.publicAddress,
         sepolia: primaryNetworkData.publicAddress,
         denergy: primaryNetworkData.publicAddress,
       };
 
-      console.log('🚀 ~ checkAllNetworks ~ addresses:', addresses);
+      console.log('🏠 All addresses:', addresses);
 
       return {
         isLoggedIn: true,
@@ -379,12 +318,8 @@ export default function LoginScreen() {
         },
       };
     } catch (error) {
-      console.error('Error checking all networks:', error);
-      return {
-        isLoggedIn: false,
-        addresses: {},
-        error,
-      };
+      console.error('❌ Error checking all networks:', error);
+      return {isLoggedIn: false, addresses: {}, error};
     }
   }, [
     checkPrimaryNetworkAuth,
@@ -392,13 +327,13 @@ export default function LoginScreen() {
     checkDenergyNetworkAuth,
   ]);
 
-  // ENHANCED: Handle user data from query with improved KYC flow
+  // Handle user data from GraphQL query
   const handleUserData = useCallback(
     async (data: UserData): Promise<void> => {
       try {
         if (data?.getUserWalletAddress) {
           const result = await checkAllNetworks();
-          console.log('Network check results:', result);
+          console.log('🌐 Network check results:', result);
 
           // User exists in DB - store data in context
           const apiData: UserAuth = {
@@ -411,37 +346,31 @@ export default function LoginScreen() {
             applicantId: data.getUserWalletAddress.applicantId,
           };
 
-          // Process KYC details if they exist
+          // Process KYC details
           if (apiData.kycDetails && typeof apiData.kycDetails === 'string') {
             const kycDetailsParsed = JSON.parse(apiData.kycDetails);
-
             const extractedKycInfo: ExtractedKycInfo | null =
               parseDataAndReturnFixedInfo(kycDetailsParsed);
 
             if (extractedKycInfo) {
-              console.log('Successfully extracted KYC info:', extractedKycInfo);
+              console.log('✅ Successfully extracted KYC info');
               apiData.kycDetails = extractedKycInfo;
-            } else {
-              console.log(
-                'Failed to extract KYC info, keeping original kycDetails',
-              );
             }
           }
 
           await updateUserData(apiData, true);
           setIsUserLogin(true);
+
           const isVerified: boolean =
             apiData?.is_verified === true || apiData?.is_verified === 'true';
-          console.log(
-            '🚀 ~ handleUserData ~ isVerified:',
-            isVerified,
-            'isKycCompleted:',
-            isKycCompleted,
-            'kycInProgress:',
-            kycInProgress,
-          );
 
-          // ENHANCED: Better KYC logic with state checking
+          console.log('🔍 Verification status:', {
+            isVerified,
+            isKycCompleted,
+            isKycSkipped,
+            kycInProgress,
+          });
+
           if (
             !isVerified &&
             !isKycCompleted &&
@@ -449,27 +378,21 @@ export default function LoginScreen() {
             !kycInProgress
           ) {
             console.log('🚦 Starting KYC process for existing user...');
-
-            // Use shorter delay for better UX
-            setTimeout(() => {
-              handleKycProcess();
-            }, 300);
+            setTimeout(() => handleKycProcess(), 300);
           } else {
-            console.log(
-              '🎯 User verified or KYC already completed, navigating to app',
-            );
+            console.log('✅ User verified, navigating to app');
             navigateToApp();
           }
 
           setLoading(false);
           setIsScreenLoading(false);
         } else {
-          // New session but user not in DB
-          console.log('User session active but not found in database');
-          prepareNewUserData();
+          // User not in DB - prepare new user data
+          console.log('👤 New user - not found in database');
+          await prepareNewUserData();
         }
       } catch (error) {
-        console.error('Error handling user data:', error);
+        console.error('❌ Error handling user data:', error);
         setLoading(false);
         setIsScreenLoading(false);
       }
@@ -485,7 +408,7 @@ export default function LoginScreen() {
     ],
   );
 
-  // ENHANCED: Create wallets and prepare user data for new users
+  // Prepare data for new users
   const prepareNewUserData = useCallback(async () => {
     try {
       const result = await checkAllNetworks();
@@ -499,19 +422,16 @@ export default function LoginScreen() {
         is_verified: false,
       };
 
-      // Store in context and DB
       await updateUserData(walletData, false);
       setLoading(false);
       setIsScreenLoading(false);
 
       console.log('🚦 Starting KYC process for new user...');
-
-      // Start KYC for new users
-      setTimeout(() => {
-        handleKycProcess();
-      }, 300);
+      setTimeout(() => handleKycProcess(), 300);
     } catch (error) {
-      console.error('Error preparing user data:', error);
+      console.error('❌ Error preparing user data:', error);
+      setLoading(false);
+      setIsScreenLoading(false);
       throw error;
     }
   }, [
@@ -522,68 +442,80 @@ export default function LoginScreen() {
     handleKycProcess,
   ]);
 
-  // OPTIMIZED: Check if user has an active session - memoized
+  // Check user session on app start
   const checkUserSession = useCallback(async () => {
     try {
       setIsScreenLoading(true);
-      callbackExecutedRef.current = false; // Reset callback flag for new session check
+      callbackExecutedRef.current = false;
 
       const isLoggedIn = await magic.user.isLoggedIn();
 
       if (isLoggedIn) {
-        // If user is logged in, get metadata and check DB
         const userMetadata = await magic.user.getInfo();
-        console.log('User session active, checking database...', userMetadata);
+        console.log(
+          '🔑 User session active, checking database...',
+          userMetadata,
+        );
+
+        // CRITICAL: Update Apollo client token FIRST
         await updateClientWithToken();
-        console.log('call getUserMetaData 1 👍');
-        // Check if user exists in database
+        console.log('🔑 Apollo client updated with token for existing session');
+
+        // NOW make the GraphQL query
+        console.log('📡 Making GraphQL query with authenticated client');
         await getUserWallet({
           variables: {emailAddress: userMetadata?.email?.toLowerCase()},
         });
       } else {
-        // No active session
         setIsScreenLoading(false);
-        console.log('No active session found');
+        console.log('❌ No active session found');
       }
     } catch (error) {
-      console.error('Error checking user session:', error);
+      console.error('❌ Error checking user session:', error);
       setIsScreenLoading(false);
     }
   }, [magic.user, updateClientWithToken, getUserWallet]);
 
   // Check for active session on component mount
   useEffect(() => {
-    console.log('Checking user session');
+    console.log('🔍 Checking user session on mount');
     checkUserSession();
-  }, []);
+  }, [checkUserSession]);
 
-  // OPTIMIZED: Handle login with email OTP - memoized
+  // FIXED: Login with email OTP - ensuring token update before GraphQL
   const loginEmailOTP = useCallback(async () => {
     try {
       setLoading(true);
-      callbackExecutedRef.current = false; // Reset callback flag for new login
-
-      // Login with Magic Link
-      const res = await magic.auth.loginWithEmailOTP({email: userEmail});
-      console.log(res);
-      console.log('call getUserMetaData 2 ✌️');
       callbackExecutedRef.current = false;
+
+      console.log('📧 Logging in with email OTP...');
+
+      // Step 1: Magic login
+      const res = await magic.auth.loginWithEmailOTP({email: userEmail});
+      console.log('✅ Magic login successful:', res);
+
+      // Step 2: CRITICAL - Update Apollo client with new token BEFORE GraphQL query
+      await updateClientWithToken();
+      console.log('🔑 Apollo client updated with fresh token after login');
+
+      // Step 3: Now make GraphQL query with authenticated client
+      console.log('📡 Making authenticated GraphQL query');
       await getUserWallet({
         variables: {emailAddress: userEmail.toLowerCase()},
       });
     } catch (err) {
+      console.error('❌ Login failed:', err);
       setLoading(false);
       Alert.alert(
         'Login Failed',
         'Unable to login with the provided email. Please try again.',
       );
     }
-  }, [userEmail, magic.auth, getUserWallet]);
+  }, [userEmail, magic.auth, updateClientWithToken, getUserWallet]);
 
-  // NEW: Cleanup intervals and timeouts on component unmount
+  // Cleanup on component unmount
   useEffect(() => {
     return () => {
-      // Cleanup intervals and timeouts when component unmounts
       if (kycPollingIntervalRef.current) {
         clearInterval(kycPollingIntervalRef.current);
       }
@@ -593,10 +525,9 @@ export default function LoginScreen() {
     };
   }, []);
 
-  // NEW: Additional effect to listen for KYC completion changes
+  // Listen for KYC completion changes
   useEffect(() => {
     if (isKycCompleted && kycInProgress) {
-      // Clear any ongoing processes
       if (kycPollingIntervalRef.current) {
         clearInterval(kycPollingIntervalRef.current);
         kycPollingIntervalRef.current = null;
@@ -608,10 +539,7 @@ export default function LoginScreen() {
 
       setKycInProgress(false);
       setIsKycSkipped(true);
-
-      setTimeout(() => {
-        navigateToApp();
-      }, 500);
+      setTimeout(() => navigateToApp(), 500);
     }
   }, [isKycCompleted, kycInProgress, navigateToApp]);
 
@@ -628,10 +556,7 @@ export default function LoginScreen() {
         source={Animation.loaderAnimation}
         autoPlay
         loop
-        style={{
-          width: 150,
-          height: 150,
-        }}
+        style={{width: 150, height: 150}}
         speed={1}
         colorFilters={[
           {

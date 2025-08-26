@@ -24,7 +24,7 @@
     "@react-navigation/native": "^6.1.7",
     "@react-navigation/native-stack": "^6.9.8",
     "@rneui/base": "^4.0.0-rc.8",
-    "@shopify/react-native-skia": "^2.0.1",
+    "@shopify/react-native-skia": "2.1.1",
     "@sumsub/react-native-mobilesdk-module": "^1.35.1",
     "axios": "^1.9.0",
     "buffer": "^6.0.3",
