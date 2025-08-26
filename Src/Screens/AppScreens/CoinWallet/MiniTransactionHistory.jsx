@@ -1,83 +1,61 @@
 import React, {useEffect, useState} from 'react';
-// import useTransaction from '../../../hooks/transaction';
-import {ActivityIndicator, Image, View} from 'react-native';
-// import TransactionSectionList from '../TrasactionHistory/TransactionSectionList';
-import images from '../../../Theme/images';
-import {TouchableOpacity} from 'react-native-gesture-handler';
-import {DatePickerModal} from 'react-native-paper-dates';
-// import FilterBottomSheet from '../transactionHistory/FilterBottomSheet';
+import {ActivityIndicator, View} from 'react-native';
 import {format} from 'date-fns';
 import {DText} from '../../../Componants/DText';
-import TransactionSectionList from '../TransactionHistory/TransactionSectionList';
+import TransactionFlatList from '../TransactionHistory/TransactionFlatList';
 import {useTransactionHistory} from '../../../hooks/useTransactionHistory';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 
-const defaultFilter = {
-  page: 1,
-  limit: 20,
-  mode: 'wallet',
-  startDate: '',
-  endDate: '',
-  type: '',
-};
-
-export default function MiniTransactionHistory({
+const MiniTransactionHistory = ({
   coinCode,
   name,
   showFilter,
   setShowFilter,
-}) {
+  contractAddress,
+  limit = 20,
+}) => {
   const {userDetails} = useAuth();
 
+  // Get wallet address
   const coinCodesForDenergyWallet = ['watt', 'weurc', 'wusdc'];
-
-  const wallet = coinCodesForDenergyWallet.includes(
-    coinCode.toLocaleLowerCase(),
-  )
+  const wallet = coinCodesForDenergyWallet.includes(coinCode?.toLowerCase())
     ? userDetails?.userWallet
     : userDetails?.userWallet;
+
+  // Use the transaction history hook
   const {
     transactions,
-    formattedTransactions,
     loading,
+    refreshing,
     isLoadingMore,
     hasMoreData,
+    error,
     loadMoreTransactions,
     refreshTransactions,
-  } = useTransactionHistory(20, coinCode, wallet);
-  // console.log('🚀 ~ formattedTransactions:', formattedTransactions);
+  } = useTransactionHistory(limit, contractAddress, wallet);
 
-  const [mockTransactions, setMockTransactions] = useState();
-  console.log('🚀 ~ mockTransactions:', JSON.stringify(mockTransactions));
+  // Filter state for date ranges
+  const [filters, setFilters] = useState({
+    startDate: '',
+    endDate: '',
+    type: '',
+  });
 
-  // const {getAll, data, loading, count} = useTransaction();
-  // console.log('🚀 ~ data :', JSON.stringify(data), coinCode);
-  // const [open, setOpen] = useState(false);
-  // console.log('🚀 ~ transactions :', JSON.stringify(transactions), loading);
-  const [filters, setFilters] = useState(defaultFilter);
-
-  useEffect(() => {
-    setMockTransactions(formattedTransactions);
-  }, [formattedTransactions]);
-
-  const onOpen = () => {
-    // setOpen(true);
-  };
-
-  const onDismiss = () => {
-    // setOpen(false);
-  };
-
-  const onConfirm = data => {
-    // onDismiss();
-    // setFilters({
-    //   ...filters,
-    //   ...data,
-    // });
+  // Display coin code formatting
+  const getDisplayCoinCode = code => {
+    switch (code?.toUpperCase()) {
+      case 'WUSDC':
+        return 'wUSDC';
+      case 'WEURC':
+        return 'wEURC';
+      default:
+        return code;
+    }
   };
 
   return (
-    <View>
+    <View style={{flex: 1}}>
+      {/* Date Filter Display */}
       <View
         style={{
           flexDirection: 'row',
@@ -94,6 +72,8 @@ export default function MiniTransactionHistory({
           {filters.endDate && ' - ' + format(filters.endDate, 'P')}
         </DText>
       </View>
+
+      {/* Coin Code Display */}
       {coinCode && (
         <View>
           <DText
@@ -102,23 +82,50 @@ export default function MiniTransactionHistory({
               marginBottom: 22,
               fontSize: 14,
             }}>
-            {/* All {data?.count} transaction in{' '} */}
-            {coinCode === 'WUSDC'
-              ? 'wUSDC'
-              : coinCode === 'WEURC'
-              ? 'wEURC'
-              : coinCode}
+            {transactions.length > 0 &&
+              `${transactions.length} transactions in `}
+            {getDisplayCoinCode(coinCode)}
           </DText>
         </View>
       )}
-      {loading ? (
-        <ActivityIndicator />
+
+      {/* Error Display */}
+      {error && transactions.length === 0 && (
+        <View style={{marginBottom: 16}}>
+          <DText style={{color: 'red', fontSize: 12, textAlign: 'center'}}>
+            {error}
+          </DText>
+        </View>
+      )}
+
+      {/* Loading Indicator for Initial Load */}
+      {loading && transactions.length === 0 ? (
+        <View
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: 50,
+          }}>
+          <ActivityIndicator size="large" color="#009D94" />
+          <DText style={{marginTop: 10, color: '#666'}}>
+            Loading transactions...
+          </DText>
+        </View>
       ) : (
-        <TransactionSectionList
-          data={mockTransactions}
+        /* Transaction List */
+        <TransactionFlatList
+          data={transactions}
+          name={name}
+          refreshing={refreshing}
+          onRefresh={refreshTransactions}
+          isLoadingMore={isLoadingMore}
           hasMoreData={hasMoreData}
+          onLoadMore={loadMoreTransactions}
+          error={error}
         />
       )}
     </View>
   );
-}
+};
+
+export default MiniTransactionHistory;

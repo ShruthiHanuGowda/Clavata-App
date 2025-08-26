@@ -14,6 +14,7 @@ import {BottomSheet} from 'react-native-btr';
 import {DButton} from '../../Componants';
 import useValidators from './Hooks/useValidators';
 import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
+import {VALIDATORS_API_URL} from '../../constants';
 
 // Define interfaces for our data types
 interface Validator {
@@ -46,10 +47,6 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
   const sortOptions = ['Commission', 'Age', 'Total Stake'];
   const statusOptions = ['All', 'Active', 'Inactive'];
 
-  // Define the validators API URL
-  const VALIDATORS_URL =
-    'https://2f6h4d0go8.execute-api.me-central-1.amazonaws.com/default/staking_getValidators';
-
   // Use our updated hook - only for list
   const {validatorList} = useValidators();
   const {
@@ -61,7 +58,7 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
 
   // Fetch validators on component mount
   useEffect(() => {
-    fetchValidators(VALIDATORS_URL).catch(err => {
+    fetchValidators(VALIDATORS_API_URL).catch(err => {
       console.log('Error fetching validators:', err);
     });
   }, []);
@@ -202,7 +199,7 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
           <Text style={styles.errorText}>Error: {error.message}</Text>
           <TouchableOpacity
             style={styles.retryButton}
-            onPress={() => fetchValidators(VALIDATORS_URL)}>
+            onPress={() => fetchValidators(VALIDATORS_API_URL)}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>

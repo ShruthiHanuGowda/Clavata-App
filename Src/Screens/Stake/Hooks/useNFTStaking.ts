@@ -143,26 +143,20 @@ export const useNFTStaking = (validatorAddress?: string) => {
         setIsLoading(true);
         setError(null);
 
-        if (!magic) {
-          console.error('[NFT Staking] Magic SDK not available');
-          throw new Error('Magic SDK not available');
-        }
-
-        await setActiveNetwork('denergy');
+        const magic = await setActiveNetwork('denergy');
         console.log('[NFT Staking] Network set to denergy for approval');
 
-        // Get Magic provider for signing transactions
         const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
 
-        // Create contract instance for the ERC1155 token
         const tokenContract = new Contract(
           erc1155Contract,
           ERC1155_ABI,
           signer,
         );
 
-        // Set approval
+        console.log('erc1155Contract', erc1155Contract);
+
         console.log(
           '[NFT Staking] Submitting setApprovalForAll transaction...',
         );
@@ -225,7 +219,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
       );
       console.log(`[NFT Staking] Using validator address: ${validatorAddress}`);
 
-      await setActiveNetwork('denergy');
+      const magic = await setActiveNetwork('denergy');
       console.log('[NFT Staking] Network set to denergy');
 
       try {
@@ -293,11 +287,20 @@ export const useNFTStaking = (validatorAddress?: string) => {
         const tx = await stakingContract.delegateERC1155(
           erc1155Contract,
           delegatorAddress,
-          validatorAddress, // Use the dynamic validator address
+          validatorAddress,
           tokenIdBigInt,
           amountInWei,
           {gasLimit: 9000000},
         );
+
+        console.log('payload', {
+          erc1155Contract,
+          delegatorAddress,
+          validatorAddress,
+          tokenIdBigInt,
+          amountInWei,
+        });
+
         console.log(`[NFT Staking] Transaction submitted: ${tx.hash}`);
 
         // Wait for the transaction to be mined

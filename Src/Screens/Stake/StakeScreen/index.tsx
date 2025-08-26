@@ -410,6 +410,12 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
     </View>
   );
 
+  const WATTStakingContent = (): React.ReactElement => (
+    <View style={styles.tabContent}>
+      <WATTStakeComponent validatorId={validatorId} />
+    </View>
+  );
+
   const handleStakeSuccess = result => {
     console.log('Staking successful:', result);
     setTxHash(result.txHash);
@@ -519,7 +525,7 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
 
           <View style={styles.contentContainer}>
             {index === 0 && <NFTStakingContent />}
-            {/* {index === 1 && <WATTStakingContent />} */}
+            {index === 1 && <WATTStakingContent />}
           </View>
         </View>
       )}

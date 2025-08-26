@@ -45,7 +45,7 @@ const TransactionDetailsModal = ({visible, setVisible, selectedItems}) => {
         </View>
         <TransactionDetails
           title="Txn Hash"
-          value={selectedItems?._id ? selectedItems?._id : '---'}
+          value={selectedItems?.hash ? selectedItems?.hash : '---'}
         />
         <TransactionDetails
           title="Status"

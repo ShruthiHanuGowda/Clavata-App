@@ -8,6 +8,7 @@ import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useWallet} from '../../../../screens/Provider/WalletProvider';
 import {useWATTStaking} from '../Hooks/useWATTStaking';
+import {navigateTo} from '../../../utils/navigationService';
 
 interface WATTStakeComponentProps {
   validatorId: string;
@@ -111,7 +112,7 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
         0,
         10,
       )}...`,
-      [{text: 'OK', onPress: () => console.log('OK')}],
+      [{text: 'OK', onPress: () => navigateTo('Stake')}],
     );
 
     // Reset form
@@ -144,11 +145,7 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
     setTxStatus('staking');
 
     try {
-      // Call delegateWATT function from the hook
-      await delegateWATT(
-        amount, // Amount to stake
-        handleStakeSuccess, // Success callback
-      );
+      await delegateWATT(amount, handleStakeSuccess);
     } catch (err: any) {
       console.error('WATT Staking failed:', err);
       setTxStatus('failed');

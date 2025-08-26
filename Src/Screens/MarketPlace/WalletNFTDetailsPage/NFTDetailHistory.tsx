@@ -121,9 +121,9 @@ export default function NFTDetailHistory({route}: {route: any}) {
       <View style={styles.emptyStateIcon}>
         <DText style={styles.emptyStateIconText}>📊</DText>
       </View>
-      <DText fontStyle="fontSemiBold" style={styles.emptyStateTitle}>
+      {/* <DText fontStyle="fontSemiBold" style={styles.emptyStateTitle}>
         No Transactions Found
-      </DText>
+      </DText> */}
       <DText fontStyle="fontRegular" style={styles.emptyStateMessage}>
         {nftName || `NFT #${nftId}`} doesn't have any transaction history yet.
       </DText>

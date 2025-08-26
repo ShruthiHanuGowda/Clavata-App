@@ -158,9 +158,8 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
     setTxStatus('staking');
 
     try {
-      // Call delegateERC1155 function from our hook
       await delegateERC1155(
-        selectedNFT.contractAddress, // ERC1155 contract address
+        selectedNFT.contractAddress || selectedNFT.collectionAddress,
         selectedNFT.tokenId, // Token ID
         amount, // Amount to stake
         handleStakeSuccess, // Success callback

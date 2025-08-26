@@ -10,9 +10,9 @@ import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useWallet} from '../../../../screens/Provider/WalletProvider';
 import {STAKING_WATT_ABI} from '../../../utils/Contracts';
-import {STAKING_ADDRESS} from '../../../constants';
+import {WATT_STAKING_ADDRESS} from '../../../constants';
 
-const STAKING_CONTRACT_ADDRESS = STAKING_ADDRESS;
+const STAKING_CONTRACT_ADDRESS = WATT_STAKING_ADDRESS;
 
 interface DelegateEvent {
   delegatorAddress: string;
@@ -141,11 +141,9 @@ export const useWATTStaking = (validatorAddress?: string) => {
         const delegatorAddress = await signer.getAddress();
         console.log(`[WATT Staking] Delegator address: ${delegatorAddress}`);
 
-        // Convert amount to proper format
-        const amountInWei = parseUnits(amount, 6); // Based on your original code using 6 decimals
+        const amountInWei = parseUnits(amount, 18);
         console.log(`[WATT Staking] Amount in Wei: ${amountInWei.toString()}`);
 
-        // Check if user has sufficient balance
         const currentBalance = await magicProvider.getBalance(delegatorAddress);
         if (currentBalance < amountInWei) {
           throw new Error(
@@ -166,14 +164,12 @@ export const useWATTStaking = (validatorAddress?: string) => {
           signer,
         );
 
-        // Call the delegate function according to ABI
-        // function delegate(address delegatorAddress, string validatorAddress, uint256 amount)
         console.log('[WATT Staking] Submitting delegate transaction...');
         const tx = await stakingContract.delegate(
           delegatorAddress,
-          validatorAddress, // String format as per ABI
+          validatorAddress,
           amountInWei,
-          {gasLimit: 9000000},
+          {gasLimit: 500000},
         );
         console.log(`[WATT Staking] Transaction submitted: ${tx.hash}`);
 

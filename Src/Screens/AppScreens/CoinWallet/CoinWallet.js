@@ -36,6 +36,7 @@ import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../../../graphql/queries';
 import {marketIcons} from '../../../Theme/variable';
 import {PRICE_HISTORY_API_URL} from '../../../constants';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {DENERGY_USDC_ADDRESS, DENERGY_EURC_ADDRESS} from '../../../constants';
 
 const width = Dimensions.get('window').width;
 
@@ -289,6 +290,20 @@ export default function CoinWallet(props) {
     },
   );
 
+  const getContractAddress = coinCode => {
+    let contractAddress = null;
+    switch (coinCode) {
+      case 'WUSDC':
+        contractAddress = DENERGY_USDC_ADDRESS;
+        break;
+      case 'WEURC':
+        contractAddress = DENERGY_EURC_ADDRESS;
+      default:
+        break;
+    }
+    return contractAddress;
+  };
+
   // Add safe hook calls with error handling
   let getBalance,
     userDetails,
@@ -507,7 +522,10 @@ export default function CoinWallet(props) {
               </View>
             </ScrollView>
           ) : (
-            <MiniTransactionHistory coinCode={coinCode} />
+            <MiniTransactionHistory
+              coinCode={coinCode}
+              contractAddress={getContractAddress(coinCode)}
+            />
           )}
         </View>
       </View>
