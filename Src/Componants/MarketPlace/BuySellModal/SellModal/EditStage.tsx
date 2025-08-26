@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { NFT_DEFAULT_IMAGE_URL } from '../../../../constants';
+import {NFT_DEFAULT_IMAGE_URL} from '../../../../constants';
 
 interface EditStageProps {
   nftToSell: {
     name: string;
     collectionName: string;
-    image: { thumbnail: string };
+    image: {thumbnail: string};
     collectionAddress: string;
     tokenId: string;
   };
@@ -32,15 +32,13 @@ const EditStage: React.FC<EditStageProps> = ({
 }) => {
   const isDelist = ['0x000...example'].includes(nftToSell?.collectionAddress);
 
-  const imageUrl =
-    nftToSell?.image?.thumbnail ||
-    NFT_DEFAULT_IMAGE_URL
+  const imageUrl = nftToSell?.image?.thumbnail || NFT_DEFAULT_IMAGE_URL;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.nftInfo}>
-        <Image source={{ uri: imageUrl }} style={styles.nftImage} />
-        <View style={{ flex: 1 }}>
+        <Image source={{uri: imageUrl}} style={styles.nftImage} />
+        <View style={{flex: 1}}>
           <Text style={styles.nftName}>{nftToSell?.name}</Text>
           <Text style={styles.collectionName}>{nftToSell?.collectionName}</Text>
 
@@ -48,6 +46,7 @@ const EditStage: React.FC<EditStageProps> = ({
             <View style={styles.priceBlock}>
               <Text style={styles.priceLabel}>Lowest Price (MWh)</Text>
               <View style={styles.priceRow}>
+                //FIXME - remove URL and add static image
                 <Image
                   source={{
                     uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
@@ -63,6 +62,7 @@ const EditStage: React.FC<EditStageProps> = ({
             <View style={styles.priceBlock}>
               <Text style={styles.priceLabel}>Your Price</Text>
               <View style={styles.priceRow}>
+                //FIXME - remove URL and add static image
                 <Image
                   source={{
                     uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',

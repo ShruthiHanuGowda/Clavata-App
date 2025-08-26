@@ -13,6 +13,7 @@ export const useTransactionHistory = (
   initialLimit = 10,
   contractAddress = '',
   walletAddress = '',
+  //FIXME - move to ENV.
   baseUrl = 'https://explorernew.denergytestnet.com/api',
 ) => {
   // State management

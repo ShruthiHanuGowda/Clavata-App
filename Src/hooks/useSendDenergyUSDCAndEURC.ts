@@ -5,6 +5,7 @@ import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 import {DENERGY_EURC_ADDRESS, DENERGY_USDC_ADDRESS} from '../constants';
 
 // Denergy RPC URL and chain ID
+//FIXME - move to ENV.
 const DENERGY_RPC_URL = 'https://rpc.denergytestnet.com';
 const DENERGY_CHAIN_ID = '4442';
 const provider = new Web3.providers.HttpProvider(DENERGY_RPC_URL);

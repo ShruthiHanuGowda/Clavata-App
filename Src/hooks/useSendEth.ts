@@ -9,6 +9,7 @@ import {
 import {useMutation} from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 
+//FIXME - move to ENV.
 const INFURA_URL =
   'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
 const infuraProvider = new JsonRpcProvider(INFURA_URL);
@@ -59,7 +60,7 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
       setIsLoading(true);
       setError(null);
       console.log(magic.rpcProvider);
-      
+
       // Get Magic provider for signing transactions
       const magicProvider = new BrowserProvider(magic.rpcProvider);
       const signer = await magicProvider.getSigner();
@@ -70,7 +71,7 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
       // Estimate gas price
       const gasPrice = await infuraProvider.getFeeData();
       console.log('🚀 ~ gasPrice:', gasPrice);
-      
+
       // Estimate gas limit for the transaction
       const gasEstimate = await infuraProvider.estimateGas({
         from: userAddress,
@@ -97,12 +98,11 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
       });
 
       console.log('🚀 ~ tx:', tx);
-      
 
       // Wait for transaction to be mined
       const receipt = await tx.wait();
       console.log('🚀 ~ receipt:', receipt);
-      
+
       try {
         const {data} = await createTransactionHistoryMobile({
           variables: {

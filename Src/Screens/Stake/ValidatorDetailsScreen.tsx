@@ -66,6 +66,7 @@ const ValidatorDetailsScreen = ({
       try {
         setIsLoading(true);
         // Adjust the API endpoint as needed
+        //FIXME -Move to ENV
         const apiUrl = `https://2f6h4d0go8.execute-api.me-central-1.amazonaws.com/default/staking_getValidators?validatorId=${validatorId}`;
         const response = await singleValidator.fetch(apiUrl);
         console.log(

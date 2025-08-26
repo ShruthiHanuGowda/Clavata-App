@@ -7,7 +7,7 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
-import { NFT_DEFAULT_IMAGE_URL } from '../../../../constants';
+import {NFT_DEFAULT_IMAGE_URL} from '../../../../constants';
 
 interface NFT {
   tokenId: string;
@@ -45,9 +45,7 @@ const SellStage: React.FC<SellStageProps> = ({
       <View style={styles.nftInfo}>
         <Image
           source={{
-            uri:
-              nftToSell?.image?.thumbnail ||
-              NFT_DEFAULT_IMAGE_URL
+            uri: nftToSell?.image?.thumbnail || NFT_DEFAULT_IMAGE_URL,
           }}
           style={styles.nftImage}
         />
@@ -60,6 +58,7 @@ const SellStage: React.FC<SellStageProps> = ({
             <>
               <Text style={styles.label}>Lowest Price (MWh) </Text>
               <View style={styles.priceRow}>
+                //FIXME - remove URL and add static image
                 <Image
                   source={{
                     uri:

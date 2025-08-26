@@ -1,9 +1,10 @@
-import { CUSTOM_NETWORK_CHAIN_ID } from '../constants';
+import {CUSTOM_NETWORK_CHAIN_ID} from '../constants';
 
 const denergyTestnet = {
   id: 4442,
   network: 'denergyTestnet',
   name: 'denergyTestnet',
+  //FIXME - Move to env
   blockExplorers: {
     default: {
       name: 'Denergy Testnet',
@@ -16,6 +17,7 @@ const sepoliaETHTestnet = {
   id: 11155111,
   network: 'sepolia',
   name: 'sepolia',
+  //FIXME - Move to env
   blockExplorers: {
     default: {
       name: 'sepolia',
@@ -29,7 +31,7 @@ const chains = [denergyTestnet, sepoliaETHTestnet];
 export function getBlockExploreLink(
   data: string | number | undefined | null,
   type: 'transaction' | 'token' | 'address' | 'block' | 'countdown',
-  chainIdOverride?: number|string,
+  chainIdOverride?: number | string,
 ): string {
   const chainId = chainIdOverride || CUSTOM_NETWORK_CHAIN_ID;
   const chain = chains.find(c => c.id === chainId);

@@ -47,6 +47,7 @@ const OwnerList: React.FC<OwnerListProps> = ({
                 </Text>
                 <View style={styles.priceRow}>
                   <Text style={styles.label}>Price:</Text>
+                  //FIXME - remove URL and add static image
                   <Image
                     source={{
                       uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',

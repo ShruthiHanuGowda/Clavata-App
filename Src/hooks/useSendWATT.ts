@@ -8,7 +8,7 @@ import {
 } from 'ethers';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 import {useMutation} from '@apollo/client';
-
+//FIXME - move to ENV.
 const DENERGY_RPC_URL = 'https://rpc.denergytestnet.com';
 const dengergyProvider = new JsonRpcProvider(DENERGY_RPC_URL, {
   name: 'denergy',

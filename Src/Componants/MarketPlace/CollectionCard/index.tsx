@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { Collection } from '../../../types/types';
-import { formatQuantityMWh } from '../../../utils';
+import {Collection} from '../../../types/types';
+import {formatQuantityMWh} from '../../../utils';
 
 interface CollectionCardProps {
   collection: Collection & {
@@ -32,6 +32,7 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               <ActivityIndicator size="small" color="#81c8c3" />
             </View>
           )}
+          //FIXME - remove URL and add static image
           <Image
             source={{
               uri:

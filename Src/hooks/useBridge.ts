@@ -30,6 +30,7 @@ interface BridgeSuccess {
 type SuccessCallback = (result: BridgeSuccess) => void;
 
 const apiCall = async (transactionDetails: any, endPoint: string) => {
+  //FIXME - move to ENV.
   const apiUrl = `${'https://backend.wattswaps.com'}/bridge_api/${endPoint}`;
   try {
     const response = await fetch(apiUrl, {

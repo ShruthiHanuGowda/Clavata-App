@@ -89,6 +89,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
   // Function to fetch exchange rates
   const fetchExchangeRates = useCallback(async (): Promise<ExchangeRates> => {
     try {
+      //FIXME - move to ENV.
       const ratesResponse = await fetch(
         'https://e3uxy18iul.execute-api.me-central-1.amazonaws.com/testing/crypto-prices',
       );
@@ -237,7 +238,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
 
             // Use the appropriate address for each token
             const addressToUse = info.useAddress;
-            
+
             if (addressToUse && ethers.isAddress(addressToUse)) {
               const balance = await contract.balanceOf(addressToUse);
               const formattedBalance = ethers.formatUnits(balance, 6);
