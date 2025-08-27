@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {Collection} from '../../../types/types';
 import {formatQuantityMWh} from '../../../utils';
+import images from '../../../Theme/images';
 
 interface CollectionCardProps {
   collection: Collection & {
@@ -32,13 +33,8 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
               <ActivityIndicator size="small" color="#81c8c3" />
             </View>
           )}
-          //FIXME - remove URL and add static image
           <Image
-            source={{
-              uri:
-                collection?.collection_image ||
-                'https://nfts-data.s3.me-central-1.amazonaws.com/nft_banner.png',
-            }}
+            source={images.usdc}
             style={styles.bannerImage}
             onLoadEnd={() => setLoading(false)}
           />

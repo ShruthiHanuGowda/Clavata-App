@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import {NFT_DEFAULT_IMAGE_URL} from '../../../../constants';
+import images from '../../../../Theme/images';
 
 interface NFT {
   tokenId: string;
@@ -58,15 +59,7 @@ const SellStage: React.FC<SellStageProps> = ({
             <>
               <Text style={styles.label}>Lowest Price (MWh) </Text>
               <View style={styles.priceRow}>
-                //FIXME - remove URL and add static image
-                <Image
-                  source={{
-                    uri:
-                      nftToSell?.image?.thumbnail ||
-                      'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
-                  }}
-                  style={styles.icon}
-                />
+                <Image source={images.usdc} style={styles.icon} />
                 <Text style={styles.price}>{lowestPrice}</Text>
               </View>
             </>

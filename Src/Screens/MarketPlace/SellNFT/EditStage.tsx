@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, Image, TouchableOpacity} from 'react-native';
 import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
+import images from '../../../Theme/images';
 
 interface EditStageProps {
   nftToSell: {
@@ -45,13 +46,7 @@ const EditStage: React.FC<EditStageProps> = ({
           <View style={styles.priceSection}>
             <Text style={styles.priceLabel}>Your Listing Price</Text>
             <View style={styles.priceRow}>
-              //FIXME - remove URL and add static image
-              <Image
-                source={{
-                  uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
-                }}
-                style={styles.currencyIcon}
-              />
+              <Image source={images.usdc} style={styles.currencyIcon} />
               <Text style={styles.currentPrice}>{currentPrice} USDC</Text>
             </View>
           </View>
@@ -61,13 +56,7 @@ const EditStage: React.FC<EditStageProps> = ({
           <View style={styles.priceSection}>
             <Text style={styles.priceLabel}>Current Floor Price</Text>
             <View style={styles.priceRow}>
-              //FIXME - remove URL and add static image
-              <Image
-                source={{
-                  uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
-                }}
-                style={styles.currencyIcon}
-              />
+              <Image source={images.usdc} style={styles.currencyIcon} />
               <Text style={styles.floorPrice}>{lowestPrice} USDC</Text>
             </View>
           </View>
