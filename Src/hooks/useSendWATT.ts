@@ -8,12 +8,12 @@ import {
 } from 'ethers';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 import {useMutation} from '@apollo/client';
-//FIXME - move to ENV.
-const DENERGY_RPC_URL = 'https://rpc.denergytestnet.com';
-const dengergyProvider = new JsonRpcProvider(DENERGY_RPC_URL, {
-  name: 'denergy',
-  chainId: 4442, // replace with actual chainId
-});
+import {CUSTOM_NETWORK_CHAIN_ID, CUSTOM_RPC_URL} from '../constants';
+
+const DENERGY_RPC_URL = CUSTOM_RPC_URL;
+console.log(CUSTOM_NETWORK_CHAIN_ID);
+
+const dengergyProvider = new JsonRpcProvider(DENERGY_RPC_URL);
 
 interface TransactionDetails {
   to: string;
@@ -62,57 +62,42 @@ export const useSendWatt = (
       setIsLoading(true);
       setError(null);
 
-      // Convert amount to wei
       const amountInWei = parseUnits(transactionDetails.amount, 18);
-      console.log('🚀 ~ amountInWei:', amountInWei);
-
-      // Estimate gas price
       const gasPrice = await dengergyProvider.getFeeData();
 
-      // Estimate gas limit for the transaction
       const gasEstimate = await dengergyProvider.estimateGas({
         from: userAddress,
         to: transactionDetails.to,
         value: amountInWei,
       });
 
-      // Check if user has enough balance for transaction + gas
       const balanceInWei = await dengergyProvider.getBalance(userAddress);
       console.log('🚀 ~ balanceInWei:', balanceInWei);
-      const gasCost = gasEstimate * (gasPrice.gasPrice ?? parseUnits('50', 9)); // Default gas price if null
+      const gasCost = gasEstimate * (gasPrice.gasPrice ?? parseUnits('50', 9));
       const totalCost = amountInWei + gasCost;
 
       if (balanceInWei < totalCost) {
         throw new Error('Insufficient funds for gas and transaction amount');
       }
 
-      // Since Magic doesn't support DEnergy network directly, we need to use the low-level RPC approach
-      // Prepare transaction parameters
       const txParams = {
         from: userAddress,
         to: transactionDetails.to,
-        value: `0x${amountInWei.toString(16)}`, // Convert to hex format
-        gas: `0x${gasEstimate.toString(16)}`, // Convert to hex format
+        value: `0x${amountInWei.toString(16)}`,
+        gas: `0x${gasEstimate.toString(16)}`,
         gasPrice: gasPrice.gasPrice
           ? `0x${gasPrice.gasPrice.toString(16)}`
-          : '0x4A817C800', // Default gas price if null
-        chainId: 4442, // DEnergy testnet chain ID
+          : '0x4A817C800',
+        chainId: 4442,
       };
-      console.log('🚀 ~ txParams:', txParams);
 
-      // Access the raw provider
       const provider = magic.rpcProvider;
 
-      // Send the transaction using Magic's RPC provider with eth_sendTransaction
       const txHash = await provider.request({
         method: 'eth_sendTransaction',
         params: [txParams],
       });
 
-      // Note: We don't have a receipt here since we're not waiting for mining
-      // But we can construct a similar response object
-
-      // Call success callback if provided
       if (onSuccess && typeof onSuccess === 'function') {
         try {
           const {data} = await createTransactionHistoryMobile({

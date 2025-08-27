@@ -5,6 +5,7 @@ import {
   CUSTOM_RPC_URL,
   SEPOLIA_RPC_URL,
   TOKEN_CONTRACTS,
+  CRYPTO_PRICES_API_URL,
 } from '../constants';
 import {useAuth} from '../../screens/Provider/authProvider';
 import {ERC20_ABI} from '../utils/Contracts';
@@ -89,10 +90,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
   // Function to fetch exchange rates
   const fetchExchangeRates = useCallback(async (): Promise<ExchangeRates> => {
     try {
-      //FIXME - move to ENV.
-      const ratesResponse = await fetch(
-        'https://e3uxy18iul.execute-api.me-central-1.amazonaws.com/testing/crypto-prices',
-      );
+      const ratesResponse = await fetch(CRYPTO_PRICES_API_URL);
       const ratesData = (await ratesResponse.json()) as ExchangeRatesResponse;
 
       // Parse the body string to an object if it's returned as a string

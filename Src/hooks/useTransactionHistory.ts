@@ -1,5 +1,6 @@
 import {useState, useEffect, useCallback} from 'react';
 import moment from 'moment';
+import {EXPLORER_URL} from '../constants';
 
 /**
  * Custom hook for managing transaction history with pagination
@@ -13,8 +14,7 @@ export const useTransactionHistory = (
   initialLimit = 10,
   contractAddress = '',
   walletAddress = '',
-  //FIXME - move to ENV.
-  baseUrl = 'https://explorernew.denergytestnet.com/api',
+  baseUrl = `${EXPLORER_URL}/api`,
 ) => {
   // State management
   const [transactions, setTransactions] = useState([]);

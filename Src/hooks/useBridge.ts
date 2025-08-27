@@ -15,6 +15,8 @@ import {
   DENERGY_USDC_ADDRESS,
   DESTINATION_ADDRESS,
   DENERGY_EURC_ADDRESS,
+  BRIDGE_API_URL,
+  BRIDGE_API_KEY,
 } from '../constants';
 import {useWallet} from '../../screens/Provider/WalletProvider';
 import {BRIDGE_ABI, ERC20_ABI, DEPOSIT_TOKEN_ABI} from '../utils/Contracts';
@@ -30,14 +32,13 @@ interface BridgeSuccess {
 type SuccessCallback = (result: BridgeSuccess) => void;
 
 const apiCall = async (transactionDetails: any, endPoint: string) => {
-  //FIXME - move to ENV.
-  const apiUrl = `${'https://backend.wattswaps.com'}/bridge_api/${endPoint}`;
+  const apiUrl = `${BRIDGE_API_URL}/bridge_api/${endPoint}`;
   try {
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': '93192389131231YYAOIJ',
+        'x-api-key': BRIDGE_API_KEY,
       },
       body: JSON.stringify(transactionDetails),
     });
