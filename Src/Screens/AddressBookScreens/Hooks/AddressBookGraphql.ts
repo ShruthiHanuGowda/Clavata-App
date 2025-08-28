@@ -1,7 +1,5 @@
-import {HttpLink, InMemoryCache} from '@apollo/client';
-import {ApolloClient} from '@apollo/client';
 import {useState, useEffect, useCallback} from 'react';
-import {ADDRESS_BOOK_API_KEY, ADDRESS_BOOK_API_URL} from '../../../constants';
+import {useApolloClientContext} from '../../../../screens/Provider/GraphQLProvider';
 import {
   CREATE_ADDRESS_BOOK,
   UPDATE_ADDRESS_BOOK,
@@ -20,37 +18,21 @@ import {
   DeleteAddressBookData,
 } from './type';
 
-const client = new ApolloClient({
-  link: new HttpLink({
-    uri: ADDRESS_BOOK_API_URL,
-    headers: {
-      'x-api-key': ADDRESS_BOOK_API_KEY,
-    },
-    includeExtensions: true,
-  }),
-  cache: new InMemoryCache(),
-  defaultOptions: {
-    query: {
-      fetchPolicy: 'no-cache',
-    },
-    watchQuery: {
-      fetchPolicy: 'no-cache',
-    },
-  },
-});
 
 // Custom hook for creating address books
-export const useCreateAddressBook = async magic => {
+export const useCreateAddressBook = (magic: any) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<any>(null);
-  const token = await magic.user.getIdToken();
-  console.log('🚀 ~ useCreateAddressBook ~ token:', token);
+  const {client} = useApolloClientContext();
+
   const createAddressBook = useCallback(
     async (input: CreateAddressBookInput) => {
       setLoading(true);
       setError(null);
 
       try {
+        const token = await magic.user.getIdToken();
+        console.log('🚀 ~ useCreateAddressBook ~ token:', token);
         const result = await client.mutate<CreateAddressBookData>({
           mutation: CREATE_ADDRESS_BOOK,
           variables: {
@@ -76,7 +58,7 @@ export const useCreateAddressBook = async magic => {
         setLoading(false);
       }
     },
-    [],
+    [client, magic],
   );
 
   return {
@@ -90,6 +72,7 @@ export const useCreateAddressBook = async magic => {
 export const useUpdateAddressBook = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<any>(null);
+  const {client} = useApolloClientContext();
 
   const updateAddressBook = useCallback(
     async (input: UpdateAddressBookInput) => {
@@ -122,7 +105,7 @@ export const useUpdateAddressBook = () => {
         setLoading(false);
       }
     },
-    [],
+    [client],
   );
 
   return {
@@ -136,6 +119,7 @@ export const useUpdateAddressBook = () => {
 export const useDeleteAddressBook = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<any>(null);
+  const {client} = useApolloClientContext();
 
   const deleteAddressBook = useCallback(
     async (id: string, walletAddress: string) => {
@@ -170,7 +154,7 @@ export const useDeleteAddressBook = () => {
         setLoading(false);
       }
     },
-    [],
+    [client],
   );
 
   return {
@@ -185,6 +169,7 @@ export const useAddressBookByWallet = (walletAddress: string | null) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [data, setData] = useState<AddressBook[]>([]);
   const [error, setError] = useState<any>(null);
+  const {client} = useApolloClientContext();
 
   const fetchAddressBooksByWallet = useCallback(async (wallet: string) => {
     setLoading(true);
@@ -210,7 +195,7 @@ export const useAddressBookByWallet = (walletAddress: string | null) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [client]);
 
   const refetch = useCallback(() => {
     if (walletAddress) {
