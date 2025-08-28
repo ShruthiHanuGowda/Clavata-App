@@ -68,8 +68,7 @@
     "text-encoding": "^0.7.0",
     "uuid": "^11.1.0",
     "victory-native": "^41.17.3",
-    "vm-browserify": "0.0.4",
-    "web3": "1.8.1"
+    "vm-browserify": "0.0.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

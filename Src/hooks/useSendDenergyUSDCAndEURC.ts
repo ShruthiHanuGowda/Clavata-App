@@ -1,6 +1,6 @@
 import {useMutation} from '@apollo/client';
 import {useState} from 'react';
-import Web3 from 'web3';
+import {ethers} from 'ethers';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 import {
   CUSTOM_NETWORK_CHAIN_ID,
@@ -12,8 +12,7 @@ import {ERC20_ABI} from '../utils/Contracts';
 
 const DENERGY_RPC_URL = CUSTOM_RPC_URL;
 const DENERGY_CHAIN_ID = CUSTOM_NETWORK_CHAIN_ID;
-const provider = new Web3.providers.HttpProvider(DENERGY_RPC_URL);
-const web3 = new Web3(provider);
+const provider = new ethers.JsonRpcProvider(DENERGY_RPC_URL);
 
 export const TOKEN_ADDRESSES_DENERGY = {
   USDC: DENERGY_USDC_ADDRESS,
@@ -84,75 +83,74 @@ export const useSendDenergyUSDCAndEURC = (
 
       // Validate addresses
       if (
-        !web3.utils.isAddress(userAddress) ||
-        !web3.utils.isAddress(transactionDetails.to)
+        !ethers.isAddress(userAddress) ||
+        !ethers.isAddress(transactionDetails.to)
       ) {
         throw new Error('Invalid Ethereum wallet address');
       }
 
       // Check network ID
-      const networkId = await web3.eth.net.getId();
-      if (networkId.toString() !== DENERGY_CHAIN_ID) {
+      const network = await provider.getNetwork();
+      if (network.chainId.toString() !== DENERGY_CHAIN_ID) {
         throw new Error('Please switch to the Denergy testnet network');
       }
 
-      const tokenContract = new web3.eth.Contract(
-        ERC20_ABI,
+      const tokenContract = new ethers.Contract(
         transactionDetails.tokenAddress,
+        ERC20_ABI,
+        provider,
       );
 
       // Get token decimals and symbol
-      const tokenDecimals = await tokenContract.methods.decimals().call();
-      const tokenSymbol = await tokenContract.methods.symbol().call();
-
-      // Determine multiplier based on decimals (6 for USDC, might be different for EURC)
-      let multiplier = 'mwei'; // Default for 6 decimals (like USDC)
-      if (tokenDecimals === '18') {
-        multiplier = 'ether';
-      }
+      const tokenDecimals = await tokenContract.decimals();
+      const tokenSymbol = await tokenContract.symbol();
 
       // Convert amount to token's smallest unit using the correct decimals
-      const amountInSmallestUnit = web3.utils.toWei(
+      const amountInSmallestUnit = ethers.parseUnits(
         transactionDetails.amount,
-        multiplier,
+        tokenDecimals,
       );
 
       // Check user's token balance
-      const userTokenBalance = await tokenContract.methods
-        .balanceOf(userAddress)
-        .call();
-      if (BigInt(userTokenBalance) < BigInt(amountInSmallestUnit)) {
+      const userTokenBalance = await tokenContract.balanceOf(userAddress);
+      if (userTokenBalance < amountInSmallestUnit) {
         throw new Error(
           `Insufficient ${tokenSymbol} balance for the transaction`,
         );
       }
 
       // Estimate gas for the transaction
-      const gasEstimate = await tokenContract.methods
-        .transfer(transactionDetails.to, amountInSmallestUnit)
-        .estimateGas({from: userAddress});
+      const gasEstimate = await tokenContract.transfer.estimateGas(
+        transactionDetails.to,
+        amountInSmallestUnit,
+        {from: userAddress},
+      );
 
       // Get gas price
-      const gasPrice = await web3.eth.getGasPrice();
+      const feeData = await provider.getFeeData();
+      const gasPrice = feeData.gasPrice || ethers.parseUnits('20', 'gwei');
 
       // Calculate gas cost
-      const gasCost = BigInt(gasEstimate) * BigInt(gasPrice);
+      const gasCost = gasEstimate * gasPrice;
 
       // Check if user has enough native tokens for gas
-      const ethBalance = await web3.eth.getBalance(userAddress);
-      if (BigInt(ethBalance) < gasCost) {
+      const ethBalance = await provider.getBalance(userAddress);
+      if (ethBalance < gasCost) {
         throw new Error('Insufficient native tokens for gas fees');
       }
 
       // Prepare transaction parameters
+      const transferData = tokenContract.interface.encodeFunctionData(
+        'transfer',
+        [transactionDetails.to, amountInSmallestUnit],
+      );
+      
       const txParams = {
         from: userAddress,
         to: transactionDetails.tokenAddress,
-        data: tokenContract.methods
-          .transfer(transactionDetails.to, amountInSmallestUnit)
-          .encodeABI(),
-        gas: web3.utils.toHex(gasEstimate),
-        gasPrice: web3.utils.toHex(gasPrice),
+        data: transferData,
+        gas: '0x' + gasEstimate.toString(16),
+        gasPrice: '0x' + gasPrice.toString(16),
       };
 
       // Send the transaction using Magic's RPC provider
@@ -166,7 +164,7 @@ export const useSendDenergyUSDCAndEURC = (
 
       // Call success callback if provided
       if (onSuccess && typeof onSuccess === 'function') {
-        const {data} = await createTransactionHistoryMobile({
+        await createTransactionHistoryMobile({
           variables: {
             input: {
               transactionHash: receipt.hash,
@@ -184,8 +182,8 @@ export const useSendDenergyUSDCAndEURC = (
         onSuccess({
           txHash: txHash,
           networkName: 'Denergy Testnet',
-          gasFee: web3.utils.fromWei(gasCost.toString(), 'ether'),
-          totalCost: web3.utils.fromWei(amountInSmallestUnit, multiplier),
+          gasFee: ethers.formatEther(gasCost),
+          totalCost: ethers.formatUnits(amountInSmallestUnit, tokenDecimals),
           tokenSymbol: tokenSymbol,
         });
       }
