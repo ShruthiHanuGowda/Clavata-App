@@ -11,7 +11,6 @@ import CoinWallet from '../Screens/AppScreens/CoinWallet/CoinWallet';
 import Drex from '../Screens/HomeScreen';
 import {VerifyAddress} from '../Screens/Send/VerifyAdress';
 import SendCoin from '../Screens/Send/SendCoin';
-import sendSuccess from '../Screens/Send/sendSuccess/sendSuccess';
 import {navigationRef} from './NavigationFunctions';
 import CollectionDetailsScreen from '../Screens/MarketPlace/CollectionDetailsPage';
 import NFTDetailsScreen from '../Screens/MarketPlace/NFTDetailsPage';
@@ -202,7 +201,6 @@ type CoinWalletStackParamList = {
   [SCREEN_CONSTANT.VERIFYADDRESS]: undefined;
   [SCREEN_CONSTANT.TRANSFERCOIN]: undefined;
   [SCREEN_CONSTANT.SENDCOIN]: undefined;
-  [SCREEN_CONSTANT.SENDSUCCESS]: undefined;
   swap: undefined;
 };
 
@@ -230,10 +228,7 @@ export function CoinWalletStackFun() {
         name={SCREEN_CONSTANT.SENDCOIN}
         component={SendCoin}
       />
-      <CoinWalletStack.Screen
-        name={SCREEN_CONSTANT.SENDSUCCESS}
-        component={sendSuccess}
-      />
+
       <CoinWalletStack.Screen name="swap" component={Swap} />
     </CoinWalletStack.Navigator>
   );
