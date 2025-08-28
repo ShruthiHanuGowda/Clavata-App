@@ -10,6 +10,7 @@ import {
 import {NftToken} from '../../../types/types';
 import {formatQuantityMWh} from '../../../utils';
 import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
+import images from '../../../Theme/images';
 
 interface SetPriceStageProps {
   nftToSell: NftToken;
@@ -119,13 +120,7 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
               styles.inputContainer,
               priceIsOutOfRange && styles.inputError,
             ]}>
-            //FIXME - remove URL and add static image
-            <Image
-              source={{
-                uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
-              }}
-              style={styles.inputIcon}
-            />
+            <Image source={images.usdc} style={styles.inputIcon} />
             <TextInput
               style={styles.textInput}
               ref={priceInputRef}

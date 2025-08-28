@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import {NFT_DEFAULT_IMAGE_URL} from '../../../../constants';
+import images from '../../../../Theme/images';
 
 interface EditStageProps {
   nftToSell: {
@@ -46,13 +47,7 @@ const EditStage: React.FC<EditStageProps> = ({
             <View style={styles.priceBlock}>
               <Text style={styles.priceLabel}>Lowest Price (MWh)</Text>
               <View style={styles.priceRow}>
-                //FIXME - remove URL and add static image
-                <Image
-                  source={{
-                    uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
-                  }}
-                  style={styles.icon}
-                />
+                <Image source={images.usdc} style={styles.icon} />
                 <Text style={styles.priceText}>{lowestPrice}</Text>
               </View>
             </View>
@@ -62,13 +57,7 @@ const EditStage: React.FC<EditStageProps> = ({
             <View style={styles.priceBlock}>
               <Text style={styles.priceLabel}>Your Price</Text>
               <View style={styles.priceRow}>
-                //FIXME - remove URL and add static image
-                <Image
-                  source={{
-                    uri: 'https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07.png',
-                  }}
-                  style={styles.icon}
-                />
+                <Image source={images.usdc} style={styles.icon} />
                 <Text style={styles.priceText}>${currentPrice}</Text>
               </View>
             </View>

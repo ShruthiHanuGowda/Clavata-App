@@ -8,10 +8,9 @@ import {
 } from 'ethers';
 import {useMutation} from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
+import {SEPOLIA_RPC_URL} from '../constants';
 
-//FIXME - move to ENV.
-const INFURA_URL =
-  'https://sepolia.infura.io/v3/60c88b9a394a48e8b459bcfa38dfaede';
+const INFURA_URL = SEPOLIA_RPC_URL;
 const infuraProvider = new JsonRpcProvider(INFURA_URL);
 
 interface TransactionDetails {

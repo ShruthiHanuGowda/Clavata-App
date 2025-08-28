@@ -119,7 +119,6 @@ const NFTHeader = ({name, quantity, metadata}: NFTHeaderProps) => (
 
 const WalletNFTDetailsScreen = ({route}: any) => {
   const {nft, refresh} = route.params;
-  console.log('🚀 ~ WalletNFTDetailsScreen ~ nft:', JSON?.stringify(nft));
   const navigation = useNavigation();
   const {magic, setActiveNetwork} = useMagic();
   const {userDetails} = useAuth();

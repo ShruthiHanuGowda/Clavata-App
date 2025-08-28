@@ -15,6 +15,7 @@ import useValidators from './Hooks/useValidators';
 import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
 import {useKycCheck} from '../../CustomHooks/GlobalKycProvider';
 import {SnackBarMessage} from '../../utils/snackBar';
+import {VALIDATORS_API_URL} from '../../constants';
 
 // Define interfaces for our data types
 interface Validator {
@@ -55,29 +56,18 @@ const ValidatorDetailsScreen = ({
   const [error, setError] = useState<string | null>(null);
   const {checkKYC, isKycCompleted, isKycSkipped} = useKycCheck();
 
-  // Get the validatorId from route params (assuming it's passed when navigating)
   const validatorId = route.params?.validatorId || 'val_001';
-  console.log('validatorId', validatorId);
-  // Use our custom hook
   const {singleValidator} = useValidators();
 
   useEffect(() => {
     const fetchValidatorData = async () => {
       try {
         setIsLoading(true);
-        // Adjust the API endpoint as needed
-        //FIXME -Move to ENV
-        const apiUrl = `https://2f6h4d0go8.execute-api.me-central-1.amazonaws.com/default/staking_getValidators?validatorId=${validatorId}`;
+        const apiUrl = `${VALIDATORS_API_URL}?validatorId=${validatorId}`;
         const response = await singleValidator.fetch(apiUrl);
-        console.log(
-          '🚀 ~ fetchValidatorData ~ response:',
-          JSON.stringify(response, null, 2),
-        );
-
         if (response && response.validator) {
-          // Map API response to our component interfaces
           const mappedValidator: Validator = {
-            id: 1, // Generate an id if needed
+            id: 1,
             name: response.validator.validatorName,
             validatorId: response.validator.validatorId,
             description: response.validator.description,
@@ -91,7 +81,6 @@ const ValidatorDetailsScreen = ({
 
           setValidator(mappedValidator);
 
-          // Map delegators if available
           if (response.delegators && response.delegators.length > 0) {
             const mappedDelegators: Delegator[] = response.delegators.map(
               (del, index) => ({
@@ -102,8 +91,8 @@ const ValidatorDetailsScreen = ({
                   watt: del.stakedWatt,
                 },
                 rewards: del.rewardsEarned,
-                stakeDate: new Date().toISOString().split('T')[0], // Placeholder, replace if API provides
-                lastReward: new Date().toISOString().split('T')[0], // Placeholder, replace if API provides
+                stakeDate: new Date().toISOString().split('T')[0],
+                lastReward: new Date().toISOString().split('T')[0],
               }),
             );
 
@@ -255,7 +244,6 @@ const ValidatorDetailsScreen = ({
           </View>
         </View>
 
-        {/* Description Section */}
         <View style={styles.card}>
           {/* <Text style={styles.sectionTitle}>Description:</Text>
           <Text style={styles.description}>"{validator.description}"</Text> */}
@@ -268,7 +256,6 @@ const ValidatorDetailsScreen = ({
                   0,
                   16,
                 )}...${validator.publicKey.slice(-10)} (Click to copy)`}
-                {/* {validator.publicKey} (Click to copy) */}
               </Text>
             </TouchableOpacity>
           </View>

@@ -2,22 +2,23 @@ import {useMutation} from '@apollo/client';
 import {useState} from 'react';
 import Web3 from 'web3';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
-import {DENERGY_EURC_ADDRESS, DENERGY_USDC_ADDRESS} from '../constants';
+import {
+  CUSTOM_NETWORK_CHAIN_ID,
+  CUSTOM_RPC_URL,
+  DENERGY_EURC_ADDRESS,
+  DENERGY_USDC_ADDRESS,
+} from '../constants';
 
-// Denergy RPC URL and chain ID
-//FIXME - move to ENV.
-const DENERGY_RPC_URL = 'https://rpc.denergytestnet.com';
-const DENERGY_CHAIN_ID = '4442';
+const DENERGY_RPC_URL = CUSTOM_RPC_URL;
+const DENERGY_CHAIN_ID = CUSTOM_NETWORK_CHAIN_ID;
 const provider = new Web3.providers.HttpProvider(DENERGY_RPC_URL);
 const web3 = new Web3(provider);
 
-// Token addresses on Denergy testnet
 export const TOKEN_ADDRESSES_DENERGY = {
   USDC: DENERGY_USDC_ADDRESS,
   EURC: DENERGY_EURC_ADDRESS,
 };
 
-// Generic ERC20 ABI (works for both USDC and EURC)
 const ERC20_ABI = [
   {
     constant: true,
@@ -108,7 +109,6 @@ interface TransactionSuccess {
 
 interface TransactionReceipt {
   hash: string;
-  // Add other receipt properties as needed
 }
 
 type SuccessCallback = (result: TransactionSuccess) => void;

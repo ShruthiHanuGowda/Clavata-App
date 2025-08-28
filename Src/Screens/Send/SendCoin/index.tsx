@@ -50,11 +50,9 @@ interface RouteParams {
 
 // Define User interface (adjust according to actual user properties)
 interface User {
-  // Add relevant user properties here
   id: string;
   name: string;
   beneficiaryAddress: string;
-  // ... other properties
 }
 
 // Define balance return type
@@ -63,12 +61,11 @@ interface BalanceInfo {
   balanceUsd: string;
 }
 
-// Define props for the component
 interface SendCoinProps {
   route: {
     params: RouteParams;
   };
-  navigation: any; // You might want to use a more specific type from React Navigation
+  navigation: any;
 }
 
 interface TransactionResult {
