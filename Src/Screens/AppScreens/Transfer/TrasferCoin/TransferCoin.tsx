@@ -35,6 +35,7 @@ import LoadingScreenWithStep from '../../../../Componants/Loading/LoadingScreenW
 import {getBlockExploreLink} from '../../../../utils/explorer';
 import {SnackBarMessage} from '../../../../utils/snackBar';
 import {useSuccessSound} from '../../../../hooks/useSuccessSound';
+import {SEPOLIA_CHAIN_ID} from '../../../../constants';
 
 // Define types
 type TokenKey = 'USDC' | 'WUSDC' | 'EURC' | 'WEURC';
@@ -525,7 +526,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
       const explorerUrl = getBlockExploreLink(
         transactionHash,
         'transaction',
-        sourceNetwork === 'ETH' ? 11155111 : '',
+        sourceNetwork === 'ETH' ? SEPOLIA_CHAIN_ID : '',
       );
 
       Linking.openURL(explorerUrl).catch(err => {

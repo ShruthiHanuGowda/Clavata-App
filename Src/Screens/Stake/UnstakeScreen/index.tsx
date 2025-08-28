@@ -1,19 +1,8 @@
 import React, {useEffect, useState} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Image,
-  SafeAreaView,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import {Colors, fontsFamily} from '../../../Theme';
+import {View, Text, Pressable, Image, SafeAreaView, Alert} from 'react-native';
 import {DTextInput} from '../../../Componants/Dinputs';
 import {DButton} from '../../../Componants';
-import {navigateBack, navigateTo} from '../../../utils/navigationService';
+import {navigateBack} from '../../../utils/navigationService';
 import images from '../../../Theme/images';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import styles from './styles';
@@ -42,26 +31,7 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
   const {setActiveNetwork} = useMagic();
 
   // Get staking data from route params or use mock data
-  const stakingData = route?.params?.stakingData || {
-    id: '0xb74fdeef8fabf7364569aacff92305efda21470e-0x0d3ed95282c5fe5abdba32e79fbf7d50791b8699-2',
-    stakeNumber: 'Token ID 2',
-    validator: {
-      name: 'Validator 2',
-      description: '0xb18c23b0...',
-    },
-    stake: {
-      nft: 1000,
-      watt: 0,
-    },
-    startDate: '2025-05-18',
-    rewards: 53,
-    status: 'active',
-    originalData: {
-      tokenId: '2',
-      amount: '1000',
-      erc1155Contract: '0xb18c23b04e82ce8ba14597966e25f63343e346b7',
-    },
-  };
+  const stakingData = route?.params?.stakingData;
 
   // State for amount input
   const [amount, setAmount] = useState<string>('');

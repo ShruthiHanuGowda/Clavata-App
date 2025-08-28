@@ -13,10 +13,8 @@ import {
   NormalizedCacheObject,
 } from '@apollo/client';
 import {useMagic} from './MagicProvider';
+import {MERGED_API_URL} from '../../Src/constants';
 
-const API_KEY = 'da2-baxdpa3fcnh55ph4mgfoygz7em';
-const API_URL =
-  'https://rbp2j64ilzapvcxolmwmv4cuj4.appsync-api.me-central-1.amazonaws.com/graphql';
 
 const createApolloClient = (
   magicAccessToken: string = '',
@@ -27,10 +25,9 @@ const createApolloClient = (
   );
 
   return new ApolloClient({
-    uri: API_URL,
+    uri: MERGED_API_URL,
     cache: new InMemoryCache(),
     headers: {
-      // 'x-api-key': API_KEY,
       Authorization: magicAccessToken ? `Bearer ${magicAccessToken}` : '',
     },
   });

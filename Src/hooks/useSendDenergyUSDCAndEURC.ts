@@ -8,6 +8,7 @@ import {
   DENERGY_EURC_ADDRESS,
   DENERGY_USDC_ADDRESS,
 } from '../constants';
+import {ERC20_ABI} from '../utils/Contracts';
 
 const DENERGY_RPC_URL = CUSTOM_RPC_URL;
 const DENERGY_CHAIN_ID = CUSTOM_NETWORK_CHAIN_ID;
@@ -18,79 +19,6 @@ export const TOKEN_ADDRESSES_DENERGY = {
   USDC: DENERGY_USDC_ADDRESS,
   EURC: DENERGY_EURC_ADDRESS,
 };
-
-const ERC20_ABI = [
-  {
-    constant: true,
-    inputs: [
-      {
-        name: '_owner',
-        type: 'address',
-      },
-    ],
-    name: 'balanceOf',
-    outputs: [
-      {
-        name: 'balance',
-        type: 'uint256',
-      },
-    ],
-    payable: false,
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    constant: false,
-    inputs: [
-      {
-        name: '_to',
-        type: 'address',
-      },
-      {
-        name: '_value',
-        type: 'uint256',
-      },
-    ],
-    name: 'transfer',
-    outputs: [
-      {
-        name: '',
-        type: 'bool',
-      },
-    ],
-    payable: false,
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: 'decimals',
-    outputs: [
-      {
-        name: '',
-        type: 'uint8',
-      },
-    ],
-    payable: false,
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: 'symbol',
-    outputs: [
-      {
-        name: '',
-        type: 'string',
-      },
-    ],
-    payable: false,
-    stateMutability: 'view',
-    type: 'function',
-  },
-];
 
 interface TokenTransactionDetails {
   to: string;
@@ -168,7 +96,6 @@ export const useSendDenergyUSDCAndEURC = (
         throw new Error('Please switch to the Denergy testnet network');
       }
 
-      // Initialize token contract
       const tokenContract = new web3.eth.Contract(
         ERC20_ABI,
         transactionDetails.tokenAddress,

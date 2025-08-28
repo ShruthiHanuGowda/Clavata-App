@@ -1,52 +1,18 @@
-import React, {useState, useEffect} from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  Image,
+  TouchableOpacity, Image
 } from 'react-native';
 import style from './styles';
-import Icon from 'react-native-vector-icons/Ionicons';
-import {Header} from '@rneui/base';
-import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import { Header } from '@rneui/base';
+import { navigateBack } from '../../../Navigation/NavigationFunctions';
 import images from '../../../Theme/images';
 import CustomImageButton from '../../../Componants/rc_imageButton';
-import {DText} from '../../../Componants/DText';
-import {fontsFamily} from '../../../Theme';
+import { DText } from '../../../Componants/DText';
+import { fontsFamily } from '../../../Theme';
 
-//NOTE - Temp data for UI testing
-const tempData = [
-  {
-    id: '1',
-    name: 'Bhavin Tank',
-    coinCode: 'BTC',
-    beneficiaryAddress: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
-    colorCode: '#f7931a',
-  },
-  {
-    id: '2',
-    name: 'Bhavin Tank',
-    coinCode: 'ETH',
-    beneficiaryAddress: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    colorCode: '#3c3c3d',
-  },
-  {
-    id: '3',
-    name: 'Bhavin Tank',
-    coinCode: 'LTC',
-    beneficiaryAddress: 'LgE4E2EGG5hVGBwpfXJJ8vffmnHiH1w8Lg',
-    colorCode: '#bebebe',
-  },
-  {
-    id: '4',
-    name: 'Bhavin Tank',
-    coinCode: 'XRP',
-    beneficiaryAddress: 'r4Yb6dALY6ZTgkcdqt6obz1GJtAdF9wgaJ',
-    colorCode: '#00AAEC',
-  },
-];
 
 export default function AccountBeneficary(props) {
   const capitalize = str => {

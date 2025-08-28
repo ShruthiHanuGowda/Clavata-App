@@ -1,6 +1,14 @@
 import {useState, useEffect, useCallback} from 'react';
 import {BrowserProvider, parseUnits, formatUnits, Contract} from 'ethers';
 import {useWallet} from '../../screens/Provider/WalletProvider';
+import {
+  CUSTOM_NETWORK_CHAIN_ID,
+  DENERGY_USDC_ADDRESS,
+  SWAP_SMART_ROUTER,
+  SWAP_V3_QUOTER,
+  SWAP_V3_FACTORY,
+  SWAP_WETH,
+} from '../constants';
 
 // Types
 interface Token {
@@ -65,12 +73,12 @@ interface UseSwapReturn {
 
 const CONTRACTS = {
   DENERGY_TESTNET: {
-    chainId: 4442,
-    SMART_ROUTER: '0x1C350C1a9050B7B77fa14F1ce1112549e743b3A5',
-    V3_QUOTER: '0x4612c23593e790a9B2be77Df8E602F94Cd2A1869',
-    V3_FACTORY: '0x60DdF19711F642A2398a99C7807AF47a7b97AecA',
-    WETH: '0xDE99aFb2b642153f065D5392537032203fD4a068',
-    USDC: '0x2EFF1A121d8f407C57Ad290c1E87ab28c5Eda89E',
+    chainId: CUSTOM_NETWORK_CHAIN_ID,
+    SMART_ROUTER: SWAP_SMART_ROUTER,
+    V3_QUOTER: SWAP_V3_QUOTER,
+    V3_FACTORY: SWAP_V3_FACTORY,
+    WETH: SWAP_WETH,
+    USDC: DENERGY_USDC_ADDRESS,
   },
 };
 

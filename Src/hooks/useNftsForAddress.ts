@@ -17,8 +17,6 @@ export const useNftsForAddress = ({account}: {account: `0x${string}`}) => {
   const collectionsRes = collections?.data ?? {};
 
   const fetchData = useCallback(async () => {
-    console.log('Fetching NFT data for account:', account);
-
     if (
       !account ||
       !collectionsRes ||
@@ -33,9 +31,7 @@ export const useNftsForAddress = ({account}: {account: `0x${string}`}) => {
       setNfts([]);
       setError(null);
       const result = await getCompleteAccountNftData(account, collectionsRes);
-      console.log('Fetched NFT data:', result);
       setNfts(result);
-      console.log('NFTs set successfully:', nfts.length);
     } catch (err) {
       console.error('Error fetching NFT data:', err);
       setError(err);
@@ -67,7 +63,6 @@ export const useNftsForAddress = ({account}: {account: `0x${string}`}) => {
     error,
     totalQuantity,
     refresh: () => {
-      console.log('Refreshing NFT data for account:', account);
       fetchData();
     },
   };

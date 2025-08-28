@@ -34,14 +34,7 @@ export default function SendPin({ route }) {
   const [isLoading, setIsLoading] = useState(false);
   const [disableDeviceBackBtn, setDisableDeviceBackBtn] = useState(false);
 
-  console.log(
-    {
-      amount,
-      networkFee,
-    },
-    route.params,
-    'send pin'
-  );
+  
   //device back btn navigation handling
   useEffect(() => {
     const backAction = () => {

@@ -1,12 +1,5 @@
 import React, {useState} from 'react';
-import {
-  View,
-  TouchableOpacity,
-  Alert,
-  StyleSheet,
-  Image,
-  Animated,
-} from 'react-native';
+import {View, TouchableOpacity, StyleSheet, Image} from 'react-native';
 import {DText} from '../../../Componants/DText';
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 import images from '../../../Theme/images';

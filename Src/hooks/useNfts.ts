@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
-import { getNftsMarketData } from './marketPlace';
-import { TokenMarketData } from '../types/types';
+import {useState, useEffect} from 'react';
+import {getNftsMarketData} from './marketPlace';
+import {TokenMarketData} from '../types/types';
 
-// Extended type to include metadata
 interface NFTWithMetadata extends TokenMarketData {
   metadata?: {
     name: string;
@@ -43,26 +42,24 @@ const useNfts = (collectionId: string) => {
     try {
       const where = {
         isTradable: true,
-        collection_: { id: collectionId },
+        collection_: {id: collectionId},
       };
 
       const fetchedNfts = await getNftsMarketData(where);
-      console.log('fetchedNfts', fetchedNfts);
-      
-      // Fetch metadata for each NFT
+
       const nftsWithMetadata = await Promise.all(
         fetchedNfts.map(async (nft: TokenMarketData) => {
           if (nft.metadataUrl) {
             const metadata = await fetchMetadata(nft.metadataUrl);
             return {
               ...nft,
-              metadata
+              metadata,
             };
           }
           return nft;
-        })
+        }),
       );
-      
+
       setNfts(nftsWithMetadata);
     } catch (err) {
       setError('Failed to fetch NFTs');
@@ -78,7 +75,7 @@ const useNfts = (collectionId: string) => {
     }
   }, [collectionId]);
 
-  return { nfts, loading, error, refetch: fetchNfts };
+  return {nfts, loading, error, refetch: fetchNfts};
 };
 
 export default useNfts;

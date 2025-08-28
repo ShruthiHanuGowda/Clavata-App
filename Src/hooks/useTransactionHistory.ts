@@ -16,8 +16,7 @@ export const useTransactionHistory = (
   walletAddress = '',
   baseUrl = `${EXPLORER_URL}/api`,
 ) => {
-  // State management
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -213,7 +212,6 @@ export const useTransactionHistory = (
         setTotalCount(0);
       }
     } finally {
-      // Clear all loading states
       setLoading(false);
       setRefreshing(false);
       setIsLoadingMore(false);
@@ -285,7 +283,6 @@ export const useTransactionHistory = (
     [transactions],
   );
 
-  // Initial load effect - Modified to work with or without contractAddress
   useEffect(() => {
     if (walletAddress) {
       console.log('Initializing transaction history...', {
@@ -303,10 +300,8 @@ export const useTransactionHistory = (
     }
   }, [walletAddress, contractAddress]);
 
-  // Format transactions for SectionList
   const formattedTransactions = formatTransactionsForSectionList(transactions);
 
-  // Return hook interface
   return {
     // Data
     transactions,

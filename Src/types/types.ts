@@ -8,8 +8,8 @@ export interface Transaction {
   timestamp: string;
   askPrice: string;
   netPrice: string;
-  buyer: { id: string };
-  seller: { id: string };
+  buyer: {id: string};
+  seller: {id: string};
   withBNB: boolean;
   nft?: TokenMarketData;
 }
@@ -27,7 +27,7 @@ export interface AskOrder {
   askPrice: string;
   orderType: AskOrderType;
   nft?: TokenMarketData;
-  seller?: { id: string };
+  seller?: {id: string};
 }
 
 export interface Image {
@@ -98,6 +98,7 @@ export interface NftToken {
   year?: string;
   type?: string;
   meta?: Record<string, string | number>;
+  metadata?: Record<string, string | number>;
 }
 
 export interface NftFilter {

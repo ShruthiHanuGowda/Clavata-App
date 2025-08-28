@@ -1,11 +1,6 @@
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import React from 'react';
 import TabBar from './TabBar';
-import screen1 from '../Screens/TempScreen/screen1';
-import screen2 from '../Screens/TempScreen/screen2';
-import screen3 from '../Screens/TempScreen/screen3';
-import screen4 from '../Screens/TempScreen/screen4';
-import HomeScreen from '../Screens/HomeScreen';
 import {
   HomeScreenStack,
   MarketplaceStackFun,

@@ -1,27 +1,30 @@
-import {CUSTOM_NETWORK_CHAIN_ID} from '../constants';
+import {
+  CUSTOM_NETWORK_CHAIN_ID,
+  EXPLORER_URL,
+  SEPOLIA_CHAIN_ID,
+  SEPOLIA_EXPLORER_URL,
+} from '../constants';
 
 const denergyTestnet = {
-  id: 4442,
+  id: CUSTOM_NETWORK_CHAIN_ID,
   network: 'denergyTestnet',
   name: 'denergyTestnet',
-  //FIXME - Move to env
   blockExplorers: {
     default: {
       name: 'Denergy Testnet',
-      url: 'https://explorernew.denergytestnet.com/',
+      url: EXPLORER_URL,
     },
   },
 };
 
 const sepoliaETHTestnet = {
-  id: 11155111,
+  id: SEPOLIA_CHAIN_ID,
   network: 'sepolia',
   name: 'sepolia',
-  //FIXME - Move to env
   blockExplorers: {
     default: {
       name: 'sepolia',
-      url: 'https://sepolia.etherscan.io/',
+      url: SEPOLIA_EXPLORER_URL,
     },
   },
 };

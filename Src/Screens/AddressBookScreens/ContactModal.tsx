@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import {DText} from '../../Componants/DText';
 import {BottomSheet} from 'react-native-btr';
-import ContactCard from './Componants/ContactCard';
 import {useAddressBookByWallet} from './Hooks/AddressBookGraphql';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';

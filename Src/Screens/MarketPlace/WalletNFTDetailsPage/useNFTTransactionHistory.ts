@@ -1,6 +1,7 @@
 import {useState, useEffect, useMemo} from 'react';
 import moment from 'moment';
 import useApi from '../../../hooks/useApi';
+import {EXPLORER_URL} from '../../../constants';
 
 // Types for NFT transaction data
 export interface NFTTransaction {
@@ -83,14 +84,13 @@ export const useNFTTransactionHistory = (
   ]);
 
   // API call using useApi hook
-  //FIXME - Move to ENV
   const {
     data: apiResponse,
     isLoading,
     error,
     refetch,
   } = useApi<NFTTransactionResponse>(
-    `https://explorernew.denergytestnet.com/api/v2/addresses/${walletAddress}/transactions?filter=${collectionAddress}`,
+    `${EXPLORER_URL}/api/v2/addresses/${walletAddress}/transactions?filter=${collectionAddress}`,
     {
       method: 'GET',
     },

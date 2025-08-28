@@ -10,7 +10,12 @@ import {
 import {useMutation} from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 import {ERC20_ABI} from '../utils/Contracts';
-import {EURC_ADDRESS, SEPOLIA_RPC_URL, USDC_ADDRESS} from '../constants';
+import {
+  EURC_ADDRESS,
+  SEPOLIA_CHAIN_ID,
+  SEPOLIA_RPC_URL,
+  USDC_ADDRESS,
+} from '../constants';
 const INFURA_URL = SEPOLIA_RPC_URL;
 const infuraProvider = new JsonRpcProvider(INFURA_URL);
 
@@ -69,24 +74,20 @@ export const useSendUSDCANDEURC = (
       setIsLoading(true);
       setError(null);
 
-      // Check network ID
       const network = await infuraProvider.getNetwork();
-      if (network.chainId !== BigInt(11155111)) {
+      if (network.chainId !== BigInt(SEPOLIA_CHAIN_ID)) {
         throw new Error('Please switch to the Sepolia network');
       }
 
-      // Initialize token contract with infura provider
       const tokenContract = new Contract(
         transactionDetails.tokenAddress,
         ERC20_ABI,
         infuraProvider,
       );
 
-      // Get token decimals and symbol
       const tokenDecimals = await tokenContract.decimals();
       const tokenSymbol = await tokenContract.symbol();
 
-      // Convert amount to token's smallest unit using the correct decimals
       const amountInSmallestUnit = parseUnits(
         transactionDetails.amount,
         tokenDecimals,

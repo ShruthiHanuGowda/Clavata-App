@@ -8,7 +8,7 @@ import {
 } from 'ethers';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 import {useMutation} from '@apollo/client';
-import {CUSTOM_NETWORK_CHAIN_ID, CUSTOM_RPC_URL} from '../constants';
+import {CUSTOM_NETWORK_CHAIN_ID, CUSTOM_RPC_URL, DEFAULT_GAS_LIMIT} from '../constants';
 
 const DENERGY_RPC_URL = CUSTOM_RPC_URL;
 console.log(CUSTOM_NETWORK_CHAIN_ID);
@@ -72,7 +72,6 @@ export const useSendWatt = (
       });
 
       const balanceInWei = await dengergyProvider.getBalance(userAddress);
-      console.log('🚀 ~ balanceInWei:', balanceInWei);
       const gasCost = gasEstimate * (gasPrice.gasPrice ?? parseUnits('50', 9));
       const totalCost = amountInWei + gasCost;
 
@@ -87,8 +86,8 @@ export const useSendWatt = (
         gas: `0x${gasEstimate.toString(16)}`,
         gasPrice: gasPrice.gasPrice
           ? `0x${gasPrice.gasPrice.toString(16)}`
-          : '0x4A817C800',
-        chainId: 4442,
+          : DEFAULT_GAS_LIMIT,
+        chainId: CUSTOM_NETWORK_CHAIN_ID,
       };
 
       const provider = magic.rpcProvider;

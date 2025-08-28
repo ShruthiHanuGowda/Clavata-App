@@ -2,11 +2,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import React from 'react';
 import {RootStackParamList} from '../../types';
 import LoginScreen from '../../Src/Screens/AuthScreens/loginScreen';
-import {
-  createNavigationContainerRef,
-  NavigationContainer,
-} from '@react-navigation/native';
-import LoginScreenNew from '../Screens/AuthScreens/loginScreenNew';
+import {NavigationContainer} from '@react-navigation/native';
 import {View} from 'react-native';
 import {Root} from '../Screens/RootScreen';
 import Tabs from './NavigationTab';
@@ -35,7 +31,6 @@ import ContactUs from '../Screens/AppScreens/ContactUs';
 import Onboarding from '../Screens/Intro';
 import BuyNFTScreen from '../Screens/MarketPlace/BuyNFT';
 import CollectionListingPage from '../Screens/MarketPlace';
-import SellScreen from '../Screens/MarketPlace/SellNFT';
 import SellNFTScreen from '../Screens/MarketPlace/SellNFT';
 import UserNFTsScreen from '../Screens/MarketPlace/UserNFTsScreen';
 import UnstakeScreen from '../Screens/Stake/UnstakeScreen';

@@ -8,7 +8,7 @@ import {
 } from 'ethers';
 import {useMutation} from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
-import {SEPOLIA_RPC_URL} from '../constants';
+import {SEPOLIA_CHAIN_ID, SEPOLIA_RPC_URL} from '../constants';
 
 const INFURA_URL = SEPOLIA_RPC_URL;
 const infuraProvider = new JsonRpcProvider(INFURA_URL);
@@ -40,7 +40,7 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
   const [createTransactionHistoryMobile] = useMutation(
     CREATE_TRANSACTION_HISTORY_MOBILE,
   );
-  console.log('error', error, isLoading);
+
   /**
    * Send an Ethereum transaction
    * @param transactionDetails - Transaction details
@@ -50,7 +50,6 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
     transactionDetails: TransactionDetails,
     onSuccess?: SuccessCallback,
   ): Promise<TransactionReceipt | undefined> => {
-    console.log('transactionDetails', transactionDetails);
     try {
       if (!magic || !userAddress) {
         throw new Error('Magic SDK or user address not available');
@@ -60,47 +59,36 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
       setError(null);
       console.log(magic.rpcProvider);
 
-      // Get Magic provider for signing transactions
       const magicProvider = new BrowserProvider(magic.rpcProvider);
       const signer = await magicProvider.getSigner();
 
-      // Convert amount to wei
       const amountInWei = parseUnits(transactionDetails.amount, 18);
 
-      // Estimate gas price
       const gasPrice = await infuraProvider.getFeeData();
-      console.log('🚀 ~ gasPrice:', gasPrice);
 
-      // Estimate gas limit for the transaction
       const gasEstimate = await infuraProvider.estimateGas({
         from: userAddress,
         to: transactionDetails.to,
         value: amountInWei,
       });
 
-      // Check if user has enough balance for transaction + gas
       const balanceInWei = await infuraProvider.getBalance(userAddress);
-      const gasCost = gasEstimate * (gasPrice.gasPrice ?? parseUnits('50', 9)); // Default gas price if null
+      const gasCost = gasEstimate * (gasPrice.gasPrice ?? parseUnits('50', 9));
       const totalCost = amountInWei + gasCost;
 
       if (balanceInWei < totalCost) {
         throw new Error('Insufficient funds for gas and transaction amount');
       }
 
-      // Create transaction with explicit gas parameters
       const tx = await signer.sendTransaction({
         to: transactionDetails.to,
         value: amountInWei,
         gasLimit: gasEstimate,
         gasPrice: gasPrice.gasPrice,
-        chainId: 11155111, // Sepolia chain ID
+        chainId: SEPOLIA_CHAIN_ID,
       });
 
-      console.log('🚀 ~ tx:', tx);
-
-      // Wait for transaction to be mined
       const receipt = await tx.wait();
-      console.log('🚀 ~ receipt:', receipt);
 
       try {
         const {data} = await createTransactionHistoryMobile({

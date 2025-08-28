@@ -5,24 +5,11 @@ import {SnackBarMessage} from '../utils/snackBar';
 import {
   API_OFFSETTING_URL,
   DENERGY_USDC_ADDRESS,
-  PLATFORM_SETTINGS_API_KEY,
-  PLATFORM_SETTINGS_API_URL,
+  TREASURY_ADDRESS,
 } from '../constants';
 import {useWallet} from '../../screens/Provider/WalletProvider';
-import {ApolloClient, HttpLink, InMemoryCache, useQuery} from '@apollo/client';
+import {useQuery} from '@apollo/client';
 import {LIST_PLATFORM_SETTINGS} from '../graphql/queries';
-
-const TREASURY_ADDRESS = '0x756Ba4Bd0eFEd10c5F5C3C76f15893d0bB2387A4';
-
-const client = new ApolloClient({
-  link: new HttpLink({
-    uri: PLATFORM_SETTINGS_API_URL,
-    headers: {
-      'x-api-key': PLATFORM_SETTINGS_API_KEY,
-    },
-  }),
-  cache: new InMemoryCache(),
-});
 
 export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
   const [isLoadingOffset, setIsLoadingOffset] = useState(false);
@@ -32,7 +19,7 @@ export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
   const [pdfDownloadUrl, setPdfDownloadUrl] = useState('');
   const [transactionHash, setTransactionHash] = useState('');
   const [offsetSuccess, setOffsetSuccess] = useState(false);
-  const {refreshBalance, getBalance} = useWallet();
+  const {getBalance} = useWallet();
 
   const PROCESSING_STEPS: any = {
     VALIDATING: {text: 'Validating transaction details...', progress: 10},
@@ -54,7 +41,6 @@ export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
   };
 
   const {loading, error, data, refetch} = useQuery(LIST_PLATFORM_SETTINGS, {
-    client,
     variables: {
       filter: {
         keyName: {

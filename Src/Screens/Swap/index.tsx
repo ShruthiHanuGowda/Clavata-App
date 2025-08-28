@@ -35,6 +35,7 @@ import {getBlockExploreLink} from '../../utils/explorer';
 import {SnackBarMessage} from '../../utils/snackBar';
 import {useSuccessSound} from '../../hooks/useSuccessSound';
 import {navigateTo} from '../../utils/navigationService';
+import { CUSTOM_NETWORK_CHAIN_ID } from '../../constants';
 
 type CoinOption = {
   key: string;
@@ -325,7 +326,7 @@ export default function Swap(props: SwapProps) {
       const explorerUrl = getBlockExploreLink(
         transactionHash,
         'transaction',
-        4442,
+        CUSTOM_NETWORK_CHAIN_ID,
       );
 
       Linking.openURL(explorerUrl).catch(err => {
