@@ -18,14 +18,15 @@ export default StyleSheet.create({
     lineHeight: 25,
     color: '#000',
   },
+  headerContainer: {
+    borderBottomWidth: 0,
+  },
   scrollViewContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 21,
     marginTop: 20,
   },
-
-  // FIXED: addressInputWrap - stable positioning with consistent height
   addressInputWrap: {
     flexDirection: 'row',
     borderWidth: 1,
@@ -37,31 +38,25 @@ export default StyleSheet.create({
     paddingRight: 85,
     width: '100%',
     position: 'relative',
-    // Added these properties to prevent position shifts
-    justifyContent: 'flex-start', // Ensure consistent horizontal alignment
-    alignSelf: 'stretch', // Maintain consistent width
+    justifyContent: 'flex-start',
+    alignSelf: 'stretch',
   },
-
-  // FIXED: addressInput - prevent position changes during input
   addressInput: {
     color: '#000000',
     flex: 1,
     fontFamily: fontsFamily.MulishSemiBold,
     fontSize: 12,
     paddingHorizontal: 10,
-    height: 52, // Fixed height matching container
-    // Critical fixes for position stability
-    textAlignVertical: 'center', // Center text vertically
-    includeFontPadding: false, // Prevents font padding issues on Android
-    paddingVertical: 0, // Remove vertical padding that can cause shifts
-    margin: 0, // Remove any default margins
-    borderWidth: 0, // Remove any default borders
-    backgroundColor: 'transparent', // Ensure transparent background
-    // Prevent multiline behavior that can cause position shifts
+    height: 52,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    paddingVertical: 0,
+    margin: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
     multiline: false,
     numberOfLines: 1,
   },
-
   bottomButton: {
     height: 51,
     borderRadius: 12,
@@ -72,8 +67,10 @@ export default StyleSheet.create({
     height: 51,
     width: '100%',
   },
-
-  // FIXED: iconsContainer - stable absolute positioning
+  textStyle: {
+    fontSize: 16,
+    color: '#fff',
+  },
   iconsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -82,12 +79,9 @@ export default StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: 'center',
-    height: 52, // Match container height for consistency
-    // Prevent the icons from affecting input positioning
-    pointerEvents: 'box-none', // Allow touches to pass through to children
+    height: 52,
+    pointerEvents: 'box-none',
   },
-
-  // FIXED: iconButton - consistent sizing
   iconButton: {
     padding: 8,
     marginLeft: 0,
@@ -96,24 +90,17 @@ export default StyleSheet.create({
     justifyContent: 'center',
     minHeight: 32,
     minWidth: 32,
-    // Ensure buttons don't affect input positioning
     position: 'static',
   },
-
-  // Icon styling
   iconStyle: {
     height: 18,
     width: 18,
     tintColor: '#009D94',
   },
-
-  // FIXED: Contact icon text - better icon
   contactIconText: {
     fontSize: 18,
     color: '#009D94',
   },
-
-  // Selected address display container
   selectedAddressContainer: {
     backgroundColor: '#f8f9fa',
     marginHorizontal: 21,
@@ -131,8 +118,6 @@ export default StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-
-  // Selected address label
   selectedAddressLabel: {
     fontSize: 12,
     color: '#666',
@@ -141,8 +126,6 @@ export default StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-
-  // Selected address text
   selectedAddressText: {
     fontSize: 14,
     color: '#333',

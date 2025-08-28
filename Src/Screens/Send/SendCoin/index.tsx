@@ -1,12 +1,10 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
   TextInput,
   ScrollView,
   Alert,
-  Button,
-  StyleSheet,
   Pressable,
   Linking,
   TouchableOpacity,
@@ -22,7 +20,6 @@ import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import styles from '../../AuthScreens/styles';
-import {SCREEN_CONSTANT} from '../../../Navigation/constant';
 import {navigateTo} from '../../../utils/navigationService';
 import LoadingScreenWithStep from '../../../Componants/Loading/LoadingScreenWIthStep';
 import {getBlockExploreLink} from '../../../utils/explorer';
@@ -79,11 +76,10 @@ interface TransactionResult {
 
 export default function SendCoin(props: SendCoinProps): any {
   const {coinCode, user} = props.route.params;
-  const webviewRef = useRef(null);
   const {getBalance, refreshBalance} = useWallet();
-  const {balance, balanceUsd}: BalanceInfo = getBalance(coinCode);
+  const {balance}: BalanceInfo = getBalance(coinCode);
   const [wattAmount, setWattAmount] = useState<string>('0');
-  const {setActiveNetwork, magic} = useMagic();
+  const {magic} = useMagic();
   const {userDetails} = useAuth();
   const {
     playSuccessSound,
@@ -102,25 +98,21 @@ export default function SendCoin(props: SendCoinProps): any {
 
   const {
     isLoading: ethIsLoading,
-    error: ethError,
     sendTransaction: sendEthTransaction,
   } = useSendEth(magic, userDetails?.userWallet ?? undefined);
 
   const {
     isLoading: usdcIsLoading,
-    error: usdcError,
     sendTransaction: sendUSDCTransaction,
   } = useSendUSDCANDEURC(magic, userDetails?.userWallet ?? undefined);
 
   const {
     isLoading: usdcDenergyIsLoading,
-    error: usdcDenergyError,
     sendTransaction: sendDenergyUSDCTransaction,
   } = useSendDenergyUSDCAndEURC(magic, userDetails?.userWallet ?? undefined);
 
   const {
     isLoading: wattIsLoading,
-    error: wattError,
     sendTransaction: sendWattTransaction,
     validateTransaction,
   } = useSendWatt(magic, userDetails?.userWallet ?? undefined);
@@ -590,33 +582,33 @@ export default function SendCoin(props: SendCoinProps): any {
     };
 
     return (
-      <ScrollView style={successStyles.container}>
+      <ScrollView style={style.successContainer}>
         {/* Success Icon and Title */}
-        <View style={successStyles.headerSection}>
-          <View style={successStyles.successIconContainer}>
+        <View style={style.headerSection}>
+          <View style={style.successIconContainer}>
             <LottieView
               source={Animation.transferSuccessAnimation}
               autoPlay
               duration={1000}
               loop={false}
-              style={successStyles.successAnimation}
+              style={style.successAnimation}
               speed={2}
             />
           </View>
-          <DText fontStyle="fontBold" style={successStyles.title}>
+          <DText fontStyle="fontBold" style={style.title}>
             Transaction Successful!
           </DText>
-          <DText style={successStyles.subtitle}>
+          <DText style={style.subtitle}>
             Your {coinCode} has been sent successfully
           </DText>
         </View>
 
         {/* Main Info Card */}
-        <View style={successStyles.infoCard}>
+        <View style={style.infoCard}>
           {/* Amount Section */}
-          <View style={successStyles.amountSection}>
-            <DText style={successStyles.amountLabel}>Amount Sent</DText>
-            <DText fontStyle="fontBold" style={successStyles.amountValue}>
+          <View style={style.amountSection}>
+            <DText style={style.amountLabel}>Amount Sent</DText>
+            <DText fontStyle="fontBold" style={style.amountValue}>
               {wattAmount}{' '}
               {coinCode === 'WUSDC'
                 ? 'wUSDC'
@@ -624,39 +616,39 @@ export default function SendCoin(props: SendCoinProps): any {
                 ? 'wEURC'
                 : coinCode}
             </DText>
-            <View style={successStyles.networkFlow}>
-              <View style={successStyles.networkBadge}>
-                <DText style={successStyles.networkText}>{networkName}</DText>
+            <View style={style.networkFlow}>
+              <View style={style.networkBadge}>
+                <DText style={style.networkText}>{networkName}</DText>
               </View>
-              <View style={successStyles.arrowContainer}>
-                <Text style={successStyles.arrow}>→</Text>
+              <View style={style.arrowContainer}>
+                <Text style={style.arrow}>→</Text>
               </View>
-              <View style={successStyles.networkBadge}>
-                <DText style={successStyles.networkText}>Recipient</DText>
+              <View style={style.networkBadge}>
+                <DText style={style.networkText}>Recipient</DText>
               </View>
             </View>
           </View>
 
           {/* Transaction Hash Section */}
           {transactionHash && (
-            <View style={successStyles.hashSection}>
-              <DText style={successStyles.hashLabel}>Transaction Hash</DText>
-              <View style={successStyles.hashContainer}>
+            <View style={style.hashSection}>
+              <DText style={style.hashLabel}>Transaction Hash</DText>
+              <View style={style.hashContainer}>
                 <Pressable
-                  style={successStyles.hashDisplay}
+                  style={style.hashDisplay}
                   onPress={handleCopyHash}>
-                  <Text style={successStyles.hashText}>
+                  <Text style={style.hashText}>
                     {formatTxHash(transactionHash)}
                   </Text>
-                  <Text style={successStyles.copyIcon}>📋</Text>
+                  <Text style={style.copyIcon}>📋</Text>
                 </Pressable>
                 <Pressable
-                  style={successStyles.explorerButton}
+                  style={style.explorerButton}
                   onPress={handleViewExplorer}>
-                  <Text style={successStyles.explorerIcon}>🔍</Text>
+                  <Text style={style.explorerIcon}>🔍</Text>
                 </Pressable>
               </View>
-              <DText style={successStyles.hashHint}>
+              <DText style={style.hashHint}>
                 Tap hash to copy • Tap 🔍 to view on explorer
               </DText>
             </View>
@@ -669,8 +661,8 @@ export default function SendCoin(props: SendCoinProps): any {
           label="Continue"
           labelStyle={{fontFamily: fontsFamily.MulishBold}}
           onPress={handleSuccessNavigation}
-          containerWrapper={successStyles.submitButtonContainer}
-          bgImg={successStyles.submitButtonImage}
+          containerWrapper={style.submitButtonContainer}
+          bgImg={style.submitButtonImage}
         />
       </ScrollView>
     );
@@ -693,20 +685,20 @@ export default function SendCoin(props: SendCoinProps): any {
       <ScrollView keyboardShouldPersistTaps="handled" style={style.container}>
         <View style={style.container}>
           <ReceiverDetails data={user} />
-          <View style={{marginHorizontal: 20}}>
+          <View style={style.sendHeaderContainer}>
             <Text style={style.sendHeader}>SEND</Text>
           </View>
-          <View style={{justifyContent: 'center', alignItems: 'center'}}>
-            <View style={enhancedStyles.inputContainer}>
+          <View style={style.inputWrapper}>
+            <View style={style.inputContainer}>
               <TextInput
                 keyboardType="decimal-pad"
                 value={wattAmount}
                 placeholder="0.0"
                 placeholderTextColor={'#000'}
                 onChangeText={(value: string) => onChangeAmount(value)}
-                style={enhancedStyles.amountInput}
+                style={style.amountInput}
               />
-              <View style={enhancedStyles.tokenBadge}>
+              <View style={style.tokenBadge}>
                 <Text style={style.watt}>
                   {coinCode === 'WUSDC'
                     ? 'wUSDC'
@@ -718,19 +710,19 @@ export default function SendCoin(props: SendCoinProps): any {
             </View>
           </View>
           {isInsufficientBalance() && (
-            <View style={{padding: 10}}>
-              <Text style={{color: '#F42121', fontSize: 12}}>
+            <View style={style.errorContainer}>
+              <Text style={style.errorText}>
                 Insufficient balance
               </Text>
             </View>
           )}
-          <View style={{justifyContent: 'center', alignItems: 'center'}}>
-            <View style={enhancedStyles.balanceContainer}>
-              <View style={enhancedStyles.balanceRow}>
-                <Text style={enhancedStyles.balanceLabel}>
+          <View style={style.inputWrapper}>
+            <View style={style.balanceContainer}>
+              <View style={style.balanceRow}>
+                <Text style={style.balanceLabel}>
                   Available Tokens
                 </Text>
-                <Text style={enhancedStyles.balanceValue}>
+                <Text style={style.balanceValue}>
                   {balance}{' '}
                   {coinCode === 'WUSDC'
                     ? 'wUSDC'
@@ -740,10 +732,10 @@ export default function SendCoin(props: SendCoinProps): any {
                 </Text>
               </View>
               <TouchableOpacity
-                style={enhancedStyles.maxButton}
+                style={style.maxButton}
                 onPress={handleMaxAmount}
                 disabled={!balance || parseFloat(balance) <= 0}>
-                <Text style={enhancedStyles.maxButtonText}>MAX</Text>
+                <Text style={style.maxButtonText}>MAX</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -767,7 +759,7 @@ export default function SendCoin(props: SendCoinProps): any {
   );
 
   return (
-    <SafeAreaView style={{backgroundColor: '#fff', flex: 1}}>
+    <SafeAreaView style={style.safeAreaContainer}>
       <Header
         headerTitle={`Send ${coinCode}`}
         backBtn={() => navigateBack()}
@@ -778,259 +770,3 @@ export default function SendCoin(props: SendCoinProps): any {
   );
 }
 
-// Enhanced styles for better UX
-const enhancedStyles = StyleSheet.create({
-  inputContainer: {
-    width: '90%',
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E7E7E7',
-  },
-  amountInput: {
-    flex: 1,
-    color: '#000000',
-    fontFamily: fontsFamily.MulishBold,
-    fontSize: 36,
-    textAlign: 'left',
-    paddingRight: 10,
-  },
-  tokenBadge: {
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    backgroundColor: '#E8E8E8',
-    padding: 10,
-    borderRadius: 7,
-    position: 'absolute',
-    right: 0,
-  },
-  balanceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    marginTop: 20,
-    borderRadius: 7,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    justifyContent: 'space-between',
-    width: '90%',
-  },
-  balanceRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  balanceLabel: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 12,
-    color: '#848484',
-  },
-  balanceValue: {
-    fontFamily: fontsFamily.MulishBold,
-    marginLeft: 10,
-    color: '#000',
-    flex: 1,
-  },
-  maxButton: {
-    backgroundColor: '#81c8c3',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginLeft: 10,
-    shadowColor: '#81c8c3',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  maxButtonText: {
-    color: '#FFF',
-    fontFamily: fontsFamily.MulishBold,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-});
-
-const successStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    paddingHorizontal: 20,
-  },
-  headerSection: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  successIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#E8F5E8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#4CAF50',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  successAnimation: {
-    width: 80,
-    height: 80,
-  },
-  title: {
-    fontSize: 28,
-    color: '#1A1A1A',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  infoCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 30,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  amountSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-    paddingBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
-  },
-  amountLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  amountValue: {
-    fontSize: 32,
-    color: '#1A1A1A',
-    marginBottom: 16,
-  },
-  networkFlow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  networkBadge: {
-    backgroundColor: '#81c8c3',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  networkText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  arrowContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E9ECEF',
-  },
-  arrow: {
-    fontSize: 16,
-    color: '#81c8c3',
-    fontWeight: 'bold',
-  },
-  hashSection: {
-    marginBottom: 24,
-  },
-  hashLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  hashContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
-  hashDisplay: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  hashText: {
-    fontSize: 16,
-    color: '#1A1A1A',
-    fontFamily: 'monospace',
-    fontWeight: '600',
-    flex: 1,
-  },
-  copyIcon: {
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  hashHint: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  explorerButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#81c8c3',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#81c8c3',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  explorerIcon: {
-    fontSize: 20,
-  },
-  submitButtonContainer: {
-    height: 51,
-    borderRadius: 12,
-    marginBottom: 20,
-    marginHorizontal: 0,
-  },
-  submitButtonImage: {
-    height: 51,
-    width: '100%',
-  },
-});

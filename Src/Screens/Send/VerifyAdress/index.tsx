@@ -1,7 +1,6 @@
 import React, {useState} from 'react';
 import {
   Image,
-  Pressable,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -21,13 +20,23 @@ import ContactModal from '../../AddressBookScreens/ContactModal';
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 import QRCodeScannerModal from '../../../Componants/QRScan/QRCodeScannerModal';
 
-export const VerifyAddress = props => {
-  const [senderAddress, setSenderAddress] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
-  const [qrScannerVisible, setQrScannerVisible] = useState(false); // Add QR scanner state
+interface RouteParams {
+  coinCode: string;
+}
+
+interface Props {
+  route: {
+    params: RouteParams;
+  };
+}
+
+export const VerifyAddress: React.FC<Props> = props => {
+  const [senderAddress, setSenderAddress] = useState<string>('');
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [qrScannerVisible, setQrScannerVisible] = useState<boolean>(false);
   const coinCode = props?.route?.params?.coinCode;
 
-  function isValidEthereumAddress(address) {
+  function isValidEthereumAddress(address: string): void {
     try {
       const status = isAddress(address);
       console.log('status', status);
@@ -45,46 +54,38 @@ export const VerifyAddress = props => {
     }
   }
 
-  const handleSelectAddress = (address, contact) => {
+  const handleSelectAddress = (address: string, contact: any): void => {
     setSenderAddress(address);
   };
 
-  const openContactModal = () => {
+  const openContactModal = (): void => {
     setModalVisible(true);
   };
 
-  const closeContactModal = () => {
+  const closeContactModal = (): void => {
     setModalVisible(false);
   };
 
-  // Updated QR scan handler
-  const handleQRScan = () => {
+  const handleQRScan = (): void => {
     setQrScannerVisible(true);
   };
 
-  // Handle QR code scan result
-  const handleQRCodeScanned = data => {
+  const handleQRCodeScanned = (data: string): void => {
     console.log('QR Code scanned:', data);
 
-    // Extract address from QR code data
     let extractedAddress = data;
 
-    // Handle different QR code formats
     if (data.startsWith('ethereum:')) {
-      // Format: ethereum:0x1234567890abcdef...
       extractedAddress = data.replace('ethereum:', '').split('?')[0];
     } else if (data.startsWith('0x')) {
-      // Already a valid address format
       extractedAddress = data;
     } else {
-      // Try to find ethereum address pattern in the data
       const addressMatch = data.match(/0x[a-fA-F0-9]{40}/);
       if (addressMatch) {
         extractedAddress = addressMatch[0];
       }
     }
 
-    // Validate the extracted address
     if (isAddress(extractedAddress)) {
       setSenderAddress(extractedAddress);
       setQrScannerVisible(false);
@@ -98,8 +99,7 @@ export const VerifyAddress = props => {
     }
   };
 
-  // Close QR scanner
-  const closeQRScanner = () => {
+  const closeQRScanner = (): void => {
     setQrScannerVisible(false);
   };
 
@@ -107,7 +107,7 @@ export const VerifyAddress = props => {
     <View style={style.container}>
       <Header
         backgroundColor={'#FFF'}
-        containerStyle={{borderBottomWidth: 0}}
+        containerStyle={style.headerContainer}
         leftComponent={
           <TouchableOpacity
             onPress={() => navigateBack()}
@@ -129,7 +129,7 @@ export const VerifyAddress = props => {
         contentContainerStyle={style.scrollViewContainer}>
         <View style={style.addressInputWrap}>
           <TextInput
-            onChangeText={data => {
+            onChangeText={(data: string) => {
               setSenderAddress(data);
             }}
             value={senderAddress}
@@ -138,9 +138,7 @@ export const VerifyAddress = props => {
             style={style.addressInput}
           />
 
-          {/* Icons Container */}
           <View style={style.iconsContainer}>
-            {/* Contact Selection Icon */}
             <TouchableOpacity
               style={style.iconButton}
               onPress={openContactModal}
@@ -148,7 +146,6 @@ export const VerifyAddress = props => {
               <AntDesignIcon name="contacts" size={24} color="#009D94" />
             </TouchableOpacity>
 
-            {/* QR Scan Icon */}
             <TouchableOpacity
               style={style.iconButton}
               onPress={handleQRScan}
@@ -158,7 +155,6 @@ export const VerifyAddress = props => {
           </View>
         </View>
 
-        {/* Selected Address Display */}
         {senderAddress && (
           <View style={style.selectedAddressContainer}>
             <DText style={style.selectedAddressLabel}>Selected Address:</DText>
@@ -179,7 +175,6 @@ export const VerifyAddress = props => {
         bgImg={style.buttonImage}
       />
 
-      {/* Contact Modal */}
       <ContactModal
         visible={modalVisible}
         onClose={closeContactModal}
@@ -189,14 +184,12 @@ export const VerifyAddress = props => {
         emptyMessage="No contacts found"
       />
 
-      {/* QR Code Scanner Modal */}
       <QRCodeScannerModal
         visible={qrScannerVisible}
         onClose={closeQRScanner}
         onCodeScanned={handleQRCodeScanned}
         title="Scan Wallet Address"
         codeTypes={['qr']}
-        showToggleButton={true}
         animationType="slide"
       />
     </View>
