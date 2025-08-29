@@ -1,14 +1,10 @@
 import {useState, useCallback} from 'react';
-import {ethers} from 'ethers';
 import {
-  CUSTOM_NETWORK,
-  CUSTOM_RPC_URL,
-  SEPOLIA_RPC_URL,
   TOKEN_CONTRACTS,
   CRYPTO_PRICES_API_URL,
 } from '../constants';
 import {useAuth} from '../../screens/Provider/authProvider';
-import {ERC20_ABI} from '../utils/Contracts';
+import { walletOperations } from '../services/blockchain/walletOperations';
 
 interface ExchangeRate {
   currency_code: string;
@@ -137,22 +133,16 @@ export const useWalletBalance = (): WalletBalanceHook => {
       setError(null);
 
       try {
-        // Create providers
-        const denergyProvider = new ethers.JsonRpcProvider(CUSTOM_RPC_URL);
-        const sepoliaProvider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
-
         // Fetch exchange rates first
         const rates = await fetchExchangeRates();
 
         // Fetch WATT balance using denergyAddress
         try {
-          // Check if denergy address exists and is valid
-          if (denergyAddress && ethers.isAddress(denergyAddress)) {
-            const denergyNativeBalance = await denergyProvider.getBalance(
+          if (denergyAddress && walletOperations.isValidAddress(denergyAddress)) {
+            const formattedWattsBalance = await walletOperations.getNativeBalance(
               denergyAddress,
+              'denergy'
             );
-            const formattedWattsBalance =
-              ethers.formatEther(denergyNativeBalance);
 
             const wattsInUsd = (
               parseFloat(formattedWattsBalance) * rates.WATT
@@ -171,12 +161,11 @@ export const useWalletBalance = (): WalletBalanceHook => {
 
         // Fetch ETH balance using emailAddress
         try {
-          if (emailAddress && ethers.isAddress(emailAddress)) {
-            const sepoliaNativeBalance = await sepoliaProvider.getBalance(
+          if (emailAddress && walletOperations.isValidAddress(emailAddress)) {
+            const formattedEthBalance = await walletOperations.getNativeBalance(
               emailAddress,
+              'sepolia'
             );
-            const formattedEthBalance =
-              ethers.formatEther(sepoliaNativeBalance);
             const ethInUsd = (
               parseFloat(formattedEthBalance) * rates.ETH
             ).toFixed(2);
@@ -223,23 +212,25 @@ export const useWalletBalance = (): WalletBalanceHook => {
         // Process each ERC-20 token
         for (const [tokenSymbol, info] of Object.entries(tokenMapping)) {
           try {
-            const provider =
-              info.network === CUSTOM_NETWORK
-                ? denergyProvider
-                : sepoliaProvider;
-            const contractAddress = TOKEN_CONTRACTS[info.network][info.token];
-            const contract = new ethers.Contract(
-              contractAddress,
-              ERC20_ABI,
-              provider,
-            );
+            const contractAddress = (TOKEN_CONTRACTS as any)[info.network]?.[info.token];
+            
+            if (!contractAddress) {
+              console.log(`Contract address not found for ${tokenSymbol}`);
+              updateTokenData(tokenSymbol, '0', '0');
+              continue;
+            }
 
             // Use the appropriate address for each token
             const addressToUse = info.useAddress;
 
-            if (addressToUse && ethers.isAddress(addressToUse)) {
-              const balance = await contract.balanceOf(addressToUse);
-              const formattedBalance = ethers.formatUnits(balance, 6);
+            if (addressToUse && walletOperations.isValidAddress(addressToUse)) {
+              const formattedBalance = await walletOperations.getTokenBalance(
+                contractAddress,
+                addressToUse,
+                info.network,
+                6 // USDC/EURC decimals
+              );
+              
               const balanceInUsd = (
                 parseFloat(formattedBalance) * rates[info.rateKey]
               ).toFixed(2);
@@ -282,10 +273,6 @@ export const useWalletBalance = (): WalletBalanceHook => {
       const normalizedTokenSymbol = tokenSymbol.toUpperCase();
 
       try {
-        // Create providers
-        const denergyProvider = new ethers.JsonRpcProvider(CUSTOM_RPC_URL);
-        const sepoliaProvider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
-
         // Make sure we have the latest exchange rates
         let rates = exchangeRates;
         if (rates.ETH === 0 || rates.USDC === 0 || rates.EURC === 0) {
@@ -298,11 +285,11 @@ export const useWalletBalance = (): WalletBalanceHook => {
         switch (normalizedTokenSymbol) {
           case 'WATT': {
             // Use denergyAddress for WATT
-            if (denergyAddress && ethers.isAddress(denergyAddress)) {
-              const denergyNativeBalance = await denergyProvider.getBalance(
+            if (denergyAddress && walletOperations.isValidAddress(denergyAddress)) {
+              const formattedBalance = await walletOperations.getNativeBalance(
                 denergyAddress,
+                'denergy'
               );
-              const formattedBalance = ethers.formatEther(denergyNativeBalance);
               const balanceInUsd = (
                 parseFloat(formattedBalance) * rates.USDC
               ).toFixed(2);
@@ -318,11 +305,11 @@ export const useWalletBalance = (): WalletBalanceHook => {
 
           case 'ETH': {
             // Use emailAddress for ETH
-            if (emailAddress && ethers.isAddress(emailAddress)) {
-              const sepoliaNativeBalance = await sepoliaProvider.getBalance(
+            if (emailAddress && walletOperations.isValidAddress(emailAddress)) {
+              const formattedBalance = await walletOperations.getNativeBalance(
                 emailAddress,
+                'sepolia'
               );
-              const formattedBalance = ethers.formatEther(sepoliaNativeBalance);
               const balanceInUsd = (
                 parseFloat(formattedBalance) * rates.ETH
               ).toFixed(2);
@@ -372,24 +359,23 @@ export const useWalletBalance = (): WalletBalanceHook => {
               throw new Error(`Unknown token symbol: ${normalizedTokenSymbol}`);
             }
 
-            const provider =
-              tokenInfo.network === CUSTOM_NETWORK
-                ? denergyProvider
-                : sepoliaProvider;
-            const contractAddress =
-              TOKEN_CONTRACTS[tokenInfo.network][tokenInfo.token];
+            const contractAddress = (TOKEN_CONTRACTS as any)[tokenInfo.network]?.[tokenInfo.token];
+            
+            if (!contractAddress) {
+              throw new Error(`Contract address not found for ${normalizedTokenSymbol}`);
+            }
 
             // Use the appropriate address for the token
             const addressToUse = tokenInfo.useAddress;
 
-            if (addressToUse && ethers.isAddress(addressToUse)) {
-              const contract = new ethers.Contract(
+            if (addressToUse && walletOperations.isValidAddress(addressToUse)) {
+              const formattedBalance = await walletOperations.getTokenBalance(
                 contractAddress,
-                ERC20_ABI,
-                provider,
+                addressToUse,
+                tokenInfo.network,
+                6 // USDC/EURC decimals
               );
-              const balance = await contract.balanceOf(addressToUse);
-              const formattedBalance = ethers.formatUnits(balance, 6);
+              
               const balanceInUsd = (
                 parseFloat(formattedBalance) * rates[tokenInfo.rateKey]
               ).toFixed(2);

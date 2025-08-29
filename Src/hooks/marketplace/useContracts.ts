@@ -1,83 +1,58 @@
 import {useMemo} from 'react';
-import {TOKEN_CONTRACTS} from '../../constants';
-import {AbiCoder, ethers, InterfaceAbi} from 'ethers';
-import {
-  ERC1155_ABI,
-  ERC20_ABI,
-  NFT_MARKETPLACE_ABI,
-} from '../../utils/Contracts';
+import {ethers} from 'ethers';
+import { contractManager } from '../../services/blockchain/contracts';
 
 /**
- * Helper hooks to get specific contracts (by ABI)
+ * @deprecated Use contractManager directly from services/blockchain/contracts
+ * This file is kept for backward compatibility
  */
 
 type UseContractOptions = {
   chainId?: string | number;
-};
-
-type GetContractParams<TAbi extends ethers.ContractInterface> = {
-  abi: InterfaceAbi;
-  address: string;
-  provider?: ethers.Provider;
-  signer?: ethers.Signer;
-};
-
-export const getContract = <TAbi extends ethers.ContractInterface>({
-  abi,
-  address,
-  provider,
-  signer,
-}: GetContractParams<TAbi>): ethers.Contract => {
-  const baseProvider = signer ?? provider;
-  return new ethers.Contract(address, abi, baseProvider);
+  network?: string;
 };
 
 export function useContract(
-  addressOrAddressMap?: `0x${string}` | {[chainId: number]: `0x${string}`},
+  address?: `0x${string}`,
   abi?: ethers.InterfaceAbi,
   options?: UseContractOptions,
 ) {
-  const chainId = options?.chainId ?? 1;
+  const network = options?.network ?? 'sepolia';
 
   return useMemo(() => {
-    if (!addressOrAddressMap || !abi || !chainId) return null;
-
-    const address =
-      typeof addressOrAddressMap === 'string'
-        ? addressOrAddressMap
-        : addressOrAddressMap[chainId];
-
-    if (!address) return null;
+    if (!address || !abi) return null;
 
     try {
-      return getContract({
-        abi,
-        address,
-      });
+      return contractManager.getContract(address, abi, network);
     } catch (error) {
       console.error('Failed to get contract:', error);
       return null;
     }
-  }, [addressOrAddressMap, abi, chainId]);
+  }, [address, abi, network]);
 }
 
 export const useERC20 = (
   address?: `0x${string}`,
   options?: UseContractOptions,
 ) => {
-  return useContract(address, ERC20_ABI, options);
+  const network = options?.network ?? 'sepolia';
+  return useMemo(() => {
+    if (!address) return null;
+    return contractManager.getERC20Contract(address, network);
+  }, [address, network]);
 };
 
-export const getNftMarketContract = (signer?: any) => {
-  return getContract({
-    abi: NFT_MARKETPLACE_ABI,
-    address: TOKEN_CONTRACTS.nftMarket as `0x${string}`,
-    signer,
-  });
+export const getNftMarketContract = (signer?: ethers.Signer, network: string = 'sepolia') => {
+  return contractManager.getNFTMarketplaceContract(network, signer);
 };
 
 export const useNftMarketCollectionContract = (
   collectionAddress: `0x${string}` | undefined,
+  options?: UseContractOptions,
 ) => {
-  return useContract(collectionAddress, ERC1155_ABI as any);
+  const network = options?.network ?? 'sepolia';
+  return useMemo(() => {
+    if (!collectionAddress) return null;
+    return contractManager.getERC1155Contract(collectionAddress, network);
+  }, [collectionAddress, network]);
 };
