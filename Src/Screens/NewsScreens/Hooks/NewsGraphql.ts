@@ -1,34 +1,15 @@
-import {HttpLink, InMemoryCache} from '@apollo/client';
-import {ApolloClient, createHttpLink} from '@apollo/client';
 import {useState, useEffect, useCallback} from 'react';
-import {NEWS_API_KEY, NEWS_API_URL} from '../../../constants';
 import {GET_BLOG_BY_ID, LIST_BLOGS} from './NewsQueries';
 import {ListBlogsData, Blog} from './type';
+import {useApolloClientContext} from '../../../../screens/Provider/GraphQLProvider';
 
-const client = new ApolloClient({
-  link: new HttpLink({
-    uri: NEWS_API_URL,
-    headers: {
-      'x-api-key': NEWS_API_KEY,
-    },
-    includeExtensions: true,
-  }),
-  cache: new InMemoryCache(),
-  defaultOptions: {
-    query: {
-      fetchPolicy: 'no-cache',
-    },
-    watchQuery: {
-      fetchPolicy: 'no-cache',
-    },
-  },
-});
 
 // Custom hook
 export const useBlogs = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<Blog[] | null>(null);
   const [error, setError] = useState<any>(null);
+  const {client} = useApolloClientContext();
 
   const fetchBlogs = useCallback(async () => {
     setLoading(true);
@@ -48,7 +29,7 @@ export const useBlogs = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [client]);
 
   const refetch = useCallback(() => {
     return fetchBlogs();
@@ -71,6 +52,7 @@ export const useBlogById = (id: string | null) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [data, setData] = useState<Blog | null>(null);
   const [error, setError] = useState<any>(null);
+  const {client} = useApolloClientContext();
 
   const fetchBlog = useCallback(async (blogId: string) => {
     setLoading(true);
@@ -91,7 +73,7 @@ export const useBlogById = (id: string | null) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [client]);
 
   const refetch = useCallback(() => {
     if (id) {
