@@ -253,9 +253,10 @@ export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
 
       if (data?.success) {
         updateProcessingStep('COMPLETED');
-        console.log(data?.data.redemptionStatementUrl);
+        console.log(data?.data);
 
-        setRedemptionUrl(data?.data?.redemptionStatementUrl);
+        // setRedemptionUrl(data?.data?.redemptionStatementUrl);
+        setRedemptionUrl(data?.data?.pdfDownloadUrl);
         setPdfDownloadUrl(data?.data?.pdfDownloadUrl);
         setOffsetSuccess(true);
 
