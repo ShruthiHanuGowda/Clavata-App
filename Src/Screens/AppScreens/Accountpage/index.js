@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './style';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {ScrollView} from 'react-native-gesture-handler';
 // import {navigateTo} from '../../../../utils/navigationService';
 import {SCREEN_CONSTANT} from '../../../../navigation/constant';

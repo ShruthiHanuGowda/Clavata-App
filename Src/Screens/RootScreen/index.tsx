@@ -2,12 +2,13 @@ import React, {useEffect} from 'react';
 import {View} from 'react-native';
 import styles from './styles';
 import {navReset} from '../../Navigation/NavigationFunctions.ts';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import secureStorage, {initializeAppStorage} from '../../utils/secureStorage';
 
 export const Root = () => {
   const CheckNav = async () => {
     try {
-      const value = await AsyncStorage?.getItem('isInfoDone');
+      const value = await secureStorage.getItem('isInfoDone');
+      console.log('🚀 ~ CheckNav ~ value:', value);
 
       if (value === 'true') {
         navReset('authScreens');
@@ -21,6 +22,7 @@ export const Root = () => {
   };
 
   useEffect(() => {
+    initializeAppStorage();
     setTimeout(() => {
       // navigate('authScreens');
       CheckNav();
