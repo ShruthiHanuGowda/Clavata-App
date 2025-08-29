@@ -6,7 +6,7 @@ import OnboardingItem from './OnboardingItem';
 import Paginator from './Paginator';
 import images from '../../Theme/images';
 import {navReset} from '../../Navigation/NavigationFunctions';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import secureStorage from '../../utils/secureStorage';
 
 const {width} = Dimensions.get('window');
 
@@ -19,7 +19,7 @@ export default function Onboarding({navigation}) {
   const navigateToWelcome = async () => {
     navReset('authScreens');
     try {
-      await AsyncStorage.setItem('isInfoDone', 'true');
+      await secureStorage.setItem('isInfoDone', 'true');
     } catch (error) {
       // Error saving data
     }

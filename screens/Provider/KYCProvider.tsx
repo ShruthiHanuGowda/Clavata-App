@@ -1,5 +1,5 @@
 import React, {createContext, useState, useContext, useEffect} from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import secureStorage from '../../Src/utils/secureStorage';
 import {useAuth} from './authProvider';
 
 // Define our context types
@@ -47,11 +47,11 @@ export const KycProvider: React.FC<{children: React.ReactNode}> = ({
     setIsKycCompleted(isVerified === true || isVerified === 'true');
   }, [userDetails]);
 
-  // Load KYC started status from AsyncStorage on mount
+  // Load KYC started status from secure storage on mount
   useEffect(() => {
     const loadKycStartedStatus = async () => {
       try {
-        const kycStartedValue = await AsyncStorage.getItem(KYC_STARTED_KEY);
+        const kycStartedValue = await secureStorage.getItem(KYC_STARTED_KEY);
 
         if (kycStartedValue !== null) {
           setIsKycStarted(JSON.parse(kycStartedValue));
@@ -64,10 +64,10 @@ export const KycProvider: React.FC<{children: React.ReactNode}> = ({
     loadKycStartedStatus();
   }, []);
 
-  // Set KYC started status and save to AsyncStorage
+  // Set KYC started status and save to secure storage
   const setKycStarted = async (started: boolean) => {
     try {
-      await AsyncStorage.setItem(KYC_STARTED_KEY, JSON.stringify(started));
+      await secureStorage.setItem(KYC_STARTED_KEY, JSON.stringify(started));
       setIsKycStarted(started);
     } catch (error) {
       console.error('Error saving KYC started status:', error);
@@ -80,10 +80,10 @@ export const KycProvider: React.FC<{children: React.ReactNode}> = ({
     setIsKycCompleted(isVerified === true || isVerified === 'true');
   };
 
-  // Reset KYC status (only for started status in AsyncStorage)
+  // Reset KYC status (only for started status in secure storage)
   const resetKycStatus = async () => {
     try {
-      await AsyncStorage.removeItem(KYC_STARTED_KEY);
+      await secureStorage.removeItem(KYC_STARTED_KEY);
       setIsKycStarted(false);
     } catch (error) {
       console.error('Error resetting KYC status:', error);

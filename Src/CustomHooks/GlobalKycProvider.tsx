@@ -8,7 +8,7 @@ import React, {
   ReactNode,
 } from 'react';
 import {Alert, Platform} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import secureStorage from '../utils/secureStorage';
 import {
   useMutation,
   gql,
@@ -289,11 +289,11 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
     }
   }, [userDetails]);
 
-  // Load KYC started status from AsyncStorage
+  // Load KYC started status from secure storage
   useEffect(() => {
     const loadKycStartedStatus = async (): Promise<void> => {
       try {
-        const kycStartedValue = await AsyncStorage.getItem(KYC_STARTED_KEY);
+        const kycStartedValue = await secureStorage.getItem(KYC_STARTED_KEY);
         if (kycStartedValue !== null) {
           setIsKycStarted(JSON.parse(kycStartedValue));
         }
@@ -480,7 +480,7 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
         setKycInternalStatus(KYC_STATUS.IN_PROGRESS);
 
         // Set KYC started flag
-        await AsyncStorage.setItem(KYC_STARTED_KEY, JSON.stringify(true));
+        await secureStorage.setItem(KYC_STARTED_KEY, JSON.stringify(true));
         setIsKycStarted(true);
 
         // Get access token
@@ -676,7 +676,7 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
 
   const resetKycState = useCallback(async (): Promise<void> => {
     try {
-      await AsyncStorage.removeItem(KYC_STARTED_KEY);
+      await secureStorage.removeItem(KYC_STARTED_KEY);
       setIsKycStarted(false);
       setKycInternalStatus(KYC_STATUS.NOT_STARTED);
       setKycError(null);
