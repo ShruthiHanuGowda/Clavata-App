@@ -10,6 +10,7 @@ import {
 import {Collection} from '../../../types/types';
 import {formatQuantityMWh} from '../../../utils';
 import images from '../../../Theme/images';
+import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
 
 interface CollectionCardProps {
   collection: Collection & {
@@ -34,7 +35,9 @@ const CollectionCard: React.FC<CollectionCardProps> = ({
             </View>
           )}
           <Image
-            source={images.usdc}
+            source={{
+              uri: collection?.collection_image || NFT_DEFAULT_IMAGE_URL,
+            }}
             style={styles.bannerImage}
             onLoadEnd={() => setLoading(false)}
           />
