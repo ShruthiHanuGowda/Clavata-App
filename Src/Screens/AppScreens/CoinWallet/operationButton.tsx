@@ -5,6 +5,7 @@ import {
   Image,
   View,
   ImageSourcePropType,
+  StyleSheet,
 } from 'react-native';
 import {fontsFamily, Images} from '../../../Theme';
 import {ReactElement} from 'react';
@@ -30,24 +31,17 @@ interface CoinData {
   [key: string]: any;
 }
 
-type OperationType = 'trade' | 'send' | 'receive' | 'swap' | 'bridge';
-
 // Single operation button component
 const OperationButton: React.FC<OperationButtonProps> = props => {
   return (
     <TouchableOpacity
-      style={{justifyContent: 'center', alignItems: 'center'}}
+      style={styles.buttonContainer}
       onPress={() => props.onPress()}>
-      <View style={{borderRadius: 30, backgroundColor: '#E0F0EF', padding: 18}}>
-        <Image style={{width: 14, height: 14}} source={props.image} />
+      <View style={styles.iconContainer}>
+        <Image style={styles.icon} source={props.image} />
       </View>
-      <View style={{marginVertical: 5}}>
-        <Text
-          style={{
-            fontFamily: fontsFamily.MulishExtraBold,
-            fontSize: 12,
-            color: '#00201B',
-          }}>
+      <View style={styles.textContainer}>
+        <Text style={styles.buttonText}>
           {props.name}
         </Text>
       </View>
@@ -124,5 +118,29 @@ export const renderOperationButtons = (
     );
   });
 };
+
+const styles = StyleSheet.create({
+  buttonContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    borderRadius: 30,
+    backgroundColor: '#E0F0EF',
+    padding: 18,
+  },
+  icon: {
+    width: 14,
+    height: 14,
+  },
+  textContainer: {
+    marginVertical: 5,
+  },
+  buttonText: {
+    fontFamily: fontsFamily.MulishExtraBold,
+    fontSize: 12,
+    color: '#00201B',
+  },
+});
 
 export default OperationButton;

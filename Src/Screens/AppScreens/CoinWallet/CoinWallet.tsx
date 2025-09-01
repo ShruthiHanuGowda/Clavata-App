@@ -1,37 +1,26 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo, useCallback} from 'react';
 import {
   Text,
   View,
   Dimensions,
   Image,
   StyleSheet,
-  ImageBackground,
-  Button,
   ActivityIndicator,
 } from 'react-native';
-import {fontsFamily, Images} from '../../../Theme';
+import {fontsFamily} from '../../../Theme';
 import style from './styles';
 import {ScrollView, TouchableOpacity} from 'react-native-gesture-handler';
-import OperationButton, {renderOperationButtons} from './operationButton';
+import {renderOperationButtons} from './operationButton';
 import LinearGradient from 'react-native-linear-gradient';
 import {Header, Tab} from '@rneui/base';
 import images from '../../../Theme/images';
 import PriceHistoryGraph from './PriceHistoryGraph';
 import MiniTransactionHistory from './MiniTransactionHistory';
 import {DText} from '../../../Componants/DText';
-import {navigateTo} from '../../../utils/navigationService';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {useWalletBalance} from '../../../hooks/useWalletBalance';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useWallet} from '../../../../screens/Provider/WalletProvider';
-import {SCREEN_CONSTANT} from '../../../Navigation/constant';
-import {
-  ApolloClient,
-  HttpLink,
-  InMemoryCache,
-  useApolloClient,
-  useMutation,
-} from '@apollo/client';
+import {useMutation} from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../../../graphql/queries';
 import {marketIcons} from '../../../Theme/variable';
 import {PRICE_HISTORY_API_URL} from '../../../constants';
@@ -40,10 +29,67 @@ import {DENERGY_USDC_ADDRESS, DENERGY_EURC_ADDRESS} from '../../../constants';
 
 const width = Dimensions.get('window').width;
 
-const formatCoinCodeForAPI = coinCode => {
+// TypeScript Interfaces
+interface RouteParams {
+  coinCode?: string;
+  operationsTypes?: string[];
+}
+
+interface CoinWalletProps {
+  route?: {
+    params?: RouteParams;
+  };
+}
+
+interface ChartData {
+  labels: string[];
+  values: number[];
+  currentPrice: number;
+  priceChange: number;
+  priceChangePercent: number;
+}
+
+interface PriceData {
+  timestamp: number;
+  price: number;
+}
+
+interface ApiResponse {
+  success: boolean;
+  data?: {
+    prices?: PriceData[];
+  };
+}
+
+interface PortfolioHeaderProps {
+  coinCode: string;
+  balance: string;
+  balanceUsd: string;
+}
+
+interface PriceDisplayProps {
+  currentPrice: number;
+  priceChange: number;
+  priceChangePercent: number;
+  loading: boolean;
+  error: string | null;
+}
+
+interface ChartDataHook {
+  chartData: ChartData;
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+type ToggleValue = 'day' | 'week';
+type CoinCode = 'WATT' | 'USDC' | 'ETH' | 'WUSDC' | 'EURC' | 'WEURC' | 'USD' | string;
+
+// Utility Functions
+const formatCoinCodeForAPI = (coinCode: string): string => {
   if (!coinCode) return 'usd-coin';
 
-  const coinMapping = {
+  const coinMapping: Record<string, string> = {
     WATT: 'usd-coin',
     USDC: 'usd-coin',
     ETH: 'ethereum',
@@ -59,22 +105,23 @@ const formatCoinCodeForAPI = coinCode => {
   );
 };
 
-const getCoinIcon = coinCode => {
+const getCoinIcon = (coinCode: string) => {
   return marketIcons[coinCode] || images.usdc;
 };
 
-const useChartData = (coinCode, toggleValue) => {
-  const [chartData, setChartData] = useState({
+// Custom Hook for Chart Data
+const useChartData = (coinCode: string, toggleValue: ToggleValue): ChartDataHook => {
+  const [chartData, setChartData] = useState<ChartData>({
     labels: [],
     values: [],
     currentPrice: 0,
     priceChange: 0,
     priceChangePercent: 0,
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchChartData = async () => {
+  const fetchChartData = useCallback(async (): Promise<void> => {
     if (!coinCode || coinCode === 'USD') return;
 
     setLoading(true);
@@ -88,7 +135,7 @@ const useChartData = (coinCode, toggleValue) => {
         throw new Error(`API request failed: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data: ApiResponse = await response.json();
 
       if (!data.success || !data.data || !data.data.prices) {
         throw new Error('Invalid API response format');
@@ -100,14 +147,13 @@ const useChartData = (coinCode, toggleValue) => {
         throw new Error('No price data available');
       }
 
-      // Process data based on toggle value
       const processedData = processChartData(prices, toggleValue);
       setChartData(processedData);
     } catch (err) {
       console.error('Chart data fetch error:', err);
-      setError(err.message);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
 
-      // Reset to empty state on error instead of showing mock data
       setChartData({
         labels: [],
         values: [],
@@ -118,17 +164,17 @@ const useChartData = (coinCode, toggleValue) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [coinCode, toggleValue]);
 
   useEffect(() => {
     fetchChartData();
-  }, [coinCode, toggleValue]);
+  }, [fetchChartData]);
 
   return {chartData, loading, error, refetch: fetchChartData};
 };
 
 // Process chart data based on time period
-const processChartData = (prices, toggleValue) => {
+const processChartData = (prices: PriceData[], toggleValue: ToggleValue): ChartData => {
   if (!prices || prices.length === 0) {
     return {
       labels: [],
@@ -139,14 +185,11 @@ const processChartData = (prices, toggleValue) => {
     };
   }
 
-  // Sort prices by timestamp
   const sortedPrices = [...prices].sort((a, b) => a.timestamp - b.timestamp);
-
-  let labels = [];
-  let values = [];
+  let labels: string[] = [];
+  let values: number[] = [];
 
   if (toggleValue === 'day') {
-    // For daily view, show last 24 hours with hourly intervals
     const last24Hours = sortedPrices.slice(-24);
     labels = last24Hours.map(item => {
       const date = new Date(item.timestamp);
@@ -154,23 +197,18 @@ const processChartData = (prices, toggleValue) => {
     });
     values = last24Hours.map(item => item.price);
   } else {
-    // For weekly view, show last 7 days
     const lastWeek = sortedPrices.slice(-7);
     labels = lastWeek.map(item => {
       const date = new Date(item.timestamp);
-      const dayName = date.toLocaleDateString('en-US', {weekday: 'short'});
-      return dayName;
+      return date.toLocaleDateString('en-US', {weekday: 'short'});
     });
     values = lastWeek.map(item => item.price);
   }
 
-  // Calculate price change
   const currentPrice = sortedPrices[sortedPrices.length - 1]?.price || 0;
-  const previousPrice =
-    sortedPrices[sortedPrices.length - 2]?.price || currentPrice;
+  const previousPrice = sortedPrices[sortedPrices.length - 2]?.price || currentPrice;
   const priceChange = currentPrice - previousPrice;
-  const priceChangePercent =
-    previousPrice !== 0 ? (priceChange / previousPrice) * 100 : 0;
+  const priceChangePercent = previousPrice !== 0 ? (priceChange / previousPrice) * 100 : 0;
 
   return {
     labels,
@@ -181,30 +219,34 @@ const processChartData = (prices, toggleValue) => {
   };
 };
 
-// Move PortfolioHeader outside the component to prevent recreation on each render
-const PortfolioHeader = ({coinCode, balance, balanceUsd}) => (
-  <View style={styles.portfolioHeaderContainer}>
-    <View style={styles.portfolioCard}>
-      <View style={styles.portfolioCardHeader}>
-        <Text style={styles.portfolioLabel}>Portfolio</Text>
+// Portfolio Header Component
+const PortfolioHeader: React.FC<PortfolioHeaderProps> = React.memo(({
+  coinCode,
+  balance,
+  balanceUsd,
+}) => (
+  <View style={localStyles.portfolioHeaderContainer}>
+    <View style={localStyles.portfolioCard}>
+      <View style={localStyles.portfolioCardHeader}>
+        <Text style={localStyles.portfolioLabel}>Portfolio</Text>
       </View>
-      <View style={styles.coinHeaderContainer}>
+      <View style={localStyles.coinHeaderContainer}>
         <Image
           source={getCoinIcon(coinCode)}
-          style={styles.coinIcon}
+          style={localStyles.coinIcon}
           resizeMode="contain"
         />
         <Text
-          style={styles.coinCodeTitle}
+          style={localStyles.coinCodeTitle}
           numberOfLines={2}
           ellipsizeMode="tail">
           {coinCode || 'Unknown Coin'}
         </Text>
       </View>
-      <View style={styles.balanceContainer}>
-        <Text style={styles.balanceLabel}>Balance</Text>
+      <View style={localStyles.balanceContainer}>
+        <Text style={localStyles.balanceLabel}>Balance</Text>
         <Text
-          style={styles.balanceValue}
+          style={localStyles.balanceValue}
           numberOfLines={2}
           ellipsizeMode="tail">
           {balance || '0'} (${balanceUsd || '0.00'})
@@ -212,10 +254,10 @@ const PortfolioHeader = ({coinCode, balance, balanceUsd}) => (
       </View>
     </View>
   </View>
-);
+));
 
-// Price display component
-const PriceDisplay = ({
+// Price Display Component
+const PriceDisplay: React.FC<PriceDisplayProps> = React.memo(({
   currentPrice,
   priceChange,
   priceChangePercent,
@@ -224,33 +266,31 @@ const PriceDisplay = ({
 }) => {
   if (loading) {
     return (
-      <View style={styles.priceDisplayContainer}>
+      <View style={localStyles.priceDisplayContainer}>
         <ActivityIndicator size="small" color="#009D94" />
-        <Text style={styles.loadingText}>Loading price data...</Text>
+        <Text style={localStyles.loadingText}>Loading price data...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.priceDisplayContainer}>
-        <Text style={styles.noDataText}>No price data available</Text>
+      <View style={localStyles.priceDisplayContainer}>
+        <Text style={localStyles.noDataText}>No price data available</Text>
       </View>
     );
   }
 
   const isPositive = priceChange >= 0;
   const changeColor = isPositive ? '#00C851' : '#FF4444';
-  const changeIcon = isPositive
-    ? images.sharePriceIcon
-    : images.sharePriceDownIcon;
+  const changeIcon = isPositive ? images.sharePriceIcon : images.sharePriceDownIcon;
 
   return (
-    <View style={styles.priceDisplayContainer}>
+    <View style={localStyles.priceDisplayContainer}>
       <Text style={style.usdvalue}>${currentPrice.toFixed(4)}</Text>
       <Image
         source={changeIcon}
-        style={{height: 10, width: 15, marginLeft: 2}}
+        style={localStyles.changeIcon}
         resizeMode="contain"
       />
       <Text style={[style.Today, {color: changeColor}]}>
@@ -259,15 +299,19 @@ const PriceDisplay = ({
       </Text>
     </View>
   );
-};
+});
 
-export default function CoinWallet(props) {
-  const {setActiveNetwork, magic} = useMagic();
-  // Add error boundary state
-  const [hasError, setHasError] = useState(false);
+// Main Component
+const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
+  const {setActiveNetwork} = useMagic();
+  const [hasError, setHasError] = useState<boolean>(false);
+  const [toggleValue, setToggleValue] = useState<ToggleValue>('week');
+  const [index, setIndex] = useState<number>(0);
 
-  // Safely extract props with fallbacks
-  const coinCode = props?.route?.params?.coinCode || 'Unknown';
+  // Extract props with fallbacks
+  const coinCode: string = route?.params?.coinCode || 'Unknown';
+  const operationsTypes: string[] = route?.params?.operationsTypes || [];
+
   console.log('coinCode', coinCode);
 
   useEffect(() => {
@@ -276,39 +320,33 @@ export default function CoinWallet(props) {
     } else {
       setActiveNetwork('denergy');
     }
-  }, [coinCode]);
-
-  const operationsTypes = props?.route?.params?.operationsTypes || [];
+  }, [coinCode, setActiveNetwork]);
 
   const [createTransactionHistoryMobile] = useMutation(
     CREATE_TRANSACTION_HISTORY_MOBILE,
     {
-      // Add error handling for GraphQL mutations
-      onError: error => {
+      onError: (error) => {
         console.error('Transaction history mutation error:', error);
       },
     },
   );
 
-  const getContractAddress = coinCode => {
-    let contractAddress = null;
+  const getContractAddress = useCallback((coinCode: string): string | null => {
     switch (coinCode) {
       case 'WUSDC':
-        contractAddress = DENERGY_USDC_ADDRESS;
-        break;
+        return DENERGY_USDC_ADDRESS;
       case 'WEURC':
-        contractAddress = DENERGY_EURC_ADDRESS;
+        return DENERGY_EURC_ADDRESS;
       default:
-        break;
+        return null;
     }
-    return contractAddress;
-  };
+  }, []);
 
-  // Add safe hook calls with error handling
-  let getBalance,
-    userDetails,
-    balance = '0',
-    balanceUsd = '0.00';
+  // Safe hook calls with error handling
+  let getBalance: ((coinCode: string) => any) | undefined;
+  let userDetails: any;
+  let balance = '0';
+  let balanceUsd = '0.00';
 
   try {
     const walletHook = useWallet();
@@ -327,87 +365,81 @@ export default function CoinWallet(props) {
     setHasError(true);
   }
 
-  const [toggleValue, setToggleValue] = useState('week');
-  const [index, setIndex] = useState(0);
+  const {chartData, loading, error, refetch} = useChartData(coinCode, toggleValue);
 
-  // Use the custom hook for chart data
-  const {chartData, loading, error, refetch} = useChartData(
-    coinCode,
-    toggleValue,
-  );
+  const TAB_ITEMS = useMemo(() => ['Price History', 'Transaction History'], []);
+  const toggleOptions: ToggleValue[] = useMemo(() => ['week', 'day'], []);
 
-  const TAB_ITEMS = ['Price History', 'Transaction History'];
-  const toggleOptions = ['week', 'day'];
+  const handleBackNavigation = useCallback((): void => {
+    try {
+      navigateBack();
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  }, []);
 
-  // Add error boundary rendering
+  const handleToggleChange = useCallback((item: ToggleValue): void => {
+    setToggleValue(item);
+  }, []);
+
+  // Error boundary rendering
   if (hasError) {
     return (
-      <View style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Something went wrong</Text>
+      <View style={localStyles.container}>
+        <View style={localStyles.errorContainer}>
+          <Text style={localStyles.errorText}>Something went wrong</Text>
           <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => {
-              setHasError(false);
-            }}>
-            <Text style={styles.retryText}>Retry</Text>
+            style={localStyles.retryButton}
+            onPress={() => setHasError(false)}>
+            <Text style={localStyles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 
-  // Safe navigation function
-  const handleBackNavigation = () => {
-    try {
-      navigateBack();
-    } catch (error) {
-      console.error('Navigation error:', error);
-    }
-  };
-
   return (
-    <View style={styles.container}>
+    <View style={localStyles.container}>
       <Header
         backgroundColor={'#FFF'}
-        containerStyle={{borderBottomWidth: 0}}
+        containerStyle={localStyles.headerContainer}
         leftComponent={
           <TouchableOpacity
             onPress={handleBackNavigation}
-            style={styles.iconContainer}>
+            style={localStyles.iconContainer}>
             <Image source={images.back} />
           </TouchableOpacity>
         }
         centerComponent={
-          <View style={styles.nameContainer}>
+          <View style={localStyles.nameContainer}>
             <Image
               source={getCoinIcon(coinCode)}
-              style={styles.headerCoinIcon}
+              style={localStyles.headerCoinIcon}
               resizeMode="contain"
             />
-            <DText fontStyle="fontBold" style={styles.headerTitle}>
+            <DText fontStyle="fontBold" style={localStyles.headerTitle}>
               {coinCode}
             </DText>
           </View>
         }
       />
-      <View style={{flex: 1}}>
+      
+      <View style={localStyles.contentContainer}>
         {/* Fixed Header Section */}
-        <View style={{marginTop: 5}}>
+        <View style={localStyles.headerSection}>
           <LinearGradient
             colors={['#F8FFFE', '#E8F8F7', '#F8FFFE']}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 1}}>
-            <View style={{paddingTop: 10, paddingBottom: 30}}>
+            <View style={localStyles.gradientContent}>
               <PortfolioHeader
                 coinCode={coinCode}
                 balance={balance}
                 balanceUsd={balanceUsd}
               />
 
-              <View style={styles.btnAlign}>
-                {operationsTypes &&
-                  operationsTypes.length > 0 &&
+              <View style={localStyles.btnAlign}>
+                {operationsTypes.length > 0 &&
                   renderOperationButtons(operationsTypes, coinCode)}
               </View>
             </View>
@@ -417,67 +449,54 @@ export default function CoinWallet(props) {
             value={index}
             onChange={setIndex}
             variant="primary"
-            indicatorStyle={{
-              backgroundColor: 'transparent',
-            }}
-            style={{backgroundColor: 'transparent'}}>
-            {(coinCode === 'USD' ? [] : TAB_ITEMS).map((tab, i) => {
-              return (
-                <Tab.Item
-                  key={i}
-                  containerStyle={active => ({
-                    borderBottomColor: active ? '#009D94' : '#E1E1E1',
-                    borderBottomWidth: active ? 2 : 1.4,
-                    backgroundColor: 'transparent',
-                  })}
-                  title={tab}
-                  titleStyle={active => ({
-                    color: active ? '#000' : '#989898',
-                    fontFamily: active
-                      ? fontsFamily.MulishExtraBold
-                      : fontsFamily.MulishBold,
-                    fontSize: 14,
-                  })}
-                />
-              );
-            })}
+            indicatorStyle={localStyles.tabIndicator}
+            style={localStyles.tabStyle}>
+            {(coinCode === 'USD' ? [] : TAB_ITEMS).map((tab, i) => (
+              <Tab.Item
+                key={i}
+                containerStyle={(active: boolean) => ({
+                  borderBottomColor: active ? '#009D94' : '#E1E1E1',
+                  borderBottomWidth: active ? 2 : 1.4,
+                  backgroundColor: 'transparent',
+                })}
+                title={tab}
+                titleStyle={(active: boolean) => ({
+                  color: active ? '#000' : '#989898',
+                  fontFamily: active
+                    ? fontsFamily.MulishExtraBold
+                    : fontsFamily.MulishBold,
+                  fontSize: 14,
+                })}
+              />
+            ))}
           </Tab>
         </View>
 
         {/* Scrollable Content Section */}
-        <View style={{flex: 1, marginHorizontal: 25, marginTop: 20}}>
+        <View style={localStyles.scrollableContent}>
           {index === 0 && coinCode !== 'USD' ? (
             <ScrollView showsVerticalScrollIndicator={false}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}>
+              <View style={localStyles.toggleContainer}>
                 <Text style={style.HeaderFont}>
                   {toggleValue === 'day' ? 'Today' : 'This Week'} Average
                 </Text>
                 <View style={style.toggleView}>
-                  {toggleOptions.map((item, i) => {
-                    return (
-                      <TouchableOpacity
-                        key={i}
-                        style={[styles.toggleButton]}
-                        onPress={() => {
-                          setToggleValue(item);
-                        }}>
-                        <Text
-                          style={[
-                            style.toggleItemStyle,
-                            toggleValue == item
-                              ? styles.activeButton
-                              : styles.inActiveButtn,
-                          ]}>
-                          {item}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                  {toggleOptions.map((item, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      style={localStyles.toggleButton}
+                      onPress={() => handleToggleChange(item)}>
+                      <Text
+                        style={[
+                          style.toggleItemStyle,
+                          toggleValue === item
+                            ? localStyles.activeButton
+                            : localStyles.inActiveButton,
+                        ]}>
+                        {item}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </View>
 
@@ -490,17 +509,17 @@ export default function CoinWallet(props) {
               />
 
               {error && (
-                <View style={styles.errorBanner}>
-                  <Text style={styles.errorBannerText}>
+                <View style={localStyles.errorBanner}>
+                  <Text style={localStyles.errorBannerText}>
                     Failed to load chart data
                   </Text>
-                  <TouchableOpacity onPress={refetch} style={styles.retryLink}>
-                    <Text style={styles.retryLinkText}>Retry</Text>
+                  <TouchableOpacity onPress={refetch} style={localStyles.retryLink}>
+                    <Text style={localStyles.retryLinkText}>Retry</Text>
                   </TouchableOpacity>
                 </View>
               )}
 
-              <View style={{left: -20}}>
+              <View style={localStyles.chartContainer}>
                 {!loading && !error && chartData.labels.length > 0 ? (
                   <PriceHistoryGraph
                     labels={chartData.labels}
@@ -508,14 +527,10 @@ export default function CoinWallet(props) {
                     data={chartData.values}
                   />
                 ) : !loading && (error || chartData.labels.length === 0) ? (
-                  <View style={styles.noDataContainer}>
-                    <Text style={styles.noDataText}>
-                      No chart data available
-                    </Text>
-                    <TouchableOpacity
-                      onPress={refetch}
-                      style={styles.retryButton}>
-                      <Text style={styles.retryText}>Retry</Text>
+                  <View style={localStyles.noDataContainer}>
+                    <Text style={localStyles.noDataText}>No chart data available</Text>
+                    <TouchableOpacity onPress={refetch} style={localStyles.retryButton}>
+                      <Text style={localStyles.retryText}>Retry</Text>
                     </TouchableOpacity>
                   </View>
                 ) : null}
@@ -531,12 +546,15 @@ export default function CoinWallet(props) {
       </View>
     </View>
   );
-}
+};
 
-const styles = StyleSheet.create({
+const localStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFF',
+  },
+  headerContainer: {
+    borderBottomWidth: 0,
   },
   iconContainer: {
     position: 'relative',
@@ -555,34 +573,55 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#2C2C2C',
   },
-  headerCoincodeTitle: {
-    color: '#989898',
-    fontSize: 18,
-    marginLeft: 8,
+  contentContainer: {
+    flex: 1,
   },
   headerSection: {
-    paddingTop: 8,
-    paddingBottom: 20,
+    marginTop: 5,
   },
-  portfolio: {
-    top: 10,
-    color: '#FFFF',
-    fontSize: 12,
-    lineHeight: 20,
-    position: 'absolute',
-    marginTop: 10,
+  gradientContent: {
+    paddingTop: 10,
+    paddingBottom: 30,
   },
-  totalAmount: {
-    color: '#FFFF',
-    fontSize: 30,
-    position: 'absolute',
+  tabIndicator: {
+    backgroundColor: 'transparent',
   },
-  usd: {
-    bottom: 25,
-    color: '#FFFF',
-    fontSize: 12,
-    position: 'absolute',
+  tabStyle: {
+    backgroundColor: 'transparent',
   },
+  scrollableContent: {
+    flex: 1,
+    marginHorizontal: 25,
+    marginTop: 20,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  toggleButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    borderRadius: 3,
+  },
+  activeButton: {
+    backgroundColor: '#FFFFFF',
+    marginRight: 4,
+    padding: 3,
+  },
+  inActiveButton: {
+    backgroundColor: '#EEEEEE',
+  },
+  chartContainer: {
+    left: -20,
+  },
+  changeIcon: {
+    height: 10,
+    width: 15,
+    marginLeft: 2,
+  },
+  // Portfolio styles
   portfolioHeaderContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -605,6 +644,14 @@ const styles = StyleSheet.create({
   portfolioCardHeader: {
     marginBottom: 12,
   },
+  portfolioLabel: {
+    fontSize: 14,
+    color: '#009D94',
+    fontFamily: fontsFamily.MulishBold,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
   coinHeaderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -614,14 +661,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     marginRight: 12,
-  },
-  portfolioLabel: {
-    fontSize: 14,
-    color: '#009D94',
-    fontFamily: fontsFamily.MulishBold,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
   },
   coinCodeTitle: {
     fontSize: 24,
@@ -659,26 +698,6 @@ const styles = StyleSheet.create({
     width: width - 60,
     alignItems: 'center',
     marginHorizontal: 30,
-  },
-  toggleButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    borderRadius: 3,
-  },
-  activeButton: {
-    backgroundColor: '#FFFFFF',
-    marginRight: 4,
-    padding: 3,
-  },
-  inActiveButtn: {
-    backgroundColor: '#EEEEEE',
-  },
-  transactionCountText: {
-    color: '#747474',
-    fontSize: 14,
-    fontFamily: fontsFamily.MulishSemiBold,
-    marginBottom: 20,
   },
   // Price display styles
   priceDisplayContainer: {
@@ -728,7 +747,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // Error banner styles
   errorBanner: {
     backgroundColor: '#FFF3CD',
     borderColor: '#FFEAA7',
@@ -754,3 +772,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+export default CoinWallet;

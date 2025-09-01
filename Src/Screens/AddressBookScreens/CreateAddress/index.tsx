@@ -327,7 +327,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
           {/* Header */}
           <View style={localStyles.headerContainer}>
             <Pressable onPress={handleCancel} style={localStyles.iconContainer}>
-              <Image source={images.back} style={{width: 20, height: 20}} />
+              <Image source={images.back} style={localStyles.backIcon} />
             </Pressable>
             <Text style={localStyles.header}>
               {editMode ? 'Edit Contact' : 'Add Contact'}
@@ -346,7 +346,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
               placeholder="Contact Name"
               containerStyle={[
                 localStyles.uniformContainer,
-                {paddingHorizontal: 5},
+                localStyles.nameInputContainer,
                 errors.name ? localStyles.inputError : null,
               ]}
             />
@@ -361,7 +361,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
               localStyles.uniformContainer,
               localStyles.dropdownStyle,
               errors.chain ? localStyles.inputError : null,
-              {paddingHorizontal: 16},
+              localStyles.chainDropdownContainer,
             ]}
             onPress={() => setBottomSheetVisible(true)}>
             {selectedChain ? (
@@ -376,7 +376,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
                 </Text>
               </View>
             ) : (
-              <Text style={[localStyles.dropdownLabel, {marginLeft: 0}]}>
+              <Text style={[localStyles.dropdownLabel, localStyles.placeholderText]}>
                 Select Chain
               </Text>
             )}
@@ -391,7 +391,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
             <View
               style={[
                 localStyles.uniformContainer,
-                {paddingHorizontal: 5, paddingVertical: 5},
+                localStyles.addressInputContainer,
                 errors.beneficiaryAddress ? localStyles.inputError : null,
               ]}>
               <TextInput
@@ -490,9 +490,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
                       style={[
                         localStyles.optionItem,
                         // Remove border from last item
-                        index === AVAILABLE_CHAINS.length - 1 && {
-                          borderBottomWidth: 0,
-                        },
+                        index === AVAILABLE_CHAINS.length - 1 && localStyles.lastOptionItem,
                       ]}
                       onPress={() => handleChainSelect(chain)}>
                       <View style={localStyles.chainOptionContent}>
@@ -543,6 +541,10 @@ const localStyles = StyleSheet.create({
     marginRight: 15,
     padding: 5,
   },
+  backIcon: {
+    width: 20,
+    height: 20,
+  },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -558,6 +560,16 @@ const localStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
+  nameInputContainer: {
+    paddingHorizontal: 5,
+  },
+  chainDropdownContainer: {
+    paddingHorizontal: 16,
+  },
+  addressInputContainer: {
+    paddingHorizontal: 5,
+    paddingVertical: 5,
+  },
   dropdownStyle: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -572,6 +584,9 @@ const localStyles = StyleSheet.create({
     fontSize: 16,
     color: '#1a1a1a',
     marginLeft: 8,
+  },
+  placeholderText: {
+    marginLeft: 0,
   },
   chainImage: {
     width: 24,
@@ -678,6 +693,9 @@ const localStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
     backgroundColor: '#FFFFFF',
+  },
+  lastOptionItem: {
+    borderBottomWidth: 0,
   },
   chainOptionContent: {
     flexDirection: 'row',

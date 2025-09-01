@@ -1,5 +1,5 @@
 import React from 'react';
-import {Text} from 'react-native';
+import {Text, StyleSheet} from 'react-native';
 import {MarketEvent} from '../../../../types/types';
 
 interface ActivityEventTextProps {
@@ -8,19 +8,44 @@ interface ActivityEventTextProps {
 
 const ActivityEventText: React.FC<ActivityEventTextProps> = ({marketEvent}) => {
   const events = {
-    [MarketEvent.NEW]: {text: 'Listed', color: '#555'},
-    [MarketEvent.CANCEL]: {text: 'Delisted', color: '#999'},
-    [MarketEvent.MODIFY]: {text: 'Modified', color: '#777'},
-    [MarketEvent.BUY]: {text: 'Bought', color: 'green'},
-    [MarketEvent.SELL]: {text: 'Sold', color: 'red'},
+    [MarketEvent.NEW]: {text: 'Listed', style: styles.listed},
+    [MarketEvent.CANCEL]: {text: 'Delisted', style: styles.delisted},
+    [MarketEvent.MODIFY]: {text: 'Modified', style: styles.modified},
+    [MarketEvent.BUY]: {text: 'Bought', style: styles.bought},
+    [MarketEvent.SELL]: {text: 'Sold', style: styles.sold},
   };
 
+  const eventInfo = events[marketEvent];
+
   return (
-    <Text
-      style={{color: events[marketEvent]?.color || '#000', fontWeight: '600'}}>
-      {events[marketEvent]?.text || 'Unknown'}
+    <Text style={[styles.baseText, eventInfo?.style || styles.unknown]}>
+      {eventInfo?.text || 'Unknown'}
     </Text>
   );
 };
+
+const styles = StyleSheet.create({
+  baseText: {
+    fontWeight: '600',
+  },
+  listed: {
+    color: '#555',
+  },
+  delisted: {
+    color: '#999',
+  },
+  modified: {
+    color: '#777',
+  },
+  bought: {
+    color: 'green',
+  },
+  sold: {
+    color: 'red',
+  },
+  unknown: {
+    color: '#000',
+  },
+});
 
 export default ActivityEventText;

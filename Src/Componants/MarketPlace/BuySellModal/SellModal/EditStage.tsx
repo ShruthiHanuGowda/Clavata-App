@@ -39,7 +39,7 @@ const EditStage: React.FC<EditStageProps> = ({
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.nftInfo}>
         <Image source={{uri: imageUrl}} style={styles.nftImage} />
-        <View style={{flex: 1}}>
+        <View style={styles.nftDetails}>
           <Text style={styles.nftName}>{nftToSell?.name}</Text>
           <Text style={styles.collectionName}>{nftToSell?.collectionName}</Text>
 
@@ -101,6 +101,9 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 10,
     marginRight: 12,
+  },
+  nftDetails: {
+    flex: 1,
   },
   nftName: {
     fontSize: 16,

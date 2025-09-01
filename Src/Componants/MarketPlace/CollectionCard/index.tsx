@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import {Collection} from '../../../types/types';
 import {formatQuantityMWh} from '../../../utils';
-import images from '../../../Theme/images';
 import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
 
 interface CollectionCardProps {

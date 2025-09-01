@@ -290,7 +290,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
           validatorAddress,
           tokenIdBigInt,
           amountInWei,
-          {gasLimit: 9000000},
+          {gasLimit: 15000000},
         );
 
         console.log('payload', {

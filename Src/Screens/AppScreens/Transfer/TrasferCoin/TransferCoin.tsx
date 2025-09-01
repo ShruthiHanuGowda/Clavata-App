@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Image,
@@ -17,7 +17,6 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import {BottomSheet} from 'react-native-btr';
 import {CustomImageButton, Header, RadioButton} from '../../../../Componants';
 import {Animation, Colors, fontsFamily, Images} from '../../../../Theme';
-import {SCREEN_CONSTANT} from '../../../../Navigation/constant';
 import {navigateTo} from '../../../../utils/navigationService';
 import {TouchableOpacity} from 'react-native-gesture-handler';
 import {Path, Svg} from 'react-native-svg';
@@ -28,7 +27,6 @@ import {navigateBack} from '../../../../Navigation/NavigationFunctions';
 import {useWallet} from '../../../../../screens/Provider/WalletProvider';
 import {ReactElement} from 'react';
 import {useMagic} from '../../../../../screens/Provider/MagicProvider';
-import {useAuth} from '../../../../../screens/Provider/authProvider';
 import {useBridge} from '../../../../hooks/useBridge';
 import LottieView from 'lottie-react-native';
 import LoadingScreenWithStep from '../../../../Componants/Loading/LoadingScreenWIthStep';
@@ -185,7 +183,6 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     resetBridgeState,
   } = useBridge();
 
-  const {setActiveNetwork, activeNetwork} = useMagic();
   const initialCoinCode = props?.route?.params?.coinCode || 'USDC';
 
   // State management
@@ -664,7 +661,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
           </View>
         )}
 
-        <View style={[styles.balanceInnerView, {marginBottom: 15}]}>
+        <View style={styles.balanceInnerViewWithMargin}>
           <Text style={styles.networkLabel}>
             {transactionType === 0 ? 'To DENERGY Network' : 'To ETH Network'}
           </Text>
@@ -689,12 +686,12 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         }}
         style={[
           styles.tabButton,
-          {backgroundColor: transactionType === 0 ? '#000' : '#fff'},
+          transactionType === 0 ? styles.tabButtonActive : styles.tabButtonInactive,
         ]}>
         <Text
           style={[
             styles.tabButtonText,
-            {color: transactionType === 0 ? '#fff' : '#000'},
+            transactionType === 0 ? styles.tabButtonTextActive : styles.tabButtonTextInactive,
           ]}>
           Deposit
         </Text>
@@ -708,12 +705,12 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         }}
         style={[
           styles.tabButton,
-          {backgroundColor: transactionType === 1 ? '#000' : '#fff'},
+          transactionType === 1 ? styles.tabButtonActive : styles.tabButtonInactive,
         ]}>
         <Text
           style={[
             styles.tabButtonText,
-            {color: transactionType === 1 ? '#fff' : '#000'},
+            transactionType === 1 ? styles.tabButtonTextActive : styles.tabButtonTextInactive,
           ]}>
           Withdraw
         </Text>
@@ -1252,5 +1249,25 @@ const styles = StyleSheet.create({
   modalButtonImage: {
     height: 51,
     width: '100%',
+  },
+  balanceInnerViewWithMargin: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 15,
+    marginHorizontal: 15,
+    marginBottom: 15,
+  },
+  tabButtonActive: {
+    backgroundColor: '#000',
+  },
+  tabButtonInactive: {
+    backgroundColor: '#fff',
+  },
+  tabButtonTextActive: {
+    color: '#fff',
+  },
+  tabButtonTextInactive: {
+    color: '#000',
   },
 });

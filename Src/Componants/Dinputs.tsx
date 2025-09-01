@@ -1,5 +1,5 @@
 // @ts-ignore
-import React, {useState} from 'react';
+import React from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -9,8 +9,6 @@ import {
 } from 'react-native';
 import images from '../Theme/images';
 import Colors from '../Theme/Colors';
-
-// import {DatePickerModal} from 'react-native-paper-dates';
 
 interface DTextInputProps {
   value: string;
@@ -38,6 +36,13 @@ interface DEmailInputProps {
   setValue: (text: string) => void;
   setValid: (isValid: boolean) => void;
   inputAccessoryViewID?: string;
+}
+
+interface DSearchInputProps {
+  value: string;
+  placeholder?: string;
+  setValue: (text: string) => void;
+  onEndEditing?: () => void;
 }
 
 export function DEmailInput({
@@ -75,11 +80,11 @@ export function DEmailInput({
 
 export function DSearchInput({
   value,
-  placeholder = 'example@drexs.com',
+  placeholder = 'Search...',
   setValue,
   onEndEditing,
-}) {
-  const handleOnChange = text => {
+}: DSearchInputProps) {
+  const handleOnChange = (text: string) => {
     setValue(text);
   };
 

@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {View, Image, StyleSheet, TouchableOpacity, Alert} from 'react-native';
 import {Header, ScreenHeight, ScreenWidth} from '@rneui/base';
 import {DTextInput} from '../../Componants/Dinputs';
@@ -7,32 +7,48 @@ import {DText} from '../../Componants/DText';
 import images from '../../Theme/images';
 import {navigateBack} from '../../Navigation/NavigationFunctions';
 
-const initialValue = {
+interface FormData {
+  name: string;
+  subject: string;
+  message: string;
+}
+
+interface ValidationState {
+  name: boolean;
+  subject: boolean;
+  message: boolean;
+}
+
+interface ContactUsProps {
+  // Add any props if needed in the future
+}
+
+const initialValue: FormData = {
   name: '',
   subject: '',
   message: '',
 };
 
-const validation = {
+const validation: ValidationState = {
   name: false,
   subject: false,
   message: false,
 };
 
-export default function ContactUs(props) {
-  const [data, setData] = useState(initialValue);
-  const [validationState, setValidationState] = useState(validation);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const ContactUs: React.FC<ContactUsProps> = () => {
+  const [data, setData] = useState<FormData>(initialValue);
+  const [validationState, setValidationState] = useState<ValidationState>(validation);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Check if form is valid
-  const isFormValid =
+  const isFormValid: boolean =
     validationState.name && validationState.subject && validationState.message;
 
-  const handleBackPress = () => {
+  const handleBackPress = (): void => {
     navigateBack();
   };
 
-  const validateField = (field, value) => {
+  const validateField = (field: keyof FormData, value: string): boolean => {
     console.log('validateField', field, value);
 
     switch (field) {
@@ -47,7 +63,7 @@ export default function ContactUs(props) {
     }
   };
 
-  const updateField = (field, value) => {
+  const updateField = (field: keyof FormData, value: string): void => {
     setData(prev => ({
       ...prev,
       [field]: value,
@@ -59,7 +75,7 @@ export default function ContactUs(props) {
     }));
   };
 
-  const handleSendPress = async () => {
+  const handleSendPress = async (): Promise<void> => {
     if (!isFormValid) {
       Alert.alert('Validation Error', 'Please fill all fields correctly.');
       return;
@@ -88,8 +104,8 @@ export default function ContactUs(props) {
     }
   };
 
-  const sendContactEmail = async formData => {
-    return new Promise(resolve => {
+  const sendContactEmail = async (formData: FormData): Promise<void> => {
+    return new Promise<void>((resolve) => {
       setTimeout(() => {
         console.log('Sending email with data:', formData);
         resolve();
@@ -119,8 +135,8 @@ export default function ContactUs(props) {
           <DTextInput
             placeholder="Name *"
             value={data.name}
-            setValue={value => updateField('name', value)}
-            setValid={value => validateField('name', data.name)}
+            setValue={(value: string) => updateField('name', value)}
+            setValid={() => validateField('name', data.name)}
             inputAccessoryViewID="sendEmail"
           />
 
@@ -128,8 +144,8 @@ export default function ContactUs(props) {
             containerStyle={styles.inputSpacing}
             value={data.subject}
             placeholder="Subject *"
-            setValue={value => updateField('subject', value)}
-            setValid={value => validateField('subject', data.subject)}
+            setValue={(value: string) => updateField('subject', value)}
+            setValid={() => validateField('subject', data.subject)}
             inputAccessoryViewID="sendEmail"
           />
 
@@ -140,8 +156,8 @@ export default function ContactUs(props) {
             multiline
             placeholder="Message *"
             value={data.message}
-            setValue={value => updateField('message', value)}
-            setValid={value => validateField('message', data.message)}
+            setValue={(value: string) => updateField('message', value)}
+            setValid={() => validateField('message', data.message)}
             inputAccessoryViewID="sendEmail"
             textAlignVertical="top"
           />
@@ -161,7 +177,7 @@ export default function ContactUs(props) {
       </View>
     </>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -209,3 +225,5 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
 });
+
+export default ContactUs;

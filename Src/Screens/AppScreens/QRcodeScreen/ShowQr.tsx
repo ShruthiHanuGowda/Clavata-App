@@ -2,25 +2,37 @@ import React, {useState} from 'react';
 import {View, Text, TouchableOpacity, Image, StyleSheet} from 'react-native';
 import {DText} from '../../../Componants/DText';
 import {fontsFamily, Images} from '../../../Theme';
-import images from '../../../Theme/images';
 import 'text-encoding';
 import Share from 'react-native-share';
 import QRCode from 'react-native-qrcode-svg';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import RNFS from 'react-native-fs';
-const ShowQr = ({coinCode, address, name}) => {
-  const saveQrToDisk = async () => {};
-  const [downloading, setDownloading] = useState(false);
 
-  const [qrCodeRef, setQrCodeRef] = useState();
+interface ShowQrProps {
+  coinCode: string;
+  address: string;
+  name?: string;
+}
 
-  const copy = () => {
+interface ShareOptions {
+  title: string;
+  message: string;
+  url: string;
+  subject: string;
+}
+
+const ShowQr: React.FC<ShowQrProps> = ({coinCode, address, name}) => {
+  const saveQrToDisk = async (): Promise<void> => {};
+  const [downloading, setDownloading] = useState<boolean>(false);
+  const [qrCodeRef, setQrCodeRef] = useState<any>();
+
+  const copy = (): void => {
     Clipboard.setString(address);
     SnackBarMessage('Address is copied!', 'default');
   };
 
-  const saveToPhotoLibrary = async base64Data => {
+  const saveToPhotoLibrary = async (base64Data: string): Promise<void> => {
     console.log('🚀 ~ ShowQr ~ base64Data:', base64Data);
     try {
       setDownloading(true);
@@ -53,11 +65,12 @@ const ShowQr = ({coinCode, address, name}) => {
       setDownloading(false);
     }
   };
-  const onShare = async () => {
+
+  const onShare = async (): Promise<void> => {
     if (qrCodeRef) {
       try {
-        qrCodeRef.toDataURL(data => {
-          const shareImageBase64 = {
+        qrCodeRef.toDataURL((data: string) => {
+          const shareImageBase64: ShareOptions = {
             title: 'QR',
             message: `${
               coinCode === 'WUSDC'
@@ -78,6 +91,7 @@ const ShowQr = ({coinCode, address, name}) => {
       } catch (error) {}
     }
   };
+
   return (
     <View style={styles.boxContainer}>
       <View style={styles.outerBox}>
@@ -95,7 +109,7 @@ const ShowQr = ({coinCode, address, name}) => {
           <TouchableOpacity
             style={styles.downloadBtn}
             onPress={() => {
-              qrCodeRef.toDataURL(data => {
+              qrCodeRef.toDataURL((data: string) => {
                 saveToPhotoLibrary(data);
               });
             }}>
@@ -113,7 +127,7 @@ const ShowQr = ({coinCode, address, name}) => {
         </View>
         <View style={styles.addressBox}>
           <View style={styles.addressAlign}>
-            <View style={{width: '85%'}}>
+            <View style={styles.addressTextContainer}>
               <Text style={styles.content} numberOfLines={2}>
                 <Text style={styles.address}>{address}</Text>
               </Text>
@@ -132,13 +146,10 @@ const ShowQr = ({coinCode, address, name}) => {
   );
 };
 
-export default ShowQr;
-
 const styles = StyleSheet.create({
   boxContainer: {
     marginHorizontal: 20,
   },
-
   outerBox: {
     backgroundColor: '#fff',
     width: '100%',
@@ -186,6 +197,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  addressTextContainer: {
+    width: '85%',
+  },
   username: {
     fontFamily: fontsFamily.MulishBold,
     fontSize: 28,
@@ -198,7 +212,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 7,
   },
-
   shareText: {
     fontSize: 14,
     textAlign: 'center',
@@ -230,3 +243,5 @@ const styles = StyleSheet.create({
     height: 30,
   },
 });
+
+export default ShowQr;

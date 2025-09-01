@@ -1,27 +1,25 @@
 import React from 'react';
-import {Image, StyleSheet, View, TouchableOpacity} from 'react-native';
-import {Svg} from 'react-native-svg';
-import {CartesianChart, Line} from 'victory-native';
+import {Image, StyleSheet, View, TouchableOpacity, ImageSourcePropType} from 'react-native';
 import {DText} from '../../Componants/DText';
 import {marketIcons} from '../../Theme/variable';
 import {navigateTo} from '../../utils/navigationService';
 import {ScreenWidth} from '@rneui/base';
-import {useFont} from '@shopify/react-native-skia';
-import {fontsFamily} from '../../Theme';
+import images from '../../Theme/images';
 
-const marketIconColors: {[key: string]: string} = {
-  WATT: '#045E19',
-  BTC: '#F7931A30',
-  USDT: '#26A17B',
-  USDC: '#2775CA',
-  WUSDC: '#2775CA',
-  EURC: '#2775CA',
-  WEURC: '#2775CA',
-  ETH: '#ECEFF0',
-  USD: '#D5F5F1',
-};
+interface CryptoMarketCardProps {
+  title: string;
+  code: string;
+  chartData?: any[];
+  dollar?: number | string;
+  growth?: number;
+  dip?: boolean;
+  loading?: boolean;
+  balance?: number | string;
+  coinValue?: number | null;
+  operationsTypes?: string[];
+}
 
-export default function CryptoMarketCard({
+const CryptoMarketCard: React.FC<CryptoMarketCardProps> = ({
   title,
   code,
   chartData,
@@ -32,7 +30,7 @@ export default function CryptoMarketCard({
   balance,
   coinValue = null,
   operationsTypes,
-}: any) {
+}) => {
   const height = 21;
   const width = 71;
   return (
@@ -50,7 +48,7 @@ export default function CryptoMarketCard({
       activeOpacity={0.5}>
       <View style={[marketStyles.image]}>
         <Image
-          source={marketIcons[code]}
+          source={marketIcons[code] || images.usdc}
           style={marketStyles.coinIcon}
           resizeMode="contain"
         />
@@ -67,13 +65,7 @@ export default function CryptoMarketCard({
         </DText>
       </View>
       <View style={marketStyles.content}>
-        <View
-          style={{
-            width,
-            justifyContent: 'center',
-            alignItems: 'center',
-            bottom: 0,
-          }}>
+        <View style={marketStyles.chartContainer}>
           {/* <View style={{ height: height, width: width, backgroundColor: '#fff' }}>
             <CartesianChart
               data={chartData}
@@ -112,7 +104,8 @@ export default function CryptoMarketCard({
       </View>
     </TouchableOpacity>
   );
-}
+};
+
 const marketStyles = StyleSheet.create({
   container: {
     height: 37,
@@ -177,4 +170,12 @@ const marketStyles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 16,
   },
+  chartContainer: {
+    width: 71,
+    justifyContent: 'center',
+    alignItems: 'center',
+    bottom: 0,
+  },
 });
+
+export default CryptoMarketCard;

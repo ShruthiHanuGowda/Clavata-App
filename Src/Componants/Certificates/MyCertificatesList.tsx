@@ -3,7 +3,6 @@ import {
   ScrollView,
   View,
   StyleSheet,
-  ActivityIndicator,
   Text,
   TouchableOpacity,
   LayoutAnimation,
@@ -66,8 +65,8 @@ const MyCertificatesList = ({containerStyle}: Props) => {
     }));
   };
 
-  const getTotalQuantity = (nfts: NftToken[]) => {
-    return nfts.reduce((sum, nft) => {
+  const getTotalQuantity = (nftTokens: NftToken[]) => {
+    return nftTokens.reduce((sum, nft) => {
       const qty = parseFloat(String(nft?.marketData?.quantity ?? '0'));
       return sum + (isNaN(qty) ? 0 : qty);
     }, 0);
@@ -81,8 +80,7 @@ const MyCertificatesList = ({containerStyle}: Props) => {
   // Helper function to validate URL
   const isValidUrl = (url: string) => {
     try {
-      new URL(url);
-      return true;
+      return Boolean(new URL(url));
     } catch {
       return false;
     }

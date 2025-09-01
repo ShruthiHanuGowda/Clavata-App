@@ -1,6 +1,6 @@
-import React, {useState} from 'react';
-import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
-import {NftLocation, NftToken} from '../../types/types';
+import React from 'react';
+import {View, Image, StyleSheet, TouchableOpacity} from 'react-native';
+import {NftToken} from '../../types/types';
 import {formatQuantityMWh} from '../../utils';
 import {NavigationProp, useNavigation} from '@react-navigation/native';
 // import SellModal from '../MarketPlace/BuySellModal/SellModal';
@@ -14,34 +14,22 @@ interface Props {
 }
 type NavigationProps = NavigationProp<any, any>;
 
-const MyCertificateCard = ({nft, refresh, containerStyle}: Props) => {
+const MyCertificateCard = ({nft, refresh}: Props) => {
   const navigation = useNavigation<NavigationProps>();
 
   const handlePress = () => {
     navigation.navigate('walletNFTDetails', {nft, refresh});
   };
 
-  const handleCollectibleClick = (location?: NftLocation) => {
-    // switch (location) {
-    //   case NftLocation.WALLET:
-    //     setClickedSellNft({nft, location, variant: 'sell'});
-    //     setIsSellModalVisible(true);
-    //     break;
-    //   case NftLocation.FORSALE:
-    //     setClickedSellNft({nft, location, variant: 'adjust'});
-    //     setIsSellModalVisible(true);
-    //     break;
-    //   default:
+  const handleCollectibleClick = () => {
     handlePress();
-    // break;
-    // }
   };
 
   return (
     <>
       <TouchableOpacity
         style={[styles.container]}
-        onPress={() => handleCollectibleClick(nft.location)}
+        onPress={() => handleCollectibleClick()}
         activeOpacity={0.8}>
         <View style={styles.imageContainer}>
           <Image

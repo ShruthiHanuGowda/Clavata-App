@@ -1,17 +1,11 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
+import React, {useState} from 'react';
+import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
+import {NavigationProp, useNavigation} from '@react-navigation/native';
 import Spinner from '../Spinner';
-import { NftLocation, NftToken } from '../../../types/types';
+import {NftLocation, NftToken} from '../../../types/types';
 import SellModal from '../BuySellModal/SellModal';
-import { formatQuantityMWh } from '../../../utils';
-import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
+import {formatQuantityMWh} from '../../../utils';
+import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
 
 interface UserNFTCardProps {
   nft: NftToken;
@@ -26,15 +20,14 @@ interface SellNftProps {
 
 type NavigationProps = NavigationProp<any, any>;
 
-const UserNFTCard: React.FC<UserNFTCardProps> = ({ nft, refresh }) => {
+const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
   const [imageLoaded, setImageLoaded] = useState<boolean>(false);
-  const [clickedSellNft, setClickedSellNft] = useState<SellNftProps>({});
   const [isSellModalVisible, setIsSellModalVisible] = useState(false);
 
   const navigation = useNavigation<NavigationProps>();
 
   const handlePress = () => {
-    navigation.navigate('walletNFTDetails', { nft, refresh });
+    navigation.navigate('walletNFTDetails', {nft, refresh});
   };
 
   const handleCollectibleClick = () => {
@@ -53,9 +46,7 @@ const UserNFTCard: React.FC<UserNFTCardProps> = ({ nft, refresh }) => {
         )}
         <Image
           source={{
-            uri:
-              nft.image?.thumbnail ||
-              NFT_DEFAULT_IMAGE_URL,
+            uri: nft.image?.thumbnail || NFT_DEFAULT_IMAGE_URL,
           }}
           style={styles.image}
           onLoad={() => setImageLoaded(true)}
@@ -90,7 +81,7 @@ const UserNFTCard: React.FC<UserNFTCardProps> = ({ nft, refresh }) => {
           setIsSellModalVisible(false);
         }}
         variant={'adjust'}
-        nftToSell={clickedSellNft?.nft || nft}
+        nftToSell={nft}
         onSuccessSale={() => {
           refresh();
         }}
@@ -112,7 +103,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     borderWidth: 1,
     borderColor: '#f1f5f9',
     minHeight: 80,
@@ -129,7 +120,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: {width: 0, height: 1},
   },
   image: {
     width: '100%',
@@ -181,7 +172,7 @@ const styles = StyleSheet.create({
     shadowColor: '#10b981',
     shadowOpacity: 0.2,
     shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: {width: 0, height: 1},
     marginBottom: 3,
   },
   onSaleText: {

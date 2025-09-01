@@ -5,7 +5,11 @@ import StakeContext from './StakeContext';
 import {DText} from '../../Componants/DText';
 import {normalize} from '../../utils/screenSize';
 
-export default function Result() {
+interface ResultProps {
+  // Add any props if needed in the future
+}
+
+const Result: React.FC<ResultProps> = () => {
   // const {data, loading} = useContext(StakeContext);
 
   return (
@@ -28,7 +32,7 @@ export default function Result() {
       /> */}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {},
@@ -90,3 +94,5 @@ const styles = StyleSheet.create({
     paddingBottom: 400,
   },
 });
+
+export default Result;

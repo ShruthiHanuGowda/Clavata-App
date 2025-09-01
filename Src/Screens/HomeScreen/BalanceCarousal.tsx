@@ -1,6 +1,6 @@
 import {Tab, TabView} from '@rneui/base';
-import React, {useEffect, useState} from 'react';
-import {View, StyleSheet, ActivityIndicator} from 'react-native';
+import React, {useState} from 'react';
+import {View, StyleSheet} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {DText} from '../../Componants/DText';
 import {fontsFamily} from '../../Theme';
@@ -18,10 +18,6 @@ export default function BalanceCarousal(props: Props) {
   const wusdcBalance = getBalance('WUSDC')?.balanceUsd;
   const weurcBalance = getBalance('WEURC')?.balanceUsd;
   const wattBalanceUsd = getBalance('WATT')?.balanceUsd;
-
-  console.log('wusdcBalance', wusdcBalance);
-  console.log('weurcBalance', weurcBalance);
-  console.log('wattBalanceUsd', wattBalanceUsd);
 
   const [index, setIndex] = useState(1);
   const loading = props.loading && <></>;

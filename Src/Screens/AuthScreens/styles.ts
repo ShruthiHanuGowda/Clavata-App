@@ -11,6 +11,9 @@ interface Styles {
   errorMessage: TextStyle;
   loginBtnStyle: ViewStyle;
   loginText: TextStyle;
+  loadingContainer: ViewStyle;
+  lottieAnimation: ViewStyle;
+  flexContainer: ViewStyle;
 }
 
 // Define your styles using StyleSheet.create
@@ -49,6 +52,20 @@ const styles = StyleSheet.create<Styles>({
     fontFamily: fontsFamily.MulishBold,
     fontSize: 14,
     color: Colors.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+  },
+  lottieAnimation: {
+    width: 150,
+    height: 150,
+  },
+  flexContainer: {
+    flex: 1,
   },
 });
 

@@ -22,11 +22,9 @@ interface TransferStageProps {
   isInvalidTransferAddress: boolean;
   continueToNextStage: () => void;
 }
-const inputRegex = RegExp(`^\\d*(?:\\\\[.])?\\d*$`);
 
 const TransferStage = ({
   nftToSell,
-  lowestPrice,
   transferAddress,
   setTransferAddress,
   quantity,

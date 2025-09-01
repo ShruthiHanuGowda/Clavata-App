@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React from 'react';
 import {View, Image, TouchableOpacity, ScrollView} from 'react-native';
 import {Header} from '@rneui/base';
 import images from '../../../Theme/images';
@@ -7,7 +7,18 @@ import {StyleSheet} from 'react-native';
 import ShowQr from '../QRcodeScreen/ShowQr';
 import {DText} from '../../../Componants/DText';
 import {useAuth} from '../../../../screens/Provider/authProvider';
-const ReceiveScreen = ({route}) => {
+
+interface RouteParams {
+  coinCode: string;
+}
+
+interface ReceiveScreenProps {
+  route: {
+    params: RouteParams;
+  };
+}
+
+const ReceiveScreen: React.FC<ReceiveScreenProps> = ({route}) => {
   const {coinCode} = route.params;
   console.log('🚀 ~ ReceiveScreen ~ coinCode:', coinCode);
   const {userDetails} = useAuth();
@@ -17,7 +28,7 @@ const ReceiveScreen = ({route}) => {
     <View style={styles.container}>
       <Header
         backgroundColor={'#FFF'}
-        containerStyle={{borderBottomWidth: 0}}
+        containerStyle={styles.headerContainer}
         leftComponent={
           <TouchableOpacity onPress={navigateBack} style={styles.backContainer}>
             <Image source={images.back} />
@@ -38,8 +49,8 @@ const ReceiveScreen = ({route}) => {
             coinCode={coinCode}
             address={
               coinCode === 'ETH' || coinCode === 'USDC' || coinCode === 'EURC'
-                ? userDetails?.userWallet
-                : userDetails?.userWallet
+                ? userDetails?.userWallet || ''
+                : userDetails?.userWallet || ''
             }
           />
         </View>
@@ -48,12 +59,13 @@ const ReceiveScreen = ({route}) => {
   );
 };
 
-export default ReceiveScreen;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  headerContainer: {
+    borderBottomWidth: 0,
   },
   backContainer: {
     position: 'relative',
@@ -72,3 +84,5 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
 });
+
+export default ReceiveScreen;

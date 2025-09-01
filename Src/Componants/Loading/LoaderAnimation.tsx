@@ -52,7 +52,9 @@ const LoaderAnimation: React.FC<LoaderAnimationProps> = ({
   accessibilityLabel = 'Loading',
 }) => {
   const getSizeValue = () => {
-    if (typeof size === 'number') return size;
+    if (typeof size === 'number') {
+      return size;
+    }
 
     switch (size) {
       case 'small':

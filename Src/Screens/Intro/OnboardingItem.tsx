@@ -8,13 +8,28 @@ import {
   Image,
   ImageBackground,
   Text,
+  ImageSourcePropType,
 } from 'react-native';
-// import {DText} from '../../../component/DText';
 import images from '../../Theme/images';
 
 const {width} = Dimensions.get('window');
 
-export default function OnboardingItem(props) {
+interface OnboardingItemData {
+  title: string;
+  image: ImageSourcePropType;
+  description: string;
+  showSkip?: boolean;
+  showBack?: boolean;
+  top?: boolean;
+  onBackPress?: () => void;
+  onSkipPress?: () => void;
+}
+
+interface OnboardingItemProps {
+  item: OnboardingItemData;
+}
+
+const OnboardingItem: React.FC<OnboardingItemProps> = ({item}) => {
   const {
     title,
     image,
@@ -24,45 +39,29 @@ export default function OnboardingItem(props) {
     top,
     onBackPress,
     onSkipPress,
-  } = props.item;
+  } = item;
+
   const content = (
-    <View
-      style={{
-        height: 200,
-        marginLeft: 35,
-        position: 'absolute',
-        ...(top
-          ? {
-              top: '20%',
-            }
-          : {
-              bottom: '10%',
-            }),
-      }}>
-      <Text fontStyle="fontBold" style={styles.title}>
+    <View style={[styles.contentContainer, top ? styles.topPosition : styles.bottomPosition]}>
+      <Text style={styles.title}>
         {title}
       </Text>
-      <Text fontStyle="fontRegular" style={styles.notice}>
+      <Text style={styles.notice}>
         {description}
       </Text>
     </View>
   );
+
   return (
     <ImageBackground source={image} style={styles.background}>
       <SafeAreaView style={styles.child}>
-        <View
-          style={{
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexDirection: 'row',
-            width,
-          }}>
+        <View style={styles.headerContainer}>
           <TouchableOpacity onPress={onBackPress} style={styles.backButton}>
             {showBack && <Image source={images.back} />}
           </TouchableOpacity>
           {showSkip && (
             <TouchableOpacity onPress={onSkipPress} style={styles.skipButton}>
-              <Text fontStyle="fontSemiBold" style={styles.skipText}>
+              <Text style={styles.skipText}>
                 Skip
               </Text>
             </TouchableOpacity>
@@ -72,7 +71,7 @@ export default function OnboardingItem(props) {
       </SafeAreaView>
     </ImageBackground>
   );
-}
+};
 
 const styles = StyleSheet.create({
   background: {
@@ -80,6 +79,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     marginTop: 1,
+  },
+  child: {
+    width,
+    flex: 1,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    width,
+  },
+  contentContainer: {
+    height: 200,
+    marginLeft: 35,
+    position: 'absolute',
+  },
+  topPosition: {
+    top: '20%',
+  },
+  bottomPosition: {
+    bottom: '10%',
   },
   title: {
     color: '#2C2C2C',
@@ -94,7 +114,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginRight: 24,
   },
-  child: {width, flex: 1},
   skipText: {
     color: '#000',
     fontSize: 14,
@@ -113,3 +132,5 @@ const styles = StyleSheet.create({
     margin: 30,
   },
 });
+
+export default OnboardingItem;

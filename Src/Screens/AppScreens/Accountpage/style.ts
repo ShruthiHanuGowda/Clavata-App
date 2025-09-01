@@ -1,5 +1,6 @@
 import {StyleSheet} from 'react-native';
 import {Colors, fontsFamily} from '../../../Theme';
+
 export default StyleSheet.create({
   container: {
     flex: 1,
@@ -30,8 +31,6 @@ export default StyleSheet.create({
     fontFamily: fontsFamily.MulishSemiBold,
     fontSize: 12,
     color: '#000',
-    // lineHeight:40,
-    // letterSpacing:1
   },
   priceFont: {
     fontFamily: fontsFamily.MulishSemiBold,

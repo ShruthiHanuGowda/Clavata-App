@@ -13,7 +13,24 @@ import {useNavigation} from '@react-navigation/native';
 import {SCREEN_CONSTANT} from '../../../navigation/constant';
 import {Path, Svg} from 'react-native-svg';
 
-function StakeListItem(props) {
+interface StakeItem {
+  _id: string;
+  apy: number;
+  daysRemaining: number;
+  imageUrl: string;
+  isStaked: boolean;
+  stakedNfts: number;
+  title: string;
+  totalDays: number;
+  totalDelegator: number;
+  totalNftStaked: number;
+}
+
+interface StakeListItemProps {
+  item?: StakeItem;
+}
+
+const StakeListItem: React.FC<StakeListItemProps> = (props) => {
   const {
     item = {
       _id: '646ee821b260884d71289867',
@@ -29,7 +46,9 @@ function StakeListItem(props) {
       totalNftStaked: 0,
     },
   } = props;
+  
   const navigation = useNavigation();
+  
   return (
     <TouchableOpacity
       onPress={() => {
@@ -37,23 +56,14 @@ function StakeListItem(props) {
           poolId: item._id,
         });
       }}
-      style={[
-        styles.cardContainer,
-        {
-          borderBottomWidth: 0.75,
-        },
-      ]}>
+      style={[styles.cardContainer, styles.cardBorder]}>
       <Image
         style={styles.image}
         source={{
           uri: item.imageUrl,
         }}
       />
-      <View
-        style={{
-          flex: 1,
-          marginLeft: 12,
-        }}>
+      <View style={styles.contentContainer}>
         <View style={styles.row}>
           <View style={styles.col}>
             <DText style={styles.title} fontStyle="fontBold">
@@ -68,13 +78,7 @@ function StakeListItem(props) {
               }
             </DText>
           </View>
-          <View
-            style={[
-              styles.col,
-              {
-                width: 80,
-              },
-            ]}>
+          <View style={[styles.col, styles.stakedSection]}>
             <DText></DText>
             {item.isStaked && (
               <>
@@ -97,13 +101,7 @@ function StakeListItem(props) {
               {item.daysRemaining} Days
             </DText>
           </View>
-          <View
-            style={[
-              styles.col,
-              {
-                width: 80,
-              },
-            ]}>
+          <View style={[styles.col, styles.apySection]}>
             <DText style={styles.apyTitle} fontStyle="fontRegular">
               Apy
             </DText>
@@ -115,7 +113,7 @@ function StakeListItem(props) {
       </View>
     </TouchableOpacity>
   );
-}
+};
 
 const styles = StyleSheet.create({
   cardContainer: {
@@ -125,6 +123,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomColor: '#DEDEDE',
     borderBottomWidth: 0.75,
+  },
+  cardBorder: {
+    borderBottomWidth: 0.75,
+  },
+  contentContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  stakedSection: {
+    width: 80,
+  },
+  apySection: {
+    width: 80,
   },
   image: {
     height: 42,
@@ -149,6 +160,10 @@ const styles = StyleSheet.create({
     color: '#7E7E7E',
     letterSpacing: 0.12,
     fontSize: 12,
+  },
+  delegator: {
+    fontSize: 12,
+    color: '#000',
   },
   stakedTitle: {
     fontSize: 12,

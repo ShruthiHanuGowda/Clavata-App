@@ -27,27 +27,22 @@ export default StyleSheet.create({
     lineHeight: 20,
     color: '#9F9F9F',
     letterSpacing: 1.7,
-    //   marginHorizontal:20
   },
   fontStyle: {
     fontFamily: fontsFamily.MulishBold,
     fontSize: 24,
     color: '#fff',
-
-    //   lineHeight:38
   },
   nameFontStyle: {
     fontFamily: fontsFamily.MulishBold,
     fontSize: 20,
     color: '#000',
-    //   lineHeight:19
   },
   seeAll: {
     fontFamily: fontsFamily.MulishSemiBold,
     fontSize: 12,
     color: '#008060',
     textAlign: 'center',
-    //   lineHeight:
   },
   headerTitle: {
     fontFamily: fontsFamily.MulishBold,

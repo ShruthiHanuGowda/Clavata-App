@@ -9,8 +9,7 @@ import {
   Platform,
   Linking,
 } from 'react-native';
-import {Activity, NftToken} from '../../../types/types';
-import useNftActivity from '../../../hooks/useNftActivity';
+import {Activity} from '../../../types/types';
 import ActivityEventText from './ActivityEventText';
 import {getBlockExploreLink} from '../../../utils/explorer';
 
@@ -44,7 +43,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({activity, loading}) => {
       <View style={styles.container}>
         <View style={styles.loading}>
           <ActivityIndicator size="small" color="#3498db" />
-          <Text style={{marginTop: 8}}>Loading activity...</Text>
+          <Text style={styles.loadingText}>Loading activity...</Text>
         </View>
       </View>
     );
@@ -162,6 +161,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+  },
+  loadingText: {
+    marginTop: 8,
   },
   empty: {
     alignItems: 'center',

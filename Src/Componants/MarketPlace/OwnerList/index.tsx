@@ -2,7 +2,6 @@ import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, Image} from 'react-native';
 import {activeAsks} from '../../../types/types';
 import {useAuth} from '../../../../screens/Provider/authProvider';
-import {getMinAskPrice} from '../../../hooks/marketPlace';
 import {shortenAddress} from '../../../utils/shortenAddress';
 import {formatQuantityMWh} from '../../../utils';
 import images from '../../../Theme/images';

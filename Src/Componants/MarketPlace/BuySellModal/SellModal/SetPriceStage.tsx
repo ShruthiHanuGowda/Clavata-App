@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,9 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
-import { NftToken } from '../../../../types/types';
-import { formatQuantityMWh } from '../../../../utils';
-import { NFT_DEFAULT_IMAGE_URL } from '../../../../constants';
+import {NftToken} from '../../../../types/types';
+import {formatQuantityMWh} from '../../../../utils';
+import {NFT_DEFAULT_IMAGE_URL} from '../../../../constants';
 
 interface SetPriceStageProps {
   nftToSell: NftToken;
@@ -88,13 +88,11 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
       <View style={styles.nftInfo}>
         <Image
           source={{
-            uri:
-              nftToSell?.image?.thumbnail ||
-              NFT_DEFAULT_IMAGE_URL
+            uri: nftToSell?.image?.thumbnail || NFT_DEFAULT_IMAGE_URL,
           }}
           style={styles.nftImage}
         />
-        <View style={{ flex: 1 }}>
+        <View style={{flex: 1}}>
           <Text style={styles.nftName}>{nftToSell?.name}</Text>
           <Text style={styles.collectionName}>{nftToSell?.collectionName}</Text>
         </View>
@@ -134,7 +132,8 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
         {quantityGreaterThanAvailable && (
           <Text style={styles.errorText}>
             Cannot sell more than{' '}
-            {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))} Certicates.
+            {formatQuantityMWh(Number(nftToSell?.marketData?.quantity))}{' '}
+            Certicates.
           </Text>
         )}
       </View>
@@ -148,7 +147,7 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
               adjustedPriceIsTheSame ||
               priceIsOutOfRange ||
               qtyIsValid) &&
-            styles.buttonDisabled,
+              styles.buttonDisabled,
           ]}
           onPress={continueToNextStage}
           disabled={

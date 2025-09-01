@@ -36,19 +36,10 @@ const Header: React.FC<HeaderProps> = props => {
     <SafeAreaView
       style={[
         style.headerContainer,
-        hideBorder
-          ? {
-              borderBottomWidth: 0,
-              borderColor: 'rgba(255,255,255, 1)',
-            }
-          : {
-              borderBottomWidth: 1,
-              borderColor: 'rgba(0, 0, 0, 0.08)',
-            },
+        hideBorder ? style.noBorder : style.withBorder,
         props.containerStyle,
       ]}>
-      <View
-        style={{flexDirection: 'row', alignItems: 'center', marginLeft: 10}}>
+      <View style={style.headerContent}>
         <View style={[style.headerIcons, props.backArrowStyle]}>
           {!props.hideBackIcon && (
             <TouchableOpacity
@@ -77,9 +68,20 @@ const style = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     marginTop: 18,
+    backgroundColor: Colors.white,
+  },
+  noBorder: {
+    borderBottomWidth: 0,
+    borderColor: 'rgba(255,255,255, 1)',
+  },
+  withBorder: {
     borderBottomWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.08)',
-    backgroundColor: Colors.white,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10,
   },
   headerIcons: {
     width: '15%',

@@ -1,30 +1,38 @@
 import React from 'react';
-import {StyleProp, Text} from 'react-native';
-import {normalize} from '../utils/screenSize';
+import {Text, TextProps, TextStyle, StyleSheet} from 'react-native';
 
 const fonts = {
   fontRegular: 'Mulish-Regular',
   fontBold: 'Mulish-Bold',
   fontSemiBold: 'Mulish-SemiBold',
   fontExtraBold: 'Mulish-ExtraBold',
-};
+} as const;
+
+type FontStyle = keyof typeof fonts;
+
+interface DTextProps {
+  children: React.ReactNode;
+  fontStyle?: FontStyle;
+  style?: TextStyle | TextStyle[];
+  textProps?: Omit<TextProps, 'style' | 'children'>;
+}
 
 export function DText({
   children,
-  fontStyle = 'fontBlack',
+  fontStyle = 'fontRegular',
   style,
   textProps = {},
-}: any) {
-  let textStyle = {};
+}: DTextProps) {
+  let textStyle: TextStyle = {};
 
-  if (style?.length) {
+  if (Array.isArray(style)) {
     for (const sty of style) {
       textStyle = {
         ...textStyle,
         ...sty,
       };
     }
-  } else {
+  } else if (style) {
     textStyle = {
       ...style,
     };
@@ -32,14 +40,14 @@ export function DText({
   return (
     <Text
       {...textProps}
-      style={[
-        {
-          fontFamily: fonts[fontStyle],
-          color: '#000',
-        },
-        textStyle,
-      ]}>
+      style={[styles.baseText, {fontFamily: fonts[fontStyle]}, textStyle]}>
       {children}
     </Text>
   );
 }
+
+const styles = StyleSheet.create({
+  baseText: {
+    color: '#000',
+  },
+});

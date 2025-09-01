@@ -1,5 +1,14 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {Dimensions, StyleSheet, View, Animated, ScrollView} from 'react-native';
+import React, {useRef, useState} from 'react';
+import {
+  Dimensions, 
+  StyleSheet, 
+  View, 
+  Animated, 
+  ScrollView,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  ImageSourcePropType,
+} from 'react-native';
 
 import NextButton from './NextButton';
 import OnboardingItem from './OnboardingItem';
@@ -10,20 +19,34 @@ import secureStorage from '../../utils/secureStorage';
 
 const {width} = Dimensions.get('window');
 
-export default function Onboarding({navigation}) {
-  const [index, setIndex] = useState(0);
+interface SlideData {
+  image: ImageSourcePropType;
+  showSkip?: boolean;
+  onSkipPress?: () => void;
+  onBackPress?: () => void;
+  title: string;
+  description: string;
+  top?: boolean;
+  showBack?: boolean;
+}
 
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const scrollViewRef = useRef(null);
+interface OnboardingProps {
+  navigation?: any; // You can type this more specifically if needed
+}
 
-  const navigateToWelcome = async () => {
+const Onboarding: React.FC<OnboardingProps> = ({navigation}) => {
+  const [index, setIndex] = useState<number>(0);
+
+  const scrollX = useRef<Animated.Value>(new Animated.Value(0)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const navigateToWelcome = async (): Promise<void> => {
     navReset('authScreens');
     try {
       await secureStorage.setItem('isInfoDone', 'true');
     } catch (error) {
-      // Error saving data
+      console.error('Error saving onboarding completion status:', error);
     }
-    // navigation.push(SCREEN_CONSTANT.WELCOME);
   };
 
   const handleScroll = Animated.event(
@@ -33,13 +56,13 @@ export default function Onboarding({navigation}) {
     },
   );
 
-  const handleOnMomentumScrollEnd = event => {
+  const handleOnMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const currentIndex = Math.round(offsetX / width);
     setIndex(currentIndex);
   };
 
-  const handleNextPress = () => {
+  const handleNextPress = (): void => {
     if (index < slides.length - 1) {
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({
@@ -52,7 +75,7 @@ export default function Onboarding({navigation}) {
     }
   };
 
-  const handleBackPress = () => {
+  const handleBackPress = (): void => {
     if (index > 0) {
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({
@@ -63,7 +86,7 @@ export default function Onboarding({navigation}) {
     }
   };
 
-  const slides = [
+  const slides: SlideData[] = [
     {
       image: images.onboard1,
       showSkip: true,
@@ -108,18 +131,18 @@ export default function Onboarding({navigation}) {
         onScroll={handleScroll}
         onMomentumScrollEnd={handleOnMomentumScrollEnd}
         scrollEventThrottle={16}
-        contentContainerStyle={{width: width * slides.length}}>
+        contentContainerStyle={styles.scrollContainer}>
         {slides.map((item, idx) => (
-          <View key={idx} style={[styles.child]}>
-            {OnboardingItem({item})}
+          <View key={idx} style={styles.child}>
+            <OnboardingItem item={item} />
           </View>
         ))}
       </ScrollView>
 
-      <View style={{height: 100, left: 50, position: 'absolute', bottom: 0}}>
+      <View style={styles.paginatorContainer}>
         <Paginator data={slides} scrollX={scrollX} />
       </View>
-      <View style={{height: 100, right: 50, position: 'absolute', bottom: 32}}>
+      <View style={styles.nextButtonContainer}>
         <NextButton
           progress={index === 0 ? 70 : index === 1 ? 30 : 0}
           onPress={handleNextPress}
@@ -127,7 +150,7 @@ export default function Onboarding({navigation}) {
       </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   background: {
@@ -147,4 +170,21 @@ const styles = StyleSheet.create({
   child: {
     width,
   },
+  scrollContainer: {
+    width: width * 3, // Since we have 3 slides
+  },
+  paginatorContainer: {
+    height: 100,
+    left: 50,
+    position: 'absolute',
+    bottom: 0,
+  },
+  nextButtonContainer: {
+    height: 100,
+    right: 50,
+    position: 'absolute',
+    bottom: 32,
+  },
 });
+
+export default Onboarding;

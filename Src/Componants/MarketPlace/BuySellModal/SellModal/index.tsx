@@ -15,7 +15,7 @@ import RemoveStage from './RemoveStage';
 import TransferStage from './TransferStage';
 import ConfirmStage from '../BuyModal/ConfirmStage';
 import TransactionConfirmed from '../BuyModal/TransactionConfirmed';
-import {hexlify, isAddress, MaxUint256, parseUnits, toUtf8Bytes} from 'ethers';
+import {hexlify, isAddress, parseUnits, toUtf8Bytes} from 'ethers';
 import useApproveConfirmTransaction from '../../../../hooks/marketplace/useApproveConfirmTransaction';
 import {useCallWithGasPrice} from '../../../../hooks/marketplace/useCallWithGasPrice';
 import {

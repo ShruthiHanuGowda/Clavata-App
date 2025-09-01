@@ -90,6 +90,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
 
   useEffect(() => {
     refreshBalance('WUSDC');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentCurrency]);
 
   const {isApproved, isApproving, isConfirming, handleApprove, handleConfirm} =
@@ -110,7 +111,7 @@ const BuyModal: React.FC<BuyModalProps> = ({
           MaxUint256,
         ]);
       },
-      onApproveSuccess: async ({receipt}) => {
+      onApproveSuccess: async () => {
         SnackBarMessage(
           `Contract approved - you can now buy NFT with ${paymentCurrency}!`,
           'success',
@@ -125,7 +126,6 @@ const BuyModal: React.FC<BuyModalProps> = ({
         ]);
       },
       onSuccess: ({receipt}) => {
-        console.log(receipt);
         SnackBarMessage(
           `Your Certificate has been sent to your wallet`,
           'success',

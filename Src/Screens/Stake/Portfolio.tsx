@@ -3,28 +3,11 @@ import {View, Text, Image, StyleSheet} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {DText} from '../../Componants/DText';
 
-const styles = StyleSheet.create({
-  portfolio: {
-    height: 60,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  section: {
-    marginRight: 36,
-  },
-  count: {
-    color: '#2F2F2F',
-    fontSize: 14,
-  },
-  type: {
-    color: '#2F2F2F',
-    opacity: 0.4,
-    fontSize: 12,
-  },
-});
+interface PortfolioProps {
+  // Add any props if needed in the future
+}
 
-const Portfolio = ({}) => {
+const Portfolio: React.FC<PortfolioProps> = ({}) => {
   return (
     <LinearGradient
       colors={['#dcf2f1', '#FFFFFF']}
@@ -62,5 +45,26 @@ const Portfolio = ({}) => {
     </LinearGradient>
   );
 };
+
+const styles = StyleSheet.create({
+  portfolio: {
+    height: 60,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  section: {
+    marginRight: 36,
+  },
+  count: {
+    color: '#2F2F2F',
+    fontSize: 14,
+  },
+  type: {
+    color: '#2F2F2F',
+    opacity: 0.4,
+    fontSize: 12,
+  },
+});
 
 export default Portfolio;

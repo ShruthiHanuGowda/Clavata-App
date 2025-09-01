@@ -3,29 +3,26 @@ import {
   Text,
   View,
   ScrollView,
-  ActivityIndicator,
   Alert,
   SafeAreaView,
   Platform,
 } from 'react-native';
 import 'react-native-get-random-values';
-import '@ethersproject/shims'; // for ethers.js
-import {ethers} from 'ethers';
+import '@ethersproject/shims';
 import LottieView from 'lottie-react-native';
 import styles from './styles';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import {navReset} from '../../Navigation/NavigationFunctions';
 import {DButton, Header} from '../../Componants';
-import {Animation, Colors, Images} from '../../Theme';
+import {Animation, Colors} from '../../Theme';
 import {DEmailInput} from '../../Componants/Dinputs';
 import {useLazyQuery} from '@apollo/client';
 import {GET_USER_WALLET_ADDRESS} from '../../graphql/queries';
-import {UserAuth, ExtractedKycInfo, Address, UserData} from '../../utils/type';
+import {UserAuth, ExtractedKycInfo, UserData} from '../../utils/type';
 import {useApolloClientContext} from '../../../screens/Provider/GraphQLProvider';
 import {useKycCheck} from '../../CustomHooks/GlobalKycProvider';
 
-// Keep your existing utility function
 export const parseDataAndReturnFixedInfo = (data: any) => {
   try {
     let parsedData;
@@ -59,7 +56,6 @@ export default function LoginScreen() {
   const {updateClientWithToken} = useApolloClientContext();
   const {checkKYC, isKycCompleted} = useKycCheck();
 
-  // State management
   const [isUserLogin, setIsUserLogin] = useState(false);
   const [isValid, setValid] = useState(false);
   const [userEmail, setUserEmail] = useState('');
@@ -68,12 +64,10 @@ export default function LoginScreen() {
   const [isKycSkipped, setIsKycSkipped] = useState(false);
   const [kycInProgress, setKycInProgress] = useState(false);
 
-  // Use refs to track callback execution and KYC processes
   const callbackExecutedRef = useRef(false);
   const kycCompletionTimeoutRef = useRef<any>(null);
   const kycPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // GraphQL query - WITHOUT callbacks to prevent re-execution issues
   const [
     getUserWallet,
     {data: userData, loading: queryLoading, error: queryError},
@@ -81,7 +75,6 @@ export default function LoginScreen() {
     fetchPolicy: 'no-cache',
   });
 
-  // Handle userData changes
   useEffect(() => {
     if (userData && !callbackExecutedRef.current && !isKycSkipped) {
       callbackExecutedRef.current = true;
@@ -90,14 +83,12 @@ export default function LoginScreen() {
     }
   }, [userData, isKycSkipped]);
 
-  // Handle query errors
   useEffect(() => {
     if (queryError) {
       console.error('❌ Error fetching user data:', queryError);
       setIsScreenLoading(false);
       setLoading(false);
 
-      // Show user-friendly error
       Alert.alert(
         'Connection Error',
         'Unable to fetch user data. Please check your connection and try again.',
@@ -105,13 +96,11 @@ export default function LoginScreen() {
     }
   }, [queryError]);
 
-  // Navigate to main app screens
   const navigateToApp = useCallback(() => {
     console.log('🚀 Navigating to app screens');
     navReset('appScreens');
   }, []);
 
-  // KYC process handler
   const handleKycProcess = useCallback(async () => {
     try {
       setKycInProgress(true);
@@ -544,19 +533,12 @@ export default function LoginScreen() {
   }, [isKycCompleted, kycInProgress, navigateToApp]);
 
   const LoadingScreen = ({message}: {message: string}) => (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        paddingHorizontal: 20,
-      }}>
+    <View style={styles.loadingContainer}>
       <LottieView
         source={Animation.loaderAnimation}
         autoPlay
         loop
-        style={{width: 150, height: 150}}
+        style={styles.lottieAnimation}
         speed={1}
         colorFilters={[
           {
@@ -601,7 +583,7 @@ export default function LoginScreen() {
           message={kycInProgress ? 'Processing KYC...' : 'Checking session...'}
         />
       ) : (
-        <View style={{flex: 1}}>
+        <View style={styles.flexContainer}>
           <Header headerTitle="Login" hideBorder={true} hideBackIcon={true} />
           <ScrollView>
             <View style={styles.contentContainer}>

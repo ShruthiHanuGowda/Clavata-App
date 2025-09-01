@@ -1,7 +1,7 @@
 import React, {useRef, useEffect} from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {View, Text, StyleSheet, TextStyle, ViewStyle} from 'react-native';
 import LottieView from 'lottie-react-native';
-import {DText} from '../DText'; // Adjust the import path as needed
+import {DText} from '../DText';
 
 interface LoadingScreenWithStepProps {
   title?: string;
@@ -13,10 +13,10 @@ interface LoadingScreenWithStepProps {
   stepIndicatorCount?: number;
   feeInfo?: string;
   animationSource?: any;
-  animationStyle?: object;
-  containerStyle?: object;
-  titleStyle?: object;
-  subtitleStyle?: object;
+  animationStyle?: ViewStyle;
+  containerStyle?: ViewStyle;
+  titleStyle?: TextStyle;
+  subtitleStyle?: TextStyle;
   progressBarColor?: string;
   backgroundColor?: string;
   iconBackgroundColor?: string;
@@ -142,10 +142,10 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
           ]}>
           <Text style={styles.iconText}>{icon}</Text>
         </View>
-        <DText fontStyle="fontBold" style={[styles.title, titleStyle]}>
+        <DText fontStyle="fontBold" style={titleStyle ? [styles.title, titleStyle] : styles.title}>
           {title}
         </DText>
-        <DText style={[styles.subtitle, subtitleStyle]}>{subtitle}</DText>
+        <DText style={subtitleStyle ? [styles.subtitle, subtitleStyle] : styles.subtitle}>{subtitle}</DText>
       </View>
 
       {/* Animation Section */}

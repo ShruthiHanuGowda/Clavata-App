@@ -1,16 +1,14 @@
-import React, {useCallback, useEffect} from 'react';
-import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React from 'react';
+import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {DText} from '../../Componants/DText';
 import CryptoMarketCard from './CryptoMarketCard';
 import {fontsFamily} from '../../Theme';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList';
-import {useNftsForAddress} from '../../hooks/useNftsForAddress';
 import {navigateTo} from '../../utils/navigationService';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
-import {useNft} from '../../../screens/Provider/NftProvider';
 export default function CryptoMarketPlace(props: any) {
   const {getBalance, refreshBalance, isBalanceLoading, refreshAllBalances} =
     useWallet();
@@ -19,10 +17,6 @@ export default function CryptoMarketPlace(props: any) {
 
   const account = (userDetails?.userWallet ??
     '0x0000000000000000000000000000000000000000') as `0x${string}`;
-
-  // const {nfts, isLoading, refresh} = useNftsForAddress({
-  //   account: account,
-  // });
 
   const formatValue = (value: any, fixed?: number) => {
     if (value === undefined || value === null) {

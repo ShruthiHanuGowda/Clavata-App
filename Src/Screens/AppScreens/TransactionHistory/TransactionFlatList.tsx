@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,14 +6,33 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  StyleSheet,
 } from 'react-native';
 import moment from 'moment';
 import ListItem from './ListItem';
 import styles from '../CoinWallet/styles';
-import {DText} from '../../../Componants/DText';
+import { DText } from '../../../Componants/DText';
 import TransactionDetailsModal from './TransactionDetailsModal';
 
-const TransactionFlatList = ({
+interface TransactionItem {
+  id?: string;
+  hash?: string;
+  date: string;
+  [key: string]: any;
+}
+
+interface TransactionFlatListProps {
+  data?: TransactionItem[];
+  name?: string;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  isLoadingMore?: boolean;
+  hasMoreData?: boolean;
+  onLoadMore?: () => void;
+  error?: string | null;
+}
+
+const TransactionFlatList: React.FC<TransactionFlatListProps> = ({
   data = [],
   name = 'user',
   refreshing = false,
@@ -25,10 +44,10 @@ const TransactionFlatList = ({
 }) => {
   const [transactionDetailsVisible, setTransactionDetailsVisible] =
     useState(false);
-  const [selectedItems, setSelectedItems] = useState({});
+  const [selectedItems, setSelectedItems] = useState<TransactionItem>({} as TransactionItem);
 
   // Helper function to determine if we should show date header
-  const shouldShowDateHeader = (item, index) => {
+  const shouldShowDateHeader = (item: TransactionItem, index: number): boolean => {
     if (index === 0) return true;
 
     const currentDate = moment(item.date).format('YYYY-MM-DD');
@@ -38,7 +57,7 @@ const TransactionFlatList = ({
   };
 
   // Format date for section headers
-  const formatDateHeader = date => {
+  const formatDateHeader = (date: string): string => {
     const REFERENCE = moment();
     const TODAY = REFERENCE.clone().startOf('day');
     const YESTERDAY = REFERENCE.clone().subtract(1, 'days').startOf('day');
@@ -58,7 +77,7 @@ const TransactionFlatList = ({
   };
 
   // Render date header
-  const renderDateHeader = date => (
+  const renderDateHeader = (date: string): React.ReactElement => (
     <View style={styles.headerAlign}>
       <Text style={styles.header}>{formatDateHeader(date)}</Text>
       <View style={styles.borderLine} />
@@ -66,13 +85,13 @@ const TransactionFlatList = ({
   );
 
   // Set selected transaction for modal
-  const setItems = items => {
+  const setItems = (items: TransactionItem): void => {
     setSelectedItems(items);
     setTransactionDetailsVisible(true);
   };
 
   // Render individual transaction item
-  const renderItem = ({item, index}) => (
+  const renderItem = ({item, index}: {item: TransactionItem; index: number}): React.ReactElement => (
     <View>
       {shouldShowDateHeader(item, index) && renderDateHeader(item.date)}
       <ListItem item={item} name={name} setSelectedItems={setItems} />
@@ -80,10 +99,10 @@ const TransactionFlatList = ({
   );
 
   // Render loading footer
-  const renderFooter = () => {
+  const renderFooter = (): React.ReactElement | null => {
     if (isLoadingMore) {
       return (
-        <View style={{padding: 20, alignItems: 'center'}}>
+        <View style={componentStyles.loadingFooter}>
           <ActivityIndicator size="small" color="#009D94" />
         </View>
       );
@@ -93,11 +112,8 @@ const TransactionFlatList = ({
       return (
         <TouchableOpacity
           onPress={onLoadMore}
-          style={{
-            alignItems: 'center',
-            padding: 20,
-          }}>
-          <DText style={{color: '#009D94'}}>Load More</DText>
+          style={componentStyles.loadMoreButton}>
+          <DText style={componentStyles.loadMoreText}>Load More</DText>
         </TouchableOpacity>
       );
     }
@@ -106,29 +122,19 @@ const TransactionFlatList = ({
   };
 
   // Render empty state
-  const renderEmpty = () => {
+  const renderEmpty = (): React.ReactElement | null => {
     if (refreshing) return null;
 
     return (
-      <View
-        style={{
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: 100,
-        }}>
-        <Text style={{fontSize: 16, color: '#666'}}>
+      <View style={componentStyles.emptyContainer}>
+        <Text style={componentStyles.emptyText}>
           {/* {error ? `Error: ${error}` : 'No transactions found'} */}
         </Text>
         {error && (
           <TouchableOpacity
             onPress={onRefresh}
-            style={{
-              marginTop: 10,
-              padding: 10,
-              backgroundColor: '#009D94',
-              borderRadius: 5,
-            }}>
-            <Text style={{color: 'white'}}>Retry</Text>
+            style={componentStyles.retryButton}>
+            <Text style={componentStyles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -136,7 +142,7 @@ const TransactionFlatList = ({
   };
 
   // Handle end reached for pagination
-  const handleEndReached = () => {
+  const handleEndReached = (): void => {
     if (hasMoreData && !isLoadingMore && !refreshing) {
       onLoadMore();
     }
@@ -148,10 +154,7 @@ const TransactionFlatList = ({
         data={data}
         renderItem={renderItem}
         keyExtractor={(item, index) => `${item.id || item.hash}-${index}`}
-        contentContainerStyle={{
-          paddingBottom: 100,
-          flexGrow: 1,
-        }}
+        contentContainerStyle={componentStyles.flatListContainer}
         refreshControl={
           <RefreshControl
             colors={['#9Bd35A', '#689F38']}
@@ -183,5 +186,41 @@ const TransactionFlatList = ({
     </>
   );
 };
+
+const componentStyles = StyleSheet.create({
+  loadingFooter: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadMoreButton: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadMoreText: {
+    color: '#009D94',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 100,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  retryButton: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#009D94',
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: 'white',
+  },
+  flatListContainer: {
+    paddingBottom: 100,
+    flexGrow: 1,
+  },
+});
 
 export default TransactionFlatList;

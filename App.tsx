@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {Appearance, View} from 'react-native';
+import {Appearance, View, StyleSheet} from 'react-native';
 import {MagicProvider} from './screens/Provider/MagicProvider';
 import NavigationWrapper from './Src/Navigation';
 import {AuthProvider} from './screens/Provider/authProvider';
@@ -16,8 +16,8 @@ export default function App() {
   Appearance.setColorScheme('light');
 
   return (
-    <View style={{flex: 1}}>
-      <GestureHandlerRootView style={{flex: 1}}>
+    <View style={styles.container}>
+      <GestureHandlerRootView style={styles.container}>
         <MagicProvider apiKey={MAGIC_API_KEY_PROD}>
           <GraphQLProvider>
             <AuthProvider>
@@ -36,3 +36,9 @@ export default function App() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

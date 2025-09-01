@@ -1,3 +1,4 @@
+import React from 'react';
 import {ScreenWidth, Tab} from '@rneui/base';
 import {Image, StyleSheet, TouchableOpacity, View} from 'react-native';
 import images from '../../Theme/images';
@@ -8,21 +9,26 @@ import {DSearchInput} from '../../Componants/Dinputs';
 import {DText} from '../../Componants/DText';
 import {normalize} from '../../utils/screenSize';
 
-export default function CategoryTab({onSelectPress, onCancelPress}) {
+interface CategoryTabProps {
+  onSelectPress?: () => void;
+  onCancelPress?: () => void;
+}
+
+const CategoryTab: React.FC<CategoryTabProps> = ({onSelectPress, onCancelPress}) => {
   //   const {index, setFilters, reloadData, filters, lastUpdated, count} =
   // useContext(StakeContext);
   //   const [showFilter, setShowFilter] = useState(false);
   //   const [showSortBy, setShowSortBy] = useState(false);
 
-  const onFilterPress = () => {
+  const onFilterPress = (): void => {
     // setShowFilter(true);
   };
 
-  const onSortByPress = () => {
+  const onSortByPress = (): void => {
     // setShowSortBy(true);
   };
 
-  const renderText = (itemIndex, title) => (
+  const renderText = (itemIndex: number, title: string): React.ReactElement => (
     <View style={styles.titleContainer}>
       <DText
         style={[index === itemIndex ? styles.tabTitleActive : styles.tabTitle]}>
@@ -85,17 +91,7 @@ export default function CategoryTab({onSelectPress, onCancelPress}) {
             Filter
           </DText>
           <Image source={images.chevron} />
-          <View
-            style={{
-              backgroundColor: '#009D94',
-              height: 7,
-              width: 7,
-              position: 'absolute',
-              borderRadius: 7,
-              top: -3,
-              right: 1,
-            }}
-          />
+          <View style={styles.filterBadge} />
         </TouchableOpacity>
       </View>
       <View style={styles.infoContainer}>
@@ -120,7 +116,7 @@ export default function CategoryTab({onSelectPress, onCancelPress}) {
       /> */}
     </>
   );
-}
+};
 
 const styles = StyleSheet.create({
   infoContainer: {
@@ -216,4 +212,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666666',
   },
+  filterBadge: {
+    backgroundColor: '#009D94',
+    height: 7,
+    width: 7,
+    position: 'absolute',
+    borderRadius: 7,
+    top: -3,
+    right: 1,
+  },
 });
+
+export default CategoryTab;

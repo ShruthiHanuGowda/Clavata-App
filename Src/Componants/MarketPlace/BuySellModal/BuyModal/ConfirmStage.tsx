@@ -21,11 +21,7 @@ const ConfirmStage = ({isConfirming, handleConfirm}: ConfirmStageProps) => {
       </Text>
 
       {isConfirming ? (
-        <ActivityIndicator
-          size="large"
-          color="#81c8c3"
-          style={{marginVertical: 20}}
-        />
+        <ActivityIndicator size="large" color="#81c8c3" style={styles.loader} />
       ) : (
         <TouchableOpacity style={styles.button} onPress={handleConfirm}>
           <Text style={styles.buttonText}>Confirm</Text>
@@ -45,6 +41,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginBottom: 20,
+  },
+  loader: {
+    marginVertical: 20,
   },
   button: {
     backgroundColor: '#81c8c3',

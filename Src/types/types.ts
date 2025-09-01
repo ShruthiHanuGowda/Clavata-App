@@ -74,6 +74,7 @@ export interface TokenMarketData {
   updatedAt?: string;
   transactionHistory?: Transaction[];
   activeAsks?: activeAsks[];
+  price?: string;
 }
 
 // Represents single NFT token, either Squad-like NFT or single PancakeBunny.
