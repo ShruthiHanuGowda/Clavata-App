@@ -284,6 +284,8 @@ export const useTransactionHistory = (
   );
 
   useEffect(() => {
+    let isCancelled = false;
+    
     if (walletAddress) {
       console.log('Initializing transaction history...', {
         walletAddress,
@@ -292,12 +294,23 @@ export const useTransactionHistory = (
       setCurrentPage(1);
       setHasMoreData(true);
       setError(null);
-      fetchTransactions(1, false);
+      
+      const fetchWithCleanup = async () => {
+        if (!isCancelled) {
+          await fetchTransactions(1, false);
+        }
+      };
+      
+      fetchWithCleanup();
     } else {
       console.log('Missing required wallet address');
       setTransactions([]);
       setTotalCount(0);
     }
+    
+    return () => {
+      isCancelled = true;
+    };
   }, [walletAddress, contractAddress]);
 
   const formattedTransactions = formatTransactionsForSectionList(transactions);

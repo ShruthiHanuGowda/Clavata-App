@@ -39,8 +39,20 @@ const useApi = <T>(
   }, [url, options]);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    let isCancelled = false;
+    
+    const fetchDataWithCleanup = async () => {
+      if (!isCancelled) {
+        await fetchData();
+      }
+    };
+    
+    fetchDataWithCleanup();
+    
+    return () => {
+      isCancelled = true;
+    };
+  }, [fetchData]);
 
   return {data, isLoading, error, refetch: fetchData};
 };
