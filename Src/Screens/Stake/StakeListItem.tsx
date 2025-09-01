@@ -46,9 +46,9 @@ const StakeListItem: React.FC<StakeListItemProps> = (props) => {
       totalNftStaked: 0,
     },
   } = props;
-  
+
   const navigation = useNavigation();
-  
+
   return (
     <TouchableOpacity
       onPress={() => {
@@ -79,7 +79,7 @@ const StakeListItem: React.FC<StakeListItemProps> = (props) => {
             </DText>
           </View>
           <View style={[styles.col, styles.stakedSection]}>
-            <DText></DText>
+            <DText />
             {item.isStaked && (
               <>
                 <DText style={styles.stakedTitle} fontStyle="fontRegular">

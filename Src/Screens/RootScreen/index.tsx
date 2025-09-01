@@ -29,5 +29,5 @@ export const Root = () => {
       // navReset('intro');
     }, 500);
   }, []);
-  return <View style={styles.container}></View>;
+  return <View style={styles.container} />;
 };

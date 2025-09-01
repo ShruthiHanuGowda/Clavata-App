@@ -64,8 +64,8 @@ const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
 
   // Display coin code formatting
   const getDisplayCoinCode = (code?: string): string => {
-    if (!code) return '';
-    
+    if (!code) {return '';}
+
     switch (code.toUpperCase()) {
       case 'WUSDC':
         return 'wUSDC';

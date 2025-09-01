@@ -304,7 +304,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
 
   // Helper function to get attribute value
   const getAttributeValue = (traitType: string): string => {
-    if (!nftMetadata?.attributes) return '-';
+    if (!nftMetadata?.attributes) {return '-';}
     const attribute = nftMetadata.attributes.find(
       attr => attr?.trait_type === traitType,
     );

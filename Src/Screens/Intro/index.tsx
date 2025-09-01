@@ -1,9 +1,9 @@
 import React, {useRef, useState} from 'react';
 import {
-  Dimensions, 
-  StyleSheet, 
-  View, 
-  Animated, 
+  Dimensions,
+  StyleSheet,
+  View,
+  Animated,
   ScrollView,
   NativeSyntheticEvent,
   NativeScrollEvent,

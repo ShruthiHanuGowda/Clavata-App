@@ -468,7 +468,7 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
       setTxStatus('failed');
 
       // Show error alert
-      Alert.alert('Staking Failed', `Something went wrong while staking`, [
+      Alert.alert('Staking Failed', 'Something went wrong while staking', [
         {text: 'OK'},
       ]);
     } finally {

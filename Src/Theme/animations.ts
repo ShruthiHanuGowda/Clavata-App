@@ -4,5 +4,5 @@ export default{
     transferStartAnimation: require('../assets/animations/transferStart.json'),
     transferSuccessAnimation: require('../assets/animations/transferSuccess.json'),
     errorAnimation: require('../assets/animations/error.json'),
-    loaderAnimation: require('../assets/animations/loader.json')
-}
+    loaderAnimation: require('../assets/animations/loader.json'),
+};

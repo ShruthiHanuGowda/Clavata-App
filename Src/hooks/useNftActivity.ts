@@ -8,7 +8,7 @@ const useNftActivity = (tokenId: string, collectionAddress: string) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchActivity = async () => {
-    if (!tokenId || !collectionAddress) return;
+    if (!tokenId || !collectionAddress) {return;}
 
     try {
       setLoading(true);
@@ -29,9 +29,9 @@ const useNftActivity = (tokenId: string, collectionAddress: string) => {
 
   useEffect(() => {
     let isCancelled = false;
-    
+
     const fetchActivityWithCleanup = async () => {
-      if (!tokenId || !collectionAddress || isCancelled) return;
+      if (!tokenId || !collectionAddress || isCancelled) {return;}
 
       try {
         setLoading(true);
@@ -41,7 +41,7 @@ const useNftActivity = (tokenId: string, collectionAddress: string) => {
           tokenId,
           collectionAddress.toLowerCase(),
         );
-        
+
         if (!isCancelled) {
           const sorted = sortActivity(response);
           setActivity(sorted);
@@ -58,7 +58,7 @@ const useNftActivity = (tokenId: string, collectionAddress: string) => {
     };
 
     fetchActivityWithCleanup();
-    
+
     return () => {
       isCancelled = true;
     };

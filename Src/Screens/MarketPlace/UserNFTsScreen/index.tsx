@@ -1,12 +1,5 @@
 import React, {useState} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  ActivityIndicator,
-} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, RefreshControl} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
 import {useAuth} from '../../../../screens/Provider/authProvider';
@@ -37,11 +30,7 @@ const UserNFTsScreen = ({route}: any) => {
   if (isLoading) {
     return (
       <>
-        {/* //   <View style={styles.loaderContainer}> */}
-        {/* <ActivityIndicator size="large" color="#81c8c3" />
-                <Text style={styles.loaderText}>Loading your Certificates...</Text> */}
         <FullScreenLoader color="#81c8c3" text="Loading your Certificates..." />
-        {/*  </View> */}
       </>
     );
   }
@@ -72,7 +61,9 @@ const UserNFTsScreen = ({route}: any) => {
               />
             ))
           ) : (
-            <Text style={styles.emptyText}>No Certificates currently on sale.</Text>
+            <Text style={styles.emptyText}>
+              No Certificates currently on sale.
+            </Text>
           )}
         </ScrollView>
       </View>

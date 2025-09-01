@@ -189,7 +189,7 @@ function AddressBook(props: AddressBookProps): JSX.Element {
         contactId={item.id}
         onPress={() => {
           // Disable press when deleting
-          if (deletingContactId === item.id) return;
+          if (deletingContactId === item.id) {return;}
           console.log('Contact pressed:', item.name, 'ID:', item.id);
         }}
         onEdit={handleEditContact}

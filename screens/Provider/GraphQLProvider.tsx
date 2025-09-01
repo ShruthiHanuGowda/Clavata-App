@@ -123,7 +123,7 @@ export const GraphQLProvider: React.FC<AppProviderProps> = ({children}) => {
 
   // Optional: Listen for Magic auth state changes
   useEffect(() => {
-    if (!magic) return;
+    if (!magic) {return;}
 
     // You might want to listen for auth state changes
     // This depends on your Magic implementation

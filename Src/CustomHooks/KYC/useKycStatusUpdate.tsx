@@ -58,7 +58,7 @@ export const useKycStatusUpdate = () => {
     UpdateKycStatusData,
     UpdateKycStatusVars
   >(UPDATE_KYC_STATUS, {
-    onCompleted: data => {
+    onCompleted: () => {
       console.log('KYC status updated successfully:');
     },
     onError: error => {

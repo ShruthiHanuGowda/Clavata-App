@@ -113,7 +113,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
 
   // Function to format contract address
   const formatContractAddress = address => {
-    if (!address) return '';
+    if (!address) {return '';}
     return `${address.substring(0, 8)}...${address.substring(
       address.length - 6,
     )}`;
@@ -169,7 +169,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
       setTxStatus('failed');
 
       // Show error alert
-      Alert.alert('NFT Staking Failed', `Something went wrong while staking`, [
+      Alert.alert('NFT Staking Failed', 'Something went wrong while staking', [
         {text: 'OK'},
       ]);
     } finally {

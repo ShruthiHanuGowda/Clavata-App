@@ -38,7 +38,7 @@ export function getBlockExploreLink(
 ): string {
   const chainId = chainIdOverride || CUSTOM_NETWORK_CHAIN_ID;
   const chain = chains.find(c => c.id === chainId);
-  if (!chain || !data) return denergyTestnet.blockExplorers.default.url;
+  if (!chain || !data) {return denergyTestnet.blockExplorers.default.url;}
   switch (type) {
     case 'transaction': {
       return `${chain?.blockExplorers?.default.url}/tx/${data}`;

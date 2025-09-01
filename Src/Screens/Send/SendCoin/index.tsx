@@ -266,7 +266,7 @@ export default function SendCoin(props: SendCoinProps): any {
   // Enhanced processing simulation with proper steps
   const simulateProcessingSteps = async () => {
     const steps = SEND_PROCESSING_STEPS[coinCode];
-    if (!steps) return;
+    if (!steps) {return;}
 
     const stepKeys = Object.keys(steps).filter(key => key !== 'COMPLETED');
 
@@ -319,7 +319,7 @@ export default function SendCoin(props: SendCoinProps): any {
 
   // Enhanced balance comparison with better precision handling
   const isInsufficientBalance = (): boolean => {
-    if (!wattAmount || wattAmount === '0' || wattAmount === '') return false;
+    if (!wattAmount || wattAmount === '0' || wattAmount === '') {return false;}
 
     const amountNum = parseFloat(wattAmount);
     const balanceNum = parseFloat(balance);
@@ -514,7 +514,7 @@ export default function SendCoin(props: SendCoinProps): any {
   };
 
   const formatTxHash = (hash: string): string => {
-    if (!hash) return '';
+    if (!hash) {return '';}
     return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
   };
 

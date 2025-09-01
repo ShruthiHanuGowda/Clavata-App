@@ -2,8 +2,7 @@ import React, {useState} from 'react';
 import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
 import {NavigationProp, useNavigation} from '@react-navigation/native';
 import Spinner from '../Spinner';
-import {NftLocation, NftToken} from '../../../types/types';
-import SellModal from '../BuySellModal/SellModal';
+import {NftToken} from '../../../types/types';
 import {formatQuantityMWh} from '../../../utils';
 import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
 
@@ -12,17 +11,10 @@ interface UserNFTCardProps {
   refresh: () => void;
 }
 
-interface SellNftProps {
-  nft?: NftToken;
-  location?: NftLocation;
-  variant?: 'sell' | 'adjust';
-}
-
 type NavigationProps = NavigationProp<any, any>;
 
 const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
   const [imageLoaded, setImageLoaded] = useState<boolean>(false);
-  const [isSellModalVisible, setIsSellModalVisible] = useState(false);
 
   const navigation = useNavigation<NavigationProps>();
 
@@ -74,18 +66,6 @@ const UserNFTCard: React.FC<UserNFTCardProps> = ({nft, refresh}) => {
           )}
         </View>
       </View>
-
-      <SellModal
-        visible={isSellModalVisible}
-        onClose={() => {
-          setIsSellModalVisible(false);
-        }}
-        variant={'adjust'}
-        nftToSell={nft}
-        onSuccessSale={() => {
-          refresh();
-        }}
-      />
     </TouchableOpacity>
   );
 };

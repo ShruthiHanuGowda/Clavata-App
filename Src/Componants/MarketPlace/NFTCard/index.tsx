@@ -48,7 +48,7 @@ const NFTCard: React.FC<NFTCardProps> = ({
           source={{
             uri:
               nft.image?.thumbnail ||
-              NFT_DEFAULT_IMAGE_URL
+              NFT_DEFAULT_IMAGE_URL,
           }}
           style={styles.image}
           resizeMode="cover"

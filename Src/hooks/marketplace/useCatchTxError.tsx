@@ -28,11 +28,11 @@ export default function useCatchTxError(params?: Params) {
       try {
         setLoading(true);
         tx = await callTx();
-        if (!tx) return null;
+        if (!tx) {return null;}
 
         const receipt: any = tx;
         if (receipt?.status === 1) {
-          SnackBarMessage(`Transaction Submitted!`, 'success');
+          SnackBarMessage('Transaction Submitted!', 'success');
           return receipt;
         } else {
           throw new Error('Transaction failed.');
@@ -48,7 +48,7 @@ export default function useCatchTxError(params?: Params) {
           }
         }
 
-        if (throwUserRejectError) throw error;
+        if (throwUserRejectError) {throw error;}
       } finally {
         setLoading(false);
       }
@@ -67,7 +67,7 @@ export default function useCatchTxError(params?: Params) {
       try {
         setTxResponseLoading(true);
         tx = await callTx();
-        if (!tx) return null;
+        if (!tx) {return null;}
 
         const hash = typeof tx === 'string' ? tx : tx.hash;
         return {hash};

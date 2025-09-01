@@ -101,7 +101,7 @@ const ShowQr: React.FC<ShowQrProps> = ({coinCode, address, name}) => {
         </View>
         <View style={styles.qrUsernameAlign}>
           {/* <Text style={styles.username} numberOfLines={1}>
-          
+
           </Text> */}
         </View>
 

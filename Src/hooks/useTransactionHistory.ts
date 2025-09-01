@@ -104,10 +104,10 @@ export const useTransactionHistory = (
       const isWithinAWeek = momentDate.isAfter(A_WEEK_OLD);
       const checkWithin30Days = moment().diff(momentDate, 'days');
 
-      if (isToday) return 'TODAY';
-      if (isYesterday) return 'YESTERDAY';
-      if (isWithinAWeek) return 'LAST WEEK';
-      if (checkWithin30Days <= 30) return 'LAST 30 DAYS';
+      if (isToday) {return 'TODAY';}
+      if (isYesterday) {return 'YESTERDAY';}
+      if (isWithinAWeek) {return 'LAST WEEK';}
+      if (checkWithin30Days <= 30) {return 'LAST 30 DAYS';}
       return 'OLDER';
     };
 
@@ -249,7 +249,7 @@ export const useTransactionHistory = (
    */
   const filterTransactionsByDate = useCallback(
     (startDate: string, endDate: string) => {
-      if (!startDate && !endDate) return transactions;
+      if (!startDate && !endDate) {return transactions;}
 
       return transactions.filter((transaction: any) => {
         const transactionDate = moment(transaction.date);
@@ -275,7 +275,7 @@ export const useTransactionHistory = (
    */
   const filterTransactionsByType = useCallback(
     (type: any) => {
-      if (!type) return transactions;
+      if (!type) {return transactions;}
       return transactions.filter(
         (transaction: any) => transaction.type === type,
       );
@@ -285,7 +285,7 @@ export const useTransactionHistory = (
 
   useEffect(() => {
     let isCancelled = false;
-    
+
     if (walletAddress) {
       console.log('Initializing transaction history...', {
         walletAddress,
@@ -294,20 +294,20 @@ export const useTransactionHistory = (
       setCurrentPage(1);
       setHasMoreData(true);
       setError(null);
-      
+
       const fetchWithCleanup = async () => {
         if (!isCancelled) {
           await fetchTransactions(1, false);
         }
       };
-      
+
       fetchWithCleanup();
     } else {
       console.log('Missing required wallet address');
       setTransactions([]);
       setTotalCount(0);
     }
-    
+
     return () => {
       isCancelled = true;
     };

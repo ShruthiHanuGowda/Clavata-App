@@ -3,7 +3,6 @@ import {View, Image, StyleSheet, TouchableOpacity} from 'react-native';
 import {NftToken} from '../../types/types';
 import {formatQuantityMWh} from '../../utils';
 import {NavigationProp, useNavigation} from '@react-navigation/native';
-// import SellModal from '../MarketPlace/BuySellModal/SellModal';
 import {DText} from '../DText';
 import {NFT_DEFAULT_IMAGE_URL} from '../../constants';
 

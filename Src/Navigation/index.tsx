@@ -3,7 +3,7 @@ import React from 'react';
 import {RootStackParamList} from '../../types';
 import LoginScreen from '../../Src/Screens/AuthScreens/loginScreen';
 import {NavigationContainer} from '@react-navigation/native';
-import {View} from 'react-native';
+import {StyleSheet, View} from 'react-native';
 import {Root} from '../Screens/RootScreen';
 import Tabs from './NavigationTab';
 import {SCREEN_CONSTANT} from './constant';
@@ -314,12 +314,18 @@ export function MarketplaceStackFun() {
 
 export function NavigationWrapper() {
   return (
-    <View style={{flex: 1}}>
+    <View style={styles.container}>
       <NavigationContainer ref={navigationRef}>
         <RootScreenStack />
       </NavigationContainer>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
 
 export default NavigationWrapper;

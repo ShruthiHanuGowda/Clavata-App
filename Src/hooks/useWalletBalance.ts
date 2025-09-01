@@ -127,7 +127,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
   // Function to fetch all balances
   const fetchAllBalances = useCallback(
     async (emailAddress: string, denergyAddress: string): Promise<void> => {
-      if (!emailAddress || !denergyAddress) return;
+      if (!emailAddress || !denergyAddress) {return;}
 
       setIsLoading(true);
       setError(null);
@@ -213,7 +213,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
         for (const [tokenSymbol, info] of Object.entries(tokenMapping)) {
           try {
             const contractAddress = (TOKEN_CONTRACTS as any)[info.network]?.[info.token];
-            
+
             if (!contractAddress) {
               console.log(`Contract address not found for ${tokenSymbol}`);
               updateTokenData(tokenSymbol, '0', '0');
@@ -230,7 +230,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
                 info.network,
                 6 // USDC/EURC decimals
               );
-              
+
               const balanceInUsd = (
                 parseFloat(formattedBalance) * rates[info.rateKey]
               ).toFixed(2);
@@ -360,7 +360,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
             }
 
             const contractAddress = (TOKEN_CONTRACTS as any)[tokenInfo.network]?.[tokenInfo.token];
-            
+
             if (!contractAddress) {
               throw new Error(`Contract address not found for ${normalizedTokenSymbol}`);
             }
@@ -375,7 +375,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
                 tokenInfo.network,
                 6 // USDC/EURC decimals
               );
-              
+
               const balanceInUsd = (
                 parseFloat(formattedBalance) * rates[tokenInfo.rateKey]
               ).toFixed(2);

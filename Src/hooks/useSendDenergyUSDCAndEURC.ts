@@ -144,7 +144,7 @@ export const useSendDenergyUSDCAndEURC = (
         'transfer',
         [transactionDetails.to, amountInSmallestUnit],
       );
-      
+
       const txParams = {
         from: userAddress,
         to: transactionDetails.tokenAddress,

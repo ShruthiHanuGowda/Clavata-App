@@ -9,7 +9,7 @@ export const requiresApproval = async (
   network: any,
 ) => {
   try {
-    if (!contractAddress) return true;
+    if (!contractAddress) {return true;}
     const provider = new BrowserProvider(network.rpcProvider as any);
     const signer = await provider.getSigner();
     const onChainTokenContract = new Contract(
@@ -41,7 +41,7 @@ export const isApprovedForAll = async (
   network: any,
 ) => {
   try {
-    if (!contractAddress) return true;
+    if (!contractAddress) {return true;}
     const provider = new BrowserProvider(network.rpcProvider as any);
     const signer = await provider.getSigner();
     const onChainTokenContract = new Contract(

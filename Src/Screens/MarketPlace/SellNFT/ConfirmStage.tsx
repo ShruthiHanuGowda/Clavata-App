@@ -18,9 +18,9 @@ interface ConfirmStageProps {
 const ConfirmStage: React.FC<ConfirmStageProps> = ({
     isConfirming,
     handleConfirm,
-    title = "Confirm Transaction",
-    description = "Please review and confirm your transaction",
-    buttonText = "Confirm",
+    title = 'Confirm Transaction',
+    description = 'Please review and confirm your transaction',
+    buttonText = 'Confirm',
 }) => {
     return (
         <View style={styles.container}>
@@ -111,8 +111,8 @@ const ConfirmStage: React.FC<ConfirmStageProps> = ({
             <View style={styles.helpSection}>
                 <Text style={styles.helpText}>
                     {isConfirming
-                        ? "If this is taking longer than expected, check your wallet app for any pending approvals."
-                        : "Need help? Make sure your wallet is connected and you have sufficient balance for gas fees."
+                        ? 'If this is taking longer than expected, check your wallet app for any pending approvals.'
+                        : 'Need help? Make sure your wallet is connected and you have sufficient balance for gas fees.'
                     }
                 </Text>
             </View>

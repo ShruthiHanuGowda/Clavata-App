@@ -1,10 +1,11 @@
-import React, {createContext, useContext, useCallback, useState} from 'react';
+import React, {createContext, useContext, useCallback} from 'react';
+import {Platform} from 'react-native';
 // @ts-ignore
 import SNSMobileSDK from '@sumsub/react-native-mobilesdk-module';
 import {useKycVerification} from '../../CustomHooks/useKycVerification';
 import {useAuth} from '../../../screens/Provider/authProvider';
-import {useKycStatusUpdate} from './useKycStatusUpdate'; // Import the new hook
-import {Platform} from 'react-native';
+import {useKycStatusUpdate} from './useKycStatusUpdate';
+import {SumSubEvent, SumSubLogEvent} from '../types/kyc.types';
 
 // Define types for the SumSub verification result
 interface VerificationResult {
@@ -32,7 +33,7 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
 }) => {
   const {initiateKycToken} = useKycVerification();
   const {userDetails} = useAuth();
-  const {updateUserKycStatus} = useKycStatusUpdate(); // Use the KYC status update hook
+  const {updateUserKycStatus} = useKycStatusUpdate();
 
   // Based on your working handleKYCToken function
   const handleKYCToken = useCallback(async (): Promise<{
@@ -47,7 +48,7 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
     }
 
     try {
-      const {token, userId, expiryTime} = await initiateKycToken(
+      const {token, userId} = await initiateKycToken(
         userEmail,
         'basic-kyc-level',
       );
@@ -64,17 +65,18 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
     }
   }, [userDetails, initiateKycToken]);
 
-  const handleVerificationCompleted = async (applicantId, accessToken) => {
+  const handleVerificationCompleted = async (
+    applicantId: string,
+    accessToken: string,
+  ) => {
     setTimeout(async () => {
       await updateUserKycStatus(true, applicantId, accessToken);
     }, 2000);
   };
 
-  // Based on your working launchSumSub function
   const launchKycVerification =
     useCallback(async (): Promise<VerificationResult> => {
       try {
-        // Get your access token from your backend
         const tokenResult = await handleKYCToken();
         if (!tokenResult) {
           console.error('Failed to get KYC token');
@@ -83,16 +85,15 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
             message: 'Could not obtain verification token',
           };
         }
-        const {accessToken, userId} = tokenResult;
+        const {accessToken} = tokenResult;
 
-        let snsMobileSDK = SNSMobileSDK.init(accessToken, async () => {
-          // This is a token expiration handler, will be called if the provided token is invalid or got expired
+        const snsMobileSDK = SNSMobileSDK.init(accessToken, async () => {
           const newToken = await handleKYCToken();
           return newToken?.accessToken || '';
         })
           .withHandlers({
-            // Optional callbacks you can use to get notified of the corresponding events
-            onStatusChanged: async event => {
+            // Optional callbacks to get notified of the corresponding events
+            onStatusChanged: async (event: SumSubEvent) => {
               if (
                 event.newStatus.toLowerCase() === 'approved' ||
                 event.newStatus.toLowerCase() === 'pending'
@@ -105,9 +106,8 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
                 }
               }
             },
-
-            onLog: event => {
-              let applicantId = null;
+            onLog: (event: SumSubLogEvent) => {
+              let applicantId: string | null = null;
 
               if (
                 Platform.OS === 'ios' &&
@@ -139,13 +139,12 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
               }
             },
           })
-          .withDebug(true) // Changed to false for production
-          .withLocale('en') // Optional, for cases when you need to override the system locale
+          .withDebug(true) // Set to false in production
+          .withLocale('en') // Optional: Override system locale if needed
           .build();
 
         const result = await snsMobileSDK.launch();
 
-        // Process result based on status - using toLowerCase() for case-insensitive comparison
         if (
           result.status.toLowerCase() === 'approved' ||
           result.status.toLowerCase() === 'pending'
@@ -176,7 +175,7 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
           error: err,
         };
       }
-    }, [handleKYCToken, updateUserKycStatus]); // Added updateUserKycStatus to dependencies
+    }, [handleKYCToken, updateUserKycStatus]); // Add dependencies
 
   return (
     <KycServiceContext.Provider value={{launchKycVerification}}>

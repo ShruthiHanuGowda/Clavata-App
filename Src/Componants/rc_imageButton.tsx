@@ -6,10 +6,23 @@ import {
   Image,
   ImageBackground,
   View,
+  TouchableOpacityProps,
 } from 'react-native';
 import {fontsFamily} from '../Theme';
 
-export default function CustomImageButton(props) {
+interface CustomImageButtonProps extends TouchableOpacityProps {
+  label: string;
+  onPress: () => void;
+  backgroundImage: any;
+  leftImage?: {name: any; style?: any};
+  rightImage?: {name: any; style?: any};
+  labelStyle?: object;
+  containerWrapper?: object;
+  disable?: boolean;
+  bgImg?: object;
+}
+
+const CustomImageButton: React.FC<CustomImageButtonProps> = props => {
   return (
     <TouchableOpacity
       style={[styles.buttonWrap, props.containerWrapper]}
@@ -19,28 +32,18 @@ export default function CustomImageButton(props) {
       {props?.disable ? (
         <View style={{justifyContent: 'center', alignItems: 'center'}}>
           <View
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: '#BCBFBF',
-              backgroundColor: '#BCBFBF',
-              width: '98%',
-              height: '100%',
-              marginHorizontal: 10,
-              borderRadius: 7,
-            }}>
-            <View>
-              <Text
-                style={{
-                  fontFamily: fontsFamily.MulishBold,
-                  color: '#fff',
-                  textAlign: 'center',
-                  fontSize: 14,
-                }}>
-                {props.label}
-              </Text>
-            </View>
+            style={[
+              styles.disabledButton,
+              {
+                borderWidth: 1,
+                borderColor: '#BCBFBF',
+                backgroundColor: '#BCBFBF',
+                marginHorizontal: 10,
+              },
+            ]}>
+            <Text style={[styles.buttonText, {color: '#fff'}]}>
+              {props.label}
+            </Text>
           </View>
         </View>
       ) : (
@@ -60,9 +63,7 @@ export default function CustomImageButton(props) {
               styles.buttonText,
               props.labelStyle,
               {
-                fontFamily: props?.disable
-                  ? fontsFamily.MulishBold
-                  : fontsFamily.MulishBold,
+                fontFamily: fontsFamily.MulishBold,
               },
             ]}>
             {props.label}
@@ -78,21 +79,17 @@ export default function CustomImageButton(props) {
       )}
     </TouchableOpacity>
   );
-}
+};
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     height: 55,
     width: '100%',
-
-    // margin:5
   },
   buttonText: {
-    // fontFamily: FontFamily.MontserratSemiBold,
-    // lineHeight: 13.63,
     textAlign: 'center',
     color: '#fff',
     fontSize: 14,
@@ -100,12 +97,14 @@ var styles = StyleSheet.create({
   },
   buttonWrap: {
     height: 55,
-    // width: "100%",
     borderRadius: 5,
-    // overflow: "hidden",
   },
-  disable: {
-    opacity: 0.7,
+  disabledButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 7,
+    height: '100%',
+    width: '98%',
   },
   rightImg: {
     transform: [{rotateY: '180deg'}],
@@ -115,9 +114,10 @@ var styles = StyleSheet.create({
     tintColor: '#fff',
   },
   leftImg: {
-    // transform: [{ rotateY: "180deg" }],
     width: 17,
     right: 5,
     tintColor: '#fff',
   },
 });
+
+export default CustomImageButton;

@@ -167,7 +167,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
       onSuccess: ({receipt}) => {
         console.log(receipt);
         SnackBarMessage(
-          `Your Certificate has been sent to your wallet`,
+          'Your Certificate has been sent to your wallet',
           'success',
         );
         setConfirmedTxHash(receipt.hash);

@@ -31,7 +31,7 @@ import { useNft } from '../../../screens/Provider/NftProvider';
 function HomeHeader(props: any) {
   const {userDetails} = useAuth();
   function getUsernameFromEmail(email: string) {
-    if (!email) return '';
+    if (!email) {return '';}
     return email.split('@')[0];
   }
 

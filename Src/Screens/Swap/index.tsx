@@ -265,7 +265,7 @@ export default function Swap(props: SwapProps) {
   };
 
   const formatTxHash = (hash: string): string => {
-    if (!hash) return '';
+    if (!hash) {return '';}
     return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
   };
 
@@ -469,7 +469,7 @@ export default function Swap(props: SwapProps) {
 
   // Transaction status component
   const TransactionStatus = () => {
-    if (!txStatus) return null;
+    if (!txStatus) {return null;}
 
     return (
       <View style={styles.statusContainer}>

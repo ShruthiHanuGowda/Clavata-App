@@ -96,7 +96,7 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
 
   // Function to format contract address
   const formatContractAddress = (address: string) => {
-    if (!address) return '';
+    if (!address) {return '';}
     return `${address.substring(0, 8)}...${address.substring(
       address.length - 6,
     )}`;
@@ -147,7 +147,7 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
       console.error('Unstaking failed:', err);
       setTxStatus('failed');
 
-      Alert.alert('Unstaking Failed', `Something went wrong while unstaking`, [
+      Alert.alert('Unstaking Failed', 'Something went wrong while unstaking', [
         {text: 'OK'},
       ]);
     } finally {

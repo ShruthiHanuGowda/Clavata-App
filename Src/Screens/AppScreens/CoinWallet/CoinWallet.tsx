@@ -83,11 +83,21 @@ interface ChartDataHook {
 }
 
 type ToggleValue = 'day' | 'week';
-type CoinCode = 'WATT' | 'USDC' | 'ETH' | 'WUSDC' | 'EURC' | 'WEURC' | 'USD' | string;
+type CoinCode =
+  | 'WATT'
+  | 'USDC'
+  | 'ETH'
+  | 'WUSDC'
+  | 'EURC'
+  | 'WEURC'
+  | 'USD'
+  | string;
 
 // Utility Functions
 const formatCoinCodeForAPI = (coinCode: string): string => {
-  if (!coinCode) return 'usd-coin';
+  if (!coinCode) {
+    return 'usd-coin';
+  }
 
   const coinMapping: Record<string, string> = {
     WATT: 'usd-coin',
@@ -110,7 +120,10 @@ const getCoinIcon = (coinCode: string) => {
 };
 
 // Custom Hook for Chart Data
-const useChartData = (coinCode: string, toggleValue: ToggleValue): ChartDataHook => {
+const useChartData = (
+  coinCode: string,
+  toggleValue: ToggleValue,
+): ChartDataHook => {
   const [chartData, setChartData] = useState<ChartData>({
     labels: [],
     values: [],
@@ -122,7 +135,9 @@ const useChartData = (coinCode: string, toggleValue: ToggleValue): ChartDataHook
   const [error, setError] = useState<string | null>(null);
 
   const fetchChartData = useCallback(async (): Promise<void> => {
-    if (!coinCode || coinCode === 'USD') return;
+    if (!coinCode || coinCode === 'USD') {
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -168,13 +183,16 @@ const useChartData = (coinCode: string, toggleValue: ToggleValue): ChartDataHook
 
   useEffect(() => {
     fetchChartData();
-  }, [fetchChartData]);
+  }, []);
 
   return {chartData, loading, error, refetch: fetchChartData};
 };
 
 // Process chart data based on time period
-const processChartData = (prices: PriceData[], toggleValue: ToggleValue): ChartData => {
+const processChartData = (
+  prices: PriceData[],
+  toggleValue: ToggleValue,
+): ChartData => {
   if (!prices || prices.length === 0) {
     return {
       labels: [],
@@ -206,9 +224,11 @@ const processChartData = (prices: PriceData[], toggleValue: ToggleValue): ChartD
   }
 
   const currentPrice = sortedPrices[sortedPrices.length - 1]?.price || 0;
-  const previousPrice = sortedPrices[sortedPrices.length - 2]?.price || currentPrice;
+  const previousPrice =
+    sortedPrices[sortedPrices.length - 2]?.price || currentPrice;
   const priceChange = currentPrice - previousPrice;
-  const priceChangePercent = previousPrice !== 0 ? (priceChange / previousPrice) * 100 : 0;
+  const priceChangePercent =
+    previousPrice !== 0 ? (priceChange / previousPrice) * 100 : 0;
 
   return {
     labels,
@@ -220,86 +240,82 @@ const processChartData = (prices: PriceData[], toggleValue: ToggleValue): ChartD
 };
 
 // Portfolio Header Component
-const PortfolioHeader: React.FC<PortfolioHeaderProps> = React.memo(({
-  coinCode,
-  balance,
-  balanceUsd,
-}) => (
-  <View style={localStyles.portfolioHeaderContainer}>
-    <View style={localStyles.portfolioCard}>
-      <View style={localStyles.portfolioCardHeader}>
-        <Text style={localStyles.portfolioLabel}>Portfolio</Text>
-      </View>
-      <View style={localStyles.coinHeaderContainer}>
-        <Image
-          source={getCoinIcon(coinCode)}
-          style={localStyles.coinIcon}
-          resizeMode="contain"
-        />
-        <Text
-          style={localStyles.coinCodeTitle}
-          numberOfLines={2}
-          ellipsizeMode="tail">
-          {coinCode || 'Unknown Coin'}
-        </Text>
-      </View>
-      <View style={localStyles.balanceContainer}>
-        <Text style={localStyles.balanceLabel}>Balance</Text>
-        <Text
-          style={localStyles.balanceValue}
-          numberOfLines={2}
-          ellipsizeMode="tail">
-          {balance || '0'} (${balanceUsd || '0.00'})
-        </Text>
+const PortfolioHeader: React.FC<PortfolioHeaderProps> = React.memo(
+  ({coinCode, balance, balanceUsd}) => (
+    <View style={localStyles.portfolioHeaderContainer}>
+      <View style={localStyles.portfolioCard}>
+        <View style={localStyles.portfolioCardHeader}>
+          <Text style={localStyles.portfolioLabel}>Portfolio</Text>
+        </View>
+        <View style={localStyles.coinHeaderContainer}>
+          <Image
+            source={getCoinIcon(coinCode)}
+            style={localStyles.coinIcon}
+            resizeMode="contain"
+          />
+          <Text
+            style={localStyles.coinCodeTitle}
+            numberOfLines={2}
+            ellipsizeMode="tail">
+            {coinCode || 'Unknown Coin'}
+          </Text>
+        </View>
+        <View style={localStyles.balanceContainer}>
+          <Text style={localStyles.balanceLabel}>Balance</Text>
+          <Text
+            style={localStyles.balanceValue}
+            numberOfLines={2}
+            ellipsizeMode="tail">
+            {balance || '0'} (${balanceUsd || '0.00'})
+          </Text>
+        </View>
       </View>
     </View>
-  </View>
-));
+  ),
+);
 
 // Price Display Component
-const PriceDisplay: React.FC<PriceDisplayProps> = React.memo(({
-  currentPrice,
-  priceChange,
-  priceChangePercent,
-  loading,
-  error,
-}) => {
-  if (loading) {
+const PriceDisplay: React.FC<PriceDisplayProps> = React.memo(
+  ({currentPrice, priceChange, priceChangePercent, loading, error}) => {
+    if (loading) {
+      return (
+        <View style={localStyles.priceDisplayContainer}>
+          <ActivityIndicator size="small" color="#009D94" />
+          <Text style={localStyles.loadingText}>Loading price data...</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={localStyles.priceDisplayContainer}>
+          <Text style={localStyles.noDataText}>No price data available</Text>
+        </View>
+      );
+    }
+
+    const isPositive = priceChange >= 0;
+    const changeColor = isPositive ? '#00C851' : '#FF4444';
+    const changeIcon = isPositive
+      ? images.sharePriceIcon
+      : images.sharePriceDownIcon;
+
     return (
       <View style={localStyles.priceDisplayContainer}>
-        <ActivityIndicator size="small" color="#009D94" />
-        <Text style={localStyles.loadingText}>Loading price data...</Text>
+        <Text style={style.usdvalue}>${currentPrice.toFixed(4)}</Text>
+        <Image
+          source={changeIcon}
+          style={localStyles.changeIcon}
+          resizeMode="contain"
+        />
+        <Text style={[style.Today, {color: changeColor}]}>
+          ({isPositive ? '+' : ''}
+          {priceChangePercent.toFixed(2)}%)
+        </Text>
       </View>
     );
-  }
-
-  if (error) {
-    return (
-      <View style={localStyles.priceDisplayContainer}>
-        <Text style={localStyles.noDataText}>No price data available</Text>
-      </View>
-    );
-  }
-
-  const isPositive = priceChange >= 0;
-  const changeColor = isPositive ? '#00C851' : '#FF4444';
-  const changeIcon = isPositive ? images.sharePriceIcon : images.sharePriceDownIcon;
-
-  return (
-    <View style={localStyles.priceDisplayContainer}>
-      <Text style={style.usdvalue}>${currentPrice.toFixed(4)}</Text>
-      <Image
-        source={changeIcon}
-        style={localStyles.changeIcon}
-        resizeMode="contain"
-      />
-      <Text style={[style.Today, {color: changeColor}]}>
-        ({isPositive ? '+' : ''}
-        {priceChangePercent.toFixed(2)}%)
-      </Text>
-    </View>
-  );
-});
+  },
+);
 
 // Main Component
 const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
@@ -320,12 +336,12 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
     } else {
       setActiveNetwork('denergy');
     }
-  }, [coinCode, setActiveNetwork]);
+  }, [coinCode]);
 
   const [createTransactionHistoryMobile] = useMutation(
     CREATE_TRANSACTION_HISTORY_MOBILE,
     {
-      onError: (error) => {
+      onError: error => {
         console.error('Transaction history mutation error:', error);
       },
     },
@@ -365,7 +381,10 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
     setHasError(true);
   }
 
-  const {chartData, loading, error, refetch} = useChartData(coinCode, toggleValue);
+  const {chartData, loading, error, refetch} = useChartData(
+    coinCode,
+    toggleValue,
+  );
 
   const TAB_ITEMS = useMemo(() => ['Price History', 'Transaction History'], []);
   const toggleOptions: ToggleValue[] = useMemo(() => ['week', 'day'], []);
@@ -423,7 +442,7 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
           </View>
         }
       />
-      
+
       <View style={localStyles.contentContainer}>
         {/* Fixed Header Section */}
         <View style={localStyles.headerSection}>
@@ -513,7 +532,9 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
                   <Text style={localStyles.errorBannerText}>
                     Failed to load chart data
                   </Text>
-                  <TouchableOpacity onPress={refetch} style={localStyles.retryLink}>
+                  <TouchableOpacity
+                    onPress={refetch}
+                    style={localStyles.retryLink}>
                     <Text style={localStyles.retryLinkText}>Retry</Text>
                   </TouchableOpacity>
                 </View>
@@ -528,8 +549,12 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
                   />
                 ) : !loading && (error || chartData.labels.length === 0) ? (
                   <View style={localStyles.noDataContainer}>
-                    <Text style={localStyles.noDataText}>No chart data available</Text>
-                    <TouchableOpacity onPress={refetch} style={localStyles.retryButton}>
+                    <Text style={localStyles.noDataText}>
+                      No chart data available
+                    </Text>
+                    <TouchableOpacity
+                      onPress={refetch}
+                      style={localStyles.retryButton}>
                       <Text style={localStyles.retryText}>Retry</Text>
                     </TouchableOpacity>
                   </View>

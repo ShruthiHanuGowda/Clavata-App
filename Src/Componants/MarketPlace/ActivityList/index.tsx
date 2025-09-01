@@ -59,13 +59,13 @@ const ActivityCard: React.FC<ActivityCardProps> = ({activity, loading}) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {paginated.map((activity, index) => (
+      {paginated.map((item, index) => (
         <View key={index} style={styles.card}>
           <View style={styles.activityCardHeader}>
-            <Text style={styles.activityEvent}>{activity?.marketEvent}</Text>
+            <Text style={styles.activityEvent}>{item?.marketEvent}</Text>
             <TouchableOpacity
               onPress={() =>
-                openExplorer(getBlockExploreLink(activity.tx, 'transaction'))
+                openExplorer(getBlockExploreLink(item.tx, 'transaction'))
               }>
               <Text style={styles.activityExplorer}>🌐 Explorer</Text>
             </TouchableOpacity>
@@ -73,28 +73,26 @@ const ActivityCard: React.FC<ActivityCardProps> = ({activity, loading}) => {
 
           <View style={styles.row}>
             <Text style={styles.label}>Event:</Text>
-            <ActivityEventText marketEvent={activity?.marketEvent} />
+            <ActivityEventText marketEvent={item?.marketEvent} />
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Price:</Text>
-            <Text>{activity?.price}</Text>
+            <Text>{item?.price}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>From:</Text>
-            <Text style={styles.address}>
-              {shortenAddress(activity?.seller)}
-            </Text>
+            <Text style={styles.address}>{shortenAddress(item?.seller)}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>To:</Text>
             <Text style={styles.address}>
-              {shortenAddress(activity?.buyer ?? '-')}
+              {shortenAddress(item?.buyer ?? '-')}
             </Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Date:</Text>
             <Text>
-              {new Date(parseInt(activity.timestamp) * 1000).toLocaleString()}
+              {new Date(parseInt(item.timestamp, 10) * 1000).toLocaleString()}
             </Text>
           </View>
         </View>

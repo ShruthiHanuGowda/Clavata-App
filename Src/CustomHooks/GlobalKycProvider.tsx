@@ -7,15 +7,8 @@ import React, {
   useRef,
   ReactNode,
 } from 'react';
-import {Alert, Platform} from 'react-native';
 import secureStorage from '../utils/secureStorage';
-import {
-  useMutation,
-  gql,
-  ApolloClient,
-  NormalizedCacheObject,
-  TypedDocumentNode,
-} from '@apollo/client';
+import {useMutation, gql, TypedDocumentNode} from '@apollo/client';
 // @ts-ignore
 import SNSMobileSDK from '@sumsub/react-native-mobilesdk-module';
 import {useAuth} from '../../screens/Provider/authProvider';
@@ -59,14 +52,12 @@ interface SumSubLogEvent {
   message: string;
 }
 
-// KYC Token Response Types
 interface KycTokenData {
   token: string | null;
   userId: string | null;
   expiryTime: number | null;
 }
 
-// GraphQL Types
 interface CreateKycVerificationVariables {
   email: string;
   levelName: string;
@@ -637,21 +628,16 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
   // =================== MAIN CHECK KYC FUNCTION ===================
   const checkKYC = useCallback(
     async (options: CheckKycOptions = {}): Promise<VerificationResult> => {
-      const {
-        onSuccess,
-        onSkip,
-        onError,
-        onCancel,
-        forceShow = false,
-        showAlerts = true,
-      } = options;
+      const {onSuccess, onSkip, onError, onCancel, forceShow = false} = options;
 
       // Store callbacks
       pendingCallbacks.current = {onSuccess, onSkip, onError, onCancel};
 
       // If already completed and not forcing, return success
       if (kycStatus.isCompleted && !forceShow) {
-        if (onSuccess) onSuccess();
+        if (onSuccess) {
+          onSuccess();
+        }
         return {result: KYC_RESULT.SUCCESS, message: 'KYC already completed'};
       }
 

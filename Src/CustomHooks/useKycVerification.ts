@@ -1,7 +1,6 @@
-import {useMutation, gql} from '@apollo/client';
+import {useMutation} from '@apollo/client';
 import {CREATE_KYC_VERIFICATION} from '../graphql/queries';
 
-// Define types for the mutation
 interface CreateKycVerificationVariables {
   email: string;
   levelName: string;
@@ -19,14 +18,12 @@ interface KycTokenData {
   expiryTime: number | null;
 }
 
-// Custom hook for KYC verification
 export const useKycVerification = () => {
   const [createKycVerification, {data, loading, error}] = useMutation<
     CreateKycVerificationResponse,
     CreateKycVerificationVariables
   >(CREATE_KYC_VERIFICATION);
 
-  // Function to initiate KYC verification and parse the token
   const initiateKycToken = async (
     email: string,
     levelName: string,
@@ -40,12 +37,10 @@ export const useKycVerification = () => {
       });
 
       let responseData = result.data?.createKYCVerification?.response;
-      console.log('🚀 ~ useKycVerification ~ responseData:', responseData);
       if (!responseData) {
         return {token: null, userId: null, expiryTime: null};
       }
 
-      // Parse the response data
       let parsedData;
       if (typeof responseData === 'string') {
         try {
@@ -71,7 +66,6 @@ export const useKycVerification = () => {
         bodyData = parsedData.body || parsedData;
       }
 
-      // Extract token data
       const token = bodyData?.accessTokenData?.token || null;
       const userId = bodyData?.accessTokenData?.userId || null;
       const expiryTime = bodyData?.accessTokenData?.expiryTime || null;
@@ -87,7 +81,6 @@ export const useKycVerification = () => {
     }
   };
 
-  // Extract raw token from response data for consumers that don't want to call initiateKycToken
   const extractTokenFromResponse = (responseData: any): KycTokenData => {
     if (!responseData) {
       return {token: null, userId: null, expiryTime: null};

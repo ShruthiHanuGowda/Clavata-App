@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Dimensions,
   Platform,
 } from 'react-native';
@@ -53,7 +52,7 @@ const KycBottomSheet: React.FC<KycBottomSheetProps> = ({
 
   // Render backdrop component - defined outside conditional rendering
   const renderBackdrop = useCallback(
-    props => (
+    (props: any) => (
       <BottomSheetBackdrop
         {...props}
         disappearsOnIndex={-1}
@@ -167,8 +166,6 @@ const KycBottomSheet: React.FC<KycBottomSheetProps> = ({
     </BottomSheet>
   );
 };
-
-const {width} = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   bottomSheetBackground: {

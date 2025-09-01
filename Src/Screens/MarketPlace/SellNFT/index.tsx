@@ -256,7 +256,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
   const {isApproving, isApproved, isConfirming, handleApprove, handleConfirm} =
     useApproveConfirmTransaction({
       onRequiresApproval: async () => {
-        if (!account) return true;
+        if (!account) {return true;}
         try {
           const isApproved = await isApprovedForAll(
             nftToSell.collectionAddress,
@@ -278,7 +278,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
       },
       onApproveSuccess: async ({receipt}) => {
         SnackBarMessage(
-          `Contract approved - you can now put your Certificate for sale!`,
+          'Contract approved - you can now put your Certificate for sale!',
           'success',
         );
       },
@@ -329,7 +329,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
         ]);
       },
       onSuccess: async ({receipt}) => {
-        if (!variant) return;
+        if (!variant) {return;}
         console.log('receipt', receipt);
         setConfirmedTxHash(receipt.hash);
         setprevStage(stage);

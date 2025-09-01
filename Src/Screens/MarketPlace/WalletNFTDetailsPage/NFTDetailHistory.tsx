@@ -69,7 +69,7 @@ export default function NFTDetailHistory({route}: {route: any}) {
   };
 
   const formatDateRange = () => {
-    if (!filters.startDate && !filters.endDate) return '';
+    if (!filters.startDate && !filters.endDate) {return '';}
 
     let dateRange = '';
     if (filters.startDate) {

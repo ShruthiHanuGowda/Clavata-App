@@ -1,12 +1,12 @@
 import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Image} from 'react-native';
-import {fontsFamily, Images} from '../Theme';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { fontsFamily } from '../Theme';
 
 const MenuList = ({onPress, img, title}) => {
   return (
-    <TouchableOpacity style={{paddingVertical: 10}} onPress={onPress}>
+    <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.rowContainer}>
-        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        <View style={styles.leftContainer}>
           <View style={styles.imgContainer}>
             <Image source={img} style={styles.imgStyle} />
           </View>
@@ -21,6 +21,13 @@ const MenuList = ({onPress, img, title}) => {
 export default MenuList;
 
 const styles = StyleSheet.create({
+  container: {
+    paddingVertical: 10,
+  },
+  leftContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   rowContainer: {
     flex: 1,
     marginTop: 1,

@@ -116,7 +116,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
         throw new Error(errorMsg);
       }
 
-      console.log(`[WATT Staking] Starting native WATT delegate process`);
+      console.log('[WATT Staking] Starting native WATT delegate process');
       console.log(`[WATT Staking] Amount: ${amount}`);
       console.log(
         `[WATT Staking] Using validator address: ${validatorAddress}`,
@@ -247,7 +247,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
         throw new Error(errorMsg);
       }
 
-      console.log(`[WATT Staking] Starting WATT undelegate process`);
+      console.log('[WATT Staking] Starting WATT undelegate process');
       console.log(`[WATT Staking] Amount: ${amount}`);
       console.log(
         `[WATT Staking] Using validator address: ${validatorAddress}`,

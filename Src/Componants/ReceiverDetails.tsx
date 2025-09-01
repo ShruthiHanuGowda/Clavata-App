@@ -8,16 +8,15 @@ import {
   Clipboard,
 } from 'react-native';
 import {ScreenWidth} from '@rneui/base';
-import {DTextInput} from './Dinputs';
 import {SnackBarMessage} from '../utils/snackBar';
 import images from '../Theme/images';
 import {fontsFamily} from '../Theme';
 
-const ReceiverDetails = ({data}) => {
-  const capitalize = str => {
+const ReceiverDetails = ({data}: any) => {
+  const capitalize = (str: string) => {
     return str?.charAt(0)?.toUpperCase();
   };
-  const copy = async address => {
+  const copy = async (address: string) => {
     Clipboard.setString(address);
     SnackBarMessage('Address Copied');
   };

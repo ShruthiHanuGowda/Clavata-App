@@ -64,12 +64,12 @@ export const useNFTTransactionHistory = (
       limit: limit.toString(),
     });
 
-    if (nftId) params.append('nftId', nftId);
-    if (collectionAddress) params.append('collectionId', collectionAddress);
-    if (walletAddress) params.append('walletAddress', walletAddress);
-    if (type) params.append('type', type);
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
+    if (nftId) {params.append('nftId', nftId);}
+    if (collectionAddress) {params.append('collectionId', collectionAddress);}
+    if (walletAddress) {params.append('walletAddress', walletAddress);}
+    if (type) {params.append('type', type);}
+    if (startDate) {params.append('startDate', startDate);}
+    if (endDate) {params.append('endDate', endDate);}
 
     return params.toString();
   }, [

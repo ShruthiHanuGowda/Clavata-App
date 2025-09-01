@@ -1,6 +1,6 @@
-import React from "react";
-import { TouchableOpacity, View, Text, StyleSheet, Alert } from "react-native";
-import Ionicons from 'react-native-vector-icons/Ionicons'
+import React from 'react';
+import { TouchableOpacity, View, Text, StyleSheet, Alert } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as _ from 'lodash';
 import { ENV } from '../config/env';
 
@@ -16,15 +16,15 @@ export default function HeaderDropdown (props: { setEnv: (arg0: string) => void;
                 (env) => ({
                     text: env,
                     style: 'default',
-                    onPress: () => onPressChangeEnv(env)
+                    onPress: () => onPressChangeEnv(env),
                 })
             )
-        )
-    }
+        );
+    };
 
     const onPressChangeEnv = (env: string) => {
         props.setEnv(env);
-    }
+    };
 
     return (
         <TouchableOpacity
@@ -42,24 +42,24 @@ export default function HeaderDropdown (props: { setEnv: (arg0: string) => void;
                 </View>
             </View>
         </TouchableOpacity>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
     textWrap: {
         display: 'flex',
         flexDirection: 'row',
-        alignItems: 'center'
+        alignItems: 'center',
     },
     text: {
         display: 'flex',
         alignItems: 'center',
         color: '#000',
         fontSize: 16,
-        fontWeight: 'bold'
+        fontWeight: 'bold',
     },
     iconWrap: {
         marginTop: 2,
-        marginLeft: 3
-    }
-})
+        marginLeft: 3,
+    },
+});

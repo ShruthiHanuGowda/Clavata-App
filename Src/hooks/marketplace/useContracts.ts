@@ -20,7 +20,7 @@ export function useContract(
   const network = options?.network ?? 'sepolia';
 
   return useMemo(() => {
-    if (!address || !abi) return null;
+    if (!address || !abi) {return null;}
 
     try {
       return contractManager.getContract(address, abi, network);
@@ -37,7 +37,7 @@ export const useERC20 = (
 ) => {
   const network = options?.network ?? 'sepolia';
   return useMemo(() => {
-    if (!address) return null;
+    if (!address) {return null;}
     return contractManager.getERC20Contract(address, network);
   }, [address, network]);
 };
@@ -52,7 +52,7 @@ export const useNftMarketCollectionContract = (
 ) => {
   const network = options?.network ?? 'sepolia';
   return useMemo(() => {
-    if (!collectionAddress) return null;
+    if (!collectionAddress) {return null;}
     return contractManager.getERC1155Contract(collectionAddress, network);
   }, [collectionAddress, network]);
 };

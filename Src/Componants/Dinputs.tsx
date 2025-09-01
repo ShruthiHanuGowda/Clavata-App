@@ -54,7 +54,7 @@ export function DEmailInput({
 }: DEmailInputProps) {
   const handleOnChange = (text: string) => {
     let re = /\S+@\S+\.\S+/;
-    let regex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/im;
+    let regex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
     setValue(text.trim());
     setValid(re.test(text) || regex.test(text));
   };

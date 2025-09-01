@@ -10,14 +10,14 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
     display: 'flex',
     alignSelf: 'center',
-    paddingTop: 25
+    paddingTop: 25,
   },
   TextInputContainer: {
     borderColor: 'black',
     borderWidth: 1,
     width: '80%',
     height: 30,
-    paddingHorizontal: 10
+    paddingHorizontal: 10,
   },
   contentContainer: {
     paddingTop: 30,
@@ -36,11 +36,11 @@ export const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems:'center',
-    alignSelf: 'center'
+    alignSelf: 'center',
   },
   publicAddress: {
     alignSelf: 'flex-start',
-    marginTop: 10
+    marginTop: 10,
   },
   button: {
     height: 35,
@@ -60,6 +60,6 @@ export const styles = StyleSheet.create({
     color: 'white',
   },
   margin10: {
-    margin: 10
-  }
+    margin: 10,
+  },
 });

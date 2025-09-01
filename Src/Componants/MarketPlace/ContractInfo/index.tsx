@@ -40,7 +40,7 @@ const ContractInfo: React.FC<ContractInfoProps> = ({nft}) => {
         </Text>
       </TouchableOpacity>
 
-      <Text style={[styles.label, {marginTop: 12}]}>IPFS Metadata</Text>
+      <Text style={styles.labelWithMargin}>IPFS Metadata</Text>
       <TouchableOpacity onPress={openIPFS}>
         <Text style={styles.valueLink}>{shortenText(IPFS, 20)}</Text>
       </TouchableOpacity>
@@ -60,6 +60,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 4,
+  },
+  labelWithMargin: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 4,
+    marginTop: 12,
   },
   valueLink: {
     fontSize: 14,

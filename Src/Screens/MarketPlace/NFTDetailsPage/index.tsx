@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   View,
-  ActivityIndicator,
   RefreshControl,
   SafeAreaView,
   Platform,
@@ -14,9 +13,6 @@ import NFTHeader from '../../../Componants/MarketPlace/NFTHeader';
 import OwnerList from '../../../Componants/MarketPlace/OwnerList';
 import ContractInfo from '../../../Componants/MarketPlace/ContractInfo';
 import ActivityList from '../../../Componants/MarketPlace/ActivityList';
-import BuyModal from '../../../Componants/MarketPlace/BuySellModal/BuyModal';
-import SellModal from '../../../Componants/MarketPlace/BuySellModal/SellModal';
-import {NftToken} from '../../../types/types';
 import {useCompleteNft} from '../../../hooks/useCompleteNft';
 import useNftActivity from '../../../hooks/useNftActivity';
 import {Header} from '../../../Componants';
@@ -140,30 +136,6 @@ const NFTDetailsScreen = ({route}: any) => {
           <ActivityList activity={activity} loading={activityLoading} />
         )}
       </ScrollView>
-
-      {/* <BuyModal
-        visible={isBuyModalVisible}
-        onClose={() => {
-          setIsBuyModalVisible(false);
-          refetch();
-          refetchActivity();
-        }}
-        nftToBuy={combinedNft}
-      /> */}
-
-      {/* <SellModal
-        visible={isSellModalVisible}
-        onClose={() => {
-          setIsSellModalVisible(false);
-          refetch();
-        }}
-        variant="adjust"
-        nftToSell={combinedNft}
-        onSuccessSale={() => {
-          refetch();
-          refetchActivity();
-        }}
-      /> */}
     </SafeAreaView>
   );
 };

@@ -48,7 +48,7 @@ const TransactionFlatList: React.FC<TransactionFlatListProps> = ({
 
   // Helper function to determine if we should show date header
   const shouldShowDateHeader = (item: TransactionItem, index: number): boolean => {
-    if (index === 0) return true;
+    if (index === 0) {return true;}
 
     const currentDate = moment(item.date).format('YYYY-MM-DD');
     const previousDate = moment(data[index - 1]?.date).format('YYYY-MM-DD');
@@ -69,10 +69,10 @@ const TransactionFlatList: React.FC<TransactionFlatListProps> = ({
     const isWithinAWeek = momentDate.isAfter(A_WEEK_OLD);
     const checkWithin30Days = moment().diff(momentDate, 'days');
 
-    if (isToday) return 'TODAY';
-    if (isYesterday) return 'YESTERDAY';
-    if (isWithinAWeek) return 'LAST WEEK';
-    if (checkWithin30Days <= 30) return 'LAST 30 DAYS';
+    if (isToday) {return 'TODAY';}
+    if (isYesterday) {return 'YESTERDAY';}
+    if (isWithinAWeek) {return 'LAST WEEK';}
+    if (checkWithin30Days <= 30) {return 'LAST 30 DAYS';}
     return 'OLDER';
   };
 
@@ -123,7 +123,7 @@ const TransactionFlatList: React.FC<TransactionFlatListProps> = ({
 
   // Render empty state
   const renderEmpty = (): React.ReactElement | null => {
-    if (refreshing) return null;
+    if (refreshing) {return null;}
 
     return (
       <View style={componentStyles.emptyContainer}>

@@ -4,7 +4,7 @@
  * https://reactnavigation.org/docs/configuring-links
  */
 
-import {LinkingOptions} from '@react-navigation/native';
+// import {LinkingOptions} from '@react-navigation/native';
 
 const linking = {
   prefixes: ['denergyexample://'],

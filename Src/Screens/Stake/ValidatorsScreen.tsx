@@ -72,7 +72,7 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
   const getFilteredAndSortedValidators = () => {
     // First, filter by status
     let filteredValidators = allValidators.filter(validator => {
-      if (filterStatus === 'All') return true;
+      if (filterStatus === 'All') {return true;}
       // Convert status to match UI format (capitalized first letter only)
       const formattedStatus =
         validator.status === 'ACTIVE'

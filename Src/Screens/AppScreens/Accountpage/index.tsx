@@ -42,11 +42,11 @@ interface UserDetails {
 const Account: React.FC<AccountProps> = ({navigation}) => {
   const {magic} = useMagic();
   const {userDetails}: {userDetails: UserDetails} = useAuth();
-  
+
   const getUsernameFromEmail = (email: string): string => {
     return email.split('@')[0];
   };
-  
+
   const username = userDetails?.kycDetails?.firstName
     ? userDetails.kycDetails.firstName
     : getUsernameFromEmail(userDetails?.emailAddress || '');
@@ -62,7 +62,7 @@ const Account: React.FC<AccountProps> = ({navigation}) => {
 
   const [visible, setVisible] = useState<boolean>(false);
   const [rating, setRating] = useState<number>(0);
-  
+
   const toggleBottomView = (): void => {
     setVisible(!visible);
     setRating(0);
@@ -142,28 +142,28 @@ const Account: React.FC<AccountProps> = ({navigation}) => {
             </View>
           </View>
         </LinearGradient>
-        
-        <View style={localStyles.spacer}></View>
-        
+
+        <View style={localStyles.spacer} />
+
         <MenuList
           onPress={() => navigateTo('ProfileSettings')}
           img={images.user}
           title="My Account"
           index={1}
         />
-        
+
         <MenuList
           onPress={() => navigateTo('AddressBook')}
           img={images.addbenificiaries}
           title="Address Book"
         />
-        
+
         <MenuList
           onPress={() => navigateTo('contactus')}
           img={images.help}
           title="Contact Us"
         />
-        
+
         <MenuList
           onPress={() => handleLogout()}
           img={images.logout}

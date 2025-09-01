@@ -24,7 +24,7 @@ const PriceHistoryGraph: React.FC<PriceHistoryGraphProps> = ({
 
   // Format labels based on toggle value and data type
   const formatXLabel = (xValue: string): string => {
-    if (!xValue) return '';
+    if (!xValue) {return '';}
 
     // If it's already a formatted short label (like "Mon", "Tue", "08:00"), return as is
     if (xValue.length <= 5) {

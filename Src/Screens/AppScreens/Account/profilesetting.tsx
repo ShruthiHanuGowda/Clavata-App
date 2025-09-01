@@ -23,11 +23,11 @@ interface ProfileSettingProps {
 const ProfileSetting: React.FC<ProfileSettingProps> = () => {
   const {userDetails}: {userDetails: UserDetails} = useAuth();
   const [isEnabled, setIsEnabled] = useState<boolean>(true);
-  
+
   const toggleSwitch = (): void => {
     setIsEnabled(!isEnabled);
   };
-  
+
   const {magic} = useMagic();
 
   const formatKey = (key: string): string => {

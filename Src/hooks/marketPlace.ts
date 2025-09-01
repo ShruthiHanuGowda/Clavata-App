@@ -422,7 +422,7 @@ export const getNftApi = async (
   collectionAddress: string,
   tokenId?: string,
 ): Promise<ApiResponseSpecificToken['data'] | null> => {
-  if (!tokenId) return null;
+  if (!tokenId) {return null;}
   try {
     const res: any = await fetch(
       `${API_NFT_URL}/nftMarketplace_getCollectionTokens?contractAddress=${collectionAddress}&tokenId=${tokenId}`,
@@ -549,7 +549,7 @@ const fetchWalletMarketData = async (walletNftsByCollection: {
             tokenMarketData => tokenMarketData.tokenId === tokenId,
           );
 
-          if (!nftMarketData) return null;
+          if (!nftMarketData) {return null;}
 
           return {...nftMarketData};
         })

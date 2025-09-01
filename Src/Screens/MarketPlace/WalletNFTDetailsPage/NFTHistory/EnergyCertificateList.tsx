@@ -82,14 +82,14 @@ interface EnergyCertificateHistoryProps {
 const HistoryItem: React.FC<HistoryItemProps> = ({item, onPress}) => {
   // Helper function to format timestamp
   const formatTimestamp = (timestamp: string | number): string => {
-    if (!timestamp) return 'N/A';
+    if (!timestamp) {return 'N/A';}
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
   };
 
   // Helper function to get transaction hash (shortened)
   const getShortHash = (hash: string): string => {
-    if (!hash) return 'N/A';
+    if (!hash) {return 'N/A';}
     return `${hash.substring(0, 15)}...${hash.substring(hash.length - 15)}`;
   };
 
@@ -166,8 +166,8 @@ const DateSeparator: React.FC<DateSeparatorProps> = ({date}) => {
     const diffTime = Math.abs(today.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 1) return 'Today';
-    if (diffDays === 2) return 'Yesterday';
+    if (diffDays === 1) {return 'Today';}
+    if (diffDays === 2) {return 'Yesterday';}
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -184,11 +184,11 @@ const DateSeparator: React.FC<DateSeparatorProps> = ({date}) => {
 };
 
 const BottomSheetContent: React.FC<BottomSheetContentProps> = ({item}) => {
-  if (!item) return null;
+  if (!item) {return null;}
 
   // Helper function to format timestamp
   const formatFullTimestamp = (timestamp: string | number): string => {
-    if (!timestamp) return 'N/A';
+    if (!timestamp) {return 'N/A';}
     const date = new Date(timestamp);
     return date.toLocaleString('en-US', {
       year: 'numeric',
@@ -207,7 +207,7 @@ const BottomSheetContent: React.FC<BottomSheetContentProps> = ({item}) => {
 
   // Helper function to format address
   const formatAddress = (address: string | Address): string => {
-    if (!address) return 'N/A';
+    if (!address) {return 'N/A';}
 
     // If address is an object, extract the actual address
     if (typeof address === 'object') {

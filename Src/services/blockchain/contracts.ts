@@ -23,7 +23,7 @@ export interface ContractCall {
   options?: ethers.Overrides;
 }
 
-export type ContractType = 
+export type ContractType =
   | 'ERC20'
   | 'ERC1155'
   | 'NFTMarketplace'
@@ -56,7 +56,7 @@ class ContractManager {
     signer?: ethers.Signer
   ): ethers.Contract {
     const key = this.generateContractKey(address, network);
-    
+
     if (!this.contracts.has(key)) {
       const provider = networkProvider.getProvider(network);
       const providerOrSigner = signer || provider;
@@ -77,7 +77,7 @@ class ContractManager {
     if (!abi) {
       throw new Error(`ABI not found for contract type: ${contractType}`);
     }
-    
+
     return this.getContract(address, abi, network, signer);
   }
 
@@ -164,7 +164,7 @@ class ContractManager {
     const promises = calls.map(({ contract, call }) =>
       this.callContract(contract, call)
     );
-    
+
     return await Promise.allSettled(promises);
   }
 
@@ -184,13 +184,13 @@ class ContractManager {
 
   getContractsByNetwork(network: string): ethers.Contract[] {
     const networkContracts: ethers.Contract[] = [];
-    
+
     for (const [key, contract] of this.contracts.entries()) {
       if (key.startsWith(`${network}-`)) {
         networkContracts.push(contract);
       }
     }
-    
+
     return networkContracts;
   }
 

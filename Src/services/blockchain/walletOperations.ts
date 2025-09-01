@@ -64,11 +64,11 @@ class WalletOperations {
     exchangeRates?: Record<string, number>
   ): Promise<Record<string, TokenBalance>> {
     const balances: Record<string, TokenBalance> = {};
-    
+
     const balancePromises = tokens.map(async (token) => {
       try {
         let balance: string;
-        
+
         if (token.address === 'native') {
           balance = await this.getNativeBalance(walletAddress, token.network);
         } else {
@@ -109,7 +109,7 @@ class WalletOperations {
   ): Promise<TransactionResult> {
     try {
       const provider = networkProvider.getProvider(params.network);
-      
+
       const transaction: ethers.TransactionRequest = {
         to: params.to,
         value: ethers.parseEther(params.amount),
@@ -122,7 +122,7 @@ class WalletOperations {
       }
 
       const tx = await signer.sendTransaction(transaction);
-      
+
       return {
         hash: tx.hash,
         status: 'pending',
@@ -153,7 +153,7 @@ class WalletOperations {
       );
 
       const amount = ethers.parseUnits(params.amount, decimals);
-      
+
       let gasLimit = params.gasLimit;
       if (!gasLimit) {
         gasLimit = await contract.transfer.estimateGas(params.to, amount);
@@ -188,9 +188,9 @@ class WalletOperations {
     try {
       const contract = contractManager.getERC20Contract(tokenAddress, network, signer);
       const approvalAmount = ethers.parseUnits(amount, decimals);
-      
+
       const tx = await contract.approve(spenderAddress, approvalAmount);
-      
+
       return {
         hash: tx.hash,
         status: 'pending',
@@ -224,7 +224,7 @@ class WalletOperations {
     try {
       const provider = networkProvider.getProvider(network);
       const receipt = await provider.waitForTransaction(txHash, confirmations);
-      
+
       if (receipt && receipt.status === 1) {
         return {
           hash: txHash,
@@ -252,14 +252,14 @@ class WalletOperations {
     try {
       const provider = networkProvider.getProvider(network);
       const receipt = await provider.getTransactionReceipt(txHash);
-      
+
       if (!receipt) {
         return {
           hash: txHash,
           status: 'pending',
         };
       }
-      
+
       return {
         hash: txHash,
         status: receipt.status === 1 ? 'confirmed' : 'failed',
@@ -279,7 +279,7 @@ class WalletOperations {
     signer?: ethers.Signer
   ): Promise<{ gasLimit: bigint; gasPrice: bigint; totalCost: string }> {
     const provider = networkProvider.getProvider(params.network);
-    
+
     let gasLimit: bigint;
     if (params.tokenAddress) {
       const contract = contractManager.getERC20Contract(
@@ -298,9 +298,9 @@ class WalletOperations {
 
     const feeData = await provider.getFeeData();
     const gasPrice = feeData.gasPrice || BigInt(0);
-    
+
     const totalCost = ethers.formatEther(gasLimit * gasPrice);
-    
+
     return { gasLimit, gasPrice, totalCost };
   }
 
@@ -310,8 +310,8 @@ class WalletOperations {
 
   formatBalance(balance: string, decimals: number = 18): string {
     const num = parseFloat(balance);
-    if (num === 0) return '0';
-    if (num < 0.01) return '<0.01';
+    if (num === 0) {return '0';}
+    if (num < 0.01) {return '<0.01';}
     return num.toFixed(decimals === 6 ? 2 : 4);
   }
 

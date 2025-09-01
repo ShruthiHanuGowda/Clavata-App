@@ -12,7 +12,7 @@ export const formatQuantityMWh = (
 };
 
 export const formatPrice = (price: number | undefined): string => {
-  if (price === undefined || price === null) return '$0.00 per MWh';
+  if (price === undefined || price === null) {return '$0.00 per MWh';}
   const adjustedPrice = price * 1000000;
   return `$${adjustedPrice.toFixed(2)} per MWh`;
 };

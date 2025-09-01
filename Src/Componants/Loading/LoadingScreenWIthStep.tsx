@@ -55,7 +55,9 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
   }, [animationRef, animationSource]);
 
   const renderProgressBar = () => {
-    if (!showProgressBar) return null;
+    if (!showProgressBar) {
+      return null;
+    }
 
     return (
       <View style={styles.progressBarContainer}>
@@ -76,7 +78,9 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
   };
 
   const renderStepIndicators = () => {
-    if (!showStepIndicators) return null;
+    if (!showStepIndicators) {
+      return null;
+    }
 
     const stepProgress = Math.floor(progress / (100 / stepIndicatorCount));
     const indicators = Array.from({length: stepIndicatorCount}, (_, index) => (
@@ -96,7 +100,9 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
   };
 
   const renderFeeInfo = () => {
-    if (!feeInfo) return null;
+    if (!feeInfo) {
+      return null;
+    }
 
     return (
       <View
@@ -142,10 +148,17 @@ const LoadingScreenWithStep: React.FC<LoadingScreenWithStepProps> = ({
           ]}>
           <Text style={styles.iconText}>{icon}</Text>
         </View>
-        <DText fontStyle="fontBold" style={titleStyle ? [styles.title, titleStyle] : styles.title}>
+        <DText
+          fontStyle="fontBold"
+          style={titleStyle ? [styles.title, titleStyle] : styles.title}>
           {title}
         </DText>
-        <DText style={subtitleStyle ? [styles.subtitle, subtitleStyle] : styles.subtitle}>{subtitle}</DText>
+        <DText
+          style={
+            subtitleStyle ? [styles.subtitle, subtitleStyle] : styles.subtitle
+          }>
+          {subtitle}
+        </DText>
       </View>
 
       {/* Animation Section */}

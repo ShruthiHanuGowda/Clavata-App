@@ -56,7 +56,7 @@ class BlockchainService {
 
   getContract(config: ContractConfig, signer?: ethers.Signer): ethers.Contract {
     const key = `${config.network}-${config.address}`;
-    
+
     if (!this.contracts.has(key)) {
       const provider = this.getProvider(config.network);
       const contract = new ethers.Contract(
@@ -94,7 +94,7 @@ class BlockchainService {
     const contract = this.getContract({
       address: tokenAddress,
       abi,
-      network
+      network,
     });
 
     const balance = await contract.balanceOf(walletAddress);

@@ -105,7 +105,7 @@ class NetworkProvider {
     if (!this.isNetworkSupported(networkName)) {
       throw new Error(`Unsupported network: ${networkName}`);
     }
-    
+
     const config = this.getNetworkConfig(networkName);
     this.providers.set(networkName, new ethers.JsonRpcProvider(config.rpcUrl));
   }

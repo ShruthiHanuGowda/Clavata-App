@@ -244,7 +244,7 @@ const OffsetScreen = ({route}: any) => {
   };
 
   const handleSubmit = async () => {
-    if (!isFormValid()) return;
+    if (!isFormValid()) {return;}
 
     setCurrentStep('processing');
     const success = await executeOffset(
@@ -273,7 +273,7 @@ const OffsetScreen = ({route}: any) => {
 
   const handleDownloadCertificate = async () => {
     try {
-      if (!pdfDownloadUrl) return;
+      if (!pdfDownloadUrl) {return;}
 
       const timestamp = Math.floor(Date.now() / 1000);
       const fileName = `certificate_${timestamp}.pdf`;

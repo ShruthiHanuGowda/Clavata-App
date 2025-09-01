@@ -90,7 +90,7 @@ const MarketPlace: React.FC = () => {
 
   // Filter and sort collections
   const processedCollections = useMemo(() => {
-    if (!collections) return [];
+    if (!collections) {return [];}
 
     let filtered = collections.filter(collection => {
       // Search filter
@@ -150,9 +150,9 @@ const MarketPlace: React.FC = () => {
   const handleFilterChange = (filter: FilterType) => {
     setFilterBy(filter);
     // Reset selections when changing filter type
-    if (filter !== 'country') setSelectedCountry('');
-    if (filter !== 'type') setSelectedType('');
-    if (filter !== 'year') setSelectedYear('');
+    if (filter !== 'country') {setSelectedCountry('');}
+    if (filter !== 'type') {setSelectedType('');}
+    if (filter !== 'year') {setSelectedYear('');}
   };
 
   // Reset all filters function
@@ -348,9 +348,9 @@ const MarketPlace: React.FC = () => {
                       styles.selectedOption,
                   ]}
                   onPress={() => {
-                    if (filterBy === 'country') setSelectedCountry('');
-                    if (filterBy === 'type') setSelectedType('');
-                    if (filterBy === 'year') setSelectedYear('');
+                    if (filterBy === 'country') {setSelectedCountry('');}
+                    if (filterBy === 'type') {setSelectedType('');}
+                    if (filterBy === 'year') {setSelectedYear('');}
                   }}>
                   <Text
                     style={[

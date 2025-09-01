@@ -156,7 +156,7 @@ const CollectionDetailsScreen = ({route}: any) => {
                   const currentAsk = getMinAsk(nft.activeAsks ?? []);
                   const hasAsks = nft?.activeAsks?.length > 0;
 
-                  if (!hasAsks) return null;
+                  if (!hasAsks) {return null;}
 
                   const nftData = {
                     ...nft,

@@ -1,4 +1,3 @@
-// Components/QRCodeScannerModal.tsx
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -7,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   SafeAreaView,
-  Dimensions,
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
@@ -16,13 +14,10 @@ import {
   useCameraDevices,
   useCodeScanner,
   CameraPermissionStatus,
-  CodeScannerFrame,
   Code,
   CameraDevice,
 } from 'react-native-vision-camera';
 import {Colors} from '../../Theme';
-
-const {width, height} = Dimensions.get('window');
 
 // Type definitions
 export type CodeType =
@@ -35,7 +30,7 @@ export type CodeType =
   | 'itf'
   | 'upc-e'
   | 'qr'
-  | 'pdf417'
+  | 'pdf-417'
   | 'aztec'
   | 'data-matrix';
 
@@ -61,16 +56,15 @@ const QRCodeScannerModal: React.FC<QRCodeScannerModalProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const devices = useCameraDevices();
-  const device: CameraDevice | undefined =
-    devices?.back || devices.find(d => d.position === 'back');
+  const device: CameraDevice | undefined = devices.find(
+    d => d.position === 'back',
+  );
 
-  // Debug: Log available devices
   useEffect(() => {
     console.log('Available camera devices:', devices);
     console.log('Selected device:', device);
   }, [devices, device]);
 
-  // Request camera permissions when modal opens
   useEffect(() => {
     if (visible) {
       requestCameraPermission();
@@ -95,14 +89,16 @@ const QRCodeScannerModal: React.FC<QRCodeScannerModalProps> = ({
   // Code scanner configuration
   const codeScanner = useCodeScanner({
     codeTypes: codeTypes,
-    onCodeScanned: (codes: Code[], frame: CodeScannerFrame) => {
+    onCodeScanned: (codes: Code[]) => {
       if (codes.length > 0 && isScanning) {
         const scannedCode = codes[0];
         console.log('🚀 ~ scannedCode:', scannedCode);
         setIsScanning(false);
 
-        // Call the callback with scanned data
-        onCodeScanned(scannedCode.value);
+        // Call the callback with scanned data if defined
+        if (scannedCode.value !== undefined) {
+          onCodeScanned(scannedCode.value);
+        }
       }
     },
   });

@@ -67,7 +67,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
   };
 
   const truncateAddress = (address: string) => {
-    if (address.length <= 12) return address;
+    if (address.length <= 12) {return address;}
     return `${address.slice(0, 12)}...${address.slice(-12)}`;
   };
 

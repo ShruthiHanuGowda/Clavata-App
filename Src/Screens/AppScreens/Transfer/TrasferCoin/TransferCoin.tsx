@@ -120,13 +120,13 @@ const allCoins: TokenOption[] = [
 
 // Helper function to format amounts
 const formatAmount = (amount: string | number | undefined): string => {
-  if (!amount) return '0';
+  if (!amount) {return '0';}
   return parseFloat(amount.toString()).toFixed(6);
 };
 
 // Helper function to sanitize input values
 const sanitizeInputValue = (value: string): string => {
-  if (!value) return '0';
+  if (!value) {return '0';}
 
   const cleaned = value.replace(/\s/g, '').replace(/[^\d.]/gi, '');
   const parts = cleaned.split('.');
@@ -473,7 +473,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   };
 
   const formatTxHash = (hash: string): string => {
-    if (!hash) return '';
+    if (!hash) {return '';}
     return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
   };
 

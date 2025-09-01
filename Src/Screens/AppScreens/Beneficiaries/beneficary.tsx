@@ -104,7 +104,7 @@ const AccountBeneficiary: React.FC<AccountBeneficiaryProps> = ({route}) => {
           </View>
         }
       />
-      
+
       <View style={localStyles.contentContainer}>
         <View style={localStyles.textContainer}>
           <Text style={localStyles.subText}>
@@ -113,7 +113,7 @@ const AccountBeneficiary: React.FC<AccountBeneficiaryProps> = ({route}) => {
           </Text>
         </View>
       </View>
-      
+
       <View style={localStyles.btnAlign}>
         <CustomImageButton
           backgroundImage={images.buttonBg}
