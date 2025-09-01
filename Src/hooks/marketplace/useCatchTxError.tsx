@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 import {ethers, Provider, TransactionReceipt} from 'ethers';
 import {isUserRejected} from './reject';
 import {SnackBarMessage} from '../../utils/snackBar';
+import {errorService, ErrorCode} from '../../services/errorService';
 
 type Params = {
   throwUserRejectError?: boolean;
@@ -38,17 +39,19 @@ export default function useCatchTxError(params?: Params) {
           throw new Error('Transaction failed.');
         }
       } catch (error: any) {
+        const txError = errorService.handleTransactionError(error, 'fetchWithCatchTxError');
+        
         if (!isUserRejected(error)) {
           if (!tx && !throwCustomError) {
-            console.error('[Tx Error]', error);
+            // Error already logged by errorService
           } else if (throwCustomError) {
             throwCustomError();
           } else {
-            console.error('[Tx Failed]', error);
+            // Error already logged by errorService
           }
         }
 
-        if (throwUserRejectError) {throw error;}
+        if (throwUserRejectError) {throw txError;}
       } finally {
         setLoading(false);
       }
@@ -73,7 +76,7 @@ export default function useCatchTxError(params?: Params) {
         return {hash};
       } catch (error: any) {
         if (!isUserRejected(error)) {
-          console.error('[Tx Error]', error);
+          errorService.handleTransactionError(error, 'fetchTxResponse');
         }
       } finally {
         setTxResponseLoading(false);

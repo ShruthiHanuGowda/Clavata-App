@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 import { networkProvider } from './providers';
 import { contractManager } from './contracts';
+import { errorService, ErrorCode, TransactionError } from '../errorService';
 
 export interface TokenBalance {
   balance: string;
@@ -29,18 +30,32 @@ export interface TransactionResult {
   hash: string;
   status: 'pending' | 'confirmed' | 'failed';
   receipt?: ethers.TransactionReceipt;
-  error?: string;
+  error?: TransactionError;
 }
 
 class WalletOperations {
   async getNativeBalance(address: string, network: string): Promise<string> {
     if (!ethers.isAddress(address)) {
-      throw new Error('Invalid wallet address');
+      const error = errorService.createTransactionError(
+        ErrorCode.INVALID_ADDRESS,
+        'Invalid wallet address',
+        undefined,
+        network,
+        { address },
+        'getNativeBalance'
+      );
+      errorService.logError(error);
+      throw error;
     }
 
-    const provider = networkProvider.getProvider(network);
-    const balance = await provider.getBalance(address);
-    return ethers.formatEther(balance);
+    try {
+      const provider = networkProvider.getProvider(network);
+      const balance = await provider.getBalance(address);
+      return ethers.formatEther(balance);
+    } catch (error: any) {
+      const txError = errorService.handleTransactionError(error, 'getNativeBalance');
+      throw txError;
+    }
   }
 
   async getTokenBalance(
@@ -50,12 +65,26 @@ class WalletOperations {
     decimals: number = 18
   ): Promise<string> {
     if (!ethers.isAddress(walletAddress) || !ethers.isAddress(tokenAddress)) {
-      throw new Error('Invalid address provided');
+      const error = errorService.createTransactionError(
+        ErrorCode.INVALID_ADDRESS,
+        'Invalid address provided',
+        undefined,
+        network,
+        { tokenAddress, walletAddress },
+        'getTokenBalance'
+      );
+      errorService.logError(error);
+      throw error;
     }
 
-    const contract = contractManager.getERC20Contract(tokenAddress, network);
-    const balance = await contract.balanceOf(walletAddress);
-    return ethers.formatUnits(balance, decimals);
+    try {
+      const contract = contractManager.getERC20Contract(tokenAddress, network);
+      const balance = await contract.balanceOf(walletAddress);
+      return ethers.formatUnits(balance, decimals);
+    } catch (error: any) {
+      const txError = errorService.handleTransactionError(error, 'getTokenBalance');
+      throw txError;
+    }
   }
 
   async getMultipleTokenBalances(
@@ -90,7 +119,7 @@ class WalletOperations {
           decimals: token.decimals,
         };
       } catch (error) {
-        console.error(`Error fetching balance for ${token.symbol}:`, error);
+        errorService.handleTransactionError(error, `getMultipleTokenBalances-${token.symbol}`);
         balances[token.symbol] = {
           balance: '0',
           balanceUsd: '0',
@@ -128,10 +157,11 @@ class WalletOperations {
         status: 'pending',
       };
     } catch (error: any) {
+      const txError = errorService.handleTransactionError(error, 'sendNativeToken');
       return {
         hash: '',
         status: 'failed',
-        error: error.message || 'Transaction failed',
+        error: txError,
       };
     }
   }
@@ -142,7 +172,16 @@ class WalletOperations {
     decimals: number = 18
   ): Promise<TransactionResult> {
     if (!params.tokenAddress) {
-      throw new Error('Token address is required for token transfers');
+      const error = errorService.createTransactionError(
+        ErrorCode.VALIDATION_ERROR,
+        'Token address is required for token transfers',
+        undefined,
+        params.network,
+        params,
+        'sendToken'
+      );
+      errorService.logError(error);
+      throw error;
     }
 
     try {
@@ -169,10 +208,11 @@ class WalletOperations {
         status: 'pending',
       };
     } catch (error: any) {
+      const txError = errorService.handleTransactionError(error, 'sendToken');
       return {
         hash: '',
         status: 'failed',
-        error: error.message || 'Token transfer failed',
+        error: txError,
       };
     }
   }
@@ -196,10 +236,11 @@ class WalletOperations {
         status: 'pending',
       };
     } catch (error: any) {
+      const txError = errorService.handleTransactionError(error, 'approveToken');
       return {
         hash: '',
         status: 'failed',
-        error: error.message || 'Approval failed',
+        error: txError,
       };
     }
   }
@@ -232,18 +273,27 @@ class WalletOperations {
           receipt,
         };
       } else {
+        const txError = errorService.createTransactionError(
+          ErrorCode.TX_FAILED,
+          'Transaction failed',
+          txHash,
+          network,
+          { receipt },
+          'waitForTransaction'
+        );
         return {
           hash: txHash,
           status: 'failed',
           receipt: receipt || undefined,
-          error: 'Transaction failed',
+          error: txError,
         };
       }
     } catch (error: any) {
+      const txError = errorService.handleTransactionError(error, 'waitForTransaction');
       return {
         hash: txHash,
         status: 'failed',
-        error: error.message || 'Transaction confirmation failed',
+        error: txError,
       };
     }
   }
@@ -266,10 +316,11 @@ class WalletOperations {
         receipt,
       };
     } catch (error: any) {
+      const txError = errorService.handleTransactionError(error, 'getTransactionStatus');
       return {
         hash: txHash,
         status: 'failed',
-        error: error.message || 'Failed to get transaction status',
+        error: txError,
       };
     }
   }
