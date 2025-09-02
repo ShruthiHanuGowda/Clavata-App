@@ -61,7 +61,7 @@ export const useBridge = () => {
   const [transactionHash, setTransactionHash] = useState<string>('');
 
   // Get magic instance from the provider
-  const {setActiveNetwork, magic: newMagic, activeNetwork} = useMagic();
+  const {setActiveNetwork} = useMagic();
 
   // Get user details from auth provider
   const {userDetails} = useAuth();
@@ -174,15 +174,10 @@ export const useBridge = () => {
         const usdcContract = new Contract(usdcAddress, ERC20_ABI, signer);
         const bridgeContract = new Contract(bridgeAddress, BRIDGE_ABI, signer);
 
-        // Check USDC balance before proceeding
         updateProcessingStep('DEPOSIT', 'CHECKING_BALANCE');
         try {
-          const balance = await usdcContract.balanceOf(
-            await signer.getAddress(),
-          );
-        } catch (err) {
-          // Balance check failed, continue anyway
-        }
+          await usdcContract.balanceOf(await signer.getAddress());
+        } catch (err) {}
 
         // Approve bank to spend USDC
         updateProcessingStep('DEPOSIT', 'APPROVING_TOKEN');
@@ -302,6 +297,7 @@ export const useBridge = () => {
 
         updateProcessingStep('DEPOSIT', 'WAITING_APPROVAL');
         const approvalReceipt = await approveTx.wait();
+        console.log(approvalReceipt);
 
         // Deposit EURC to bridge
         updateProcessingStep('DEPOSIT', 'DEPOSITING');

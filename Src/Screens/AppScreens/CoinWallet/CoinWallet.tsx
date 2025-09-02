@@ -83,15 +83,6 @@ interface ChartDataHook {
 }
 
 type ToggleValue = 'day' | 'week';
-type CoinCode =
-  | 'WATT'
-  | 'USDC'
-  | 'ETH'
-  | 'WUSDC'
-  | 'EURC'
-  | 'WEURC'
-  | 'USD'
-  | string;
 
 // Utility Functions
 const formatCoinCodeForAPI = (coinCode: string): string => {
@@ -338,14 +329,14 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
     }
   }, [coinCode]);
 
-  const [createTransactionHistoryMobile] = useMutation(
-    CREATE_TRANSACTION_HISTORY_MOBILE,
-    {
-      onError: error => {
-        console.error('Transaction history mutation error:', error);
-      },
-    },
-  );
+  // const [createTransactionHistoryMobile] = useMutation(
+  //   CREATE_TRANSACTION_HISTORY_MOBILE,
+  //   {
+  //     onError: error => {
+  //       console.error('Transaction history mutation error:', error);
+  //     },
+  //   },
+  // );
 
   const getContractAddress = useCallback((coinCode: string): string | null => {
     switch (coinCode) {
@@ -358,16 +349,17 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
     }
   }, []);
 
-  // Safe hook calls with error handling
+  // Hook calls must be at the top level
+  const walletHook = useWallet();
+  const authHook = useAuth();
+
+  // Safe data extraction with error handling
   let getBalance: ((coinCode: string) => any) | undefined;
   let userDetails: any;
   let balance = '0';
   let balanceUsd = '0.00';
 
   try {
-    const walletHook = useWallet();
-    const authHook = useAuth();
-
     getBalance = walletHook?.getBalance;
     userDetails = authHook?.userDetails;
 
@@ -377,7 +369,7 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
       balanceUsd = balanceData?.balanceUsd || '0.00';
     }
   } catch (error) {
-    console.error('Hook error:', error);
+    console.error('Data extraction error:', error);
     setHasError(true);
   }
 

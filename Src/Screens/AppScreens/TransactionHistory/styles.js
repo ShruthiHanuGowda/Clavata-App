@@ -199,4 +199,27 @@ export default StyleSheet.create({
     padding: 0,
     margin: 0,
   },
+  leftContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '60%',
+  },
+  contentRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  textContainer: {
+    width: '80%',
+    paddingRight: 10,
+  },
+  capitalize: {
+    textTransform: 'capitalize',
+  },
+  rightContainer: {
+    width: '40%',
+    alignSelf: 'flex-end',
+    alignItems: 'flex-end',
+    paddingLeft: 10,
+  },
 });

@@ -15,7 +15,6 @@ import {
 import {useMagic} from './MagicProvider';
 import {MERGED_API_URL} from '../../Src/constants';
 
-
 const createApolloClient = (
   magicAccessToken: string = '',
 ): ApolloClient<NormalizedCacheObject> => {
@@ -121,21 +120,11 @@ export const GraphQLProvider: React.FC<AppProviderProps> = ({children}) => {
     }
   }, [magic, updateClientWithToken]);
 
-  // Optional: Listen for Magic auth state changes
   useEffect(() => {
-    if (!magic) {return;}
+    if (!magic) {
+      return;
+    }
 
-    // You might want to listen for auth state changes
-    // This depends on your Magic implementation
-    const handleAuthChange = () => {
-      console.log('Auth state changed, updating client');
-      updateClientWithToken();
-    };
-
-    // If Magic provides auth state change listeners, use them here
-    // magic.onAuthStateChanged?.(handleAuthChange);
-
-    // Cleanup function
     return () => {
       // magic.offAuthStateChanged?.(handleAuthChange);
     };

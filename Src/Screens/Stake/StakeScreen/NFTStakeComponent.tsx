@@ -5,21 +5,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Pressable,
-  Image,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import {BottomSheet} from 'react-native-btr';
 import Icon from 'react-native-vector-icons/Entypo';
-import {Colors, fontsFamily} from '../../../Theme';
 import {DTextInput} from '../../../Componants/Dinputs';
 import {DButton} from '../../../Componants';
-import images from '../../../Theme/images';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../../screens/Provider/authProvider';
-import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
 import {formatQuantityMWh} from '../../../utils';
 import {useNft} from '../../../../screens/Provider/NftProvider';
@@ -30,32 +24,21 @@ interface NFTStakeComponentProps {
 }
 
 const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
-  const {userDetails} = useAuth();
-  console.log('userDetails', userDetails);
-
   const {nfts, isLoading, refresh} = useNft();
 
-  const {
-    isLoading: isNFTStakingLoading,
-    error: nftStakingError,
-    delegateERC1155,
-  } = useNFTStaking(validatorId);
+  const {isLoading: isNFTStakingLoading, delegateERC1155} =
+    useNFTStaking(validatorId);
 
   const {setActiveNetwork, activeNetwork} = useMagic();
 
-  // State for dropdown visibility
   const [bottomSheetVisible, setBottomSheetVisible] = useState<boolean>(false);
 
-  // State for selected NFT
   const [selectedNFT, setSelectedNFT] = useState<any>(null);
 
-  // State for amount input
   const [amount, setAmount] = useState<string>('');
   const [isAmountValid, setIsAmountValid] = useState<boolean>(false);
   const [amountError, setAmountError] = useState<string>('');
-  const [txHash, setTxHash] = useState<string>('');
-  const [txStatus, setTxStatus] = useState<string>('idle'); // 'idle', 'staking', 'success', 'failed'
-
+  const [txStatus, setTxStatus] = useState<string>('idle');
   useEffect(() => {
     if (activeNetwork !== 'denergy') {
       setActiveNetwork('denergy');
@@ -113,7 +96,9 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
 
   // Function to format contract address
   const formatContractAddress = address => {
-    if (!address) {return '';}
+    if (!address) {
+      return '';
+    }
     return `${address.substring(0, 8)}...${address.substring(
       address.length - 6,
     )}`;
@@ -121,7 +106,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
 
   const handleStakeSuccess = result => {
     console.log('NFT Staking successful:', result);
-    setTxHash(result.txHash);
+
     setTxStatus('success');
 
     // Show success alert

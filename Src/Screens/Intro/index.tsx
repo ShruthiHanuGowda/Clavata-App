@@ -34,7 +34,7 @@ interface OnboardingProps {
   navigation?: any; // You can type this more specifically if needed
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({navigation}) => {
+const Onboarding: React.FC<OnboardingProps> = () => {
   const [index, setIndex] = useState<number>(0);
 
   const scrollX = useRef<Animated.Value>(new Animated.Value(0)).current;
@@ -56,7 +56,9 @@ const Onboarding: React.FC<OnboardingProps> = ({navigation}) => {
     },
   );
 
-  const handleOnMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
+  const handleOnMomentumScrollEnd = (
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+  ): void => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const currentIndex = Math.round(offsetX / width);
     setIndex(currentIndex);

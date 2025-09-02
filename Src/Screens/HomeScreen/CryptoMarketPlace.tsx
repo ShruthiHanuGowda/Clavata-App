@@ -10,8 +10,7 @@ import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList
 import {navigateTo} from '../../utils/navigationService';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
 export default function CryptoMarketPlace(props: any) {
-  const {getBalance, refreshBalance, isBalanceLoading, refreshAllBalances} =
-    useWallet();
+  const {getBalance} = useWallet();
   const {userDetails} = useAuth();
   const navigation = useNavigation<any>();
 
@@ -165,7 +164,7 @@ export default function CryptoMarketPlace(props: any) {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[marketPlaceStyles.myListingsButton, {marginLeft: 10}]}
+              style={marketPlaceStyles.receiveButton}
               onPress={() => {
                 navigateTo('coinWalletStack', {
                   screen: SCREEN_CONSTANT.RECIEVESCREEN,
@@ -227,6 +226,13 @@ const marketPlaceStyles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
+  },
+  receiveButton: {
+    backgroundColor: '#81c8c3',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginLeft: 10,
   },
   myListingsButtonText: {
     color: '#FFFFFF',

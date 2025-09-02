@@ -54,7 +54,7 @@ export const VerifyAddress: React.FC<Props> = props => {
     }
   }
 
-  const handleSelectAddress = (address: string, contact: any): void => {
+  const handleSelectAddress = (address: string): void => {
     setSenderAddress(address);
   };
 

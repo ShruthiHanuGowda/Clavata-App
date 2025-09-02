@@ -1,4 +1,4 @@
-import React, {JSX, useState, useCallback, useMemo, useEffect} from 'react';
+import React, {JSX, useState, useCallback, useMemo} from 'react';
 import {
   Image,
   TouchableOpacity,
@@ -6,7 +6,6 @@ import {
   FlatList,
   TextInput,
   StyleSheet,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
@@ -33,18 +32,13 @@ interface Contact {
   chain: string;
 }
 
-interface AddressBookProps {
-  // Add any props if needed
-}
-
-function AddressBook(props: AddressBookProps): JSX.Element {
+function AddressBook(): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingContactId, setDeletingContactId] = useState<string | null>(
     null,
-  ); // Track which contact is being deleted
+  );
   const {userDetails} = useAuth();
 
-  // Using the updated hook with wallet address
   const {
     loading: listLoading,
     data: addressBooks,
@@ -52,19 +46,11 @@ function AddressBook(props: AddressBookProps): JSX.Element {
     refetch: refetchList,
   } = useAddressBookByWallet(userDetails?.userWallet ?? null);
 
-  // Using the delete hook
   const {
-    loading: deleteLoading,
-    error: deleteError,
+    // loading: deleteLoading,
+    // error: deleteError,
     deleteAddressBook,
   } = useDeleteAddressBook();
-
-  console.log(
-    'addressBooks',
-    JSON.stringify(addressBooks),
-    listLoading,
-    listError,
-  );
 
   useFocusEffect(
     useCallback(() => {
@@ -137,10 +123,6 @@ function AddressBook(props: AddressBookProps): JSX.Element {
                 // Call the actual delete API
                 await deleteAddressBook(contactId, walletAddress);
 
-                console.log(
-                  `Contact deleted: ${contactName} (ID: ${contactId})`,
-                );
-
                 SnackBarMessage('Contact deleted successfully', 'success');
 
                 // Refresh the list after successful deletion
@@ -189,7 +171,9 @@ function AddressBook(props: AddressBookProps): JSX.Element {
         contactId={item.id}
         onPress={() => {
           // Disable press when deleting
-          if (deletingContactId === item.id) {return;}
+          if (deletingContactId === item.id) {
+            return;
+          }
           console.log('Contact pressed:', item.name, 'ID:', item.id);
         }}
         onEdit={handleEditContact}
@@ -295,7 +279,7 @@ function AddressBook(props: AddressBookProps): JSX.Element {
               onPress={() => {
                 navigateTo('CreateAddress');
               }}
-              style={[localStyles.iconContainer, {bottom: 5}]}>
+              style={[localStyles.iconContainer, localStyles.iconContainerBottom]}>
               <View style={localStyles.addButton}>
                 <AntDesignIcon
                   name="pluscircleo"
@@ -351,6 +335,9 @@ const localStyles = StyleSheet.create({
   },
   iconContainer: {
     paddingHorizontal: 8,
+  },
+  iconContainerBottom: {
+    bottom: 5,
   },
   nameContainer: {
     flex: 1,

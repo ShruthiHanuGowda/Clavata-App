@@ -15,8 +15,6 @@ interface FilterState {
 interface MiniTransactionHistoryProps {
   coinCode?: string;
   name?: string;
-  showFilter?: boolean;
-  setShowFilter?: (show: boolean) => void;
   contractAddress?: string | null;
   limit?: number;
 }
@@ -28,17 +26,15 @@ interface UserDetails {
 const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
   coinCode,
   name,
-  showFilter,
-  setShowFilter,
   contractAddress,
   limit = 20,
 }) => {
-  const {userDetails}: {userDetails: UserDetails} = useAuth();
+  const {userDetails} = useAuth();
 
   // Get wallet address
   const coinCodesForDenergyWallet: string[] = ['watt', 'weurc', 'wusdc'];
-  const wallet: string | undefined = coinCodesForDenergyWallet.includes(
-    coinCode?.toLowerCase() || ''
+  const wallet = coinCodesForDenergyWallet.includes(
+    coinCode?.toLowerCase() || '',
   )
     ? userDetails?.userWallet
     : userDetails?.userWallet;
@@ -64,7 +60,9 @@ const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
 
   // Display coin code formatting
   const getDisplayCoinCode = (code?: string): string => {
-    if (!code) {return '';}
+    if (!code) {
+      return '';
+    }
 
     switch (code.toUpperCase()) {
       case 'WUSDC':
@@ -100,7 +98,8 @@ const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
       {coinCode && (
         <View>
           <DText fontStyle="fontRegular" style={styles.coinCodeText}>
-            {transactions.length > 0 && `${transactions.length} transactions in `}
+            {transactions.length > 0 &&
+              `${transactions.length} transactions in `}
             {getDisplayCoinCode(coinCode)}
           </DText>
         </View>

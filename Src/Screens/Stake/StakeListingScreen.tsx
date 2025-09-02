@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,6 @@ import {DButton} from '../../Componants';
 import {navigateTo} from '../../utils/navigationService';
 import {formatQuantityMWh} from '../../utils';
 
-// Interface definitions
 interface NFTDelegation {
   id: string;
   amount: string;
@@ -65,11 +64,6 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
   onRefresh,
   onRetry,
 }) => {
-  console.log(
-    '🚀 ~ StakeListingScreen ~ stakedAssets:',
-    JSON.stringify(stakedAssets),
-  );
-
   // State for bottom sheet
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [detailsSheetVisible, setDetailsSheetVisible] = useState(false);
@@ -111,7 +105,6 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
       setSelectedAsset(asset);
       setDetailsSheetVisible(true);
     } else {
-      // Handle other actions directly without bottom sheet
       Alert.alert(
         action,
         `${action} ${asset.stakeNumber} with ${asset.validator.name}`,
@@ -133,25 +126,6 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
         style: 'cancel',
       },
     ]);
-  };
-
-  const toggleAddressExpansion = (assetId: string, addressType: string) => {
-    const key = `${assetId}-${addressType}`;
-    setExpandedAddresses(prev => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-  const formatAddress = (address: string, assetId: string, type: string) => {
-    const key = `${assetId}-${type}`;
-    const isExpanded = expandedAddresses[key];
-
-    if (isExpanded) {
-      return address;
-    }
-    // Show more characters for better readability on full-width display
-    return `${address.slice(0, 12)}...${address.slice(-8)}`;
   };
 
   const executeAction = () => {

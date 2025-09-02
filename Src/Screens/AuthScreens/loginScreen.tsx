@@ -52,11 +52,10 @@ export const parseDataAndReturnFixedInfo = (data: any) => {
 
 export default function LoginScreen() {
   const {magic, setActiveNetwork} = useMagic();
-  const {updateUserData, userDetails} = useAuth();
+  const {updateUserData} = useAuth();
   const {updateClientWithToken} = useApolloClientContext();
   const {checkKYC, isKycCompleted} = useKycCheck();
 
-  const [isUserLogin, setIsUserLogin] = useState(false);
   const [isValid, setValid] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -68,12 +67,12 @@ export default function LoginScreen() {
   const kycCompletionTimeoutRef = useRef<any>(null);
   const kycPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [
-    getUserWallet,
-    {data: userData, loading: queryLoading, error: queryError},
-  ] = useLazyQuery(GET_USER_WALLET_ADDRESS, {
-    fetchPolicy: 'no-cache',
-  });
+  const [getUserWallet, {data: userData, error: queryError}] = useLazyQuery(
+    GET_USER_WALLET_ADDRESS,
+    {
+      fetchPolicy: 'no-cache',
+    },
+  );
 
   useEffect(() => {
     if (userData && !callbackExecutedRef.current && !isKycSkipped) {
@@ -348,7 +347,6 @@ export default function LoginScreen() {
           }
 
           await updateUserData(apiData, true);
-          setIsUserLogin(true);
 
           const isVerified: boolean =
             apiData?.is_verified === true || apiData?.is_verified === 'true';

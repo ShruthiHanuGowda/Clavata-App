@@ -336,11 +336,15 @@ export const useSwap = (magic: any): UseSwapReturn => {
   // Get user balance
   const getBalance = useCallback(
     async (tokenSymbol: string = selectedToken): Promise<void> => {
-      if (!isConnected || !account || !provider) {return;}
+      if (!isConnected || !account || !provider) {
+        return;
+      }
 
       try {
         const token = TOKENS[tokenSymbol];
-        if (!token) {return;}
+        if (!token) {
+          return;
+        }
 
         console.log(`Getting balance for ${tokenSymbol}...`);
 
@@ -388,8 +392,9 @@ export const useSwap = (magic: any): UseSwapReturn => {
       !account ||
       getInputToken().address === 'WATT' ||
       !provider
-    )
-      {return;}
+    ) {
+      return;
+    }
 
     try {
       const inputToken = getInputToken();
@@ -646,8 +651,12 @@ export const useSwap = (magic: any): UseSwapReturn => {
   // Check if approval is needed
   const needsApproval = (): boolean => {
     const inputToken = getInputToken();
-    if (inputToken.native) {return false;}
-    if (!amount || amount === '0') {return false;}
+    if (inputToken.native) {
+      return false;
+    }
+    if (!amount || amount === '0') {
+      return false;
+    }
 
     try {
       const amountToSpend = parseUnits(amount, inputToken.decimals);

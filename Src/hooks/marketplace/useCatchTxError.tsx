@@ -1,8 +1,8 @@
 import {useCallback, useState} from 'react';
-import {ethers, Provider, TransactionReceipt} from 'ethers';
+import {Provider, TransactionReceipt} from 'ethers';
 import {isUserRejected} from './reject';
 import {SnackBarMessage} from '../../utils/snackBar';
-import {errorService, ErrorCode} from '../../services/errorService';
+import {errorService} from '../../services/errorService';
 
 type Params = {
   throwUserRejectError?: boolean;
@@ -14,10 +14,10 @@ export default function useCatchTxError(params?: Params) {
   const [loading, setLoading] = useState(false);
   const [txResponseLoading, setTxResponseLoading] = useState(false);
 
-  const waitForTxReceipt = async (provider: Provider, hash: string) => {
-    const receipt = await provider.waitForTransaction(hash);
-    return receipt;
-  };
+  // const waitForTxReceipt = async (provider: Provider, hash: string) => {
+  //   const receipt = await provider.waitForTransaction(hash);
+  //   return receipt;
+  // };
 
   const fetchWithCatchTxError = useCallback(
     async (
@@ -29,7 +29,9 @@ export default function useCatchTxError(params?: Params) {
       try {
         setLoading(true);
         tx = await callTx();
-        if (!tx) {return null;}
+        if (!tx) {
+          return null;
+        }
 
         const receipt: any = tx;
         if (receipt?.status === 1) {
@@ -39,8 +41,11 @@ export default function useCatchTxError(params?: Params) {
           throw new Error('Transaction failed.');
         }
       } catch (error: any) {
-        const txError = errorService.handleTransactionError(error, 'fetchWithCatchTxError');
-        
+        const txError = errorService.handleTransactionError(
+          error,
+          'fetchWithCatchTxError',
+        );
+
         if (!isUserRejected(error)) {
           if (!tx && !throwCustomError) {
             // Error already logged by errorService
@@ -51,7 +56,9 @@ export default function useCatchTxError(params?: Params) {
           }
         }
 
-        if (throwUserRejectError) {throw txError;}
+        if (throwUserRejectError) {
+          throw txError;
+        }
       } finally {
         setLoading(false);
       }
@@ -70,7 +77,9 @@ export default function useCatchTxError(params?: Params) {
       try {
         setTxResponseLoading(true);
         tx = await callTx();
-        if (!tx) {return null;}
+        if (!tx) {
+          return null;
+        }
 
         const hash = typeof tx === 'string' ? tx : tx.hash;
         return {hash};

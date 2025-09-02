@@ -1,12 +1,9 @@
 import {ScreenWidth} from '@rneui/base';
 import React from 'react';
 import {Image, StyleSheet, TouchableOpacity, View} from 'react-native';
-import {Svg} from 'react-native-svg';
 import {CartesianChart, Line} from 'victory-native';
 import {marketIcons} from '../../Theme/variable';
 import {DText} from '../../Componants/DText';
-import {SCREEN_CONSTANT} from '../../Navigation/constant';
-import {fontsFamily} from '../../Theme';
 import {navigateTo} from '../../utils/navigationService';
 
 const marketIconColors = {
@@ -32,6 +29,19 @@ const MyCryptoCard = ({
 }) => {
   const height = 21;
   const width = 71;
+
+  // Helper functions for dynamic styles
+  const getImageStyle = code => [
+    marketStyles.image,
+    {backgroundColor: marketIconColors[code]},
+  ];
+
+  const getChartStyle = width => [marketStyles.chart, {width}];
+
+  const getChartBackgroundStyle = (width, height) => [
+    marketStyles.chartBackground,
+    {width, height},
+  ];
   return (
     <TouchableOpacity
       style={marketStyles.container}
@@ -45,13 +55,7 @@ const MyCryptoCard = ({
         })
       }
       activeOpacity={0.5}>
-      <View
-        style={[
-          marketStyles.image,
-          {
-            backgroundColor: marketIconColors[code],
-          },
-        ]}>
+      <View style={getImageStyle(code)}>
         <Image source={marketIcons[code]} />
       </View>
       <View style={marketStyles.info}>
@@ -66,14 +70,8 @@ const MyCryptoCard = ({
         </DText>
       </View>
       <View style={marketStyles.content}>
-        <View
-          style={[
-            marketStyles.chart,
-            {
-              width,
-            },
-          ]}>
-          <View width={width} height={height} style={{backgroundColor: '#fff'}}>
+        <View style={getChartStyle(width)}>
+          <View style={getChartBackgroundStyle(width, height)}>
             <CartesianChart
               data={chartData}
               xKey="x"
@@ -174,5 +172,8 @@ const marketStyles = StyleSheet.create({
     textAlign: 'right',
     fontSize: 14,
     lineHeight: 16,
+  },
+  chartBackground: {
+    backgroundColor: '#fff',
   },
 });

@@ -16,7 +16,7 @@ import RemoveStage from './RemoveStage';
 import TransferStage from './TransferStage';
 import ConfirmStage from './ConfirmStage';
 import TransactionConfirmed from './TransactionConfirmed';
-import {hexlify, isAddress, MaxUint256, parseUnits, toUtf8Bytes} from 'ethers';
+import {hexlify, parseUnits, toUtf8Bytes} from 'ethers';
 import {NftToken} from '../../../types/types';
 import {getMinAskPrice} from '../../../hooks/marketPlace';
 import {useAuth} from '../../../../screens/Provider/authProvider';
@@ -256,7 +256,9 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
   const {isApproving, isApproved, isConfirming, handleApprove, handleConfirm} =
     useApproveConfirmTransaction({
       onRequiresApproval: async () => {
-        if (!account) {return true;}
+        if (!account) {
+          return true;
+        }
         try {
           const isApproved = await isApprovedForAll(
             nftToSell.collectionAddress,
@@ -276,7 +278,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
           true,
         ]);
       },
-      onApproveSuccess: async ({receipt}) => {
+      onApproveSuccess: async () => {
         SnackBarMessage(
           'Contract approved - you can now put your Certificate for sale!',
           'success',
@@ -329,7 +331,9 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
         ]);
       },
       onSuccess: async ({receipt}) => {
-        if (!variant) {return;}
+        if (!variant) {
+          return;
+        }
         console.log('receipt', receipt);
         setConfirmedTxHash(receipt.hash);
         setprevStage(stage);

@@ -14,7 +14,7 @@ interface CategoryTabProps {
   onCancelPress?: () => void;
 }
 
-const CategoryTab: React.FC<CategoryTabProps> = ({onSelectPress, onCancelPress}) => {
+const CategoryTab: React.FC<CategoryTabProps> = () => {
   //   const {index, setFilters, reloadData, filters, lastUpdated, count} =
   // useContext(StakeContext);
   //   const [showFilter, setShowFilter] = useState(false);
@@ -28,14 +28,14 @@ const CategoryTab: React.FC<CategoryTabProps> = ({onSelectPress, onCancelPress})
     // setShowSortBy(true);
   };
 
-  const renderText = (itemIndex: number, title: string): React.ReactElement => (
-    <View style={styles.titleContainer}>
-      <DText
-        style={[index === itemIndex ? styles.tabTitleActive : styles.tabTitle]}>
-        {title}
-      </DText>
-    </View>
-  );
+  // const renderText = (itemIndex: number, title: string): React.ReactElement => (
+  //   <View style={styles.titleContainer}>
+  //     <DText
+  //       style={[index === itemIndex ? styles.tabTitleActive : styles.tabTitle]}>
+  //       {title}
+  //     </DText>
+  //   </View>
+  // );
 
   return (
     <>

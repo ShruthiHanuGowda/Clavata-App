@@ -1,6 +1,6 @@
 // import { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import {useCallback, useEffect, useMemo, useRef} from 'react';
-import {BackHandler} from 'react-native';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { BackHandler } from 'react-native';
 
 export default function useBottomSheet(
   visible,

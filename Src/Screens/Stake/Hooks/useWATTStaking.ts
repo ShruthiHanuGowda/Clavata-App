@@ -30,11 +30,9 @@ interface UnbondEvent {
   transactionHash: string;
 }
 
-// Callback types for the event listeners
 type DelegateCallback = (event: DelegateEvent) => void;
 type UnbondCallback = (event: UnbondEvent) => void;
 
-// Define success callback interface
 interface WATTStakingSuccess {
   txHash: string;
   amount: string;
@@ -54,14 +52,11 @@ export const useWATTStaking = (validatorAddress?: string) => {
   const [error, setError] = useState<string | null>(null);
   const [wattBalance, setWattBalance] = useState<string>('0');
 
-  // Get magic instance from the provider
   const {magic, setActiveNetwork} = useMagic();
 
-  // Get user details from auth provider
   const {userDetails} = useAuth();
 
-  // Get balance refresh function
-  const {refreshBalance, getBalance} = useWallet();
+  const {refreshBalance} = useWallet();
 
   /**
    * Get native WATT balance for the user

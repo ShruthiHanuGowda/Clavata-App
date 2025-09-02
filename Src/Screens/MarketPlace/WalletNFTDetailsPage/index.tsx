@@ -1,19 +1,15 @@
 import {
-  Dimensions,
   Image,
-  ImageBackground,
   StyleSheet,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   Linking,
 } from 'react-native';
 import {Header, Tab} from '@rneui/base';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {DText} from '../../../Componants/DText';
 import images from '../../../Theme/images';
 import LinearGradient from 'react-native-linear-gradient';
 import {fontsFamily} from '../../../Theme';
@@ -34,8 +30,6 @@ import {useKycCheck} from '../../../CustomHooks/GlobalKycProvider';
 import {RefreshControl} from 'react-native-gesture-handler';
 import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
 import {useNft} from '../../../../screens/Provider/NftProvider';
-
-const width = Dimensions.get('window').width;
 
 interface ActionButtonProps {
   icon: any;
@@ -119,6 +113,17 @@ const NFTHeader = ({name, quantity, metadata}: NFTHeaderProps) => (
 
 const WalletNFTDetailsScreen = ({route}: any) => {
   const {nft, refresh} = route.params;
+
+  // Helper functions for dynamic tab styles
+  const getTabContainerStyle = (active: boolean) => [
+    styles.tabItemContainer,
+    active ? styles.tabItemActive : styles.tabItemInactive,
+  ];
+
+  const getTabTitleStyle = (active: boolean) => [
+    styles.tabTitleBase,
+    active ? styles.tabTitleActive : styles.tabTitleInactive,
+  ];
   const navigation = useNavigation();
   const {magic, setActiveNetwork} = useMagic();
   const {userDetails} = useAuth();
@@ -304,7 +309,9 @@ const WalletNFTDetailsScreen = ({route}: any) => {
 
   // Helper function to get attribute value
   const getAttributeValue = (traitType: string): string => {
-    if (!nftMetadata?.attributes) {return '-';}
+    if (!nftMetadata?.attributes) {
+      return '-';
+    }
     const attribute = nftMetadata.attributes.find(
       attr => attr?.trait_type === traitType,
     );
@@ -331,7 +338,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
       <View style={styles.screenContainer}>
         <Header
           backgroundColor={'#FFF'}
-          containerStyle={{borderBottomWidth: 0}}
+          containerStyle={styles.loadingHeaderContainer}
           leftComponent={
             <TouchableOpacity
               onPress={() => navigateBack()}
@@ -446,21 +453,9 @@ const WalletNFTDetailsScreen = ({route}: any) => {
             {TAB_ITEMS.map((tab, i) => (
               <Tab.Item
                 key={i}
-                containerStyle={active => ({
-                  borderBottomColor: active ? '#009D94' : '#E5E5E5',
-                  borderBottomWidth: active ? 3 : 1,
-                  backgroundColor: 'transparent',
-                  paddingVertical: 1,
-                })}
+                containerStyle={active => getTabContainerStyle(active)}
                 title={tab}
-                titleStyle={active => ({
-                  color: active ? '#009D94' : '#6B7280',
-                  fontFamily: active
-                    ? fontsFamily.MulishExtraBold
-                    : fontsFamily.MulishBold,
-                  fontSize: 16,
-                  fontWeight: active ? '800' : '600',
-                })}
+                titleStyle={active => getTabTitleStyle(active)}
               />
             ))}
           </Tab>
@@ -749,6 +744,9 @@ const styles = StyleSheet.create({
     fontFamily: fontsFamily.Mulish,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  loadingHeaderContainer: {
+    borderBottomWidth: 0,
   },
   headerContainer: {
     borderBottomWidth: 0,
@@ -1176,6 +1174,33 @@ const styles = StyleSheet.create({
     fontFamily: fontsFamily.Mulish,
     textAlign: 'center',
     lineHeight: 20,
+  },
+
+  // Tab Item Styles
+  tabItemContainer: {
+    backgroundColor: 'transparent',
+    paddingVertical: 1,
+  },
+  tabItemActive: {
+    borderBottomColor: '#009D94',
+    borderBottomWidth: 3,
+  },
+  tabItemInactive: {
+    borderBottomColor: '#E5E5E5',
+    borderBottomWidth: 1,
+  },
+  tabTitleBase: {
+    fontSize: 16,
+  },
+  tabTitleActive: {
+    color: '#009D94',
+    fontFamily: fontsFamily.MulishExtraBold,
+    fontWeight: '800',
+  },
+  tabTitleInactive: {
+    color: '#6B7280',
+    fontFamily: fontsFamily.MulishBold,
+    fontWeight: '600',
   },
 });
 

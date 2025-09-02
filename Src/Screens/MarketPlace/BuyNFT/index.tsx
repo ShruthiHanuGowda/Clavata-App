@@ -147,7 +147,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
           MaxUint256,
         ]);
       },
-      onApproveSuccess: async ({receipt}) => {
+      onApproveSuccess: async () => {
         SnackBarMessage(
           `Contract approved - you can now buy NFT with ${paymentCurrency}!`,
           'success',
@@ -260,7 +260,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
       <Header
         headerTitle={stageConfig[stage].title}
         backBtn={() => navigateBack()}
-        containerStyle={{backgroundColor: '#f9fafa'}}
+        containerStyle={styles.headerContainer}
         hideBorder
       />
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -288,6 +288,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#007AFF',
     fontWeight: '600',
+  },
+  headerContainer: {
+    backgroundColor: '#f9fafa',
   },
 });
 

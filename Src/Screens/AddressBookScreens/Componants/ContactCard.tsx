@@ -4,6 +4,7 @@ import {DText} from '../../../Componants/DText';
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 import images from '../../../Theme/images';
 import {SnackBarMessage} from '../../../utils/snackBar';
+import Clipboard from '@react-native-clipboard/clipboard';
 
 interface ContactCardProps {
   name: string;
@@ -37,7 +38,12 @@ const ContactCard: React.FC<ContactCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const copyToClipboard = (address: string) => {
-    SnackBarMessage('Address copied to clipboard!', 'success');
+    try {
+      Clipboard.setString(address);
+      SnackBarMessage('Address copied to clipboard!', 'success');
+    } catch (error) {
+      console.log('Error copying to clipboard:', error);
+    }
   };
 
   const handleAddressAction = (address: string) => {
@@ -181,9 +187,7 @@ const ContactCard: React.FC<ContactCardProps> = ({
             </View>
 
             <View style={styles.addressContainer}>
-              <DText style={styles.addressText} selectable={true}>
-                {beneficiaryAddress}
-              </DText>
+              <DText style={styles.addressText}>{beneficiaryAddress}</DText>
             </View>
           </View>
         </View>

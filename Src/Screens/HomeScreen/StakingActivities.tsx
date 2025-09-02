@@ -48,30 +48,13 @@ export default function StakingActivities(props: Props) {
           </DText>
           <Image
             source={images.next}
-            style={{
-              width: 18,
-              height: 18,
-              marginRight: 21,
-            }}
+            style={stakingStyles.nextIcon}
           />
         </View>
       )}
-      <View
-        style={{
-          width: '100%',
-          flexDirection: 'row',
-          justifyContent: 'space-around',
-          alignItems: 'center',
-        }}>
+      <View style={stakingStyles.chartsContainer}>
         <View style={[stakingStyles.chart]}>
-          <View
-            style={{
-              width: '100%',
-              height: 150,
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: 15,
-            }}>
+          <View style={stakingStyles.chartWrapper}>
             <PieChart
               data={
                 total > 0
@@ -92,7 +75,7 @@ export default function StakingActivities(props: Props) {
                 Staked
               </DText>
             </View>
-            <View style={[stakingStyles.staked, {marginTop: 10}]}>
+            <View style={stakingStyles.stakedMarginTop}>
               <DText style={stakingStyles.availableCount}>
                 {Number(getBalance('WATT')?.balance).toFixed(2)} WATT
               </DText>
@@ -103,14 +86,7 @@ export default function StakingActivities(props: Props) {
           </View>
         </View>
         <View style={stakingStyles.chart}>
-          <View
-            style={{
-              width: '100%',
-              height: height,
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: 15,
-            }}>
+          <View style={[stakingStyles.chartWrapper, {height: height}]}>
             <PieChart
               data={
                 total > 0
@@ -139,7 +115,7 @@ export default function StakingActivities(props: Props) {
                 Staked
               </DText>
             </View>
-            <View style={[stakingStyles.staked, {marginTop: 10}]}>
+            <View style={stakingStyles.stakedMarginTop}>
               <DText style={stakingStyles.availableCount}>
                 {loading}
                 {!props.loading && formatQuantityMWh(Number(drecsOwned ?? 0))}
@@ -198,5 +174,28 @@ const stakingStyles = StyleSheet.create({
     color: '#25233A',
     opacity: 0.4,
     fontSize: 12,
+  },
+  nextIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 21,
+  },
+  chartsContainer: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  chartWrapper: {
+    width: '100%',
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  stakedMarginTop: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
   },
 });

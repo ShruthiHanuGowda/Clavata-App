@@ -30,18 +30,10 @@ const CustomImageButton: React.FC<CustomImageButtonProps> = props => {
       disabled={props.disable}
       activeOpacity={props.disable ? 0.2 : 0.8}>
       {props?.disable ? (
-        <View style={{justifyContent: 'center', alignItems: 'center'}}>
+        <View style={styles.disabledContainer}>
           <View
-            style={[
-              styles.disabledButton,
-              {
-                borderWidth: 1,
-                borderColor: '#BCBFBF',
-                backgroundColor: '#BCBFBF',
-                marginHorizontal: 10,
-              },
-            ]}>
-            <Text style={[styles.buttonText, {color: '#fff'}]}>
+            style={[styles.disabledButton, styles.disabledButtonExtra]}>
+            <Text style={[styles.buttonText, styles.disabledButtonText]}>
               {props.label}
             </Text>
           </View>
@@ -61,10 +53,8 @@ const CustomImageButton: React.FC<CustomImageButtonProps> = props => {
           <Text
             style={[
               styles.buttonText,
+              styles.buttonTextBold,
               props.labelStyle,
-              {
-                fontFamily: fontsFamily.MulishBold,
-              },
             ]}>
             {props.label}
           </Text>
@@ -117,6 +107,22 @@ const styles = StyleSheet.create({
     width: 17,
     right: 5,
     tintColor: '#fff',
+  },
+  disabledContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disabledButtonExtra: {
+    borderWidth: 1,
+    borderColor: '#BCBFBF',
+    backgroundColor: '#BCBFBF',
+    marginHorizontal: 10,
+  },
+  disabledButtonText: {
+    color: '#fff',
+  },
+  buttonTextBold: {
+    fontFamily: fontsFamily.MulishBold,
   },
 });
 

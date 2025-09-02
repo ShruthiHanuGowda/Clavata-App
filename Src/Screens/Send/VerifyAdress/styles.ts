@@ -1,5 +1,4 @@
 import {StyleSheet} from 'react-native';
-import {ScreenWidth} from '@rneui/base';
 import {Colors, fontsFamily} from '../../../Theme';
 
 export default StyleSheet.create({

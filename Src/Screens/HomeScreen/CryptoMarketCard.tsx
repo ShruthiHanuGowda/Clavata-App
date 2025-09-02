@@ -1,5 +1,5 @@
 import React from 'react';
-import {Image, StyleSheet, View, TouchableOpacity, ImageSourcePropType} from 'react-native';
+import {Image, StyleSheet, View, TouchableOpacity} from 'react-native';
 import {DText} from '../../Componants/DText';
 import {marketIcons} from '../../Theme/variable';
 import {navigateTo} from '../../utils/navigationService';
@@ -22,17 +22,10 @@ interface CryptoMarketCardProps {
 const CryptoMarketCard: React.FC<CryptoMarketCardProps> = ({
   title,
   code,
-  chartData,
   dollar,
-  growth,
-  dip,
-  loading,
   balance,
-  coinValue = null,
   operationsTypes,
 }) => {
-  const height = 21;
-  const width = 71;
   return (
     <TouchableOpacity
       style={marketStyles.container}
@@ -93,7 +86,7 @@ const CryptoMarketCard: React.FC<CryptoMarketCardProps> = ({
             </DText>
           )} */}
         </View>
-        <View style={{alignItems: 'flex-end'}}>
+        <View style={marketStyles.balanceContainer}>
           <DText style={marketStyles.usd} fontStyle="fontExtraBold">
             {balance ? Number(balance).toFixed(2) : '0.0'}
           </DText>
@@ -175,6 +168,9 @@ const marketStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     bottom: 0,
+  },
+  balanceContainer: {
+    alignItems: 'flex-end',
   },
 });
 

@@ -30,11 +30,12 @@ export default function NFTDetailHistory({route}: {route: any}) {
   const {collectionAddress, nftName, nftId} = route?.params;
   const {userDetails} = useAuth();
 
-  const {transactions, formattedTransactions, loading, refreshTransactions} =
-    useNFTTransactionHistory({
+  const {transactions, loading, refreshTransactions} = useNFTTransactionHistory(
+    {
       collectionAddress: collectionAddress,
       walletAddress: userDetails?.userWallet || '',
-    });
+    },
+  );
 
   const [mockTransactions, setMockTransactions] = useState<NFTTransaction[]>(
     [],
@@ -42,14 +43,7 @@ export default function NFTDetailHistory({route}: {route: any}) {
   const [refreshing, setRefreshing] = useState(false);
   const [filters, setFilters] = useState(defaultFilter);
 
-  console.log(
-    'apiResponse🚀 ~ NFT mockTransactions:',
-    JSON.stringify(mockTransactions[0]),
-    loading,
-  );
-
   useEffect(() => {
-    console.log('apiResponse transactions', transactions);
     setMockTransactions(transactions ?? []);
   }, [transactions]);
 
@@ -69,7 +63,9 @@ export default function NFTDetailHistory({route}: {route: any}) {
   };
 
   const formatDateRange = () => {
-    if (!filters.startDate && !filters.endDate) {return '';}
+    if (!filters.startDate && !filters.endDate) {
+      return '';
+    }
 
     let dateRange = '';
     if (filters.startDate) {
@@ -128,9 +124,7 @@ export default function NFTDetailHistory({route}: {route: any}) {
         {nftName || `NFT #${nftId}`} doesn't have any transaction history yet.
       </DText>
       <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
-        <DText fontStyle="fontMedium" style={styles.refreshButtonText}>
-          Refresh
-        </DText>
+        <DText style={styles.refreshButtonText}>Refresh</DText>
       </TouchableOpacity>
     </View>
   );

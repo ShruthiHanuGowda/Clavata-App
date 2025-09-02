@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {View, Text, StyleSheet, ScrollView} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './styles';
@@ -6,38 +6,19 @@ import {Header} from '../../../Componants';
 import {fontsFamily} from '../../../Theme';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
-import Clipboard from '@react-native-clipboard/clipboard';
-import {SnackBarMessage} from '../../../utils/snackBar';
-
-interface UserDetails {
-  [key: string]: any;
-  kycDetails?: any;
-  accessToken?: string;
-}
 
 interface ProfileSettingProps {
   // Add any props if needed in the future
 }
 
 const ProfileSetting: React.FC<ProfileSettingProps> = () => {
-  const {userDetails}: {userDetails: UserDetails} = useAuth();
-  const [isEnabled, setIsEnabled] = useState<boolean>(true);
-
-  const toggleSwitch = (): void => {
-    setIsEnabled(!isEnabled);
-  };
-
-  const {magic} = useMagic();
+  const {userDetails} = useAuth();
 
   const formatKey = (key: string): string => {
-    // Replace camelCase with spaces
     const spacedKey = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ');
-    // Capitalize first letter
     return spacedKey.charAt(0).toUpperCase() + spacedKey.slice(1);
   };
 
-  // Function to format date values to be more readable
   const formatValue = (key: string, value: any): string => {
     if (key === 'date' && typeof value === 'string' && value.includes('T')) {
       const date = new Date(value);
@@ -49,16 +30,16 @@ const ProfileSetting: React.FC<ProfileSettingProps> = () => {
     return String(value);
   };
 
-  const copy = async (): Promise<void> => {
-    try {
-      const idToken = await magic.user.getIdToken({lifespan: 86400});
-      Clipboard.setString(idToken);
-      SnackBarMessage('Token Copied');
-    } catch (error) {
-      console.error('Error copying token:', error);
-      SnackBarMessage('Failed to copy token');
-    }
-  };
+  // const copy = async (): Promise<void> => {
+  //   try {
+  //     const idToken = await magic.user.getIdToken({lifespan: 86400});
+  //     Clipboard.setString(idToken);
+  //     SnackBarMessage('Token Copied');
+  //   } catch (error) {
+  //     console.error('Error copying token:', error);
+  //     SnackBarMessage('Failed to copy token');
+  //   }
+  // };
 
   return (
     <SafeAreaView style={localStyles.safeAreaContainer}>
@@ -70,26 +51,25 @@ const ProfileSetting: React.FC<ProfileSettingProps> = () => {
       <ScrollView contentContainerStyle={style.container}>
         <View style={localStyles.subSec}>
           <View>
-            <Text style={localStyles.sectionHeader}>
-              PERSONAL
-            </Text>
+            <Text style={localStyles.sectionHeader}>PERSONAL</Text>
 
-            {userDetails && Object.entries(userDetails)
-              .filter(([key]) => !['kycDetails', 'accessToken'].includes(key))
-              .map(([key, value]) => (
-                <View key={key} style={localStyles.fieldContainer}>
-                  <View style={localStyles.labelContainer}>
-                    <Text style={localStyles.labelText}>
-                      {formatKey(key)}
-                    </Text>
+            {userDetails &&
+              Object.entries(userDetails)
+                .filter(([key]) => !['kycDetails', 'accessToken'].includes(key))
+                .map(([key, value]) => (
+                  <View key={key} style={localStyles.fieldContainer}>
+                    <View style={localStyles.labelContainer}>
+                      <Text style={localStyles.labelText}>
+                        {formatKey(key)}
+                      </Text>
+                    </View>
+                    <View style={localStyles.valueContainer}>
+                      <Text style={localStyles.valueText}>
+                        {formatValue(key, value)}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={localStyles.valueContainer}>
-                    <Text style={localStyles.valueText}>
-                      {formatValue(key, value)}
-                    </Text>
-                  </View>
-                </View>
-              ))}
+                ))}
           </View>
         </View>
       </ScrollView>

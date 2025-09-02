@@ -1,12 +1,10 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import {
   BrowserProvider,
   Contract,
-  JsonRpcProvider,
   TransactionReceipt,
   TransactionResponse,
 } from 'ethers';
-import {useGasPrice} from './useGasPrice';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
 import {SnackBarMessage} from '../../utils/snackBar';
 

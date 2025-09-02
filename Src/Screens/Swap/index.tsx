@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
-  TouchableOpacity as RNTouchableOpacity,
   Linking,
   Pressable,
 } from 'react-native';
@@ -32,10 +31,9 @@ import {SwapConfirmationModal} from './SwapConfirmationModal';
 import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
 import LoadingScreenWithStep from '../../Componants/Loading/LoadingScreenWIthStep';
 import {getBlockExploreLink} from '../../utils/explorer';
-import {SnackBarMessage} from '../../utils/snackBar';
 import {useSuccessSound} from '../../hooks/useSuccessSound';
 import {navigateTo} from '../../utils/navigationService';
-import { CUSTOM_NETWORK_CHAIN_ID } from '../../constants';
+import {CUSTOM_NETWORK_CHAIN_ID} from '../../constants';
 
 type CoinOption = {
   key: string;
@@ -70,7 +68,7 @@ export default function Swap(props: SwapProps) {
     // Amount state
     amount,
     amountInTokens,
-    usdvalue,
+    // usdvalue,
     networkfee,
     changeAmount,
 
@@ -98,7 +96,7 @@ export default function Swap(props: SwapProps) {
 
     // Helper functions
     getInputToken,
-    getOutputToken,
+    // getOutputToken,
 
     // New step processing states
     currentProcessingStep,
@@ -265,7 +263,9 @@ export default function Swap(props: SwapProps) {
   };
 
   const formatTxHash = (hash: string): string => {
-    if (!hash) {return '';}
+    if (!hash) {
+      return '';
+    }
     return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
   };
 
@@ -469,7 +469,9 @@ export default function Swap(props: SwapProps) {
 
   // Transaction status component
   const TransactionStatus = () => {
-    if (!txStatus) {return null;}
+    if (!txStatus) {
+      return null;
+    }
 
     return (
       <View style={styles.statusContainer}>

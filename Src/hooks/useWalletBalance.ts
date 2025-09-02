@@ -1,10 +1,7 @@
 import {useState, useCallback} from 'react';
-import {
-  TOKEN_CONTRACTS,
-  CRYPTO_PRICES_API_URL,
-} from '../constants';
+import {TOKEN_CONTRACTS, CRYPTO_PRICES_API_URL} from '../constants';
 import {useAuth} from '../../screens/Provider/authProvider';
-import { walletOperations } from '../services/blockchain/walletOperations';
+import {walletOperations} from '../services/blockchain/walletOperations';
 
 interface ExchangeRate {
   currency_code: string;
@@ -127,7 +124,9 @@ export const useWalletBalance = (): WalletBalanceHook => {
   // Function to fetch all balances
   const fetchAllBalances = useCallback(
     async (emailAddress: string, denergyAddress: string): Promise<void> => {
-      if (!emailAddress || !denergyAddress) {return;}
+      if (!emailAddress || !denergyAddress) {
+        return;
+      }
 
       setIsLoading(true);
       setError(null);
@@ -138,11 +137,15 @@ export const useWalletBalance = (): WalletBalanceHook => {
 
         // Fetch WATT balance using denergyAddress
         try {
-          if (denergyAddress && walletOperations.isValidAddress(denergyAddress)) {
-            const formattedWattsBalance = await walletOperations.getNativeBalance(
-              denergyAddress,
-              'denergy'
-            );
+          if (
+            denergyAddress &&
+            walletOperations.isValidAddress(denergyAddress)
+          ) {
+            const formattedWattsBalance =
+              await walletOperations.getNativeBalance(
+                denergyAddress,
+                'denergy',
+              );
 
             const wattsInUsd = (
               parseFloat(formattedWattsBalance) * rates.WATT
@@ -164,7 +167,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
           if (emailAddress && walletOperations.isValidAddress(emailAddress)) {
             const formattedEthBalance = await walletOperations.getNativeBalance(
               emailAddress,
-              'sepolia'
+              'sepolia',
             );
             const ethInUsd = (
               parseFloat(formattedEthBalance) * rates.ETH
@@ -212,7 +215,9 @@ export const useWalletBalance = (): WalletBalanceHook => {
         // Process each ERC-20 token
         for (const [tokenSymbol, info] of Object.entries(tokenMapping)) {
           try {
-            const contractAddress = (TOKEN_CONTRACTS as any)[info.network]?.[info.token];
+            const contractAddress = (TOKEN_CONTRACTS as any)[info.network]?.[
+              info.token
+            ];
 
             if (!contractAddress) {
               console.log(`Contract address not found for ${tokenSymbol}`);
@@ -228,7 +233,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
                 contractAddress,
                 addressToUse,
                 info.network,
-                6 // USDC/EURC decimals
+                6, // USDC/EURC decimals
               );
 
               const balanceInUsd = (
@@ -285,10 +290,13 @@ export const useWalletBalance = (): WalletBalanceHook => {
         switch (normalizedTokenSymbol) {
           case 'WATT': {
             // Use denergyAddress for WATT
-            if (denergyAddress && walletOperations.isValidAddress(denergyAddress)) {
+            if (
+              denergyAddress &&
+              walletOperations.isValidAddress(denergyAddress)
+            ) {
               const formattedBalance = await walletOperations.getNativeBalance(
                 denergyAddress,
-                'denergy'
+                'denergy',
               );
               const balanceInUsd = (
                 parseFloat(formattedBalance) * rates.USDC
@@ -308,7 +316,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
             if (emailAddress && walletOperations.isValidAddress(emailAddress)) {
               const formattedBalance = await walletOperations.getNativeBalance(
                 emailAddress,
-                'sepolia'
+                'sepolia',
               );
               const balanceInUsd = (
                 parseFloat(formattedBalance) * rates.ETH
@@ -359,10 +367,14 @@ export const useWalletBalance = (): WalletBalanceHook => {
               throw new Error(`Unknown token symbol: ${normalizedTokenSymbol}`);
             }
 
-            const contractAddress = (TOKEN_CONTRACTS as any)[tokenInfo.network]?.[tokenInfo.token];
+            const contractAddress = (TOKEN_CONTRACTS as any)[
+              tokenInfo.network
+            ]?.[tokenInfo.token];
 
             if (!contractAddress) {
-              throw new Error(`Contract address not found for ${normalizedTokenSymbol}`);
+              throw new Error(
+                `Contract address not found for ${normalizedTokenSymbol}`,
+              );
             }
 
             // Use the appropriate address for the token
@@ -373,7 +385,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
                 contractAddress,
                 addressToUse,
                 tokenInfo.network,
-                6 // USDC/EURC decimals
+                6, // USDC/EURC decimals
               );
 
               const balanceInUsd = (

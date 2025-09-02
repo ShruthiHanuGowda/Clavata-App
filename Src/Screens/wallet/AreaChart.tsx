@@ -1,12 +1,8 @@
 import React from 'react';
 import {CartesianChart, Line} from 'victory-native';
-import {Svg} from 'react-native-svg';
-import {Text, View} from 'react-native';
+import {View} from 'react-native';
 
-const height = 120;
-const width = 200;
-
-const AreaChart = ({chartData}) => {
+const AreaChart = ({chartData}: any) => {
   return (
     <View style={{width: 100, height: 120}}>
       <CartesianChart

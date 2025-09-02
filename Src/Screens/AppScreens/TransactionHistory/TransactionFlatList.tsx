@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -10,19 +10,39 @@ import {
 } from 'react-native';
 import moment from 'moment';
 import ListItem from './ListItem';
-import styles from '../CoinWallet/styles';
-import { DText } from '../../../Componants/DText';
+import styles from './styles';
+import {DText} from '../../../Componants/DText';
 import TransactionDetailsModal from './TransactionDetailsModal';
 
-interface TransactionItem {
+interface FlatListTransactionItem {
   id?: string;
   hash?: string;
+  type: string;
+  status: string;
+  change?: string;
+  amount: number;
+  tokenAmount: number;
+  coinCode: string;
+  timestamp: string;
+  userName?: string;
   date: string;
   [key: string]: any;
 }
 
+// Modal expects amount as string
+interface ModalTransactionItem {
+  details?: string;
+  hash?: string;
+  status?: string;
+  change?: string;
+  amount?: string;
+  coinCode?: string;
+  date?: string;
+  [key: string]: any;
+}
+
 interface TransactionFlatListProps {
-  data?: TransactionItem[];
+  data?: FlatListTransactionItem[];
   name?: string;
   refreshing?: boolean;
   onRefresh?: () => void;
@@ -44,11 +64,18 @@ const TransactionFlatList: React.FC<TransactionFlatListProps> = ({
 }) => {
   const [transactionDetailsVisible, setTransactionDetailsVisible] =
     useState(false);
-  const [selectedItems, setSelectedItems] = useState<TransactionItem>({} as TransactionItem);
+  const [selectedItems, setSelectedItems] = useState<ModalTransactionItem>(
+    {} as ModalTransactionItem,
+  );
 
   // Helper function to determine if we should show date header
-  const shouldShowDateHeader = (item: TransactionItem, index: number): boolean => {
-    if (index === 0) {return true;}
+  const shouldShowDateHeader = (
+    item: FlatListTransactionItem,
+    index: number,
+  ): boolean => {
+    if (index === 0) {
+      return true;
+    }
 
     const currentDate = moment(item.date).format('YYYY-MM-DD');
     const previousDate = moment(data[index - 1]?.date).format('YYYY-MM-DD');
@@ -69,10 +96,18 @@ const TransactionFlatList: React.FC<TransactionFlatListProps> = ({
     const isWithinAWeek = momentDate.isAfter(A_WEEK_OLD);
     const checkWithin30Days = moment().diff(momentDate, 'days');
 
-    if (isToday) {return 'TODAY';}
-    if (isYesterday) {return 'YESTERDAY';}
-    if (isWithinAWeek) {return 'LAST WEEK';}
-    if (checkWithin30Days <= 30) {return 'LAST 30 DAYS';}
+    if (isToday) {
+      return 'TODAY';
+    }
+    if (isYesterday) {
+      return 'YESTERDAY';
+    }
+    if (isWithinAWeek) {
+      return 'LAST WEEK';
+    }
+    if (checkWithin30Days <= 30) {
+      return 'LAST 30 DAYS';
+    }
     return 'OLDER';
   };
 
@@ -85,13 +120,29 @@ const TransactionFlatList: React.FC<TransactionFlatListProps> = ({
   );
 
   // Set selected transaction for modal
-  const setItems = (items: TransactionItem): void => {
-    setSelectedItems(items);
+  const setItems = (items: FlatListTransactionItem): void => {
+    // Convert the transaction item to match TransactionDetailsModal interface
+    const modalItem: ModalTransactionItem = {
+      details: `${items.type} transaction`,
+      hash: items.hash,
+      status: items.status,
+      change: items.change,
+      amount: items.amount?.toString() || '0',
+      coinCode: items.coinCode,
+      date: items.date,
+    };
+    setSelectedItems(modalItem);
     setTransactionDetailsVisible(true);
   };
 
   // Render individual transaction item
-  const renderItem = ({item, index}: {item: TransactionItem; index: number}): React.ReactElement => (
+  const renderItem = ({
+    item,
+    index,
+  }: {
+    item: FlatListTransactionItem;
+    index: number;
+  }): React.ReactElement => (
     <View>
       {shouldShowDateHeader(item, index) && renderDateHeader(item.date)}
       <ListItem item={item} name={name} setSelectedItems={setItems} />
@@ -123,7 +174,9 @@ const TransactionFlatList: React.FC<TransactionFlatListProps> = ({
 
   // Render empty state
   const renderEmpty = (): React.ReactElement | null => {
-    if (refreshing) {return null;}
+    if (refreshing) {
+      return null;
+    }
 
     return (
       <View style={componentStyles.emptyContainer}>
@@ -171,7 +224,7 @@ const TransactionFlatList: React.FC<TransactionFlatListProps> = ({
         maxToRenderPerBatch={10}
         windowSize={10}
         removeClippedSubviews={true}
-        getItemLayout={(data, index) => ({
+        getItemLayout={(_, index) => ({
           length: 80,
           offset: 80 * index,
           index,
