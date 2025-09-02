@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Collection } from '../types/types';
 import { getCollectionsMarketData } from './marketPlace';
 import { API_NFT_URL } from '../constants';
+import { errorService, ErrorCode } from '../services/errorService';
 
 const fetchExtraDetails = async (contractAddress: string) => {
   const url = `${API_NFT_URL}/nftMarketplace_getCollections/?contractAddress=${contractAddress}`;
@@ -35,7 +36,15 @@ const useCollections = () => {
               ...extra,
             };
           } catch (e) {
-            console.warn(`Enrichment failed for ${collection.id}:`, e);
+            const enrichmentError = errorService.createApiError(
+              ErrorCode.API_REQUEST_FAILED,
+              `Enrichment failed for collection ${collection.id}`,
+              undefined,
+              undefined,
+              e,
+              'useCollections.fetchExtraDetails'
+            );
+            errorService.logError(enrichmentError);
             return collection;
           }
         },
@@ -44,8 +53,8 @@ const useCollections = () => {
       const enrichedCollections = await Promise.all(enrichedPromises);
       setCollections(enrichedCollections);
     } catch (err) {
-      setError('Failed to fetch collections');
-      console.error('Fetch collections error:', err);
+      const collectionsError = errorService.handleApiError(err, undefined, 'useCollections.fetchCollections');
+      setError(errorService.getUserFriendlyMessage(collectionsError));
     } finally {
       setLoading(false);
     }

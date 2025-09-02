@@ -9,9 +9,9 @@ import {
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 import {useMutation} from '@apollo/client';
 import {CUSTOM_NETWORK_CHAIN_ID, CUSTOM_RPC_URL, DEFAULT_GAS_LIMIT} from '../constants';
+import {errorService, ErrorCode, TransactionError} from '../services/errorService';
 
 const DENERGY_RPC_URL = CUSTOM_RPC_URL;
-console.log(CUSTOM_NETWORK_CHAIN_ID);
 
 const dengergyProvider = new JsonRpcProvider(DENERGY_RPC_URL);
 
@@ -41,7 +41,7 @@ export const useSendWatt = (
   customRpcUrl: string = DENERGY_RPC_URL,
 ) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<TransactionError | null>(null);
   const [createTransactionHistoryMobile] = useMutation(
     CREATE_TRANSACTION_HISTORY_MOBILE,
   );
@@ -128,9 +128,9 @@ export const useSendWatt = (
       setIsLoading(false);
       return txHash;
     } catch (err: any) {
-      console.error('Transaction error:', err);
-      setError(err.message || 'Transaction failed');
-      throw err;
+      const txError = errorService.handleTransactionError(err, 'useSendWATT');
+      setError(txError);
+      throw txError;
     } finally {
       setIsLoading(false);
     }
@@ -166,8 +166,8 @@ export const useSendWatt = (
 
       return true;
     } catch (err: any) {
-      console.error('Validation error:', err);
-      setError(err.message || 'Validation failed');
+      const validationError = errorService.handleTransactionError(err, 'useSendWATT.validateTransaction');
+      setError(validationError);
       return false;
     }
   };

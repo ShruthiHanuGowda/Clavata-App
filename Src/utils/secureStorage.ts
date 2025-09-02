@@ -2,6 +2,7 @@
 
 import * as Keychain from 'react-native-keychain';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {errorService, ErrorCode} from '../services/errorService';
 
 const DEFAULT_SERVICE = 'app_secure_storage';
 const INIT_FLAG = 'app_already_initialized';
@@ -20,7 +21,13 @@ const secureStorage = {
       });
       return true;
     } catch (error) {
-      console.error(`SecureStorage: Failed to set item [${key}]`, error);
+      const appError = errorService.createError(
+        ErrorCode.UNKNOWN_ERROR,
+        `Failed to set secure storage item: ${key}`,
+        error,
+        'secureStorage.setItem'
+      );
+      errorService.logError(appError);
       return false;
     }
   },
@@ -42,7 +49,13 @@ const secureStorage = {
 
       return null;
     } catch (error) {
-      console.error(`SecureStorage: Failed to get item [${key}]`, error);
+      const appError = errorService.createError(
+        ErrorCode.UNKNOWN_ERROR,
+        `Failed to get secure storage item: ${key}`,
+        error,
+        'secureStorage.getItem'
+      );
+      errorService.logError(appError);
       return null;
     }
   },
@@ -58,7 +71,13 @@ const secureStorage = {
       });
       return result;
     } catch (error) {
-      console.error(`SecureStorage: Failed to remove item [${key}]`, error);
+      const appError = errorService.createError(
+        ErrorCode.UNKNOWN_ERROR,
+        `Failed to remove secure storage item: ${key}`,
+        error,
+        'secureStorage.removeItem'
+      );
+      errorService.logError(appError);
       return false;
     }
   },
@@ -81,7 +100,13 @@ const secureStorage = {
       await Promise.all(clearPromises);
       return true;
     } catch (error) {
-      console.error('SecureStorage: Failed to clear all items', error);
+      const appError = errorService.createError(
+        ErrorCode.UNKNOWN_ERROR,
+        'Failed to clear all secure storage items',
+        error,
+        'secureStorage.clearAll'
+      );
+      errorService.logError(appError);
       return false;
     }
   },

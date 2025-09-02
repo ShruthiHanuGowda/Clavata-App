@@ -9,6 +9,7 @@ import {
 import {useMutation} from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 import {SEPOLIA_CHAIN_ID, SEPOLIA_RPC_URL} from '../constants';
+import {errorService, ErrorCode, TransactionError} from '../services/errorService';
 
 const INFURA_URL = SEPOLIA_RPC_URL;
 const infuraProvider = new JsonRpcProvider(INFURA_URL);
@@ -35,7 +36,7 @@ type SuccessCallback = (result: TransactionSuccess) => void;
  */
 export const useSendEth = (magic: any, userAddress: string | undefined) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<TransactionError | null>(null);
 
   const [createTransactionHistoryMobile] = useMutation(
     CREATE_TRANSACTION_HISTORY_MOBILE,
@@ -52,12 +53,19 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
   ): Promise<TransactionReceipt | undefined> => {
     try {
       if (!magic || !userAddress) {
-        throw new Error('Magic SDK or user address not available');
+        const validationError = errorService.createTransactionError(
+          ErrorCode.VALIDATION_ERROR,
+          'Magic SDK or user address not available',
+          undefined,
+          'sepolia',
+          { magic: !!magic, userAddress },
+          'useSendEth'
+        );
+        throw validationError;
       }
 
       setIsLoading(true);
       setError(null);
-      console.log(magic.rpcProvider);
 
       const magicProvider = new BrowserProvider(magic.rpcProvider);
       const signer = await magicProvider.getSigner();
@@ -77,7 +85,15 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
       const totalCost = amountInWei + gasCost;
 
       if (balanceInWei < totalCost) {
-        throw new Error('Insufficient funds for gas and transaction amount');
+        const insufficientFundsError = errorService.createTransactionError(
+          ErrorCode.INSUFFICIENT_FUNDS,
+          'Insufficient funds for gas and transaction amount',
+          undefined,
+          'sepolia',
+          { balance: formatUnits(balanceInWei, 18), totalCost: formatUnits(totalCost, 18) },
+          'useSendEth'
+        );
+        throw insufficientFundsError;
       }
 
       const tx = await signer.sendTransaction({
@@ -107,7 +123,8 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
           },
         });
       } catch (error: any) {
-        throw new Error(error);
+        const apiError = errorService.handleApiError(error, undefined, 'createTransactionHistoryMobile');
+        errorService.logError(apiError);
       }
 
       // Call success callback if provided
@@ -122,9 +139,9 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
       setIsLoading(false);
       return receipt;
     } catch (err: any) {
-      console.error('Transaction error:', err);
-      setError(err.message || 'Transaction failed');
-      throw err;
+      const txError = errorService.handleTransactionError(err, 'useSendEth');
+      setError(txError);
+      throw txError;
     } finally {
       setIsLoading(false);
     }
