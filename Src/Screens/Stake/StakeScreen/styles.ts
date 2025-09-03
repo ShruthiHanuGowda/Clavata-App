@@ -168,4 +168,30 @@ export default StyleSheet.create({
     marginBottom: 10,
     fontFamily: fontsFamily.Mulish,
   },
+  tabContainer: {
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E1E1E1',
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  tabContent: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  transparentBackground: {
+    backgroundColor: 'transparent',
+  },
+  activeTabContainer: {
+    borderBottomColor: '#009D94',
+    borderBottomWidth: 2,
+    backgroundColor: 'transparent',
+  },
+  inactiveTabContainer: {
+    borderBottomColor: '#E1E1E1',
+    borderBottomWidth: 1.4,
+    backgroundColor: 'transparent',
+  },
 });

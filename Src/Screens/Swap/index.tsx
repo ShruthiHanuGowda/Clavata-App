@@ -71,8 +71,9 @@ const SlippageSettings: React.FC<SlippageSettingsProps> = ({
   slippage,
   setSlippage,
 }) => {
-  if (!showSettings) return null;
-  
+  if (!showSettings) {
+    return null;
+  }
   return (
     <View style={styles.settingsContainer}>
       <View style={styles.settingsHeader}>
@@ -615,7 +616,7 @@ export default function Swap(props: SwapProps) {
   // Main form component
   const renderForm = () => (
     <>
-      <SlippageSettings 
+      <SlippageSettings
         showSettings={showSettings}
         setShowSettings={setShowSettings}
         slippage={slippage}
@@ -736,7 +737,7 @@ export default function Swap(props: SwapProps) {
         )}
 
         {/* Transaction Status */}
-        <TransactionStatus 
+        <TransactionStatus
           txStatus={txStatus}
           isLoading={isLoading}
           txHash={txHash}

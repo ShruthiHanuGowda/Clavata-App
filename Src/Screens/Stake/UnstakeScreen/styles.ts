@@ -286,4 +286,28 @@ export default StyleSheet.create({
     width: 20,
     height: 20,
   },
+  statusBadgeActive: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#D4F5E9',
+  },
+  statusBadgeInactive: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+  },
+  statusBadgeTextActive: {
+    fontSize: 12,
+    fontFamily: fontsFamily.MulishBold,
+    textTransform: 'uppercase',
+    color: '#28A745',
+  },
+  statusBadgeTextInactive: {
+    fontSize: 12,
+    fontFamily: fontsFamily.MulishBold,
+    textTransform: 'uppercase',
+    color: '#666',
+  },
 });

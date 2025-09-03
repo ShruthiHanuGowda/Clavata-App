@@ -6,7 +6,6 @@ import {navigateBack} from '../../../utils/navigationService';
 import images from '../../../Theme/images';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import styles from './styles';
-import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 
@@ -22,7 +21,6 @@ interface UnstakeScreenProps {
 const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
   const {
     isLoading: isNFTStakingLoading,
-    error: nftStakingError,
     undelegateERC1155,
   } = useNFTStaking();
 
@@ -39,7 +37,7 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
 
   useEffect(() => {
     setActiveNetwork('denergy');
-  }, []);
+  }, [setActiveNetwork]);
 
   // Validate amount input
   const validateAmount = (value: string): boolean => {
@@ -179,21 +177,17 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
                   Current Staking Details
                 </Text>
                 <View
-                  style={[
-                    styles.statusBadge,
-                    {
-                      backgroundColor:
-                        stakingData.status === 'active' ? '#D4F5E9' : '#F5F5F5',
-                    },
-                  ]}>
+                  style={
+                    stakingData.status === 'active'
+                      ? styles.statusBadgeActive
+                      : styles.statusBadgeInactive
+                  }>
                   <Text
-                    style={[
-                      styles.statusBadgeText,
-                      {
-                        color:
-                          stakingData.status === 'active' ? '#28A745' : '#666',
-                      },
-                    ]}>
+                    style={
+                      stakingData.status === 'active'
+                        ? styles.statusBadgeTextActive
+                        : styles.statusBadgeTextInactive
+                    }>
                     {stakingData.status.toUpperCase()}
                   </Text>
                 </View>
