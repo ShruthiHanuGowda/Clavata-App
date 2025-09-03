@@ -7,7 +7,6 @@ import {
   formatUnits,
 } from 'ethers';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
-import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useWallet} from '../../../../screens/Provider/WalletProvider';
 import {STAKING_WATT_ABI} from '../../../utils/Contracts';
 import {WATT_STAKING_ADDRESS} from '../../../constants';
@@ -54,7 +53,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
 
   const {magic, setActiveNetwork} = useMagic();
 
-  const {userDetails} = useAuth();
 
   const {refreshBalance} = useWallet();
 
@@ -214,7 +212,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
     },
     [
       magic,
-      userDetails,
       refreshBalance,
       setActiveNetwork,
       getWATTBalance,
@@ -353,7 +350,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
     },
     [
       magic,
-      userDetails,
       refreshBalance,
       setActiveNetwork,
       getWATTBalance,
@@ -367,7 +363,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
    * @param validatorAddress - Address of the validator (string format)
    */
   const getDelegation = useCallback(
-    async (delegatorAddress: string, validatorAddress: string) => {
+    async (delegatorAddress: string, targetValidatorAddress: string) => {
       try {
         if (!magic) {
           throw new Error('Magic SDK not available');
@@ -384,7 +380,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
         // function delegation(address delegatorAddress, string validatorAddress) returns (uint256 shares, Coin balance)
         const result = await stakingContract.delegation(
           delegatorAddress,
-          validatorAddress,
+          targetValidatorAddress,
         );
 
         console.log('[WATT Staking] Delegation info:', result);
@@ -440,7 +436,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
               delegateFilter,
               (
                 delegatorAddress,
-                validatorAddress,
+                eventValidatorAddress,
                 amount,
                 newShares,
                 event,
@@ -449,7 +445,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
                   `[WATT Staking] Delegate event detected: ${event.transactionHash}`,
                 );
                 console.log(
-                  `[WATT Staking] Delegator: ${delegatorAddress}, Validator: ${validatorAddress}`,
+                  `[WATT Staking] Delegator: ${delegatorAddress}, Validator: ${eventValidatorAddress}`,
                 );
                 console.log(
                   `[WATT Staking] Amount: ${formatUnits(amount, 6)}`, // Using 6 decimals as per your code
@@ -457,7 +453,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
 
                 onDelegate({
                   delegatorAddress,
-                  validatorAddress,
+                  validatorAddress: eventValidatorAddress,
                   amount: formatUnits(amount, 6),
                   newShares: newShares.toString(),
                   transactionHash: event.transactionHash,
@@ -474,7 +470,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
               unbondFilter,
               (
                 delegatorAddress,
-                validatorAddress,
+                eventValidatorAddress,
                 amount,
                 completionTime,
                 event,
@@ -483,7 +479,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
                   `[WATT Staking] Unbond event detected: ${event.transactionHash}`,
                 );
                 console.log(
-                  `[WATT Staking] Delegator: ${delegatorAddress}, Validator: ${validatorAddress}`,
+                  `[WATT Staking] Delegator: ${delegatorAddress}, Validator: ${eventValidatorAddress}`,
                 );
                 console.log(
                   `[WATT Staking] Amount: ${formatUnits(amount, 6)}`, // Using 6 decimals as per your code
@@ -494,7 +490,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
 
                 onUnbond({
                   delegatorAddress,
-                  validatorAddress,
+                  validatorAddress: eventValidatorAddress,
                   amount: formatUnits(amount, 6),
                   completionTime: completionTime.toString(),
                   transactionHash: event.transactionHash,

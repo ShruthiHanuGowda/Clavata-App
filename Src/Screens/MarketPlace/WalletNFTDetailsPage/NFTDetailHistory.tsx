@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   ActivityIndicator,
   View,
@@ -6,24 +6,16 @@ import {
   SafeAreaView,
   TouchableOpacity,
 } from 'react-native';
-import { DText } from '../../../Componants/DText';
-import { useAuth } from '../../../../screens/Provider/authProvider';
+import {DText} from '../../../Componants/DText';
+import {useAuth} from '../../../../screens/Provider/authProvider';
 import EnergyCertificateHistory from './NFTHistory/EnergyCertificateList';
 import {
   NFTTransaction,
   useNFTTransactionHistory,
 } from './useNFTTransactionHistory';
-import { navigateBack } from '../../../utils/navigationService';
+import {navigateBack} from '../../../utils/navigationService';
 
 const THEME_COLOR = '#009D94';
-
-const defaultFilter = {
-  page: 1,
-  limit: 20,
-  startDate: '',
-  endDate: '',
-  type: '',
-};
 
 export default function NFTDetailHistory({route}: {route: any}) {
   const {collectionAddress, nftName, nftId} = route?.params;

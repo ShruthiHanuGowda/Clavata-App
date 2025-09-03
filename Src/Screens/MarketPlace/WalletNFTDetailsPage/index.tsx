@@ -699,6 +699,18 @@ const WalletNFTDetailsScreen = ({route}: any) => {
           )}
         </View>
       </ScrollView>
+
+      {/* Metadata Loading Overlay */}
+      {metadataLoading && (
+        <View style={styles.metadataLoadingOverlay}>
+          <View style={styles.metadataLoadingContent}>
+            <LoaderAnimation size={'medium'} />
+            <Text style={styles.metadataLoadingText}>
+              Loading Certificate Details...
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -1194,6 +1206,38 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontFamily: fontsFamily.MulishBold,
     fontWeight: '600',
+  },
+
+  // Metadata Loading Overlay Styles
+  metadataLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  metadataLoadingContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  metadataLoadingText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+    fontFamily: fontsFamily.MulishBold,
+    textAlign: 'center',
+    marginTop: 12,
   },
 });
 

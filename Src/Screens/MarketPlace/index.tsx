@@ -35,6 +35,7 @@ const MarketPlace: React.FC = () => {
 
   useEffect(() => {
     setActiveNetwork('denergy');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Check if any filters are active
@@ -507,7 +508,8 @@ const MarketPlace: React.FC = () => {
                 <View
                   key={collection.id}
                   style={[
-                    index === processedCollections.length - 1 && styles.lastCollectionItem,
+                    index === processedCollections.length - 1 &&
+                      styles.lastCollectionItem,
                   ]}>
                   <CollectionCard
                     collection={collection}

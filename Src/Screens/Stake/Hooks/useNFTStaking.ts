@@ -184,6 +184,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
         setIsLoading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [magic, setActiveNetwork],
   );
 
@@ -228,16 +229,12 @@ export const useNFTStaking = (validatorAddress?: string) => {
 
         setIsLoading(true);
         setError(null);
-        console.log('[NFT Staking] Initializing provider and signer');
 
-        // Get Magic provider for signing transactions
         const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
         const delegatorAddress = await signer.getAddress();
         console.log(`[NFT Staking] Delegator address: ${delegatorAddress}`);
 
-        // Check if staking contract is approved to handle user's tokens
-        console.log('[NFT Staking] Checking if staking contract is approved');
         const isApproved = await checkApproval(
           erc1155Contract,
           delegatorAddress,
@@ -246,9 +243,6 @@ export const useNFTStaking = (validatorAddress?: string) => {
 
         // If not approved, set approval
         if (!isApproved) {
-          console.log(
-            '[NFT Staking] Staking contract not approved, requesting approval',
-          );
           const approvalSuccess = await setApproval(
             erc1155Contract,
             STAKING_CONTRACT_ADDRESS,

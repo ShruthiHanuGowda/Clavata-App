@@ -46,15 +46,7 @@ export const useNFTTransactionHistory = (
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
 
-  const {
-    limit = 20,
-    nftId,
-    collectionAddress,
-    walletAddress,
-    type,
-    startDate,
-    endDate,
-  } = params;
+  const {collectionAddress, walletAddress} = params;
 
   // Build query parameters
   // const queryParams = useMemo(() => {

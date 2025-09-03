@@ -12,16 +12,10 @@ import {navigateBack, navigateTo} from '../../../utils/navigationService';
 import images from '../../../Theme/images';
 import {useBlogs} from '../Hooks/NewsGraphql';
 import {Blog} from '../Hooks/type';
-import NewsCard from '../Componants/NewsCard'; // Import the separate NewsCard component
+import NewsCard from '../Componants/NewsCard';
 import {styles} from './styles';
 
-// Theme color
 const THEME_COLOR = '#009D94';
-
-// Define interfaces
-interface StakeProps {
-  // Add any props if needed
-}
 
 const EmptyState: React.FC = () => (
   <View style={styles.emptyContainer}>
