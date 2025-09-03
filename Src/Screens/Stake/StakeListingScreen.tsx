@@ -69,9 +69,9 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
   const [detailsSheetVisible, setDetailsSheetVisible] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<StakedAsset | null>(null);
   const [selectedAction, setSelectedAction] = useState<string>('');
-  const [expandedAddresses, setExpandedAddresses] = useState<{
-    [key: string]: boolean;
-  }>({});
+  // const [expandedAddresses, setExpandedAddresses] = useState<{
+  //   [key: string]: boolean;
+  // }>({});
 
   const formatStake = (nft: number, watt: number) => {
     const formatNumber = (num: number) => {

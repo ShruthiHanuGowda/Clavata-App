@@ -110,6 +110,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
 
   useEffect(() => {
     refreshBalance('WUSDC');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentCurrency]);
 
   const handleGoBack = () => {

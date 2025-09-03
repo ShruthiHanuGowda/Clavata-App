@@ -55,7 +55,6 @@ export default function Swap(props: SwapProps) {
   // Use our enhanced custom hook for all swap functionality
   const {
     // Wallet state
-    account,
     isConnected,
 
     // Token state
@@ -126,11 +125,11 @@ export default function Swap(props: SwapProps) {
     error: soundError,
   } = useSuccessSound();
 
-  // Set network to Denergy
   useEffect(() => {
     if (activeNetwork !== 'denergy') {
       setActiveNetwork('denergy');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeNetwork]);
 
   // Convert TOKENS object to array for dropdown - only WATT and USDC
@@ -154,6 +153,7 @@ export default function Swap(props: SwapProps) {
         setSelectedTargetToken(targetOptions[0]);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coinCode, setSelectedToken, setSelectedTargetToken]);
 
   // Get balance when component mounts or token changes
@@ -184,6 +184,7 @@ export default function Swap(props: SwapProps) {
 
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, soundLoaded, soundError]);
 
   const onNextAction = () => {

@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useCallback, JSX} from 'react';
 import {Header} from '@rneui/base';
-import {StyleSheet, View, Text, RefreshControl} from 'react-native';
+import {StyleSheet, View} from 'react-native';
 import {DText} from '../../Componants/DText';
 import {Tab} from '@rneui/base';
 import {fontsFamily} from '../../Theme';
@@ -51,23 +51,7 @@ interface StakedAsset {
   originalData?: NFTDelegation;
 }
 
-// Props interfaces for child components
-interface StakeListingScreenProps {
-  stakedAssets: StakedAsset[];
-  loading: boolean;
-  error: any;
-  refreshing: boolean;
-  onRefresh: () => void;
-  onRetry: () => void;
-}
-
-interface ValidatorsScreenProps {
-  // Add validator-specific props here
-  refreshing: boolean;
-  onRefresh: () => void;
-}
-
-function Stake(props: StakeProps): JSX.Element {
+function Stake(): JSX.Element {
   const [index, setIndex] = useState<number>(0);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

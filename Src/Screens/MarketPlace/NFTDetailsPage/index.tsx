@@ -47,6 +47,7 @@ const NFTDetailsScreen = ({route}: any) => {
     if (nft?.collectionAddress && nft?.tokenId) {
       refetch();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nft]);
 
   useEffect(() => {
@@ -104,7 +105,7 @@ const NFTDetailsScreen = ({route}: any) => {
       <Header
         headerTitle={combinedNft.name}
         backBtn={() => navigateBack()}
-        containerStyle={{backgroundColor: '#f9fafa'}}
+        containerStyle={styles.headerContainer}
         hideBorder
       />
       <ScrollView
@@ -144,6 +145,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f9fafa',
     paddingTop: Platform.OS === 'ios' ? 0 : 20,
+  },
+  headerContainer: {
+    backgroundColor: '#f9fafa',
   },
   container: {
     flex: 1,

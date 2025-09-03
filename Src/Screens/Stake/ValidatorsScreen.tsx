@@ -28,7 +28,7 @@ interface Validator {
 
 interface ValidatorsScreenProps {}
 
-const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
+const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
   const [sortBy, setSortBy] = useState('Commission');
   const [filterStatus, setFilterStatus] = useState('All');
 
@@ -56,8 +56,6 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
       console.log('Error fetching validators:', err);
     });
   }, []);
-
-  console.log('🚀 ~ data:', JSON.stringify(data, null, 2), isLoading, error);
 
   // Sample data matching the design
   const allValidators: Validator[] = data?.validators || [];
@@ -134,10 +132,6 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
 
     setBottomSheetVisible(false);
   };
-
-  // Get count of filtered results for display
-  const getFilteredCount = () => getFilteredAndSortedValidators().length;
-  const getTotalCount = () => allValidators.length;
 
   const getFormattedStatus = (status: string) => {
     // Convert API status (ACTIVE/INACTIVE) to UI format (Active/Inactive)
@@ -217,9 +211,7 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
                 key={validator.validatorId}
                 style={[
                   styles.validatorCard,
-                  {
-                    marginBottom: index === validators.length - 1 ? '22%' : 16,
-                  },
+                  index === validators.length - 1 && styles.lastValidatorCard,
                 ]}>
                 {/* Validator Header */}
                 <View style={styles.validatorHeader}>
@@ -231,23 +223,17 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
                       <View
                         style={[
                           styles.statusDot,
-                          {
-                            backgroundColor:
-                              formattedStatus.toLowerCase() === 'active'
-                                ? '#4CAF50'
-                                : '#F44336',
-                          },
+                          formattedStatus.toLowerCase() === 'active'
+                            ? styles.statusDotActive
+                            : styles.statusDotInactive,
                         ]}
                       />
                       <Text
                         style={[
                           styles.statusText,
-                          {
-                            color:
-                              formattedStatus.toLowerCase() === 'active'
-                                ? '#4CAF50'
-                                : '#F44336',
-                          },
+                          formattedStatus.toLowerCase() === 'active'
+                            ? styles.statusTextActive
+                            : styles.statusTextInactive,
                         ]}>
                         {formattedStatus}
                       </Text>
@@ -526,6 +512,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  lastValidatorCard: {
+    marginBottom: '22%',
+  },
   validatorHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -552,10 +541,22 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 6,
   },
+  statusDotActive: {
+    backgroundColor: '#4CAF50',
+  },
+  statusDotInactive: {
+    backgroundColor: '#F44336',
+  },
   statusText: {
     fontSize: 14,
     fontWeight: '600',
     fontFamily: fontsFamily?.MulishSemiBold || 'sans-serif',
+  },
+  statusTextActive: {
+    color: '#4CAF50',
+  },
+  statusTextInactive: {
+    color: '#F44336',
   },
   aprContainer: {
     backgroundColor: '#FFF3CD',

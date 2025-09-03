@@ -1,5 +1,5 @@
-import {StyleSheet} from 'react-native';
-import {Colors, fontsFamily} from '../../Theme';
+import { StyleSheet } from 'react-native';
+import { fontsFamily } from '../../Theme';
 export default StyleSheet.create({
   container: {
     marginLeft: 21,

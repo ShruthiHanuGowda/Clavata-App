@@ -1,12 +1,10 @@
 import React, {useEffect, useState, useMemo} from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   RefreshControl,
   StyleSheet,
   Text,
   View,
-  ActivityIndicator,
   Platform,
   TouchableOpacity,
   TextInput,
@@ -90,7 +88,9 @@ const MarketPlace: React.FC = () => {
 
   // Filter and sort collections
   const processedCollections = useMemo(() => {
-    if (!collections) {return [];}
+    if (!collections) {
+      return [];
+    }
 
     let filtered = collections.filter(collection => {
       // Search filter
@@ -150,9 +150,15 @@ const MarketPlace: React.FC = () => {
   const handleFilterChange = (filter: FilterType) => {
     setFilterBy(filter);
     // Reset selections when changing filter type
-    if (filter !== 'country') {setSelectedCountry('');}
-    if (filter !== 'type') {setSelectedType('');}
-    if (filter !== 'year') {setSelectedYear('');}
+    if (filter !== 'country') {
+      setSelectedCountry('');
+    }
+    if (filter !== 'type') {
+      setSelectedType('');
+    }
+    if (filter !== 'year') {
+      setSelectedYear('');
+    }
   };
 
   // Reset all filters function
@@ -268,7 +274,7 @@ const MarketPlace: React.FC = () => {
           </View>
 
           <ScrollView
-            contentContainerStyle={{paddingBottom: 20}}
+            contentContainerStyle={styles.modalScrollContent}
             showsVerticalScrollIndicator={false}>
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Sort By:</Text>
@@ -348,9 +354,15 @@ const MarketPlace: React.FC = () => {
                       styles.selectedOption,
                   ]}
                   onPress={() => {
-                    if (filterBy === 'country') {setSelectedCountry('');}
-                    if (filterBy === 'type') {setSelectedType('');}
-                    if (filterBy === 'year') {setSelectedYear('');}
+                    if (filterBy === 'country') {
+                      setSelectedCountry('');
+                    }
+                    if (filterBy === 'type') {
+                      setSelectedType('');
+                    }
+                    if (filterBy === 'year') {
+                      setSelectedYear('');
+                    }
                   }}>
                   <Text
                     style={[
@@ -472,9 +484,7 @@ const MarketPlace: React.FC = () => {
       ) : (
         <View style={styles.container}>
           <Header
-            containerStyle={{
-              borderBottomWidth: 0,
-            }}
+            containerStyle={styles.headerContainer}
             backgroundColor={'#FFF'}
             leftComponent={
               <View style={styles.nameContainer}>
@@ -496,10 +506,9 @@ const MarketPlace: React.FC = () => {
               {processedCollections?.map((collection, index) => (
                 <View
                   key={collection.id}
-                  style={{
-                    marginBottom:
-                      index === processedCollections.length - 1 ? 150 : 0,
-                  }}>
+                  style={[
+                    index === processedCollections.length - 1 && styles.lastCollectionItem
+                  ]}>
                   <CollectionCard
                     collection={collection}
                     onPress={() =>
@@ -543,6 +552,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f2f2f2',
     paddingTop: Platform.OS === 'ios' ? 0 : 20,
+  },
+  headerContainer: {
+    borderBottomWidth: 0,
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+  },
+  lastCollectionItem: {
+    marginBottom: 150,
   },
   gridContainer: {
     padding: 10,

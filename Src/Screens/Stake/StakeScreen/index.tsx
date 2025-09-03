@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {View, StyleSheet, SafeAreaView} from 'react-native';
+import {View, StyleSheet, SafeAreaView, Alert} from 'react-native';
 import {Tab} from '@rneui/base';
 import {fontsFamily} from '../../../Theme';
 // import {navigateBack} from '../../../utils/navigationService';
@@ -29,25 +29,8 @@ interface FontFamily {
 
 const StakeScreen: React.FC<StakeScreenProps> = props => {
   const validatorId = props?.route?.params?.validatorId;
-  const {userDetails} = useAuth();
-  const {
-    nfts,
-    isLoading: isNFTLoading,
-    error,
-    refresh,
-  } = useNftsForAddress({
-    account:
-      (userDetails?.userWallet as `0x${string}` | undefined | `0x${string}`) ??
-      '0x0000000000000000000000000000000000000000',
-  });
 
-  const {
-    isLoading: isNFTStakingLoading,
-    error: nftStakingError,
-    delegateERC1155,
-  } = useNFTStaking(validatorId);
-
-  const {setActiveNetwork} = useMagic();
+  const {delegateERC1155} = useNFTStaking(validatorId);
 
   // State for tab management
   const [index, setIndex] = useState<number>(0);

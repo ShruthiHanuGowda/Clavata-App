@@ -20,8 +20,6 @@ interface UnstakeScreenProps {
 }
 
 const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
-  console.log('🚀 ~ route:', route?.params?.stakingData);
-  const {userDetails} = useAuth();
   const {
     isLoading: isNFTStakingLoading,
     error: nftStakingError,

@@ -1,5 +1,4 @@
 import {useState, useEffect, useMemo} from 'react';
-import moment from 'moment';
 import useApi from '../../../hooks/useApi';
 import {EXPLORER_URL} from '../../../constants';
 
@@ -58,30 +57,42 @@ export const useNFTTransactionHistory = (
   } = params;
 
   // Build query parameters
-  const queryParams = useMemo(() => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-    });
+  // const queryParams = useMemo(() => {
+  //   const params = new URLSearchParams({
+  //     page: page.toString(),
+  //     limit: limit.toString(),
+  //   });
 
-    if (nftId) {params.append('nftId', nftId);}
-    if (collectionAddress) {params.append('collectionId', collectionAddress);}
-    if (walletAddress) {params.append('walletAddress', walletAddress);}
-    if (type) {params.append('type', type);}
-    if (startDate) {params.append('startDate', startDate);}
-    if (endDate) {params.append('endDate', endDate);}
+  //   if (nftId) {
+  //     params.append('nftId', nftId);
+  //   }
+  //   if (collectionAddress) {
+  //     params.append('collectionId', collectionAddress);
+  //   }
+  //   if (walletAddress) {
+  //     params.append('walletAddress', walletAddress);
+  //   }
+  //   if (type) {
+  //     params.append('type', type);
+  //   }
+  //   if (startDate) {
+  //     params.append('startDate', startDate);
+  //   }
+  //   if (endDate) {
+  //     params.append('endDate', endDate);
+  //   }
 
-    return params.toString();
-  }, [
-    page,
-    limit,
-    nftId,
-    collectionAddress,
-    walletAddress,
-    type,
-    startDate,
-    endDate,
-  ]);
+  //   return params.toString();
+  // }, [
+  //   page,
+  //   limit,
+  //   nftId,
+  //   collectionAddress,
+  //   walletAddress,
+  //   type,
+  //   startDate,
+  //   endDate,
+  // ]);
 
   // API call using useApi hook
   const {

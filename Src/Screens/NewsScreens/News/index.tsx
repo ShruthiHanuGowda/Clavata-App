@@ -51,7 +51,7 @@ const LoadingCard: React.FC = () => (
   </View>
 );
 
-function News(props: StakeProps): JSX.Element {
+function News(): JSX.Element {
   const {loading, data, error, refetch} = useBlogs();
 
   const handleNewsPress = (blog: Blog) => {

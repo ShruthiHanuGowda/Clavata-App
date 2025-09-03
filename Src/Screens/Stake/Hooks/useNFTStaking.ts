@@ -349,7 +349,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
       setActiveNetwork,
       checkApproval,
       setApproval,
-      validatorAddress, // Add validatorAddress as dependency
+      validatorAddress,
     ],
   );
 
@@ -486,6 +486,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
         console.log('[NFT Staking] Undelegate process finished');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [magic, userDetails, refreshBalance, setActiveNetwork, validatorAddress],
   );
 

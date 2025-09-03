@@ -422,7 +422,9 @@ export const getNftApi = async (
   collectionAddress: string,
   tokenId?: string,
 ): Promise<ApiResponseSpecificToken['data'] | null> => {
-  if (!tokenId) {return null;}
+  if (!tokenId) {
+    return null;
+  }
   try {
     const res: any = await fetch(
       `${API_NFT_URL}/nftMarketplace_getCollectionTokens?contractAddress=${collectionAddress}&tokenId=${tokenId}`,
@@ -526,41 +528,6 @@ export const getNftLocationForMarketNft = (
     `Cannot determine location for tokenID ${tokenId}, defaulting to NftLocation.WALLET`,
   );
   return NftLocation.WALLET;
-};
-
-const fetchWalletMarketData = async (walletNftsByCollection: {
-  [collectionAddress: string]: TokenIdWithCollectionAddress[];
-}): Promise<TokenMarketData[]> => {
-  const walletMarketDataRequests = Object.entries(walletNftsByCollection).map(
-    async ([collectionAddress, tokenIdsWithCollectionAddress]) => {
-      const tokenIdIn = tokenIdsWithCollectionAddress
-        .map(walletNft => walletNft.tokenId)
-        .filter((x): x is string => x !== undefined);
-      const [nftsMarketData] = await Promise.all([
-        getNftsMarketData({
-          tokenId_in: tokenIdIn,
-          collection: collectionAddress.toLowerCase(),
-        }),
-      ]);
-
-      return tokenIdIn
-        .map(tokenId => {
-          const nftMarketData = nftsMarketData.find(
-            tokenMarketData => tokenMarketData.tokenId === tokenId,
-          );
-
-          if (!nftMarketData) {return null;}
-
-          return {...nftMarketData};
-        })
-        .filter(Boolean);
-    },
-  );
-
-  const walletMarketDataResponses = (await Promise.all(
-    walletMarketDataRequests,
-  )) as TokenMarketData[][];
-  return walletMarketDataResponses.flat();
 };
 
 export const attachMarketDataToWalletNfts = (

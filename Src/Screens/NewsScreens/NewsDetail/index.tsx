@@ -100,7 +100,7 @@ const LoadingState: React.FC = () => (
       <View style={styles.loadingContentLine} />
       <View style={styles.loadingContentLine} />
       <View style={styles.loadingContentLine} />
-      <View style={[styles.loadingContentLine, {width: '60%'}]} />
+      <View style={[styles.loadingContentLine, styles.loadingContentLineShort]} />
     </View>
   </ScrollView>
 );
@@ -454,6 +454,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#D1D5DB',
     borderRadius: 4,
     marginBottom: 8,
+  },
+  loadingContentLineShort: {
+    width: '60%',
   },
   // Error states
   errorContainer: {

@@ -13,7 +13,6 @@ import Icon from 'react-native-vector-icons/Entypo';
 import {DTextInput} from '../../../Componants/Dinputs';
 import {DButton} from '../../../Componants';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
-import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
 import {formatQuantityMWh} from '../../../utils';
 import {useNft} from '../../../../screens/Provider/NftProvider';
@@ -249,7 +248,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
             keyboardType="decimal-pad"
             containerStyle={[
               styles.dropdownContainer,
-              {padding: 4},
+              styles.inputContainerPadding,
               amountError ? styles.inputError : null,
             ]}
             editable={!!selectedNFT} // Disable if no NFT is selected
@@ -394,6 +393,9 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: '#FF3B30',
+  },
+  inputContainerPadding: {
+    padding: 4,
   },
   inputWrapper: {
     marginBottom: 20,

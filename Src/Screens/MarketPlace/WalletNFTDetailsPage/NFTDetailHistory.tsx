@@ -41,7 +41,7 @@ export default function NFTDetailHistory({route}: {route: any}) {
     [],
   );
   const [refreshing, setRefreshing] = useState(false);
-  const [filters, setFilters] = useState(defaultFilter);
+  // const [filters, setFilters] = useState(defaultFilter);
 
   useEffect(() => {
     setMockTransactions(transactions ?? []);
@@ -62,20 +62,20 @@ export default function NFTDetailHistory({route}: {route: any}) {
     navigateBack();
   };
 
-  const formatDateRange = () => {
-    if (!filters.startDate && !filters.endDate) {
-      return '';
-    }
+  // const formatDateRange = () => {
+  //   if (!filters.startDate && !filters.endDate) {
+  //     return '';
+  //   }
 
-    let dateRange = '';
-    if (filters.startDate) {
-      dateRange += format(new Date(filters.startDate), 'MMM dd, yyyy');
-    }
-    if (filters.endDate) {
-      dateRange += ` - ${format(new Date(filters.endDate), 'MMM dd, yyyy')}`;
-    }
-    return dateRange;
-  };
+  //   let dateRange = '';
+  //   if (filters.startDate) {
+  //     dateRange += format(new Date(filters.startDate), 'MMM dd, yyyy');
+  //   }
+  //   if (filters.endDate) {
+  //     dateRange += ` - ${format(new Date(filters.endDate), 'MMM dd, yyyy')}`;
+  //   }
+  //   return dateRange;
+  // };
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
@@ -100,13 +100,13 @@ export default function NFTDetailHistory({route}: {route: any}) {
       </View>
 
       {/* Date Filter Display */}
-      {formatDateRange() && (
+      {/* {formatDateRange() && (
         <View style={styles.dateFilterContainer}>
           <DText fontStyle="fontRegular" style={styles.dateFilterText}>
             {formatDateRange()}
           </DText>
         </View>
-      )}
+      )} */}
 
       {/* NFT Information */}
     </View>

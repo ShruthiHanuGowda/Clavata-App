@@ -24,7 +24,6 @@ import {useNavigation} from '@react-navigation/native';
 import {BrowserProvider, Contract} from 'ethers';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {ERC1155_ABI} from '../../../utils/Contracts';
-import {useAuth} from '../../../../screens/Provider/authProvider';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import {useKycCheck} from '../../../CustomHooks/GlobalKycProvider';
 import {RefreshControl} from 'react-native-gesture-handler';
@@ -135,7 +134,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
   const [nftMetadata, setNftMetadata] = useState<NFTMetadata | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(false);
 
-  const {checkKYC, isKycCompleted, isKycSkipped} = useKycCheck();
+  const {checkKYC, isKycCompleted} = useKycCheck();
 
   const fetchNftMetadata = async () => {
     try {
@@ -252,7 +251,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
             'error',
           );
         },
-        onError: error => {
+        onError: () => {
           SnackBarMessage(
             'Please complete your kyc to access this feature',
             'error',
@@ -289,12 +288,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
 
   const hasTokenData = combinedNft?.tokenId && combinedNft?.collectionAddress;
 
-  const {
-    activity,
-    loading: activityLoading,
-    error: activityError,
-    refetch: refetchActivity,
-  } = useNftActivity(
+  const {activity, refetch: refetchActivity} = useNftActivity(
     hasTokenData ? combinedNft.tokenId : '',
     hasTokenData ? combinedNft.collectionAddress : '',
   );

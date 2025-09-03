@@ -4,8 +4,6 @@ import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import {DTextInput} from '../../../Componants/Dinputs';
 import {DButton} from '../../../Componants';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
-import {useAuth} from '../../../../screens/Provider/authProvider';
-import {useWallet} from '../../../../screens/Provider/WalletProvider';
 import {useWATTStaking} from '../Hooks/useWATTStaking';
 import {navigateTo} from '../../../utils/navigationService';
 
@@ -31,7 +29,6 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
   const [amountError, setAmountError] = useState<string>('');
   const [txHash, setTxHash] = useState<string>('');
   const [txStatus, setTxStatus] = useState<string>('idle');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const initializeComponent = async () => {
@@ -161,7 +158,7 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
     setIsAmountValid(parseFloat(wattBalance) > 0);
   };
 
-  if (isLoading || isWATTStakingLoading) {
+  if (isWATTStakingLoading) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#008060" />

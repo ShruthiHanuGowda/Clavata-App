@@ -10,7 +10,6 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
-import {ScreenWidth} from '@rneui/base';
 import {fontsFamily} from '../../Theme';
 import {marketIcons} from '../../Theme/variable';
 

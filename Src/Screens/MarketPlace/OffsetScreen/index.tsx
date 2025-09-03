@@ -49,16 +49,14 @@ const OffsetScreen = ({route}: any) => {
   const [inputError, setInputError] = useState('');
   const [dateErrors, setDateErrors] = useState<any>({});
   const [currentStep, setCurrentStep] = useState('form');
-  const [currentQuantity] = useState(
-    nft?.marketData?.quantity,
-  );
+  const [currentQuantity] = useState(nft?.marketData?.quantity);
   const [calculatedTax, setCalculatedTax] = useState(0);
   const [showStartDatePicker, setShowStartDatePicker] =
     useState<boolean>(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState<boolean>(false);
-  const [dateFieldEditing, setDateFieldEditing] = useState<
-    'startDate' | 'endDate' | null
-  >(null);
+  // const [dateFieldEditing, setDateFieldEditing] = useState<
+  //   'startDate' | 'endDate' | null
+  // >(null);
 
   const animationRef = useRef<any>(null);
 
@@ -150,7 +148,7 @@ const OffsetScreen = ({route}: any) => {
   };
 
   const openDatePicker = (field: 'startDate' | 'endDate') => {
-    setDateFieldEditing(field);
+    // setDateFieldEditing(field);
     if (field === 'startDate') {
       setShowStartDatePicker(true);
       setStartDate(new Date());
@@ -517,7 +515,8 @@ const OffsetScreen = ({route}: any) => {
                   key={option.value}
                   style={[
                     styles.dropdownOption,
-                    index === PURPOSE_OPTIONS.length - 1 && styles.lastDropdownOption,
+                    index === PURPOSE_OPTIONS.length - 1 &&
+                      styles.lastDropdownOption,
                   ].filter(Boolean)}
                   onPress={() => handlePurposeSelect(option)}
                   activeOpacity={0.8}>

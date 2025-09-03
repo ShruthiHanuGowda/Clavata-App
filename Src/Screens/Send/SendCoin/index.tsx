@@ -133,6 +133,7 @@ export default function SendCoin(props: SendCoinProps): any {
 
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, soundLoaded, soundError]);
 
   // Processing steps configuration similar to Bridge

@@ -52,7 +52,7 @@ const ValidatorDetailsScreen = ({
   const [delegators, setDelegators] = useState<Delegator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const {checkKYC, isKycCompleted, isKycSkipped} = useKycCheck();
+  const {checkKYC, isKycCompleted} = useKycCheck();
 
   const validatorId = route.params?.validatorId || 'val_001';
   const {singleValidator} = useValidators();
@@ -142,7 +142,7 @@ const ValidatorDetailsScreen = ({
             'error',
           );
         },
-        onError: error => {
+        onError: () => {
           SnackBarMessage(
             'Please complete your kyc to access this feature',
             'error',
@@ -300,7 +300,7 @@ const ValidatorDetailsScreen = ({
           </Text>
 
           <View style={styles.delegatorsList}>
-            {delegators.map((delegator, index) => (
+            {delegators.map(delegator => (
               <View key={delegator.id} style={[styles.delegatorCard]}>
                 <View style={styles.delegatorHeader}>
                   <Text style={styles.delegatorAddress}>

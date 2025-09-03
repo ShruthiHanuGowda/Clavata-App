@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Text, View, ScrollView, RefreshControl } from 'react-native';
-import { NavigationProp, RouteProp } from '@react-navigation/native';
+import React, {useEffect, useRef, useState} from 'react';
+import {Text, View, ScrollView, RefreshControl} from 'react-native';
+import {NavigationProp, RouteProp} from '@react-navigation/native';
 
 import style from './style';
 import Portfolio from './Portfolio';
-import { SCREEN_CONSTANT } from '../../Navigation/constant';
-import { useAuth } from '../../../screens/Provider/authProvider';
-import { useWallet } from '../../../screens/Provider/WalletProvider';
+import {SCREEN_CONSTANT} from '../../Navigation/constant';
+import {useAuth} from '../../../screens/Provider/authProvider';
+import {useWallet} from '../../../screens/Provider/WalletProvider';
 import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList';
 import CryptoMarketCard from '../HomeScreen/CryptoMarketCard';
 
@@ -40,11 +40,6 @@ interface WalletProps {
   loading?: boolean;
 }
 
-interface Balance {
-  balance: number;
-  balanceUsd: number;
-}
-
 const ITEMS: WalletItem[] = [
   {
     code: 'DRECS',
@@ -65,12 +60,9 @@ export default function Wallet(props: WalletProps) {
   const {getBalance, refreshAllBalances, isBalanceLoading, portfolio} =
     useWallet();
   const [items, setItems] = useState<WalletItem[]>([]);
-  const {userDetails} = useAuth();
   const [pullToRefreshLoading, setPullToRefreshLoading] =
     useState<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
-
-  const account: `0x${string}` = userDetails?.userWallet;
 
   const formatValue = (
     value: number | string | undefined | null,
@@ -234,7 +226,6 @@ export default function Wallet(props: WalletProps) {
               try {
                 await refreshAllBalances();
 
-                await refresh();
                 await init();
               } catch (error) {
                 console.error('Error during refresh:', error);
