@@ -14,7 +14,7 @@ const UserNFTsScreen = ({route}: any) => {
   const {userDetails} = useAuth();
   const account = route?.params?.accountAddress || userDetails?.userWallet;
 
-  const {nfts, isLoading, error, refresh} = useNftsForAddress({
+  const {nfts, isLoading, refresh} = useNftsForAddress({
     account: account,
   });
 
@@ -40,7 +40,7 @@ const UserNFTsScreen = ({route}: any) => {
       <Header
         headerTitle={'Certificates On Sale'}
         backBtn={() => navigateBack()}
-        containerStyle={{backgroundColor: '#f9fafa'}}
+        containerStyle={styles.headerContainer}
         hideBorder
       />
       <View style={styles.container}>
@@ -112,6 +112,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#475569',
     fontWeight: '500',
+  },
+  headerContainer: {
+    backgroundColor: '#f9fafa',
   },
 });
 

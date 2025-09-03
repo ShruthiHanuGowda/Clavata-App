@@ -1,10 +1,8 @@
 import React, {useCallback, useRef} from 'react';
 import {Header} from '@rneui/base';
 import {
-  Button,
   Image,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,30 +18,26 @@ import {useFocusEffect, useScrollToTop} from '@react-navigation/native';
 import {navigateTo} from '../../utils/navigationService';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
 import {useAuth} from '../../../screens/Provider/authProvider';
-import {useNftsForAddress} from '../../hooks/useNftsForAddress';
-import {useMutation} from '@apollo/client';
-import {UPDATE_KYC_STATUS} from '../../graphql/queries';
 import {DText} from '../../Componants/DText';
 import {fontsFamily, Images} from '../../Theme';
-import {useSuccessSound} from '../../hooks/useSuccessSound';
-import { useNft } from '../../../screens/Provider/NftProvider';
+import {useNft} from '../../../screens/Provider/NftProvider';
 
 function HomeHeader(props: any) {
   const {userDetails} = useAuth();
   function getUsernameFromEmail(email: string) {
-    if (!email) {return '';}
+    if (!email) {
+      return '';
+    }
     return email.split('@')[0];
   }
 
-  const username: any =
-    userDetails && userDetails?.kycDetails?.firstName
+  const username: string =
+    userDetails && typeof userDetails?.kycDetails === 'object' && userDetails?.kycDetails?.firstName
       ? userDetails?.kycDetails?.firstName
-      : getUsernameFromEmail(userDetails?.emailAddress);
+      : getUsernameFromEmail(userDetails?.emailAddress || '');
   return (
     <Header
-      containerStyle={{
-        borderBottomWidth: 0,
-      }}
+      containerStyle={styles.headerContainer}
       backgroundColor={'#FFF'}
       leftComponent={
         <View style={styles.nameContainer}>
@@ -56,19 +50,13 @@ function HomeHeader(props: any) {
           {props?.kycVerified && !props?.loading && (
             <Image
               source={Images.verified}
-              style={{
-                height: 20,
-                width: 20,
-              }}
+              style={styles.verifiedIcon}
             />
           )}
         </View>
       }
       rightComponent={
-        <View
-          style={{
-            flexDirection: 'row',
-          }}>
+        <View style={styles.rightComponentContainer}>
           {/* <TouchableOpacity
             style={styles.dotContainer}
             // onPress={() => navigateTo(SCREEN_CONSTANT.NOTIFICATIONS)}
@@ -87,34 +75,26 @@ function HomeHeader(props: any) {
   );
 }
 
-export default function HomeScreen({navigation}: any) {
+export default function HomeScreen() {
   const {refreshAllBalances} = useWallet();
-  const {playSuccessSound} = useSuccessSound();
-  const {userDetails} = useAuth();
-  const account = userDetails?.userWallet;
-  const {
-    nfts,
-    isLoading,
-    totalQuantity,
-    refresh: refreshNfts,
-  } = useNft();
+  const {isLoading, totalQuantity, refresh: refreshNfts} = useNft();
 
-  const [updateKycStatus, {loading, error, data}] = useMutation(
-    UPDATE_KYC_STATUS,
-    {
-      onCompleted: data => {
-        console.log('KYC status updated successfully:');
-      },
-      onError: error => {
-        console.error('Error updating KYC status:', error);
-      },
-    },
-  );
+  // const [updateKycStatus, {loading, error, data}] = useMutation(
+  //   UPDATE_KYC_STATUS,
+  //   {
+  //     onCompleted: data => {
+  //       console.log('KYC status updated successfully:');
+  //     },
+  //     onError: error => {
+  //       console.error('Error updating KYC status:', error);
+  //     },
+  //   },
+  // );
 
   // const { get, getDrecs, data, drecsData, balanceData, loading, getBalance, getProfile, profile } =
   //   useContext(AppContext).portfolio;
   // const { newCount, getNewCount } = useNotification();
-  const scrollViewRef = useRef(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   // const init = () => {
   //   get();
   //   getDrecs();
@@ -136,7 +116,7 @@ export default function HomeScreen({navigation}: any) {
     refreshNfts();
   };
 
-  useScrollToTop(scrollViewRef);
+  useScrollToTop(scrollViewRef as any);
 
   useFocusEffect(
     useCallback(() => {
@@ -145,7 +125,7 @@ export default function HomeScreen({navigation}: any) {
       return () => {
         console.log('Screen is unfocused!');
       };
-    }, []),
+    }, [refreshAllBalances]),
   );
 
   return (
@@ -168,40 +148,21 @@ export default function HomeScreen({navigation}: any) {
         <StakingActivities
           drecsStaked={0}
           drecsOwned={totalQuantity}
+          drecsAvailable={totalQuantity}
           loading={isLoading}
           // {...drecsData}
         />
         <CryptoMarketPlace
         // loading={loading} {...balanceData}
         />
-        <View style={{marginTop: 30, marginHorizontal: 20}}>
-          <Text
-            style={{
-              fontFamily: fontsFamily.MulishBold,
-              color: '#000000',
-              fontSize: 12,
-              lineHeight: 22,
-              letterSpacing: 2,
-            }}>
+        <View style={styles.newsContainer}>
+          <Text style={styles.newsTitle}>
             NEWS & ANNOUNCEMENTS
           </Text>
         </View>
-        <TouchableOpacity
-          style={{
-            flexDirection: 'row',
-            alignSelf: 'center',
-            alignItems: 'center',
-            margin: 10,
-            paddingBottom: 40,
-          }}
+        <TouchableOpacity style={styles.seeMoreButton}
           onPress={() => navigateTo('News')}>
-          <DText
-            style={{
-              color: '#009D94',
-              lineHeight: 22,
-              fontSize: 14,
-              marginRight: 11,
-            }}
+          <DText style={styles.seeMoreText}
             fontStyle="fontBold">
             See more
           </DText>
@@ -209,8 +170,7 @@ export default function HomeScreen({navigation}: any) {
             width="10"
             height="16"
             viewBox="0 0 10 16"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
+            fill="none">
             <Path
               d="M1.66602 1.33203L8.33268 7.9987L1.66602 14.6654"
               stroke="#009D94"
@@ -252,5 +212,39 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 1,
+  },
+  headerContainer: {
+    borderBottomWidth: 0,
+  },
+  verifiedIcon: {
+    height: 20,
+    width: 20,
+  },
+  rightComponentContainer: {
+    flexDirection: 'row',
+  },
+  newsContainer: {
+    marginTop: 30,
+    marginHorizontal: 20,
+  },
+  newsTitle: {
+    fontFamily: fontsFamily.MulishBold,
+    color: '#000000',
+    fontSize: 12,
+    lineHeight: 22,
+    letterSpacing: 2,
+  },
+  seeMoreButton: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    alignItems: 'center',
+    margin: 10,
+    paddingBottom: 40,
+  },
+  seeMoreText: {
+    color: '#009D94',
+    lineHeight: 22,
+    fontSize: 14,
+    marginRight: 11,
   },
 });

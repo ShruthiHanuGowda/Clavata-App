@@ -31,7 +31,7 @@ export default function BalanceCarousal(props: Props) {
           colors={['#008D85', '#23CEC4']}
           locations={[0, 0.5, 1]}
           style={[carousalStyles.cardContainer]}>
-          <View style={{margin: 10}}>
+          <View style={carousalStyles.tabWrapper}>
             <Tab
               value={index}
               onChange={e => {
@@ -179,5 +179,8 @@ const carousalStyles = StyleSheet.create({
   buttonActive: {
     backgroundColor: 'white',
     borderRadius: 5,
+  },
+  tabWrapper: {
+    margin: 10,
   },
 });

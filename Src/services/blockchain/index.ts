@@ -1,5 +1,5 @@
-import { ethers } from 'ethers';
-import { CUSTOM_RPC_URL, SEPOLIA_RPC_URL, CUSTOM_NETWORK } from '../../constants';
+import {ethers} from 'ethers';
+import {CUSTOM_RPC_URL, SEPOLIA_RPC_URL} from '../../constants';
 
 export type NetworkType = 'denergy' | 'sepolia';
 
@@ -62,7 +62,7 @@ class BlockchainService {
       const contract = new ethers.Contract(
         config.address,
         config.abi,
-        signer || provider
+        signer || provider,
       );
       this.contracts.set(key, contract);
     }
@@ -70,7 +70,10 @@ class BlockchainService {
     return this.contracts.get(key)!;
   }
 
-  async getNativeBalance(address: string, network: NetworkType): Promise<string> {
+  async getNativeBalance(
+    address: string,
+    network: NetworkType,
+  ): Promise<string> {
     if (!ethers.isAddress(address)) {
       throw new Error('Invalid address format');
     }
@@ -85,7 +88,7 @@ class BlockchainService {
     walletAddress: string,
     network: NetworkType,
     abi: any,
-    decimals: number = 18
+    decimals: number = 18,
   ): Promise<string> {
     if (!ethers.isAddress(walletAddress) || !ethers.isAddress(tokenAddress)) {
       throw new Error('Invalid address format');
@@ -104,7 +107,7 @@ class BlockchainService {
   async estimateGas(
     contract: ethers.Contract,
     method: string,
-    params: any[]
+    params: any[],
   ): Promise<bigint> {
     return await contract[method].estimateGas(...params);
   }
@@ -113,7 +116,7 @@ class BlockchainService {
     contract: ethers.Contract,
     method: string,
     params: any[],
-    options?: TransactionOptions
+    options?: TransactionOptions,
   ): Promise<ethers.ContractTransactionResponse> {
     const tx = await contract[method](...params, options);
     return tx;
@@ -122,7 +125,7 @@ class BlockchainService {
   async waitForTransaction(
     txHash: string,
     network: NetworkType,
-    confirmations: number = 1
+    confirmations: number = 1,
   ): Promise<ethers.TransactionReceipt | null> {
     const provider = this.getProvider(network);
     return await provider.waitForTransaction(txHash, confirmations);

@@ -5,7 +5,6 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import {DText} from '../../Componants/DText';
 import {BottomSheet} from 'react-native-btr';
@@ -13,8 +12,6 @@ import {useAddressBookByWallet} from './Hooks/AddressBookGraphql';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
 import {navigateTo} from '../../utils/navigationService';
-
-const {width} = Dimensions.get('window');
 
 interface Contact {
   beneficiaryAddress: string;
@@ -38,7 +35,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
   onSelectAddress,
   title = 'Select Contact',
   searchPlaceholder = 'Search contacts...',
-  emptyMessage = 'No contacts found',
+  // emptyMessage = 'No contacts found',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -67,14 +64,16 @@ const ContactModal: React.FC<ContactModalProps> = ({
   };
 
   const truncateAddress = (address: string) => {
-    if (address.length <= 12) {return address;}
+    if (address.length <= 12) {
+      return address;
+    }
     return `${address.slice(0, 12)}...${address.slice(-12)}`;
   };
 
-  const onAddContact = () => {
+  const onAddContact = useCallback(() => {
     onClose();
     navigateTo('AddressBook');
-  };
+  }, [onClose]);
 
   const contacts = useMemo(() => {
     return addressBooks || [];
@@ -116,6 +115,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
   const renderContact = useCallback(
     ({item, index}: {item: Contact; index: number}) => (
       <TouchableOpacity
+        key={index}
         style={styles.contactItem}
         onPress={() => handleAddressSelect(item.beneficiaryAddress, item)}
         activeOpacity={0.8}>
@@ -129,10 +129,8 @@ const ContactModal: React.FC<ContactModalProps> = ({
 
         {/* Contact Info */}
         <View style={styles.contactInfo}>
-          <DText style={styles.contactName} numberOfLines={1}>
-            {item.name}
-          </DText>
-          <DText style={styles.contactAddress} numberOfLines={1}>
+          <DText style={styles.contactName}>{item.name}</DText>
+          <DText style={styles.contactAddress}>
             {truncateAddress(item.beneficiaryAddress)}
           </DText>
         </View>
@@ -207,7 +205,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
         )}
       </View>
     );
-  }, [searchQuery, listLoading, listError, refetchList]);
+  }, [searchQuery, listLoading, listError, refetchList, onAddContact]);
 
   const renderHeader = () => (
     <View style={styles.headerContent}>

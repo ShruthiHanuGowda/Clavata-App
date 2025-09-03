@@ -36,7 +36,7 @@ export const useTransactionHistory = (
       const amount =
         parseFloat(transaction.value) / Math.pow(10, parseInt(tokenDecimal));
       const date = new Date(parseInt(transaction.timeStamp) * 1000);
-      // Determine transaction type based on from/to addresses
+
       let type = 'Transfer';
       if (transaction.from?.toLowerCase() === walletAddress?.toLowerCase()) {
         type = 'Withdrawal';
@@ -46,12 +46,10 @@ export const useTransactionHistory = (
         type = 'Deposit';
       }
 
-      // Determine status (API doesn't provide status, so we infer)
       const currentTime = Math.floor(Date.now() / 1000);
       const transactionTime = parseInt(transaction.timeStamp);
       const timeDiff = currentTime - transactionTime;
 
-      // If transaction is very recent (< 5 minutes), mark as pending
       let status = 'Completed';
       // if (timeDiff < 10) {
       //   status = 'Pending';
@@ -104,10 +102,18 @@ export const useTransactionHistory = (
       const isWithinAWeek = momentDate.isAfter(A_WEEK_OLD);
       const checkWithin30Days = moment().diff(momentDate, 'days');
 
-      if (isToday) {return 'TODAY';}
-      if (isYesterday) {return 'YESTERDAY';}
-      if (isWithinAWeek) {return 'LAST WEEK';}
-      if (checkWithin30Days <= 30) {return 'LAST 30 DAYS';}
+      if (isToday) {
+        return 'TODAY';
+      }
+      if (isYesterday) {
+        return 'YESTERDAY';
+      }
+      if (isWithinAWeek) {
+        return 'LAST WEEK';
+      }
+      if (checkWithin30Days <= 30) {
+        return 'LAST 30 DAYS';
+      }
       return 'OLDER';
     };
 
@@ -249,7 +255,9 @@ export const useTransactionHistory = (
    */
   const filterTransactionsByDate = useCallback(
     (startDate: string, endDate: string) => {
-      if (!startDate && !endDate) {return transactions;}
+      if (!startDate && !endDate) {
+        return transactions;
+      }
 
       return transactions.filter((transaction: any) => {
         const transactionDate = moment(transaction.date);
@@ -275,7 +283,9 @@ export const useTransactionHistory = (
    */
   const filterTransactionsByType = useCallback(
     (type: any) => {
-      if (!type) {return transactions;}
+      if (!type) {
+        return transactions;
+      }
       return transactions.filter(
         (transaction: any) => transaction.type === type,
       );

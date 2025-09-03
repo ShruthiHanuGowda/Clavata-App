@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   ScrollView,
   Image,
   Alert,
@@ -43,14 +42,14 @@ const OffsetScreen = ({route}: any) => {
   const {userDetails} = useAuth();
   const {magic} = useMagic();
   const [volume, setVolume] = useState('');
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [purpose, setPurpose] = useState('');
   const [showPurposeDropdown, setShowPurposeDropdown] = useState(false);
   const [inputError, setInputError] = useState('');
   const [dateErrors, setDateErrors] = useState<any>({});
   const [currentStep, setCurrentStep] = useState('form');
-  const [currentQuantity, setCurrentQuantity] = useState(
+  const [currentQuantity] = useState(
     nft?.marketData?.quantity,
   );
   const [calculatedTax, setCalculatedTax] = useState(0);
@@ -73,7 +72,7 @@ const OffsetScreen = ({route}: any) => {
   const walletAddress = userDetails?.userWallet;
 
   const {
-    isLoadingOffset,
+    // isLoadingOffset,
     currentProcessingStep,
     stepProgress,
     redemptionUrl,
@@ -81,7 +80,7 @@ const OffsetScreen = ({route}: any) => {
     transactionHash,
     offsetSuccess,
     executeOffset,
-    resetOffsetState,
+    // resetOffsetState,
     getAvailableQuantity,
     validateOffsetVolume,
   } = useOffsetNft(magic, account, walletAddress);
@@ -244,7 +243,9 @@ const OffsetScreen = ({route}: any) => {
   };
 
   const handleSubmit = async () => {
-    if (!isFormValid()) {return;}
+    if (!isFormValid()) {
+      return;
+    }
 
     setCurrentStep('processing');
     const success = await executeOffset(
@@ -273,7 +274,9 @@ const OffsetScreen = ({route}: any) => {
 
   const handleDownloadCertificate = async () => {
     try {
-      if (!pdfDownloadUrl) {return;}
+      if (!pdfDownloadUrl) {
+        return;
+      }
 
       const timestamp = Math.floor(Date.now() / 1000);
       const fileName = `certificate_${timestamp}.pdf`;
@@ -431,10 +434,10 @@ const OffsetScreen = ({route}: any) => {
             Start Date *
           </DText>
 
-          <View style={{position: 'relative'}}>
+          <View style={styles.relativeContainer}>
             <TextInput
               style={[styles.input, dateErrors.endDate && styles.warningInput]}
-              value={startDate && moment(startDate).format('YYYY-MM-DD')}
+              value={startDate ? moment(startDate).format('YYYY-MM-DD') : ''}
               editable={false}
               placeholder="YYYY-MM-DD"
               placeholderTextColor="#A0A0A0"
@@ -442,14 +445,7 @@ const OffsetScreen = ({route}: any) => {
 
             <TouchableOpacity
               onPress={() => openDatePicker('startDate')}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 1,
-              }}
+              style={styles.datePickerOverlay}
               activeOpacity={0.8}
             />
           </View>
@@ -465,10 +461,10 @@ const OffsetScreen = ({route}: any) => {
             End Date *
           </DText>
 
-          <View style={{position: 'relative'}}>
+          <View style={styles.relativeContainer}>
             <TextInput
               style={[styles.input, dateErrors.endDate && styles.warningInput]}
-              value={endDate && moment(endDate).format('YYYY-MM-DD')}
+              value={endDate ? moment(endDate).format('YYYY-MM-DD') : ''}
               editable={false}
               placeholder="YYYY-MM-DD"
               placeholderTextColor="#A0A0A0"
@@ -476,14 +472,7 @@ const OffsetScreen = ({route}: any) => {
 
             <TouchableOpacity
               onPress={() => openDatePicker('endDate')}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 1,
-              }}
+              style={styles.datePickerOverlay}
               activeOpacity={0.8}
             />
           </View>
@@ -528,9 +517,8 @@ const OffsetScreen = ({route}: any) => {
                   key={option.value}
                   style={[
                     styles.dropdownOption,
-                    index === PURPOSE_OPTIONS.length - 1 &&
-                      styles.lastDropdownOption,
-                  ]}
+                    index === PURPOSE_OPTIONS.length - 1 && styles.lastDropdownOption,
+                  ].filter(Boolean)}
                   onPress={() => handlePurposeSelect(option)}
                   activeOpacity={0.8}>
                   <DText style={styles.dropdownOptionText}>
@@ -1082,6 +1070,25 @@ const styles = StyleSheet.create({
   certificateButtonText: {
     color: '#81c8c3',
     fontSize: 16,
+  },
+  taxTotalValue: {
+    color: '#333',
+    fontSize: 16,
+  },
+  iconText: {
+    fontSize: 20,
+    textAlign: 'center',
+  },
+  relativeContainer: {
+    position: 'relative',
+  },
+  datePickerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
   },
 });
 

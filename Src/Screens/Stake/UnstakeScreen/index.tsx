@@ -37,7 +37,6 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
   const [amount, setAmount] = useState<string>('');
   const [isAmountValid, setIsAmountValid] = useState<boolean>(false);
   const [amountError, setAmountError] = useState<string>('');
-  const [txHash, setTxHash] = useState<string>('');
   const [txStatus, setTxStatus] = useState<string>('idle'); // 'idle', 'unstaking', 'success', 'failed'
 
   useEffect(() => {
@@ -96,7 +95,9 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
 
   // Function to format contract address
   const formatContractAddress = (address: string) => {
-    if (!address) {return '';}
+    if (!address) {
+      return '';
+    }
     return `${address.substring(0, 8)}...${address.substring(
       address.length - 6,
     )}`;
@@ -104,7 +105,7 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
 
   const handleUnstakeSuccess = (result: any) => {
     console.log('Unstaking successful:', result);
-    setTxHash(result.txHash);
+
     setTxStatus('success');
 
     Alert.alert(
@@ -165,7 +166,7 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
             <Pressable
               onPress={() => navigateBack()}
               style={styles.iconContainer}>
-              <Image source={images.back} style={{width: 20, height: 20}} />
+              <Image source={images.back} style={styles.backIcon} />
             </Pressable>
             <Text style={styles.header}>Unstake NFT</Text>
           </View>

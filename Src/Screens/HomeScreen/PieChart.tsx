@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text} from 'react-native';
+import {View, Text, StyleSheet} from 'react-native';
 import {PolarChart, Pie} from 'victory-native';
 import colors from '../../Theme/Colors';
 import {fontsFamily} from '../../Theme';
@@ -48,7 +48,10 @@ const PieChart: React.FC<PieChartProps> = ({
 
   return (
     <View
-      style={{height: chartHeight, width: chartWidth, position: 'relative'}}>
+      style={[
+        styles.chartContainer,
+        {height: chartHeight as any, width: chartWidth as any},
+      ]}>
       {/* Pie Chart */}
       <PolarChart
         data={transformedData}
@@ -56,7 +59,7 @@ const PieChart: React.FC<PieChartProps> = ({
         valueKey={'y'}
         colorKey={'color'}>
         <Pie.Chart>
-          {({slice}: {slice: any}) => {
+          {() => {
             return <Pie.Slice />;
           }}
         </Pie.Chart>
@@ -64,42 +67,51 @@ const PieChart: React.FC<PieChartProps> = ({
 
       {/* Center Circle with Text */}
       <View
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          width: circleSize,
-          height: circleSize,
-          backgroundColor: centerCircleColor,
-          borderRadius: circleSize / 2,
-          transform: [
-            {translateX: -circleSize / 2},
-            {translateY: -circleSize / 2},
-          ],
-          justifyContent: 'center',
-          alignItems: 'center',
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: 2,
+        style={[
+          styles.centerCircle,
+          {
+            width: circleSize,
+            height: circleSize,
+            backgroundColor: centerCircleColor,
+            borderRadius: circleSize / 2,
+            transform: [
+              {translateX: -circleSize / 2},
+              {translateY: -circleSize / 2},
+            ],
           },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
-        }}>
-        <Text
-          style={{
-            fontSize: 15,
-
-            color: colors.primary || '#000000',
-            textAlign: 'center',
-            fontFamily: fontsFamily.MulishBold,
-          }}>
+        ]}>
+        <Text style={[styles.centerText, {color: '#000000'}]}>
           {centerText}
         </Text>
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  chartContainer: {
+    position: 'relative',
+  },
+  centerCircle: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  centerText: {
+    fontSize: 15,
+    textAlign: 'center',
+    fontFamily: fontsFamily.MulishBold,
+  },
+});
 
 export default PieChart;

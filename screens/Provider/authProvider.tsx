@@ -2,7 +2,6 @@
 import React, {createContext, useState, ReactNode, useContext} from 'react';
 import {useMutation} from '@apollo/client';
 import {CREATE_USER_WALLETS} from '../../Src/graphql/queries';
-import {Alert} from 'react-native';
 import {UserAuth} from '../../Src/utils/type';
 
 interface AuthContextType {

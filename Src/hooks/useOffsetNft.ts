@@ -11,7 +11,7 @@ import {useWallet} from '../../screens/Provider/WalletProvider';
 import {useQuery} from '@apollo/client';
 import {LIST_PLATFORM_SETTINGS} from '../graphql/queries';
 
-export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
+export const useOffsetNft = (magic: any, account: any) => {
   const [isLoadingOffset, setIsLoadingOffset] = useState(false);
   const [currentProcessingStep, setCurrentProcessingStep] = useState('');
   const [stepProgress, setStepProgress] = useState(0);
@@ -40,7 +40,7 @@ export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
     }
   };
 
-  const {loading, error, data, refetch} = useQuery(LIST_PLATFORM_SETTINGS, {
+  const {data: settingData} = useQuery(LIST_PLATFORM_SETTINGS, {
     variables: {
       filter: {
         keyName: {
@@ -52,9 +52,9 @@ export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
   });
 
   const treasurySetting =
-    (data?.listPlatformSettings?.items &&
-      data?.listPlatformSettings?.items.length > 0 &&
-      data?.listPlatformSettings?.items[0]) ||
+    (settingData?.listPlatformSettings?.items &&
+      settingData?.listPlatformSettings?.items.length > 0 &&
+      settingData?.listPlatformSettings?.items[0]) ||
     null;
 
   const dynamicTreasuryAddress = treasurySetting?.value || TREASURY_ADDRESS;
@@ -246,7 +246,6 @@ export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
       });
 
       const data = await response.json();
-      console.log(data);
 
       // Step 7: Finalize
       updateProcessingStep('FINALIZING');
@@ -259,11 +258,6 @@ export const useOffsetNft = (magic: any, account: any, walletAddress: any) => {
         setRedemptionUrl(data?.data?.pdfDownloadUrl);
         setPdfDownloadUrl(data?.data?.pdfDownloadUrl);
         setOffsetSuccess(true);
-
-        const newBalance = await collectionContract.balanceOf(
-          account,
-          nft?.tokenId,
-        );
 
         SnackBarMessage('Offset created successfully', 'success');
 

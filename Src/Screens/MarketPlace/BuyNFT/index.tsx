@@ -112,6 +112,21 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
     refreshBalance('WUSDC');
   }, [paymentCurrency]);
 
+  const handleGoBack = () => {
+    switch (stage) {
+      case BuyingStage.APPROVE_AND_CONFIRM:
+      case BuyingStage.CONFIRM:
+        setStage(BuyingStage.REVIEW);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleClose = () => {
+    navigation.goBack();
+  };
+
   useEffect(() => {
     navigation.setOptions({
       title: stageConfig[stage].title,
@@ -128,7 +143,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
           </TouchableOpacity>
         ) : null,
     });
-  }, [stage, navigation]);
+  }, [stage, navigation, handleGoBack, handleClose]);
 
   const {isApproved, isApproving, isConfirming, handleApprove, handleConfirm} =
     useApproveConfirmTransaction({
@@ -147,7 +162,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
           MaxUint256,
         ]);
       },
-      onApproveSuccess: async ({receipt}) => {
+      onApproveSuccess: async () => {
         SnackBarMessage(
           `Contract approved - you can now buy NFT with ${paymentCurrency}!`,
           'success',
@@ -174,21 +189,6 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
         setStage(BuyingStage.TX_CONFIRMED);
       },
     });
-
-  const handleGoBack = () => {
-    switch (stage) {
-      case BuyingStage.APPROVE_AND_CONFIRM:
-      case BuyingStage.CONFIRM:
-        setStage(BuyingStage.REVIEW);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const handleClose = () => {
-    navigation.goBack();
-  };
 
   const handleComplete = () => {
     navigateTo('D.Energy');
@@ -260,7 +260,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
       <Header
         headerTitle={stageConfig[stage].title}
         backBtn={() => navigateBack()}
-        containerStyle={{backgroundColor: '#f9fafa'}}
+        containerStyle={styles.headerContainer}
         hideBorder
       />
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -288,6 +288,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#007AFF',
     fontWeight: '600',
+  },
+  headerContainer: {
+    backgroundColor: '#f9fafa',
   },
 });
 

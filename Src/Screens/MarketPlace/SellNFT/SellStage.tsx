@@ -20,7 +20,6 @@ interface SellStageProps {
 
 const SellStage: React.FC<SellStageProps> = ({
   nftToSell,
-  lowestPrice,
   continueToNextStage,
   continueToTransferStage,
 }) => {

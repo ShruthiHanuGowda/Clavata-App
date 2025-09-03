@@ -142,7 +142,7 @@ export const useSendUSDCANDEURC = (
 
       // Call success callback if provided
       if (onSuccess && typeof onSuccess === 'function' && receipt) {
-        const {data} = await createTransactionHistoryMobile({
+        await createTransactionHistoryMobile({
           variables: {
             input: {
               transactionHash: receipt.hash,

@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   TouchableOpacity,
-  ActivityIndicator, // Added ActivityIndicator import
 } from 'react-native';
 import {fontsFamily} from '../../Theme';
 import {navigateTo} from '../../utils/navigationService';
@@ -16,12 +15,10 @@ import useValidators from './Hooks/useValidators';
 import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
 import {VALIDATORS_API_URL} from '../../constants';
 
-// Define interfaces for our data types
 interface Validator {
   validatorId: string;
   validatorName: string;
   status: string;
-  // apr: number; // Commented out as per instructions
   commissionRate: number;
   validatorAge: number;
   totalStakeAmount: number;
@@ -29,12 +26,9 @@ interface Validator {
   totalStakedWatt: number;
 }
 
-// Props interface
 interface ValidatorsScreenProps {}
 
 const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
-  console.log('🚀 ~ props:', props);
-  // State for actual applied filters
   const [sortBy, setSortBy] = useState('Commission');
   const [filterStatus, setFilterStatus] = useState('All');
 
@@ -72,7 +66,9 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = props => {
   const getFilteredAndSortedValidators = () => {
     // First, filter by status
     let filteredValidators = allValidators.filter(validator => {
-      if (filterStatus === 'All') {return true;}
+      if (filterStatus === 'All') {
+        return true;
+      }
       // Convert status to match UI format (capitalized first letter only)
       const formattedStatus =
         validator.status === 'ACTIVE'

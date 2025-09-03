@@ -1,15 +1,13 @@
 import {useState} from 'react';
-import {
-  BrowserProvider,
-  formatUnits,
-  parseUnits,
-  JsonRpcProvider,
-  TransactionReceipt,
-} from 'ethers';
+import {formatUnits, parseUnits, JsonRpcProvider} from 'ethers';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 import {useMutation} from '@apollo/client';
-import {CUSTOM_NETWORK_CHAIN_ID, CUSTOM_RPC_URL, DEFAULT_GAS_LIMIT} from '../constants';
-import {errorService, ErrorCode, TransactionError} from '../services/errorService';
+import {
+  CUSTOM_NETWORK_CHAIN_ID,
+  CUSTOM_RPC_URL,
+  DEFAULT_GAS_LIMIT,
+} from '../constants';
+import {errorService, TransactionError} from '../services/errorService';
 
 const DENERGY_RPC_URL = CUSTOM_RPC_URL;
 
@@ -35,11 +33,7 @@ type SuccessCallback = (result: TransactionSuccess) => void;
  * @param userAddress - User's public address
  * @returns Transaction state and functions
  */
-export const useSendWatt = (
-  magic: any,
-  userAddress: string | undefined,
-  customRpcUrl: string = DENERGY_RPC_URL,
-) => {
+export const useSendWatt = (magic: any, userAddress: string | undefined) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<TransactionError | null>(null);
   const [createTransactionHistoryMobile] = useMutation(
@@ -99,7 +93,7 @@ export const useSendWatt = (
 
       if (onSuccess && typeof onSuccess === 'function') {
         try {
-          const {data} = await createTransactionHistoryMobile({
+          await createTransactionHistoryMobile({
             variables: {
               input: {
                 transactionHash: txHash,
@@ -166,7 +160,10 @@ export const useSendWatt = (
 
       return true;
     } catch (err: any) {
-      const validationError = errorService.handleTransactionError(err, 'useSendWATT.validateTransaction');
+      const validationError = errorService.handleTransactionError(
+        err,
+        'useSendWATT.validateTransaction',
+      );
       setError(validationError);
       return false;
     }

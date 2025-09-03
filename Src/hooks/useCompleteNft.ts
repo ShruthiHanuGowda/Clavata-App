@@ -30,8 +30,8 @@ export const useCompleteNft = (id: string) => {
         throw new Error(`Failed to fetch metadata: ${response.statusText}`);
       }
       return await response.json();
-    } catch (error) {
-      console.error('Error fetching metadata:', error);
+    } catch (err) {
+      console.error('Error fetching metadata:', err);
       return null;
     }
   };

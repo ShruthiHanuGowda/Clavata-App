@@ -1,7 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {View, Text, StyleSheet, ActivityIndicator, Alert} from 'react-native';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
-import {Colors, fontsFamily} from '../../../Theme';
 import {DTextInput} from '../../../Componants/Dinputs';
 import {DButton} from '../../../Componants';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
@@ -17,9 +16,7 @@ interface WATTStakeComponentProps {
 const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
   validatorId,
 }) => {
-  const {userDetails} = useAuth();
   const {setActiveNetwork, activeNetwork} = useMagic();
-  const {getBalance} = useWallet();
 
   const {
     isLoading: isWATTStakingLoading,
@@ -29,12 +26,11 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
     getWATTBalance,
   } = useWATTStaking(validatorId);
 
-  // State for amount input
   const [amount, setAmount] = useState<string>('');
   const [isAmountValid, setIsAmountValid] = useState<boolean>(false);
   const [amountError, setAmountError] = useState<string>('');
   const [txHash, setTxHash] = useState<string>('');
-  const [txStatus, setTxStatus] = useState<string>('idle'); // 'idle', 'staking', 'success', 'failed'
+  const [txStatus, setTxStatus] = useState<string>('idle');
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
@@ -50,15 +46,12 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
     initializeComponent();
   }, [activeNetwork, setActiveNetwork, getWATTBalance]);
 
-  // Validate amount input
   const validateAmount = (value: string): boolean => {
-    // Allow empty string (for clearing the input)
     if (value === '') {
       setAmountError('');
       return true;
     }
 
-    // Regex for valid number format (including decimals)
     const regex = /^(\d*\.?\d*)$/;
 
     if (!regex.test(value)) {
@@ -66,19 +59,16 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
       return false;
     }
 
-    // Check if the input starts with multiple zeros
     if (value.startsWith('00')) {
       setAmountError('Invalid number format');
       return false;
     }
 
-    // Additional check for single "." input
     if (value === '.') {
       setAmountError('');
-      return true; // Allow single dot as it might be the start of a decimal
+      return true;
     }
 
-    // Check if amount exceeds available balance
     if (parseFloat(value) > parseFloat(wattBalance)) {
       setAmountError(`Insufficient balance. Available: ${wattBalance} WATT`);
       return false;

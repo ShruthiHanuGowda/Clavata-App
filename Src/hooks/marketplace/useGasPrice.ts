@@ -1,7 +1,6 @@
 import {JsonRpcProvider, JsonRpcSigner} from 'ethers';
 import {useEffect, useState} from 'react';
 import {CUSTOM_RPC_URL} from '../../constants';
-import {logMissingFieldErrors} from '@apollo/client/core/ObservableQuery';
 
 export function useGasPrice(
   signer?: JsonRpcSigner,

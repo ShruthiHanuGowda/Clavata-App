@@ -1,20 +1,10 @@
-import React, {useState} from 'react';
-import {
-  Text,
-  View,
-  Image,
-  StyleSheet,
-  Pressable,
-  Alert,
-} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import React from 'react';
+import {Text, View, Image, StyleSheet, Alert} from 'react-native';
 import style from './style';
 import {ScrollView} from 'react-native-gesture-handler';
-import {SCREEN_CONSTANT} from '../../../../navigation/constant';
 import LinearGradient from 'react-native-linear-gradient';
 import {Header} from '@rneui/base';
 import {TouchableOpacity} from 'react-native';
-import {isDev} from '../../../../config/mode';
 import {DText} from '../../../Componants/DText';
 import MenuList from '../../../Componants/rc_menuList';
 import images from '../../../Theme/images';
@@ -31,42 +21,50 @@ interface AccountProps {
   };
 }
 
-interface UserDetails {
-  emailAddress: string;
-  kycDetails?: {
-    firstName?: string;
-  };
-  walletAddress?: string;
-}
-
 const Account: React.FC<AccountProps> = ({navigation}) => {
   const {magic} = useMagic();
-  const {userDetails}: {userDetails: UserDetails} = useAuth();
+  const {userDetails} = useAuth();
 
   const getUsernameFromEmail = (email: string): string => {
     return email.split('@')[0];
   };
 
-  const username = userDetails?.kycDetails?.firstName
-    ? userDetails.kycDetails.firstName
-    : getUsernameFromEmail(userDetails?.emailAddress || '');
+  const getFirstName = () => {
+    if (!userDetails?.kycDetails) {
+      return null;
+    }
 
-  const [updateKycStatus] = useMutation(UPDATE_KYC_STATUS, {
-    onCompleted: (data) => {
+    if (typeof userDetails.kycDetails === 'string') {
+      try {
+        const parsed = JSON.parse(userDetails.kycDetails);
+        return parsed.firstName;
+      } catch {
+        return null;
+      }
+    }
+
+    return userDetails.kycDetails.firstName;
+  };
+
+  const username =
+    getFirstName() || getUsernameFromEmail(userDetails?.emailAddress || '');
+
+  useMutation(UPDATE_KYC_STATUS, {
+    onCompleted: data => {
       console.log('KYC status updated successfully:', data);
     },
-    onError: (error) => {
+    onError: error => {
       console.error('Error updating KYC status:', error);
     },
   });
 
-  const [visible, setVisible] = useState<boolean>(false);
-  const [rating, setRating] = useState<number>(0);
+  // const [visible, setVisible] = useState<boolean>(false);
+  // const [rating, setRating] = useState<number>(0);
 
-  const toggleBottomView = (): void => {
-    setVisible(!visible);
-    setRating(0);
-  };
+  // const toggleBottomView = (): void => {
+  //   setVisible(!visible);
+  //   setRating(0);
+  // };
 
   const handleBackPress = (): void => {
     navigation.goBack();

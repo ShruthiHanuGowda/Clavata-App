@@ -1,5 +1,12 @@
 import React, {useState} from 'react';
-import {View, Text, TouchableOpacity, Image, StyleSheet} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import {DText} from '../../../Componants/DText';
 import {fontsFamily, Images} from '../../../Theme';
 import 'text-encoding';
@@ -22,8 +29,7 @@ interface ShareOptions {
   subject: string;
 }
 
-const ShowQr: React.FC<ShowQrProps> = ({coinCode, address, name}) => {
-  const saveQrToDisk = async (): Promise<void> => {};
+const ShowQr: React.FC<ShowQrProps> = ({coinCode, address}) => {
   const [downloading, setDownloading] = useState<boolean>(false);
   const [qrCodeRef, setQrCodeRef] = useState<any>();
 
@@ -33,17 +39,12 @@ const ShowQr: React.FC<ShowQrProps> = ({coinCode, address, name}) => {
   };
 
   const saveToPhotoLibrary = async (base64Data: string): Promise<void> => {
-    console.log('🚀 ~ ShowQr ~ base64Data:', base64Data);
     try {
       setDownloading(true);
-
-      // For this method, you'll need to install @react-native-camera-roll/camera-roll
-      // npm install @react-native-camera-roll/camera-roll
 
       const CameraRoll =
         require('@react-native-camera-roll/camera-roll').CameraRoll;
 
-      // Convert base64 to local file first
       const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
       const tempPath = `${
         RNFS.CachesDirectoryPath
@@ -51,10 +52,8 @@ const ShowQr: React.FC<ShowQrProps> = ({coinCode, address, name}) => {
 
       await RNFS.writeFile(tempPath, cleanBase64, 'base64');
 
-      // Save to photo library
       await CameraRoll.save(`file://${tempPath}`, {type: 'photo'});
 
-      // Clean up temp file
       await RNFS.unlink(tempPath);
 
       SnackBarMessage('Image saved to photo library', 'success');
@@ -83,7 +82,7 @@ const ShowQr: React.FC<ShowQrProps> = ({coinCode, address, name}) => {
             subject: 'Share QR code',
           };
           Share.open(shareImageBase64)
-            .then(res => {})
+            .then(() => {})
             .catch(err => {
               err && {};
             });
@@ -107,15 +106,25 @@ const ShowQr: React.FC<ShowQrProps> = ({coinCode, address, name}) => {
 
         <View style={styles.qrBtnAlign}>
           <TouchableOpacity
-            style={styles.downloadBtn}
+            style={[
+              styles.downloadBtn,
+              downloading && styles.downloadBtnDisabled,
+            ]}
             onPress={() => {
-              qrCodeRef.toDataURL((data: string) => {
-                saveToPhotoLibrary(data);
-              });
-            }}>
-            <DText fontStyle="fontBold" style={styles.downloadText}>
-              Download
-            </DText>
+              if (!downloading) {
+                qrCodeRef.toDataURL((data: string) => {
+                  saveToPhotoLibrary(data);
+                });
+              }
+            }}
+            disabled={downloading}>
+            {downloading ? (
+              <ActivityIndicator size="small" color="#ffff" />
+            ) : (
+              <DText fontStyle="fontBold" style={styles.downloadText}>
+                Download
+              </DText>
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.buttonContainer}
@@ -241,6 +250,9 @@ const styles = StyleSheet.create({
   copyIcon: {
     width: 30,
     height: 30,
+  },
+  downloadBtnDisabled: {
+    opacity: 0.6,
   },
 });
 

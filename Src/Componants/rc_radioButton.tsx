@@ -21,7 +21,7 @@ const RadioButton: React.FC<RadioButtonProps> = ({
   const [_value, setValue] = useState<string | null>(null);
 
   const handlePress = (key: string) => {
-    setValue(key);
+    // setValue(key);
     selectedValue(key);
   };
 

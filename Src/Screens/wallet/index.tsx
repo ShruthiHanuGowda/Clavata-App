@@ -1,24 +1,13 @@
-import React, {useContext, useEffect, useRef, useState} from 'react';
-import {
-  Text,
-  View,
-  StatusBar,
-  ScrollView,
-  FlatList,
-  RefreshControl,
-} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {NavigationProp, RouteProp} from '@react-navigation/native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Text, View, ScrollView, RefreshControl } from 'react-native';
+import { NavigationProp, RouteProp } from '@react-navigation/native';
 
 import style from './style';
 import Portfolio from './Portfolio';
-import ListItem from './ListItem';
-import {SCREEN_CONSTANT} from '../../Navigation/constant';
-import MyCryptoCard from './MyCryptoCard';
-import {useAuth} from '../../../screens/Provider/authProvider';
-import {useWallet} from '../../../screens/Provider/WalletProvider';
+import { SCREEN_CONSTANT } from '../../Navigation/constant';
+import { useAuth } from '../../../screens/Provider/authProvider';
+import { useWallet } from '../../../screens/Provider/WalletProvider';
 import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList';
-import {useNftsForAddress} from '../../hooks/useNftsForAddress';
 import CryptoMarketCard from '../HomeScreen/CryptoMarketCard';
 
 // Type definitions

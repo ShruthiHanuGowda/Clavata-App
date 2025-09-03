@@ -148,7 +148,7 @@ const SetPriceStage: React.FC<SetPriceStageProps> = ({
           <View
             style={[styles.inputContainer, qtyIsValid && styles.inputError]}>
             <TextInput
-              style={[styles.textInput, {paddingLeft: 16}]}
+              style={styles.textInputWithPadding}
               value={quantity}
               onChangeText={enforcerQty}
               keyboardType="numeric"
@@ -319,6 +319,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#1a1a1a',
     paddingVertical: 0,
+  },
+  textInputWithPadding: {
+    flex: 1,
+    fontSize: 18,
+    color: '#1a1a1a',
+    paddingVertical: 0,
+    paddingLeft: 16,
   },
   currencyLabel: {
     fontSize: 16,

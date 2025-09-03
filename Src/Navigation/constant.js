@@ -96,7 +96,6 @@ export const SCREEN_CONSTANT = {
   SEARCHETHBENEFICIARIES: 'SearchEthBeneficiaries',
   SEARCHBTCBENEFICIARIES: 'SearchBtcBeneficiaries',
   ACCOUNT: 'Account',
-  STAKE: 'Stake',
   PROFILESETTING: 'ProfileSetting',
   NOTIFY: 'NotificationSetting',
   NOTIFICATIONS: 'Notifications',

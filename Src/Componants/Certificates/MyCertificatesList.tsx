@@ -18,10 +18,7 @@ import {MediumLoader} from '../Loading/LoaderAnimation';
 import {useNft} from '../../../screens/Provider/NftProvider';
 
 interface Props {
-  nfts: NftToken[];
-  isLoading: boolean;
   containerStyle?: object;
-  refresh: () => void;
 }
 
 const groupByCountry = (nfts: NftToken[]) => {

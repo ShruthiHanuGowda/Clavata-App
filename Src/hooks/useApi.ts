@@ -36,9 +36,9 @@ const useApi = <T>(
       });
       if (!response.ok) {
         const apiError = errorService.handleApiError(
-          { status: response.status, statusText: response.statusText },
+          {status: response.status, statusText: response.statusText},
           url,
-          'useApi'
+          'useApi',
         );
         setError(apiError);
         return;

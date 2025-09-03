@@ -26,7 +26,6 @@ import {DText} from '../../../../Componants/DText';
 import {navigateBack} from '../../../../Navigation/NavigationFunctions';
 import {useWallet} from '../../../../../screens/Provider/WalletProvider';
 import {ReactElement} from 'react';
-import {useMagic} from '../../../../../screens/Provider/MagicProvider';
 import {useBridge} from '../../../../hooks/useBridge';
 import LottieView from 'lottie-react-native';
 import LoadingScreenWithStep from '../../../../Componants/Loading/LoadingScreenWIthStep';
@@ -84,25 +83,6 @@ interface FeeApiResponse {
   };
 }
 
-interface LoadingScreenProps {
-  title?: string;
-  subtitle?: string;
-  icon?: string;
-  progress?: number;
-  showProgressBar?: boolean;
-  showStepIndicators?: boolean;
-  stepIndicatorCount?: number;
-  feeInfo?: string;
-  animationSource?: any;
-  animationStyle?: object;
-  containerStyle?: object;
-  titleStyle?: object;
-  subtitleStyle?: object;
-  progressBarColor?: string;
-  backgroundColor?: string;
-  iconBackgroundColor?: string;
-}
-
 // Token definitions
 const TOKENS: Record<TokenKey, TokenInfo> = {
   USDC: {name: 'USDC', wrapped: 'WUSDC', network: 'ETH'},
@@ -120,13 +100,17 @@ const allCoins: TokenOption[] = [
 
 // Helper function to format amounts
 const formatAmount = (amount: string | number | undefined): string => {
-  if (!amount) {return '0';}
+  if (!amount) {
+    return '0';
+  }
   return parseFloat(amount.toString()).toFixed(6);
 };
 
 // Helper function to sanitize input values
 const sanitizeInputValue = (value: string): string => {
-  if (!value) {return '0';}
+  if (!value) {
+    return '0';
+  }
 
   const cleaned = value.replace(/\s/g, '').replace(/[^\d.]/gi, '');
   const parts = cleaned.split('.');
@@ -135,7 +119,6 @@ const sanitizeInputValue = (value: string): string => {
   );
 };
 
-// Mock API functions (replace with actual implementations)
 const initiateSwapApi = async (
   params: SwapApiParams,
 ): Promise<[Error | null, SwapApiResponse | null]> => {
@@ -171,7 +154,6 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   const {getBalance} = useWallet();
   const {
     isLoading: bridgeLoading,
-    error: bridgeError,
     currentProcessingStep,
     stepProgress,
     bridgeSuccess,
@@ -199,7 +181,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   // Amount states
   const [amount, setAmount] = useState<string>('');
   const [amountInTokens, setAmountInTokens] = useState<string>('0');
-  const [usdValue, setUsdValue] = useState<number>(0);
+  // const [usdValue, setUsdValue] = useState<number>(0);
   const [networkFee, setNetworkFee] = useState<number>(0);
 
   // UI states
@@ -211,8 +193,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     'form' | 'processing' | 'success'
   >('form');
 
-  const {balance: tokenBalance, balanceUsd: tokenBalanceUsd}: TokenBalance =
-    getBalance(selectedToken);
+  const {balance: tokenBalance}: TokenBalance = getBalance(selectedToken);
 
   const {
     playSuccessSound,
@@ -238,7 +219,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
     setAmount('');
     setAmountInTokens('0');
-    setUsdValue(0);
+    // setUsdValue(0);
     setNetworkFee(0);
     setErrorMessage(null);
   }, [selectedToken, transactionType]);
@@ -268,7 +249,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
           : coinCode,
       );
     }
-  }, [transactionType]);
+  }, [transactionType, coinCode]);
 
   // Validate amount and initiate swap if valid
   useEffect(() => {
@@ -282,7 +263,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         parseFloat(cleanAmount) === 0 ||
         cleanAmount.endsWith('.')
       ) {
-        setUsdValue(0);
+        // setUsdValue(0);
         setAmountInTokens('0');
         setNetworkFee(0);
         return;
@@ -290,7 +271,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
       if (parseFloat(cleanAmount) > parseFloat(tokenBalance)) {
         setErrorMessage('Insufficient balance');
-        setUsdValue(0);
+        // setUsdValue(0);
         setNetworkFee(0);
         setAmountInTokens('0');
         return;
@@ -300,6 +281,8 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     };
 
     validateAndInitiateSwap();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount, tokenBalance]);
 
   useEffect(() => {
@@ -447,23 +430,6 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
   // Handle success navigation
   const handleSuccessNavigation = (): void => {
-    const targetCoinCode =
-      transactionType === 0
-        ? selectedToken === 'USDC'
-          ? 'USDC'
-          : 'EURC'
-        : selectedToken === 'WUSDC'
-        ? 'WUSDC'
-        : 'WEURC';
-
-    const targetName =
-      transactionType === 0
-        ? selectedToken === 'USDC'
-          ? 'WUSDC'
-          : 'WEURC'
-        : selectedToken === 'WUSDC'
-        ? 'USDC'
-        : 'EURC';
     navigateTo('D.Energy');
     // navigateTo(SCREEN_CONSTANT.SENDSUCCESS, {
     //   amount: amount,
@@ -473,7 +439,9 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   };
 
   const formatTxHash = (hash: string): string => {
-    if (!hash) {return '';}
+    if (!hash) {
+      return '';
+    }
     return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
   };
 
@@ -686,12 +654,16 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         }}
         style={[
           styles.tabButton,
-          transactionType === 0 ? styles.tabButtonActive : styles.tabButtonInactive,
+          transactionType === 0
+            ? styles.tabButtonActive
+            : styles.tabButtonInactive,
         ]}>
         <Text
           style={[
             styles.tabButtonText,
-            transactionType === 0 ? styles.tabButtonTextActive : styles.tabButtonTextInactive,
+            transactionType === 0
+              ? styles.tabButtonTextActive
+              : styles.tabButtonTextInactive,
           ]}>
           Deposit
         </Text>
@@ -705,12 +677,16 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         }}
         style={[
           styles.tabButton,
-          transactionType === 1 ? styles.tabButtonActive : styles.tabButtonInactive,
+          transactionType === 1
+            ? styles.tabButtonActive
+            : styles.tabButtonInactive,
         ]}>
         <Text
           style={[
             styles.tabButtonText,
-            transactionType === 1 ? styles.tabButtonTextActive : styles.tabButtonTextInactive,
+            transactionType === 1
+              ? styles.tabButtonTextActive
+              : styles.tabButtonTextInactive,
           ]}>
           Withdraw
         </Text>
@@ -729,7 +705,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         onPress={isSelectable ? () => toggleBottomView('press') : undefined}>
         <Image
           source={marketIcons[tokenKey] as ImageSourcePropType}
-          style={{width: 24, height: 24}}
+          style={styles.tokenIcon}
         />
         <Text style={styles.tokenDropdownText}>
           {getDisplayTokenName(tokenKey)}
@@ -1269,5 +1245,9 @@ const styles = StyleSheet.create({
   },
   tabButtonTextInactive: {
     color: '#000',
+  },
+  tokenIcon: {
+    width: 24,
+    height: 24,
   },
 });

@@ -1,5 +1,3 @@
-//REVIEW - AUTH USER TYPE
-
 export interface Address {
   street: string;
   streetEn: string;
@@ -40,10 +38,10 @@ export interface UserAuth {
   is_verified: boolean | string;
   userWallet: string | null;
   emailAddress: string | null;
-  kycDetails?: string | ExtractedKycInfo; // Can be JSON string or parsed object
+  kycDetails?: string | ExtractedKycInfo;
   accessToken?: string;
   applicantId?: string;
-  [key: string]: any; // For any additional properties
+  [key: string]: any;
 }
 
 export interface UserData {
@@ -51,7 +49,6 @@ export interface UserData {
   [key: string]: any;
 }
 
-// Network check result types
 export interface NetworkAuthResult {
   isLoggedIn: boolean;
   publicAddress: string | null;

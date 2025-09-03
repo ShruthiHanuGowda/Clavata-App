@@ -62,10 +62,8 @@ export const useNFTStaking = (validatorAddress?: string) => {
   const [error, setError] = useState<string | null>(null);
   const [isApproved, setIsApproved] = useState<boolean>(false);
 
-  // Get magic instance from the provider (adjust network names as needed)
   const {magic, setActiveNetwork} = useMagic();
 
-  // Get user details from auth provider
   const {userDetails} = useAuth();
 
   // Get balance refresh function

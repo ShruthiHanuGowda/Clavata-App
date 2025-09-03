@@ -6,10 +6,6 @@ export default StyleSheet.create({
     backgroundColor: '#fff',
     flex: 1,
   },
-  iconContainer: {
-    position: 'relative',
-    marginRight: 10,
-  },
   container: {
     flex: 1,
     padding: 16,
@@ -237,6 +233,7 @@ export default StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   iconContainer: {
+    position: 'relative',
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -284,5 +281,9 @@ export default StyleSheet.create({
     fontFamily: fontsFamily.MulishBold,
     marginTop: 8,
     textAlign: 'center',
+  },
+  backIcon: {
+    width: 20,
+    height: 20,
   },
 });

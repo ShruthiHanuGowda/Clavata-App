@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
-  ActivityIndicator,
   Platform,
 } from 'react-native';
 import images from '../../Theme/images';
@@ -17,7 +16,6 @@ import {useKycCheck} from '../../CustomHooks/GlobalKycProvider';
 import {SnackBarMessage} from '../../utils/snackBar';
 import {VALIDATORS_API_URL} from '../../constants';
 
-// Define interfaces for our data types
 interface Validator {
   id: number;
   name: string;
@@ -163,7 +161,7 @@ const ValidatorDetailsScreen = ({
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}>
-            <Image source={images.back} style={{width: 20, height: 20}} />
+            <Image source={images.back} style={styles.backIcon} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Validator Details</Text>
           <View style={styles.spacer} />
@@ -190,7 +188,7 @@ const ValidatorDetailsScreen = ({
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}>
-            <Image source={images.back} style={{width: 20, height: 20}} />
+            <Image source={images.back} style={styles.backIcon} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Validator Details</Text>
           <View style={styles.spacer} />
@@ -218,7 +216,7 @@ const ValidatorDetailsScreen = ({
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}>
-          <Image source={images.back} style={{width: 20, height: 20}} />
+          <Image source={images.back} style={styles.backIcon} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Validator Details</Text>
         <View style={styles.spacer} />
@@ -606,6 +604,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  backIcon: {
+    width: 20,
+    height: 20,
   },
 });
 

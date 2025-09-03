@@ -19,13 +19,13 @@ interface TransactionHistoryProps {
 
 const TransactionHistory: React.FC<TransactionHistoryProps> = props => {
   const [showFilter, setShowFilter] = useState<boolean>(false);
-  const [name, setUserName] = useState<string>('');
+  // const [name, setUserName] = useState<string>('');
   const [index, setIndex] = useState<number>(0);
   const coinCode = props?.route?.params?.coinCode;
-  const [page, setPage] = useState<number>(0);
+  // const [page, setPage] = useState<number>(0);
 
   const handleTabChange = (e: number): void => {
-    setPage(0);
+    // setPage(0);
     setIndex(e);
   };
 
@@ -92,7 +92,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = props => {
                   showFilter={showFilter}
                   setShowFilter={setShowFilter}
                   coinCode={coinCode}
-                  name={name}
+                  // name={name}
                 />
               </View>
             </View>

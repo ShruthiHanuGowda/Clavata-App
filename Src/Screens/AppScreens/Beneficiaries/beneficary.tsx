@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Image} from 'react-native';
 import style from './styles';
 import {Header} from '@rneui/base';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
@@ -13,17 +7,6 @@ import images from '../../../Theme/images';
 import CustomImageButton from '../../../Componants/rc_imageButton';
 import {DText} from '../../../Componants/DText';
 import {fontsFamily} from '../../../Theme';
-
-interface BeneficiaryItem {
-  name: string;
-  coinCode: string;
-  beneficiaryAddress: string;
-  colorCode?: string;
-}
-
-interface ListItemProps {
-  item: BeneficiaryItem;
-}
 
 interface RouteParams {
   fromScreen?: string;
@@ -35,51 +18,7 @@ interface AccountBeneficiaryProps {
   };
 }
 
-const AccountBeneficiary: React.FC<AccountBeneficiaryProps> = ({route}) => {
-  const capitalize = (str: string): string => {
-    return str.charAt(0).toUpperCase();
-  };
-
-  const generateRandomColor = (): string => {
-    return `rgb(${Math.floor(Math.random() * 256)},${Math.floor(Math.random() * 256)},${Math.floor(Math.random() * 256)})`;
-  };
-
-  const ListItem: React.FC<ListItemProps> = ({item}) => {
-    const backgroundColor = item.colorCode || generateRandomColor();
-
-    return (
-      <View style={localStyles.listItemContainer}>
-        <View style={localStyles.listItemContent}>
-          <TouchableOpacity
-            onPress={() => {}}
-            style={localStyles.itemTouchable}
-            disabled={route?.params?.fromScreen !== 'send'}>
-            <View style={[localStyles.avatarContainer, {backgroundColor}]}>
-              <Text style={style.fontStyle}>{capitalize(item.name)}</Text>
-            </View>
-            <View style={localStyles.itemDetailsContainer}>
-              <Text style={localStyles.name}>{item.name}</Text>
-              <Text style={localStyles.address}>
-                {item.coinCode} - {item.beneficiaryAddress}
-              </Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => {}}>
-            <Image source={images.closeIcon} style={localStyles.closeIcon} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
-
-  const ListEmpty: React.FC = () => {
-    return (
-      <View style={localStyles.emptyContainer}>
-        <Text style={localStyles.noData}>No Beneficiaries Added</Text>
-      </View>
-    );
-  };
-
+const AccountBeneficiary: React.FC<AccountBeneficiaryProps> = () => {
   const handleBackPress = (): void => {
     navigateBack();
   };

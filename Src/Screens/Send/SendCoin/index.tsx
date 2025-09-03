@@ -96,15 +96,11 @@ export default function SendCoin(props: SendCoinProps): any {
   const [stepProgress, setStepProgress] = useState<number>(0);
   const [transactionHash, setTransactionHash] = useState<string>('');
 
-  const {
-    isLoading: ethIsLoading,
-    sendTransaction: sendEthTransaction,
-  } = useSendEth(magic, userDetails?.userWallet ?? undefined);
+  const {isLoading: ethIsLoading, sendTransaction: sendEthTransaction} =
+    useSendEth(magic, userDetails?.userWallet ?? undefined);
 
-  const {
-    isLoading: usdcIsLoading,
-    sendTransaction: sendUSDCTransaction,
-  } = useSendUSDCANDEURC(magic, userDetails?.userWallet ?? undefined);
+  const {isLoading: usdcIsLoading, sendTransaction: sendUSDCTransaction} =
+    useSendUSDCANDEURC(magic, userDetails?.userWallet ?? undefined);
 
   const {
     isLoading: usdcDenergyIsLoading,
@@ -266,7 +262,9 @@ export default function SendCoin(props: SendCoinProps): any {
   // Enhanced processing simulation with proper steps
   const simulateProcessingSteps = async () => {
     const steps = SEND_PROCESSING_STEPS[coinCode];
-    if (!steps) {return;}
+    if (!steps) {
+      return;
+    }
 
     const stepKeys = Object.keys(steps).filter(key => key !== 'COMPLETED');
 
@@ -319,7 +317,9 @@ export default function SendCoin(props: SendCoinProps): any {
 
   // Enhanced balance comparison with better precision handling
   const isInsufficientBalance = (): boolean => {
-    if (!wattAmount || wattAmount === '0' || wattAmount === '') {return false;}
+    if (!wattAmount || wattAmount === '0' || wattAmount === '') {
+      return false;
+    }
 
     const amountNum = parseFloat(wattAmount);
     const balanceNum = parseFloat(balance);
@@ -514,7 +514,9 @@ export default function SendCoin(props: SendCoinProps): any {
   };
 
   const formatTxHash = (hash: string): string => {
-    if (!hash) {return '';}
+    if (!hash) {
+      return '';
+    }
     return `${hash.slice(0, 8)}...${hash.slice(-8)}`;
   };
 
@@ -634,9 +636,7 @@ export default function SendCoin(props: SendCoinProps): any {
             <View style={style.hashSection}>
               <DText style={style.hashLabel}>Transaction Hash</DText>
               <View style={style.hashContainer}>
-                <Pressable
-                  style={style.hashDisplay}
-                  onPress={handleCopyHash}>
+                <Pressable style={style.hashDisplay} onPress={handleCopyHash}>
                   <Text style={style.hashText}>
                     {formatTxHash(transactionHash)}
                   </Text>
@@ -711,17 +711,13 @@ export default function SendCoin(props: SendCoinProps): any {
           </View>
           {isInsufficientBalance() && (
             <View style={style.errorContainer}>
-              <Text style={style.errorText}>
-                Insufficient balance
-              </Text>
+              <Text style={style.errorText}>Insufficient balance</Text>
             </View>
           )}
           <View style={style.inputWrapper}>
             <View style={style.balanceContainer}>
               <View style={style.balanceRow}>
-                <Text style={style.balanceLabel}>
-                  Available Tokens
-                </Text>
+                <Text style={style.balanceLabel}>Available Tokens</Text>
                 <Text style={style.balanceValue}>
                   {balance}{' '}
                   {coinCode === 'WUSDC'
@@ -769,4 +765,3 @@ export default function SendCoin(props: SendCoinProps): any {
     </SafeAreaView>
   );
 }
-

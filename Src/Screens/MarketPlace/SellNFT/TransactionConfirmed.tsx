@@ -20,8 +20,6 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
   message,
   successType = 'listing',
 }) => {
-  console.log(successType);
-
   const {
     playSuccessSound,
     isLoaded: soundLoaded,
@@ -44,6 +42,7 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
     }, 500);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soundLoaded, soundError]);
 
   const getSuccessContent = () => {

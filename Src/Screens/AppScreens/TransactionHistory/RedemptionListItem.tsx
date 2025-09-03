@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, Image, TouchableOpacity, StyleSheet} from 'react-native';
+import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import styles from './styles';
 import moment from 'moment';
 
@@ -24,7 +24,6 @@ const mockRedemptionData: RedemptionItem = {
 
 const RedemptionListItem: React.FC<RedemptionListItemProps> = ({
   item = mockRedemptionData,
-  setSelectedItems,
 }) => {
   return (
     <TouchableOpacity
@@ -39,12 +38,9 @@ const RedemptionListItem: React.FC<RedemptionListItemProps> = ({
             <Text
               style={[
                 styles.transationType,
-                {
-                  color:
-                    item.transactionStatus === 'Pending'
-                      ? '#F7931A'
-                      : '#515151',
-                },
+                item.transactionStatus === 'Pending'
+                  ? componentStyles.pendingColor
+                  : componentStyles.defaultColor,
               ]}>
               ID: {item.sequenceId}
             </Text>
@@ -55,9 +51,7 @@ const RedemptionListItem: React.FC<RedemptionListItemProps> = ({
         </View>
       </View>
       <View style={componentStyles.rightSection}>
-        <Text style={componentStyles.amountText}>
-          QTY : {item.amount}
-        </Text>
+        <Text style={componentStyles.amountText}>QTY : {item.amount}</Text>
         <Text style={styles.time}>{item.amount} mWh</Text>
       </View>
     </TouchableOpacity>
@@ -88,6 +82,12 @@ const componentStyles = StyleSheet.create({
   amountText: {
     ...styles.amount,
     color: '#007E32',
+  },
+  pendingColor: {
+    color: '#F7931A',
+  },
+  defaultColor: {
+    color: '#515151',
   },
 });
 

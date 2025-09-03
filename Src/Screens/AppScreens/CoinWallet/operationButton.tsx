@@ -27,11 +27,6 @@ interface Images {
   [key: string]: ImageSourcePropType;
 }
 
-interface CoinData {
-  [key: string]: any;
-}
-
-// Single operation button component
 const OperationButton: React.FC<OperationButtonProps> = props => {
   return (
     <TouchableOpacity
@@ -41,9 +36,7 @@ const OperationButton: React.FC<OperationButtonProps> = props => {
         <Image style={styles.icon} source={props.image} />
       </View>
       <View style={styles.textContainer}>
-        <Text style={styles.buttonText}>
-          {props.name}
-        </Text>
+        <Text style={styles.buttonText}>{props.name}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -77,7 +70,6 @@ const getOperationDestination = (operation: string): string => {
 export const renderOperationButtons = (
   operations: string[],
   coinCode: string = '',
-  coinData: CoinData = {},
 ): ReactElement[] => {
   if (!operations || operations.length === 0) {
     return [];

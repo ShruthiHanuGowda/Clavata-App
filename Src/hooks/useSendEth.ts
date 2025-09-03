@@ -9,7 +9,11 @@ import {
 import {useMutation} from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
 import {SEPOLIA_CHAIN_ID, SEPOLIA_RPC_URL} from '../constants';
-import {errorService, ErrorCode, TransactionError} from '../services/errorService';
+import {
+  errorService,
+  ErrorCode,
+  TransactionError,
+} from '../services/errorService';
 
 const INFURA_URL = SEPOLIA_RPC_URL;
 const infuraProvider = new JsonRpcProvider(INFURA_URL);
@@ -58,8 +62,8 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
           'Magic SDK or user address not available',
           undefined,
           'sepolia',
-          { magic: !!magic, userAddress },
-          'useSendEth'
+          {magic: !!magic, userAddress},
+          'useSendEth',
         );
         throw validationError;
       }
@@ -90,8 +94,11 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
           'Insufficient funds for gas and transaction amount',
           undefined,
           'sepolia',
-          { balance: formatUnits(balanceInWei, 18), totalCost: formatUnits(totalCost, 18) },
-          'useSendEth'
+          {
+            balance: formatUnits(balanceInWei, 18),
+            totalCost: formatUnits(totalCost, 18),
+          },
+          'useSendEth',
         );
         throw insufficientFundsError;
       }
@@ -107,7 +114,7 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
       const receipt = await tx.wait();
 
       try {
-        const {data} = await createTransactionHistoryMobile({
+        await createTransactionHistoryMobile({
           variables: {
             input: {
               transactionHash: receipt?.hash,
@@ -123,7 +130,11 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
           },
         });
       } catch (error: any) {
-        const apiError = errorService.handleApiError(error, undefined, 'createTransactionHistoryMobile');
+        const apiError = errorService.handleApiError(
+          error,
+          undefined,
+          'createTransactionHistoryMobile',
+        );
         errorService.logError(apiError);
       }
 

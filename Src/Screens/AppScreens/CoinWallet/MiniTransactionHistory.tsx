@@ -1,44 +1,29 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {ActivityIndicator, View, StyleSheet} from 'react-native';
-import {format} from 'date-fns';
 import {DText} from '../../../Componants/DText';
 import TransactionFlatList from '../TransactionHistory/TransactionFlatList';
 import {useTransactionHistory} from '../../../hooks/useTransactionHistory';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 
-interface FilterState {
-  startDate: string;
-  endDate: string;
-  type: string;
-}
-
 interface MiniTransactionHistoryProps {
   coinCode?: string;
   name?: string;
-  showFilter?: boolean;
-  setShowFilter?: (show: boolean) => void;
   contractAddress?: string | null;
   limit?: number;
-}
-
-interface UserDetails {
-  userWallet?: string;
 }
 
 const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
   coinCode,
   name,
-  showFilter,
-  setShowFilter,
   contractAddress,
   limit = 20,
 }) => {
-  const {userDetails}: {userDetails: UserDetails} = useAuth();
+  const {userDetails} = useAuth();
 
   // Get wallet address
   const coinCodesForDenergyWallet: string[] = ['watt', 'weurc', 'wusdc'];
-  const wallet: string | undefined = coinCodesForDenergyWallet.includes(
-    coinCode?.toLowerCase() || ''
+  const wallet = coinCodesForDenergyWallet.includes(
+    coinCode?.toLowerCase() || '',
   )
     ? userDetails?.userWallet
     : userDetails?.userWallet;
@@ -56,15 +41,17 @@ const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
   } = useTransactionHistory(limit, contractAddress, wallet);
 
   // Filter state for date ranges
-  const [filters, setFilters] = useState<FilterState>({
-    startDate: '',
-    endDate: '',
-    type: '',
-  });
+  // const [filters, setFilters] = useState<FilterState>({
+  //   startDate: '',
+  //   endDate: '',
+  //   type: '',
+  // });
 
   // Display coin code formatting
   const getDisplayCoinCode = (code?: string): string => {
-    if (!code) {return '';}
+    if (!code) {
+      return '';
+    }
 
     switch (code.toUpperCase()) {
       case 'WUSDC':
@@ -76,31 +63,32 @@ const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
     }
   };
 
-  const formatDateRange = (): string => {
-    let dateRange = '';
-    if (filters.startDate) {
-      dateRange = format(new Date(filters.startDate), 'P');
-    }
-    if (filters.endDate) {
-      dateRange += ' - ' + format(new Date(filters.endDate), 'P');
-    }
-    return dateRange;
-  };
+  // const formatDateRange = (): string => {
+  //   let dateRange = '';
+  //   if (filters.startDate) {
+  //     dateRange = format(new Date(filters.startDate), 'P');
+  //   }
+  //   if (filters.endDate) {
+  //     dateRange += ' - ' + format(new Date(filters.endDate), 'P');
+  //   }
+  //   return dateRange;
+  // };
 
   return (
     <View style={styles.container}>
       {/* Date Filter Display */}
       <View style={styles.filterContainer}>
-        <DText fontStyle="fontRegular" style={styles.filterText}>
+        {/* <DText fontStyle="fontRegular" style={styles.filterText}>
           {formatDateRange()}
-        </DText>
+        </DText> */}
       </View>
 
       {/* Coin Code Display */}
       {coinCode && (
         <View>
           <DText fontStyle="fontRegular" style={styles.coinCodeText}>
-            {transactions.length > 0 && `${transactions.length} transactions in `}
+            {transactions.length > 0 &&
+              `${transactions.length} transactions in `}
             {getDisplayCoinCode(coinCode)}
           </DText>
         </View>

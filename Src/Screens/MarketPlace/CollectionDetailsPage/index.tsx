@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
-import Spinner from '../../../Componants/MarketPlace/Spinner';
 import useNfts from '../../../hooks/useNfts';
 import {getMinAsk} from '../../../hooks/marketPlace';
 import {ApiCollection, ApiSingleCollectionResponse} from '../../../types/types';
@@ -45,14 +44,13 @@ const CollectionDetailsScreen = ({route}: any) => {
     refetch: nftsRefetch,
   } = useNfts(contractAddress);
 
-  console.log(nfts, 'nfts');
-
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1000,
       useNativeDriver: true,
     }).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -68,17 +66,15 @@ const CollectionDetailsScreen = ({route}: any) => {
     setRefreshing(false);
   };
 
-  console.log(collection, 'collection');
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <Header
         headerTitle={'Available Certificates'}
         backBtn={() => navigateBack()}
-        containerStyle={{backgroundColor: '#f8fafc'}}
+        containerStyle={styles.headerContainer}
         hideBorder
       />
-      <View style={{flex: 1}}>
+      <View style={styles.mainContainer}>
         <ScrollView
           style={styles.container}
           refreshControl={
@@ -156,7 +152,9 @@ const CollectionDetailsScreen = ({route}: any) => {
                   const currentAsk = getMinAsk(nft.activeAsks ?? []);
                   const hasAsks = nft?.activeAsks?.length > 0;
 
-                  if (!hasAsks) {return null;}
+                  if (!hasAsks) {
+                    return null;
+                  }
 
                   const nftData = {
                     ...nft,
@@ -353,6 +351,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 40,
+  },
+  headerContainer: {
+    backgroundColor: '#f8fafc',
+  },
+  mainContainer: {
+    flex: 1,
   },
 });
 

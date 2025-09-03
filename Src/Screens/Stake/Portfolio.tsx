@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react';
-import {View, Text, Image, StyleSheet} from 'react-native';
+import React from 'react';
+import {View, StyleSheet} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {DText} from '../../Componants/DText';
 

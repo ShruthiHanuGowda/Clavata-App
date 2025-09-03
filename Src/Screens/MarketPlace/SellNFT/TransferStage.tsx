@@ -29,7 +29,6 @@ interface TransferStageProps {
 
 const TransferStage = ({
   nftToSell,
-  lowestPrice,
   transferAddress,
   setTransferAddress,
   quantity,
@@ -41,7 +40,7 @@ const TransferStage = ({
   const [qrScannerVisible, setQrScannerVisible] = useState(false);
 
   const transferAddressEqualsConnectedAddress =
-    transferAddress.toLowerCase() === userDetails?.userWallet.toLowerCase();
+    transferAddress.toLowerCase() === userDetails?.userWallet?.toLowerCase();
 
   const parsedQty = parseFloat(quantity);
   const quantityGreaterThanAvailable =
@@ -61,7 +60,7 @@ const TransferStage = ({
       quantityGreaterThanAvailable,
   );
 
-  const handleSelectAddress = (address: string, contact: any) => {
+  const handleSelectAddress = (address: string) => {
     setTransferAddress(address);
     setModalVisible(false);
   };
@@ -198,7 +197,6 @@ const TransferStage = ({
 
             {/* Icons Container */}
             <View style={styles.iconsContainer}>
-              {/* Contact Selection Icon */}
               <TouchableOpacity
                 style={styles.iconButton}
                 onPress={openContactModal}
@@ -206,7 +204,6 @@ const TransferStage = ({
                 <AntDesignIcon name="contacts" size={23} color="#81c8c3" />
               </TouchableOpacity>
 
-              {/* QR Scan Icon */}
               <TouchableOpacity
                 style={styles.iconButton}
                 onPress={handleQRScan}
@@ -223,7 +220,6 @@ const TransferStage = ({
           </Text>
         </View>
 
-        {/* Quantity Input */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Quantity to Transfer (MWh)</Text>
           <View
@@ -307,7 +303,6 @@ const TransferStage = ({
         </TouchableOpacity>
       </View>
 
-      {/* Contact Modal */}
       <ContactModal
         visible={modalVisible}
         onClose={closeContactModal}
@@ -317,14 +312,13 @@ const TransferStage = ({
         emptyMessage="No contacts found"
       />
 
-      {/* QR Code Scanner Modal */}
       <QRCodeScannerModal
         visible={qrScannerVisible}
         onClose={closeQRScanner}
         onCodeScanned={handleQRCodeScanned}
         title="Scan Wallet Address"
         codeTypes={['qr']}
-        showToggleButton={true}
+        // showToggleButton={true}
         animationType="slide"
       />
     </View>

@@ -1,17 +1,8 @@
 import React from 'react';
-import {DText} from '../../../component/DText';
-import {
-  Image,
-  StyleSheet,
-  Touchable,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import images, {technologyGroup} from '../../../../images';
-import color from '../../../theme/color';
+import {Image, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {SCREEN_CONSTANT} from '../../../navigation/constant';
-import {Path, Svg} from 'react-native-svg';
+import {DText} from '../../Componants/DText';
 
 interface StakeItem {
   _id: string;
@@ -30,22 +21,8 @@ interface StakeListItemProps {
   item?: StakeItem;
 }
 
-const StakeListItem: React.FC<StakeListItemProps> = (props) => {
-  const {
-    item = {
-      _id: '646ee821b260884d71289867',
-      apy: 0,
-      daysRemaining: 720,
-      imageUrl:
-        'https://userprofleimages.s3.amazonaws.com/PROFILE/1684802521386.jpg',
-      isStaked: false,
-      stakedNfts: 0,
-      title: 'test vsk',
-      totalDays: 720,
-      totalDelegator: 0,
-      totalNftStaked: 0,
-    },
-  } = props;
+const StakeListItem: React.FC<StakeListItemProps> = props => {
+  const {item} = props;
 
   const navigation = useNavigation();
 
@@ -67,26 +44,25 @@ const StakeListItem: React.FC<StakeListItemProps> = (props) => {
         <View style={styles.row}>
           <View style={styles.col}>
             <DText style={styles.title} fontStyle="fontBold">
-              {item.title}
+              {item?.title}
             </DText>
             <DText style={styles.delegatorTitle} fontStyle="fontRegular">
               Total Delegators{' '}
               {
                 <DText style={styles.delegator} fontStyle="fontBold">
-                  {item.totalDelegator}
+                  {item?.totalDelegator}
                 </DText>
               }
             </DText>
           </View>
           <View style={[styles.col, styles.stakedSection]}>
-            <DText />
-            {item.isStaked && (
+            {item?.isStaked && (
               <>
                 <DText style={styles.stakedTitle} fontStyle="fontRegular">
                   Staked
                 </DText>
                 <DText style={styles.staked} fontStyle="fontBold">
-                  {item.stakedNfts}
+                  {item?.stakedNfts}
                 </DText>
               </>
             )}
@@ -98,7 +74,7 @@ const StakeListItem: React.FC<StakeListItemProps> = (props) => {
               Days remaining
             </DText>
             <DText style={styles.lockin} fontStyle="fontBold">
-              {item.daysRemaining} Days
+              {item?.daysRemaining} Days
             </DText>
           </View>
           <View style={[styles.col, styles.apySection]}>
@@ -106,7 +82,7 @@ const StakeListItem: React.FC<StakeListItemProps> = (props) => {
               Apy
             </DText>
             <DText style={styles.apy} fontStyle="fontBold">
-              {item.apy}%
+              {item?.apy}%
             </DText>
           </View>
         </View>
