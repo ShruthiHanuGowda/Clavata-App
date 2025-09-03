@@ -141,10 +141,10 @@ export const useNFTStaking = (validatorAddress?: string) => {
         setIsLoading(true);
         setError(null);
 
-        const magic = await setActiveNetwork('denergy');
+        const magicInstance = await setActiveNetwork('denergy');
         console.log('[NFT Staking] Network set to denergy for approval');
 
-        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
+        const magicProvider = new BrowserProvider(magicInstance.rpcProvider as any);
         const signer = await magicProvider.getSigner();
 
         const tokenContract = new Contract(
@@ -218,11 +218,11 @@ export const useNFTStaking = (validatorAddress?: string) => {
       );
       console.log(`[NFT Staking] Using validator address: ${validatorAddress}`);
 
-      const magic = await setActiveNetwork('denergy');
+      const magicInstance = await setActiveNetwork('denergy');
       console.log('[NFT Staking] Network set to denergy');
 
       try {
-        if (!magic) {
+        if (!magicInstance) {
           console.error('[NFT Staking] Magic SDK not available');
           throw new Error('Magic SDK not available');
         }
@@ -230,19 +230,19 @@ export const useNFTStaking = (validatorAddress?: string) => {
         setIsLoading(true);
         setError(null);
 
-        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
+        const magicProvider = new BrowserProvider(magicInstance.rpcProvider as any);
         const signer = await magicProvider.getSigner();
         const delegatorAddress = await signer.getAddress();
         console.log(`[NFT Staking] Delegator address: ${delegatorAddress}`);
 
-        const isApproved = await checkApproval(
+        const approvalStatus = await checkApproval(
           erc1155Contract,
           delegatorAddress,
           STAKING_CONTRACT_ADDRESS,
         );
 
         // If not approved, set approval
-        if (!isApproved) {
+        if (!approvalStatus) {
           const approvalSuccess = await setApproval(
             erc1155Contract,
             STAKING_CONTRACT_ADDRESS,
@@ -337,9 +337,6 @@ export const useNFTStaking = (validatorAddress?: string) => {
       }
     },
     [
-      magic,
-      userDetails,
-      refreshBalance,
       setActiveNetwork,
       checkApproval,
       setApproval,
@@ -526,7 +523,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
               delegateFilter,
               (
                 delegatorAddress,
-                validatorAddress,
+                validatorAddr,
                 nftContractAddress,
                 tokenId,
                 amount,
@@ -567,7 +564,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
               unbondFilter,
               (
                 delegatorAddress,
-                validatorAddress,
+                validatorAddr,
                 nftContractAddress,
                 tokenId,
                 amount,
