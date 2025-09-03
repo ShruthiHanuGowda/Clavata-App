@@ -465,7 +465,7 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
                     <Text style={styles.detailLabel}>Created:</Text>
                     <Text style={styles.detailValue}>
                       {new Date(
-                        parseInt(selectedAsset.originalData.createdAt) * 1000,
+                        parseInt(selectedAsset.originalData.createdAt, 10) * 1000,
                       ).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
@@ -479,7 +479,7 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
                     <Text style={styles.detailLabel}>Updated:</Text>
                     <Text style={styles.detailValue}>
                       {new Date(
-                        parseInt(selectedAsset.originalData.updatedAt) * 1000,
+                        parseInt(selectedAsset.originalData.updatedAt, 10) * 1000,
                       ).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',

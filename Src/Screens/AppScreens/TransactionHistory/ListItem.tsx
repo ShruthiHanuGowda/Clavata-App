@@ -200,7 +200,7 @@ const ListItem: React.FC<ListItemProps> = ({item, name, setSelectedItems}) => {
           {item.coinCode}
         </Text>
         <Text style={styles.time}>
-          {moment.unix(parseInt(item.timestamp)).fromNow()}
+          {moment.unix(parseInt(item.timestamp, 10)).fromNow()}
         </Text>
       </View>
     </TouchableOpacity>

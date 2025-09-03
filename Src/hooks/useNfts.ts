@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import {getNftsMarketData} from './marketPlace';
 import {TokenMarketData} from '../types/types';
 
@@ -22,20 +22,20 @@ const useNfts = (collectionId: string) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMetadata = async (metadataUrl: string) => {
+  const fetchMetadata = useCallback(async (metadataUrl: string) => {
     try {
       const response = await fetch(metadataUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch metadata: ${response.statusText}`);
       }
       return await response.json();
-    } catch (error) {
-      console.error('Error fetching metadata:', error);
+    } catch (err) {
+      console.error('Error fetching metadata:', err);
       return null;
     }
-  };
+  }, []);
 
-  const fetchNfts = async () => {
+  const fetchNfts = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -67,13 +67,13 @@ const useNfts = (collectionId: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [collectionId, fetchMetadata, setLoading, setError, setNfts]);
 
   useEffect(() => {
     if (collectionId) {
       fetchNfts();
     }
-  }, [collectionId]);
+  }, [collectionId, fetchNfts]);
 
   return {nfts, loading, error, refetch: fetchNfts};
 };

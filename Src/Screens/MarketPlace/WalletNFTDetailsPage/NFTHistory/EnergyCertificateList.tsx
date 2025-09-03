@@ -163,8 +163,8 @@ const HistoryItem: React.FC<HistoryItemProps> = ({item, onPress}) => {
 const DateSeparator: React.FC<DateSeparatorProps> = ({date}) => {
   const formatDate = (dateString: string): string => {
     const today = new Date();
-    const date = new Date(dateString);
-    const diffTime = Math.abs(today.getTime() - date.getTime());
+    const parsedDate = new Date(dateString);
+    const diffTime = Math.abs(today.getTime() - parsedDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
@@ -325,7 +325,7 @@ const BottomSheetContent: React.FC<BottomSheetContentProps> = ({item}) => {
             </Text>
           </View>
 
-          <View style={[styles.transactionItem, {marginBottom: 20}]}>
+          <View style={styles.transactionItemWithMargin}>
             <Text style={styles.transactionLabel}>Gas Usage & Limit</Text>
             <Text style={styles.transactionValue}>
               {item.gas_limit || 'N/A'}
@@ -356,10 +356,10 @@ const EnergyCertificateHistory: React.FC<EnergyCertificateHistoryProps> = ({
 
   // Group data by date
   const groupDataByDate = (
-    data: TransactionItem[],
+    transactionData: TransactionItem[],
   ): Record<string, TransactionItem[]> => {
     const grouped: Record<string, TransactionItem[]> = {};
-    data.forEach(item => {
+    transactionData.forEach(item => {
       // Use timestamp or fallback to current date
       const date = item.timestamp
         ? new Date(item.timestamp).toDateString()
@@ -587,6 +587,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 3,
     borderLeftColor: THEME_COLOR,
+  },
+  transactionItemWithMargin: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: THEME_COLOR,
+    marginBottom: 20,
   },
   transactionLabel: {
     fontSize: 12,

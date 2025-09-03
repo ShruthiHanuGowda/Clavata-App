@@ -45,6 +45,8 @@ const LoadingCard: React.FC = () => (
   </View>
 );
 
+const ItemSeparator = () => <View style={styles.separator} />;
+
 function News(): JSX.Element {
   const {loading, data, error, refetch} = useBlogs();
 
@@ -116,7 +118,7 @@ function News(): JSX.Element {
             />
           }
           ListEmptyComponent={loading ? renderLoadingItems() : <EmptyState />}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ItemSeparatorComponent={ItemSeparator}
         />
       )}
     </View>

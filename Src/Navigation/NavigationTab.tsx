@@ -18,11 +18,13 @@ type RootTabParamList = {
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
+const renderTabBar = (props: any) => <TabBar {...props} />;
+
 export default function Tabs() {
   return (
     <Tab.Navigator
       initialRouteName="D.Energy"
-      tabBar={props => <TabBar {...props} />}
+      tabBar={renderTabBar}
       screenOptions={{
         unmountOnBlur: true,
       }}>

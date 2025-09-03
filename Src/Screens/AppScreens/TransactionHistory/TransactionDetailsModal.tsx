@@ -24,7 +24,32 @@ interface TransactionDetailsModalProps {
 interface TransactionDetailsProps {
   title: string;
   value: string;
+  selectedItems?: TransactionItem;
 }
+
+const TransactionDetails: React.FC<TransactionDetailsProps> = ({title, value, selectedItems}) => {
+  const handlePress = (): void => {
+    if (selectedItems?.details) {
+      Linking.openURL(selectedItems.details);
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      style={[
+        styles.cardDetailsAlign,
+        title === 'Txn Hash' ? componentStyles.txnHashSpacing : componentStyles.defaultSpacing,
+      ]}>
+      <View style={styles.cardDetailsTitleAlign}>
+        <Text style={styles.cardTitle}>{title}</Text>
+      </View>
+      <View style={styles.cardDetailsValueAlign}>
+        <Text style={styles.cardValue}>{value}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
   visible,
@@ -32,30 +57,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
   selectedItems,
 }) => {
   console.log('🚀 ~ TransactionDetailsModal ~ selectedItems:', selectedItems);
-
-  const TransactionDetails: React.FC<TransactionDetailsProps> = ({title, value}) => {
-    const handlePress = (): void => {
-      if (selectedItems?.details) {
-        Linking.openURL(selectedItems.details);
-      }
-    };
-
-    return (
-      <TouchableOpacity
-        onPress={handlePress}
-        style={[
-          styles.cardDetailsAlign,
-          title === 'Txn Hash' ? componentStyles.txnHashSpacing : componentStyles.defaultSpacing,
-        ]}>
-        <View style={styles.cardDetailsTitleAlign}>
-          <Text style={styles.cardTitle}>{title}</Text>
-        </View>
-        <View style={styles.cardDetailsValueAlign}>
-          <Text style={styles.cardValue}>{value}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
 
   return (
     <BottomSheet
@@ -74,24 +75,29 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
         <TransactionDetails
           title="Txn Hash"
           value={selectedItems?.hash ? selectedItems.hash : '---'}
+          selectedItems={selectedItems}
         />
         <TransactionDetails
           title="Status"
           value={`${selectedItems?.status || ''}`.toLocaleUpperCase()}
+          selectedItems={selectedItems}
         />
         <TransactionDetails
           title="Amount"
           value={
             `${selectedItems?.change || ''} ${selectedItems?.amount || ''} ${selectedItems?.coinCode || ''}`.trim()
           }
+          selectedItems={selectedItems}
         />
         <TransactionDetails
           title="Date"
           value={selectedItems?.date ? moment(selectedItems.date).format('DD.MM.YYYY') : '---'}
+          selectedItems={selectedItems}
         />
         <TransactionDetails
           title="Time"
           value={selectedItems?.date ? moment(selectedItems.date).format('hh:mm a') : '---'}
+          selectedItems={selectedItems}
         />
       </View>
     </BottomSheet>

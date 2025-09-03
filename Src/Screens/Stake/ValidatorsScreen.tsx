@@ -55,6 +55,7 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
     fetchValidators(VALIDATORS_API_URL).catch(err => {
       console.log('Error fetching validators:', err);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sample data matching the design

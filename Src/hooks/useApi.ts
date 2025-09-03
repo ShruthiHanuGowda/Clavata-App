@@ -20,7 +20,7 @@ const useApi = <T>(
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<ApiError | null>(null);
   // Memoize options to prevent re-renders due to object reference changes
-  const memoizedOptions = useMemo(() => options, [JSON.stringify(options)]);
+  const memoizedOptions = useMemo(() => options, [options]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const fetchData = useCallback(async () => {
     setIsLoading(true);

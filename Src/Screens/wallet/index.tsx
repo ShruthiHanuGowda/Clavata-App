@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Text, View, ScrollView, RefreshControl} from 'react-native';
 import {NavigationProp, RouteProp} from '@react-navigation/native';
 
@@ -170,14 +170,14 @@ export default function Wallet(props: WalletProps) {
     },
   ];
 
-  const scrollToTop = (): void => {
+  const scrollToTop = useCallback((): void => {
     scrollViewRef.current?.scrollTo({
       y: 0,
       animated: false,
     });
-  };
+  }, []);
 
-  const init = async (): Promise<void> => {
+  const init = useCallback(async (): Promise<void> => {
     scrollToTop();
 
     const updated = ITEMS.map(async (item: WalletItem) => {
@@ -201,7 +201,7 @@ export default function Wallet(props: WalletProps) {
 
     const resolvedItems = await Promise.all(updated);
     setItems(resolvedItems);
-  };
+  }, [scrollToTop, setPullToRefreshLoading, setItems]);
 
   useEffect(() => {
     const unsubscribe = props.navigation.addListener('focus', () => {

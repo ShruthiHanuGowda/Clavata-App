@@ -144,7 +144,9 @@ export const useNFTStaking = (validatorAddress?: string) => {
         const magicInstance = await setActiveNetwork('denergy');
         console.log('[NFT Staking] Network set to denergy for approval');
 
-        const magicProvider = new BrowserProvider(magicInstance.rpcProvider as any);
+        const magicProvider = new BrowserProvider(
+          magicInstance.rpcProvider as any,
+        );
         const signer = await magicProvider.getSigner();
 
         const tokenContract = new Contract(
@@ -230,7 +232,9 @@ export const useNFTStaking = (validatorAddress?: string) => {
         setIsLoading(true);
         setError(null);
 
-        const magicProvider = new BrowserProvider(magicInstance.rpcProvider as any);
+        const magicProvider = new BrowserProvider(
+          magicInstance.rpcProvider as any,
+        );
         const signer = await magicProvider.getSigner();
         const delegatorAddress = await signer.getAddress();
         console.log(`[NFT Staking] Delegator address: ${delegatorAddress}`);
@@ -336,12 +340,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
         console.log('[NFT Staking] Delegate process finished');
       }
     },
-    [
-      setActiveNetwork,
-      checkApproval,
-      setApproval,
-      validatorAddress,
-    ],
+    [setActiveNetwork, checkApproval, setApproval, validatorAddress],
   );
 
   /**
@@ -545,7 +544,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
 
                 onDelegate({
                   delegatorAddress,
-                  validatorAddress,
+                  validatorAddress: validatorAddress || '',
                   nftContractAddress,
                   tokenId: tokenId.toString(),
                   amount: formatUnits(amount, 18), // Adjust decimals as needed
@@ -589,7 +588,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
 
                 onUnbond({
                   delegatorAddress,
-                  validatorAddress,
+                  validatorAddress: validatorAddress || '',
                   nftContractAddress,
                   tokenId: tokenId.toString(),
                   amount: formatUnits(amount, 18), // Adjust decimals as needed
@@ -632,16 +631,14 @@ export const useNFTStaking = (validatorAddress?: string) => {
         cleanup();
       };
     },
-    [magic],
+    [magic, validatorAddress],
   );
 
-  // Clean up event listeners when component unmounts
   useEffect(() => {
     return () => {
       const cleanup = async () => {
         if (magic) {
           try {
-            console.log('[NFT Staking] Cleaning up event listeners on unmount');
             const magicProvider = new BrowserProvider(magic.rpcProvider as any);
             const stakingContract = new Contract(
               STAKING_CONTRACT_ADDRESS,

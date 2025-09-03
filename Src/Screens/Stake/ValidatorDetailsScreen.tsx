@@ -106,7 +106,7 @@ const ValidatorDetailsScreen = ({
     };
 
     fetchValidatorData();
-  }, [validatorId]);
+  }, [validatorId, singleValidator]);
 
   const formatStake = (nft: number, watt: number) => {
     const formatNumber = (num: number) => {

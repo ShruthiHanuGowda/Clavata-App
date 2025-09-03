@@ -170,7 +170,7 @@ export function getMinAsk(
 }
 
 export function getAskBySellerId(
-  activeAsks: {
+  asksList: {
     id: string;
     amount: string;
     askPrice: string;
@@ -189,11 +189,11 @@ export function getAskBySellerId(
       };
     }
   | undefined {
-  if (!Array.isArray(activeAsks) || activeAsks.length === 0) {
+  if (!Array.isArray(asksList) || asksList.length === 0) {
     return undefined;
   }
 
-  return activeAsks.find(item => item.seller.id === sellerId);
+  return asksList.find(item => item.seller.id === sellerId);
 }
 
 export const sortActivity = ({

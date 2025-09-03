@@ -280,7 +280,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
         style={styles.flatListStyle}
         refreshing={listLoading && contacts.length > 0}
         onRefresh={refetchList}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={ItemSeparator}
         removeClippedSubviews={true}
         maxToRenderPerBatch={20}
         windowSize={10}
@@ -572,5 +572,7 @@ const styles = StyleSheet.create({
     color: '#009D94',
   },
 });
+
+const ItemSeparator = () => <View style={styles.separator} />;
 
 export default ContactModal;

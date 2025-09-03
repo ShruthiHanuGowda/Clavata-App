@@ -261,14 +261,14 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
           return true;
         }
         try {
-          const isApproved = await isApprovedForAll(
+          const approvalStatus = await isApprovedForAll(
             nftToSell.collectionAddress,
             account,
             marketAddress,
             magic,
           );
 
-          return !isApproved;
+          return !approvalStatus;
         } catch (error) {
           return true;
         }

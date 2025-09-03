@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import {
   BrowserProvider,
   Contract,
@@ -18,7 +18,7 @@ export function useCallWithGasPrice() {
   // const gasPrice = useGasPrice();
   const {magic} = useMagic();
 
-  const provider = new BrowserProvider(magic.rpcProvider as any);
+  const provider = useMemo(() => new BrowserProvider(magic.rpcProvider as any), [magic]);
 
   const callWithGasPrice = useCallback(
     async (

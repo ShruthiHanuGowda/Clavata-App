@@ -287,7 +287,7 @@ export const useBridge = () => {
         // Check EURC balance before proceeding
         updateProcessingStep('DEPOSIT', 'CHECKING_BALANCE');
         try {
-          void (await eurcContract.balanceOf(await signer.getAddress()));
+          await eurcContract.balanceOf(await signer.getAddress());
         } catch (err) {
           // Balance check failed, continue anyway
         }
@@ -377,7 +377,7 @@ export const useBridge = () => {
         // await setActiveNetwork('denergy');
 
         const wusdcAddress = DENERGY_USDC_ADDRESS;
-        void USDC_ADDRESS; // Referenced for completeness
+        // USDC_ADDRESS; // Referenced for completeness
         const destinationAddress = DESTINATION_ADDRESS;
 
         // Get Magic provider for signing transactions
@@ -395,7 +395,7 @@ export const useBridge = () => {
         // Check WUSDC balance before proceeding
         updateProcessingStep('WITHDRAW', 'CHECKING_BALANCE');
         try {
-          void (await wusdcContract.balanceOf(await signer.getAddress()));
+          await wusdcContract.balanceOf(await signer.getAddress());
         } catch (err) {
           // Balance check failed, continue anyway
         }
@@ -408,7 +408,7 @@ export const useBridge = () => {
         );
 
         updateProcessingStep('WITHDRAW', 'WAITING_APPROVAL');
-        void (await approveTx.wait());
+        await approveTx.wait();
 
         // Deposit WUSDC to destination
         updateProcessingStep('WITHDRAW', 'BURNING');
@@ -488,7 +488,7 @@ export const useBridge = () => {
         // await setActiveNetwork('denergy');
 
         const weurcAddress = DENERGY_EURC_ADDRESS;
-        void EURC_ADDRESS; // Referenced for completeness
+        // EURC_ADDRESS; // Referenced for completeness
         const destinationAddress = DESTINATION_ADDRESS;
 
         // Get Magic provider for signing transactions
@@ -521,7 +521,7 @@ export const useBridge = () => {
         );
 
         updateProcessingStep('WITHDRAW', 'WAITING_APPROVAL');
-        void (await approveTx.wait());
+        await approveTx.wait();
 
         // Deposit WEURC to destination
         updateProcessingStep('WITHDRAW', 'BURNING');

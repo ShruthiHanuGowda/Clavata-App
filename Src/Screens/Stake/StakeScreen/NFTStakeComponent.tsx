@@ -43,7 +43,8 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
       setActiveNetwork('denergy');
       refresh();
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeNetwork]);
 
   // Handle NFT selection
   const handleSelectNFT = (nft: any): void => {
