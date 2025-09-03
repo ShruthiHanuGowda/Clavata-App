@@ -80,7 +80,7 @@ const PieChart: React.FC<PieChartProps> = ({
             ],
           },
         ]}>
-        <Text style={[styles.centerText, {color: '#000000'}]}>
+        <Text style={styles.centerText}>
           {centerText}
         </Text>
       </View>
@@ -111,6 +111,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
     fontFamily: fontsFamily.MulishBold,
+    color: '#000000',
   },
 });
 

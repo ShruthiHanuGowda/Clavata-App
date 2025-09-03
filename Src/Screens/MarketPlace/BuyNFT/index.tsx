@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -113,7 +113,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentCurrency]);
 
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     switch (stage) {
       case BuyingStage.APPROVE_AND_CONFIRM:
       case BuyingStage.CONFIRM:
@@ -122,29 +122,35 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
       default:
         break;
     }
-  };
+  }, [stage]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     navigation.goBack();
-  };
+  }, [navigation]);
+
+  const HeaderLeftComponent = useCallback(() => {
+    return stageConfig[stage].showBack ? (
+      <TouchableOpacity onPress={handleGoBack} style={styles.headerButton}>
+        <Text style={styles.headerButtonText}>← Back</Text>
+      </TouchableOpacity>
+    ) : null;
+  }, [stage, handleGoBack]);
+
+  const HeaderRightComponent = useCallback(() => {
+    return stage !== BuyingStage.TX_CONFIRMED ? (
+      <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
+        <Text style={styles.headerButtonText}>Cancel</Text>
+      </TouchableOpacity>
+    ) : null;
+  }, [stage, handleClose]);
 
   useEffect(() => {
     navigation.setOptions({
       title: stageConfig[stage].title,
-      headerLeft: () =>
-        stageConfig[stage].showBack ? (
-          <TouchableOpacity onPress={handleGoBack} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>← Back</Text>
-          </TouchableOpacity>
-        ) : null,
-      headerRight: () =>
-        stage !== BuyingStage.TX_CONFIRMED ? (
-          <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        ) : null,
+      headerLeft: HeaderLeftComponent,
+      headerRight: HeaderRightComponent,
     });
-  }, [stage, navigation, handleGoBack, handleClose]);
+  }, [stage, navigation, HeaderLeftComponent, HeaderRightComponent]);
 
   const {isApproved, isApproving, isConfirming, handleApprove, handleConfirm} =
     useApproveConfirmTransaction({

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   View,
@@ -6,15 +6,14 @@ import {
   SafeAreaView,
   TouchableOpacity,
 } from 'react-native';
-import {format} from 'date-fns';
-import {DText} from '../../../Componants/DText';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import { DText } from '../../../Componants/DText';
+import { useAuth } from '../../../../screens/Provider/authProvider';
 import EnergyCertificateHistory from './NFTHistory/EnergyCertificateList';
 import {
   NFTTransaction,
   useNFTTransactionHistory,
 } from './useNFTTransactionHistory';
-import {navigateBack} from '../../../utils/navigationService';
+import { navigateBack } from '../../../utils/navigationService';
 
 const THEME_COLOR = '#009D94';
 

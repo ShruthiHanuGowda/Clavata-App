@@ -10,6 +10,7 @@ import {
   Alert,
   Linking,
   Platform,
+  TextStyle,
 } from 'react-native';
 import {Header} from '@rneui/base';
 import {Animation, fontsFamily} from '../../../Theme';
@@ -67,7 +68,6 @@ const OffsetScreen = ({route}: any) => {
   } = useSuccessSound();
 
   const account = userDetails?.userWallet;
-  const walletAddress = userDetails?.userWallet;
 
   const {
     // isLoadingOffset,
@@ -81,7 +81,7 @@ const OffsetScreen = ({route}: any) => {
     // resetOffsetState,
     getAvailableQuantity,
     validateOffsetVolume,
-  } = useOffsetNft(magic, account, walletAddress);
+  } = useOffsetNft(magic, account);
 
   const availableQuantity = getAvailableQuantity(currentQuantity);
 
@@ -126,7 +126,7 @@ const OffsetScreen = ({route}: any) => {
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep, soundLoaded, soundError]);
+  }, [currentStep, soundLoaded, soundError, playSuccessSound]);
 
   const handleInputChange = (text: string) => {
     setVolume(text);
@@ -363,7 +363,7 @@ const OffsetScreen = ({route}: any) => {
 
   const renderForm = () => (
     <KeyboardAwareScrollView
-      contentContainerStyle={{flexGrow: 1}}
+      contentContainerStyle={styles.scrollViewContainer}
       keyboardShouldPersistTaps="handled"
       style={styles.container}
       showsVerticalScrollIndicator={false}
@@ -495,10 +495,12 @@ const OffsetScreen = ({route}: any) => {
             onPress={() => setShowPurposeDropdown(!showPurposeDropdown)}
             activeOpacity={0.8}>
             <DText
-              style={[
-                styles.dropdownButtonText,
-                !purpose && styles.placeholderText,
-              ]}>
+              style={
+                [
+                  styles.dropdownButtonText,
+                  !purpose ? styles.placeholderText : undefined,
+                ].filter(Boolean) as TextStyle[]
+              }>
               {purpose
                 ? PURPOSE_OPTIONS.find(opt => opt.value === purpose)?.label
                 : 'Select purpose'}
@@ -675,7 +677,7 @@ const OffsetScreen = ({route}: any) => {
     <View style={styles.screenContainer}>
       <Header
         backgroundColor={'#FFF'}
-        containerStyle={{borderBottomWidth: 0}}
+        containerStyle={styles.headerContainer}
         leftComponent={
           <TouchableOpacity
             onPress={() => navigateBack()}
@@ -723,6 +725,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
+  scrollViewContainer: {
+    flexGrow: 1,
+  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -730,6 +735,9 @@ const styles = StyleSheet.create({
   },
   headerIconContainer: {
     marginRight: 10,
+  },
+  headerContainer: {
+    borderBottomWidth: 0,
   },
   headerCenterContainer: {
     flexDirection: 'row',
