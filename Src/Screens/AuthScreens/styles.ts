@@ -1,4 +1,4 @@
-import {StyleSheet, TextStyle, ViewStyle} from 'react-native';
+import {StyleSheet, TextStyle, ViewStyle, Platform} from 'react-native';
 import Colors from '../../Theme/Colors';
 import fontsFamily from '../../Theme/fontsFamily';
 
@@ -14,6 +14,10 @@ interface Styles {
   loadingContainer: ViewStyle;
   lottieAnimation: ViewStyle;
   flexContainer: ViewStyle;
+  safeAreaContainer: ViewStyle;
+  welcomeText: TextStyle;
+  loadingMessage: TextStyle;
+  loadingSubtitle: TextStyle;
 }
 
 // Define your styles using StyleSheet.create
@@ -66,6 +70,28 @@ const styles = StyleSheet.create<Styles>({
   },
   flexContainer: {
     flex: 1,
+  },
+  safeAreaContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingTop: Platform.OS === 'ios' ? 0 : 20,
+  },
+  welcomeText: {
+    paddingVertical: 15,
+    marginHorizontal: 15,
+  },
+  loadingMessage: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  loadingSubtitle: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
   },
 });
 
