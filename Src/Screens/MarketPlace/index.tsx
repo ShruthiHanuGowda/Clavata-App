@@ -507,7 +507,7 @@ const MarketPlace: React.FC = () => {
                 <View
                   key={collection.id}
                   style={[
-                    index === processedCollections.length - 1 && styles.lastCollectionItem
+                    index === processedCollections.length - 1 && styles.lastCollectionItem,
                   ]}>
                   <CollectionCard
                     collection={collection}
