@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {Text, View, Image, StyleSheet, Alert} from 'react-native';
 import style from './style';
 import {ScrollView} from 'react-native-gesture-handler';
@@ -30,7 +30,9 @@ const Account: React.FC<AccountProps> = ({navigation}) => {
   };
 
   const getFirstName = () => {
-    if (!userDetails?.kycDetails) return null;
+    if (!userDetails?.kycDetails) {
+      return null;
+    }
 
     if (typeof userDetails.kycDetails === 'string') {
       try {
@@ -56,7 +58,7 @@ const Account: React.FC<AccountProps> = ({navigation}) => {
     },
   });
 
-  const [visible, setVisible] = useState<boolean>(false);
+  // const [visible, setVisible] = useState<boolean>(false);
   // const [rating, setRating] = useState<number>(0);
 
   // const toggleBottomView = (): void => {

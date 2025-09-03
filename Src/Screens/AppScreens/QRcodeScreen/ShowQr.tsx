@@ -29,7 +29,7 @@ interface ShareOptions {
   subject: string;
 }
 
-const ShowQr: React.FC<ShowQrProps> = ({coinCode, address, name}) => {
+const ShowQr: React.FC<ShowQrProps> = ({coinCode, address}) => {
   const [downloading, setDownloading] = useState<boolean>(false);
   const [qrCodeRef, setQrCodeRef] = useState<any>();
 

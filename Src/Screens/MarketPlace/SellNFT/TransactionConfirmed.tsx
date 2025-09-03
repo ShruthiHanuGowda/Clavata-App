@@ -42,6 +42,7 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
     }, 500);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soundLoaded, soundError]);
 
   const getSuccessContent = () => {

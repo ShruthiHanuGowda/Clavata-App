@@ -20,8 +20,6 @@ import {DText} from '../../../Componants/DText';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useWallet} from '../../../../screens/Provider/WalletProvider';
-import {useMutation} from '@apollo/client';
-import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../../../graphql/queries';
 import {marketIcons} from '../../../Theme/variable';
 import {PRICE_HISTORY_API_URL} from '../../../constants';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
@@ -174,6 +172,7 @@ const useChartData = (
 
   useEffect(() => {
     fetchChartData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {chartData, loading, error, refetch: fetchChartData};
@@ -327,6 +326,7 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
     } else {
       setActiveNetwork('denergy');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coinCode]);
 
   // const [createTransactionHistoryMobile] = useMutation(
@@ -351,18 +351,14 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
 
   // Hook calls must be at the top level
   const walletHook = useWallet();
-  const authHook = useAuth();
 
-  // Safe data extraction with error handling
   let getBalance: ((coinCode: string) => any) | undefined;
-  let userDetails: any;
+
   let balance = '0';
   let balanceUsd = '0.00';
 
   try {
     getBalance = walletHook?.getBalance;
-    userDetails = authHook?.userDetails;
-
     if (getBalance && coinCode && coinCode !== 'Unknown') {
       const balanceData = getBalance(coinCode);
       balance = balanceData?.balance || '0';

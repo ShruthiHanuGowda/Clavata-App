@@ -90,14 +90,13 @@ const TabBarComponent: React.FC<TabBarComponentProps> = ({
   return (
     <Pressable onPress={onPress} onLayout={onLayout} style={styles.component}>
       <View
-        style={[styles.componentCircle, {transform: [{scale: active ? 1 : 0}]}]}
+        style={[styles.componentCircle, active ? styles.componentCircleActive : styles.componentCircleInactive]}
       />
-      <View style={[styles.iconContainer, {opacity: active ? 1 : 0.5}]}>
+      <View style={[styles.iconContainer, active ? styles.iconContainerActive : styles.iconContainerInactive]}>
         <NavigationIcon route={name} isFocused={active} />
         {active && (
           <>
-            <Text
-              style={[styles.text, {fontFamily: fontsFamily.MulishSemiBold}]}>
+            <Text style={styles.text}>
               {options.tabBarLabel || name}
             </Text>
             <View style={styles.dot} />
@@ -169,7 +168,7 @@ const TabBar: React.FC<TabBarProps> = ({
     <View
       style={[
         styles.tabBar,
-        {paddingBottom: Platform.OS === 'android' ? bottom : 10},
+        Platform.OS === 'android' ? {paddingBottom: bottom} : styles.tabBarIOS,
       ]}>
       <Svg
         width={110}
@@ -177,13 +176,8 @@ const TabBar: React.FC<TabBarProps> = ({
         viewBox="0 0 110 70"
         style={[
           styles.activeBackground,
-          {
-            top: -24,
-            left: 16,
-            transform: [
-              {translateX: typeof xOffset === 'number' ? xOffset : 1},
-            ],
-          },
+          styles.svgPositioning,
+          {transform: [{translateX: typeof xOffset === 'number' ? xOffset : 1}]},
         ]}>
         <Circle
           translateY={-12}
@@ -278,6 +272,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     width: 80,
     textAlign: 'center',
+    fontFamily: fontsFamily.MulishSemiBold,
+  },
+  componentCircleActive: {
+    transform: [{scale: 1}],
+  },
+  componentCircleInactive: {
+    transform: [{scale: 0}],
+  },
+  iconContainerActive: {
+    opacity: 1,
+  },
+  iconContainerInactive: {
+    opacity: 0.5,
+  },
+  tabBarIOS: {
+    paddingBottom: 10,
+  },
+  svgPositioning: {
+    top: -24,
+    left: 16,
   },
 });
 

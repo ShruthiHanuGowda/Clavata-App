@@ -154,7 +154,6 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   const {getBalance} = useWallet();
   const {
     isLoading: bridgeLoading,
-    error: bridgeError,
     currentProcessingStep,
     stepProgress,
     bridgeSuccess,
@@ -182,7 +181,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
   // Amount states
   const [amount, setAmount] = useState<string>('');
   const [amountInTokens, setAmountInTokens] = useState<string>('0');
-  const [usdValue, setUsdValue] = useState<number>(0);
+  // const [usdValue, setUsdValue] = useState<number>(0);
   const [networkFee, setNetworkFee] = useState<number>(0);
 
   // UI states
@@ -194,8 +193,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     'form' | 'processing' | 'success'
   >('form');
 
-  const {balance: tokenBalance, balanceUsd: tokenBalanceUsd}: TokenBalance =
-    getBalance(selectedToken);
+  const {balance: tokenBalance}: TokenBalance = getBalance(selectedToken);
 
   const {
     playSuccessSound,
@@ -221,7 +219,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
     setAmount('');
     setAmountInTokens('0');
-    setUsdValue(0);
+    // setUsdValue(0);
     setNetworkFee(0);
     setErrorMessage(null);
   }, [selectedToken, transactionType]);
@@ -251,7 +249,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
           : coinCode,
       );
     }
-  }, [transactionType]);
+  }, [transactionType, coinCode]);
 
   // Validate amount and initiate swap if valid
   useEffect(() => {
@@ -265,7 +263,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         parseFloat(cleanAmount) === 0 ||
         cleanAmount.endsWith('.')
       ) {
-        setUsdValue(0);
+        // setUsdValue(0);
         setAmountInTokens('0');
         setNetworkFee(0);
         return;
@@ -273,7 +271,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
       if (parseFloat(cleanAmount) > parseFloat(tokenBalance)) {
         setErrorMessage('Insufficient balance');
-        setUsdValue(0);
+        // setUsdValue(0);
         setNetworkFee(0);
         setAmountInTokens('0');
         return;
@@ -283,6 +281,8 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     };
 
     validateAndInitiateSwap();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount, tokenBalance]);
 
   useEffect(() => {

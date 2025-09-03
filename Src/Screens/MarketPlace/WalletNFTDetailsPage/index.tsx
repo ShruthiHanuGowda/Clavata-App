@@ -126,7 +126,6 @@ const WalletNFTDetailsScreen = ({route}: any) => {
   ];
   const navigation = useNavigation();
   const {magic, setActiveNetwork} = useMagic();
-  const {userDetails} = useAuth();
 
   const [index, setIndex] = useState(0);
   const [currentQuantity, setCurrentQuantity] = useState(

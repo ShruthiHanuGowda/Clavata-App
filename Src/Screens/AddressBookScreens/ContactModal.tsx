@@ -5,7 +5,6 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import {DText} from '../../Componants/DText';
 import {BottomSheet} from 'react-native-btr';
@@ -71,10 +70,10 @@ const ContactModal: React.FC<ContactModalProps> = ({
     return `${address.slice(0, 12)}...${address.slice(-12)}`;
   };
 
-  const onAddContact = () => {
+  const onAddContact = useCallback(() => {
     onClose();
     navigateTo('AddressBook');
-  };
+  }, [onClose]);
 
   const contacts = useMemo(() => {
     return addressBooks || [];
@@ -206,7 +205,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
         )}
       </View>
     );
-  }, [searchQuery, listLoading, listError, refetchList]);
+  }, [searchQuery, listLoading, listError, refetchList, onAddContact]);
 
   const renderHeader = () => (
     <View style={styles.headerContent}>

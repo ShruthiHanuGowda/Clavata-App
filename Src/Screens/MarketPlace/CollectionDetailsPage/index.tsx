@@ -50,6 +50,7 @@ const CollectionDetailsScreen = ({route}: any) => {
       duration: 1000,
       useNativeDriver: true,
     }).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

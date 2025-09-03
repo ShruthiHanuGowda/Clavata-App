@@ -48,7 +48,10 @@ const PieChart: React.FC<PieChartProps> = ({
 
   return (
     <View
-      style={[styles.chartContainer, {height: chartHeight as any, width: chartWidth as any}]}>
+      style={[
+        styles.chartContainer,
+        {height: chartHeight as any, width: chartWidth as any},
+      ]}>
       {/* Pie Chart */}
       <PolarChart
         data={transformedData}
@@ -56,7 +59,7 @@ const PieChart: React.FC<PieChartProps> = ({
         valueKey={'y'}
         colorKey={'color'}>
         <Pie.Chart>
-          {({slice}: {slice: any}) => {
+          {() => {
             return <Pie.Slice />;
           }}
         </Pie.Chart>

@@ -125,7 +125,7 @@ export default function HomeScreen() {
       return () => {
         console.log('Screen is unfocused!');
       };
-    }, []),
+    }, [refreshAllBalances]),
   );
 
   return (

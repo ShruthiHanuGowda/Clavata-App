@@ -1,26 +1,15 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {ActivityIndicator, View, StyleSheet} from 'react-native';
-import {format} from 'date-fns';
 import {DText} from '../../../Componants/DText';
 import TransactionFlatList from '../TransactionHistory/TransactionFlatList';
 import {useTransactionHistory} from '../../../hooks/useTransactionHistory';
 import {useAuth} from '../../../../screens/Provider/authProvider';
-
-interface FilterState {
-  startDate: string;
-  endDate: string;
-  type: string;
-}
 
 interface MiniTransactionHistoryProps {
   coinCode?: string;
   name?: string;
   contractAddress?: string | null;
   limit?: number;
-}
-
-interface UserDetails {
-  userWallet?: string;
 }
 
 const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
@@ -52,11 +41,11 @@ const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
   } = useTransactionHistory(limit, contractAddress, wallet);
 
   // Filter state for date ranges
-  const [filters, setFilters] = useState<FilterState>({
-    startDate: '',
-    endDate: '',
-    type: '',
-  });
+  // const [filters, setFilters] = useState<FilterState>({
+  //   startDate: '',
+  //   endDate: '',
+  //   type: '',
+  // });
 
   // Display coin code formatting
   const getDisplayCoinCode = (code?: string): string => {
@@ -74,24 +63,24 @@ const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
     }
   };
 
-  const formatDateRange = (): string => {
-    let dateRange = '';
-    if (filters.startDate) {
-      dateRange = format(new Date(filters.startDate), 'P');
-    }
-    if (filters.endDate) {
-      dateRange += ' - ' + format(new Date(filters.endDate), 'P');
-    }
-    return dateRange;
-  };
+  // const formatDateRange = (): string => {
+  //   let dateRange = '';
+  //   if (filters.startDate) {
+  //     dateRange = format(new Date(filters.startDate), 'P');
+  //   }
+  //   if (filters.endDate) {
+  //     dateRange += ' - ' + format(new Date(filters.endDate), 'P');
+  //   }
+  //   return dateRange;
+  // };
 
   return (
     <View style={styles.container}>
       {/* Date Filter Display */}
       <View style={styles.filterContainer}>
-        <DText fontStyle="fontRegular" style={styles.filterText}>
+        {/* <DText fontStyle="fontRegular" style={styles.filterText}>
           {formatDateRange()}
-        </DText>
+        </DText> */}
       </View>
 
       {/* Coin Code Display */}

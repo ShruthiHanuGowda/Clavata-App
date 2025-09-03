@@ -80,6 +80,7 @@ export default function LoginScreen() {
       console.log('✅ getUserMetaData success', userData);
       handleUserData(userData);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData, isKycSkipped]);
 
   useEffect(() => {
@@ -294,8 +295,6 @@ export default function LoginScreen() {
         denergy: primaryNetworkData.publicAddress,
       };
 
-      console.log('🏠 All addresses:', addresses);
-
       return {
         isLoggedIn: true,
         addresses,
@@ -384,6 +383,7 @@ export default function LoginScreen() {
         setIsScreenLoading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       checkAllNetworks,
       updateUserData,

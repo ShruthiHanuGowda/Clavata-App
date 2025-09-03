@@ -112,6 +112,21 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
     refreshBalance('WUSDC');
   }, [paymentCurrency]);
 
+  const handleGoBack = () => {
+    switch (stage) {
+      case BuyingStage.APPROVE_AND_CONFIRM:
+      case BuyingStage.CONFIRM:
+        setStage(BuyingStage.REVIEW);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleClose = () => {
+    navigation.goBack();
+  };
+
   useEffect(() => {
     navigation.setOptions({
       title: stageConfig[stage].title,
@@ -128,7 +143,7 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
           </TouchableOpacity>
         ) : null,
     });
-  }, [stage, navigation]);
+  }, [stage, navigation, handleGoBack, handleClose]);
 
   const {isApproved, isApproving, isConfirming, handleApprove, handleConfirm} =
     useApproveConfirmTransaction({
@@ -174,21 +189,6 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
         setStage(BuyingStage.TX_CONFIRMED);
       },
     });
-
-  const handleGoBack = () => {
-    switch (stage) {
-      case BuyingStage.APPROVE_AND_CONFIRM:
-      case BuyingStage.CONFIRM:
-        setStage(BuyingStage.REVIEW);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const handleClose = () => {
-    navigation.goBack();
-  };
 
   const handleComplete = () => {
     navigateTo('D.Energy');

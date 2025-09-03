@@ -22,8 +22,6 @@ import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
 
 const NFTDetailsScreen = ({route}: any) => {
   const {nft} = route.params;
-  const [isBuyModalVisible, setIsBuyModalVisible] = useState(false);
-  const [isSellModalVisible, setIsSellModalVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const navigation = useNavigation<any>();
 
@@ -55,6 +53,7 @@ const NFTDetailsScreen = ({route}: any) => {
     if (hasTokenData) {
       refetchActivity();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasTokenData]);
 
   const onRefresh = async () => {

@@ -68,12 +68,6 @@ function AddressBook(): JSX.Element {
     setSearchQuery(query);
   }, []);
 
-  const handleCreateBeneficiary = useCallback(() => {
-    // Navigate to create beneficiary screen
-    console.log('Navigate to create beneficiary');
-    navigateTo('CreateAddress');
-  }, []);
-
   const handleEditContact = useCallback(
     (contactId: string) => {
       // Find the contact to edit
@@ -245,14 +239,7 @@ function AddressBook(): JSX.Element {
         )}
       </View>
     );
-  }, [
-    searchQuery,
-    listLoading,
-    listError,
-    refetchList,
-    handleCreateBeneficiary,
-    contacts.length,
-  ]);
+  }, [searchQuery, listLoading, listError, refetchList, contacts.length]);
 
   return (
     <View style={localStyles.container}>
@@ -279,7 +266,10 @@ function AddressBook(): JSX.Element {
               onPress={() => {
                 navigateTo('CreateAddress');
               }}
-              style={[localStyles.iconContainer, localStyles.iconContainerBottom]}>
+              style={[
+                localStyles.iconContainer,
+                localStyles.iconContainerBottom,
+              ]}>
               <View style={localStyles.addButton}>
                 <AntDesignIcon
                   name="pluscircleo"

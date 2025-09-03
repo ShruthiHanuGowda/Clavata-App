@@ -177,12 +177,13 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
       );
       setQuantity((Number(accountNFTQuantity) / 1_000_000).toString());
     }
-  }, [account]);
+  }, [account, nftToSell?.marketData]);
 
   useEffect(() => {
     if (activeNetwork !== 'denergy') {
       setActiveNetwork('denergy');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeNetwork]);
 
   const goBack = () => {
