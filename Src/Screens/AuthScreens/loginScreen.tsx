@@ -5,7 +5,6 @@ import {
   ScrollView,
   Alert,
   SafeAreaView,
-  Platform,
 } from 'react-native';
 import 'react-native-get-random-values';
 import '@ethersproject/shims';
@@ -49,6 +48,32 @@ export const parseDataAndReturnFixedInfo = (data: any) => {
     return null;
   }
 };
+
+const LoadingScreen = ({message}: {message: string}) => (
+  <View style={styles.loadingContainer}>
+    <LottieView
+      source={Animation.loaderAnimation}
+      autoPlay
+      loop
+      style={styles.lottieAnimation}
+      speed={1}
+      colorFilters={[
+        {
+          keypath: 'layer_name',
+          color: Colors?.success || '#4CAF50',
+        },
+      ]}
+    />
+
+    <Text style={styles.loadingMessage}>
+      {message}
+    </Text>
+
+    <Text style={styles.loadingSubtitle}>
+      Please wait...
+    </Text>
+  </View>
+);
 
 export default function LoginScreen() {
   const {magic, setActiveNetwork} = useMagic();
@@ -215,15 +240,15 @@ export default function LoginScreen() {
       console.log('🔐 User is logged in:', isLoggedIn);
 
       if (isLoggedIn) {
-        const userData = await magic.user.getInfo();
+        const userInfo = await magic.user.getInfo();
         // CRITICAL: Update Apollo client with token BEFORE any GraphQL queries
         await updateClientWithToken();
         console.log('🔑 Apollo client updated with auth token');
 
         return {
           isLoggedIn,
-          publicAddress: userData?.publicAddress,
-          userData,
+          publicAddress: userInfo?.publicAddress,
+          userData: userInfo,
         };
       }
       return {isLoggedIn, publicAddress: null, userData: null};
@@ -233,45 +258,6 @@ export default function LoginScreen() {
     }
   }, [magic.user, updateClientWithToken]);
 
-  const checkSepoliaNetworkAuth = useCallback(async () => {
-    try {
-      await setActiveNetwork('sepolia');
-      const isLoggedIn = await magic.user.isLoggedIn();
-      if (isLoggedIn) {
-        const userData = await magic.user.getInfo();
-        return {
-          isLoggedIn,
-          publicAddress: userData?.publicAddress,
-          userData,
-        };
-      }
-      return {isLoggedIn, publicAddress: null, userData: null};
-    } catch (error) {
-      console.error('❌ Sepolia network auth error:', error);
-      return {isLoggedIn: false, publicAddress: null, userData: null, error};
-    }
-  }, [magic.user, setActiveNetwork]);
-
-  const checkDenergyNetworkAuth = useCallback(async () => {
-    try {
-      await setActiveNetwork('denergy');
-      const isLoggedIn = await magic.user.isLoggedIn();
-
-      if (isLoggedIn) {
-        const userData = await magic.user.getInfo();
-        return {
-          isLoggedIn,
-          publicAddress: userData?.publicAddress,
-          userData,
-        };
-      }
-
-      return {isLoggedIn, publicAddress: null, userData: null};
-    } catch (error) {
-      console.error('❌ Denergy network auth error:', error);
-      return {isLoggedIn: false, publicAddress: null, userData: null, error};
-    }
-  }, [magic.user, setActiveNetwork]);
 
   const checkAllNetworks = useCallback(async () => {
     try {
@@ -310,8 +296,6 @@ export default function LoginScreen() {
     }
   }, [
     checkPrimaryNetworkAuth,
-    checkSepoliaNetworkAuth,
-    checkDenergyNetworkAuth,
   ]);
 
   // Handle user data from GraphQL query
@@ -400,10 +384,10 @@ export default function LoginScreen() {
     try {
       const result = await checkAllNetworks();
       setActiveNetwork('sepolia');
-      const userData = await magic.user.getInfo();
+      const userInfo = await magic.user.getInfo();
 
       const walletData: any = {
-        emailAddress: userData.email,
+        emailAddress: userInfo.email,
         userWallet: result?.networkData?.primary?.publicAddress,
         date: new Date().toISOString(),
         is_verified: false,
@@ -530,52 +514,8 @@ export default function LoginScreen() {
     }
   }, [isKycCompleted, kycInProgress, navigateToApp]);
 
-  const LoadingScreen = ({message}: {message: string}) => (
-    <View style={styles.loadingContainer}>
-      <LottieView
-        source={Animation.loaderAnimation}
-        autoPlay
-        loop
-        style={styles.lottieAnimation}
-        speed={1}
-        colorFilters={[
-          {
-            keypath: 'layer_name',
-            color: Colors?.success || '#4CAF50',
-          },
-        ]}
-      />
-
-      <Text
-        style={{
-          marginTop: 20,
-          fontSize: 16,
-          color: '#333',
-          textAlign: 'center',
-          fontWeight: '500',
-        }}>
-        {message}
-      </Text>
-
-      <Text
-        style={{
-          marginTop: 8,
-          fontSize: 14,
-          color: '#666',
-          textAlign: 'center',
-        }}>
-        Please wait...
-      </Text>
-    </View>
-  );
-
   return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: '#fff',
-        paddingTop: Platform.OS === 'ios' ? 0 : 20,
-      }}>
+    <SafeAreaView style={styles.safeAreaContainer}>
       {isScreenLoading ? (
         <LoadingScreen
           message={kycInProgress ? 'Processing KYC...' : 'Checking session...'}
@@ -586,11 +526,7 @@ export default function LoginScreen() {
           <ScrollView>
             <View style={styles.contentContainer}>
               <Text
-                style={{
-                  ...styles.content,
-                  paddingVertical: 15,
-                  marginHorizontal: 15,
-                }}>
+                style={[styles.content, styles.welcomeText]}>
                 Welcome
               </Text>
               <View style={styles.emailInputWrapper}>
