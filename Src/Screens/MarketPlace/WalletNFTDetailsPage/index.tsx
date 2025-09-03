@@ -123,7 +123,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     styles.tabTitleBase,
     active ? styles.tabTitleActive : styles.tabTitleInactive,
   ];
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const {magic, setActiveNetwork} = useMagic();
 
   const [index, setIndex] = useState(0);
@@ -202,6 +202,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
 
     fetchCurrentQuantity();
     fetchNftMetadata();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const {refresh: refreshNfts} = useNft();

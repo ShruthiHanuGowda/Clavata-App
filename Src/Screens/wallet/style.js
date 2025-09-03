@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native';
-import { fontsFamily } from '../../Theme';
+import {StyleSheet} from 'react-native';
+import {fontsFamily} from '../../Theme';
 export default StyleSheet.create({
   container: {
     marginLeft: 21,
@@ -42,11 +42,6 @@ export default StyleSheet.create({
     marginBottom: 5,
     textTransform: 'uppercase',
   },
-  contentText: {
-    fontFamily: fontsFamily.MulishExtraBold,
-    fontSize: 28,
-    color: '#000',
-  },
   pricetext: {
     fontFamily: fontsFamily.MulishSemiBold,
     fontSize: 12,
@@ -68,12 +63,7 @@ export default StyleSheet.create({
     marginBottom: 15,
     marginLeft: 20,
   },
-  divider: {
-    borderColor: '#E8E8E8',
-    borderWidth: 0.5,
-    width: '100%',
-    marginVertical: 10,
-  },
+
   coinName: {
     fontFamily: fontsFamily.MulishBold,
     fontSize: 14,

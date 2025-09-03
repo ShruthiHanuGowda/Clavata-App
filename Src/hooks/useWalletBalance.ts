@@ -1,7 +1,7 @@
 import {useState, useCallback} from 'react';
 import {TOKEN_CONTRACTS, CRYPTO_PRICES_API_URL} from '../constants';
 import {walletOperations} from '../services/blockchain/walletOperations';
-import {errorService, ErrorCode} from '../services/errorService';
+import {errorService} from '../services/errorService';
 
 interface ExchangeRate {
   currency_code: string;

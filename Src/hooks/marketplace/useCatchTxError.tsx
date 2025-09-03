@@ -22,7 +22,7 @@ export default function useCatchTxError(params?: Params) {
   const fetchWithCatchTxError = useCallback(
     async (
       callTx: () => Promise<TransactionReceipt | string | undefined>,
-      provider?: Provider,
+      _provider?: Provider,
     ) => {
       let tx: any = null;
 

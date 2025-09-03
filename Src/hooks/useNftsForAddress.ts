@@ -14,7 +14,7 @@ export const useNftsForAddress = ({account}: {account: `0x${string}`}) => {
       method: 'GET',
     });
 
-  const collectionsRes = collections?.data ?? {};
+  const collectionsRes = useMemo(() => collections?.data ?? {}, [collections?.data]);
 
   const fetchData = useCallback(async () => {
     if (

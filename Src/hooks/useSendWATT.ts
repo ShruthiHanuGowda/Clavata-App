@@ -108,8 +108,8 @@ export const useSendWatt = (magic: any, userAddress: string | undefined) => {
               },
             },
           });
-        } catch (error: any) {
-          throw new Error(error);
+        } catch (historyError: any) {
+          throw new Error(historyError);
         }
         onSuccess({
           txHash,

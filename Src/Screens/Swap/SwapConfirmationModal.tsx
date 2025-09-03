@@ -50,8 +50,12 @@ export const SwapConfirmationModal: React.FC<SwapConfirmationModalProps> = ({
   const maxSlippage = parseFloat(fromAmount) * (slippage / 100);
 
   const getPriceImpactStyle = () => {
-    if (priceImpact > 3) return styles.priceImpactHigh;
-    if (priceImpact > 1) return styles.priceImpactMedium;
+    if (priceImpact > 3) {
+      return styles.priceImpactHigh;
+    }
+    if (priceImpact > 1) {
+      return styles.priceImpactMedium;
+    }
     return styles.priceImpactLow;
   };
 

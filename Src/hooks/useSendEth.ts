@@ -129,13 +129,13 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
             },
           },
         });
-      } catch (error: any) {
-        const apiError = errorService.handleApiError(
-          error,
+      } catch (apiError: any) {
+        const processedError = errorService.handleApiError(
+          apiError,
           undefined,
           'createTransactionHistoryMobile',
         );
-        errorService.logError(apiError);
+        errorService.logError(processedError);
       }
 
       // Call success callback if provided

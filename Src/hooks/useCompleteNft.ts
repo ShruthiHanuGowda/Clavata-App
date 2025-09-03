@@ -58,7 +58,7 @@ export const useCompleteNft = (id: string) => {
         metadata = await fetchMetadata(fetchedNfts.metadataUrl);
       }
 
-      const nft: NftToken = {
+      const builtNft: NftToken = {
         id: fetchedNfts?.id,
         tokenId: fetchedNfts?.tokenId,
         name:
@@ -84,7 +84,7 @@ export const useCompleteNft = (id: string) => {
           : undefined,
       };
 
-      setNft(nft);
+      setNft(builtNft);
       setLoading(false);
     } catch (err: any) {
       console.log(err);

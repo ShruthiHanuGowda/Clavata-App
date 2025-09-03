@@ -75,13 +75,16 @@ export const getCollectionsMarketData = async (): Promise<Collection[]> => {
 
     data.nfts.forEach((nft: any) => {
       const collection = nft.collection;
-      const activeAsks = nft?.activeAsks || [];
+      const collectionActiveAsks = nft?.activeAsks || [];
 
-      if (collection && activeAsks.length > 0) {
+      if (collection && collectionActiveAsks.length > 0) {
         const existing = collectionsMap.get(collection.id);
-        const askTotal = activeAsks.reduce((sum: bigint, ask: any) => {
-          return sum + BigInt(ask.amount || 0);
-        }, BigInt(0));
+        const askTotal = collectionActiveAsks.reduce(
+          (sum: bigint, ask: any) => {
+            return sum + BigInt(ask.amount || 0);
+          },
+          BigInt(0),
+        );
 
         if (existing) {
           const currentTotal = BigInt(existing.totalAskAmount || '0');

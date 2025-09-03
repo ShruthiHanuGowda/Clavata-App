@@ -1,17 +1,19 @@
 import React from 'react';
 import {CartesianChart, Line} from 'victory-native';
-import {View} from 'react-native';
+import {View, StyleSheet} from 'react-native';
 
-const AreaChart = ({chartData}: any) => {
+type PointData = {x: number; y: number};
+
+const AreaChart = ({chartData}: {chartData: PointData[]}) => {
   return (
-    <View style={{width: 100, height: 120}}>
+    <View style={styles.container}>
       <CartesianChart
-        data={chartData}
-        xKey="x"
-        yKeys={['y']}
+        data={chartData as any}
+        xKey={'x' as any}
+        yKeys={['y'] as any}
         axisOptions={{lineColor: '#fff'}}
         frame={{lineColor: '#fff'}}>
-        {({points}) => (
+        {({points}: any) => (
           <Line points={points.y} color={'#02947190'} strokeWidth={1} />
         )}
       </CartesianChart>
@@ -20,3 +22,7 @@ const AreaChart = ({chartData}: any) => {
 };
 
 export default AreaChart;
+
+const styles = StyleSheet.create({
+  container: {width: 100, height: 120},
+});

@@ -388,7 +388,6 @@ export const useSwap = (magic: any): UseSwapReturn => {
   // Get allowance for ERC20 tokens
   const getAllowance = useCallback(async (): Promise<void> => {
     const inputToken = TOKENS[selectedToken] || TOKENS.WATT;
-    
     if (
       !isConnected ||
       !account ||

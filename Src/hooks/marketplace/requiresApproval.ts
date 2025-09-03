@@ -9,7 +9,9 @@ export const requiresApproval = async (
   network: any,
 ) => {
   try {
-    if (!contractAddress) {return true;}
+    if (!contractAddress) {
+      return true;
+    }
     const provider = new BrowserProvider(network.rpcProvider as any);
     const signer = await provider.getSigner();
     const onChainTokenContract = new Contract(
@@ -41,7 +43,9 @@ export const isApprovedForAll = async (
   network: any,
 ) => {
   try {
-    if (!contractAddress) {return true;}
+    if (!contractAddress) {
+      return true;
+    }
     const provider = new BrowserProvider(network.rpcProvider as any);
     const signer = await provider.getSigner();
     const onChainTokenContract = new Contract(
@@ -49,12 +53,12 @@ export const isApprovedForAll = async (
       ERC1155_ABI,
       signer,
     );
-    const isApprovedForAll = await onChainTokenContract.isApprovedForAll(
+    const approvedForAll = await onChainTokenContract.isApprovedForAll(
       account,
       spenderAddress,
     );
 
-    return isApprovedForAll;
+    return approvedForAll;
   } catch (error) {
     console.log('error', error);
 

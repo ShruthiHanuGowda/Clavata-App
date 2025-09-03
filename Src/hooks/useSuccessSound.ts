@@ -16,9 +16,9 @@ export const useSuccessSound = () => {
     const loadSound = (filename: string) => {
       console.log(`Trying to load: ${filename}`);
 
-      const sound = new Sound(filename, Sound.MAIN_BUNDLE, error => {
-        if (error) {
-          console.log(`Failed to load ${filename}:`, error);
+      const sound = new Sound(filename, Sound.MAIN_BUNDLE, loadError => {
+        if (loadError) {
+          console.log(`Failed to load ${filename}:`, loadError);
 
           if (currentIndex < tryFormats.length - 1) {
             currentIndex++;

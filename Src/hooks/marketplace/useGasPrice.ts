@@ -33,7 +33,7 @@ export function useGasPrice(
     return () => {
       setGasPrice(undefined);
     };
-  }, [chainId]);
+  }, [chainId, signer]);
 
   return gasPrice;
 }
