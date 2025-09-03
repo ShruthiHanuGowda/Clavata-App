@@ -31,16 +31,16 @@ const MyCryptoCard = ({
   const width = 71;
 
   // Helper functions for dynamic styles
-  const getImageStyle = code => [
+  const getImageStyle = coinCode => [
     marketStyles.image,
-    {backgroundColor: marketIconColors[code]},
+    {backgroundColor: marketIconColors[coinCode]},
   ];
 
-  const getChartStyle = width => [marketStyles.chart, {width}];
+  const getChartStyle = chartWidth => [marketStyles.chart, {width: chartWidth}];
 
-  const getChartBackgroundStyle = (width, height) => [
+  const getChartBackgroundStyle = (bgWidth, bgHeight) => [
     marketStyles.chartBackground,
-    {width, height},
+    {width: bgWidth, height: bgHeight},
   ];
   return (
     <TouchableOpacity
@@ -99,7 +99,7 @@ const MyCryptoCard = ({
             </DText>
           )}
         </View>
-        <View style={{alignItems: 'flex-end'}}>
+        <View style={marketStyles.balanceContainer}>
           <DText style={marketStyles.usd} fontStyle="fontExtraBold">
             {balance ? Number(balance).toFixed(2) : '0.0'}
           </DText>
@@ -175,5 +175,8 @@ const marketStyles = StyleSheet.create({
   },
   chartBackground: {
     backgroundColor: '#fff',
+  },
+  balanceContainer: {
+    alignItems: 'flex-end',
   },
 });

@@ -5,7 +5,6 @@ import {NavigationProp, RouteProp} from '@react-navigation/native';
 import style from './style';
 import Portfolio from './Portfolio';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
-import {useAuth} from '../../../screens/Provider/authProvider';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
 import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList';
 import CryptoMarketCard from '../HomeScreen/CryptoMarketCard';
@@ -59,7 +58,7 @@ const ITEMS: WalletItem[] = [
 export default function Wallet(props: WalletProps) {
   const {getBalance, refreshAllBalances, isBalanceLoading, portfolio} =
     useWallet();
-  const [items, setItems] = useState<WalletItem[]>([]);
+  const [_items, setItems] = useState<WalletItem[]>([]);
   const [pullToRefreshLoading, setPullToRefreshLoading] =
     useState<boolean>(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -209,15 +208,15 @@ export default function Wallet(props: WalletProps) {
       init();
     });
     return unsubscribe;
-  }, [props.navigation]);
+  }, [props.navigation, init]);
 
   const balanceData = {};
 
   return (
-    <View style={{backgroundColor: '#fff', flex: 1}}>
+    <View style={style.mainContainer}>
       <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={{paddingBottom: 50}}
+        contentContainerStyle={style.scrollViewContent}
         refreshControl={
           <RefreshControl
             refreshing={isBalanceLoading || pullToRefreshLoading}

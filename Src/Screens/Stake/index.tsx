@@ -10,9 +10,6 @@ import useValidators from './Hooks/useValidators';
 import {useAuth} from '../../../screens/Provider/authProvider';
 
 // Define interfaces
-interface StakeProps {
-  // Add any props if needed
-}
 
 interface FontFamily {
   MulishExtraBold: string;
@@ -50,6 +47,98 @@ interface StakedAsset {
   finalRewards?: number;
   originalData?: NFTDelegation;
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  title: {
+    fontSize: 18,
+    lineHeight: 23,
+    width: 200,
+    color: '#000',
+  },
+  nameContainer: {
+    flexDirection: 'row',
+    marginLeft: 10,
+  },
+  simpleContent: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  tabContentText: {
+    // Add appropriate styles if needed
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  headerContainer: {
+    borderBottomWidth: 0,
+  },
+  tabIndicator: {
+    backgroundColor: 'transparent',
+  },
+  tabStyle: {
+    backgroundColor: 'transparent',
+  },
+});
+
+// Tab content components
+const TotalPoolsContent: React.FC = () => (
+  <View style={styles.simpleContent}>
+    <ValidatorsScreen />
+  </View>
+);
+
+interface StakedPoolsContentProps {
+  stakedAssets: StakedAsset[];
+  loading: boolean;
+  error: any;
+  refreshing: boolean;
+  onRefresh: () => void;
+  onRetry: () => void;
+}
+
+const StakedPoolsContent: React.FC<StakedPoolsContentProps> = ({
+  stakedAssets,
+  loading,
+  error,
+  refreshing,
+  onRefresh,
+  onRetry,
+}) => (
+  <View style={styles.simpleContent}>
+    <StakeListingScreen
+      stakedAssets={stakedAssets}
+      loading={loading}
+      error={error}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      onRetry={onRetry}
+    />
+  </View>
+);
+
+const StokedPoolsContent: React.FC<StakedPoolsContentProps> = ({
+  stakedAssets,
+  loading,
+  error,
+  refreshing,
+  onRefresh,
+  onRetry,
+}) => (
+  <View style={styles.simpleContent}>
+    <StakeListingScreen
+      stakedAssets={stakedAssets}
+      loading={loading}
+      error={error}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      onRetry={onRetry}
+    />
+  </View>
+);
 
 function Stake(): JSX.Element {
   const [index, setIndex] = useState<number>(0);
@@ -97,13 +186,13 @@ function Stake(): JSX.Element {
   useEffect(() => {
     if (stakedPoolData && Array.isArray(stakedPoolData)) {
       const processed = stakedPoolData.map(
-        (item: NFTDelegation, index: number) => {
-          const startDate = new Date(parseInt(item.createdAt) * 1000)
+        (item: NFTDelegation, _index: number) => {
+          const startDate = new Date(parseInt(item.createdAt, 10) * 1000)
             .toISOString()
             .split('T')[0];
 
-          const stakeAmount = parseInt(item.amount);
-          const tokenId = parseInt(item.tokenId);
+          const stakeAmount = parseInt(item.amount, 10);
+          const tokenId = parseInt(item.tokenId, 10);
 
           return {
             id: item.id,
@@ -163,45 +252,11 @@ function Stake(): JSX.Element {
     }
   }, [stakedPoolLoading, refreshing]);
 
-  // Tab content components with props
-  const TotalPoolsContent = (): JSX.Element => (
-    <View style={styles.simpleContent}>
-      <ValidatorsScreen />
-    </View>
-  );
-
-  const StakedPoolsContent = (): JSX.Element => (
-    <View style={styles.simpleContent}>
-      <StakeListingScreen
-        stakedAssets={processedAssets}
-        loading={stakedPoolLoading && !refreshing}
-        error={stakedPoolError}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        onRetry={handleRetry}
-      />
-    </View>
-  );
-
-  const StokedPoolsContent = (): JSX.Element => (
-    <View style={styles.simpleContent}>
-      <StakeListingScreen
-        stakedAssets={processedAssets}
-        loading={stakedPoolLoading && !refreshing}
-        error={stakedPoolError}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        onRetry={handleRetry}
-      />
-    </View>
-  );
 
   return (
     <View style={styles.container}>
       <Header
-        containerStyle={{
-          borderBottomWidth: 0,
-        }}
+        containerStyle={styles.headerContainer}
         backgroundColor={'#FFF'}
         leftComponent={
           <View style={styles.nameContainer}>
@@ -216,10 +271,8 @@ function Stake(): JSX.Element {
           value={index}
           onChange={setIndex}
           variant="primary"
-          indicatorStyle={{
-            backgroundColor: 'transparent',
-          }}
-          style={{backgroundColor: 'transparent'}}>
+          indicatorStyle={styles.tabIndicator}
+          style={styles.tabStyle}>
           {TAB_ITEMS.map((tab, i) => (
             <Tab.Item
               key={i}
@@ -242,39 +295,30 @@ function Stake(): JSX.Element {
 
         <View style={styles.contentContainer}>
           {index === 0 && <TotalPoolsContent />}
-          {index === 1 && <StakedPoolsContent />}
-          {index === 2 && <StokedPoolsContent />}
+          {index === 1 && (
+            <StakedPoolsContent
+              stakedAssets={processedAssets}
+              loading={stakedPoolLoading && !refreshing}
+              error={stakedPoolError}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              onRetry={handleRetry}
+            />
+          )}
+          {index === 2 && (
+            <StokedPoolsContent
+              stakedAssets={processedAssets}
+              loading={stakedPoolLoading && !refreshing}
+              error={stakedPoolError}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              onRetry={handleRetry}
+            />
+          )}
         </View>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF',
-  },
-  title: {
-    fontSize: 18,
-    lineHeight: 23,
-    width: 200,
-    color: '#000',
-  },
-  nameContainer: {
-    flexDirection: 'row',
-    marginLeft: 10,
-  },
-  simpleContent: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  tabContentText: {
-    // Add appropriate styles if needed
-  },
-  contentContainer: {
-    flex: 1,
-  },
-});
 
 export default Stake;

@@ -6,7 +6,6 @@ import {
   TextInput,
   ActivityIndicator,
   ScrollView,
-  StyleSheet,
   Alert,
   Linking,
   Pressable,
@@ -15,11 +14,10 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {BottomSheet} from 'react-native-btr';
 import {TouchableOpacity} from 'react-native-gesture-handler';
 import {Path, Svg} from 'react-native-svg';
-import {ScreenWidth} from '@rneui/base';
 import Clipboard from '@react-native-clipboard/clipboard';
 import LottieView from 'lottie-react-native';
 
-import {fontsFamily, Images, Animation} from '../../Theme';
+import {Images, Animation} from '../../Theme';
 import {DText} from '../../Componants/DText';
 import {CustomImageButton, Header, RadioButton} from '../../Componants';
 import {marketIcons} from '../../Theme/variable';
@@ -34,6 +32,7 @@ import {getBlockExploreLink} from '../../utils/explorer';
 import {useSuccessSound} from '../../hooks/useSuccessSound';
 import {navigateTo} from '../../utils/navigationService';
 import {CUSTOM_NETWORK_CHAIN_ID} from '../../constants';
+import {styles, successStyles} from './styles';
 
 type CoinOption = {
   key: string;
@@ -47,6 +46,100 @@ interface SwapProps {
     };
   };
 }
+
+interface SlippageSettingsProps {
+  showSettings: boolean;
+  setShowSettings: (show: boolean) => void;
+  slippage: number;
+  setSlippage: (value: number) => void;
+}
+
+interface TransactionStatusProps {
+  txStatus?: string;
+  isLoading: boolean;
+  txHash?: string;
+}
+
+interface SettingsButtonProps {
+  onPress: () => void;
+}
+
+// Extracted components
+const SlippageSettings: React.FC<SlippageSettingsProps> = ({
+  showSettings,
+  setShowSettings,
+  slippage,
+  setSlippage,
+}) => {
+  if (!showSettings) return null;
+  
+  return (
+    <View style={styles.settingsContainer}>
+      <View style={styles.settingsHeader}>
+        <Text style={styles.settingsTitle}>Slippage Tolerance</Text>
+        <TouchableOpacity onPress={() => setShowSettings(false)}>
+          <Text style={styles.closeButton}>×</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.slippageOptions}>
+        {[0.1, 0.5, 1.0, 3.0].map(value => (
+          <TouchableOpacity
+            key={value}
+            style={[
+              styles.slippageButton,
+              slippage === value && styles.slippageButtonActive,
+            ]}
+            onPress={() => setSlippage(value)}>
+            <Text
+              style={[
+                styles.slippageButtonText,
+                slippage === value && styles.slippageButtonTextActive,
+              ]}>
+              {value}%
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Text style={styles.currentSlippage}>Current: {slippage}%</Text>
+    </View>
+  );
+};
+
+const TransactionStatus: React.FC<TransactionStatusProps> = ({
+  txStatus,
+  isLoading,
+  txHash,
+}) => {
+  if (!txStatus) {
+    return null;
+  }
+
+  return (
+    <View style={styles.statusContainer}>
+      <View style={styles.statusHeader}>
+        {isLoading && <LoaderAnimation size="small" />}
+        <Text style={styles.statusText}>{txStatus}</Text>
+      </View>
+      {txHash && (
+        <TouchableOpacity
+          onPress={() => {
+            console.log('View transaction:', txHash);
+          }}>
+          <Text style={styles.txHashText}>
+            Transaction: {txHash.substring(0, 10)}...
+            {txHash.substring(txHash.length - 8)}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+const SettingsButton: React.FC<SettingsButtonProps> = ({onPress}) => (
+  <TouchableOpacity style={styles.settingsButton} onPress={onPress}>
+    <Text style={styles.settingsIcon}>⚙️</Text>
+  </TouchableOpacity>
+);
 
 export default function Swap(props: SwapProps) {
   const coinCode = props?.route?.params?.coinCode || 'WATT';
@@ -436,64 +529,7 @@ export default function Swap(props: SwapProps) {
     );
   };
 
-  // Handle slippage settings
-  const SlippageSettings = () => (
-    <View style={styles.settingsContainer}>
-      <View style={styles.settingsHeader}>
-        <Text style={styles.settingsTitle}>Slippage Tolerance</Text>
-        <TouchableOpacity onPress={() => setShowSettings(false)}>
-          <Text style={styles.closeButton}>×</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.slippageOptions}>
-        {[0.1, 0.5, 1.0, 3.0].map(value => (
-          <TouchableOpacity
-            key={value}
-            style={[
-              styles.slippageButton,
-              slippage === value && styles.slippageButtonActive,
-            ]}
-            onPress={() => setSlippage(value)}>
-            <Text
-              style={[
-                styles.slippageButtonText,
-                slippage === value && styles.slippageButtonTextActive,
-              ]}>
-              {value}%
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <Text style={styles.currentSlippage}>Current: {slippage}%</Text>
-    </View>
-  );
 
-  // Transaction status component
-  const TransactionStatus = () => {
-    if (!txStatus) {
-      return null;
-    }
-
-    return (
-      <View style={styles.statusContainer}>
-        <View style={styles.statusHeader}>
-          {isLoading && <LoaderAnimation size="small" />}
-          <Text style={styles.statusText}>{txStatus}</Text>
-        </View>
-        {txHash && (
-          <TouchableOpacity
-            onPress={() => {
-              console.log('View transaction:', txHash);
-            }}>
-            <Text style={styles.txHashText}>
-              Transaction: {txHash.substring(0, 10)}...
-              {txHash.substring(txHash.length - 8)}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
 
   // Render current step
   const renderCurrentStep = () => {
@@ -579,7 +615,12 @@ export default function Swap(props: SwapProps) {
   // Main form component
   const renderForm = () => (
     <>
-      {showSettings && <SlippageSettings />}
+      <SlippageSettings 
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+        slippage={slippage}
+        setSlippage={setSlippage}
+      />
 
       <ScrollView keyboardShouldPersistTaps="handled" style={styles.container}>
         {/* Connection Status */}
@@ -695,7 +736,11 @@ export default function Swap(props: SwapProps) {
         )}
 
         {/* Transaction Status */}
-        <TransactionStatus />
+        <TransactionStatus 
+          txStatus={txStatus}
+          isLoading={isLoading}
+          txHash={txHash}
+        />
 
         {/* Balance Summary */}
         {balanceComponent}
@@ -717,7 +762,7 @@ export default function Swap(props: SwapProps) {
               <Text
                 style={[
                   styles.quoteRowValue,
-                  {color: quote.priceImpact > 3 ? '#FF3B30' : '#34C759'},
+                  quote.priceImpact > 3 ? styles.priceImpactHigh : styles.priceImpactLow,
                 ]}>
                 {quote.priceImpact.toFixed(2)}%
               </Text>
@@ -836,571 +881,11 @@ export default function Swap(props: SwapProps) {
         headerTitle="Swap"
         hideBorder={true}
         backBtn={() => navigateBack()}
-        rightComponent={() => (
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => setShowSettings(!showSettings)}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </TouchableOpacity>
-        )}
+        rightComponent={<SettingsButton onPress={() => setShowSettings(!showSettings)} />}
       />
       {renderCurrentStep()}
     </SafeAreaView>
   );
 }
 
-const successStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    paddingHorizontal: 20,
-  },
-  headerSection: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  successIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#E8F5E8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#4CAF50',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  successAnimation: {
-    width: 80,
-    height: 80,
-  },
-  title: {
-    fontSize: 28,
-    color: '#1A1A1A',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  infoCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 30,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  amountSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-    paddingBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E9ECEF',
-  },
-  amountLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  amountValue: {
-    fontSize: 24,
-    color: '#1A1A1A',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  networkFlow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  tokenBadge: {
-    backgroundColor: '#81c8c3',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  tokenIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  },
-  tokenText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  arrowContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E9ECEF',
-  },
-  arrow: {
-    fontSize: 16,
-    color: '#81c8c3',
-    fontWeight: 'bold',
-  },
-  hashSection: {
-    marginBottom: 24,
-  },
-  hashLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  hashContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
-  hashDisplay: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  hashText: {
-    fontSize: 16,
-    color: '#1A1A1A',
-    fontFamily: 'monospace',
-    fontWeight: '600',
-    flex: 1,
-  },
-  copyIcon: {
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  hashHint: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  explorerButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#81c8c3',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#81c8c3',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  explorerIcon: {
-    fontSize: 20,
-  },
-});
 
-const styles = StyleSheet.create({
-  screen: {
-    backgroundColor: '#fff',
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  settingsButton: {
-    padding: 8,
-  },
-  settingsIcon: {
-    fontSize: 18,
-  },
-  settingsContainer: {
-    backgroundColor: '#F8F9FA',
-    marginHorizontal: 15,
-    marginVertical: 10,
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  settingsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  settingsTitle: {
-    fontFamily: fontsFamily.MulishBold,
-    fontSize: 16,
-    color: '#000',
-  },
-  closeButton: {
-    fontSize: 24,
-    color: '#666',
-    fontWeight: 'bold',
-  },
-  slippageOptions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  slippageButton: {
-    flex: 1,
-    backgroundColor: '#E8E8E8',
-    padding: 10,
-    borderRadius: 8,
-    marginHorizontal: 2,
-    alignItems: 'center',
-  },
-  slippageButtonActive: {
-    backgroundColor: '#007AFF',
-  },
-  slippageButtonText: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 14,
-    color: '#000',
-  },
-  slippageButtonTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  currentSlippage: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-  },
-  connectionWarning: {
-    backgroundColor: '#FFF3CD',
-    marginHorizontal: 15,
-    marginVertical: 10,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FFEAA7',
-  },
-  connectionWarningText: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 12,
-    color: '#856404',
-    textAlign: 'center',
-  },
-  toggleContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 15,
-    marginVertical: 15,
-  },
-  toggleDropDown: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    backgroundColor: '#E8E8E8',
-    padding: 15,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  tokenIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-  },
-  toggleDropDownText: {
-    fontFamily: fontsFamily.MulishBold,
-    fontSize: 16,
-    color: '#000',
-    flex: 1,
-    marginLeft: 12,
-  },
-  input: {
-    color: '#000000',
-    fontFamily: fontsFamily.MulishBold,
-    padding: 10,
-    fontSize: 32,
-    textAlign: 'center',
-    minHeight: 60,
-  },
-  outputText: {
-    color: '#666',
-    fontFamily: fontsFamily.MulishBold,
-    padding: 10,
-    fontSize: 32,
-    textAlign: 'center',
-    minHeight: 60,
-  },
-  inputContainer: {
-    marginHorizontal: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  balanceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 15,
-    marginVertical: 10,
-  },
-  availableBalance: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 14,
-    color: '#666',
-  },
-  maxButton: {
-    backgroundColor: '#81c8c3',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 10,
-  },
-  maxButtonText: {
-    color: '#fff',
-    fontFamily: fontsFamily.MulishBold,
-    fontSize: 12,
-  },
-  swapToImageContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E7E7E7',
-    marginVertical: 20,
-    marginHorizontal: 21,
-  },
-  swapToImagePadding: {
-    backgroundColor: '#FFF',
-    position: 'absolute',
-    padding: 12,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  swapToImage: {
-    height: 20,
-    width: 20,
-  },
-  textStyle: {
-    fontFamily: fontsFamily.MulishBold,
-    fontSize: 16,
-  },
-  errorSec: {
-    marginTop: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#FF3B30',
-    backgroundColor: '#FFF5F5',
-    width: ScreenWidth - 42,
-    borderRadius: 12,
-    alignItems: 'center',
-    alignSelf: 'center',
-  },
-  errorText: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 12,
-    color: '#FF3B30',
-  },
-  statusContainer: {
-    marginHorizontal: 15,
-    marginVertical: 10,
-    padding: 12,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusText: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 12,
-    color: '#000',
-    marginLeft: 8,
-    flex: 1,
-  },
-  txHashText: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 10,
-    color: '#81c8c3',
-    marginTop: 4,
-    textDecorationLine: 'underline',
-  },
-  balanceComponentContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 15,
-  },
-  balanceCard: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    width: ScreenWidth - 42,
-    padding: 15,
-    backgroundColor: '#FAFAFA',
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginVertical: 8,
-  },
-  balanceLabel: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 12,
-    color: '#848484',
-  },
-  balanceValue: {
-    fontFamily: fontsFamily.MulishBold,
-    fontSize: 14,
-    color: '#000',
-  },
-  balanceDebit: {
-    color: '#FF3B30',
-    fontSize: 14,
-  },
-  balanceCredit: {
-    color: '#34C759',
-    fontSize: 14,
-  },
-  networkFeeRow: {
-    alignItems: 'flex-end',
-    marginVertical: 4,
-  },
-  networkFeeText: {
-    color: '#FF9500',
-    fontSize: 12,
-  },
-  quoteInfo: {
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  quoteLabel: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 10,
-    color: '#666',
-    marginVertical: 1,
-  },
-  quoteDetails: {
-    marginHorizontal: 15,
-    marginVertical: 10,
-    padding: 15,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  quoteTitle: {
-    fontFamily: fontsFamily.MulishBold,
-    fontSize: 14,
-    color: '#000',
-    marginBottom: 10,
-  },
-  quoteRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 4,
-  },
-  quoteRowLabel: {
-    fontFamily: fontsFamily.Mulish,
-    fontSize: 12,
-    color: '#666',
-  },
-  quoteRowValue: {
-    fontFamily: fontsFamily.MulishBold,
-    fontSize: 12,
-    color: '#000',
-  },
-  buttonContainer: {
-    paddingHorizontal: 15,
-    paddingBottom: 20,
-    paddingTop: 10,
-  },
-  approveButton: {
-    height: 51,
-    borderRadius: 12,
-    marginBottom: 10,
-    backgroundColor: '#FF9500',
-  },
-  swapButton: {
-    height: 51,
-    borderRadius: 12,
-    marginBottom: 10,
-  },
-  submitButtonContainer: {
-    height: 51,
-    borderRadius: 12,
-    marginBottom: 20,
-    marginHorizontal: 10,
-  },
-  buttonBg: {
-    height: 51,
-    width: '100%',
-    borderRadius: 12,
-  },
-  bottomSheetContainer: {
-    backgroundColor: '#ffffff',
-    width: ScreenWidth - 20,
-    alignSelf: 'center',
-    borderTopRightRadius: 24,
-    borderTopLeftRadius: 24,
-    paddingBottom: 20,
-  },
-  bottomSheetTab: {
-    marginHorizontal: 165.5,
-    marginTop: 7,
-    width: 40,
-    height: 4,
-  },
-  bottomSheetHeader: {
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  bottomSheetTitle: {
-    fontFamily: fontsFamily.MulishBold,
-    marginTop: 20,
-    fontSize: 18,
-    color: '#333333',
-    lineHeight: 21,
-    textAlign: 'center',
-  },
-  bottomSheetDivider: {
-    borderColor: '#DEDEDE',
-    borderWidth: 0.75,
-    marginHorizontal: 15,
-  },
-  bottomSheetContent: {
-    paddingHorizontal: 15,
-    paddingTop: 15,
-  },
-  applyButton: {
-    height: 51,
-    borderRadius: 12,
-    marginVertical: 10,
-  },
-});

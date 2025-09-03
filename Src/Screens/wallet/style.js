@@ -193,4 +193,11 @@ export default StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
   },
+  mainContainer: {
+    backgroundColor: '#fff',
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 50,
+  },
 });

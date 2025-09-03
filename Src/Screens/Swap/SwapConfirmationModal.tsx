@@ -49,6 +49,12 @@ export const SwapConfirmationModal: React.FC<SwapConfirmationModalProps> = ({
   );
   const maxSlippage = parseFloat(fromAmount) * (slippage / 100);
 
+  const getPriceImpactStyle = () => {
+    if (priceImpact > 3) return styles.priceImpactHigh;
+    if (priceImpact > 1) return styles.priceImpactMedium;
+    return styles.priceImpactLow;
+  };
+
   return (
     <Modal
       visible={visible}
@@ -132,14 +138,7 @@ export const SwapConfirmationModal: React.FC<SwapConfirmationModalProps> = ({
                   <Text
                     style={[
                       styles.detailValue,
-                      {
-                        color:
-                          priceImpact > 3
-                            ? '#FF3B30'
-                            : priceImpact > 1
-                            ? '#FF9500'
-                            : '#34C759',
-                      },
+                      getPriceImpactStyle(),
                     ]}>
                     {priceImpact.toFixed(2)}%
                   </Text>
@@ -248,7 +247,10 @@ export const SwapConfirmationModal: React.FC<SwapConfirmationModalProps> = ({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.confirmButton, {opacity: isLoading ? 0.7 : 1}]}
+                style={[
+                  styles.confirmButton,
+                  isLoading && styles.confirmButtonLoading,
+                ]}
                 onPress={onConfirm}
                 disabled={isLoading}>
                 {isLoading ? (
@@ -612,5 +614,17 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     paddingHorizontal: 8,
     marginTop: 16,
+  },
+  priceImpactHigh: {
+    color: '#FF3B30',
+  },
+  priceImpactMedium: {
+    color: '#FF9500',
+  },
+  priceImpactLow: {
+    color: '#34C759',
+  },
+  confirmButtonLoading: {
+    opacity: 0.7,
   },
 });
