@@ -201,14 +201,16 @@ export default function Wallet(props: WalletProps) {
 
     const resolvedItems = await Promise.all(updated);
     setItems(resolvedItems);
-  }, [scrollToTop, setPullToRefreshLoading, setItems]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const unsubscribe = props.navigation.addListener('focus', () => {
       init();
     });
     return unsubscribe;
-  }, [props.navigation, init]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.navigation]);
 
   const balanceData = {};
 

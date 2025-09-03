@@ -79,7 +79,7 @@ const TabBarComponent: React.FC<TabBarComponentProps> = ({
   onLayout,
   onPress,
 }) => {
-  const ref = useRef<any>(null);
+  const ref = useRef<{play: () => void} | null>(null);
 
   useEffect(() => {
     if (active && ref?.current) {

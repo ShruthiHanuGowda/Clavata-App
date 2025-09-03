@@ -1,16 +1,21 @@
 import {createNavigationContainerRef} from '@react-navigation/native';
+import {RootStackParamList} from '../../types';
 
-export const navigationRef = createNavigationContainerRef();
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export const navigateBack = () => {
   navigationRef?.goBack();
 };
 
-export const navigate = (screenName: string, params?: Record<string, any>) => {
+export const navigate = <T extends keyof RootStackParamList>(
+  screenName: T,
+  ...params: undefined extends RootStackParamList[T]
+    ? [RootStackParamList[T]?]
+    : [RootStackParamList[T]]
+) => {
   try {
     if (navigationRef.current?.isReady()) {
-      // Type check for the screen name
-      navigationRef.current?.navigate(screenName as never, params as never);
+      navigationRef.current?.navigate(screenName, params[0]);
     } else {
       console.warn('[Navigation] Navigation is not ready yet');
     }
@@ -19,12 +24,17 @@ export const navigate = (screenName: string, params?: Record<string, any>) => {
   }
 };
 
-export const navReset = (screenName: string, params?: Record<string, any>) => {
+export const navReset = <T extends keyof RootStackParamList>(
+  screenName: T,
+  ...params: undefined extends RootStackParamList[T]
+    ? [RootStackParamList[T]?]
+    : [RootStackParamList[T]]
+) => {
   console.log('reset to screen:', screenName);
   if (navigationRef.current?.isReady()) {
     navigationRef.current?.reset({
       index: 0,
-      routes: [{name: screenName, params}],
+      routes: [{name: screenName, params: params[0]}],
     });
   } else {
     console.warn('Navigation not ready yet');

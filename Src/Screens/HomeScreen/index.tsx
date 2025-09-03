@@ -32,7 +32,9 @@ function HomeHeader(props: any) {
   }
 
   const username: string =
-    userDetails && typeof userDetails?.kycDetails === 'object' && userDetails?.kycDetails?.firstName
+    userDetails &&
+    typeof userDetails?.kycDetails === 'object' &&
+    userDetails?.kycDetails?.firstName
       ? userDetails?.kycDetails?.firstName
       : getUsernameFromEmail(userDetails?.emailAddress || '');
   return (
@@ -48,10 +50,7 @@ function HomeHeader(props: any) {
             )}
           </DText>
           {props?.kycVerified && !props?.loading && (
-            <Image
-              source={Images.verified}
-              style={styles.verifiedIcon}
-            />
+            <Image source={Images.verified} style={styles.verifiedIcon} />
           )}
         </View>
       }
@@ -156,21 +155,15 @@ export default function HomeScreen() {
         // loading={loading} {...balanceData}
         />
         <View style={styles.newsContainer}>
-          <Text style={styles.newsTitle}>
-            NEWS & ANNOUNCEMENTS
-          </Text>
+          <Text style={styles.newsTitle}>NEWS & ANNOUNCEMENTS</Text>
         </View>
-        <TouchableOpacity style={styles.seeMoreButton}
+        <TouchableOpacity
+          style={styles.seeMoreButton}
           onPress={() => navigateTo('News')}>
-          <DText style={styles.seeMoreText}
-            fontStyle="fontBold">
+          <DText style={styles.seeMoreText} fontStyle="fontBold">
             See more
           </DText>
-          <Svg
-            width="10"
-            height="16"
-            viewBox="0 0 10 16"
-            fill="none">
+          <Svg width="10" height="16" viewBox="0 0 10 16" fill="none">
             <Path
               d="M1.66602 1.33203L8.33268 7.9987L1.66602 14.6654"
               stroke="#009D94"

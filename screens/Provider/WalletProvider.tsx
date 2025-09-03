@@ -90,7 +90,8 @@ export const WalletProvider = ({children}: {children: ReactNode}) => {
     return () => {
       isCancelled = true;
     };
-  }, [userDetails, fetchAllBalances]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userDetails]);
 
   return (
     <WalletContext.Provider

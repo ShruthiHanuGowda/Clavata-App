@@ -1,8 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ImageSourcePropType } from 'react-native';
 import { fontsFamily } from '../Theme';
 
-const MenuList = ({onPress, img, title}) => {
+interface MenuListProps {
+  onPress: () => void;
+  img: ImageSourcePropType;
+  title: string;
+}
+
+const MenuList: React.FC<MenuListProps> = ({onPress, img, title}) => {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.rowContainer}>

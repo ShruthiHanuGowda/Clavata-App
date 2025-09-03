@@ -67,13 +67,15 @@ const useNfts = (collectionId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [collectionId, fetchMetadata, setLoading, setError, setNfts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collectionId]);
 
   useEffect(() => {
     if (collectionId) {
       fetchNfts();
     }
-  }, [collectionId, fetchNfts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collectionId]);
 
   return {nfts, loading, error, refetch: fetchNfts};
 };
