@@ -65,14 +65,14 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
     }
   }, [userDetails, initiateKycToken]);
 
-  const handleVerificationCompleted = async (
+  const handleVerificationCompleted = useCallback(async (
     applicantId: string,
     accessToken: string,
   ) => {
     setTimeout(async () => {
       await updateUserKycStatus(true, applicantId, accessToken);
     }, 2000);
-  };
+  }, [updateUserKycStatus]);
 
   const launchKycVerification =
     useCallback(async (): Promise<VerificationResult> => {
@@ -175,7 +175,7 @@ export const KycServiceProvider: React.FC<{children: React.ReactNode}> = ({
           error: err,
         };
       }
-    }, [handleKYCToken, updateUserKycStatus]); // Add dependencies
+    }, [handleKYCToken, handleVerificationCompleted]);
 
   return (
     <KycServiceContext.Provider value={{launchKycVerification}}>

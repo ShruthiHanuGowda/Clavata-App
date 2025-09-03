@@ -52,11 +52,6 @@ interface SumSubLogEvent {
   message: string;
 }
 
-interface KycTokenData {
-  token: string | null;
-  userId: string | null;
-  expiryTime: number | null;
-}
 
 interface CreateKycVerificationVariables {
   email: string;
@@ -218,7 +213,7 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
   const [kycError, setKycError] = useState<string | null>(null);
   const [isKycBottomSheetVisible, setIsKycBottomSheetVisible] =
     useState<boolean>(false);
-  const [isKycStarted, setIsKycStarted] = useState<boolean>(false);
+  const [_isKycStarted, setIsKycStarted] = useState<boolean>(false);
 
   // Store callbacks for handling results
   const pendingCallbacks = useRef<PendingCallbacks>({});
@@ -500,7 +495,7 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
                 handleVerificationCompleted(userId, accessToken);
               }
             },
-            onLog: (event: SumSubLogEvent) => {
+            onLog: (_event: SumSubLogEvent) => {
               // let applicantId: string | null = null;
               // if (
               //   Platform.OS === 'ios' &&
@@ -652,7 +647,7 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
 
       return {result: KYC_RESULT.SUCCESS, message: 'KYC modal opened'};
     },
-    [kycStatus.isCompleted, kycStatus.isSkipped, showKycBottomSheet],
+    [kycStatus.isCompleted, showKycBottomSheet],
   );
 
   // =================== UTILITY FUNCTIONS ===================

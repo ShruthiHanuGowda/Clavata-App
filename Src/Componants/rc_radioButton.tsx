@@ -18,7 +18,7 @@ const RadioButton: React.FC<RadioButtonProps> = ({
   selectedOption,
   selectedValue,
 }) => {
-  const [value, setValue] = useState<string | null>(null);
+  const [_value, setValue] = useState<string | null>(null);
 
   const handlePress = (key: string) => {
     setValue(key);

@@ -88,7 +88,7 @@ const GlobalKycBottomSheet: React.FC = () => {
         console.error('Error skipping KYC:', error);
       }
     }, 300);
-  }, [skipKycVerification, hideKycBottomSheet]);
+  }, [skipKycVerification]);
 
   // SAME render structure as your original - no UI changes!
   return (

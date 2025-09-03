@@ -61,8 +61,8 @@ export const useKycStatusUpdate = () => {
     onCompleted: () => {
       console.log('KYC status updated successfully:');
     },
-    onError: error => {
-      console.error('Error updating KYC status:', error);
+    onError: mutationError => {
+      console.error('Error updating KYC status:', mutationError);
     },
   });
 
@@ -121,9 +121,9 @@ export const useKycStatusUpdate = () => {
       console.log('🚀 ~ useKycStatusUpdate ~ result:');
 
       return result;
-    } catch (error) {
-      console.error('Failed to update KYC status:', error);
-      throw error;
+    } catch (updateError) {
+      console.error('Failed to update KYC status:', updateError);
+      throw updateError;
     }
   };
 

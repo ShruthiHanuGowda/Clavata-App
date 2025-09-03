@@ -41,7 +41,6 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
       emailAddress: user.emailAddress,
       userWallet: user.userWallet,
       date: user.date,
-      is_verified: user?.is_verified,
       accessToken: '',
       applicantId: '',
     };
