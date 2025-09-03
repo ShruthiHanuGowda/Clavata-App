@@ -59,7 +59,7 @@ export const NftProvider: React.FC<NftProviderProps> = ({children}) => {
       method: 'GET',
     });
 
-  const collectionsRes = collections?.data ?? {};
+  const collectionsRes = useMemo(() => collections?.data ?? {}, [collections]);
 
   const groupByCountry = useCallback((nftList: NftToken[]) => {
     return nftList.reduce((acc, nft) => {
@@ -124,7 +124,7 @@ export const NftProvider: React.FC<NftProviderProps> = ({children}) => {
     } finally {
       setIsRefreshing(false);
     }
-  }, [fetchNftData, account]);
+  }, [fetchNftData]);
 
   const clearError = useCallback(() => {
     setError(null);

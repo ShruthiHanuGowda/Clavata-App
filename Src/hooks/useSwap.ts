@@ -260,7 +260,7 @@ export const useSwap = (magic: any): UseSwapReturn => {
   // Loading and status states
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [txStatus, setTxStatus] = useState<string>('');
+  const [txStatus, _setTxStatus] = useState<string>('');
   const [txHash, setTxHash] = useState<string>('');
 
   // Balance and allowance
@@ -349,8 +349,8 @@ export const useSwap = (magic: any): UseSwapReturn => {
         console.log(`Getting balance for ${tokenSymbol}...`);
 
         if (token.address === 'WATT') {
-          const balance = await provider.getBalance(account);
-          const formattedBalance = formatUnits(balance, 18);
+          const walletBalance = await provider.getBalance(account);
+          const formattedBalance = formatUnits(walletBalance, 18);
           setBalance(formattedBalance);
           console.log(`${tokenSymbol} balance:`, formattedBalance);
         } else {
@@ -369,9 +369,9 @@ export const useSwap = (magic: any): UseSwapReturn => {
             setTimeout(() => reject(new Error('Balance query timeout')), 10000),
           );
 
-          const balance = await Promise.race([balancePromise, timeoutPromise]);
+          const tokenBalance = await Promise.race([balancePromise, timeoutPromise]);
           const formattedBalance = formatUnits(
-            balance as bigint,
+            tokenBalance as bigint,
             token.decimals,
           );
           setBalance(formattedBalance);
@@ -387,17 +387,18 @@ export const useSwap = (magic: any): UseSwapReturn => {
 
   // Get allowance for ERC20 tokens
   const getAllowance = useCallback(async (): Promise<void> => {
+    const inputToken = TOKENS[selectedToken] || TOKENS.WATT;
+    
     if (
       !isConnected ||
       !account ||
-      getInputToken().address === 'WATT' ||
+      inputToken.address === 'WATT' ||
       !provider
     ) {
       return;
     }
 
     try {
-      const inputToken = getInputToken();
       const contractCode = await provider.getCode(inputToken.address);
       if (contractCode === '0x') {
         console.warn(
@@ -416,11 +417,11 @@ export const useSwap = (magic: any): UseSwapReturn => {
         setTimeout(() => reject(new Error('Allowance query timeout')), 10000),
       );
 
-      const allowance = await Promise.race([allowancePromise, timeoutPromise]);
-      setAllowance((allowance as bigint).toString());
+      const tokenAllowance = await Promise.race([allowancePromise, timeoutPromise]);
+      setAllowance((tokenAllowance as bigint).toString());
       console.log(
         `${inputToken.symbol} allowance:`,
-        formatUnits(allowance as bigint, inputToken.decimals),
+        formatUnits(tokenAllowance as bigint, inputToken.decimals),
       );
     } catch (error: any) {
       console.error('Error getting allowance:', error);
@@ -462,8 +463,8 @@ export const useSwap = (magic: any): UseSwapReturn => {
         setErrorMessage(null);
       }
 
-      const inputToken = getInputToken();
-      const outputToken = getOutputToken();
+      const inputToken = TOKENS[selectedToken] || TOKENS.WATT;
+      const outputToken = TOKENS[selectedTargetToken] || TOKENS.USDC;
 
       console.log(
         `Getting quote: ${amount} ${inputToken.symbol} -> ${outputToken.symbol}`,
@@ -857,22 +858,22 @@ export const useSwap = (magic: any): UseSwapReturn => {
       }
     } catch (error: any) {
       console.error('Swap execution failed:', error);
-      let errorMessage = 'Swap failed: ';
+      let errorMsg = 'Swap failed: ';
 
       if (
         error.message?.includes('STF') ||
         error.message?.includes('Too little received')
       ) {
-        errorMessage += 'Slippage tolerance too low, try increasing slippage';
+        errorMsg += 'Slippage tolerance too low, try increasing slippage';
       } else if (error.message?.includes('insufficient funds')) {
-        errorMessage += 'Insufficient WATT for gas fees';
+        errorMsg += 'Insufficient WATT for gas fees';
       } else if (error.message?.includes('UNPREDICTABLE_GAS_LIMIT')) {
-        errorMessage += 'Pool has insufficient liquidity for this trade';
+        errorMsg += 'Pool has insufficient liquidity for this trade';
       } else {
-        errorMessage += error.reason || error.message || 'Unknown error';
+        errorMsg += error.reason || error.message || 'Unknown error';
       }
 
-      setErrorMessage(errorMessage);
+      setErrorMessage(errorMsg);
     } finally {
       setIsLoading(false);
     }

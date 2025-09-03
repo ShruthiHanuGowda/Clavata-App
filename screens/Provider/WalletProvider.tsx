@@ -90,7 +90,7 @@ export const WalletProvider = ({children}: {children: ReactNode}) => {
     return () => {
       isCancelled = true;
     };
-  }, [userDetails]);
+  }, [userDetails, fetchAllBalances]);
 
   return (
     <WalletContext.Provider
