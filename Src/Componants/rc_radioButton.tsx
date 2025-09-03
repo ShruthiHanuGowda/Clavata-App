@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {View, TouchableOpacity, Text, StyleSheet} from 'react-native';
 import {fontsFamily} from '../Theme';
 
@@ -18,10 +18,7 @@ const RadioButton: React.FC<RadioButtonProps> = ({
   selectedOption,
   selectedValue,
 }) => {
-  const [_value, setValue] = useState<string | null>(null);
-
   const handlePress = (key: string) => {
-    // setValue(key);
     selectedValue(key);
   };
 

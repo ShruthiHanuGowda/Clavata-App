@@ -18,7 +18,6 @@ import PriceHistoryGraph from './PriceHistoryGraph';
 import MiniTransactionHistory from './MiniTransactionHistory';
 import {DText} from '../../../Componants/DText';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useWallet} from '../../../../screens/Provider/WalletProvider';
 import {marketIcons} from '../../../Theme/variable';
 import {PRICE_HISTORY_API_URL} from '../../../constants';
@@ -338,8 +337,8 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
   //   },
   // );
 
-  const getContractAddress = useCallback((coinCode: string): string | null => {
-    switch (coinCode) {
+  const getContractAddress = useCallback((coin: string): string | null => {
+    switch (coin) {
       case 'WUSDC':
         return DENERGY_USDC_ADDRESS;
       case 'WEURC':
@@ -364,8 +363,8 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
       balance = balanceData?.balance || '0';
       balanceUsd = balanceData?.balanceUsd || '0.00';
     }
-  } catch (error) {
-    console.error('Data extraction error:', error);
+  } catch (extractionError) {
+    console.error('Data extraction error:', extractionError);
     setHasError(true);
   }
 
@@ -380,8 +379,8 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
   const handleBackNavigation = useCallback((): void => {
     try {
       navigateBack();
-    } catch (error) {
-      console.error('Navigation error:', error);
+    } catch (navError) {
+      console.error('Navigation error:', navError);
     }
   }, []);
 
