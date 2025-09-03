@@ -30,12 +30,13 @@ export const useTransactionHistory = (
    * @param {Object} transaction - Raw transaction data from API
    * @returns {Object} Formatted transaction object
    */
-  const formatTransaction = (transaction: any) => {
+  const formatTransaction = useCallback((transaction: any) => {
     try {
       let tokenDecimal = transaction.tokenDecimal || 18;
       const amount =
-        parseFloat(transaction.value) / Math.pow(10, parseInt(tokenDecimal));
-      const date = new Date(parseInt(transaction.timeStamp) * 1000);
+        parseFloat(transaction.value) /
+        Math.pow(10, parseInt(tokenDecimal, 10));
+      const date = new Date(parseInt(transaction.timeStamp, 10) * 1000);
 
       let type = 'Transfer';
       if (transaction.from?.toLowerCase() === walletAddress?.toLowerCase()) {
@@ -45,10 +46,6 @@ export const useTransactionHistory = (
       ) {
         type = 'Deposit';
       }
-
-      const currentTime = Math.floor(Date.now() / 1000);
-      const transactionTime = parseInt(transaction.timeStamp);
-      const timeDiff = currentTime - transactionTime;
 
       let status = 'Completed';
       // if (timeDiff < 10) {
@@ -83,7 +80,7 @@ export const useTransactionHistory = (
       console.error('Error formatting transaction:', err);
       return null;
     }
-  };
+  }, [walletAddress, contractAddress]);
 
   /**
    * Group transactions by date sections for SectionList compatibility
@@ -139,7 +136,7 @@ export const useTransactionHistory = (
    * @param {number} page - Page number to fetch
    * @param {boolean} isRefresh - Whether this is a refresh operation
    */
-  const fetchTransactions = async (page = 1, isRefresh = false) => {
+  const fetchTransactions = useCallback(async (page = 1, isRefresh = false) => {
     try {
       // Set appropriate loading state
       if (page === 1) {
@@ -222,7 +219,7 @@ export const useTransactionHistory = (
       setRefreshing(false);
       setIsLoadingMore(false);
     }
-  };
+  }, [walletAddress, contractAddress, baseUrl, initialLimit, formatTransaction]);
 
   /**
    * Load more transactions (pagination)
@@ -234,7 +231,14 @@ export const useTransactionHistory = (
       setCurrentPage(nextPage);
       fetchTransactions(nextPage, false);
     }
-  }, [currentPage, hasMoreData, isLoadingMore, loading, refreshing]);
+  }, [
+    currentPage,
+    hasMoreData,
+    isLoadingMore,
+    loading,
+    refreshing,
+    fetchTransactions,
+  ]);
 
   /**
    * Refresh transactions (pull to refresh)
@@ -245,7 +249,7 @@ export const useTransactionHistory = (
     setHasMoreData(true);
     setError(null);
     fetchTransactions(1, true);
-  }, []);
+  }, [fetchTransactions]);
 
   /**
    * Filter transactions by date range
@@ -321,7 +325,7 @@ export const useTransactionHistory = (
     return () => {
       isCancelled = true;
     };
-  }, [walletAddress, contractAddress]);
+  }, [walletAddress, contractAddress, fetchTransactions]);
 
   const formattedTransactions = formatTransactionsForSectionList(transactions);
 

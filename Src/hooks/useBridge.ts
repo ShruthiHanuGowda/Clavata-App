@@ -1,4 +1,4 @@
-import {useState, useCallback} from 'react';
+import {useState, useCallback, useMemo} from 'react';
 import {
   BrowserProvider,
   Contract,
@@ -67,65 +67,71 @@ export const useBridge = () => {
   const {userDetails} = useAuth();
 
   // Processing steps for different bridge operations
-  const BRIDGE_PROCESSING_STEPS: any = {
-    DEPOSIT: {
-      INITIALIZING: {text: 'Initializing deposit process...', progress: 5},
-      SWITCHING_NETWORK: {
-        text: 'Switching to Ethereum network...',
-        progress: 15,
+  const BRIDGE_PROCESSING_STEPS = useMemo(
+    () => ({
+      DEPOSIT: {
+        INITIALIZING: {text: 'Initializing deposit process...', progress: 5},
+        SWITCHING_NETWORK: {
+          text: 'Switching to Ethereum network...',
+          progress: 15,
+        },
+        CHECKING_BALANCE: {text: 'Checking token balance...', progress: 25},
+        APPROVING_TOKEN: {text: 'Approving token spend...', progress: 40},
+        WAITING_APPROVAL: {
+          text: 'Waiting for approval confirmation...',
+          progress: 55,
+        },
+        DEPOSITING: {text: 'Depositing tokens to bridge...', progress: 70},
+        WAITING_DEPOSIT: {
+          text: 'Waiting for deposit confirmation...',
+          progress: 85,
+        },
+        API_CALL: {text: 'Updating bridge records...', progress: 95},
+        COMPLETED: {
+          text: 'Bridge deposit completed successfully!',
+          progress: 100,
+        },
       },
-      CHECKING_BALANCE: {text: 'Checking token balance...', progress: 25},
-      APPROVING_TOKEN: {text: 'Approving token spend...', progress: 40},
-      WAITING_APPROVAL: {
-        text: 'Waiting for approval confirmation...',
-        progress: 55,
+      WITHDRAW: {
+        INITIALIZING: {text: 'Initializing withdrawal process...', progress: 5},
+        SWITCHING_NETWORK: {
+          text: 'Switching to DENERGY network...',
+          progress: 15,
+        },
+        CHECKING_BALANCE: {
+          text: 'Checking wrapped token balance...',
+          progress: 25,
+        },
+        APPROVING_TOKEN: {
+          text: 'Approving wrapped token spend...',
+          progress: 40,
+        },
+        WAITING_APPROVAL: {
+          text: 'Waiting for approval confirmation...',
+          progress: 55,
+        },
+        BURNING: {text: 'Burning wrapped tokens...', progress: 70},
+        WAITING_BURN: {text: 'Waiting for burn confirmation...', progress: 85},
+        API_CALL: {text: 'Processing withdrawal records...', progress: 95},
+        COMPLETED: {
+          text: 'Bridge withdrawal completed successfully!',
+          progress: 100,
+        },
       },
-      DEPOSITING: {text: 'Depositing tokens to bridge...', progress: 70},
-      WAITING_DEPOSIT: {
-        text: 'Waiting for deposit confirmation...',
-        progress: 85,
-      },
-      API_CALL: {text: 'Updating bridge records...', progress: 95},
-      COMPLETED: {
-        text: 'Bridge deposit completed successfully!',
-        progress: 100,
-      },
-    },
-    WITHDRAW: {
-      INITIALIZING: {text: 'Initializing withdrawal process...', progress: 5},
-      SWITCHING_NETWORK: {
-        text: 'Switching to DENERGY network...',
-        progress: 15,
-      },
-      CHECKING_BALANCE: {
-        text: 'Checking wrapped token balance...',
-        progress: 25,
-      },
-      APPROVING_TOKEN: {text: 'Approving wrapped token spend...', progress: 40},
-      WAITING_APPROVAL: {
-        text: 'Waiting for approval confirmation...',
-        progress: 55,
-      },
-      BURNING: {text: 'Burning wrapped tokens...', progress: 70},
-      WAITING_BURN: {text: 'Waiting for burn confirmation...', progress: 85},
-      API_CALL: {text: 'Processing withdrawal records...', progress: 95},
-      COMPLETED: {
-        text: 'Bridge withdrawal completed successfully!',
-        progress: 100,
-      },
-    },
-  };
+    }),
+    [],
+  );
 
-  const updateProcessingStep = (
-    operationType: 'DEPOSIT' | 'WITHDRAW',
-    stepKey: string,
-  ) => {
-    const step = BRIDGE_PROCESSING_STEPS[operationType][stepKey];
-    if (step) {
-      setCurrentProcessingStep(step.text);
-      setStepProgress(step.progress);
-    }
-  };
+  const updateProcessingStep = useCallback(
+    (operationType: 'DEPOSIT' | 'WITHDRAW', stepKey: string) => {
+      const step = (BRIDGE_PROCESSING_STEPS[operationType] as any)[stepKey];
+      if (step) {
+        setCurrentProcessingStep(step.text);
+        setStepProgress(step.progress);
+      }
+    },
+    [BRIDGE_PROCESSING_STEPS],
+  );
 
   const resetBridgeState = () => {
     setCurrentProcessingStep('');
@@ -243,7 +249,7 @@ export const useBridge = () => {
         setIsLoading(false);
       }
     },
-    [userDetails],
+    [userDetails, refreshBalance, setActiveNetwork, updateProcessingStep],
   );
 
   const bridgeEURC = useCallback(
@@ -281,9 +287,7 @@ export const useBridge = () => {
         // Check EURC balance before proceeding
         updateProcessingStep('DEPOSIT', 'CHECKING_BALANCE');
         try {
-          const balance = await eurcContract.balanceOf(
-            await signer.getAddress(),
-          );
+          void (await eurcContract.balanceOf(await signer.getAddress()));
         } catch (err) {
           // Balance check failed, continue anyway
         }
@@ -349,7 +353,7 @@ export const useBridge = () => {
         setIsLoading(false);
       }
     },
-    [userDetails],
+    [userDetails, refreshBalance, setActiveNetwork, updateProcessingStep],
   );
 
   const bridgeWUSDC = useCallback(
@@ -373,7 +377,7 @@ export const useBridge = () => {
         // await setActiveNetwork('denergy');
 
         const wusdcAddress = DENERGY_USDC_ADDRESS;
-        const usdcAddress = USDC_ADDRESS;
+        void USDC_ADDRESS; // Referenced for completeness
         const destinationAddress = DESTINATION_ADDRESS;
 
         // Get Magic provider for signing transactions
@@ -391,9 +395,7 @@ export const useBridge = () => {
         // Check WUSDC balance before proceeding
         updateProcessingStep('WITHDRAW', 'CHECKING_BALANCE');
         try {
-          const balance = await wusdcContract.balanceOf(
-            await signer.getAddress(),
-          );
+          void (await wusdcContract.balanceOf(await signer.getAddress()));
         } catch (err) {
           // Balance check failed, continue anyway
         }
@@ -406,7 +408,7 @@ export const useBridge = () => {
         );
 
         updateProcessingStep('WITHDRAW', 'WAITING_APPROVAL');
-        const approvalReceipt = await approveTx.wait();
+        void (await approveTx.wait());
 
         // Deposit WUSDC to destination
         updateProcessingStep('WITHDRAW', 'BURNING');
@@ -461,7 +463,7 @@ export const useBridge = () => {
         setIsLoading(false);
       }
     },
-    [userDetails],
+    [userDetails, refreshBalance, setActiveNetwork, updateProcessingStep],
   );
 
   const bridgeWEURC = useCallback(
@@ -486,7 +488,7 @@ export const useBridge = () => {
         // await setActiveNetwork('denergy');
 
         const weurcAddress = DENERGY_EURC_ADDRESS;
-        const eurcAddress = EURC_ADDRESS;
+        void EURC_ADDRESS; // Referenced for completeness
         const destinationAddress = DESTINATION_ADDRESS;
 
         // Get Magic provider for signing transactions
@@ -519,7 +521,7 @@ export const useBridge = () => {
         );
 
         updateProcessingStep('WITHDRAW', 'WAITING_APPROVAL');
-        const approvalReceipt = await approveTx.wait();
+        void (await approveTx.wait());
 
         // Deposit WEURC to destination
         updateProcessingStep('WITHDRAW', 'BURNING');
@@ -572,7 +574,7 @@ export const useBridge = () => {
         setIsLoading(false);
       }
     },
-    [userDetails],
+    [userDetails, refreshBalance, setActiveNetwork, updateProcessingStep],
   );
 
   return {

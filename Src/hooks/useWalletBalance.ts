@@ -1,7 +1,7 @@
 import {useState, useCallback} from 'react';
 import {TOKEN_CONTRACTS, CRYPTO_PRICES_API_URL} from '../constants';
-import {useAuth} from '../../screens/Provider/authProvider';
 import {walletOperations} from '../services/blockchain/walletOperations';
+import {errorService, ErrorCode} from '../services/errorService';
 
 interface ExchangeRate {
   currency_code: string;
@@ -40,7 +40,6 @@ interface WalletBalanceHook {
 
   // Status
   isLoading: boolean;
-  error: string | null;
 
   // Exchange rates
   exchangeRates: ExchangeRates;
@@ -60,7 +59,6 @@ interface WalletBalanceHook {
 
 export const useWalletBalance = (): WalletBalanceHook => {
   // State for all token balances
-  const {userDetails} = useAuth();
   const [tokenData, setTokenData] = useState<TokenData>({
     WATT: {balance: '0', balanceUsd: '0'},
     ETH: {balance: '0', balanceUsd: '0'},
@@ -78,7 +76,6 @@ export const useWalletBalance = (): WalletBalanceHook => {
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Function to fetch exchange rates
   const fetchExchangeRates = useCallback(async (): Promise<ExchangeRates> => {
@@ -105,7 +102,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
       setExchangeRates(ratesObj);
       return ratesObj;
     } catch (err) {
-      console.error('Error fetching exchange rates:', err);
+      errorService.handleApiError(err, CRYPTO_PRICES_API_URL, 'fetchExchangeRates');
       throw err;
     }
   }, []);
@@ -129,7 +126,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
       }
 
       setIsLoading(true);
-      setError(null);
+      // Clear any previous errors
 
       try {
         // Fetch exchange rates first
@@ -152,13 +149,10 @@ export const useWalletBalance = (): WalletBalanceHook => {
             ).toFixed(2);
             updateTokenData('WATT', formattedWattsBalance, wattsInUsd);
           } else {
-            console.log(
-              'No valid denergy address found, skipping WATT balance check',
-            );
             updateTokenData('WATT', '0', '0');
           }
-        } catch (error) {
-          console.error('🚀 ~ error fetching WATT balance:', error);
+        } catch (err) {
+          errorService.handleApiError(err, undefined, 'fetchWATTBalance');
           updateTokenData('WATT', '0', '0');
         }
 
@@ -174,13 +168,10 @@ export const useWalletBalance = (): WalletBalanceHook => {
             ).toFixed(2);
             updateTokenData('ETH', formattedEthBalance, ethInUsd);
           } else {
-            console.log(
-              'No valid wallet address found, skipping ETH balance check',
-            );
             updateTokenData('ETH', '0', '0');
           }
-        } catch (error) {
-          console.error('🚀 ~ error fetching ETH balance:', error);
+        } catch (err) {
+          errorService.handleApiError(err, undefined, 'fetchETHBalance');
           updateTokenData('ETH', '0', '0');
         }
 
@@ -220,7 +211,6 @@ export const useWalletBalance = (): WalletBalanceHook => {
             ];
 
             if (!contractAddress) {
-              console.log(`Contract address not found for ${tokenSymbol}`);
               updateTokenData(tokenSymbol, '0', '0');
               continue;
             }
@@ -242,21 +232,15 @@ export const useWalletBalance = (): WalletBalanceHook => {
 
               updateTokenData(tokenSymbol, formattedBalance, balanceInUsd);
             } else {
-              console.log(
-                `No valid address found for ${tokenSymbol}, skipping balance check`,
-              );
               updateTokenData(tokenSymbol, '0', '0');
             }
           } catch (err) {
-            console.error(`Error fetching balance for ${tokenSymbol}:`, err);
-            // Set default values for failed token
+            errorService.handleApiError(err, undefined, `fetch${tokenSymbol}Balance`);
             updateTokenData(tokenSymbol, '0', '0');
-            // Continue with the next token
           }
         }
       } catch (err: any) {
-        console.error('Error fetching balances:', err);
-        setError(err.message || 'Failed to fetch balances');
+        errorService.handleApiError(err, undefined, 'fetchAllBalances');
       } finally {
         setIsLoading(false);
       }
@@ -305,8 +289,6 @@ export const useWalletBalance = (): WalletBalanceHook => {
                 balance: formattedBalance,
                 balanceUsd: balanceInUsd,
               };
-            } else {
-              console.log('No valid denergy address found for WATT');
             }
             break;
           }
@@ -325,8 +307,6 @@ export const useWalletBalance = (): WalletBalanceHook => {
                 balance: formattedBalance,
                 balanceUsd: balanceInUsd,
               };
-            } else {
-              console.log('No valid wallet address found for ETH');
             }
             break;
           }
@@ -396,10 +376,6 @@ export const useWalletBalance = (): WalletBalanceHook => {
                 balance: formattedBalance,
                 balanceUsd: balanceInUsd,
               };
-            } else {
-              console.log(
-                `No valid address found for ${normalizedTokenSymbol}`,
-              );
             }
           }
         }
@@ -413,8 +389,7 @@ export const useWalletBalance = (): WalletBalanceHook => {
 
         return tokenBalance;
       } catch (err: any) {
-        console.error(`Error refreshing ${tokenSymbol} balance:`, err);
-        setError(err.message || `Failed to refresh ${tokenSymbol} balance`);
+        errorService.handleApiError(err, undefined, `refresh${tokenSymbol}Balance`);
         return {balance: '0', balanceUsd: '0'};
       }
     },
@@ -436,7 +411,6 @@ export const useWalletBalance = (): WalletBalanceHook => {
 
     // Status
     isLoading,
-    error,
 
     // Exchange rates
     exchangeRates,
