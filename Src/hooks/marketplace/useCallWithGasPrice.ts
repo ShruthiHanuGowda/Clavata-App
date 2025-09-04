@@ -45,7 +45,7 @@ export function useCallWithGasPrice() {
         const connectedContract = contract.connect(signer);
 
         try {
-          const tx: TransactionResponse = await connectedContract[methodName](
+          const tx: TransactionResponse = await (connectedContract as any)[methodName](
             ...methodArgs,
             {
               ...overrides,
@@ -57,8 +57,9 @@ export function useCallWithGasPrice() {
           return tx.wait() as Promise<TransactionReceipt>;
         } catch (error) {
           console.error(`Transaction failed for method ${methodName}:`, error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           SnackBarMessage(
-            `Transaction failed for method ${error.message}`,
+            `Transaction failed for method ${errorMessage}`,
             'error',
           );
           // throw new Error(`Transaction failed for method ${methodName}`);

@@ -148,7 +148,7 @@ export const useSendEth = (magic: any, userAddress: string | undefined) => {
         });
       }
       setIsLoading(false);
-      return receipt;
+      return receipt ?? undefined;
     } catch (err: any) {
       const txError = errorService.handleTransactionError(err, 'useSendEth');
       setError(txError);

@@ -41,36 +41,36 @@ const htmlConfig = {
   tagsStyles: {
     p: {
       marginBottom: 12,
-      textAlign: 'justify',
+      textAlign: 'justify' as const,
     },
     h1: {
       fontSize: 24,
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#1A1A1A',
       marginBottom: 16,
     },
     h2: {
       fontSize: 20,
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#1A1A1A',
       marginBottom: 12,
     },
     h3: {
       fontSize: 18,
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#1A1A1A',
       marginBottom: 8,
     },
     strong: {
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#1A1A1A',
     },
     em: {
-      fontStyle: 'italic',
+      fontStyle: 'italic' as const,
     },
     a: {
       color: THEME_COLOR,
-      textDecorationLine: 'underline',
+      textDecorationLine: 'underline' as const,
     },
     ul: {
       marginBottom: 12,
@@ -194,7 +194,7 @@ function NewsDetail(props: StakeProps): JSX.Element {
                 </DText>
               </View>
               <View style={styles.authorInfo}>
-                <DText fontStyle="fontMedium" style={styles.authorText}>
+                <DText fontStyle="fontSemiBold" style={styles.authorText}>
                   {blog.author_name}
                 </DText>
                 <DText style={styles.authorRole}>Author</DText>
@@ -205,7 +205,7 @@ function NewsDetail(props: StakeProps): JSX.Element {
           {/* Tags */}
           {blog.tags && blog.tags.length > 0 && (
             <View style={styles.tagsSection}>
-              <DText fontStyle="fontMedium" style={styles.tagsLabel}>
+              <DText fontStyle="fontSemiBold" style={styles.tagsLabel}>
                 Topics
               </DText>
               <View style={styles.tagsContainer}>
@@ -223,7 +223,7 @@ function NewsDetail(props: StakeProps): JSX.Element {
 
           {/* Article Content with HTML Rendering */}
           <View style={styles.articleContent}>
-            <DText fontStyle="fontMedium" style={styles.contentLabel}>
+            <DText fontStyle="fontSemiBold" style={styles.contentLabel}>
               Article
             </DText>
             <RenderHtml
@@ -258,7 +258,7 @@ function NewsDetail(props: StakeProps): JSX.Element {
             <DText
               fontStyle="fontBold"
               style={styles.headerTitle}
-              numberOfLines={1}>
+              textProps={{numberOfLines: 1}}>
               {blog?.title || 'News Detail'}
             </DText>
           </View>
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   authorInitial: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
     color: '#FFFFFF',
   },
   authorInfo: {
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 13,
     color: THEME_COLOR,
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
   divider: {
     height: 1,
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 16,
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
 });
 

@@ -18,7 +18,6 @@ interface TransactionHistoryProps {
 }
 
 const TransactionHistory: React.FC<TransactionHistoryProps> = props => {
-  const [showFilter, setShowFilter] = useState<boolean>(false);
   // const [name, setUserName] = useState<string>('');
   const [index, setIndex] = useState<number>(0);
   const coinCode = props?.route?.params?.coinCode;
@@ -46,19 +45,19 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = props => {
             </View>
           }
           rightComponent={
-            index === 0 && (
+            index === 0 ? (
               <TouchableOpacity
                 onPress={handleFilterPress}
-                style={styles.dotContainer}>
+                style={componentStyles.iconButton}>
                 <Image source={images.filter} />
               </TouchableOpacity>
-            )
+            ) : undefined
           }
           backgroundColor="#FFF"
           leftComponent={
             <TouchableOpacity
               onPress={() => navigateBack()}
-              style={styles.dotContainer}>
+              style={componentStyles.iconButton}>
               <Image source={images.back} />
             </TouchableOpacity>
           }
@@ -89,8 +88,6 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = props => {
             <View style={styles.container}>
               <View style={styles.mainContainer}>
                 <MiniTransactionHistory
-                  showFilter={showFilter}
-                  setShowFilter={setShowFilter}
                   coinCode={coinCode}
                   // name={name}
                 />
@@ -122,6 +119,11 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = props => {
 const componentStyles = StyleSheet.create({
   headerContainer: {
     borderBottomWidth: 0,
+  },
+  iconButton: {
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

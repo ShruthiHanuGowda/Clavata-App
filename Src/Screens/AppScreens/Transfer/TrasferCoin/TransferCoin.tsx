@@ -741,7 +741,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
         <RadioButton
           PROP={options}
           selectedOption={selectedOption}
-          selectedValue={(value: TokenKey) => selectedValue(value as TokenKey)}
+          selectedValue={(key: string) => selectedValue(key as TokenKey)}
         />
 
         <CustomImageButton

@@ -35,12 +35,12 @@ const NewsCard: React.FC<NewsCardProps> = ({blog, onPress}) => {
           <DText
             fontStyle="fontBold"
             style={styles.newsTitle}
-            numberOfLines={2}>
+            textProps={{numberOfLines: 2}}>
             {blog.title}
           </DText>
 
           {/* Author */}
-          <DText fontStyle="fontMedium" style={styles.authorText}>
+          <DText fontStyle="fontSemiBold" style={styles.authorText}>
             By {blog.author_name}
           </DText>
 

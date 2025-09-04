@@ -27,13 +27,13 @@ interface FontFamily {
 // Tab content components
 const NFTStakingContent = ({ validatorId }: { validatorId: string | undefined }): React.ReactElement => (
   <View style={styles.tabContent}>
-    <NFTStakeComponent validatorId={validatorId} />
+    <NFTStakeComponent validatorId={validatorId || ''} />
   </View>
 );
 
 const WATTStakingContent = ({ validatorId }: { validatorId: string | undefined }): React.ReactElement => (
   <View style={styles.tabContent}>
-    <WATTStakeComponent validatorId={validatorId} />
+    <WATTStakeComponent validatorId={validatorId || ''} />
   </View>
 );
 

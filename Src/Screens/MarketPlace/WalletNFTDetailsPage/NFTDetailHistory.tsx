@@ -41,7 +41,7 @@ export default function NFTDetailHistory({route}: {route: any}) {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await refreshTransactions();
+      refreshTransactions();
     } catch (error) {
       console.error('Error refreshing transactions:', error);
     } finally {
@@ -139,7 +139,7 @@ export default function NFTDetailHistory({route}: {route: any}) {
         ) : mockTransactions.length > 0 ? (
           <View style={styles.listContainer}>
             <EnergyCertificateHistory
-              data={mockTransactions}
+              data={mockTransactions as any}
               refreshing={refreshing}
               onRefresh={handleRefresh}
             />

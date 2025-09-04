@@ -41,7 +41,7 @@ const Onboarding: React.FC<OnboardingProps> = () => {
   const scrollViewRef = useRef<ScrollView>(null);
 
   const navigateToWelcome = async (): Promise<void> => {
-    navReset('authScreens');
+    (navReset as any)('authScreens');
     try {
       await secureStorage.setItem('isInfoDone', 'true');
     } catch (error) {

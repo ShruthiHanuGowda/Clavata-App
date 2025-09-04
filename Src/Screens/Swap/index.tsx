@@ -392,9 +392,7 @@ export default function Swap(props: SwapProps) {
         progress={stepProgress}
         showProgressBar={true}
         showStepIndicators={true}
-        animationSource={
-          Animation.swapAnimation || Animation.bridgeAnimation || null
-        }
+        animationSource={Animation.bridgeAnimation || null}
         stepIndicatorCount={currentProcessingStep.includes('approval') ? 5 : 8}
         feeInfo={
           networkfee > 0 ? `Network Fee: ~${networkfee} WATT` : undefined
@@ -529,8 +527,6 @@ export default function Swap(props: SwapProps) {
       </View>
     );
   };
-
-
 
   // Render current step
   const renderCurrentStep = () => {
@@ -763,7 +759,9 @@ export default function Swap(props: SwapProps) {
               <Text
                 style={[
                   styles.quoteRowValue,
-                  quote.priceImpact > 3 ? styles.priceImpactHigh : styles.priceImpactLow,
+                  quote.priceImpact > 3
+                    ? styles.priceImpactHigh
+                    : styles.priceImpactLow,
                 ]}>
                 {quote.priceImpact.toFixed(2)}%
               </Text>
@@ -882,11 +880,11 @@ export default function Swap(props: SwapProps) {
         headerTitle="Swap"
         hideBorder={true}
         backBtn={() => navigateBack()}
-        rightComponent={<SettingsButton onPress={() => setShowSettings(!showSettings)} />}
+        rightComponent={
+          <SettingsButton onPress={() => setShowSettings(!showSettings)} />
+        }
       />
       {renderCurrentStep()}
     </SafeAreaView>
   );
 }
-
-

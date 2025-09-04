@@ -27,7 +27,7 @@ const groupByCountry = (nfts: NftToken[]) => {
       nft?.country ||
       (nft.attributes &&
         nft?.attributes?.find(
-          (attr: any) => attr?.trait_type?.toLowerCase() === 'country',
+          (attr) => attr?.traitType?.toLowerCase() === 'country',
         )?.value) ||
       'Unknown';
     if (!acc[country]) {

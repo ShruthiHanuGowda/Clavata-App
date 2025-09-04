@@ -24,7 +24,7 @@ const DButton: React.FC<DButtonProps> = props => {
       onPress={props.onPress}
       style={[
         styles.button,
-        styles[props.type || 'primary'], // default to 'primary' if type is not provided
+        styles[props.type || 'primary'],
         props.disabled && styles.disabled,
         props.style,
       ]}

@@ -24,7 +24,9 @@ const PriceHistoryGraph: React.FC<PriceHistoryGraphProps> = ({
 
   // Format labels based on toggle value and data type
   const formatXLabel = (xValue: string): string => {
-    if (!xValue) {return '';}
+    if (!xValue) {
+      return '';
+    }
 
     // If it's already a formatted short label (like "Mon", "Tue", "08:00"), return as is
     if (xValue.length <= 5) {
@@ -58,7 +60,7 @@ const PriceHistoryGraph: React.FC<PriceHistoryGraphProps> = ({
     return xValue.substring(0, 5);
   };
 
-  const getDotProps = (value: number, index: number): DotProps => {
+  const getDotProps = (_value: number, index: number): DotProps => {
     return {
       r: '1',
       strokeWidth: '10',
@@ -96,7 +98,7 @@ const PriceHistoryGraph: React.FC<PriceHistoryGraphProps> = ({
           color: (opacity = 1) => `rgba(61, 61, 61, ${opacity})`,
           labelColor: (opacity = 1) => `rgba(61, 61, 61, ${opacity})`,
           propsForHorizontalLabels: {
-            display: 'none',
+            fontSize: 0,
           },
           propsForBackgroundLines: {
             strokeWidth: '1',
@@ -106,7 +108,7 @@ const PriceHistoryGraph: React.FC<PriceHistoryGraphProps> = ({
         }}
         withDots={true}
         withHorizontalLines={false}
-        strokeWidth={5}
+        // strokeWidth={5}
         getDotProps={getDotProps}
         style={styles.chartStyle}
       />

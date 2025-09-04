@@ -5,14 +5,22 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Clipboard,
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import {ScreenWidth} from '@rneui/base';
 import {SnackBarMessage} from '../utils/snackBar';
 import images from '../Theme/images';
 import {fontsFamily} from '../Theme';
 
-const ReceiverDetails = ({data}: any) => {
+interface ReceiverDetailsProps {
+  data: {
+    name: string;
+    colorCode: string;
+    beneficiaryAddress: string;
+  };
+}
+
+const ReceiverDetails = ({data}: ReceiverDetailsProps) => {
   const capitalize = (str: string) => {
     return str?.charAt(0)?.toUpperCase();
   };
@@ -23,16 +31,16 @@ const ReceiverDetails = ({data}: any) => {
   return (
     <View style={styles.container}>
       <View style={{...styles.avatar, backgroundColor: data?.colorCode}}>
-        <Text style={styles.avatarTextStyle} fontStyle="fontBold">
+        <Text style={styles.avatarTextStyle}>
           {capitalize(data?.name)}
         </Text>
       </View>
-      <Text style={styles.nameStyle} fontStyle="fontBold">
+      <Text style={styles.nameStyle}>
         {data?.name}
       </Text>
       <View style={styles.wrapper}>
         <View style={styles.walletIdBox}>
-          <Text style={styles.titleStyle} fontStyle="fontRegular">
+          <Text style={styles.titleStyle}>
             Wallet ID
           </Text>
           <View>
@@ -44,7 +52,7 @@ const ReceiverDetails = ({data}: any) => {
         <View style={styles.copyBox}>
           <TouchableOpacity onPress={() => copy(data?.beneficiaryAddress)}>
             <Image
-              source={images.collectCopy}
+              source={images.copyIcon}
               style={styles.copyImg}
               resizeMode="contain"
             />

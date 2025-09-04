@@ -48,8 +48,12 @@ type SuccessCallback = (result: TransactionSuccess) => void;
  * @param userAddress - User's public address
  * @returns Transaction state and functions
  */
+interface MagicInstance {
+  rpcProvider: any;
+}
+
 export const useSendUSDCANDEURC = (
-  magic: any,
+  magic: MagicInstance,
   userAddress: string | undefined,
 ) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -109,7 +113,7 @@ export const useSendUSDCANDEURC = (
       const connectedContract = tokenContract.connect(signer);
 
       // Estimate gas for the transaction
-      const gasEstimate = await connectedContract.transfer.estimateGas(
+      const gasEstimate = await (connectedContract as any).transfer.estimateGas(
         transactionDetails.to,
         amountInSmallestUnit,
       );
@@ -128,7 +132,7 @@ export const useSendUSDCANDEURC = (
       }
 
       // Prepare transaction parameters
-      const tx = await connectedContract.transfer(
+      const tx = await (connectedContract as any).transfer(
         transactionDetails.to,
         amountInSmallestUnit,
         {
@@ -167,9 +171,10 @@ export const useSendUSDCANDEURC = (
       }
 
       return receipt;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Token Transaction error:', err);
-      setError(err.message || 'Token transaction failed');
+      const errorMessage = err instanceof Error ? err.message : 'Token transaction failed';
+      setError(errorMessage);
       throw err;
     } finally {
       setIsLoading(false);

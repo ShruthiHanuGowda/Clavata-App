@@ -2,10 +2,11 @@ import {useState, useEffect, useCallback, useMemo, useRef} from 'react';
 import {errorService, ApiError} from '../services/errorService';
 interface UseApiOptions {
   method?: string;
-  headers?: HeadersInit;
+  headers?: Record<string, string>;
   body?: string | FormData;
   [key: string]: any;
 }
+
 interface UseApiResponse<T> {
   data: T | null;
   isLoading: boolean;

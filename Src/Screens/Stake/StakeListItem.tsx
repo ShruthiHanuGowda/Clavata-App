@@ -29,15 +29,15 @@ const StakeListItem: React.FC<StakeListItemProps> = props => {
   return (
     <TouchableOpacity
       onPress={() => {
-        navigation.navigate(SCREEN_CONSTANT.VALIDATOR, {
-          poolId: item._id,
+        (navigation.navigate as any)(SCREEN_CONSTANT.VALIDATOR, {
+          poolId: item?._id,
         });
       }}
       style={[styles.cardContainer, styles.cardBorder]}>
       <Image
         style={styles.image}
         source={{
-          uri: item.imageUrl,
+          uri: item?.imageUrl,
         }}
       />
       <View style={styles.contentContainer}>

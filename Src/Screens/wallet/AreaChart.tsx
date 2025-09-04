@@ -8,9 +8,9 @@ const AreaChart = ({chartData}: {chartData: PointData[]}) => {
   return (
     <View style={styles.container}>
       <CartesianChart
-        data={chartData as any}
-        xKey={'x' as any}
-        yKeys={['y'] as any}
+        data={chartData}
+        xKey="x"
+        yKeys={['y']}
         axisOptions={{lineColor: '#fff'}}
         frame={{lineColor: '#fff'}}>
         {({points}: any) => (

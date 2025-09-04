@@ -19,7 +19,7 @@ const Portfolio: React.FC<PortfolioProps> = ({}) => {
       <View style={styles.portfolio}>
         <View style={styles.section}>
           <DText fontStyle="fontBold" style={styles.count}>
-            {/* 0 */}
+            0
           </DText>
           <DText fontStyle="fontSemiBold" style={styles.type}>
             Total Pools
@@ -27,7 +27,7 @@ const Portfolio: React.FC<PortfolioProps> = ({}) => {
         </View>
         <View style={styles.section}>
           <DText fontStyle="fontBold" style={styles.count}>
-            {/* 0 */}
+            0
           </DText>
           <DText fontStyle="fontSemiBold" style={styles.type}>
             Staked Pools
@@ -35,7 +35,7 @@ const Portfolio: React.FC<PortfolioProps> = ({}) => {
         </View>
         <View style={styles.section}>
           <DText fontStyle="fontBold" style={styles.count}>
-            {/* 0 */}
+            0
           </DText>
           <DText fontStyle="fontSemiBold" style={styles.type}>
             Staked EACs

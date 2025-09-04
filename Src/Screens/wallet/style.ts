@@ -1,6 +1,7 @@
 import {StyleSheet} from 'react-native';
 import {fontsFamily} from '../../Theme';
-export default StyleSheet.create({
+
+const styles = StyleSheet.create({
   container: {
     marginLeft: 21,
     marginRight: 21,
@@ -191,3 +192,5 @@ export default StyleSheet.create({
     paddingBottom: 50,
   },
 });
+
+export default styles;

@@ -43,13 +43,21 @@ import NFTDetailHistory from '../Screens/MarketPlace/WalletNFTDetailsPage/NFTDet
 
 // Extended RootStackParamList to include common screens
 type ExtendedRootStackParamList = RootStackParamList & {
+  // Main navigation screens
+  root: undefined;
+  intro: undefined;
+  appScreens: undefined;
+  authScreens: undefined;
+  OffsetScreen: undefined;
+
   // Common NFT/Marketplace screens
   walletNFTDetails: undefined;
+  NFTDetailHistory: undefined;
   SellNFT: undefined;
   UserNFTs: undefined;
   BuyNFT: undefined;
   NFTDetailsPage: undefined;
-  collectionDetails: undefined;
+  collectionDetails: {contractAddress: string};
 
   // Common transaction/wallet screens
   transactionHistory: undefined;
@@ -105,7 +113,7 @@ function RootScreenStack() {
       />
       <RootStack.Screen
         name="SellNFT"
-        component={SellNFTScreen}
+        component={SellNFTScreen as any}
         options={{headerShown: false}}
       />
       <RootStack.Screen
@@ -115,7 +123,7 @@ function RootScreenStack() {
       />
       <RootStack.Screen
         name="BuyNFT"
-        component={BuyNFTScreen}
+        component={BuyNFTScreen as any}
         options={{headerShown: false}}
       />
       <RootStack.Screen
@@ -171,7 +179,7 @@ function RootScreenStack() {
       />
       <RootStack.Screen
         name="NewsDetail"
-        component={NewsDetail}
+        component={NewsDetail as any}
         options={{headerShown: false}}
       />
 
@@ -197,8 +205,8 @@ function RootScreenStack() {
 
 type CoinWalletStackParamList = {
   coinWallet: undefined;
-  [SCREEN_CONSTANT.RECIEVESCREEN]: undefined;
-  [SCREEN_CONSTANT.VERIFYADDRESS]: undefined;
+  ReceiveScreen: undefined;
+  VerifyAddress: undefined;
   [SCREEN_CONSTANT.TRANSFERCOIN]: undefined;
   [SCREEN_CONSTANT.SENDCOIN]: undefined;
   swap: undefined;
@@ -213,12 +221,12 @@ export function CoinWalletStackFun() {
       screenOptions={{headerShown: false}}>
       <CoinWalletStack.Screen name="coinWallet" component={CoinWallet} />
       <CoinWalletStack.Screen
-        name={SCREEN_CONSTANT.RECIEVESCREEN}
-        component={ReceiveScreen}
+        name="ReceiveScreen"
+        component={ReceiveScreen as any}
       />
       <CoinWalletStack.Screen
-        name={SCREEN_CONSTANT.VERIFYADDRESS}
-        component={VerifyAddress}
+        name="VerifyAddress"
+        component={VerifyAddress as any}
       />
       <CoinWalletStack.Screen
         name={SCREEN_CONSTANT.TRANSFERCOIN}
@@ -226,7 +234,7 @@ export function CoinWalletStackFun() {
       />
       <CoinWalletStack.Screen
         name={SCREEN_CONSTANT.SENDCOIN}
-        component={SendCoin}
+        component={SendCoin as any}
       />
 
       <CoinWalletStack.Screen name="swap" component={Swap} />

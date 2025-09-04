@@ -158,7 +158,7 @@ export const VerifyAddress: React.FC<Props> = props => {
         {senderAddress && (
           <View style={style.selectedAddressContainer}>
             <DText style={style.selectedAddressLabel}>Selected Address:</DText>
-            <DText style={style.selectedAddressText} numberOfLines={1}>
+            <DText style={style.selectedAddressText} textProps={{numberOfLines: 1}}>
               {senderAddress}
             </DText>
           </View>

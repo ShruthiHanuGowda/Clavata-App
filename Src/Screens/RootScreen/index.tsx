@@ -11,12 +11,12 @@ export const Root = () => {
       console.log('🚀 ~ CheckNav ~ value:', value);
 
       if (value === 'true') {
-        navReset('authScreens');
+        (navReset as any)('authScreens');
       } else {
-        navReset('intro');
+        (navReset as any)('intro');
       }
     } catch (e) {
-      navReset('intro');
+      (navReset as any)('intro');
       // error reading value
     }
   };

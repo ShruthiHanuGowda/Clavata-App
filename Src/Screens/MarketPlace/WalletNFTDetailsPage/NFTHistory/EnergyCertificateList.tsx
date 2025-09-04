@@ -173,7 +173,7 @@ const DateSeparator: React.FC<DateSeparatorProps> = ({date}) => {
     if (diffDays === 2) {
       return 'Yesterday';
     }
-    return date.toLocaleDateString('en-US', {
+    return parsedDate.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',

@@ -27,6 +27,7 @@ interface HeaderProps {
   hideBackIcon?: boolean;
   backBtn?: () => void;
   hideTitle?: boolean;
+  rightComponent?: React.ReactNode;
 }
 
 const Header: React.FC<HeaderProps> = props => {
@@ -55,6 +56,9 @@ const Header: React.FC<HeaderProps> = props => {
             {headerTitle}
           </Text>
         )}
+        <View style={style.rightContainer}>
+          {props.rightComponent}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -99,6 +103,12 @@ const style = StyleSheet.create({
     left: -30,
     textAlign: 'center',
     fontFamily: fontsFamily.MulishBold,
+  },
+  rightContainer: {
+    position: 'absolute',
+    right: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

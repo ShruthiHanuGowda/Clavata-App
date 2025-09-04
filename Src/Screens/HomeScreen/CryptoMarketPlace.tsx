@@ -27,7 +27,6 @@ export default function CryptoMarketPlace(props: any) {
     {
       title: 'ETH Coin',
       code: 'ETH',
-      coinValue: 'ETH',
       chartData: [
         {x: 1, y: 0},
         {x: 2, y: 0},

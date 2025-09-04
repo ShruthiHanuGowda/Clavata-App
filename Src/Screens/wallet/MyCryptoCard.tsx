@@ -6,7 +6,23 @@ import {marketIcons} from '../../Theme/variable';
 import {DText} from '../../Componants/DText';
 import {navigateTo} from '../../utils/navigationService';
 
-const marketIconColors = {
+interface ChartDataPoint {
+  x: number;
+  y: number;
+}
+
+interface MyCryptoCardProps {
+  title: string;
+  code: string;
+  chartData: ChartDataPoint[];
+  dollar: string | number;
+  growth: number;
+  dip?: boolean;
+  balance: string | number;
+  operationsTypes: string[];
+}
+
+const marketIconColors: {[key: string]: string} = {
   WATT: '#045E19',
   BTC: '#F7931A30',
   USDT: '#26A17B',
@@ -17,7 +33,7 @@ const marketIconColors = {
   ETH: '#ECEFF0',
 };
 
-const MyCryptoCard = ({
+const MyCryptoCard: React.FC<MyCryptoCardProps> = ({
   title,
   code,
   chartData,
@@ -31,14 +47,14 @@ const MyCryptoCard = ({
   const width = 71;
 
   // Helper functions for dynamic styles
-  const getImageStyle = coinCode => [
+  const getImageStyle = (coinCode: string) => [
     marketStyles.image,
     {backgroundColor: marketIconColors[coinCode]},
   ];
 
-  const getChartStyle = chartWidth => [marketStyles.chart, {width: chartWidth}];
+  const getChartStyle = (chartWidth: number) => [marketStyles.chart, {width: chartWidth}];
 
-  const getChartBackgroundStyle = (bgWidth, bgHeight) => [
+  const getChartBackgroundStyle = (bgWidth: number, bgHeight: number) => [
     marketStyles.chartBackground,
     {width: bgWidth, height: bgHeight},
   ];
@@ -72,22 +88,20 @@ const MyCryptoCard = ({
       <View style={marketStyles.content}>
         <View style={getChartStyle(width)}>
           <View style={getChartBackgroundStyle(width, height)}>
-            <CartesianChart
-              data={chartData}
-              xKey="x"
-              yKeys={['y']}
-              axisOptions={{lineColor: '#fff'}}
-              frame={{lineColor: '#fff'}}>
-              {/* 👇 render function exposes various data, such as points. */}
-              {({points}) => (
-                // 👇 and we'll use the Line component to render a line path.
+            {(CartesianChart as any)({
+              data: chartData,
+              xKey: "x",
+              yKeys: ['y'],
+              axisOptions: {lineColor: '#fff'},
+              frame: {lineColor: '#fff'},
+              children: ({points}: any) => (
                 <Line
                   points={points.y}
                   color={growth >= 0 ? '#029471' : '#F42121'}
                   strokeWidth={0}
                 />
-              )}
-            </CartesianChart>
+              )
+            })}
           </View>
           {growth >= 0 ? (
             <DText fontStyle="fontRegular" style={marketStyles.growth}>

@@ -4,7 +4,7 @@ import Sound from 'react-native-sound';
 export const useSuccessSound = () => {
   const soundRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     Sound.setCategory('Playback');

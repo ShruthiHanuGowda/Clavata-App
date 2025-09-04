@@ -13,6 +13,8 @@ interface TransactionItem {
   coinCode: string;
   timestamp: string;
   userName?: string;
+  date: string;
+  [key: string]: any;
 }
 
 interface ListItemProps {

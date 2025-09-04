@@ -137,7 +137,6 @@ const ContactUs: React.FC<ContactUsProps> = () => {
             value={data.name}
             setValue={(value: string) => updateField('name', value)}
             setValid={() => validateField('name', data.name)}
-            inputAccessoryViewID="sendEmail"
           />
 
           <DTextInput
@@ -146,7 +145,6 @@ const ContactUs: React.FC<ContactUsProps> = () => {
             placeholder="Subject *"
             setValue={(value: string) => updateField('subject', value)}
             setValid={() => validateField('subject', data.subject)}
-            inputAccessoryViewID="sendEmail"
           />
 
           <DTextInput
@@ -158,8 +156,6 @@ const ContactUs: React.FC<ContactUsProps> = () => {
             value={data.message}
             setValue={(value: string) => updateField('message', value)}
             setValid={() => validateField('message', data.message)}
-            inputAccessoryViewID="sendEmail"
-            textAlignVertical="top"
           />
         </View>
 

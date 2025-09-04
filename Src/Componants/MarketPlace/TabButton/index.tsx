@@ -1,7 +1,13 @@
 import React from 'react';
 import {TouchableOpacity, Text, StyleSheet} from 'react-native';
 
-const TabButton = ({label, isSelected, onPress}) => {
+interface TabButtonProps {
+  label: string;
+  isSelected: boolean;
+  onPress: () => void;
+}
+
+const TabButton = ({label, isSelected, onPress}: TabButtonProps) => {
   return (
     <TouchableOpacity
       style={[styles.tabButton, isSelected && styles.selectedTab]}

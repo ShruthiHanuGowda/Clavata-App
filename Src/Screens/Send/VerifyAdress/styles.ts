@@ -53,7 +53,6 @@ export default StyleSheet.create({
     margin: 0,
     borderWidth: 0,
     backgroundColor: 'transparent',
-    multiline: false,
     numberOfLines: 1,
   },
   bottomButton: {

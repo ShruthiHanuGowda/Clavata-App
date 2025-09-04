@@ -38,7 +38,7 @@ const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
     error,
     loadMoreTransactions,
     refreshTransactions,
-  } = useTransactionHistory(limit, contractAddress, wallet);
+  } = useTransactionHistory(limit, contractAddress || undefined, wallet || undefined);
 
   // Filter state for date ranges
   // const [filters, setFilters] = useState<FilterState>({

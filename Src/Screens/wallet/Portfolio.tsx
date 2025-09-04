@@ -7,7 +7,22 @@ import style from './style';
 import LinearGradient from 'react-native-linear-gradient';
 import AreaChart from './AreaChart';
 
-const Portfolio = ({WATT, fiatBalance}) => {
+interface ChartDataPoint {
+  x: number;
+  y: number;
+}
+
+interface WATTData {
+  chartData?: ChartDataPoint[];
+  percentage?: number;
+}
+
+interface PortfolioProps {
+  WATT?: WATTData;
+  fiatBalance?: string | number;
+}
+
+const Portfolio: React.FC<PortfolioProps> = ({WATT, fiatBalance}) => {
   return (
     <LinearGradient
       colors={['#dcf2f1', '#FFFFFF']}

@@ -123,7 +123,7 @@ export default function LoginScreen() {
 
   const navigateToApp = useCallback(() => {
     console.log('🚀 Navigating to app screens');
-    navReset('appScreens');
+    (navReset as any)('appScreens');
   }, []);
 
   const handleKycProcess = useCallback(async () => {

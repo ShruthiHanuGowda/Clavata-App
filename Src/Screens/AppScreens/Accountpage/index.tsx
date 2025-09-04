@@ -87,7 +87,7 @@ const Account: React.FC<AccountProps> = ({navigation}) => {
               try {
                 await magic.user.logout();
                 setTimeout(() => {
-                  navReset('authScreens');
+                  (navReset as any)('authScreens');
                 }, 500);
                 console.log('User logged out successfully');
               } catch (error) {
@@ -147,7 +147,6 @@ const Account: React.FC<AccountProps> = ({navigation}) => {
           onPress={() => navigateTo('ProfileSettings')}
           img={images.user}
           title="My Account"
-          index={1}
         />
 
         <MenuList

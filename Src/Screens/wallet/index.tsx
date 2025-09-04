@@ -18,7 +18,7 @@ interface ChartDataPoint {
 interface CoinData {
   title: string;
   code: string;
-  coinValue?: string;
+  coinValue?: number | null;
   chartData: ChartDataPoint[];
   operationsTypes: string[];
   growth: number;
@@ -77,7 +77,7 @@ export default function Wallet(props: WalletProps) {
     {
       title: 'ETH Coin',
       code: 'ETH',
-      coinValue: 'ETH',
+      coinValue: null,
       chartData: [
         {x: 1, y: 0},
         {x: 2, y: 0},
@@ -212,7 +212,15 @@ export default function Wallet(props: WalletProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.navigation]);
 
-  const balanceData = {};
+  const balanceData = {
+    WATT: {
+      chartData: [
+        {x: 1, y: 0},
+        {x: 2, y: 0},
+      ],
+      percentage: 0,
+    },
+  };
 
   return (
     <View style={style.mainContainer}>

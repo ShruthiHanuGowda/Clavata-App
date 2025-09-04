@@ -95,7 +95,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
   };
 
   // Function to format contract address
-  const formatContractAddress = address => {
+  const formatContractAddress = (address: string) => {
     if (!address) {
       return '';
     }
@@ -104,7 +104,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
     )}`;
   };
 
-  const handleStakeSuccess = result => {
+  const handleStakeSuccess = (result: any) => {
     console.log('NFT Staking successful:', result);
 
     setTxStatus('success');
@@ -253,12 +253,6 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
               amountError ? styles.inputError : null,
             ]}
             editable={!!selectedNFT} // Disable if no NFT is selected
-            onFocus={() => {
-              // Small delay to ensure keyboard is open before scrolling
-              setTimeout(() => {
-                // You can add ref.current.scrollToEnd() here if needed
-              }, 100);
-            }}
           />
           {amountError ? (
             <Text style={styles.errorText}>{amountError}</Text>

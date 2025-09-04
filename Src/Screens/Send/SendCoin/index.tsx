@@ -50,6 +50,7 @@ interface User {
   id: string;
   name: string;
   beneficiaryAddress: string;
+  colorCode: string;
 }
 
 // Define balance return type

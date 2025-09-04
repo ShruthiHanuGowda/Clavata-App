@@ -125,16 +125,18 @@ const ValidatorDetailsScreen = ({
   };
 
   const handleOffersClick = async () => {
-    if (isKycCompleted) {
+    if (isKycCompleted && validator) {
       navigation.navigate('StakeScreen', {
         validatorId: validator.validatorId,
       });
     } else {
       await checkKYC({
         onSuccess: () => {
-          navigation.navigate('StakeScreen', {
-            validatorId: validator.validatorId,
-          });
+          if (validator) {
+            navigation.navigate('StakeScreen', {
+              validatorId: validator.validatorId,
+            });
+          }
         },
         onSkip: () => {
           SnackBarMessage(
