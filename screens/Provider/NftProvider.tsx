@@ -111,7 +111,8 @@ export const NftProvider: React.FC<NftProviderProps> = ({children}) => {
     ) {
       fetchNftData();
     }
-  }, [isLoadingCollections, account, collectionsRes, fetchNftData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingCollections, account, collectionsRes]);
 
   const refetch = useCallback(async () => {
     await fetchNftData(true);

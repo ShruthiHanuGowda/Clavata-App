@@ -76,22 +76,22 @@ export const WalletProvider = ({children}: {children: ReactNode}) => {
   };
 
   // Fetch all balances whenever userDetails changes and a wallet address is available
-  useEffect(() => {
-    let isCancelled = false;
+  // useEffect(() => {
+  //   let isCancelled = false;
 
-    const fetchBalances = async () => {
-      if (userDetails?.userWallet && userDetails?.userWallet && !isCancelled) {
-        await fetchAllBalances(userDetails.userWallet, userDetails.userWallet);
-      }
-    };
+  //   const fetchBalances = async () => {
+  //     if (userDetails?.userWallet && userDetails?.userWallet && !isCancelled) {
+  //       await fetchAllBalances(userDetails.userWallet, userDetails.userWallet);
+  //     }
+  //   };
 
-    fetchBalances();
+  //   fetchBalances();
 
-    return () => {
-      isCancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userDetails]);
+  //   return () => {
+  //     isCancelled = true;
+  //   };
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [userDetails]);
 
   return (
     <WalletContext.Provider

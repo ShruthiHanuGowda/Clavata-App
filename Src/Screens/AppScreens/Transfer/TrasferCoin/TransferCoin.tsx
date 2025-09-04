@@ -303,7 +303,8 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep, soundLoaded, soundError, playSuccessSound]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, soundLoaded, soundError]);
 
   // API call to get swap details
   const initiateSwap = async (val: string): Promise<void> => {

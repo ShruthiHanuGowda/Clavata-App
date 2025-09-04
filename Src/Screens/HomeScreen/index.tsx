@@ -124,7 +124,8 @@ export default function HomeScreen() {
       return () => {
         console.log('Screen is unfocused!');
       };
-    }, [refreshAllBalances]),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
   );
 
   return (
