@@ -16,9 +16,6 @@ interface CreateUserWalletsResult {
 }
 
 interface AuthContextType {
-  isAuthenticated: boolean;
-  login: () => void;
-  logout: () => void;
   updateUserData: (
     userData: UserAuth,
     isExist: boolean,
@@ -32,20 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({children}: {children: ReactNode}) => {
   const [createUserWallets] = useMutation(CREATE_USER_WALLETS);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [userDetails, setUserDetails] = useState<UserAuth | null>(null);
-
-  // Function to simulate login
-  const login = () => {
-    setIsAuthenticated(true);
-    console.log('User logged in');
-  };
-
-  // Function to simulate logout
-  const logout = () => {
-    setIsAuthenticated(false);
-    console.log('User logged out');
-  };
 
   const handleSaveWalletToDB = async (
     user: UserAuth,
@@ -121,9 +105,6 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated,
-        login,
-        logout,
         updateUserData,
         updateUserDetails,
         userDetails,
