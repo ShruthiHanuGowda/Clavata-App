@@ -19,14 +19,16 @@ const useApi = <T>(
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<ApiError | null>(null);
-  // Memoize options to prevent re-renders due to object reference changes
-  const memoizedOptions = useMemo(() => options, [options]);
+
+  const optionsStringified = JSON.stringify(options);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const memoizedOptions = useMemo(() => options, [optionsStringified]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     setData(null);
-    abortControllerRef.current?.abort(); // Cancel any previous request
+    abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
     try {
