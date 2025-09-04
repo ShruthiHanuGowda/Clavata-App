@@ -64,7 +64,6 @@ interface StakedPoolParams {
  * Custom hook to fetch validators data and staked pool data
  */
 const useValidators = () => {
-  // Define axios config - won't change between renders
   const axiosConfig = {
     headers: {
       'Content-Type': 'application/json',

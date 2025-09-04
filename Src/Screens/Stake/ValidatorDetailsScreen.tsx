@@ -106,7 +106,8 @@ const ValidatorDetailsScreen = ({
     };
 
     fetchValidatorData();
-  }, [validatorId, singleValidator]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [validatorId]);
 
   const formatStake = (nft: number, watt: number) => {
     const formatNumber = (num: number) => {
