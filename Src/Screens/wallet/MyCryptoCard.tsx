@@ -52,7 +52,10 @@ const MyCryptoCard: React.FC<MyCryptoCardProps> = ({
     {backgroundColor: marketIconColors[coinCode]},
   ];
 
-  const getChartStyle = (chartWidth: number) => [marketStyles.chart, {width: chartWidth}];
+  const getChartStyle = (chartWidth: number) => [
+    marketStyles.chart,
+    {width: chartWidth},
+  ];
 
   const getChartBackgroundStyle = (bgWidth: number, bgHeight: number) => [
     marketStyles.chartBackground,
@@ -88,20 +91,20 @@ const MyCryptoCard: React.FC<MyCryptoCardProps> = ({
       <View style={marketStyles.content}>
         <View style={getChartStyle(width)}>
           <View style={getChartBackgroundStyle(width, height)}>
-            {(CartesianChart as any)({
-              data: chartData,
-              xKey: "x",
-              yKeys: ['y'],
-              axisOptions: {lineColor: '#fff'},
-              frame: {lineColor: '#fff'},
-              children: ({points}: any) => (
+            <CartesianChart
+              data={chartData}
+              xKey={'x'}
+              yKeys={['y']}
+              axisOptions={{lineColor: '#fff'}}
+              frame={{lineColor: '#fff'}}>
+              {({points}: any) => (
                 <Line
                   points={points.y}
                   color={growth >= 0 ? '#029471' : '#F42121'}
                   strokeWidth={0}
                 />
-              )
-            })}
+              )}
+            </CartesianChart>
           </View>
           {growth >= 0 ? (
             <DText fontStyle="fontRegular" style={marketStyles.growth}>

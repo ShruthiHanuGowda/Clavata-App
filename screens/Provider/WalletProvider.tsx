@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useMemo,
-} from 'react';
+import React, {createContext, ReactNode, useContext, useMemo} from 'react';
 import {useWalletBalance, TokenBalance} from '../../Src/hooks/useWalletBalance';
 import {useAuth} from './authProvider';
 

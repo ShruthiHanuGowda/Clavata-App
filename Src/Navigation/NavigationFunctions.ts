@@ -66,7 +66,7 @@ export const navReset = <T extends keyof ExtendedRootStackParamList>(
 ) => {
   console.log('reset to screen:', screenName);
   if (navigationRef.current?.isReady()) {
-    const routeConfig = params.length > 0 && params[0] !== undefined 
+    const routeConfig = params.length > 0 && params[0] !== undefined
       ? {name: screenName, params: params[0]}
       : {name: screenName};
     (navigationRef.current as any).reset({
