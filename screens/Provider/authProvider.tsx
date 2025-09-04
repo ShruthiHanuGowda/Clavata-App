@@ -4,11 +4,25 @@ import {useMutation} from '@apollo/client';
 import {CREATE_USER_WALLETS} from '../../Src/graphql/queries';
 import {UserAuth} from '../../Src/utils/type';
 
+// GraphQL result type for CREATE_USER_WALLETS
+interface CreateUserWalletsResult {
+  createUserWalletAddress: {
+    emailAddress: string;
+    userWallet: string;
+    date: string;
+    applicantId: string;
+    accessToken: string;
+  };
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
   login: () => void;
   logout: () => void;
-  updateUserData: (userData: UserAuth, isExist: boolean) => Promise<any>;
+  updateUserData: (
+    userData: UserAuth,
+    isExist: boolean,
+  ) => Promise<boolean | CreateUserWalletsResult>;
   updateUserDetails: (partialUserData: Partial<UserAuth>) => void;
   userDetails: UserAuth | null;
 }
@@ -33,7 +47,9 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
     console.log('User logged out');
   };
 
-  const handleSaveWalletToDB = async (user: UserAuth) => {
+  const handleSaveWalletToDB = async (
+    user: UserAuth,
+  ): Promise<CreateUserWalletsResult> => {
     console.log('🚀 ~ handleSaveWalletToDB ~ user:', user);
 
     const walletData = {
@@ -50,13 +66,16 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
           createuserwalletaddressinput: walletData,
         },
       });
-      return data;
-    } catch (error: any) {
-      throw new Error(error);
+      return data as CreateUserWalletsResult;
+    } catch (error: unknown) {
+      throw new Error(error instanceof Error ? error.message : String(error));
     }
   };
 
-  const updateUserData = async (userData: UserAuth, isExist: boolean) => {
+  const updateUserData = async (
+    userData: UserAuth,
+    isExist: boolean,
+  ): Promise<boolean | CreateUserWalletsResult> => {
     try {
       console.log('🚀 ~ updateUserData ~ userData:', userData);
 
