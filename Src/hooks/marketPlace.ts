@@ -268,49 +268,60 @@ export const getCompleteAccountNftData = async (
   account: `0x${string}`,
   collections: ApiCollections,
 ): Promise<NftToken[]> => {
-  const collectionsWithDelist = {...collections};
+  try {
+    const collectionsWithDelist = {...collections};
 
-  if (!account || !collections || Object.keys(collections).length === 0) {
-    console.warn('Missing account or collections, skipping fetch');
+    if (!account || !collections || Object.keys(collections).length === 0) {
+      console.warn('Missing account or collections, skipping fetch');
+      return [];
+    }
+
+    const walletNftIdsWithCollectionAddress =
+      await fetchWalletTokenIdsForCollections(account, collectionsWithDelist);
+    console.log(
+      'walletNftIdsWithCollectionAddress',
+      walletNftIdsWithCollectionAddress,
+    );
+
+    const metadataForAllNfts = await getNftsFromDifferentCollectionsApi(
+      walletNftIdsWithCollectionAddress,
+    );
+    console.log('metadataForAllNfts', metadataForAllNfts);
+
+    const onChainForSaleNfts = await getNftsMarketData({});
+    console.log('onChainForSaleNfts', onChainForSaleNfts);
+
+    const walletTokenIds = walletNftIdsWithCollectionAddress
+      .filter(
+        (walletNft): walletNft is Required<TokenIdWithCollectionAddress> => {
+          return Boolean(walletNft.tokenId);
+        },
+      )
+      .map(nft => nft.tokenId);
+
+    const walletNftsWithMarketLikeData: TokenMarketData[] =
+      walletNftIdsWithCollectionAddress.map(nft => ({
+        tokenId: nft.tokenId,
+        quantity: nft.quantity,
+        collection: {
+          id: nft.collectionAddress,
+        },
+        metadataUrl: nft.metadataUrl || null,
+      })) as TokenMarketData[];
+
+    const completeNftData = combineNftMarketAndMetadata(
+      metadataForAllNfts,
+      onChainForSaleNfts,
+      walletNftsWithMarketLikeData,
+      walletTokenIds,
+      account,
+    );
+
+    return completeNftData;
+  } catch (error) {
+    console.log(error);
     return [];
   }
-
-  const walletNftIdsWithCollectionAddress =
-    await fetchWalletTokenIdsForCollections(account, collectionsWithDelist);
-
-  const metadataForAllNfts = await getNftsFromDifferentCollectionsApi(
-    walletNftIdsWithCollectionAddress,
-  );
-
-  const onChainForSaleNfts = await getNftsMarketData({});
-
-  const walletTokenIds = walletNftIdsWithCollectionAddress
-    .filter(
-      (walletNft): walletNft is Required<TokenIdWithCollectionAddress> => {
-        return Boolean(walletNft.tokenId);
-      },
-    )
-    .map(nft => nft.tokenId);
-
-  const walletNftsWithMarketLikeData: TokenMarketData[] =
-    walletNftIdsWithCollectionAddress.map(nft => ({
-      tokenId: nft.tokenId,
-      quantity: nft.quantity,
-      collection: {
-        id: nft.collectionAddress,
-      },
-      metadataUrl: nft.metadataUrl || null,
-    })) as TokenMarketData[];
-
-  const completeNftData = combineNftMarketAndMetadata(
-    metadataForAllNfts,
-    onChainForSaleNfts,
-    walletNftsWithMarketLikeData,
-    walletTokenIds,
-    account,
-  );
-
-  return completeNftData;
 };
 
 export const fetchWalletTokenIdsForCollections = async (
@@ -380,12 +391,16 @@ export const getNftsFromDifferentCollectionsApi = async (
     let nftMetadata: any = {};
     const metadataUrl = nft.metadataUrl;
     if (metadataUrl) {
-      const metadataResponse = await fetch(metadataUrl);
-      nftMetadata = await metadataResponse.json();
-      image = {
-        original: nftMetadata.image || '',
-        thumbnail: nftMetadata.image || '',
-      };
+      try {
+        const metadataResponse = await fetch(metadataUrl);
+        nftMetadata = await metadataResponse.json();
+        image = {
+          original: nftMetadata.image || '',
+          thumbnail: nftMetadata.image || '',
+        };
+      } catch (error) {
+        console.error('Error fetching metadata:', error);
+      }
     }
 
     return {
