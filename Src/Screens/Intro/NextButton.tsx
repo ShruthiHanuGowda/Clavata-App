@@ -3,7 +3,12 @@ import {Image, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {Circle, G, Svg} from 'react-native-svg';
 import images from '../../Theme/images';
 
-export default function NextButton({onPress, progress = 50}) {
+interface NextButtonProps {
+  onPress: () => void;
+  progress?: number;
+}
+
+export default function NextButton({onPress, progress = 50}: NextButtonProps) {
   const size = 80;
   const strokeWidth = 4;
   const center = size / 2;

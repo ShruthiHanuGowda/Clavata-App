@@ -1,7 +1,9 @@
 import Snackbar from 'react-native-snackbar';
 import { Colors, fontsFamily } from '../Theme';
 
-export const SnackBarMessage = (message, slug = '') => {
+type SnackBarSlug = 'error' | 'success' | '';
+
+export const SnackBarMessage = (message: string, slug: SnackBarSlug = ''): void => {
   Snackbar.show({
     fontsFamily: fontsFamily.Mulish,
     text: message,
@@ -16,8 +18,12 @@ export const SnackBarMessage = (message, slug = '') => {
   });
 };
 
-
-export const SnackBarWithAction = (message, slug = '', actionLabel = 'UNDO', onPress = () => {}) => {
+export const SnackBarWithAction = (
+  message: string,
+  slug: SnackBarSlug = '',
+  actionLabel: string = 'UNDO',
+  onPress: () => void = () => {}
+): void => {
   Snackbar.show({
     text: message,
     duration: Snackbar.LENGTH_LONG,

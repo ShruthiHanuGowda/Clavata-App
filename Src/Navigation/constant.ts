@@ -141,5 +141,5 @@ export const SCREEN_CONSTANT = {
   DEPOSIT: 'DEPOSIT',
 } as const;
 
-export type ScreenConstantKeys = keyof typeof SCREEN_CONSTANT;
-export type ScreenConstantValues = typeof SCREEN_CONSTANT[ScreenConstantKeys];
+export type ScreenConstantType = typeof SCREEN_CONSTANT;
+export type ScreenName = ScreenConstantType[keyof ScreenConstantType];

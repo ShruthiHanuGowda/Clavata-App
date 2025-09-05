@@ -1,10 +1,20 @@
 import React from 'react';
 import {Animated, StyleSheet, useWindowDimensions, View} from 'react-native';
 
+interface PaginatorItem {
+  title: string;
+  [key: string]: any;
+}
+
+interface PaginatorProps {
+  data: PaginatorItem[];
+  scrollX: Animated.Value;
+}
+
 export default function Paginator({
   data,
   scrollX,
-}) {
+}: PaginatorProps) {
   const {width} = useWindowDimensions();
   return (
     <View style={styles.container}>
