@@ -11,8 +11,20 @@ import {NftToken} from '../../../types/types';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {formatQuantityMWh} from '../../../utils';
 import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
-import {isAddress} from 'ethers';
 import ContactModal from '../../AddressBookScreens/ContactModal';
+
+const isValidAccountId = (accountId: string): boolean => {
+  if (!accountId || typeof accountId !== 'string') {
+    return false;
+  }
+
+  const trimmed = accountId.trim();
+
+  // Account ID should be 8 characters, alphanumeric, starting with a letter or digit
+  const accountIdPattern = /^[A-Z0-9]{8}$/;
+
+  return accountIdPattern.test(trimmed);
+};
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 import QRCodeScannerModal from '../../../Componants/QRScan/QRCodeScannerModal';
 import {SnackBarMessage} from '../../../utils/snackBar';
@@ -40,7 +52,7 @@ const TransferStage = ({
   const [qrScannerVisible, setQrScannerVisible] = useState(false);
 
   const transferAddressEqualsConnectedAddress =
-    transferAddress.toLowerCase() === userDetails?.userWallet?.toLowerCase();
+    transferAddress.toUpperCase() === userDetails?.userWallet?.toUpperCase();
 
   const parsedQty = parseFloat(quantity);
   const quantityGreaterThanAvailable =
@@ -50,7 +62,7 @@ const TransferStage = ({
 
   const isInvalidTransferAddress =
     !transferAddress ||
-    (transferAddress.length > 0 && !isAddress(transferAddress));
+    (transferAddress.length > 0 && !isValidAccountId(transferAddress));
 
   const showConfirmButtonDisabled = Boolean(
     isInvalidTransferAddress ||
@@ -81,34 +93,32 @@ const TransferStage = ({
   const handleQRCodeScanned = (data: string) => {
     console.log('QR Code scanned:', data);
 
-    // Extract address from QR code data
-    let extractedAddress = data;
+    // Extract account ID from QR code data
+    let extractedAccountId = data.trim().toUpperCase();
 
     // Handle different QR code formats
-    if (data.startsWith('ethereum:')) {
-      // Format: ethereum:0x1234567890abcdef...
-      extractedAddress = data.replace('ethereum:', '').split('?')[0];
-    } else if (data.startsWith('0x')) {
-      // Already a valid address format
-      extractedAddress = data;
+    if (data.includes(':')) {
+      // Format: account:T0IJL6DR or similar
+      const parts = data.split(':');
+      extractedAccountId = parts[parts.length - 1].trim().toUpperCase();
     } else {
-      // Try to find ethereum address pattern in the data
-      const addressMatch = data.match(/0x[a-fA-F0-9]{40}/);
-      if (addressMatch) {
-        extractedAddress = addressMatch[0];
+      // Try to find account ID pattern in the data (8 alphanumeric characters)
+      const accountIdMatch = data.match(/[A-Z0-9]{8}/);
+      if (accountIdMatch) {
+        extractedAccountId = accountIdMatch[0];
       }
     }
 
-    // Validate the extracted address
-    if (isAddress(extractedAddress)) {
-      setTransferAddress(extractedAddress);
+    // Validate the extracted account ID
+    if (isValidAccountId(extractedAccountId)) {
+      setTransferAddress(extractedAccountId);
       setQrScannerVisible(false);
-      SnackBarMessage('Address scanned successfully!', 'success');
+      SnackBarMessage('Account ID scanned successfully!', 'success');
     } else {
       setTransferAddress('');
       setQrScannerVisible(false);
       setTimeout(() => {
-        SnackBarMessage('Invalid wallet address in QR code', 'error');
+        SnackBarMessage('Invalid account ID in QR code', 'error');
       }, 500);
     }
   };
@@ -119,10 +129,10 @@ const TransferStage = ({
 
   const getAddressErrorText = () => {
     if (isInvalidTransferAddress) {
-      return 'Please enter a valid wallet address.';
+      return 'Please enter a valid account ID.';
     }
     if (transferAddressEqualsConnectedAddress) {
-      return 'Cannot transfer to your own wallet.';
+      return 'Cannot transfer to your own account.';
     }
     return null;
   };
@@ -145,7 +155,7 @@ const TransferStage = ({
       <View style={styles.header}>
         <Text style={styles.title}>Transfer NFT</Text>
         <Text style={styles.subtitle}>
-          Send your Certificate to another wallet address
+          Send your Certificate to another account ID
         </Text>
       </View>
 
@@ -174,9 +184,9 @@ const TransferStage = ({
       <View style={styles.formSection}>
         <Text style={styles.formTitle}>Transfer Details</Text>
 
-        {/* Receiving Address Input */}
+        {/* Receiving Account ID Input */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Receiving Wallet Address</Text>
+          <Text style={styles.inputLabel}>Receiving Account ID</Text>
           <View
             style={[
               styles.inputContainer,
@@ -186,13 +196,14 @@ const TransferStage = ({
             ]}>
             <TextInput
               style={styles.textInput}
-              placeholder="0x1234567890abcdef..."
+              placeholder="T0IJL6DR"
               placeholderTextColor="#999"
               value={transferAddress}
-              onChangeText={address => setTransferAddress(address)}
-              autoCapitalize="none"
+              onChangeText={accountId => setTransferAddress(accountId.toUpperCase())}
+              autoCapitalize="characters"
               autoCorrect={false}
               multiline={false}
+              maxLength={8}
             />
 
             {/* Icons Container */}
@@ -216,7 +227,7 @@ const TransferStage = ({
             <Text style={styles.errorText}>{getAddressErrorText()}</Text>
           )}
           <Text style={styles.helperText}>
-            Enter the complete wallet address where you want to send this NFT
+            Enter the 8-character account ID where you want to send this NFT
           </Text>
         </View>
 
@@ -282,10 +293,10 @@ const TransferStage = ({
             • This action cannot be undone once confirmed
           </Text>
           <Text style={styles.warningText}>
-            • Make sure the receiving address is correct
+            • Make sure the receiving account ID is correct
           </Text>
           <Text style={styles.warningText}>
-            • The NFT will be permanently transferred to the destination wallet
+            • The NFT will be permanently transferred to the destination account
           </Text>
         </View>
       </View>
@@ -316,7 +327,7 @@ const TransferStage = ({
         visible={qrScannerVisible}
         onClose={closeQRScanner}
         onCodeScanned={handleQRCodeScanned}
-        title="Scan Wallet Address"
+        title="Scan Account ID"
         codeTypes={['qr']}
         // showToggleButton={true}
         animationType="slide"

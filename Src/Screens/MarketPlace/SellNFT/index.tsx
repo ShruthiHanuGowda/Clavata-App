@@ -16,7 +16,7 @@ import RemoveStage from './RemoveStage';
 import TransferStage from './TransferStage';
 import ConfirmStage from './ConfirmStage';
 import TransactionConfirmed from './TransactionConfirmed';
-import {hexlify, parseUnits, toUtf8Bytes} from 'ethers';
+import {parseUnits} from 'ethers';
 import {NftToken} from '../../../types/types';
 import {getMinAskPrice} from '../../../hooks/marketPlace';
 import {useAuth} from '../../../../screens/Provider/authProvider';
@@ -26,12 +26,13 @@ import {
   getNftMarketContract,
   useNftMarketCollectionContract,
 } from '../../../hooks/marketplace/useContracts';
-import {TOKEN_CONTRACTS} from '../../../constants';
+import {API_TRANSFER_URL, TOKEN_CONTRACTS} from '../../../constants';
 import useApproveConfirmTransaction from '../../../hooks/marketplace/useApproveConfirmTransaction';
 import {isApprovedForAll} from '../../../hooks/marketplace/requiresApproval';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import ApproveAndConfirmStage from './ApproveAndConfirmStage';
 import {getAccountAskPrice, getAccountNFTQuantity} from '../../../utils';
+import axios from 'axios';
 
 enum SellingStage {
   SELL = 'SELL',
@@ -300,14 +301,35 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
 
         const adjustedPrice = parseUnits(rawPrice.toString(), 6);
         if (stage === SellingStage.CONFIRM_TRANSFER) {
-          const data = hexlify(toUtf8Bytes(''));
-          return callWithGasPrice(collectionContract, 'safeTransferFrom', [
-            account,
-            transferAddress as `0x${string}`,
-            BigInt(nftToSell.tokenId),
-            adjustedQuantity,
-            data,
-          ]);
+          const burnTx: any = await callWithGasPrice(
+            collectionContract,
+            'burn',
+            [account, BigInt(nftToSell.tokenId), adjustedQuantity],
+          );
+          console.log('burnTx', burnTx);
+          const payload = {
+            volumeInput: quantity,
+            destinationAccountInput: transferAddress,
+            notes: 'NFT transfer',
+            nft: {
+              contractAddr: nftToSell.collectionAddress,
+              tokenId: nftToSell.tokenId,
+              account: account,
+              transactionHash: burnTx.hash as `0x${string}`,
+            },
+          };
+
+          console.log('payload', payload);
+
+          try {
+            const response = await axios.post(API_TRANSFER_URL, payload);
+
+            console.log('API response:', response.data);
+            return burnTx;
+          } catch (error) {
+            console.error('API call error:', error);
+            throw error;
+          }
         }
 
         if (variant === 'sell') {

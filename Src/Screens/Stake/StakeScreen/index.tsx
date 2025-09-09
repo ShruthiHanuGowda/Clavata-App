@@ -1,9 +1,9 @@
 import React, {useState} from 'react';
-import {View, SafeAreaView} from 'react-native';
+import {View, SafeAreaView, Text, TouchableOpacity, Image} from 'react-native';
 import {Tab} from '@rneui/base';
 import {fontsFamily} from '../../../Theme';
+import images from '../../../Theme/images';
 // import {navigateBack} from '../../../utils/navigationService';
-// import images from '../../../Theme/images';
 import styles from './styles';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
 import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
@@ -11,6 +11,7 @@ import NFTStakeComponent from './NFTStakeComponent';
 import WATTStakeComponent from './WATTStakeComponent';
 // Interface for component props
 interface StakeScreenProps {
+  navigation?: any;
   route?: {
     params?: {
       validatorId?: string;
@@ -25,13 +26,21 @@ interface FontFamily {
 }
 
 // Tab content components
-const NFTStakingContent = ({ validatorId }: { validatorId: string | undefined }): React.ReactElement => (
+const NFTStakingContent = ({
+  validatorId,
+}: {
+  validatorId: string | undefined;
+}): React.ReactElement => (
   <View style={styles.tabContent}>
     <NFTStakeComponent validatorId={validatorId || ''} />
   </View>
 );
 
-const WATTStakingContent = ({ validatorId }: { validatorId: string | undefined }): React.ReactElement => (
+const WATTStakingContent = ({
+  validatorId,
+}: {
+  validatorId: string | undefined;
+}): React.ReactElement => (
   <View style={styles.tabContent}>
     <WATTStakeComponent validatorId={validatorId || ''} />
   </View>
@@ -39,6 +48,7 @@ const WATTStakingContent = ({ validatorId }: { validatorId: string | undefined }
 
 const StakeScreen: React.FC<StakeScreenProps> = props => {
   const validatorId = props?.route?.params?.validatorId;
+  const navigation = props?.navigation;
 
   const {} = useNFTStaking(validatorId);
 
@@ -47,10 +57,18 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
 
   const TAB_ITEMS: readonly string[] = ['NFT Staking', 'WATT Staking'];
 
-
-
   return (
     <SafeAreaView style={styles.mainContainer}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation?.goBack()}>
+          <Image source={images.back} style={styles.backIcon} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Staking</Text>
+        <View style={styles.spacer} />
+      </View>
       {false ? (
         <View style={styles.loaderContainer}>
           {/* <ActivityIndicator size="large" color="#008060" />
@@ -74,7 +92,11 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
               {TAB_ITEMS.map((tab, i) => (
                 <Tab.Item
                   key={i}
-                  containerStyle={(active: boolean) => active ? styles.activeTabContainer : styles.inactiveTabContainer}
+                  containerStyle={(active: boolean) =>
+                    active
+                      ? styles.activeTabContainer
+                      : styles.inactiveTabContainer
+                  }
                   title={tab}
                   titleStyle={(active: boolean) => ({
                     color: active ? '#000' : '#989898',
@@ -97,6 +119,5 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
     </SafeAreaView>
   );
 };
-
 
 export default StakeScreen;

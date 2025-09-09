@@ -1,4 +1,4 @@
-import {StyleSheet} from 'react-native';
+import {StyleSheet, Platform} from 'react-native';
 import {Colors, fontsFamily} from '../../../Theme';
 
 export default StyleSheet.create({
@@ -22,9 +22,31 @@ export default StyleSheet.create({
     marginTop: 20,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    marginTop: Platform.OS === 'ios' ? 0 : 20,
+    backgroundColor: '#fff',
+  },
+  backButton: {
+    padding: 8,
+  },
+  backIcon: {
+    width: 20,
+    height: 20,
+  },
+  headerTitle: {
     fontSize: 18,
-    fontFamily: fontsFamily?.MulishBold || 'sans-serif',
+    fontWeight: 'bold',
     color: '#000',
+    flex: 1,
+    textAlign: 'center',
+  },
+  spacer: {
+    width: 60,
   },
   headerText: {
     fontSize: 28,
