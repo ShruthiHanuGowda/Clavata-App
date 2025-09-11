@@ -7,12 +7,12 @@ import {
   Image,
   FlatList,
 } from 'react-native';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import {navigateBack, navigateTo} from '../../../utils/navigationService';
 import images from '../../../Theme/images';
 import {useBlogs} from '../Hooks/NewsGraphql';
 import {Blog} from '../Hooks/type';
-import NewsCard from '../Componants/NewsCard';
+import NewsCard from '../components/NewsCard';
 import {styles} from './styles';
 
 const THEME_COLOR = '#009D94';

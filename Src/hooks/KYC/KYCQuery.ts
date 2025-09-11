@@ -20,8 +20,6 @@ export const getKYCDetails = async (
   }
 
   try {
-    console.log('🔍 Fetching KYC details for applicantId:', applicantId);
-
     const {data} = await client.query({
       query: GET_COMPANY_DETAILS, // This is your GraphQL query
       variables: {
@@ -31,7 +29,6 @@ export const getKYCDetails = async (
       fetchPolicy: 'network-only',
     });
 
-    console.log('✅ KYC data fetched successfully:', data);
     return data?.getKycUserDetails?.response || [];
   } catch (error) {
     // Enhanced error handling

@@ -14,8 +14,8 @@ import NavigationWrapper from './Src/Navigation';
 import {AuthProvider} from './screens/Provider/authProvider';
 import {GraphQLProvider} from './screens/Provider/GraphQLProvider';
 import {WalletProvider} from './screens/Provider/WalletProvider';
-import {GlobalKycProvider} from './Src/CustomHooks/GlobalKycProvider';
-import GlobalKycBottomSheet from './Src/CustomHooks/GlobalKycBottomSheet';
+import {GlobalKycProvider} from './Src/hooks/GlobalKycProvider';
+import GlobalKycBottomSheet from './Src/hooks/GlobalKycBottomSheet';
 import {NftProvider} from './screens/Provider/NftProvider';
 import {MAGIC_API_KEY_PROD} from './Src/constants';
 import {fontsFamily} from './Src/Theme';
@@ -31,11 +31,11 @@ export default function App() {
       const jailBroken = JailMonkey.isJailBroken();
       const canMockLocation = JailMonkey.canMockLocation();
 
-      if (jailBroken || canMockLocation) {
-        setIsSecureDevice(false);
-      } else {
-        setIsSecureDevice(true);
-      }
+      // if (jailBroken || canMockLocation) {
+      //   setIsSecureDevice(false);
+      // } else {
+      //   setIsSecureDevice(true);
+      // }
     };
 
     checkDeviceSecurity();

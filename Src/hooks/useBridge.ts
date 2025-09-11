@@ -42,8 +42,7 @@ const apiCall = async (transactionDetails: any, endPoint: string) => {
       },
       body: JSON.stringify(transactionDetails),
     });
-    const result = await response.json();
-    console.log('result', result);
+    await response.json();
   } catch (error) {
     console.error('API call failed:', error);
   }
@@ -157,8 +156,6 @@ export const useBridge = () => {
           throw new Error('Magic SDK not available');
         }
 
-        console.log('amount', amount);
-
         setIsLoading(true);
         setError(null);
         resetBridgeState();
@@ -191,11 +188,9 @@ export const useBridge = () => {
           bankAddress,
           parseUnits(amount, 6),
         );
-        console.log('Approve transaction:', approveTx);
 
         updateProcessingStep('DEPOSIT', 'WAITING_APPROVAL');
-        const approvalReceipt = await approveTx.wait();
-        console.log('Approval receipt:', approvalReceipt);
+        await approveTx.wait();
 
         // Deposit USDC to bridge
         updateProcessingStep('DEPOSIT', 'DEPOSITING');
@@ -203,7 +198,6 @@ export const useBridge = () => {
           usdcAddress,
           parseUnits(amount, 6),
         );
-        console.log('Deposit transaction:', depositTx);
 
         updateProcessingStep('DEPOSIT', 'WAITING_DEPOSIT');
         const receipt = await depositTx.wait();
@@ -300,8 +294,7 @@ export const useBridge = () => {
         );
 
         updateProcessingStep('DEPOSIT', 'WAITING_APPROVAL');
-        const approvalReceipt = await approveTx.wait();
-        console.log(approvalReceipt);
+        await approveTx.wait();
 
         // Deposit EURC to bridge
         updateProcessingStep('DEPOSIT', 'DEPOSITING');

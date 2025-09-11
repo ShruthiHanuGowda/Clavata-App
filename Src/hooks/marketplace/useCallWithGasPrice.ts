@@ -18,7 +18,10 @@ export function useCallWithGasPrice() {
   // const gasPrice = useGasPrice();
   const {magic} = useMagic();
 
-  const provider = useMemo(() => new BrowserProvider(magic.rpcProvider as any), [magic]);
+  const provider = useMemo(
+    () => new BrowserProvider(magic.rpcProvider as any),
+    [magic],
+  );
 
   const callWithGasPrice = useCallback(
     async (
@@ -45,19 +48,19 @@ export function useCallWithGasPrice() {
         const connectedContract = contract.connect(signer);
 
         try {
-          const tx: TransactionResponse = await (connectedContract as any)[methodName](
-            ...methodArgs,
-            {
-              ...overrides,
-              // gasPrice,
-              // gasLimit,
-            },
-          );
+          const tx: TransactionResponse = await (connectedContract as any)[
+            methodName
+          ](...methodArgs, {
+            ...overrides,
+            // gasPrice,
+            // gasLimit,
+          });
 
           return tx.wait() as Promise<TransactionReceipt>;
         } catch (error) {
           console.error(`Transaction failed for method ${methodName}:`, error);
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
           SnackBarMessage(
             `Transaction failed for method ${errorMessage}`,
             'error',
@@ -65,7 +68,7 @@ export function useCallWithGasPrice() {
           // throw new Error(`Transaction failed for method ${methodName}`);
         }
       } catch (error) {
-        console.log(error);
+        console.error(error);
       }
     },
     [provider],

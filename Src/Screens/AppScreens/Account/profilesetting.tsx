@@ -2,7 +2,7 @@ import React from 'react';
 import {View, Text, StyleSheet, ScrollView} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './styles';
-import {Header} from '../../../Componants';
+import {Header} from '../../../components';
 import {fontsFamily} from '../../../Theme';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';

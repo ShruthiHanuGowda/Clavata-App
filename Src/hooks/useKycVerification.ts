@@ -92,12 +92,7 @@ export const useKycVerification = () => {
         typeof responseData === 'string'
           ? JSON.parse(responseData)
           : responseData;
-      console.log(
-        '🚀 ~ extractTokenFromResponse ~ parsedData:',
-        JSON.stringify(parsedData),
-      );
 
-      // Handle body as string or object
       const bodyData =
         typeof parsedData.body === 'string'
           ? JSON.parse(parsedData.body)

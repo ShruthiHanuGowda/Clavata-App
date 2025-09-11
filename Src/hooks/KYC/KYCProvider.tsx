@@ -33,7 +33,6 @@ export const KycProvider: React.FC<{children: React.ReactNode}> = ({
   children,
 }) => {
   const {userDetails} = useAuth(); // Get userDetails from Auth context
-  // console.log('🚀 ~ userDetails:', userDetails);
 
   // State for KYC completed status derived from userDetails
   const [isKycCompleted, setIsKycCompleted] = useState<boolean>(false);

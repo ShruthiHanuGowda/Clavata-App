@@ -9,11 +9,10 @@ import {
   Alert,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import {Header} from '@rneui/base';
 import images from '../../../Theme/images';
 import {navigateBack, navigateTo} from '../../../utils/navigationService';
-import ContactCard from '../Componants/ContactCard';
 import {
   useAddressBookByWallet,
   useDeleteAddressBook,
@@ -22,7 +21,8 @@ import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 import {Colors} from '../../../Theme';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {SnackBarMessage} from '../../../utils/snackBar';
-import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
+import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
+import ContactCard from '../components/ContactCard';
 
 interface Contact {
   id: string;
@@ -74,9 +74,6 @@ function AddressBook(): JSX.Element {
       const contactToEdit = contacts.find(contact => contact.id === contactId);
 
       if (contactToEdit) {
-        console.log('Editing contact:', contactToEdit.name, 'ID:', contactId);
-        console.log('Contact data being passed:', contactToEdit);
-
         // Navigate to CreateAddress screen in edit mode
         navigateTo('CreateAddress', {
           editMode: true,
@@ -168,7 +165,6 @@ function AddressBook(): JSX.Element {
           if (deletingContactId === item.id) {
             return;
           }
-          console.log('Contact pressed:', item.name, 'ID:', item.id);
         }}
         onEdit={handleEditContact}
         onDelete={handleDeleteContact}

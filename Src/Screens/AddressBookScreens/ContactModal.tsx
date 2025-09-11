@@ -6,11 +6,11 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import {DText} from '../../Componants/DText';
+import {DText} from '../../components/DText';
 import {BottomSheet} from 'react-native-btr';
 import {useAddressBookByWallet} from './Hooks/AddressBookGraphql';
 import {useAuth} from '../../../screens/Provider/authProvider';
-import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
+import LoaderAnimation from '../../components/Loading/LoaderAnimation';
 import {navigateTo} from '../../utils/navigationService';
 
 interface Contact {

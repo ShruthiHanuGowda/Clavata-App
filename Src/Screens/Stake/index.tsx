@@ -1,7 +1,7 @@
 import React, {useEffect, useState, useCallback, JSX} from 'react';
 import {Header} from '@rneui/base';
 import {StyleSheet, View} from 'react-native';
-import {DText} from '../../Componants/DText';
+import {DText} from '../../components/DText';
 import {Tab} from '@rneui/base';
 import {fontsFamily} from '../../Theme';
 import StakeListingScreen from './StakeListingScreen';
@@ -251,7 +251,6 @@ function Stake(): JSX.Element {
       return () => clearTimeout(timer);
     }
   }, [stakedPoolLoading, refreshing]);
-
 
   return (
     <View style={styles.container}>

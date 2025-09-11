@@ -6,7 +6,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
 } from 'react-native';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import EnergyCertificateHistory from './NFTHistory/EnergyCertificateList';
 import {

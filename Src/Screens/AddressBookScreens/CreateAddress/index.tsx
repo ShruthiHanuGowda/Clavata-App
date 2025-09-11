@@ -14,8 +14,8 @@ import {
 import {BottomSheet} from 'react-native-btr';
 import Icon from 'react-native-vector-icons/Entypo';
 import {v4 as uuidv4} from 'uuid';
-import {DTextInput} from '../../../Componants/Dinputs';
-import {DButton} from '../../../Componants';
+import {DTextInput} from '../../../components/Dinputs';
+import {DButton} from '../../../components';
 import images from '../../../Theme/images';
 import {navigateBack} from '../../../utils/navigationService';
 import {
@@ -110,14 +110,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
 
   // Initialize form data when in edit mode
   useEffect(() => {
-    console.log('CreateAddress useEffect triggered:', {
-      editMode,
-      contactToEdit,
-      routeParams: route?.params,
-    });
-
     if (editMode && contactToEdit) {
-      console.log('Pre-filling form with contact data:', contactToEdit);
       setFormData({
         beneficiaryAddress: contactToEdit.beneficiaryAddress,
         name: contactToEdit.name,
@@ -126,7 +119,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
       setIsNameValid(contactToEdit.name.trim().length >= 2);
       setIsAddressValid(contactToEdit.beneficiaryAddress.trim().length >= 10);
     } else {
-      console.log('Not in edit mode or no contact to edit');
+      console.info('Not in edit mode or no contact to edit');
       // Reset form when not in edit mode
       setFormData({
         beneficiaryAddress: '',
@@ -215,12 +208,9 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
           walletAddress: userDetails.userWallet,
         };
 
-        console.log('Updating address book with input:', updateInput);
-
         const result = await updateAddressBook(updateInput);
 
         if (result) {
-          console.log('Address book updated successfully:', result);
           SnackBarMessage('Contact updated successfully!');
         }
       } else {
@@ -235,12 +225,9 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
           walletAddress: userDetails.userWallet,
         };
 
-        console.log('Creating address book with input:', createInput);
-
         const result = await createAddressBook(createInput);
 
         if (result) {
-          console.log('Address book created successfully:', result);
           SnackBarMessage('Contact added successfully!');
         }
       }
@@ -376,7 +363,11 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
                 </Text>
               </View>
             ) : (
-              <Text style={[localStyles.dropdownLabel, localStyles.placeholderText]}>
+              <Text
+                style={[
+                  localStyles.dropdownLabel,
+                  localStyles.placeholderText,
+                ]}>
                 Select Chain
               </Text>
             )}
@@ -490,7 +481,8 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
                       style={[
                         localStyles.optionItem,
                         // Remove border from last item
-                        index === AVAILABLE_CHAINS.length - 1 && localStyles.lastOptionItem,
+                        index === AVAILABLE_CHAINS.length - 1 &&
+                          localStyles.lastOptionItem,
                       ]}
                       onPress={() => handleChainSelect(chain)}>
                       <View style={localStyles.chainOptionContent}>

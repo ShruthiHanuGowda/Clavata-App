@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import {fontsFamily, Images} from '../../../Theme';
 import 'text-encoding';
 import Share from 'react-native-share';

@@ -278,18 +278,12 @@ export const getCompleteAccountNftData = async (
 
     const walletNftIdsWithCollectionAddress =
       await fetchWalletTokenIdsForCollections(account, collectionsWithDelist);
-    console.log(
-      'walletNftIdsWithCollectionAddress',
-      walletNftIdsWithCollectionAddress,
-    );
 
     const metadataForAllNfts = await getNftsFromDifferentCollectionsApi(
       walletNftIdsWithCollectionAddress,
     );
-    console.log('metadataForAllNfts', metadataForAllNfts);
 
     const onChainForSaleNfts = await getNftsMarketData({});
-    console.log('onChainForSaleNfts', onChainForSaleNfts);
 
     const walletTokenIds = walletNftIdsWithCollectionAddress
       .filter(
@@ -319,7 +313,7 @@ export const getCompleteAccountNftData = async (
 
     return completeNftData;
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return [];
   }
 };
@@ -454,7 +448,7 @@ export const getNftApi = async (
     }
     return null;
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return null;
   }
 };

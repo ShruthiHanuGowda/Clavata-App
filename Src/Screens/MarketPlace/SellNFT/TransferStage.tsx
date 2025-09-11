@@ -26,7 +26,7 @@ const isValidAccountId = (accountId: string): boolean => {
   return accountIdPattern.test(trimmed);
 };
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
-import QRCodeScannerModal from '../../../Componants/QRScan/QRCodeScannerModal';
+import QRCodeScannerModal from '../../../components/QRScan/QRCodeScannerModal';
 import {SnackBarMessage} from '../../../utils/snackBar';
 
 interface TransferStageProps {
@@ -91,8 +91,6 @@ const TransferStage = ({
   };
 
   const handleQRCodeScanned = (data: string) => {
-    console.log('QR Code scanned:', data);
-
     // Extract account ID from QR code data
     let extractedAccountId = data.trim().toUpperCase();
 
@@ -199,7 +197,9 @@ const TransferStage = ({
               placeholder="T0IJL6DR"
               placeholderTextColor="#999"
               value={transferAddress}
-              onChangeText={accountId => setTransferAddress(accountId.toUpperCase())}
+              onChangeText={accountId =>
+                setTransferAddress(accountId.toUpperCase())
+              }
               autoCapitalize="characters"
               autoCorrect={false}
               multiline={false}

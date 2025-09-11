@@ -1,12 +1,12 @@
 import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {DText} from '../../Componants/DText';
+import {DText} from '../../components/DText';
 import CryptoMarketCard from './CryptoMarketCard';
 import {fontsFamily} from '../../Theme';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
 import {useNavigation} from '@react-navigation/native';
 import {useAuth} from '../../../screens/Provider/authProvider';
-import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList';
+import MyCertificatesList from '../../components/Certificates/MyCertificatesList';
 import {navigateTo} from '../../utils/navigationService';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
 export default function CryptoMarketPlace(props: any) {

@@ -18,16 +18,16 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import LottieView from 'lottie-react-native';
 
 import {Images, Animation} from '../../Theme';
-import {DText} from '../../Componants/DText';
-import {CustomImageButton, Header, RadioButton} from '../../Componants';
+import {DText} from '../../components/DText';
+import {CustomImageButton, Header, RadioButton} from '../../components';
 import {marketIcons} from '../../Theme/variable';
 import images from '../../Theme/images';
 import {navigateBack} from '../../Navigation/NavigationFunctions';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
 import useSwap from '../../hooks/useSwap';
 import {SwapConfirmationModal} from './SwapConfirmationModal';
-import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
-import LoadingScreenWithStep from '../../Componants/Loading/LoadingScreenWIthStep';
+import LoaderAnimation from '../../components/Loading/LoaderAnimation';
+import LoadingScreenWithStep from '../../components/Loading/LoadingScreenWIthStep';
 import {getBlockExploreLink} from '../../utils/explorer';
 import {useSuccessSound} from '../../hooks/useSuccessSound';
 import {navigateTo} from '../../utils/navigationService';
@@ -124,7 +124,7 @@ const TransactionStatus: React.FC<TransactionStatusProps> = ({
       {txHash && (
         <TouchableOpacity
           onPress={() => {
-            console.log('View transaction:', txHash);
+            Linking.openURL(getBlockExploreLink(txHash, 'transaction'));
           }}>
           <Text style={styles.txHashText}>
             Transaction: {txHash.substring(0, 10)}...

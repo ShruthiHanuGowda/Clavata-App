@@ -53,18 +53,14 @@ export const useWATTStaking = (validatorAddress?: string) => {
 
   const {magic, setActiveNetwork} = useMagic();
 
-
   const {refreshBalance} = useWallet();
 
   /**
    * Get native WATT balance for the user
    */
   const getWATTBalance = useCallback(async (): Promise<string> => {
-    console.log('[WATT Staking] Fetching native WATT balance');
-
     try {
       if (!magic) {
-        console.error('[WATT Staking] Magic SDK not available');
         throw new Error('Magic SDK not available');
       }
 
@@ -77,15 +73,9 @@ export const useWATTStaking = (validatorAddress?: string) => {
       const balance = await magicProvider.getBalance(userAddress);
       const formattedBalance = formatUnits(balance, 18); // Native coins typically use 18 decimals
 
-      console.log(`[WATT Staking] Native WATT Balance: ${formattedBalance}`);
       setWattBalance(formattedBalance);
       return formattedBalance;
     } catch (err: any) {
-      console.error(
-        `[WATT Staking] Error fetching WATT balance: ${
-          err.message || 'Unknown error'
-        }`,
-      );
       setError(err.message || 'Failed to fetch WATT balance');
       return '0';
     }
@@ -104,38 +94,26 @@ export const useWATTStaking = (validatorAddress?: string) => {
       // Validate that validator address is provided
       if (!validatorAddress) {
         const errorMsg = 'Validator address is required for WATT staking';
-        console.error(`[WATT Staking] ${errorMsg}`);
         setError(errorMsg);
         throw new Error(errorMsg);
       }
 
-      console.log('[WATT Staking] Starting native WATT delegate process');
-      console.log(`[WATT Staking] Amount: ${amount}`);
-      console.log(
-        `[WATT Staking] Using validator address: ${validatorAddress}`,
-      );
-
       await setActiveNetwork('denergy');
-      console.log('[WATT Staking] Network set to denergy');
 
       try {
         if (!magic) {
-          console.error('[WATT Staking] Magic SDK not available');
-          throw new Error('Magic SDK not available');
+            throw new Error('Magic SDK not available');
         }
 
         setIsLoading(true);
         setError(null);
-        console.log('[WATT Staking] Initializing provider and signer');
 
         // Get Magic provider for signing transactions
         const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
         const delegatorAddress = await signer.getAddress();
-        console.log(`[WATT Staking] Delegator address: ${delegatorAddress}`);
 
         const amountInWei = parseUnits(amount, 18);
-        console.log(`[WATT Staking] Amount in Wei: ${amountInWei.toString()}`);
 
         const currentBalance = await magicProvider.getBalance(delegatorAddress);
         if (currentBalance < amountInWei) {
@@ -147,40 +125,26 @@ export const useWATTStaking = (validatorAddress?: string) => {
           );
         }
 
-        // Initialize staking contract
-        console.log(
-          `[WATT Staking] Initializing staking contract at ${STAKING_CONTRACT_ADDRESS}`,
-        );
         const stakingContract = new Contract(
           STAKING_CONTRACT_ADDRESS,
           STAKING_WATT_ABI,
           signer,
         );
 
-        console.log('[WATT Staking] Submitting delegate transaction...');
         const tx = await stakingContract.delegate(
           delegatorAddress,
           validatorAddress,
           amountInWei,
           {gasLimit: 500000},
         );
-        console.log(`[WATT Staking] Transaction submitted: ${tx.hash}`);
 
-        // Wait for the transaction to be mined
-        console.log('[WATT Staking] Waiting for transaction confirmation...');
         const receipt = await tx.wait();
-        console.log(
-          `[WATT Staking] Transaction confirmed in block: ${receipt?.blockNumber}`,
-        );
 
-        // Refresh balances
-        console.log('[WATT Staking] Refreshing WATT balance');
         await getWATTBalance();
         refreshBalance('watt');
 
         // Call success callback if provided
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
-          console.log('[WATT Staking] Preparing success callback data');
           const successData: WATTStakingSuccess = {
             txHash: receipt.hash,
             userAddress: delegatorAddress,
@@ -188,35 +152,18 @@ export const useWATTStaking = (validatorAddress?: string) => {
             amount: amount,
           };
 
-          console.log('[WATT Staking] Calling success callback');
           onSuccess(successData);
         }
 
-        console.log(
-          '[WATT Staking] Native WATT delegation completed successfully',
-        );
         return receipt;
       } catch (err: any) {
-        console.error(
-          `[WATT Staking] Delegate WATT error: ${
-            err.message || 'Unknown error'
-          }`,
-        );
-        console.error(err);
         setError(err.message || 'WATT delegate transaction failed');
         throw err;
       } finally {
         setIsLoading(false);
-        console.log('[WATT Staking] Delegate WATT process finished');
       }
     },
-    [
-      magic,
-      refreshBalance,
-      setActiveNetwork,
-      getWATTBalance,
-      validatorAddress,
-    ],
+    [magic, refreshBalance, setActiveNetwork, getWATTBalance, validatorAddress],
   );
 
   /**
@@ -234,40 +181,27 @@ export const useWATTStaking = (validatorAddress?: string) => {
       // Validate that validator address is provided
       if (!validatorAddress) {
         const errorMsg = 'Validator address is required for WATT unstaking';
-        console.error(`[WATT Staking] ${errorMsg}`);
         setError(errorMsg);
         throw new Error(errorMsg);
       }
 
-      console.log('[WATT Staking] Starting WATT undelegate process');
-      console.log(`[WATT Staking] Amount: ${amount}`);
-      console.log(
-        `[WATT Staking] Using validator address: ${validatorAddress}`,
-      );
 
       await setActiveNetwork('denergy');
-      console.log('[WATT Staking] Network set to denergy');
 
       try {
         if (!magic) {
-          console.error('[WATT Staking] Magic SDK not available');
-          throw new Error('Magic SDK not available');
+            throw new Error('Magic SDK not available');
         }
 
         setIsLoading(true);
         setError(null);
-        console.log('[WATT Staking] Initializing provider and signer');
 
         // Get Magic provider for signing transactions
         const magicProvider = new BrowserProvider(magic.rpcProvider as any);
         const signer = await magicProvider.getSigner();
         const delegatorAddress = await signer.getAddress();
-        console.log(`[WATT Staking] Delegator address: ${delegatorAddress}`);
 
         // Initialize staking contract
-        console.log(
-          `[WATT Staking] Initializing staking contract at ${STAKING_CONTRACT_ADDRESS}`,
-        );
         const stakingContract = new Contract(
           STAKING_CONTRACT_ADDRESS,
           STAKING_WATT_ABI,
@@ -276,48 +210,34 @@ export const useWATTStaking = (validatorAddress?: string) => {
 
         // Convert amount to proper format
         const amountInWei = parseUnits(amount, 6); // Based on your original code using 6 decimals
-        console.log(`[WATT Staking] Amount in Wei: ${amountInWei.toString()}`);
 
         // Call the undelegate function according to ABI
         // function undelegate(address delegatorAddress, string validatorAddress, uint256 amount) returns (int64 completionTime)
-        console.log('[WATT Staking] Submitting undelegate transaction...');
         const tx = await stakingContract.undelegate(
           delegatorAddress,
           validatorAddress, // String format as per ABI
           amountInWei,
           {gasLimit: 9000000},
         );
-        console.log(`[WATT Staking] Transaction submitted: ${tx.hash}`);
 
         // Wait for the transaction to be mined
-        console.log('[WATT Staking] Waiting for transaction confirmation...');
         const receipt = await tx.wait();
-        console.log(
-          `[WATT Staking] Transaction confirmed in block: ${receipt?.blockNumber}`,
-        );
 
         // Get the completion time from the transaction result
         let completionTime = '';
         try {
-          console.log(
-            '[WATT Staking] Retrieving completion time from transaction result',
-          );
           // The completion time should be available in the transaction receipt or logs
           // You might need to parse the transaction logs to get the actual completion time
           completionTime = Date.now().toString(); // Fallback to current timestamp
-          console.log(`[WATT Staking] Completion time: ${completionTime}`);
         } catch (err) {
-          console.error('[WATT Staking] Failed to get completion time', err);
         }
 
         // Refresh balances
-        console.log('[WATT Staking] Refreshing WATT balance');
         await getWATTBalance();
         refreshBalance('watt');
 
         // Call success callback if provided
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
-          console.log('[WATT Staking] Preparing success callback data');
           const successData: WATTStakingSuccess = {
             txHash: receipt.hash,
             userAddress: delegatorAddress,
@@ -325,36 +245,21 @@ export const useWATTStaking = (validatorAddress?: string) => {
             amount: amount,
           };
 
-          console.log('[WATT Staking] Calling success callback');
           onSuccess(successData);
         }
 
-        console.log('[WATT Staking] WATT undelegation completed successfully');
         return {
           receipt,
           completionTime,
         };
       } catch (err: any) {
-        console.error(
-          `[WATT Staking] Undelegate WATT error: ${
-            err.message || 'Unknown error'
-          }`,
-        );
-        console.error(err);
         setError(err.message || 'WATT undelegate transaction failed');
         throw err;
       } finally {
         setIsLoading(false);
-        console.log('[WATT Staking] Undelegate WATT process finished');
       }
     },
-    [
-      magic,
-      refreshBalance,
-      setActiveNetwork,
-      getWATTBalance,
-      validatorAddress,
-    ],
+    [magic, refreshBalance, setActiveNetwork, getWATTBalance, validatorAddress],
   );
 
   /**
@@ -383,10 +288,8 @@ export const useWATTStaking = (validatorAddress?: string) => {
           targetValidatorAddress,
         );
 
-        console.log('[WATT Staking] Delegation info:', result);
         return result;
       } catch (err: any) {
-        console.error('[WATT Staking] Error getting delegation info:', err);
         setError(err.message || 'Failed to get delegation information');
         return null;
       }
@@ -403,20 +306,13 @@ export const useWATTStaking = (validatorAddress?: string) => {
   const listenForWATTEvents = useCallback(
     (onDelegate?: DelegateCallback, onUnbond?: UnbondCallback) => {
       if (!magic) {
-        console.error(
-          '[WATT Staking] Magic SDK not available for event listeners',
-        );
         setError('Magic SDK not available');
         return () => {};
       }
 
-      console.log('[WATT Staking] Setting up WATT event listeners');
 
       const setupListeners = async () => {
         try {
-          console.log(
-            '[WATT Staking] Initializing provider for event listeners',
-          );
           const magicProvider = new BrowserProvider(magic.rpcProvider as any);
           const stakingContract = new Contract(
             STAKING_CONTRACT_ADDRESS,
@@ -425,12 +321,10 @@ export const useWATTStaking = (validatorAddress?: string) => {
           );
 
           // Clean up any existing listeners first
-          console.log('[WATT Staking] Removing any existing listeners');
           stakingContract.removeAllListeners();
 
           // Set up Delegate event listener (according to ABI)
           if (onDelegate) {
-            console.log('[WATT Staking] Setting up Delegate event listener');
             const delegateFilter = stakingContract.filters.Delegate();
             stakingContract.on(
               delegateFilter,
@@ -441,15 +335,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
                 newShares,
                 event,
               ) => {
-                console.log(
-                  `[WATT Staking] Delegate event detected: ${event.transactionHash}`,
-                );
-                console.log(
-                  `[WATT Staking] Delegator: ${delegatorAddress}, Validator: ${eventValidatorAddress}`,
-                );
-                console.log(
-                  `[WATT Staking] Amount: ${formatUnits(amount, 6)}`, // Using 6 decimals as per your code
-                );
 
                 onDelegate({
                   delegatorAddress,
@@ -464,7 +349,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
 
           // Set up Unbond event listener (according to ABI)
           if (onUnbond) {
-            console.log('[WATT Staking] Setting up Unbond event listener');
             const unbondFilter = stakingContract.filters.Unbond();
             stakingContract.on(
               unbondFilter,
@@ -475,18 +359,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
                 completionTime,
                 event,
               ) => {
-                console.log(
-                  `[WATT Staking] Unbond event detected: ${event.transactionHash}`,
-                );
-                console.log(
-                  `[WATT Staking] Delegator: ${delegatorAddress}, Validator: ${eventValidatorAddress}`,
-                );
-                console.log(
-                  `[WATT Staking] Amount: ${formatUnits(amount, 6)}`, // Using 6 decimals as per your code
-                );
-                console.log(
-                  `[WATT Staking] Completion Time: ${completionTime.toString()}`,
-                );
 
                 onUnbond({
                   delegatorAddress,
@@ -499,14 +371,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
             );
           }
 
-          console.log(
-            '[WATT Staking] WATT event listeners successfully set up',
-          );
         } catch (err) {
-          console.error(
-            '[WATT Staking] Failed to set up WATT event listeners:',
-            err,
-          );
           setError('Failed to set up WATT event listeners');
         }
       };
@@ -515,7 +380,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
 
       // Return cleanup function
       return () => {
-        console.log('[WATT Staking] Cleaning up WATT event listeners');
         const cleanup = async () => {
           try {
             const magicProvider = new BrowserProvider(magic.rpcProvider as any);
@@ -525,12 +389,8 @@ export const useWATTStaking = (validatorAddress?: string) => {
               magicProvider,
             );
             stakingContract.removeAllListeners();
-            console.log('[WATT Staking] All WATT event listeners removed');
           } catch (err) {
-            console.error(
-              '[WATT Staking] Failed to remove WATT event listeners:',
-              err,
-            );
+            // Silent cleanup
           }
         };
         cleanup();
@@ -552,9 +412,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
       const cleanup = async () => {
         if (magic) {
           try {
-            console.log(
-              '[WATT Staking] Cleaning up WATT event listeners on unmount',
-            );
             const magicProvider = new BrowserProvider(magic.rpcProvider as any);
             const stakingContract = new Contract(
               STAKING_CONTRACT_ADDRESS,
@@ -562,14 +419,8 @@ export const useWATTStaking = (validatorAddress?: string) => {
               magicProvider,
             );
             stakingContract.removeAllListeners();
-            console.log(
-              '[WATT Staking] All WATT event listeners removed on unmount',
-            );
           } catch (err) {
-            console.error(
-              '[WATT Staking] Failed to remove WATT event listeners on unmount:',
-              err,
-            );
+            // Silent cleanup
           }
         }
       };
@@ -577,10 +428,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
     };
   }, [magic]);
 
-  console.log(
-    '[WATT Staking] Hook initialized with validator:',
-    validatorAddress || 'No validator address provided',
-  );
 
   return {
     isLoading,

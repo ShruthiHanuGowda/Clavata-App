@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import images from '../../Theme/images';
 import useValidators from './Hooks/useValidators';
-import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
-import {useKycCheck} from '../../CustomHooks/GlobalKycProvider';
+import LoaderAnimation from '../../components/Loading/LoaderAnimation';
+import {useKycCheck} from '../../hooks/GlobalKycProvider';
 import {SnackBarMessage} from '../../utils/snackBar';
 import {VALIDATORS_API_URL} from '../../constants';
 

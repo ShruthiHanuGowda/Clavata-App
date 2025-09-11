@@ -1,47 +1,38 @@
 import React, {useCallback, useMemo, useRef, useEffect} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Platform} from 'react-native';
-import BottomSheet, {
-  BottomSheetBackdrop,
-  BottomSheetBackdropProps,
-} from '@gorhom/bottom-sheet';
-import {useSafeAreaInsets, EdgeInsets} from 'react-native-safe-area-context';
-import {useGlobalKyc, setGlobalKycInstance} from './GlobalKycProvider';
-import {Colors} from '../Theme';
+import BottomSheet, {BottomSheetBackdrop} from '@gorhom/bottom-sheet';
+import {useKyc} from './KYCProvider';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {Colors} from '../../Theme';
 
-// =================== COMPONENT ===================
-const GlobalKycBottomSheet: React.FC = () => {
-  const globalKycContext = useGlobalKyc();
+interface KycBottomSheetProps {
+  onStartKyc: () => Promise<void>;
+  onSkipKyc: () => void;
+}
 
-  const {
-    isKycBottomSheetVisible,
-    hideKycBottomSheet,
-    startKycVerification,
-    skipKycVerification,
-    kycStatus,
-  } = globalKycContext;
-
-  const insets: EdgeInsets = useSafeAreaInsets();
+const KycBottomSheet: React.FC<KycBottomSheetProps> = ({
+  onStartKyc,
+  onSkipKyc,
+}) => {
+  const {isKycBottomSheetVisible, hideKycBottomSheet, setKycStarted} = useKyc();
+  const insets = useSafeAreaInsets();
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  useEffect(() => {
-    setGlobalKycInstance(globalKycContext);
-  }, [globalKycContext]);
-
+  // Variables for bottom sheet
   const snapPoints = useMemo(() => ['55%'], []);
 
+  // Effect to present or dismiss the bottom sheet when visibility changes
   useEffect(() => {
     if (isKycBottomSheetVisible && bottomSheetRef.current) {
-      console.log('Opening bottom sheet');
       bottomSheetRef.current.expand();
     } else if (!isKycBottomSheetVisible && bottomSheetRef.current) {
-      console.log('Closing bottom sheet');
       bottomSheetRef.current.close();
     }
   }, [isKycBottomSheetVisible]);
 
+  // Callbacks for bottom sheet
   const handleSheetChanges = useCallback(
-    (index: number): void => {
-      console.log('Bottom sheet index changed to:', index);
+    (index: number) => {
       if (index === -1) {
         hideKycBottomSheet();
       }
@@ -49,8 +40,9 @@ const GlobalKycBottomSheet: React.FC = () => {
     [hideKycBottomSheet],
   );
 
+  // Render backdrop component - defined outside conditional rendering
   const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
+    (props: any) => (
       <BottomSheetBackdrop
         {...props}
         disappearsOnIndex={-1}
@@ -62,35 +54,36 @@ const GlobalKycBottomSheet: React.FC = () => {
     [],
   );
 
-  const handleStartKyc = useCallback(async (): Promise<void> => {
-    console.log('Start KYC button pressed');
+  // Handle KYC start with improved event handling
+  const handleStartKyc = useCallback(() => {
+    setKycStarted(true);
 
+    // Close the bottom sheet first
     hideKycBottomSheet();
 
-    setTimeout(async () => {
-      try {
-        const result = await startKycVerification();
-        console.log('KYC verification result:', result);
-      } catch (error) {
+    // Give some time for the animation to complete before starting KYC
+    setTimeout(() => {
+      onStartKyc().catch(error => {
         console.error('Error starting KYC:', error);
-      }
+      });
     }, 300);
-  }, [startKycVerification, hideKycBottomSheet]);
+  }, [onStartKyc, hideKycBottomSheet, setKycStarted]);
 
-  // Handle KYC skip with improved event handling - SAME logic as your original
-  const handleSkipKyc = useCallback((): void => {
-    console.log('Skip KYC button pressed');
+  // Handle KYC skip with improved event handling
+  const handleSkipKyc = useCallback(() => {
+    // Close the bottom sheet first
+    hideKycBottomSheet();
 
-    setTimeout(async () => {
-      try {
-        await skipKycVerification();
-      } catch (error) {
-        console.error('Error skipping KYC:', error);
-      }
+    // Give some time for the animation to complete before navigating
+    setTimeout(() => {
+      onSkipKyc();
     }, 300);
-  }, [skipKycVerification]);
+  }, [onSkipKyc, hideKycBottomSheet]);
 
-  // SAME render structure as your original - no UI changes!
+  // We'll use the same component structure but change props based on visibility
+  // This avoids the conditional rendering that can cause hook inconsistencies
+
+  // Single render approach to avoid hook inconsistencies
   return (
     <BottomSheet
       ref={bottomSheetRef}
@@ -114,8 +107,7 @@ const GlobalKycBottomSheet: React.FC = () => {
               <TouchableOpacity
                 style={styles.optionButton}
                 activeOpacity={0.7}
-                onPress={handleStartKyc}
-                disabled={kycStatus.isProcessing}>
+                onPress={handleStartKyc}>
                 <View style={styles.optionIconContainer}>
                   {/* <Image
                     source={require('../../assets/images/kyc-verify.png')}
@@ -134,8 +126,7 @@ const GlobalKycBottomSheet: React.FC = () => {
               <TouchableOpacity
                 style={[styles.optionButton, styles.skipButton]}
                 activeOpacity={0.7}
-                onPress={handleSkipKyc}
-                disabled={kycStatus.isProcessing}>
+                onPress={handleSkipKyc}>
                 <View style={styles.optionIconContainer}>
                   {/* <Image
                     source={require('../../assets/images/skip.png')}
@@ -162,8 +153,6 @@ const GlobalKycBottomSheet: React.FC = () => {
     </BottomSheet>
   );
 };
-
-// =================== STYLES - EXACTLY THE SAME AS YOUR ORIGINAL ===================
 
 const styles = StyleSheet.create({
   bottomSheetBackground: {
@@ -263,4 +252,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GlobalKycBottomSheet;
+export default KycBottomSheet;

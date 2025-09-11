@@ -5,8 +5,8 @@ import {ScrollView} from 'react-native-gesture-handler';
 import LinearGradient from 'react-native-linear-gradient';
 import {Header} from '@rneui/base';
 import {TouchableOpacity} from 'react-native';
-import {DText} from '../../../Componants/DText';
-import MenuList from '../../../Componants/rc_menuList';
+import {DText} from '../../../components/DText';
+import MenuList from '../../../components/rc_menuList';
 import images from '../../../Theme/images';
 import {navigateTo} from '../../../utils/navigationService';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
@@ -51,7 +51,7 @@ const Account: React.FC<AccountProps> = ({navigation}) => {
 
   useMutation(UPDATE_KYC_STATUS, {
     onCompleted: data => {
-      console.log('KYC status updated successfully:', data);
+      console.info('KYC status updated successfully:', data);
     },
     onError: error => {
       console.error('Error updating KYC status:', error);
@@ -89,7 +89,6 @@ const Account: React.FC<AccountProps> = ({navigation}) => {
                 setTimeout(() => {
                   (navReset as any)('authScreens');
                 }, 500);
-                console.log('User logged out successfully');
               } catch (error) {
                 console.error('Error during logout:', error);
                 Alert.alert(

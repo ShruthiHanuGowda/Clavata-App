@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, StyleSheet} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {DText} from '../../Componants/DText';
+import {DText} from '../../components/DText';
 
 interface PortfolioProps {
   // Add any props if needed in the future

@@ -1,6 +1,13 @@
 import moment from 'moment';
 import React from 'react';
-import {View, Text, TouchableOpacity, Image, Linking, StyleSheet} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Linking,
+  StyleSheet,
+} from 'react-native';
 import {BottomSheet} from 'react-native-btr';
 import styles from './styles';
 import images from '../../../Theme/images';
@@ -27,7 +34,11 @@ interface TransactionDetailsProps {
   selectedItems?: TransactionItem;
 }
 
-const TransactionDetails: React.FC<TransactionDetailsProps> = ({title, value, selectedItems}) => {
+const TransactionDetails: React.FC<TransactionDetailsProps> = ({
+  title,
+  value,
+  selectedItems,
+}) => {
   const handlePress = (): void => {
     if (selectedItems?.details) {
       Linking.openURL(selectedItems.details);
@@ -39,7 +50,9 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({title, value, se
       onPress={handlePress}
       style={[
         styles.cardDetailsAlign,
-        title === 'Txn Hash' ? componentStyles.txnHashSpacing : componentStyles.defaultSpacing,
+        title === 'Txn Hash'
+          ? componentStyles.txnHashSpacing
+          : componentStyles.defaultSpacing,
       ]}>
       <View style={styles.cardDetailsTitleAlign}>
         <Text style={styles.cardTitle}>{title}</Text>
@@ -56,8 +69,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
   setVisible,
   selectedItems,
 }) => {
-  console.log('🚀 ~ TransactionDetailsModal ~ selectedItems:', selectedItems);
-
   return (
     <BottomSheet
       visible={visible}
@@ -84,19 +95,27 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
         />
         <TransactionDetails
           title="Amount"
-          value={
-            `${selectedItems?.change || ''} ${selectedItems?.amount || ''} ${selectedItems?.coinCode || ''}`.trim()
-          }
+          value={`${selectedItems?.change || ''} ${
+            selectedItems?.amount || ''
+          } ${selectedItems?.coinCode || ''}`.trim()}
           selectedItems={selectedItems}
         />
         <TransactionDetails
           title="Date"
-          value={selectedItems?.date ? moment(selectedItems.date).format('DD.MM.YYYY') : '---'}
+          value={
+            selectedItems?.date
+              ? moment(selectedItems.date).format('DD.MM.YYYY')
+              : '---'
+          }
           selectedItems={selectedItems}
         />
         <TransactionDetails
           title="Time"
-          value={selectedItems?.date ? moment(selectedItems.date).format('hh:mm a') : '---'}
+          value={
+            selectedItems?.date
+              ? moment(selectedItems.date).format('hh:mm a')
+              : '---'
+          }
           selectedItems={selectedItems}
         />
       </View>

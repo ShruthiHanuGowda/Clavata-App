@@ -32,7 +32,7 @@ import {requiresApproval} from '../../../hooks/marketplace/requiresApproval';
 import {MaxUint256} from 'ethers';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {Header} from '../../../Componants';
+import {Header} from '../../../components';
 import {navigateTo} from '../../../utils/navigationService';
 
 enum BuyingStage {
@@ -97,8 +97,6 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
     currentSeller ||
     getMinAsk(nftToBuy?.marketData?.activeAsks ?? []).seller?.id ||
     '0x0000000000000000000000000000000000000000';
-
-  console.log('activeAsks', nftToBuy?.marketData?.activeAsks);
 
   const usdcAddress = TOKEN_CONTRACTS.denergy.USDC as `0x${string}`;
   const eurcAddress = TOKEN_CONTRACTS.denergy.EURC as `0x${string}`;
@@ -177,7 +175,6 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
       },
       onConfirm: async () => {
         const adjustedQuantity = BigInt(quantity * 1_000_000);
-        console.log(adjustedQuantity);
 
         return callWithGasPrice(nftMarketContract, 'buyToken', [
           nftToBuy.collectionAddress,
@@ -187,7 +184,6 @@ const BuyNFTScreen: React.FC<BuyNFTScreenProps> = ({navigation, route}) => {
         ]);
       },
       onSuccess: ({receipt}) => {
-        console.log(receipt);
         SnackBarMessage(
           'Your Certificate has been sent to your wallet',
           'success',

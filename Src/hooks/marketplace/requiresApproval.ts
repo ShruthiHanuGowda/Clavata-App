@@ -31,7 +31,7 @@ export const requiresApproval = async (
     }
     return currentAllowance <= 0;
   } catch (error) {
-    console.log('error', error);
+    console.error('error', error);
 
     return true;
   }
@@ -60,7 +60,7 @@ export const isApprovedForAll = async (
 
     return approvedForAll;
   } catch (error) {
-    console.log('error', error);
+    console.error('error', error);
 
     return true;
   }

@@ -9,16 +9,16 @@ import {
 import style from './styles';
 import {Header} from '@rneui/base';
 import Images from '../../../Theme/images';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import {SCREEN_CONSTANT} from '../../../Navigation/constant';
 import {isAddress} from 'ethers';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import {navigateTo} from '../../../utils/navigationService';
-import {CustomImageButton} from '../../../Componants';
+import {CustomImageButton} from '../../../components';
 import ContactModal from '../../AddressBookScreens/ContactModal';
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
-import QRCodeScannerModal from '../../../Componants/QRScan/QRCodeScannerModal';
+import QRCodeScannerModal from '../../../components/QRScan/QRCodeScannerModal';
 
 interface RouteParams {
   coinCode: string;
@@ -39,7 +39,6 @@ export const VerifyAddress: React.FC<Props> = props => {
   function isValidEthereumAddress(address: string): void {
     try {
       const status = isAddress(address);
-      console.log('status', status);
 
       if (!status) {
         SnackBarMessage('Please Enter valid Address.', 'error');
@@ -71,8 +70,6 @@ export const VerifyAddress: React.FC<Props> = props => {
   };
 
   const handleQRCodeScanned = (data: string): void => {
-    console.log('QR Code scanned:', data);
-
     let extractedAddress = data;
 
     if (data.startsWith('ethereum:')) {
@@ -158,7 +155,9 @@ export const VerifyAddress: React.FC<Props> = props => {
         {senderAddress && (
           <View style={style.selectedAddressContainer}>
             <DText style={style.selectedAddressLabel}>Selected Address:</DText>
-            <DText style={style.selectedAddressText} textProps={{numberOfLines: 1}}>
+            <DText
+              style={style.selectedAddressText}
+              textProps={{numberOfLines: 1}}>
               {senderAddress}
             </DText>
           </View>

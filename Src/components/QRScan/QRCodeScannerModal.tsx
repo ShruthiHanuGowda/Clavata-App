@@ -61,11 +61,6 @@ const QRCodeScannerModal: React.FC<QRCodeScannerModalProps> = ({
   );
 
   useEffect(() => {
-    console.log('Available camera devices:', devices);
-    console.log('Selected device:', device);
-  }, [devices, device]);
-
-  useEffect(() => {
     if (visible) {
       requestCameraPermission();
       setIsScanning(true);
@@ -92,7 +87,7 @@ const QRCodeScannerModal: React.FC<QRCodeScannerModalProps> = ({
     onCodeScanned: (codes: Code[]) => {
       if (codes.length > 0 && isScanning) {
         const scannedCode = codes[0];
-        console.log('🚀 ~ scannedCode:', scannedCode);
+
         setIsScanning(false);
 
         // Call the callback with scanned data if defined

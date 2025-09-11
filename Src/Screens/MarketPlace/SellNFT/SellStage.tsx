@@ -23,8 +23,6 @@ const SellStage: React.FC<SellStageProps> = ({
   continueToNextStage,
   continueToTransferStage,
 }) => {
-  console.log(nftToSell);
-
   return (
     <View style={styles.container}>
       <View style={styles.nftCard}>

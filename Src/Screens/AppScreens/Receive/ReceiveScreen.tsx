@@ -5,7 +5,7 @@ import images from '../../../Theme/images';
 import {navigateBack} from '../../../utils/navigationService';
 import {StyleSheet} from 'react-native';
 import ShowQr from '../QRcodeScreen/ShowQr';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 
 interface RouteParams {
@@ -20,9 +20,8 @@ interface ReceiveScreenProps {
 
 const ReceiveScreen: React.FC<ReceiveScreenProps> = ({route}) => {
   const {coinCode} = route.params;
-  console.log('🚀 ~ ReceiveScreen ~ coinCode:', coinCode);
+
   const {userDetails} = useAuth();
-  console.log('coinCode:', coinCode);
 
   return (
     <View style={styles.container}>

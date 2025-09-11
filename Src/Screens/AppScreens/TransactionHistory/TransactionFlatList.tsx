@@ -11,7 +11,7 @@ import {
 import moment from 'moment';
 import ListItem from './ListItem';
 import styles from './styles';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import TransactionDetailsModal from './TransactionDetailsModal';
 
 interface FlatListTransactionItem {

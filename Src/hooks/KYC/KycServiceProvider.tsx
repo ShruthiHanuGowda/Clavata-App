@@ -2,7 +2,7 @@ import React, {createContext, useContext, useCallback} from 'react';
 import {Platform} from 'react-native';
 // @ts-ignore
 import SNSMobileSDK from '@sumsub/react-native-mobilesdk-module';
-import {useKycVerification} from '../../CustomHooks/useKycVerification';
+import {useKycVerification} from '../../hooks/useKycVerification';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import {useKycStatusUpdate} from './useKycStatusUpdate';
 import {SumSubEvent, SumSubLogEvent} from '../types/kyc.types';

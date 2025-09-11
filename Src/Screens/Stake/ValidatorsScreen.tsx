@@ -10,9 +10,9 @@ import {
 import {fontsFamily} from '../../Theme';
 import {navigateTo} from '../../utils/navigationService';
 import {BottomSheet} from 'react-native-btr';
-import {DButton} from '../../Componants';
+import {DButton} from '../../components';
 import useValidators from './Hooks/useValidators';
-import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
+import LoaderAnimation from '../../components/Loading/LoaderAnimation';
 import {VALIDATORS_API_URL} from '../../constants';
 
 interface Validator {
@@ -53,7 +53,7 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
   // Fetch validators on component mount
   useEffect(() => {
     fetchValidators(VALIDATORS_API_URL).catch(err => {
-      console.log('Error fetching validators:', err);
+      console.error('Error fetching validators:', err);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -123,13 +123,6 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
     // Only update the actual filter values when Apply is clicked
     setSortBy(tempSortBy);
     setFilterStatus(tempFilterStatus);
-
-    console.log(
-      'Applied filters - Sorting by:',
-      tempSortBy,
-      '| Filter status:',
-      tempFilterStatus,
-    );
 
     setBottomSheetVisible(false);
   };
@@ -203,7 +196,6 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}>
           {validators.map((validator: Validator, index: number) => {
-            console.log('🚀 ~ {validators.map ~ Validator:', validator);
             const formattedStatus = getFormattedStatus(validator.status);
 
             return (

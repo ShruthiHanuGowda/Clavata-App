@@ -10,13 +10,13 @@ import {
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import {BottomSheet} from 'react-native-btr';
 import Icon from 'react-native-vector-icons/Entypo';
-import {DTextInput} from '../../../Componants/Dinputs';
-import {DButton} from '../../../Componants';
+import {DTextInput} from '../../../components/Dinputs';
+import {DButton} from '../../../components';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
 import {formatQuantityMWh} from '../../../utils';
 import {useNft} from '../../../../screens/Provider/NftProvider';
-import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
+import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
 
 interface NFTStakeComponentProps {
   validatorId: string;
@@ -105,8 +105,6 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
   };
 
   const handleStakeSuccess = (result: any) => {
-    console.log('NFT Staking successful:', result);
-
     setTxStatus('success');
 
     // Show success alert

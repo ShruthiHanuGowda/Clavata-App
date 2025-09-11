@@ -100,8 +100,6 @@ const getSuccessType = (
   variant: string,
   stage: SellingStage,
 ): 'sale' | 'transfer' | 'removal' | 'listing' => {
-  console.log('stage', stage);
-
   if (stage === SellingStage.CONFIRM_REMOVE_FROM_MARKET) {
     return 'removal';
   }
@@ -306,7 +304,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
             'burn',
             [account, BigInt(nftToSell.tokenId), adjustedQuantity],
           );
-          console.log('burnTx', burnTx);
+
           const payload = {
             volumeInput: quantity,
             destinationAccountInput: transferAddress,
@@ -319,12 +317,9 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
             },
           };
 
-          console.log('payload', payload);
-
           try {
-            const response = await axios.post(API_TRANSFER_URL, payload);
+            await axios.post(API_TRANSFER_URL, payload);
 
-            console.log('API response:', response.data);
             return burnTx;
           } catch (error) {
             console.error('API call error:', error);
@@ -357,7 +352,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
         if (!variant) {
           return;
         }
-        console.log('receipt', receipt);
+
         setConfirmedTxHash(receipt.hash);
         setprevStage(stage);
         SnackBarMessage(getToastText(variant, stage), 'success');

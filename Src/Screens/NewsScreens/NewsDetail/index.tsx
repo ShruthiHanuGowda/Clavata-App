@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import RenderHtml from 'react-native-render-html';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import {navigateBack} from '../../../utils/navigationService';
 import images from '../../../Theme/images';
 import {useBlogById} from '../Hooks/NewsGraphql';
@@ -100,7 +100,9 @@ const LoadingState: React.FC = () => (
       <View style={styles.loadingContentLine} />
       <View style={styles.loadingContentLine} />
       <View style={styles.loadingContentLine} />
-      <View style={[styles.loadingContentLine, styles.loadingContentLineShort]} />
+      <View
+        style={[styles.loadingContentLine, styles.loadingContentLineShort]}
+      />
     </View>
   </ScrollView>
 );
@@ -174,7 +176,9 @@ function NewsDetail(props: StakeProps): JSX.Element {
         {/* Hero Image */}
         <View style={styles.imageContainer}>
           <Image
-            source={blog.image_url ? {uri: blog.image_url} : images.newsPlaceholder}
+            source={
+              blog.image_url ? {uri: blog.image_url} : images.newsPlaceholder
+            }
             style={styles.heroImage}
             defaultSource={images.newsPlaceholder}
           />

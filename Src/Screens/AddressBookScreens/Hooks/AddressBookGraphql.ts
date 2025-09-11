@@ -18,9 +18,8 @@ import {
   DeleteAddressBookData,
 } from './type';
 
-
 // Custom hook for creating address books
-export const useCreateAddressBook = (magic: any) => {
+export const useCreateAddressBook = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<any>(null);
   const {client} = useApolloClientContext();
@@ -31,8 +30,6 @@ export const useCreateAddressBook = (magic: any) => {
       setError(null);
 
       try {
-        const token = await magic.user.getIdToken();
-        console.log('🚀 ~ useCreateAddressBook ~ token:', token);
         const result = await client.mutate<CreateAddressBookData>({
           mutation: CREATE_ADDRESS_BOOK,
           variables: {
@@ -58,7 +55,7 @@ export const useCreateAddressBook = (magic: any) => {
         setLoading(false);
       }
     },
-    [client, magic],
+    [client],
   );
 
   return {
@@ -171,31 +168,34 @@ export const useAddressBookByWallet = (walletAddress: string | null) => {
   const [error, setError] = useState<any>(null);
   const {client} = useApolloClientContext();
 
-  const fetchAddressBooksByWallet = useCallback(async (wallet: string) => {
-    setLoading(true);
-    setError(null);
+  const fetchAddressBooksByWallet = useCallback(
+    async (wallet: string) => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      const variables: ListAddressBooksVariables = {
-        walletAddress: wallet,
-      };
+      try {
+        const variables: ListAddressBooksVariables = {
+          walletAddress: wallet,
+        };
 
-      const result = await client.query<ListAddressBooksData>({
-        query: LIST_ADDRESS_BOOKS_BY_WALLET,
-        variables,
-        fetchPolicy: 'network-only',
-      });
+        const result = await client.query<ListAddressBooksData>({
+          query: LIST_ADDRESS_BOOKS_BY_WALLET,
+          variables,
+          fetchPolicy: 'network-only',
+        });
 
-      const addressBooks = result.data.listAddressBooks?.items || [];
-      setData(addressBooks);
-    } catch (err) {
-      console.error('Failed to fetch address books by wallet', err);
-      setError(err);
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [client]);
+        const addressBooks = result.data.listAddressBooks?.items || [];
+        setData(addressBooks);
+      } catch (err) {
+        console.error('Failed to fetch address books by wallet', err);
+        setError(err);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [client],
+  );
 
   const refetch = useCallback(() => {
     if (walletAddress) {

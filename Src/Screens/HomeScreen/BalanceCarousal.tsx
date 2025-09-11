@@ -2,7 +2,7 @@ import {Tab, TabView} from '@rneui/base';
 import React, {useState} from 'react';
 import {View, StyleSheet} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {DText} from '../../Componants/DText';
+import {DText} from '../../components/DText';
 import {fontsFamily} from '../../Theme';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
 import {formatQuantityMWh} from '../../utils';

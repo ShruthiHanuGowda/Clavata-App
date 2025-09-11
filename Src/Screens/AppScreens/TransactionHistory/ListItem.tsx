@@ -25,11 +25,7 @@ interface ListItemProps {
 
 const ListItem: React.FC<ListItemProps> = ({item, name, setSelectedItems}) => {
   const receiveImg = (
-    <Svg
-      width="32"
-      height="32"
-      viewBox="0 0 32 32"
-      fill="none">
+    <Svg width="32" height="32" viewBox="0 0 32 32" fill="none">
       <Circle cx="16" cy="16" r="16" fill={'#99DDB420'} />
       <Path
         opacity="0.4"
@@ -50,11 +46,7 @@ const ListItem: React.FC<ListItemProps> = ({item, name, setSelectedItems}) => {
   );
 
   const sentImg = (
-    <Svg
-      width="32"
-      height="32"
-      viewBox="0 0 32 32"
-      fill="none">
+    <Svg width="32" height="32" viewBox="0 0 32 32" fill="none">
       <Circle cx="16" cy="16" r="16" fill={'#F8BD6820'} />
       <Path
         opacity="0.4"
@@ -75,11 +67,7 @@ const ListItem: React.FC<ListItemProps> = ({item, name, setSelectedItems}) => {
   );
 
   const pendingImg = (
-    <Svg
-      width="32"
-      height="32"
-      viewBox="0 0 32 32"
-      fill="none">
+    <Svg width="32" height="32" viewBox="0 0 32 32" fill="none">
       <Circle cx="16" cy="16" r="16" fill={'#F8BD6820'} />
       <Path
         d="M20.0421 18.7525L17.0121 16H14.9796L11.9496 18.7525C11.1021 19.5175 10.8246 20.695 11.2371 21.76C11.6496 22.8175 12.6546 23.5 13.7871 23.5H18.2046C19.3446 23.5 20.3421 22.8175 20.7546 21.76C21.1671 20.695 20.8896 19.5175 20.0421 18.7525ZM17.3646 20.605H14.6346C14.3496 20.605 14.1246 20.3725 14.1246 20.095C14.1246 19.8175 14.3571 19.585 14.6346 19.585H17.3646C17.6496 19.585 17.8746 19.8175 17.8746 20.095C17.8746 20.3725 17.6421 20.605 17.3646 20.605Z"
@@ -93,11 +81,7 @@ const ListItem: React.FC<ListItemProps> = ({item, name, setSelectedItems}) => {
   );
 
   const swapImg = (
-    <Svg
-      width="32"
-      height="32"
-      viewBox="0 0 46 46"
-      fill="none">
+    <Svg width="32" height="32" viewBox="0 0 46 46" fill="none">
       <Circle cx="23" cy="23" r="23" fill={'#E0F0EF'} />
       <Path
         d="M26.15 23.3411L30 26.9749L26.15 30.6087L25.0502 29.5707L27.0227 27.7082L16.7778 27.709V26.2408H27.0227L25.0502 24.3791L26.15 23.3411ZM19.85 16L20.9498 17.038L18.9773 18.8997H29.2222V20.3679H18.9773L20.9498 22.2296L19.85 23.2676L16 19.6338L19.85 16Z"
@@ -107,11 +91,7 @@ const ListItem: React.FC<ListItemProps> = ({item, name, setSelectedItems}) => {
   );
 
   const buyImg = (
-    <Svg
-      width="32"
-      height="32"
-      viewBox="0 0 46 46"
-      fill="none">
+    <Svg width="32" height="32" viewBox="0 0 46 46" fill="none">
       <Circle cx="23" cy="23" r="23" fill={'#E0F0EF'} />
       <Path
         d="M23 30C19.1339 30 16 26.8661 16 23C16 19.1339 19.1339 16 23 16C26.8661 16 30 19.1339 30 23C30 26.8661 26.8661 30 23 30ZM23 28.6C24.4852 28.6 25.9096 28.01 26.9598 26.9598C28.01 25.9096 28.6 24.4852 28.6 23C28.6 21.5148 28.01 20.0904 26.9598 19.0402C25.9096 17.99 24.4852 17.4 23 17.4C21.5148 17.4 20.0904 17.99 19.0402 19.0402C17.99 20.0904 17.4 21.5148 17.4 23C17.4 24.4852 17.99 25.9096 19.0402 26.9598C20.0904 28.01 21.5148 28.6 23 28.6ZM23 19.535L26.465 23L23 26.465L19.535 23L23 19.535ZM23 21.5153L21.5153 23L23 24.4847L24.4847 23L23 21.5153Z"
@@ -149,7 +129,6 @@ const ListItem: React.FC<ListItemProps> = ({item, name, setSelectedItems}) => {
       status = sentImg;
       break;
     default:
-      console.log('[list] unhandled type', item.type);
       status = pendingImg;
       break;
   }

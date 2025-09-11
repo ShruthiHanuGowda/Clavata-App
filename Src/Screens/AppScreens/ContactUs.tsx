@@ -1,9 +1,9 @@
 import React, {useState} from 'react';
 import {View, Image, StyleSheet, TouchableOpacity, Alert} from 'react-native';
 import {Header, ScreenHeight, ScreenWidth} from '@rneui/base';
-import {DTextInput} from '../../Componants/Dinputs';
-import DButton from '../../Componants/Dbutton';
-import {DText} from '../../Componants/DText';
+import {DTextInput} from '../../components/Dinputs';
+import DButton from '../../components/Dbutton';
+import {DText} from '../../components/DText';
 import images from '../../Theme/images';
 import {navigateBack} from '../../Navigation/NavigationFunctions';
 
@@ -37,7 +37,8 @@ const validation: ValidationState = {
 
 const ContactUs: React.FC<ContactUsProps> = () => {
   const [data, setData] = useState<FormData>(initialValue);
-  const [validationState, setValidationState] = useState<ValidationState>(validation);
+  const [validationState, setValidationState] =
+    useState<ValidationState>(validation);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Check if form is valid
@@ -49,8 +50,6 @@ const ContactUs: React.FC<ContactUsProps> = () => {
   };
 
   const validateField = (field: keyof FormData, value: string): boolean => {
-    console.log('validateField', field, value);
-
     switch (field) {
       case 'name':
         return value?.trim().length >= 2;
@@ -104,10 +103,9 @@ const ContactUs: React.FC<ContactUsProps> = () => {
     }
   };
 
-  const sendContactEmail = async (formData: FormData): Promise<void> => {
-    return new Promise<void>((resolve) => {
+  const sendContactEmail = async (): Promise<void> => {
+    return new Promise<void>(resolve => {
       setTimeout(() => {
-        console.log('Sending email with data:', formData);
         resolve();
       }, 1000);
     });

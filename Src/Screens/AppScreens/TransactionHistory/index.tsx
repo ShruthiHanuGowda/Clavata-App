@@ -5,7 +5,7 @@ import {navigateBack} from '../../../utils/navigationService';
 import {Header, Tab, TabView} from '@rneui/base';
 import images from '../../../Theme/images';
 import MiniTransactionHistory from '../CoinWallet/MiniTransactionHistory';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 
 interface RouteParams {
   coinCode?: string;

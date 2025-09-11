@@ -6,7 +6,7 @@ import style from './style';
 import Portfolio from './Portfolio';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
-import MyCertificatesList from '../../Componants/Certificates/MyCertificatesList';
+import MyCertificatesList from '../../components/Certificates/MyCertificatesList';
 import CryptoMarketCard from '../HomeScreen/CryptoMarketCard';
 
 // Type definitions

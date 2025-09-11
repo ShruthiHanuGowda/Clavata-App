@@ -3,7 +3,7 @@ import React from 'react';
 import {Image, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {CartesianChart, Line} from 'victory-native';
 import {marketIcons} from '../../Theme/variable';
-import {DText} from '../../Componants/DText';
+import {DText} from '../../components/DText';
 import {navigateTo} from '../../utils/navigationService';
 
 interface ChartDataPoint {

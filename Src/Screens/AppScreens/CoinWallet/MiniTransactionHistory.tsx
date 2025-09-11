@@ -1,6 +1,6 @@
 import React from 'react';
 import {ActivityIndicator, View, StyleSheet} from 'react-native';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import TransactionFlatList from '../TransactionHistory/TransactionFlatList';
 import {useTransactionHistory} from '../../../hooks/useTransactionHistory';
 import {useAuth} from '../../../../screens/Provider/authProvider';
@@ -38,7 +38,11 @@ const MiniTransactionHistory: React.FC<MiniTransactionHistoryProps> = ({
     error,
     loadMoreTransactions,
     refreshTransactions,
-  } = useTransactionHistory(limit, contractAddress || undefined, wallet || undefined);
+  } = useTransactionHistory(
+    limit,
+    contractAddress || undefined,
+    wallet || undefined,
+  );
 
   // Filter state for date ranges
   // const [filters, setFilters] = useState<FilterState>({

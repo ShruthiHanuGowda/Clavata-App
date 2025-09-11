@@ -6,7 +6,7 @@ import {
   Image,
   Platform,
 } from 'react-native';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import {Blog} from '../Hooks/type';
 import images from '../../../Theme/images'; // Import images
 
@@ -24,7 +24,9 @@ const NewsCard: React.FC<NewsCardProps> = ({blog, onPress}) => {
       <View style={styles.cardContent}>
         {/* Image */}
         <Image
-          source={blog.image_url ? {uri: blog.image_url} : images.newsPlaceholder}
+          source={
+            blog.image_url ? {uri: blog.image_url} : images.newsPlaceholder
+          }
           style={styles.newsImage}
           defaultSource={images.newsPlaceholder}
         />

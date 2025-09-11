@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {View, Text, Pressable, Image, SafeAreaView, Alert} from 'react-native';
-import {DTextInput} from '../../../Componants/Dinputs';
-import {DButton} from '../../../Componants';
+import {DTextInput} from '../../../components/Dinputs';
+import {DButton} from '../../../components';
 import {navigateBack} from '../../../utils/navigationService';
 import images from '../../../Theme/images';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
@@ -19,10 +19,7 @@ interface UnstakeScreenProps {
 }
 
 const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
-  const {
-    isLoading: isNFTStakingLoading,
-    undelegateERC1155,
-  } = useNFTStaking();
+  const {isLoading: isNFTStakingLoading, undelegateERC1155} = useNFTStaking();
 
   const {setActiveNetwork} = useMagic();
 
@@ -100,8 +97,6 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
   };
 
   const handleUnstakeSuccess = (result: any) => {
-    console.log('Unstaking successful:', result);
-
     setTxStatus('success');
 
     Alert.alert(

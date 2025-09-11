@@ -15,10 +15,10 @@ import {getMinAsk} from '../../../hooks/marketPlace';
 import {ApiCollection, ApiSingleCollectionResponse} from '../../../types/types';
 import useApi from '../../../hooks/useApi';
 import {API_NFT_URL} from '../../../constants';
-import {Header} from '../../../Componants';
+import {Header} from '../../../components';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import NFTCard from '../../../Componants/MarketPlace/NFTCard';
-import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
+import NFTCard from '../../../components/MarketPlace/NFTCard';
+import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
 import images from '../../../Theme/images';
 
 const CollectionDetailsScreen = ({route}: any) => {

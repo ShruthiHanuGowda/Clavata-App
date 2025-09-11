@@ -52,7 +52,6 @@ interface SumSubLogEvent {
   message: string;
 }
 
-
 interface CreateKycVerificationVariables {
   email: string;
   levelName: string;
@@ -316,7 +315,7 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
     userId: string | null;
   } | null> => {
     const userEmail = userDetails?.emailAddress;
-    console.log('userEmail', userEmail);
+
     if (!userEmail) {
       console.error('No user email available');
       return null;
@@ -329,10 +328,9 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
           levelName: 'basic-kyc-level',
         },
       });
-      console.log('🚀 ~ handleKYCToken ~ result:111', result);
 
       let responseData = result.data?.createKYCVerification?.response;
-      console.log('responseData', responseData);
+
       if (!responseData) {
         return null;
       }
@@ -341,7 +339,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
       let parsedData: any;
       if (typeof responseData === 'string') {
         parsedData = JSON.parse(responseData);
-        console.log('🚀 ~ handleKYCToken ~ parsedData:', parsedData);
       } else {
         parsedData = responseData;
       }
@@ -350,7 +347,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
       let bodyData: any;
       if (typeof parsedData.body === 'string') {
         bodyData = JSON.parse(parsedData.body);
-        console.log('🚀 ~ handleKYCToken ~ bodyData:', bodyData);
       } else {
         bodyData = parsedData.body || parsedData;
       }
@@ -471,7 +467,7 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
 
         // Get access token
         const tokenResult = await handleKYCToken();
-        console.log('🚀 ~ useCallback ~ tokenResult:', tokenResult);
+
         if (!tokenResult) {
           throw new Error('Could not obtain verification token');
         }
@@ -489,7 +485,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
                 event.newStatus.toLowerCase() === 'approved' ||
                 event.newStatus.toLowerCase() === 'pending'
               ) {
-                console.log('KYC Status changed to:', event.newStatus, userId);
               }
               if (event.newStatus.toLowerCase() === 'approved') {
                 handleVerificationCompleted(userId, accessToken);
@@ -520,7 +515,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
               //   }
               // }
               // if (applicantId) {
-              //   console.log('🚀 ~ handleKYCToken ~ applicantId:', applicantId);
               //   handleVerificationCompleted(applicantId, accessToken);
               // }
             },

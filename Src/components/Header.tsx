@@ -44,9 +44,7 @@ const Header: React.FC<HeaderProps> = props => {
         <View style={[style.headerIcons, props.backArrowStyle]}>
           {!props.hideBackIcon && (
             <TouchableOpacity
-              onPress={() =>
-                props.backBtn ? props.backBtn() : console.log('back')
-              }>
+              onPress={() => (props.backBtn ? props.backBtn() : null)}>
               <Image source={Images.backHeaderArrow} />
             </TouchableOpacity>
           )}
@@ -56,9 +54,7 @@ const Header: React.FC<HeaderProps> = props => {
             {headerTitle}
           </Text>
         )}
-        <View style={style.rightContainer}>
-          {props.rightComponent}
-        </View>
+        <View style={style.rightContainer}>{props.rightComponent}</View>
       </View>
     </SafeAreaView>
   );

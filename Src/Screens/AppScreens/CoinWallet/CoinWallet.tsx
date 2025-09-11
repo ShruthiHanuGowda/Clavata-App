@@ -16,7 +16,7 @@ import {Header, Tab} from '@rneui/base';
 import images from '../../../Theme/images';
 import PriceHistoryGraph from './PriceHistoryGraph';
 import MiniTransactionHistory from './MiniTransactionHistory';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import {useWallet} from '../../../../screens/Provider/WalletProvider';
 import {marketIcons} from '../../../Theme/variable';
@@ -316,8 +316,6 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
   // Extract props with fallbacks
   const coinCode: string = route?.params?.coinCode || 'Unknown';
   const operationsTypes: string[] = route?.params?.operationsTypes || [];
-
-  console.log('coinCode', coinCode);
 
   useEffect(() => {
     if (coinCode === 'ETH' || coinCode === 'USDC' || coinCode === 'EURC') {

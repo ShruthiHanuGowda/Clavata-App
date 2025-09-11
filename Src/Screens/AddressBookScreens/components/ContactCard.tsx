@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {View, TouchableOpacity, StyleSheet, Image} from 'react-native';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 import images from '../../../Theme/images';
 import {SnackBarMessage} from '../../../utils/snackBar';
@@ -42,7 +42,7 @@ const ContactCard: React.FC<ContactCardProps> = ({
       Clipboard.setString(address);
       SnackBarMessage('Address copied to clipboard!', 'success');
     } catch (error) {
-      console.log('Error copying to clipboard:', error);
+      console.error('Error copying to clipboard:', error);
     }
   };
 

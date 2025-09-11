@@ -16,7 +16,7 @@ import {Header} from '@rneui/base';
 import {Animation, fontsFamily} from '../../../Theme';
 import images from '../../../Theme/images';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import {useOffsetNft} from '../../../hooks/useOffsetNft';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
@@ -28,7 +28,7 @@ import DatePicker from 'react-native-date-picker';
 import moment from 'moment';
 import Share from 'react-native-share';
 import LottieView from 'lottie-react-native';
-import LoadingScreenWithStep from '../../../Componants/Loading/LoadingScreenWIthStep';
+import LoadingScreenWithStep from '../../../components/Loading/LoadingScreenWIthStep';
 import {useSuccessSound} from '../../../hooks/useSuccessSound';
 
 const PURPOSE_OPTIONS = [
@@ -112,10 +112,9 @@ const OffsetScreen = ({route}: any) => {
     if (currentStep === 'success') {
       const timer = setTimeout(() => {
         if (soundLoaded) {
-          console.log('Playing success sound...');
           playSuccessSound();
         } else {
-          console.log(
+          console.info(
             'Sound not loaded yet, isLoaded:',
             soundLoaded,
             'error:',
@@ -301,7 +300,6 @@ const OffsetScreen = ({route}: any) => {
         Buffer.from(response.data).toString('base64'),
         'base64',
       );
-      console.log('Certificate downloaded to:', filePath);
 
       const shareUrl = Platform.OS === 'ios' ? filePath : `file://${filePath}`;
 
@@ -311,14 +309,12 @@ const OffsetScreen = ({route}: any) => {
         failOnCancel: false,
         showAppsToView: true,
       })
-        .then(res => {
-          console.log(res);
-        })
+        .then(() => {})
         .catch(err => {
-          err && console.log(err);
+          err && console.error(err);
         });
     } catch (error) {
-      console.log('Download error:', error);
+      console.error('Download error:', error);
       Alert.alert(
         'Download Failed',
         'There was a problem downloading the certificate. Please try again later.',

@@ -30,57 +30,60 @@ export const useTransactionHistory = (
    * @param {Object} transaction - Raw transaction data from API
    * @returns {Object} Formatted transaction object
    */
-  const formatTransaction = useCallback((transaction: any) => {
-    try {
-      let tokenDecimal = transaction.tokenDecimal || 18;
-      const amount =
-        parseFloat(transaction.value) /
-        Math.pow(10, parseInt(tokenDecimal, 10));
-      const date = new Date(parseInt(transaction.timeStamp, 10) * 1000);
+  const formatTransaction = useCallback(
+    (transaction: any) => {
+      try {
+        let tokenDecimal = transaction.tokenDecimal || 18;
+        const amount =
+          parseFloat(transaction.value) /
+          Math.pow(10, parseInt(tokenDecimal, 10));
+        const date = new Date(parseInt(transaction.timeStamp, 10) * 1000);
 
-      let type = 'Transfer';
-      if (transaction.from?.toLowerCase() === walletAddress?.toLowerCase()) {
-        type = 'Withdrawal';
-      } else if (
-        transaction.to?.toLowerCase() === walletAddress?.toLowerCase()
-      ) {
-        type = 'Deposit';
+        let type = 'Transfer';
+        if (transaction.from?.toLowerCase() === walletAddress?.toLowerCase()) {
+          type = 'Withdrawal';
+        } else if (
+          transaction.to?.toLowerCase() === walletAddress?.toLowerCase()
+        ) {
+          type = 'Deposit';
+        }
+
+        let status = 'Completed';
+        // if (timeDiff < 10) {
+        //   status = 'Pending';
+        // }
+
+        return {
+          id: transaction.hash,
+          date: moment(date).format('YYYY-MM-DD'),
+          type: type,
+          amount: amount,
+          status: status,
+          coinCode: transaction.tokenSymbol,
+          hash: transaction.hash,
+          from: transaction.from,
+          to: transaction.to,
+          blockNumber: transaction.blockNumber,
+          gasUsed: transaction.gasUsed,
+          gasPrice: transaction.gasPrice,
+          timestamp: transaction.timeStamp,
+          tokenName: transaction.tokenName,
+          tokenDecimal: transaction?.tokenDecimal
+            ? transaction.tokenDecimal
+            : contractAddress
+            ? 6
+            : 18,
+          confirmations: transaction.confirmations,
+          contractAddress: transaction.contractAddress,
+          originalData: transaction,
+        };
+      } catch (err) {
+        console.error('Error formatting transaction:', err);
+        return null;
       }
-
-      let status = 'Completed';
-      // if (timeDiff < 10) {
-      //   status = 'Pending';
-      // }
-
-      return {
-        id: transaction.hash,
-        date: moment(date).format('YYYY-MM-DD'),
-        type: type,
-        amount: amount,
-        status: status,
-        coinCode: transaction.tokenSymbol,
-        hash: transaction.hash,
-        from: transaction.from,
-        to: transaction.to,
-        blockNumber: transaction.blockNumber,
-        gasUsed: transaction.gasUsed,
-        gasPrice: transaction.gasPrice,
-        timestamp: transaction.timeStamp,
-        tokenName: transaction.tokenName,
-        tokenDecimal: transaction?.tokenDecimal
-          ? transaction.tokenDecimal
-          : contractAddress
-          ? 6
-          : 18,
-        confirmations: transaction.confirmations,
-        contractAddress: transaction.contractAddress,
-        originalData: transaction,
-      };
-    } catch (err) {
-      console.error('Error formatting transaction:', err);
-      return null;
-    }
-  }, [walletAddress, contractAddress]);
+    },
+    [walletAddress, contractAddress],
+  );
 
   /**
    * Group transactions by date sections for SectionList compatibility
@@ -136,90 +139,85 @@ export const useTransactionHistory = (
    * @param {number} page - Page number to fetch
    * @param {boolean} isRefresh - Whether this is a refresh operation
    */
-  const fetchTransactions = useCallback(async (page = 1, isRefresh = false) => {
-    try {
-      // Set appropriate loading state
-      if (page === 1) {
-        isRefresh ? setRefreshing(true) : setLoading(true);
-      } else {
-        setIsLoadingMore(true);
-      }
-
-      let url;
-
-      if (contractAddress && contractAddress.trim() !== '') {
-        url = `${baseUrl}?module=account&action=tokentx&address=${walletAddress}&sort=desc&page=${page}&offset=${initialLimit}&contractaddress=${contractAddress}`;
-      } else {
-        url = `${baseUrl}?module=account&action=txlist&address=${walletAddress}&sort=desc&page=${page}&offset=${initialLimit}`;
-      }
-
-      console.log(`Fetching transactions: Page ${page}, URL: ${url}`);
-
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('API Response:', data);
-
-      if (data.message === 'OK' && Array.isArray(data.result)) {
-        const formattedData = data.result
-          .map(formatTransaction)
-          .filter(Boolean);
-        console.log(formattedData);
-
+  const fetchTransactions = useCallback(
+    async (page = 1, isRefresh = false) => {
+      try {
+        // Set appropriate loading state
         if (page === 1) {
-          // First page - replace all data
-          setTransactions(formattedData);
-          setTotalCount(formattedData.length);
+          isRefresh ? setRefreshing(true) : setLoading(true);
         } else {
-          // Subsequent pages - append data
-          setTransactions((prev: any) => {
-            const newTransactions = [...prev, ...formattedData];
-            setTotalCount(newTransactions.length);
-            return newTransactions;
-          });
+          setIsLoadingMore(true);
         }
 
-        // Check if we have more data to load
-        // If we received fewer items than requested, we've reached the end
-        setHasMoreData(data.result.length === initialLimit);
-        setError(null);
+        let url;
 
-        console.log(
-          `Loaded ${formattedData.length} transactions for page ${page}`,
-        );
-      } else {
-        // No data or error response
-        console.log('No more data available or API error:', data);
+        if (contractAddress && contractAddress.trim() !== '') {
+          url = `${baseUrl}?module=account&action=tokentx&address=${walletAddress}&sort=desc&page=${page}&offset=${initialLimit}&contractaddress=${contractAddress}`;
+        } else {
+          url = `${baseUrl}?module=account&action=txlist&address=${walletAddress}&sort=desc&page=${page}&offset=${initialLimit}`;
+        }
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.message === 'OK' && Array.isArray(data.result)) {
+          const formattedData = data.result
+            .map(formatTransaction)
+            .filter(Boolean);
+
+          if (page === 1) {
+            // First page - replace all data
+            setTransactions(formattedData);
+            setTotalCount(formattedData.length);
+          } else {
+            // Subsequent pages - append data
+            setTransactions((prev: any) => {
+              const newTransactions = [...prev, ...formattedData];
+              setTotalCount(newTransactions.length);
+              return newTransactions;
+            });
+          }
+
+          // Check if we have more data to load
+          // If we received fewer items than requested, we've reached the end
+          setHasMoreData(data.result.length === initialLimit);
+          setError(null);
+        } else {
+          // No data or error response
+
+          setHasMoreData(false);
+
+          if (page === 1) {
+            setTransactions([]);
+            setTotalCount(0);
+          }
+
+          if (data.message !== 'OK') {
+            setError(data.message || 'Failed to fetch transactions');
+          }
+        }
+      } catch (err: any) {
+        console.error('Error fetching transactions:', err);
+        setError(err.message || 'Network error occurred');
         setHasMoreData(false);
 
         if (page === 1) {
           setTransactions([]);
           setTotalCount(0);
         }
-
-        if (data.message !== 'OK') {
-          setError(data.message || 'Failed to fetch transactions');
-        }
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+        setIsLoadingMore(false);
       }
-    } catch (err: any) {
-      console.error('Error fetching transactions:', err);
-      setError(err.message || 'Network error occurred');
-      setHasMoreData(false);
-
-      if (page === 1) {
-        setTransactions([]);
-        setTotalCount(0);
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setIsLoadingMore(false);
-    }
-  }, [walletAddress, contractAddress, baseUrl, initialLimit, formatTransaction]);
+    },
+    [walletAddress, contractAddress, baseUrl, initialLimit, formatTransaction],
+  );
 
   /**
    * Load more transactions (pagination)
@@ -227,7 +225,7 @@ export const useTransactionHistory = (
   const loadMoreTransactions = useCallback(() => {
     if (!isLoadingMore && hasMoreData && !loading && !refreshing) {
       const nextPage = currentPage + 1;
-      console.log(`Loading more transactions: Page ${nextPage}`);
+
       setCurrentPage(nextPage);
       fetchTransactions(nextPage, false);
     }
@@ -244,7 +242,6 @@ export const useTransactionHistory = (
    * Refresh transactions (pull to refresh)
    */
   const refreshTransactions = useCallback(() => {
-    console.log('Refreshing transactions...');
     setCurrentPage(1);
     setHasMoreData(true);
     setError(null);
@@ -301,10 +298,6 @@ export const useTransactionHistory = (
     let isCancelled = false;
 
     if (walletAddress) {
-      console.log('Initializing transaction history...', {
-        walletAddress,
-        contractAddress: contractAddress || 'Not provided',
-      });
       setCurrentPage(1);
       setHasMoreData(true);
       setError(null);
@@ -317,7 +310,7 @@ export const useTransactionHistory = (
 
       fetchWithCleanup();
     } else {
-      console.log('Missing required wallet address');
+      console.info('Missing required wallet address');
       setTransactions([]);
       setTotalCount(0);
     }

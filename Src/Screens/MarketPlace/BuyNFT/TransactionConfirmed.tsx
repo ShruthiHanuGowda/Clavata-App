@@ -46,10 +46,9 @@ const TransactionConfirmed: React.FC<TransactionConfirmedProps> = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       if (soundLoaded) {
-        console.log('Playing success sound...');
         playSuccessSound();
       } else {
-        console.log(
+        console.error(
           'Sound not loaded yet, isLoaded:',
           soundLoaded,
           'error:',

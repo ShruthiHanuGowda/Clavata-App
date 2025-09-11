@@ -2,7 +2,7 @@ import React from 'react';
 import {Image, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {SCREEN_CONSTANT} from '../../../navigation/constant';
-import {DText} from '../../Componants/DText';
+import {DText} from '../../components/DText';
 
 interface StakeItem {
   _id: string;

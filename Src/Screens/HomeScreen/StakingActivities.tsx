@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import images from '../../Theme/images';
-import {DText} from '../../Componants/DText';
+import {DText} from '../../components/DText';
 import {navigateTo} from '../../utils/navigationService';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
 import {formatQuantityMWh} from '../../utils';
@@ -46,10 +46,7 @@ export default function StakingActivities(props: Props) {
           <DText style={stakingStyles.title} fontStyle="fontSemiBold">
             Staking Activities
           </DText>
-          <Image
-            source={images.next}
-            style={stakingStyles.nextIcon}
-          />
+          <Image source={images.next} style={stakingStyles.nextIcon} />
         </View>
       )}
       <View style={stakingStyles.chartsContainer}>

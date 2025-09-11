@@ -9,16 +9,16 @@ import {
   Platform,
 } from 'react-native';
 
-import NFTHeader from '../../../Componants/MarketPlace/NFTHeader';
-import OwnerList from '../../../Componants/MarketPlace/OwnerList';
-import ContractInfo from '../../../Componants/MarketPlace/ContractInfo';
-import ActivityList from '../../../Componants/MarketPlace/ActivityList';
+import NFTHeader from '../../../components/MarketPlace/NFTHeader';
+import OwnerList from '../../../components/MarketPlace/OwnerList';
+import ContractInfo from '../../../components/MarketPlace/ContractInfo';
+import ActivityList from '../../../components/MarketPlace/ActivityList';
 import {useCompleteNft} from '../../../hooks/useCompleteNft';
 import useNftActivity from '../../../hooks/useNftActivity';
-import {Header} from '../../../Componants';
+import {Header} from '../../../components';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import {useNavigation} from '@react-navigation/native';
-import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
+import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
 
 const NFTDetailsScreen = ({route}: any) => {
   const {nft} = route.params;
@@ -72,8 +72,6 @@ const NFTDetailsScreen = ({route}: any) => {
   };
 
   const navigateToSellNFT = () => {
-    console.log('Navigating to SellNFT with nft:', nft);
-
     navigation.navigate('SellNFT', {
       variant: 'adjust',
       nftToSell: nft,

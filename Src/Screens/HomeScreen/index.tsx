@@ -18,7 +18,7 @@ import {useFocusEffect, useScrollToTop} from '@react-navigation/native';
 import {navigateTo} from '../../utils/navigationService';
 import {useWallet} from '../../../screens/Provider/WalletProvider';
 import {useAuth} from '../../../screens/Provider/authProvider';
-import {DText} from '../../Componants/DText';
+import {DText} from '../../components/DText';
 import {fontsFamily, Images} from '../../Theme';
 import {useNft} from '../../../screens/Provider/NftProvider';
 
@@ -82,7 +82,7 @@ export default function HomeScreen() {
   //   UPDATE_KYC_STATUS,
   //   {
   //     onCompleted: data => {
-  //       console.log('KYC status updated successfully:');
+  //
   //     },
   //     onError: error => {
   //       console.error('Error updating KYC status:', error);
@@ -122,7 +122,7 @@ export default function HomeScreen() {
       refreshAllBalances();
 
       return () => {
-        console.log('Screen is unfocused!');
+        console.info('Screen is unfocused!');
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),

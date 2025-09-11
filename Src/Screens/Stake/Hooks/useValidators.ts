@@ -120,11 +120,10 @@ const useValidators = () => {
 
     try {
       const response = await axios.get<ValidatorResponse>(url, axiosConfig);
-      console.log('🚀 ~ getValidatorById ~ response:', response);
+
       setSingleValidator(response.data);
       return response.data;
     } catch (error) {
-      console.log('🚀 ~ getValidatorById ~ error:', error);
       const errorMessage =
         error instanceof Error
           ? error

@@ -11,12 +11,12 @@ import {
   Modal,
 } from 'react-native';
 import {navigate} from '../../Navigation/NavigationFunctions';
-import CollectionCard from '../../Componants/MarketPlace/CollectionCard';
+import CollectionCard from '../../components/MarketPlace/CollectionCard';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
 import useCollections from '../../hooks/useCollections';
 import {Header} from '@rneui/base';
-import {DText} from '../../Componants/DText';
-import LoaderAnimation from '../../Componants/Loading/LoaderAnimation';
+import {DText} from '../../components/DText';
+import LoaderAnimation from '../../components/Loading/LoaderAnimation';
 
 type SortType = 'name' | 'country' | 'type' | 'year';
 type FilterType = 'all' | 'country' | 'type' | 'year' | 'status';

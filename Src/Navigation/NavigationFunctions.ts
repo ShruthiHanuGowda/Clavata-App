@@ -31,7 +31,8 @@ type ExtendedRootStackParamList = RootStackParamList & {
   UnstakeScreen: undefined;
 };
 
-export const navigationRef = createNavigationContainerRef<ExtendedRootStackParamList>();
+export const navigationRef =
+  createNavigationContainerRef<ExtendedRootStackParamList>();
 
 export const navigateBack = () => {
   navigationRef?.goBack();
@@ -64,11 +65,11 @@ export const navReset = <T extends keyof ExtendedRootStackParamList>(
     ? [ExtendedRootStackParamList[T]?]
     : [ExtendedRootStackParamList[T]]
 ) => {
-  console.log('reset to screen:', screenName);
   if (navigationRef.current?.isReady()) {
-    const routeConfig = params.length > 0 && params[0] !== undefined
-      ? {name: screenName, params: params[0]}
-      : {name: screenName};
+    const routeConfig =
+      params.length > 0 && params[0] !== undefined
+        ? {name: screenName, params: params[0]}
+        : {name: screenName};
     (navigationRef.current as any).reset({
       index: 0,
       routes: [routeConfig],

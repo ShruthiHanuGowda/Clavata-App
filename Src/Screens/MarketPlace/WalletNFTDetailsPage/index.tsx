@@ -25,9 +25,9 @@ import {BrowserProvider, Contract} from 'ethers';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {ERC1155_ABI} from '../../../utils/Contracts';
 import {SnackBarMessage} from '../../../utils/snackBar';
-import {useKycCheck} from '../../../CustomHooks/GlobalKycProvider';
+import {useKycCheck} from '../../../hooks/GlobalKycProvider';
 import {RefreshControl} from 'react-native-gesture-handler';
-import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
+import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
 import {useNft} from '../../../../screens/Provider/NftProvider';
 
 interface ActionButtonProps {
@@ -192,7 +192,6 @@ const WalletNFTDetailsScreen = ({route}: any) => {
           signer.address,
           nft?.tokenId,
         );
-        console.log(balance);
 
         setCurrentQuantity(balance);
       } catch (error) {
@@ -425,7 +424,6 @@ const WalletNFTDetailsScreen = ({route}: any) => {
               icon={images.history}
               label="History"
               onPress={() => {
-                console.log('🚀 ~ NFTDetailHistory ~ nftName: NFT', nft);
                 navigation.navigate('NFTDetailHistory', {
                   collectionAddress: nft?.collectionAddress,
                   nftName: nft?.name,

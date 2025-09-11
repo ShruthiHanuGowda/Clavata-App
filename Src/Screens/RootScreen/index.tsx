@@ -8,7 +8,6 @@ export const Root = () => {
   const CheckNav = async () => {
     try {
       const value = await secureStorage.getItem('isInfoDone');
-      console.log('🚀 ~ CheckNav ~ value:', value);
 
       if (value === 'true') {
         (navReset as any)('authScreens');

@@ -4,10 +4,10 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {NftLocation} from '../../../types/types';
-import UserNFTCard from '../../../Componants/MarketPlace/UserNFTCard';
-import {Header} from '../../../Componants';
+import UserNFTCard from '../../../components/MarketPlace/UserNFTCard';
+import {Header} from '../../../components';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {FullScreenLoader} from '../../../Componants/Loading/LoaderAnimation';
+import {FullScreenLoader} from '../../../components/Loading/LoaderAnimation';
 
 const UserNFTsScreen = ({route}: any) => {
   const [refreshing, setRefreshing] = useState(false);

@@ -15,20 +15,20 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {BottomSheet} from 'react-native-btr';
-import {CustomImageButton, Header, RadioButton} from '../../../../Componants';
+import {CustomImageButton, Header, RadioButton} from '../../../../components';
 import {Animation, Colors, fontsFamily, Images} from '../../../../Theme';
 import {navigateTo} from '../../../../utils/navigationService';
 import {TouchableOpacity} from 'react-native-gesture-handler';
 import {Path, Svg} from 'react-native-svg';
 import {ScreenWidth} from '@rneui/base';
 import {marketIcons} from '../../../../Theme/variable';
-import {DText} from '../../../../Componants/DText';
+import {DText} from '../../../../components/DText';
 import {navigateBack} from '../../../../Navigation/NavigationFunctions';
 import {useWallet} from '../../../../../screens/Provider/WalletProvider';
 import {ReactElement} from 'react';
 import {useBridge} from '../../../../hooks/useBridge';
 import LottieView from 'lottie-react-native';
-import LoadingScreenWithStep from '../../../../Componants/Loading/LoadingScreenWIthStep';
+import LoadingScreenWithStep from '../../../../components/Loading/LoadingScreenWIthStep';
 import {getBlockExploreLink} from '../../../../utils/explorer';
 import {SnackBarMessage} from '../../../../utils/snackBar';
 import {useSuccessSound} from '../../../../hooks/useSuccessSound';
@@ -289,10 +289,9 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     if (currentStep === 'success') {
       const timer = setTimeout(() => {
         if (soundLoaded) {
-          console.log('Playing success sound...');
           playSuccessSound();
         } else {
-          console.log(
+          console.info(
             'Sound not loaded yet, isLoaded:',
             soundLoaded,
             'error:',
@@ -361,9 +360,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
     if (selectedToken === 'USDC') {
       try {
-        await bridgeUSDC(amount, result => {
-          console.log('Bridge successful:', result);
-        });
+        await bridgeUSDC(amount);
       } catch (error) {
         console.error('Bridge failed:', error);
         SnackBarMessage('Bridge failed', 'error');
@@ -372,9 +369,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     }
     if (selectedToken === 'EURC') {
       try {
-        await bridgeEURC(amount, result => {
-          console.log('Bridge successful:', result);
-        });
+        await bridgeEURC(amount);
       } catch (error) {
         console.error('Bridge failed:', error);
         SnackBarMessage('Bridge failed', 'error');
@@ -383,9 +378,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
     }
     if (selectedToken === 'WUSDC') {
       try {
-        await bridgeWUSDC(amount, result => {
-          console.log('Bridge successful:', result);
-        });
+        await bridgeWUSDC(amount);
       } catch (error) {
         console.error('Bridge failed:', error);
         SnackBarMessage('Bridge failed', 'error');
@@ -395,9 +388,7 @@ export default function TransferCoin(props: TransferCoinProps): ReactElement {
 
     if (selectedToken === 'WEURC') {
       try {
-        await bridgeWEURC(amount, result => {
-          console.log('Bridge successful:', result);
-        });
+        await bridgeWEURC(amount);
       } catch (error) {
         console.error('Bridge failed:', error);
         SnackBarMessage('Bridge failed', 'error');

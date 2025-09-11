@@ -87,7 +87,7 @@ export const useCompleteNft = (id: string) => {
       setNft(builtNft);
       setLoading(false);
     } catch (err: any) {
-      console.log(err);
+      console.error(err);
       setLoading(false);
       setError(err.message || 'Failed to fetch NFT data');
     }

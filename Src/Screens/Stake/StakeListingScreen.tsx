@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import {fontsFamily} from '../../Theme';
 import {BottomSheet} from 'react-native-btr';
-import {DButton} from '../../Componants';
+import {DButton} from '../../components';
 import {navigateTo} from '../../utils/navigationService';
 import {formatQuantityMWh} from '../../utils';
 
@@ -130,9 +130,6 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
 
   const executeAction = () => {
     if (selectedAsset && selectedAction) {
-      // Here you can use selectedAsset.originalData to access the original API data
-      console.log('Executing action on:', selectedAsset.originalData);
-
       // Alert.alert(
       //   selectedAction,
       //   `${selectedAction} ${selectedAsset.stakeNumber} with ${selectedAsset.validator.name}`,
@@ -465,7 +462,8 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
                     <Text style={styles.detailLabel}>Created:</Text>
                     <Text style={styles.detailValue}>
                       {new Date(
-                        parseInt(selectedAsset.originalData.createdAt, 10) * 1000,
+                        parseInt(selectedAsset.originalData.createdAt, 10) *
+                          1000,
                       ).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
@@ -479,7 +477,8 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
                     <Text style={styles.detailLabel}>Updated:</Text>
                     <Text style={styles.detailValue}>
                       {new Date(
-                        parseInt(selectedAsset.originalData.updatedAt, 10) * 1000,
+                        parseInt(selectedAsset.originalData.updatedAt, 10) *
+                          1000,
                       ).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',

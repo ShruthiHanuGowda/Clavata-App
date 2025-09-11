@@ -6,7 +6,7 @@ import images from '../../../Theme/images';
 // import {navigateBack} from '../../../utils/navigationService';
 import styles from './styles';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
-import LoaderAnimation from '../../../Componants/Loading/LoaderAnimation';
+import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
 import NFTStakeComponent from './NFTStakeComponent';
 import WATTStakeComponent from './WATTStakeComponent';
 // Interface for component props

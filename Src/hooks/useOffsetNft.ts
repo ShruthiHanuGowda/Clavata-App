@@ -121,7 +121,6 @@ export const useOffsetNft = (magic: any, account: any) => {
 
       const amountTosend = BigInt(Math.round(amount * 1e6));
 
-      // console.log(`Sending ${amount} WUSDC to treasury...`);
       const taxTransaction = await wusdcContract.transfer(
         dynamicTreasuryAddress,
         BigInt(amountTosend),
@@ -200,15 +199,13 @@ export const useOffsetNft = (magic: any, account: any) => {
       );
 
       await receipt.wait();
-      console.log('Burn transaction successful:', receipt.hash);
       setTransactionHash(receipt?.hash);
 
       // Step 5: Process tax payment
       if (taxAmount > 0) {
         updateProcessingStep('PROCESSING_TAX');
         try {
-          const taxResult = await sendWUSDCToTreasury(magicProvider, taxAmount);
-          console.log('Tax payment successful:', taxResult?.hash);
+          await sendWUSDCToTreasury(magicProvider, taxAmount);
         } catch (taxError) {
           console.error('Tax payment failed:', taxError);
           SnackBarMessage('Tax payment failed. Please try again.', 'error');
@@ -233,9 +230,6 @@ export const useOffsetNft = (magic: any, account: any) => {
         ],
       });
 
-      console.log(body);
-
-      console.log('Calling offset API...');
       const response = await fetch(API_OFFSETTING_URL, {
         method: 'POST',
         headers: {
@@ -252,7 +246,6 @@ export const useOffsetNft = (magic: any, account: any) => {
 
       if (data?.success) {
         updateProcessingStep('COMPLETED');
-        console.log(data?.data);
 
         // setRedemptionUrl(data?.data?.redemptionStatementUrl);
         setRedemptionUrl(data?.data?.pdfDownloadUrl);

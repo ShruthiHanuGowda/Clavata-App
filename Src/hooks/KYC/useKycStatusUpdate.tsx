@@ -51,7 +51,6 @@ interface UpdateKycStatusVars {
 export const useKycStatusUpdate = () => {
   const {userDetails, updateUserDetails} = useAuth();
   const {client} = useApolloClientContext(); // Get Apollo client from context
-  //   console.log('🚀 ~ useKycStatusUpdate ~ userDetails:', userDetails);
 
   // Initialize the mutation hook
   const [updateKycStatus, {loading, error, data}] = useMutation<
@@ -59,7 +58,7 @@ export const useKycStatusUpdate = () => {
     UpdateKycStatusVars
   >(UPDATE_KYC_STATUS, {
     onCompleted: () => {
-      console.log('KYC status updated successfully:');
+      console.info('KYC status updated successfully:');
     },
     onError: mutationError => {
       console.error('Error updating KYC status:', mutationError);
@@ -77,10 +76,9 @@ export const useKycStatusUpdate = () => {
       if (!userEmail) {
         throw new Error('No wallet address available');
       }
-      console.log('🚀 ~ useKycStatusUpdate ~ applicantId:', applicantId);
+
       // Fixed: Pass the Apollo client to getKYCDetails
       const res = await getKYCDetails(applicantId || '', client);
-      console.log('🚀 ~ useKycStatusUpdate ~ kycDetails:', res);
       const kycDetails = res; // Fixed: Updated path to match query
 
       const result = await updateKycStatus({
@@ -94,22 +92,10 @@ export const useKycStatusUpdate = () => {
       });
 
       const kycDetailsParsed = JSON.parse(JSON.stringify(kycDetails));
-      console.log(
-        '🚀 ~ useKycStatusUpdate ~ kycDetailsParsed:',
-        kycDetailsParsed,
-      );
       const extractedKycInfo: ExtractedKycInfo | null =
         parseDataAndReturnFixedInfo(kycDetailsParsed);
-      console.log(
-        '🚀 ~ useKycStatusUpdate ~ extractedKycInfo:',
-        extractedKycInfo,
-      );
 
       if (extractedKycInfo) {
-        console.log(
-          '🚀 ~ useKycStatusUpdate ~ extractedKycInfo: ✅',
-          isVerified,
-        );
         updateUserDetails({
           kycDetails: extractedKycInfo,
           is_verified: isVerified,
@@ -117,8 +103,6 @@ export const useKycStatusUpdate = () => {
           accessToken: accessToken || '',
         });
       }
-
-      console.log('🚀 ~ useKycStatusUpdate ~ result:');
 
       return result;
     } catch (updateError) {

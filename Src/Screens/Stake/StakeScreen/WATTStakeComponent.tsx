@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from 'react';
 import {View, Text, StyleSheet, ActivityIndicator, Alert} from 'react-native';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
-import {DTextInput} from '../../../Componants/Dinputs';
-import {DButton} from '../../../Componants';
+import {DTextInput} from '../../../components/Dinputs';
+import {DButton} from '../../../components';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {useWATTStaking} from '../Hooks/useWATTStaking';
 import {navigateTo} from '../../../utils/navigationService';
@@ -77,8 +77,6 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
 
   // Handle amount change
   const handleAmountChange = (value: string): void => {
-    console.log('Amount input changed:', value);
-
     const isValid = validateAmount(value);
 
     if (isValid) {
@@ -88,7 +86,6 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
   };
 
   const handleStakeSuccess = (result: any) => {
-    console.log('WATT Staking successful:', result);
     setTxHash(result.txHash);
     setTxStatus('success');
 

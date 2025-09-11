@@ -303,7 +303,6 @@ export const useSwap = (magic: any): UseSwapReturn => {
   useEffect(() => {
     if (magic?.rpcProvider) {
       try {
-        console.log('Initializing Magic provider...');
         const browserProvider = new BrowserProvider(magic.rpcProvider);
         setProvider(browserProvider);
         setIsConnected(true);
@@ -315,7 +314,6 @@ export const useSwap = (magic: any): UseSwapReturn => {
             setSigner(signerInstance);
             const address = await signerInstance.getAddress();
             setAccount(address);
-            console.log('Magic wallet connected:', address);
           })
           .catch((error: any) => {
             console.error('Error getting signer:', error);
@@ -346,19 +344,13 @@ export const useSwap = (magic: any): UseSwapReturn => {
           return;
         }
 
-        console.log(`Getting balance for ${tokenSymbol}...`);
-
         if (token.address === 'WATT') {
           const walletBalance = await provider.getBalance(account);
           const formattedBalance = formatUnits(walletBalance, 18);
           setBalance(formattedBalance);
-          console.log(`${tokenSymbol} balance:`, formattedBalance);
         } else {
           const contractCode = await provider.getCode(token.address);
           if (contractCode === '0x') {
-            console.warn(
-              `Contract ${token.address} doesn't exist on this network`,
-            );
             setBalance('0');
             return;
           }
@@ -369,13 +361,15 @@ export const useSwap = (magic: any): UseSwapReturn => {
             setTimeout(() => reject(new Error('Balance query timeout')), 10000),
           );
 
-          const tokenBalance = await Promise.race([balancePromise, timeoutPromise]);
+          const tokenBalance = await Promise.race([
+            balancePromise,
+            timeoutPromise,
+          ]);
           const formattedBalance = formatUnits(
             tokenBalance as bigint,
             token.decimals,
           );
           setBalance(formattedBalance);
-          console.log(`${tokenSymbol} balance:`, formattedBalance);
         }
       } catch (error: any) {
         console.error('Error getting balance:', error);
@@ -416,12 +410,11 @@ export const useSwap = (magic: any): UseSwapReturn => {
         setTimeout(() => reject(new Error('Allowance query timeout')), 10000),
       );
 
-      const tokenAllowance = await Promise.race([allowancePromise, timeoutPromise]);
+      const tokenAllowance = await Promise.race([
+        allowancePromise,
+        timeoutPromise,
+      ]);
       setAllowance((tokenAllowance as bigint).toString());
-      console.log(
-        `${inputToken.symbol} allowance:`,
-        formatUnits(tokenAllowance as bigint, inputToken.decimals),
-      );
     } catch (error: any) {
       console.error('Error getting allowance:', error);
       setAllowance('0');
@@ -448,7 +441,6 @@ export const useSwap = (magic: any): UseSwapReturn => {
     // Create a unique key for this quote request to prevent duplicates
     const quoteKey = `${amount}-${selectedToken}-${selectedTargetToken}`;
     if (quoteKey === lastQuoteParams) {
-      console.log('Skipping duplicate quote request');
       return;
     }
 
@@ -464,10 +456,6 @@ export const useSwap = (magic: any): UseSwapReturn => {
 
       const inputToken = TOKENS[selectedToken] || TOKENS.WATT;
       const outputToken = TOKENS[selectedTargetToken] || TOKENS.USDC;
-
-      console.log(
-        `Getting quote: ${amount} ${inputToken.symbol} -> ${outputToken.symbol}`,
-      );
 
       const amountIn = parseUnits(amount, inputToken.decimals);
       const tokenInAddress =
@@ -509,8 +497,6 @@ export const useSwap = (magic: any): UseSwapReturn => {
             sqrtPriceLimitX96: 0,
           };
 
-          console.log(`Trying fee tier ${feeKey} (${feeAmount})...`);
-
           // Add timeout and retry logic for individual quote attempts
           const quotePromise =
             quoterContract.quoteExactInputSingle.staticCall(quoteParams);
@@ -531,15 +517,9 @@ export const useSwap = (magic: any): UseSwapReturn => {
               fee: feeAmount,
               feeKey,
             };
-            console.log(
-              `Found quote for ${feeKey}: ${formatUnits(
-                amountOut,
-                outputToken.decimals,
-              )} ${outputToken.symbol}`,
-            );
           }
         } catch (error: any) {
-          console.log(`Fee tier ${feeKey} failed:`, error.message);
+          console.error(`Fee tier ${feeKey} failed:`, error.message);
           // Continue trying other fee tiers instead of failing completely
         }
       }
@@ -567,8 +547,6 @@ export const useSwap = (magic: any): UseSwapReturn => {
           feeKey: bestQuote.feeKey,
         });
 
-        console.log(`Best quote: ${formattedOut} ${outputToken.symbol}`);
-
         // Clear any previous quote errors on success
         if (errorMessage && !errorMessage.includes('balance')) {
           setErrorMessage(null);
@@ -586,7 +564,6 @@ export const useSwap = (magic: any): UseSwapReturn => {
             : 'Unable to get quote - please try again';
 
         setErrorMessage(errorMsg);
-        console.log('No valid quotes found - insufficient liquidity');
       }
     } catch (error: any) {
       console.error('Error getting quote:', error);
@@ -694,11 +671,6 @@ export const useSwap = (magic: any): UseSwapReturn => {
 
       const contract = new Contract(inputToken.address, ERC20_ABI, signer);
 
-      console.log(
-        `Approving ${inputToken.symbol}:`,
-        formatUnits(amountToApprove, inputToken.decimals),
-      );
-
       const tx = await contract.approve(
         CONTRACTS.DENERGY_TESTNET.SMART_ROUTER,
         amountToApprove,
@@ -745,10 +717,6 @@ export const useSwap = (magic: any): UseSwapReturn => {
 
       const inputToken = getInputToken();
       const outputToken = getOutputToken();
-
-      console.log(
-        `Executing swap: ${amount} ${inputToken.symbol} -> ${outputToken.symbol}`,
-      );
 
       updateProcessingStep('SWAP', 'PREPARING_PARAMS');
 

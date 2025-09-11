@@ -1,6 +1,6 @@
 import React from 'react';
 import {Image, StyleSheet, View, TouchableOpacity} from 'react-native';
-import {DText} from '../../Componants/DText';
+import {DText} from '../../components/DText';
 import {marketIcons} from '../../Theme/variable';
 import {navigateTo} from '../../utils/navigationService';
 import {ScreenWidth} from '@rneui/base';

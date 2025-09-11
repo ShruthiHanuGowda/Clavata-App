@@ -11,20 +11,20 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './style';
-import {CustomImageButton, DButton, Header} from '../../../Componants';
+import {CustomImageButton, DButton, Header} from '../../../components';
 import {fontsFamily, Images, Animation} from '../../../Theme';
 import {useWallet} from '../../../../screens/Provider/WalletProvider';
-import ReceiverDetails from '../../../Componants/ReceiverDetails';
+import ReceiverDetails from '../../../components/ReceiverDetails';
 import {useSendEth} from '../../../hooks/useSendEth';
 import {useMagic} from '../../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../../screens/Provider/authProvider';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import styles from '../../AuthScreens/styles';
 import {navigateTo} from '../../../utils/navigationService';
-import LoadingScreenWithStep from '../../../Componants/Loading/LoadingScreenWIthStep';
+import LoadingScreenWithStep from '../../../components/Loading/LoadingScreenWIthStep';
 import {getBlockExploreLink} from '../../../utils/explorer';
 import Clipboard from '@react-native-clipboard/clipboard';
-import {DText} from '../../../Componants/DText';
+import {DText} from '../../../components/DText';
 import LottieView from 'lottie-react-native';
 
 import {
@@ -120,10 +120,9 @@ export default function SendCoin(props: SendCoinProps): any {
     if (currentStep === 'success') {
       const timer = setTimeout(() => {
         if (soundLoaded) {
-          console.log('Playing success sound...');
           playSuccessSound();
         } else {
-          console.log(
+          console.error(
             'Sound not loaded yet, isLoaded:',
             soundLoaded,
             'error:',
@@ -346,7 +345,6 @@ export default function SendCoin(props: SendCoinProps): any {
   };
 
   const onVerify = async (): Promise<void> => {
-    console.log(coinCode);
     setCurrentStep('processing');
     resetSendState();
 
@@ -363,7 +361,6 @@ export default function SendCoin(props: SendCoinProps): any {
           amount: wattAmount,
         };
         await sendEthTransaction(transactionDetails, transactionResult => {
-          console.log('transactionResult????', transactionResult);
           setResult({
             success: true,
             ...transactionResult,
@@ -384,7 +381,6 @@ export default function SendCoin(props: SendCoinProps): any {
           coinCode: 'USDC',
         };
         await sendUSDCTransaction(transactionDetails, transactionResult => {
-          console.log('transactionResult????', transactionResult);
           setResult({
             success: true,
             ...transactionResult,
@@ -405,7 +401,6 @@ export default function SendCoin(props: SendCoinProps): any {
           coinCode: 'EURC',
         };
         await sendUSDCTransaction(transactionDetails, transactionResult => {
-          console.log('transactionResult????', transactionResult);
           setResult({
             success: true,
             ...transactionResult,
@@ -434,7 +429,6 @@ export default function SendCoin(props: SendCoinProps): any {
 
           // Send transaction
           await sendWattTransaction(transactionDetails, transactionResult => {
-            console.log('Transaction successful!', transactionResult);
             setResult({
               success: true,
               ...transactionResult,
@@ -462,7 +456,6 @@ export default function SendCoin(props: SendCoinProps): any {
         await sendDenergyUSDCTransaction(
           transactionDetails,
           transactionResult => {
-            console.log('transactionResult????', transactionResult);
             setResult({
               success: true,
               ...transactionResult,
@@ -486,7 +479,6 @@ export default function SendCoin(props: SendCoinProps): any {
         await sendDenergyUSDCTransaction(
           transactionDetails,
           transactionResult => {
-            console.log('transactionResult????', transactionResult);
             setResult({
               success: true,
               ...transactionResult,

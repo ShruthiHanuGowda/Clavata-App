@@ -4,8 +4,8 @@ import style from './styles';
 import {Header} from '@rneui/base';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 import images from '../../../Theme/images';
-import CustomImageButton from '../../../Componants/rc_imageButton';
-import {DText} from '../../../Componants/DText';
+import CustomImageButton from '../../../components/rc_imageButton';
+import {DText} from '../../../components/DText';
 import {fontsFamily} from '../../../Theme';
 
 interface RouteParams {

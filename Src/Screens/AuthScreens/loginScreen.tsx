@@ -1,11 +1,5 @@
 import React, {useEffect, useState, useCallback, useRef} from 'react';
-import {
-  Text,
-  View,
-  ScrollView,
-  Alert,
-  SafeAreaView,
-} from 'react-native';
+import {Text, View, ScrollView, Alert, SafeAreaView} from 'react-native';
 import 'react-native-get-random-values';
 import '@ethersproject/shims';
 import LottieView from 'lottie-react-native';
@@ -13,14 +7,14 @@ import styles from './styles';
 import {useMagic} from '../../../screens/Provider/MagicProvider';
 import {useAuth} from '../../../screens/Provider/authProvider';
 import {navReset} from '../../Navigation/NavigationFunctions';
-import {DButton, Header} from '../../Componants';
+import {DButton, Header} from '../../components';
 import {Animation, Colors} from '../../Theme';
-import {DEmailInput} from '../../Componants/Dinputs';
+import {DEmailInput} from '../../components/Dinputs';
 import {useLazyQuery} from '@apollo/client';
 import {GET_USER_WALLET_ADDRESS} from '../../graphql/queries';
 import {UserAuth, ExtractedKycInfo, UserData} from '../../utils/type';
 import {useApolloClientContext} from '../../../screens/Provider/GraphQLProvider';
-import {useKycCheck} from '../../CustomHooks/GlobalKycProvider';
+import {useKycCheck} from '../../hooks/GlobalKycProvider';
 
 export const parseDataAndReturnFixedInfo = (data: any) => {
   try {
@@ -65,13 +59,9 @@ const LoadingScreen = ({message}: {message: string}) => (
       ]}
     />
 
-    <Text style={styles.loadingMessage}>
-      {message}
-    </Text>
+    <Text style={styles.loadingMessage}>{message}</Text>
 
-    <Text style={styles.loadingSubtitle}>
-      Please wait...
-    </Text>
+    <Text style={styles.loadingSubtitle}>Please wait...</Text>
   </View>
 );
 
@@ -102,7 +92,7 @@ export default function LoginScreen() {
   useEffect(() => {
     if (userData && !callbackExecutedRef.current && !isKycSkipped) {
       callbackExecutedRef.current = true;
-      console.log('✅ getUserMetaData success', userData);
+
       handleUserData(userData);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,18 +112,15 @@ export default function LoginScreen() {
   }, [queryError]);
 
   const navigateToApp = useCallback(() => {
-    console.log('🚀 Navigating to app screens');
     (navReset as any)('appScreens');
   }, []);
 
   const handleKycProcess = useCallback(async () => {
     try {
       setKycInProgress(true);
-      console.log('🚦 Starting KYC process...');
 
       await checkKYC({
         onSuccess: () => {
-          console.log('✅ KYC completed successfully');
           setKycInProgress(false);
           setIsKycSkipped(true);
 
@@ -149,7 +136,6 @@ export default function LoginScreen() {
           setTimeout(() => navigateToApp(), 100);
         },
         onSkip: () => {
-          console.log('⏭️ KYC skipped');
           setKycInProgress(false);
           setIsKycSkipped(true);
 
@@ -183,10 +169,7 @@ export default function LoginScreen() {
       // Polling mechanism
       kycPollingIntervalRef.current = setInterval(async () => {
         try {
-          console.log('🔄 Polling KYC status...');
           if (isKycCompleted && kycInProgress) {
-            console.log('✅ KYC status updated via polling');
-
             if (kycPollingIntervalRef.current) {
               clearInterval(kycPollingIntervalRef.current);
               kycPollingIntervalRef.current = null;
@@ -207,8 +190,6 @@ export default function LoginScreen() {
 
       // Timeout fallback
       kycCompletionTimeoutRef.current = setTimeout(() => {
-        console.log('⏰ KYC process timeout - auto navigating');
-
         if (kycPollingIntervalRef.current) {
           clearInterval(kycPollingIntervalRef.current);
           kycPollingIntervalRef.current = null;
@@ -237,13 +218,11 @@ export default function LoginScreen() {
   const checkPrimaryNetworkAuth = useCallback(async () => {
     try {
       const isLoggedIn = await magic.user.isLoggedIn();
-      console.log('🔐 User is logged in:', isLoggedIn);
 
       if (isLoggedIn) {
         const userInfo = await magic.user.getInfo();
         // CRITICAL: Update Apollo client with token BEFORE any GraphQL queries
         await updateClientWithToken();
-        console.log('🔑 Apollo client updated with auth token');
 
         return {
           isLoggedIn,
@@ -258,15 +237,12 @@ export default function LoginScreen() {
     }
   }, [magic.user, updateClientWithToken]);
 
-
   const checkAllNetworks = useCallback(async () => {
     try {
       // CRITICAL: First check primary network (this updates Apollo client token)
       const primaryNetworkData = await checkPrimaryNetworkAuth();
-      console.log('🌐 Primary network data:', primaryNetworkData);
 
       if (!primaryNetworkData.isLoggedIn) {
-        console.log('❌ User not logged in to primary network');
         return {isLoggedIn: false, addresses: {}};
       }
 
@@ -294,17 +270,14 @@ export default function LoginScreen() {
       console.error('❌ Error checking all networks:', error);
       return {isLoggedIn: false, addresses: {}, error};
     }
-  }, [
-    checkPrimaryNetworkAuth,
-  ]);
+  }, [checkPrimaryNetworkAuth]);
 
   // Handle user data from GraphQL query
   const handleUserData = useCallback(
     async (data: UserData): Promise<void> => {
       try {
         if (data?.getUserWalletAddress) {
-          const result = await checkAllNetworks();
-          console.log('🌐 Network check results:', result);
+          await checkAllNetworks();
 
           // User exists in DB - store data in context
           const apiData: UserAuth = {
@@ -324,7 +297,6 @@ export default function LoginScreen() {
               parseDataAndReturnFixedInfo(kycDetailsParsed);
 
             if (extractedKycInfo) {
-              console.log('✅ Successfully extracted KYC info');
               apiData.kycDetails = extractedKycInfo;
             }
           }
@@ -334,23 +306,14 @@ export default function LoginScreen() {
           const isVerified: boolean =
             apiData?.is_verified === true || apiData?.is_verified === 'true';
 
-          console.log('🔍 Verification status:', {
-            isVerified,
-            isKycCompleted,
-            isKycSkipped,
-            kycInProgress,
-          });
-
           if (
             !isVerified &&
             !isKycCompleted &&
             !isKycSkipped &&
             !kycInProgress
           ) {
-            console.log('🚦 Starting KYC process for existing user...');
             setTimeout(() => handleKycProcess(), 300);
           } else {
-            console.log('✅ User verified, navigating to app');
             navigateToApp();
           }
 
@@ -358,7 +321,6 @@ export default function LoginScreen() {
           setIsScreenLoading(false);
         } else {
           // User not in DB - prepare new user data
-          console.log('👤 New user - not found in database');
           await prepareNewUserData();
         }
       } catch (error) {
@@ -397,7 +359,6 @@ export default function LoginScreen() {
       setLoading(false);
       setIsScreenLoading(false);
 
-      console.log('🚦 Starting KYC process for new user...');
       setTimeout(() => handleKycProcess(), 300);
     } catch (error) {
       console.error('❌ Error preparing user data:', error);
@@ -423,23 +384,14 @@ export default function LoginScreen() {
 
       if (isLoggedIn) {
         const userMetadata = await magic.user.getInfo();
-        console.log(
-          '🔑 User session active, checking database...',
-          userMetadata,
-        );
 
-        // CRITICAL: Update Apollo client token FIRST
         await updateClientWithToken();
-        console.log('🔑 Apollo client updated with token for existing session');
 
-        // NOW make the GraphQL query
-        console.log('📡 Making GraphQL query with authenticated client');
         await getUserWallet({
           variables: {emailAddress: userMetadata?.email?.toLowerCase()},
         });
       } else {
         setIsScreenLoading(false);
-        console.log('❌ No active session found');
       }
     } catch (error) {
       console.error('❌ Error checking user session:', error);
@@ -449,7 +401,6 @@ export default function LoginScreen() {
 
   // Check for active session on component mount
   useEffect(() => {
-    console.log('🔍 Checking user session on mount');
     checkUserSession();
   }, [checkUserSession]);
 
@@ -459,18 +410,10 @@ export default function LoginScreen() {
       setLoading(true);
       callbackExecutedRef.current = false;
 
-      console.log('📧 Logging in with email OTP...');
+      await magic.auth.loginWithEmailOTP({email: userEmail});
 
-      // Step 1: Magic login
-      const res = await magic.auth.loginWithEmailOTP({email: userEmail});
-      console.log('✅ Magic login successful:', res);
-
-      // Step 2: CRITICAL - Update Apollo client with new token BEFORE GraphQL query
       await updateClientWithToken();
-      console.log('🔑 Apollo client updated with fresh token after login');
 
-      // Step 3: Now make GraphQL query with authenticated client
-      console.log('📡 Making authenticated GraphQL query');
       await getUserWallet({
         variables: {emailAddress: userEmail.toLowerCase()},
       });
@@ -525,10 +468,7 @@ export default function LoginScreen() {
           <Header headerTitle="Login" hideBorder={true} hideBackIcon={true} />
           <ScrollView>
             <View style={styles.contentContainer}>
-              <Text
-                style={[styles.content, styles.welcomeText]}>
-                Welcome
-              </Text>
+              <Text style={[styles.content, styles.welcomeText]}>Welcome</Text>
               <View style={styles.emailInputWrapper}>
                 <DEmailInput
                   inputAccessoryViewID={'sendOtp'}
