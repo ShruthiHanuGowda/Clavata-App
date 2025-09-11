@@ -101,7 +101,6 @@ export const useNFTTransactionHistory = (
 
   // Update transactions when API response changes
   useEffect(() => {
-    console?.log('apiResponse', JSON.stringify(apiResponse));
     if (apiResponse?.items) {
       setAllTransactions(apiResponse.items as NFTTransaction[]);
     }
@@ -109,7 +108,6 @@ export const useNFTTransactionHistory = (
 
   // Format transactions for display (similar to useTransactionHistory)
   const formattedTransactions = useMemo(() => {
-    console?.log('apiResponse????', allTransactions);
     if (allTransactions?.length) {
       return allTransactions?.map(transaction => ({
         id: transaction.id,

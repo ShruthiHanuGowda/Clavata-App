@@ -158,10 +158,14 @@ const WalletNFTDetailsScreen = ({route}: any) => {
       const metadataUri: string = await collectionContract.uri(nft.tokenId);
 
       if (metadataUri) {
-        const response = await fetch(metadataUri);
-        const metadata: NFTMetadata = await response.json();
+        try {
+          const response = await fetch(metadataUri);
+          const metadata: NFTMetadata = await response.json();
 
-        setNftMetadata(metadata);
+          setNftMetadata(metadata);
+        } catch (error) {
+          console.error('Error fetching NFT metadata:', error);
+        }
       }
     } catch (error) {
       console.error('Error fetching NFT metadata:', error);
