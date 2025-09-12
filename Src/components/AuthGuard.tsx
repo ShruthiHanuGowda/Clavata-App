@@ -1,8 +1,9 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import { Animation } from '../Theme';
+import colors from '../Theme/Colors';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -12,12 +13,12 @@ interface AuthGuardProps {
 }
 
 const LoadingFallback = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+  <View style={styles.loadingContainer}>
     <LottieView
       source={Animation.loaderAnimation}
       autoPlay
       loop
-      style={{ width: 150, height: 150 }}
+      style={styles.lottieAnimation}
     />
   </View>
 );
@@ -25,7 +26,7 @@ const LoadingFallback = () => (
 /**
  * Authentication Guard Component
  * Protects child components based on authentication status
- * 
+ *
  * @param children - Components to protect
  * @param requireAuth - Whether authentication is required (default: true)
  * @param redirectTo - Where to redirect unauthenticated users
@@ -55,5 +56,18 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
 
   return <>{children}</>;
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+  },
+  lottieAnimation: {
+    width: 150,
+    height: 150,
+  },
+});
 
 export default AuthGuard;

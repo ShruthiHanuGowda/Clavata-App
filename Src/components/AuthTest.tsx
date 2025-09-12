@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { useAuth, AuthState } from '../providers/AuthProvider';
+import colors from '../Theme/Colors';
 
 /**
  * Simple Authentication Test Component
@@ -31,9 +32,9 @@ export const AuthTest: React.FC = () => {
       console.log('🚀 Starting login test...');
       await login({ email: email.trim() });
       Alert.alert('Success', 'Login successful!');
-    } catch (error: any) {
-      console.error('❌ Login test failed:', error);
-      Alert.alert('Login Failed', error.message || 'An error occurred');
+    } catch (err: any) {
+      console.error('❌ Login test failed:', err);
+      Alert.alert('Login Failed', err.message || 'An error occurred');
     }
   };
 
@@ -42,9 +43,9 @@ export const AuthTest: React.FC = () => {
       console.log('🚪 Starting logout test...');
       await logout();
       Alert.alert('Success', 'Logout successful!');
-    } catch (error: any) {
-      console.error('❌ Logout test failed:', error);
-      Alert.alert('Logout Failed', error.message || 'An error occurred');
+    } catch (err: any) {
+      console.error('❌ Logout test failed:', err);
+      Alert.alert('Logout Failed', err.message || 'An error occurred');
     }
   };
 
@@ -78,7 +79,7 @@ export const AuthTest: React.FC = () => {
         <Text style={styles.debugText}>• Address: {session?.publicAddress || 'None'}</Text>
         <Text style={styles.debugText}>• User Details: {userDetails?.emailAddress || 'None'}</Text>
         {error && (
-          <Text style={[styles.debugText, { color: '#F44336' }]}>
+          <Text style={[styles.debugText, styles.errorDebugText]}>
             • Error: {error.message}
           </Text>
         )}
@@ -98,7 +99,7 @@ export const AuthTest: React.FC = () => {
         // Login Form
         <View style={styles.loginSection}>
           <Text style={styles.sectionTitle}>Login Test</Text>
-          
+
           <TextInput
             style={styles.input}
             value={email}
@@ -126,7 +127,7 @@ export const AuthTest: React.FC = () => {
           <Text style={styles.welcomeText}>
             Logged in as: {session?.userEmail}
           </Text>
-          
+
           <TouchableOpacity
             style={[styles.button, styles.logoutButton, isLoading && styles.disabledButton]}
             onPress={handleLogout}
@@ -195,6 +196,9 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     color: '#666',
     fontFamily: 'monospace',
+  },
+  errorDebugText: {
+    color: colors.error,
   },
   errorContainer: {
     backgroundColor: '#FFEBEE',

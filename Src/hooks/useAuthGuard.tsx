@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useAuth, AuthState } from '../providers/AuthProvider';
 import { navReset } from '../Navigation/NavigationFunctions';
 
@@ -10,7 +10,7 @@ export interface AuthGuardOptions {
 
 /**
  * Hook for protecting routes with authentication
- * 
+ *
  * @param options - Configuration options for the auth guard
  * @returns Object with authentication status and utilities
  */
@@ -46,7 +46,7 @@ export const useAuthGuard = (options: AuthGuardOptions = {}) => {
     if (requireAuth && authState === AuthState.UNAUTHENTICATED) {
       return redirectTo;
     }
-    
+
     if (!requireAuth && authState === AuthState.AUTHENTICATED) {
       return 'appScreens';
     }
@@ -60,7 +60,7 @@ export const useAuthGuard = (options: AuthGuardOptions = {}) => {
   const performAuthCheck = useCallback(async () => {
     try {
       // If we're still loading initial auth state, wait
-      if (isLoading) return;
+      if (isLoading) {return;}
 
       // Clear any existing errors
       if (error) {
@@ -72,14 +72,14 @@ export const useAuthGuard = (options: AuthGuardOptions = {}) => {
 
       // Determine if redirect is needed
       const redirectDestination = shouldRedirect();
-      
+
       if (redirectDestination) {
         handleRedirect(redirectDestination);
       }
 
       return authenticated;
-    } catch (error) {
-      console.error('Auth guard check failed:', error);
+    } catch (err) {
+      console.error('Auth guard check failed:', err);
       if (requireAuth) {
         handleRedirect(redirectTo);
       }
@@ -120,7 +120,7 @@ export const useAuthGuard = (options: AuthGuardOptions = {}) => {
 
 /**
  * Higher-order component for protecting screens with authentication
- * 
+ *
  * @param WrappedComponent - Component to protect
  * @param options - Auth guard options
  * @returns Protected component

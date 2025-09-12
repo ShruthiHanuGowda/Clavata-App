@@ -1,8 +1,19 @@
-import React, {createContext, useState, ReactNode, useContext, useEffect, useCallback} from 'react';
+import React, {
+  createContext,
+  useState,
+  ReactNode,
+  useContext,
+  useEffect,
+  useCallback,
+} from 'react';
 import {useMutation} from '@apollo/client';
 import {CREATE_USER_WALLETS} from '../graphql/queries';
 import {UserAuth, NetworkCheckResult} from '../utils/type';
-import AuthenticationService, {AuthSession, LoginCredentials, AuthError} from '../services/authenticationService';
+import AuthenticationService, {
+  AuthSession,
+  LoginCredentials,
+  AuthError,
+} from '../services/authenticationService';
 import {useMagic} from './MagicProvider';
 
 interface CreateUserWalletsResult {
@@ -54,12 +65,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({children}: {children: ReactNode}) => {
   const [createUserWallets] = useMutation(CREATE_USER_WALLETS);
   const magic = useMagic();
-  
+
   // Core authentication state
   const [authState, setAuthState] = useState<AuthState>(AuthState.LOADING);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [error, setError] = useState<AuthError | null>(null);
-  
+
   // Legacy user data state (for backward compatibility)
   const [userDetails, setUserDetails] = useState<UserAuth | null>(null);
 
@@ -74,9 +85,9 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
     }
   }, [magic]);
 
-  // Initialize authentication state on mount
   useEffect(() => {
     initializeAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const initializeAuth = useCallback(async () => {
@@ -85,15 +96,16 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
       setError(null);
 
       const savedSession = await AuthenticationService.getSession();
-      
+
       if (savedSession && savedSession.isAuthenticated) {
         // Verify session is still valid
-        const isStillAuthenticated = await AuthenticationService.isAuthenticated();
-        
+        const isStillAuthenticated =
+          await AuthenticationService.isAuthenticated();
+
         if (isStillAuthenticated) {
           setSession(savedSession);
           setAuthState(AuthState.AUTHENTICATED);
-          
+
           // Sync user details with session
           if (savedSession.userData) {
             setUserDetails(savedSession.userData);
@@ -107,9 +119,11 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
       } else {
         setAuthState(AuthState.UNAUTHENTICATED);
       }
-    } catch (error: any) {
-      console.error('Failed to initialize auth:', error);
-      setError(new AuthError('INIT_FAILED', 'Failed to initialize authentication'));
+    } catch (err: any) {
+      console.error('Failed to initialize auth:', err);
+      setError(
+        new AuthError('INIT_FAILED', 'Failed to initialize authentication'),
+      );
       setAuthState(AuthState.ERROR);
     }
   }, []);
@@ -120,7 +134,7 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
       setError(null);
 
       const newSession = await AuthenticationService.login(credentials);
-      
+
       setSession(newSession);
       setAuthState(AuthState.AUTHENTICATED);
 
@@ -128,10 +142,12 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
       if (newSession.userData) {
         setUserDetails(newSession.userData);
       }
-
-    } catch (error: any) {
-      console.error('Login failed:', error);
-      const authError = error instanceof AuthError ? error : new AuthError('LOGIN_FAILED', error.message || 'Login failed');
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      const authError =
+        err instanceof AuthError
+          ? err
+          : new AuthError('LOGIN_FAILED', err.message || 'Login failed');
       setError(authError);
       setAuthState(AuthState.ERROR);
       throw authError;
@@ -144,20 +160,23 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
       setError(null);
 
       await AuthenticationService.logout();
-      
+
       setSession(null);
       setUserDetails(null);
       setAuthState(AuthState.UNAUTHENTICATED);
-    } catch (error: any) {
-      console.error('Logout failed:', error);
-      const authError = error instanceof AuthError ? error : new AuthError('LOGOUT_FAILED', error.message || 'Logout failed');
+    } catch (err: any) {
+      console.error('Logout failed:', err);
+      const authError =
+        err instanceof AuthError
+          ? err
+          : new AuthError('LOGOUT_FAILED', err.message || 'Logout failed');
       setError(authError);
-      
+
       // Even if logout fails, clear local state
       setSession(null);
       setUserDetails(null);
       setAuthState(AuthState.UNAUTHENTICATED);
-      
+
       throw authError;
     }
   }, []);
@@ -165,21 +184,27 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   const refreshSession = useCallback(async () => {
     try {
       const newToken = await AuthenticationService.refreshToken();
-      
+
       if (newToken && session) {
         const updatedSession: AuthSession = {
           ...session,
           accessToken: newToken,
-          expiresAt: Date.now() + (24 * 60 * 60 * 1000),
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000,
         };
-        
+
         setSession(updatedSession);
       }
-    } catch (error: any) {
-      console.error('Session refresh failed:', error);
-      const authError = error instanceof AuthError ? error : new AuthError('REFRESH_FAILED', error.message || 'Session refresh failed');
+    } catch (err: any) {
+      console.error('Session refresh failed:', err);
+      const authError =
+        err instanceof AuthError
+          ? err
+          : new AuthError(
+              'REFRESH_FAILED',
+              err.message || 'Session refresh failed',
+            );
       setError(authError);
-      
+
       // If refresh fails, user needs to re-login
       await logout();
     }
@@ -188,29 +213,35 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   const checkAuthStatus = useCallback(async (): Promise<boolean> => {
     try {
       const authenticated = await AuthenticationService.isAuthenticated();
-      
+
       if (!authenticated && isAuthenticated) {
         // User is no longer authenticated, update state
         setSession(null);
         setUserDetails(null);
         setAuthState(AuthState.UNAUTHENTICATED);
       }
-      
+
       return authenticated;
-    } catch (error: any) {
-      console.error('Auth status check failed:', error);
+    } catch (err: any) {
+      console.error('Auth status check failed:', err);
       return false;
     }
   }, [isAuthenticated]);
 
-  const checkAllNetworksStatus = useCallback(async (): Promise<NetworkCheckResult> => {
-    try {
-      return await AuthenticationService.checkAllNetworksStatus();
-    } catch (error: any) {
-      console.error('Network status check failed:', error);
-      throw error instanceof AuthError ? error : new AuthError('NETWORK_CHECK_FAILED', error.message || 'Network check failed');
-    }
-  }, []);
+  const checkAllNetworksStatus =
+    useCallback(async (): Promise<NetworkCheckResult> => {
+      try {
+        return await AuthenticationService.checkAllNetworksStatus();
+      } catch (err: any) {
+        console.error('Network status check failed:', err);
+        throw err instanceof AuthError
+          ? err
+          : new AuthError(
+              'NETWORK_CHECK_FAILED',
+              err.message || 'Network check failed',
+            );
+      }
+    }, []);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -239,8 +270,8 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
         },
       });
       return data as CreateUserWalletsResult;
-    } catch (error: unknown) {
-      throw new Error(error instanceof Error ? error.message : String(error));
+    } catch (err: unknown) {
+      throw new Error(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -250,7 +281,7 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   ): Promise<boolean | CreateUserWalletsResult> => {
     try {
       updateUserDetails(userData);
-      
+
       // Also update session if authenticated
       if (session && isAuthenticated) {
         const updatedSession: AuthSession = {
@@ -260,23 +291,23 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
         setSession(updatedSession);
         await AuthenticationService.saveSession(updatedSession);
       }
-      
+
       if (!isExist) {
         return await handleSaveWalletToDB(userData);
       } else {
         return true;
       }
-    } catch (error) {
-      throw new Error(error instanceof Error ? error.message : String(error));
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : String(err));
     }
   };
 
   const updateUserDetails = (partialUserData: Partial<UserAuth>) => {
     try {
       setUserDetails(prevUserDetails => {
-        const newUserDetails = prevUserDetails 
-          ? { ...prevUserDetails, ...partialUserData }
-          : partialUserData as UserAuth;
+        const newUserDetails = prevUserDetails
+          ? {...prevUserDetails, ...partialUserData}
+          : (partialUserData as UserAuth);
 
         // Also update session if authenticated
         if (session && isAuthenticated) {
@@ -286,13 +317,15 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
           };
           setSession(updatedSession);
           // Save session asynchronously
-          AuthenticationService.saveSession(updatedSession).catch(console.error);
+          AuthenticationService.saveSession(updatedSession).catch(
+            console.error,
+          );
         }
 
         return newUserDetails;
       });
-    } catch (error) {
-      throw new Error(error instanceof Error ? error.message : String(error));
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -321,9 +354,7 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 

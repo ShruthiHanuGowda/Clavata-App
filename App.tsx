@@ -25,11 +25,11 @@ export default function App() {
       const jailBroken = JailMonkey.isJailBroken();
       const canMockLocation = JailMonkey.canMockLocation();
 
-      // if (jailBroken || canMockLocation) {
-      //   setIsSecureDevice(false);
-      // } else {
-      //   setIsSecureDevice(true);
-      // }
+      if (jailBroken || canMockLocation) {
+        setIsSecureDevice(false);
+      } else {
+        setIsSecureDevice(true);
+      }
     };
 
     checkDeviceSecurity();

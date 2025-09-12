@@ -11,7 +11,7 @@ import {
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const renderTabBar = (props: any) => <TabBar {...props} />;
 
 export default function Tabs() {

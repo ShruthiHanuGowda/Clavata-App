@@ -180,7 +180,7 @@ class AuthenticationService {
   public async isAuthenticated(): Promise<boolean> {
     try {
       const session = await this.getSession();
-      if (!session?.isAuthenticated) return false;
+      if (!session?.isAuthenticated) {return false;}
 
       // Double-check with Magic SDK
       if (this.magic) {
@@ -284,7 +284,7 @@ class AuthenticationService {
 
     try {
       const isLoggedIn = await this.magic.user.isLoggedIn();
-      if (!isLoggedIn) return null;
+      if (!isLoggedIn) {return null;}
 
       return await this.magic.user.getInfo();
     } catch (error: any) {
