@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import {navigate} from '../../Navigation/NavigationFunctions';
 import CollectionCard from '../../components/MarketPlace/CollectionCard';
-import {useMagic} from '../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../providers';
 import useCollections from '../../hooks/useCollections';
 import {Header} from '@rneui/base';
 import {DText} from '../../components/DText';

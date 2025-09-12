@@ -4,8 +4,8 @@ import 'react-native-get-random-values';
 import '@ethersproject/shims';
 import LottieView from 'lottie-react-native';
 import styles from './styles';
-import {useMagic} from '../../../screens/Provider/MagicProvider';
-import {useAuth} from '../../../screens/Provider/authProvider';
+import {useMagic} from '../../providers';
+import {useAuth} from '../../providers';
 import {navReset} from '../../Navigation/NavigationFunctions';
 import {DButton, Header} from '../../components';
 import {Animation, Colors} from '../../Theme';
@@ -13,8 +13,8 @@ import {DEmailInput} from '../../components/Dinputs';
 import {useLazyQuery} from '@apollo/client';
 import {GET_USER_WALLET_ADDRESS} from '../../graphql/queries';
 import {UserAuth, ExtractedKycInfo, UserData} from '../../utils/type';
-import {useApolloClientContext} from '../../../screens/Provider/GraphQLProvider';
-import {useKycCheck} from '../../hooks/GlobalKycProvider';
+import {useApolloClientContext} from '../../providers';
+import {useKycCheck} from '../../providers';
 
 export const parseDataAndReturnFixedInfo = (data: any) => {
   try {

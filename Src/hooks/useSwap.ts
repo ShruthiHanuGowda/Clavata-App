@@ -1,6 +1,6 @@
 import {useState, useEffect, useCallback} from 'react';
 import {BrowserProvider, parseUnits, formatUnits, Contract} from 'ethers';
-import {useWallet} from '../../screens/Provider/WalletProvider';
+import {useWallet} from '../providers';
 import {
   CUSTOM_NETWORK_CHAIN_ID,
   DENERGY_USDC_ADDRESS,

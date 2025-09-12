@@ -4,7 +4,7 @@ import {View, StyleSheet} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {DText} from '../../components/DText';
 import {fontsFamily} from '../../Theme';
-import {useWallet} from '../../../screens/Provider/WalletProvider';
+import {useWallet} from '../../providers';
 import {formatQuantityMWh} from '../../utils';
 
 interface Props {

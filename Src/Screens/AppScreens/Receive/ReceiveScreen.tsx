@@ -6,7 +6,7 @@ import {navigateBack} from '../../../utils/navigationService';
 import {StyleSheet} from 'react-native';
 import ShowQr from '../QRcodeScreen/ShowQr';
 import {DText} from '../../../components/DText';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useAuth} from '../../../providers';
 
 interface RouteParams {
   coinCode: string;

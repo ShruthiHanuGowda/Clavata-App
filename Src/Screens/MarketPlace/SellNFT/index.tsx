@@ -19,9 +19,9 @@ import TransactionConfirmed from './TransactionConfirmed';
 import {parseUnits} from 'ethers';
 import {NftToken} from '../../../types/types';
 import {getMinAskPrice} from '../../../hooks/marketPlace';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useAuth} from '../../../providers';
 import {useCallWithGasPrice} from '../../../hooks/marketplace/useCallWithGasPrice';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../../providers';
 import {
   getNftMarketContract,
   useNftMarketCollectionContract,

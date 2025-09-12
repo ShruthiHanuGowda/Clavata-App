@@ -1,8 +1,7 @@
 import {useState, useEffect, useCallback} from 'react';
 import {GET_BLOG_BY_ID, LIST_BLOGS} from './NewsQueries';
 import {ListBlogsData, Blog} from './type';
-import {useApolloClientContext} from '../../../../screens/Provider/GraphQLProvider';
-
+import {useApolloClientContext} from '../../../providers';
 
 // Custom hook
 export const useBlogs = () => {
@@ -54,26 +53,29 @@ export const useBlogById = (id: string | null) => {
   const [error, setError] = useState<any>(null);
   const {client} = useApolloClientContext();
 
-  const fetchBlog = useCallback(async (blogId: string) => {
-    setLoading(true);
-    setError(null);
+  const fetchBlog = useCallback(
+    async (blogId: string) => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      const result = await client.query({
-        query: GET_BLOG_BY_ID,
-        variables: {id: blogId},
-        fetchPolicy: 'network-only',
-      });
+      try {
+        const result = await client.query({
+          query: GET_BLOG_BY_ID,
+          variables: {id: blogId},
+          fetchPolicy: 'network-only',
+        });
 
-      setData(result.data.getBlogs || null);
-    } catch (err) {
-      console.error('Failed to fetch blog by ID', err);
-      setError(err);
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [client]);
+        setData(result.data.getBlogs || null);
+      } catch (err) {
+        console.error('Failed to fetch blog by ID', err);
+        setError(err);
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [client],
+  );
 
   const refetch = useCallback(() => {
     if (id) {

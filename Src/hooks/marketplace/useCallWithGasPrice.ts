@@ -5,7 +5,7 @@ import {
   TransactionReceipt,
   TransactionResponse,
 } from 'ethers';
-import {useMagic} from '../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../providers';
 import {SnackBarMessage} from '../../utils/snackBar';
 
 type Overrides = {

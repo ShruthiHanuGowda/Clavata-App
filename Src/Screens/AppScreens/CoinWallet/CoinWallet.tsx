@@ -18,10 +18,10 @@ import PriceHistoryGraph from './PriceHistoryGraph';
 import MiniTransactionHistory from './MiniTransactionHistory';
 import {DText} from '../../../components/DText';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
-import {useWallet} from '../../../../screens/Provider/WalletProvider';
+import {useWallet} from '../../../providers';
 import {marketIcons} from '../../../Theme/variable';
 import {PRICE_HISTORY_API_URL} from '../../../constants';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../../providers';
 import {DENERGY_USDC_ADDRESS, DENERGY_EURC_ADDRESS} from '../../../constants';
 
 const width = Dimensions.get('window').width;

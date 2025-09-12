@@ -3,7 +3,7 @@ import {View, Text, StyleSheet, ActivityIndicator, Alert} from 'react-native';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import {DTextInput} from '../../../components/Dinputs';
 import {DButton} from '../../../components';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../../providers';
 import {useWATTStaking} from '../Hooks/useWATTStaking';
 import {navigateTo} from '../../../utils/navigationService';
 

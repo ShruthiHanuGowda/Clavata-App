@@ -5,7 +5,7 @@ import {NavigationProp, RouteProp} from '@react-navigation/native';
 import style from './style';
 import Portfolio from './Portfolio';
 import {SCREEN_CONSTANT} from '../../Navigation/constant';
-import {useWallet} from '../../../screens/Provider/WalletProvider';
+import {useWallet} from '../../providers';
 import MyCertificatesList from '../../components/Certificates/MyCertificatesList';
 import CryptoMarketCard from '../HomeScreen/CryptoMarketCard';
 

@@ -7,7 +7,7 @@ import {
   DENERGY_USDC_ADDRESS,
   TREASURY_ADDRESS,
 } from '../constants';
-import {useWallet} from '../../screens/Provider/WalletProvider';
+import {useWallet} from '../providers';
 import {useQuery} from '@apollo/client';
 import {LIST_PLATFORM_SETTINGS} from '../graphql/queries';
 

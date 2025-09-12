@@ -13,9 +13,9 @@ import ApproveAndConfirmStage from './ApproveAndConfirmStage';
 import ConfirmStage from './ConfirmStage';
 import TransactionConfirmed from './TransactionConfirmed';
 import {NftToken} from '../../../types/types';
-import {useWallet} from '../../../../screens/Provider/WalletProvider';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useWallet} from '../../../providers';
+import {useMagic} from '../../../providers';
+import {useAuth} from '../../../providers';
 import {useCallWithGasPrice} from '../../../hooks/marketplace/useCallWithGasPrice';
 import {
   getAskBySellerId,

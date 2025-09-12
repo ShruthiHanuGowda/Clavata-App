@@ -15,7 +15,7 @@ import {NftToken} from '../../types/types';
 import {fontsFamily} from '../../Theme';
 import {formatQuantityMWh, getCountryFlag} from '../../utils';
 import {MediumLoader} from '../Loading/LoaderAnimation';
-import {useNft} from '../../../screens/Provider/NftProvider';
+import {useNft} from '../../providers';
 
 interface Props {
   containerStyle?: object;
@@ -27,7 +27,7 @@ const groupByCountry = (nfts: NftToken[]) => {
       nft?.country ||
       (nft.attributes &&
         nft?.attributes?.find(
-          (attr) => attr?.traitType?.toLowerCase() === 'country',
+          attr => attr?.traitType?.toLowerCase() === 'country',
         )?.value) ||
       'Unknown';
     if (!acc[country]) {

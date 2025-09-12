@@ -23,7 +23,7 @@ import {CustomImageButton, Header, RadioButton} from '../../components';
 import {marketIcons} from '../../Theme/variable';
 import images from '../../Theme/images';
 import {navigateBack} from '../../Navigation/NavigationFunctions';
-import {useMagic} from '../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../providers';
 import useSwap from '../../hooks/useSwap';
 import {SwapConfirmationModal} from './SwapConfirmationModal';
 import LoaderAnimation from '../../components/Loading/LoaderAnimation';

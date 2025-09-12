@@ -23,9 +23,9 @@ import {
   useUpdateAddressBook,
 } from '../Hooks/AddressBookGraphql';
 import {SnackBarMessage} from '../../../utils/snackBar';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useAuth} from '../../../providers';
 import {isAddress} from 'ethers';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../../providers';
 
 interface CreateAddressProps {
   onSave?: (data: CreateAddressData) => void;

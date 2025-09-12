@@ -6,8 +6,8 @@ import {
   parseUnits,
   formatUnits,
 } from 'ethers';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
-import {useWallet} from '../../../../screens/Provider/WalletProvider';
+import {useMagic} from '../../../providers';
+import {useWallet} from '../../../providers';
 import {STAKING_WATT_ABI} from '../../../utils/Contracts';
 import {WATT_STAKING_ADDRESS} from '../../../constants';
 
@@ -102,7 +102,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
 
       try {
         if (!magic) {
-            throw new Error('Magic SDK not available');
+          throw new Error('Magic SDK not available');
         }
 
         setIsLoading(true);
@@ -185,12 +185,11 @@ export const useWATTStaking = (validatorAddress?: string) => {
         throw new Error(errorMsg);
       }
 
-
       await setActiveNetwork('denergy');
 
       try {
         if (!magic) {
-            throw new Error('Magic SDK not available');
+          throw new Error('Magic SDK not available');
         }
 
         setIsLoading(true);
@@ -229,8 +228,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
           // The completion time should be available in the transaction receipt or logs
           // You might need to parse the transaction logs to get the actual completion time
           completionTime = Date.now().toString(); // Fallback to current timestamp
-        } catch (err) {
-        }
+        } catch (err) {}
 
         // Refresh balances
         await getWATTBalance();
@@ -310,7 +308,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
         return () => {};
       }
 
-
       const setupListeners = async () => {
         try {
           const magicProvider = new BrowserProvider(magic.rpcProvider as any);
@@ -335,7 +332,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
                 newShares,
                 event,
               ) => {
-
                 onDelegate({
                   delegatorAddress,
                   validatorAddress: eventValidatorAddress,
@@ -359,7 +355,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
                 completionTime,
                 event,
               ) => {
-
                 onUnbond({
                   delegatorAddress,
                   validatorAddress: eventValidatorAddress,
@@ -370,7 +365,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
               },
             );
           }
-
         } catch (err) {
           setError('Failed to set up WATT event listeners');
         }
@@ -427,7 +421,6 @@ export const useWATTStaking = (validatorAddress?: string) => {
       cleanup();
     };
   }, [magic]);
-
 
   return {
     isLoading,

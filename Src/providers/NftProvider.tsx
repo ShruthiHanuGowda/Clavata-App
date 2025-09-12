@@ -7,31 +7,22 @@ import React, {
   useMemo,
   ReactNode,
 } from 'react';
-import {useAuth} from './authProvider';
-import {ApiCollections, NftToken} from '../../Src/types/types';
-import {API_NFT_URL} from '../../Src/constants';
-import useApi from '../../Src/hooks/useApi';
-import {getCompleteAccountNftData} from '../../Src/hooks/marketPlace';
+import {useAuth} from './AuthProvider';
+import {ApiCollections, NftToken} from '../types/types';
+import {API_NFT_URL} from '../constants';
+import useApi from '../hooks/useApi';
+import {getCompleteAccountNftData} from '../hooks/marketPlace';
 
 interface NftContextType {
-  // Data
   nfts: NftToken[];
   totalQuantity: number;
   groupedByCountry: Record<string, NftToken[]>;
-
-  // Loading states
   isLoading: boolean;
   isRefreshing: boolean;
-
-  // Error handling
   error: unknown | null;
-
-  // Actions
   refetch: () => Promise<void>;
   refresh: () => Promise<void>;
   clearError: () => void;
-
-  // Utility functions
   getNftsByCountry: (country: string) => NftToken[];
   getTotalQuantityByCountry: (country: string) => number;
   hasNfts: boolean;
@@ -79,7 +70,6 @@ export const NftProvider: React.FC<NftProviderProps> = ({children}) => {
         !collectionsRes ||
         Object.keys(collectionsRes).length === 0
       ) {
-        console.warn('No account or collections available yet');
         return;
       }
 
@@ -92,7 +82,6 @@ export const NftProvider: React.FC<NftProviderProps> = ({children}) => {
         const result = await getCompleteAccountNftData(account, collectionsRes);
         setNfts(result);
       } catch (err) {
-        console.error('Error fetching NFT data:', err);
         setError(err);
       } finally {
         if (showLoading) {
@@ -111,8 +100,7 @@ export const NftProvider: React.FC<NftProviderProps> = ({children}) => {
     ) {
       fetchNftData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoadingCollections, account, collectionsRes]);
+  }, [isLoadingCollections, account, collectionsRes, fetchNftData]);
 
   const refetch = useCallback(async () => {
     await fetchNftData(true);
@@ -146,7 +134,6 @@ export const NftProvider: React.FC<NftProviderProps> = ({children}) => {
     return nfts.length > 0;
   }, [nfts.length]);
 
-  // Utility functions
   const getNftsByCountry = useCallback(
     (country: string) => {
       return groupedByCountry[country] || [];
@@ -192,5 +179,3 @@ export const useNft = (): NftContextType => {
   }
   return context;
 };
-
-export {NftContext};

@@ -9,7 +9,7 @@ import {
 import images from '../../Theme/images';
 import {DText} from '../../components/DText';
 import {navigateTo} from '../../utils/navigationService';
-import {useWallet} from '../../../screens/Provider/WalletProvider';
+import {useWallet} from '../../providers';
 import {formatQuantityMWh} from '../../utils';
 import PieChart from './PieChart';
 

@@ -3,7 +3,7 @@ import {ActivityIndicator, View, StyleSheet} from 'react-native';
 import {DText} from '../../../components/DText';
 import TransactionFlatList from '../TransactionHistory/TransactionFlatList';
 import {useTransactionHistory} from '../../../hooks/useTransactionHistory';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useAuth} from '../../../providers';
 
 interface MiniTransactionHistoryProps {
   coinCode?: string;

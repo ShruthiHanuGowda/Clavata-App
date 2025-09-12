@@ -9,15 +9,9 @@ import {
 } from 'react-native';
 import JailMonkey from 'jail-monkey'; // ✅ Import jailbreak detection
 
-import {MagicProvider} from './screens/Provider/MagicProvider';
 import NavigationWrapper from './Src/Navigation';
-import {AuthProvider} from './screens/Provider/authProvider';
-import {GraphQLProvider} from './screens/Provider/GraphQLProvider';
-import {WalletProvider} from './screens/Provider/WalletProvider';
-import {GlobalKycProvider} from './Src/hooks/GlobalKycProvider';
+import {AppProvider} from './Src/providers';
 import GlobalKycBottomSheet from './Src/hooks/GlobalKycBottomSheet';
-import {NftProvider} from './screens/Provider/NftProvider';
-import {MAGIC_API_KEY_PROD} from './Src/constants';
 import {fontsFamily} from './Src/Theme';
 import colors from './Src/Theme/Colors';
 
@@ -64,20 +58,10 @@ export default function App() {
   return (
     <View style={styles.container}>
       <GestureHandlerRootView style={styles.container}>
-        <MagicProvider apiKey={MAGIC_API_KEY_PROD}>
-          <GraphQLProvider>
-            <AuthProvider>
-              <WalletProvider>
-                <GlobalKycProvider>
-                  <NftProvider>
-                    <NavigationWrapper />
-                  </NftProvider>
-                  <GlobalKycBottomSheet />
-                </GlobalKycProvider>
-              </WalletProvider>
-            </AuthProvider>
-          </GraphQLProvider>
-        </MagicProvider>
+        <AppProvider>
+          <NavigationWrapper />
+          <GlobalKycBottomSheet />
+        </AppProvider>
       </GestureHandlerRootView>
     </View>
   );

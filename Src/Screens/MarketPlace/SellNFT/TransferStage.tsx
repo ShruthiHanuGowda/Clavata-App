@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import {NftToken} from '../../../types/types';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useAuth} from '../../../providers';
 import {formatQuantityMWh} from '../../../utils';
 import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
 import ContactModal from '../../AddressBookScreens/ContactModal';

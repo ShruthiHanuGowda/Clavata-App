@@ -24,7 +24,7 @@ import {ScreenWidth} from '@rneui/base';
 import {marketIcons} from '../../../../Theme/variable';
 import {DText} from '../../../../components/DText';
 import {navigateBack} from '../../../../Navigation/NavigationFunctions';
-import {useWallet} from '../../../../../screens/Provider/WalletProvider';
+import {useWallet} from '../../../../providers';
 import {ReactElement} from 'react';
 import {useBridge} from '../../../../hooks/useBridge';
 import LottieView from 'lottie-react-native';

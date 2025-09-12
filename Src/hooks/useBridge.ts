@@ -5,8 +5,8 @@ import {
   TransactionReceipt,
   parseUnits,
 } from 'ethers';
-import {useMagic} from '../../screens/Provider/MagicProvider';
-import {useAuth} from '../../screens/Provider/authProvider';
+import {useMagic} from '../providers';
+import {useAuth} from '../providers';
 import {
   BANK_ADDRESS,
   USDC_ADDRESS,
@@ -18,7 +18,7 @@ import {
   BRIDGE_API_URL,
   BRIDGE_API_KEY,
 } from '../constants';
-import {useWallet} from '../../screens/Provider/WalletProvider';
+import {useWallet} from '../providers';
 import {BRIDGE_ABI, ERC20_ABI, DEPOSIT_TOKEN_ABI} from '../utils/Contracts';
 
 interface BridgeSuccess {

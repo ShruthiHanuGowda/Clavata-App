@@ -12,9 +12,10 @@ import {
   CUSTOM_RPC_URL,
   SEPOLIA_CHAIN_ID,
   SEPOLIA_RPC_URL,
-} from '../../Src/constants.ts';
-// Supported networks
+} from '../constants';
+
 export type NetworkType = 'sepolia' | 'denergy';
+
 interface MagicContextType {
   magic: Magic;
   magic_default: Magic;
@@ -23,12 +24,15 @@ interface MagicContextType {
   activeNetwork: NetworkType;
   setActiveNetwork: (network: NetworkType) => Magic;
 }
+
 const MagicContext = createContext<MagicContextType | undefined>(undefined);
+
 interface MagicProviderProps {
   children: ReactNode;
   apiKey: string;
   initialNetwork?: NetworkType;
 }
+
 export const MagicProvider: React.FC<MagicProviderProps> = ({
   children,
   apiKey,
@@ -37,6 +41,7 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
   const [newActiveNetwork, setNewActiveNetwork] =
     useState<NetworkType>(initialNetwork);
   const [magic, setMagic] = useState<Magic>(new Magic(apiKey));
+
   useEffect(() => {
     let config: any;
     if (newActiveNetwork === 'denergy') {
@@ -56,10 +61,9 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
     }
     const newMagicInstance = new Magic(apiKey, config);
     setMagic(newMagicInstance);
-    return;
   }, [newActiveNetwork, apiKey]);
 
-  const changeActiveNetwork = (activeNetwork: any) => {
+  const changeActiveNetwork = (activeNetwork: NetworkType): Magic => {
     let config: any;
     if (activeNetwork === 'denergy') {
       config = {
@@ -90,6 +94,7 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
     activeNetwork: newActiveNetwork,
     setActiveNetwork: changeActiveNetwork,
   };
+
   return (
     <MagicContext.Provider value={contextValue}>
       <SafeAreaProvider>
@@ -99,6 +104,7 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
     </MagicContext.Provider>
   );
 };
+
 export const useMagic = (): MagicContextType => {
   const context = useContext(MagicContext);
   if (!context) {

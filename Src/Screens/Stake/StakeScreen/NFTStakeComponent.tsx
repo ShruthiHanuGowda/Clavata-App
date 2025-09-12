@@ -12,10 +12,10 @@ import {BottomSheet} from 'react-native-btr';
 import Icon from 'react-native-vector-icons/Entypo';
 import {DTextInput} from '../../../components/Dinputs';
 import {DButton} from '../../../components';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../../providers';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
 import {formatQuantityMWh} from '../../../utils';
-import {useNft} from '../../../../screens/Provider/NftProvider';
+import {useNft} from '../../../providers';
 import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
 
 interface NFTStakeComponentProps {

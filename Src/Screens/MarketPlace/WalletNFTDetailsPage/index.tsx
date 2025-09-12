@@ -22,13 +22,13 @@ import {API_NFT_URL, NFT_DEFAULT_IMAGE_URL} from '../../../constants';
 import useNftActivity from '../../../hooks/useNftActivity';
 import {useNavigation} from '@react-navigation/native';
 import {BrowserProvider, Contract} from 'ethers';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../../providers';
 import {ERC1155_ABI} from '../../../utils/Contracts';
 import {SnackBarMessage} from '../../../utils/snackBar';
-import {useKycCheck} from '../../../hooks/GlobalKycProvider';
+import {useKycCheck} from '../../../providers';
 import {RefreshControl} from 'react-native-gesture-handler';
 import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
-import {useNft} from '../../../../screens/Provider/NftProvider';
+import {useNft} from '../../../providers';
 
 interface ActionButtonProps {
   icon: any;

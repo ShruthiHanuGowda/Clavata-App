@@ -1,7 +1,7 @@
 import {useCallback, useReducer, useRef, useEffect} from 'react';
 import noop from 'lodash/noop';
 import useCatchTxError from './useCatchTxError';
-import {useAuth} from '../../../screens/Provider/authProvider';
+import {useAuth} from '../../providers';
 import {TransactionReceipt} from 'ethers';
 
 // Types for state

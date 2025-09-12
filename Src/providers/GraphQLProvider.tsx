@@ -13,16 +13,11 @@ import {
   NormalizedCacheObject,
 } from '@apollo/client';
 import {useMagic} from './MagicProvider';
-import {MERGED_API_URL} from '../../Src/constants';
+import {MERGED_API_URL} from '../constants';
 
 const createApolloClient = (
   magicAccessToken: string = '',
 ): ApolloClient<NormalizedCacheObject> => {
-  console.log(
-    'Creating Apollo client with token:',
-    magicAccessToken ? 'Token present' : 'No token',
-  );
-
   return new ApolloClient({
     uri: MERGED_API_URL,
     cache: new InMemoryCache(),
@@ -32,12 +27,10 @@ const createApolloClient = (
   });
 };
 
-// Provider props interface
-interface AppProviderProps {
+interface GraphQLProviderProps {
   children: ReactNode;
 }
 
-// Context interface
 interface ApolloClientContextType {
   client: ApolloClient<NormalizedCacheObject>;
   updateClientWithToken: () => Promise<void>;
@@ -61,7 +54,7 @@ export const useApolloClientContext = (): ApolloClientContextType => {
   return context;
 };
 
-export const GraphQLProvider: React.FC<AppProviderProps> = ({children}) => {
+export const GraphQLProvider: React.FC<GraphQLProviderProps> = ({children}) => {
   const [apolloClient, setApolloClient] = useState<
     ApolloClient<NormalizedCacheObject>
   >(() => createApolloClient());
@@ -71,34 +64,22 @@ export const GraphQLProvider: React.FC<AppProviderProps> = ({children}) => {
 
   const updateClientWithToken = useCallback(async () => {
     if (!magic) {
-      console.log('Magic not available yet');
       return;
     }
 
     setIsUpdatingToken(true);
     try {
-      console.log('Updating Apollo client with token');
-
       const isLoggedIn = await magic.user.isLoggedIn();
-      console.log('User is logged in:', isLoggedIn);
 
       if (isLoggedIn) {
         const idToken = await magic.user.getIdToken({lifespan: 86400});
-        console.log(
-          'Retrieved idToken:',
-          idToken ? 'Token obtained' : 'No token',
-        );
-
         const clientWithToken = createApolloClient(idToken);
         setApolloClient(clientWithToken);
-        console.log('Apollo client updated with auth token');
       } else {
         const clientWithoutToken = createApolloClient();
         setApolloClient(clientWithoutToken);
-        console.log('Apollo client updated without token (user not logged in)');
       }
     } catch (error) {
-      console.error('Error updating Apollo client with token:', error);
       const clientWithoutToken = createApolloClient();
       setApolloClient(clientWithoutToken);
     } finally {
@@ -107,27 +88,14 @@ export const GraphQLProvider: React.FC<AppProviderProps> = ({children}) => {
   }, [magic]);
 
   const resetClient = useCallback(() => {
-    console.log('Resetting Apollo client');
     const clientWithoutToken = createApolloClient();
     setApolloClient(clientWithoutToken);
   }, []);
 
-  // Initialize client when magic becomes available
   useEffect(() => {
     if (magic) {
-      console.log('Magic available, initializing Apollo client');
       updateClientWithToken();
     }
-  }, [magic, updateClientWithToken]);
-
-  useEffect(() => {
-    if (!magic) {
-      return;
-    }
-
-    return () => {
-      // magic.offAuthStateChanged?.(handleAuthChange);
-    };
   }, [magic, updateClientWithToken]);
 
   const contextValue: ApolloClientContextType = {

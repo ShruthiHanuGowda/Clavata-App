@@ -12,7 +12,7 @@ import {
 import images from '../../Theme/images';
 import useValidators from './Hooks/useValidators';
 import LoaderAnimation from '../../components/Loading/LoaderAnimation';
-import {useKycCheck} from '../../hooks/GlobalKycProvider';
+import {useKycCheck} from '../../providers';
 import {SnackBarMessage} from '../../utils/snackBar';
 import {VALIDATORS_API_URL} from '../../constants';
 

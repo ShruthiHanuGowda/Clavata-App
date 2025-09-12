@@ -19,7 +19,7 @@ import {
 } from '../Hooks/AddressBookGraphql';
 import AntDesignIcon from 'react-native-vector-icons/AntDesign';
 import {Colors} from '../../../Theme';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useAuth} from '../../../providers';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
 import ContactCard from '../components/ContactCard';

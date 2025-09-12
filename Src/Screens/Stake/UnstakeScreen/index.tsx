@@ -4,7 +4,7 @@ import {DTextInput} from '../../../components/Dinputs';
 import {DButton} from '../../../components';
 import {navigateBack} from '../../../utils/navigationService';
 import images from '../../../Theme/images';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../../providers';
 import styles from './styles';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';

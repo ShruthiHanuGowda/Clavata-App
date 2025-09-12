@@ -16,11 +16,11 @@ import BalanceCarousal from './BalanceCarousal';
 import {Path, Svg} from 'react-native-svg';
 import {useFocusEffect, useScrollToTop} from '@react-navigation/native';
 import {navigateTo} from '../../utils/navigationService';
-import {useWallet} from '../../../screens/Provider/WalletProvider';
-import {useAuth} from '../../../screens/Provider/authProvider';
+import {useWallet} from '../../providers';
+import {useAuth} from '../../providers';
 import {DText} from '../../components/DText';
 import {fontsFamily, Images} from '../../Theme';
-import {useNft} from '../../../screens/Provider/NftProvider';
+import {useNft} from '../../providers';
 
 function HomeHeader(props: any) {
   const {userDetails} = useAuth();

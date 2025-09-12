@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import {View, Text, StyleSheet, ScrollView, RefreshControl} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNftsForAddress} from '../../../hooks/useNftsForAddress';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useAuth} from '../../../providers';
 import {NftLocation} from '../../../types/types';
 import UserNFTCard from '../../../components/MarketPlace/UserNFTCard';
 import {Header} from '../../../components';

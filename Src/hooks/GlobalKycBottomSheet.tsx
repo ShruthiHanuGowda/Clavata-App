@@ -5,27 +5,21 @@ import BottomSheet, {
   BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
 import {useSafeAreaInsets, EdgeInsets} from 'react-native-safe-area-context';
-import {useGlobalKyc, setGlobalKycInstance} from './GlobalKycProvider';
+import {useKyc} from '../providers';
 import {Colors} from '../Theme';
 
 // =================== COMPONENT ===================
 const GlobalKycBottomSheet: React.FC = () => {
-  const globalKycContext = useGlobalKyc();
-
   const {
     isKycBottomSheetVisible,
     hideKycBottomSheet,
     startKycVerification,
     skipKycVerification,
     kycStatus,
-  } = globalKycContext;
+  } = useKyc();
 
   const insets: EdgeInsets = useSafeAreaInsets();
   const bottomSheetRef = useRef<BottomSheet>(null);
-
-  useEffect(() => {
-    setGlobalKycInstance(globalKycContext);
-  }, [globalKycContext]);
 
   const snapPoints = useMemo(() => ['55%'], []);
 

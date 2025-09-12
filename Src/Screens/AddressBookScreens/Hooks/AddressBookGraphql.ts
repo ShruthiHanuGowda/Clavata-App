@@ -1,5 +1,5 @@
 import {useState, useEffect, useCallback} from 'react';
-import {useApolloClientContext} from '../../../../screens/Provider/GraphQLProvider';
+import {useApolloClientContext} from '../../../providers';
 import {
   CREATE_ADDRESS_BOOK,
   UPDATE_ADDRESS_BOOK,

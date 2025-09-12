@@ -2,7 +2,7 @@ import React from 'react';
 import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
 import {NftToken} from '../../../types/types';
 import {getMinAsk, getMinAskPrice, isOwnNft} from '../../../hooks/marketPlace';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useAuth} from '../../../providers';
 import {formatQuantityMWh} from '../../../utils';
 import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
 

@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import {DText} from '../../../components/DText';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useAuth} from '../../../providers';
 import EnergyCertificateHistory from './NFTHistory/EnergyCertificateList';
 import {
   NFTTransaction,

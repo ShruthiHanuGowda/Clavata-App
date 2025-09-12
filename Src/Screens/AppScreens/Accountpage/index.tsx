@@ -9,11 +9,11 @@ import {DText} from '../../../components/DText';
 import MenuList from '../../../components/rc_menuList';
 import images from '../../../Theme/images';
 import {navigateTo} from '../../../utils/navigationService';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
+import {useMagic} from '../../../providers';
 import {navReset} from '../../../Navigation/NavigationFunctions';
 import {UPDATE_KYC_STATUS} from '../../../graphql/queries';
 import {useMutation} from '@apollo/client';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useAuth} from '../../../providers';
 
 interface AccountProps {
   navigation: {

@@ -9,14 +9,12 @@ import React, {
 } from 'react';
 import secureStorage from '../utils/secureStorage';
 import {useMutation, gql, TypedDocumentNode} from '@apollo/client';
-// @ts-ignore
 import SNSMobileSDK from '@sumsub/react-native-mobilesdk-module';
-import {useAuth} from '../../screens/Provider/authProvider';
-import {useApolloClientContext} from '../../screens/Provider/GraphQLProvider';
+import {useAuth} from './AuthProvider';
+import {useApolloClientContext} from './GraphQLProvider';
 import {parseDataAndReturnFixedInfo} from '../Screens/AuthScreens/loginScreen';
 import {CREATE_KYC_VERIFICATION} from '../graphql/queries';
 
-// =================== TYPES & INTERFACES ===================
 export const KYC_STATUS = {
   NOT_STARTED: 'not_started',
   IN_PROGRESS: 'in_progress',
@@ -37,7 +35,6 @@ export type KycResultType = (typeof KYC_RESULT)[keyof typeof KYC_RESULT];
 
 const KYC_STARTED_KEY = 'kyc_started';
 
-// SumSub SDK Types
 interface SumSubResult {
   status: string;
   message?: string;
@@ -91,7 +88,6 @@ interface GetKycDetailsResponse {
   };
 }
 
-// KYC Status Object
 interface KycStatus {
   status: KycStatusType;
   isCompleted: boolean;
@@ -103,7 +99,6 @@ interface KycStatus {
   error: string | null;
 }
 
-// Check KYC Options
 interface CheckKycOptions {
   onSuccess?: (result?: any) => void;
   onSkip?: () => void;
@@ -113,7 +108,6 @@ interface CheckKycOptions {
   showAlerts?: boolean;
 }
 
-// Verification Result
 interface VerificationResult {
   result: KycResultType;
   message: string;
@@ -121,7 +115,6 @@ interface VerificationResult {
   error?: string;
 }
 
-// Pending Callbacks
 interface PendingCallbacks {
   onSuccess?: (result?: any) => void;
   onSkip?: () => void;
@@ -129,36 +122,23 @@ interface PendingCallbacks {
   onCancel?: () => void;
 }
 
-// Context Type
-export interface GlobalKycContextType {
-  // Status
+export interface KycContextType {
   kycStatus: KycStatus;
-
-  // Modal/Bottom Sheet
   isKycBottomSheetVisible: boolean;
   showKycBottomSheet: () => void;
   hideKycBottomSheet: () => void;
-
-  // Main Actions
   checkKYC: (options?: CheckKycOptions) => Promise<VerificationResult>;
   startKycVerification: () => Promise<VerificationResult>;
   skipKycVerification: () => Promise<VerificationResult>;
-
-  // Utility
   isKycRequired: () => boolean;
   resetKycState: () => Promise<void>;
-
-  // Constants
   KYC_STATUS: typeof KYC_STATUS;
   KYC_RESULT: typeof KYC_RESULT;
 }
 
-// Provider Props
-interface GlobalKycProviderProps {
+interface KycProviderProps {
   children: ReactNode;
 }
-
-// =================== GRAPHQL QUERIES ===================
 
 const UPDATE_KYC_STATUS = gql`
   mutation updateIsVerified(
@@ -194,17 +174,12 @@ const GET_COMPANY_DETAILS = gql`
   }
 `;
 
-// =================== CONTEXT CREATION ===================
-const GlobalKycContext = createContext<GlobalKycContextType | null>(null);
+const KycContext = createContext<KycContextType | null>(null);
 
-// =================== MAIN PROVIDER COMPONENT ===================
-export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
-  children,
-}) => {
+export const KycProvider: React.FC<KycProviderProps> = ({children}) => {
   const {userDetails, updateUserData} = useAuth();
   const {client} = useApolloClientContext();
 
-  // =================== STATE ===================
   const [kycInternalStatus, setKycInternalStatus] = useState<KycStatusType>(
     KYC_STATUS.NOT_STARTED,
   );
@@ -214,10 +189,8 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
     useState<boolean>(false);
   const [_isKycStarted, setIsKycStarted] = useState<boolean>(false);
 
-  // Store callbacks for handling results
   const pendingCallbacks = useRef<PendingCallbacks>({});
 
-  // =================== MUTATIONS ===================
   const [createKycVerification] = useMutation<
     CreateKycVerificationResponse,
     CreateKycVerificationVariables
@@ -228,9 +201,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
     UpdateKycStatusVariables
   >(UPDATE_KYC_STATUS);
 
-  // =================== UTILITY FUNCTIONS ===================
-
-  // Get KYC details from backend
   const getKYCDetails = useCallback(
     async (applicantId: string): Promise<any> => {
       if (!applicantId || !client) {
@@ -250,14 +220,12 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
 
         return data?.getKycUserDetails?.response || [];
       } catch (error) {
-        console.error('Failed to fetch KYC data:', error);
         throw error;
       }
     },
     [client],
   );
 
-  // Initialize KYC status from user details
   const initializeKycStatus = useCallback((): void => {
     if (userDetails) {
       const isVerified =
@@ -274,7 +242,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
     }
   }, [userDetails]);
 
-  // Load KYC started status from secure storage
   useEffect(() => {
     const loadKycStartedStatus = async (): Promise<void> => {
       try {
@@ -283,7 +250,7 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
           setIsKycStarted(JSON.parse(kycStartedValue));
         }
       } catch (error) {
-        console.error('Error loading KYC started status:', error);
+        // Silent fail for storage errors
       }
     };
 
@@ -291,12 +258,10 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
     initializeKycStatus();
   }, [initializeKycStatus]);
 
-  // Update status when user details change
   useEffect(() => {
     initializeKycStatus();
   }, [userDetails, initializeKycStatus]);
 
-  // =================== KYC STATUS OBJECT ===================
   const kycStatus: KycStatus = {
     status: kycInternalStatus,
     isCompleted: kycInternalStatus === KYC_STATUS.COMPLETED,
@@ -308,8 +273,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
     error: kycError,
   };
 
-  // =================== CORE KYC FUNCTIONS ===================
-  // Get KYC token from backend
   const handleKYCToken = useCallback(async (): Promise<{
     accessToken: string;
     userId: string | null;
@@ -317,7 +280,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
     const userEmail = userDetails?.emailAddress;
 
     if (!userEmail) {
-      console.error('No user email available');
       return null;
     }
 
@@ -335,7 +297,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
         return null;
       }
 
-      // Parse the response data
       let parsedData: any;
       if (typeof responseData === 'string') {
         parsedData = JSON.parse(responseData);
@@ -343,7 +304,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
         parsedData = responseData;
       }
 
-      // Parse body if needed
       let bodyData: any;
       if (typeof parsedData.body === 'string') {
         bodyData = JSON.parse(parsedData.body);
@@ -357,16 +317,13 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
       if (token) {
         return {accessToken: token, userId};
       } else {
-        console.error('Failed to obtain KYC token');
         return null;
       }
     } catch (err) {
-      console.error('Verification process failed:', err);
       return null;
     }
   }, [userDetails, createKycVerification]);
 
-  // Update KYC status in backend
   const updateUserKycStatus = useCallback(
     async (
       isVerified: boolean = true,
@@ -410,14 +367,12 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
 
         return result;
       } catch (error) {
-        console.error('Failed to update KYC status:', error);
         throw error;
       }
     },
     [userDetails, getKYCDetails, updateKycStatusMutation, updateUserData],
   );
 
-  // Handle verification completion
   const handleVerificationCompleted = useCallback(
     async (
       applicantId: string | null,
@@ -428,7 +383,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
           await updateUserKycStatus(true, applicantId, accessToken);
           setKycInternalStatus(KYC_STATUS.COMPLETED);
         } catch (error) {
-          console.error('Error updating KYC status:', error);
           setKycInternalStatus(KYC_STATUS.FAILED);
         }
       }, 2000);
@@ -436,20 +390,17 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
     [updateUserKycStatus],
   );
 
-  // =================== BOTTOM SHEET FUNCTIONS ===================
   const showKycBottomSheet = useCallback((): void => {
     setIsKycBottomSheetVisible(true);
   }, []);
 
   const hideKycBottomSheet = useCallback((): void => {
     setIsKycBottomSheetVisible(false);
-    // Clear callbacks after hiding
     setTimeout(() => {
       pendingCallbacks.current = {};
     }, 300);
   }, []);
 
-  // =================== MAIN KYC VERIFICATION FUNCTION ===================
   const startKycVerification =
     useCallback(async (): Promise<VerificationResult> => {
       if (isKycProcessing) {
@@ -461,11 +412,9 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
         setKycError(null);
         setKycInternalStatus(KYC_STATUS.IN_PROGRESS);
 
-        // Set KYC started flag
         await secureStorage.setItem(KYC_STARTED_KEY, JSON.stringify(true));
         setIsKycStarted(true);
 
-        // Get access token
         const tokenResult = await handleKYCToken();
 
         if (!tokenResult) {
@@ -474,7 +423,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
 
         const {accessToken, userId} = tokenResult;
 
-        // Initialize SumSub SDK
         let snsMobileSDK = SNSMobileSDK.init(accessToken, async () => {
           const newToken = await handleKYCToken();
           return newToken?.accessToken || '';
@@ -485,38 +433,14 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
                 event.newStatus.toLowerCase() === 'approved' ||
                 event.newStatus.toLowerCase() === 'pending'
               ) {
+                // Handle status change
               }
               if (event.newStatus.toLowerCase() === 'approved') {
                 handleVerificationCompleted(userId, accessToken);
               }
             },
             onLog: (_event: SumSubLogEvent) => {
-              // let applicantId: string | null = null;
-              // if (
-              //   Platform.OS === 'ios' &&
-              //   event.message.includes('sdk.applicant:') &&
-              //   event.message.includes('reviewStatus=completed')
-              // ) {
-              //   const applicantIdMatch = event.message.match(
-              //     /applicantId=([a-zA-Z0-9]+)/,
-              //   );
-              //   if (applicantIdMatch && applicantIdMatch[1]) {
-              //     applicantId = applicantIdMatch[1];
-              //   }
-              // } else if (
-              //   Platform.OS === 'android' &&
-              //   event.message.includes('On Load Data Success for applicant:')
-              // ) {
-              //   const applicantIdMatch = event.message.match(
-              //     /On Load Data Success for applicant:\s*([a-zA-Z0-9]+)/,
-              //   );
-              //   if (applicantIdMatch && applicantIdMatch[1]) {
-              //     applicantId = applicantIdMatch[1];
-              //   }
-              // }
-              // if (applicantId) {
-              //   handleVerificationCompleted(applicantId, accessToken);
-              // }
+              // Handle logging if needed
             },
           })
           .withDebug(true)
@@ -525,7 +449,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
 
         const result: SumSubResult = await snsMobileSDK.launch();
 
-        // Process result
         if (
           result.status.toLowerCase() === 'approved' ||
           result.status.toLowerCase() === 'pending'
@@ -566,7 +489,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
           };
         }
       } catch (error: any) {
-        console.error('KYC verification error:', error);
         setKycError(error.message);
         setKycInternalStatus(KYC_STATUS.FAILED);
 
@@ -589,7 +511,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
       hideKycBottomSheet,
     ]);
 
-  // =================== SKIP KYC FUNCTION ===================
   const skipKycVerification =
     useCallback(async (): Promise<VerificationResult> => {
       try {
@@ -605,7 +526,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
           message: 'KYC verification skipped',
         };
       } catch (error: any) {
-        console.error('Error skipping KYC:', error);
         return {
           result: KYC_RESULT.ERROR,
           message: 'Error occurred while skipping KYC',
@@ -614,15 +534,12 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
       }
     }, [hideKycBottomSheet]);
 
-  // =================== MAIN CHECK KYC FUNCTION ===================
   const checkKYC = useCallback(
     async (options: CheckKycOptions = {}): Promise<VerificationResult> => {
       const {onSuccess, onSkip, onError, onCancel, forceShow = false} = options;
 
-      // Store callbacks
       pendingCallbacks.current = {onSuccess, onSkip, onError, onCancel};
 
-      // If already completed and not forcing, return success
       if (kycStatus.isCompleted && !forceShow) {
         if (onSuccess) {
           onSuccess();
@@ -630,13 +547,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
         return {result: KYC_RESULT.SUCCESS, message: 'KYC already completed'};
       }
 
-      // If already skipped and not forcing, return skip
-      // if (kycStatus.isSkipped && !forceShow) {
-      //   if (onSkip) onSkip();
-      //   return {result: KYC_RESULT.SKIP, message: 'KYC was previously skipped'};
-      // }
-
-      // Show the bottom sheet
       showKycBottomSheet();
 
       return {result: KYC_RESULT.SUCCESS, message: 'KYC modal opened'};
@@ -644,7 +554,6 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
     [kycStatus.isCompleted, showKycBottomSheet],
   );
 
-  // =================== UTILITY FUNCTIONS ===================
   const isKycRequired = useCallback((): boolean => {
     return !kycStatus.isCompleted && !kycStatus.isSkipped;
   }, [kycStatus.isCompleted, kycStatus.isSkipped]);
@@ -657,53 +566,41 @@ export const GlobalKycProvider: React.FC<GlobalKycProviderProps> = ({
       setKycError(null);
       setIsKycProcessing(false);
     } catch (error) {
-      console.error('Error resetting KYC state:', error);
+      // Silent fail for reset errors
     }
   }, []);
 
-  // =================== CONTEXT VALUE ===================
-  const contextValue: GlobalKycContextType = {
-    // Status
+  const contextValue: KycContextType = {
     kycStatus,
-
-    // Modal/Bottom Sheet
     isKycBottomSheetVisible,
     showKycBottomSheet,
     hideKycBottomSheet,
-
-    // Main Actions
     checkKYC,
     startKycVerification,
     skipKycVerification,
-
-    // Utility
     isKycRequired,
     resetKycState,
-
-    // Constants
     KYC_STATUS,
     KYC_RESULT,
   };
 
   return (
-    <GlobalKycContext.Provider value={contextValue}>
+    <KycContext.Provider value={contextValue}>
       {children}
-    </GlobalKycContext.Provider>
+    </KycContext.Provider>
   );
 };
 
-// =================== HOOKS ===================
-export const useGlobalKyc = (): GlobalKycContextType => {
-  const context = useContext(GlobalKycContext);
+export const useKyc = (): KycContextType => {
+  const context = useContext(KycContext);
   if (!context) {
-    throw new Error('useGlobalKyc must be used within a GlobalKycProvider');
+    throw new Error('useKyc must be used within a KycProvider');
   }
   return context;
 };
 
-// Simple hook for easy usage
 export const useKycCheck = () => {
-  const {checkKYC, kycStatus, isKycRequired} = useGlobalKyc();
+  const {checkKYC, kycStatus, isKycRequired} = useKyc();
 
   return {
     checkKYC,
@@ -713,22 +610,4 @@ export const useKycCheck = () => {
     isKycSkipped: kycStatus.isSkipped,
     isKycProcessing: kycStatus.isProcessing,
   };
-};
-
-// Utility function for non-component usage
-let globalKycInstance: GlobalKycContextType | null = null;
-
-export const setGlobalKycInstance = (instance: GlobalKycContextType): void => {
-  globalKycInstance = instance;
-};
-
-export const checkKYCFromAnywhere = async (
-  options: CheckKycOptions = {},
-): Promise<VerificationResult> => {
-  if (!globalKycInstance) {
-    console.error('Global KYC instance not initialized');
-    return {result: KYC_RESULT.ERROR, message: 'KYC system not initialized'};
-  }
-
-  return await globalKycInstance.checkKYC(options);
 };

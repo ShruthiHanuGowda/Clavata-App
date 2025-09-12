@@ -7,7 +7,7 @@ import {fontsFamily} from '../../Theme';
 import StakeListingScreen from './StakeListingScreen';
 import ValidatorsScreen from './ValidatorsScreen';
 import useValidators from './Hooks/useValidators';
-import {useAuth} from '../../../screens/Provider/authProvider';
+import {useAuth} from '../../providers';
 
 // Define interfaces
 

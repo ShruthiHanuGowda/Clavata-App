@@ -6,9 +6,9 @@ import {
   parseUnits,
   formatUnits,
 } from 'ethers';
-import {useMagic} from '../../../../screens/Provider/MagicProvider';
-import {useAuth} from '../../../../screens/Provider/authProvider';
-import {useWallet} from '../../../../screens/Provider/WalletProvider';
+import {useMagic} from '../../../providers';
+import {useAuth} from '../../../providers';
+import {useWallet} from '../../../providers';
 import {STAKING_CONTRACT_ABI, ERC1155_ABI} from '../../../utils/Contracts';
 import {STAKING_ADDRESS} from '../../../constants';
 

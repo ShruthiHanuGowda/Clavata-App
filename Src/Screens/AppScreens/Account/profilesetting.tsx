@@ -4,7 +4,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import style from './styles';
 import {Header} from '../../../components';
 import {fontsFamily} from '../../../Theme';
-import {useAuth} from '../../../../screens/Provider/authProvider';
+import {useAuth} from '../../../providers';
 import {navigateBack} from '../../../Navigation/NavigationFunctions';
 
 interface ProfileSettingProps {

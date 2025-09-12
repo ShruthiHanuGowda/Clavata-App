@@ -1,10 +1,8 @@
-// @ts-ignore
 import React, {createContext, useState, ReactNode, useContext} from 'react';
 import {useMutation} from '@apollo/client';
-import {CREATE_USER_WALLETS} from '../../Src/graphql/queries';
-import {UserAuth} from '../../Src/utils/type';
+import {CREATE_USER_WALLETS} from '../graphql/queries';
+import {UserAuth} from '../utils/type';
 
-// GraphQL result type for CREATE_USER_WALLETS
 interface CreateUserWalletsResult {
   createUserWalletAddress: {
     emailAddress: string;
@@ -24,7 +22,6 @@ interface AuthContextType {
   userDetails: UserAuth | null;
 }
 
-// Default context value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({children}: {children: ReactNode}) => {
@@ -34,8 +31,6 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   const handleSaveWalletToDB = async (
     user: UserAuth,
   ): Promise<CreateUserWalletsResult> => {
-    console.log('🚀 ~ handleSaveWalletToDB ~ user:', user);
-
     const walletData = {
       emailAddress: user.emailAddress,
       userWallet: user.userWallet,
@@ -61,8 +56,6 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
     isExist: boolean,
   ): Promise<boolean | CreateUserWalletsResult> => {
     try {
-      console.log('🚀 ~ updateUserData ~ userData:', userData);
-
       updateUserDetails(userData);
       if (!isExist) {
         return await handleSaveWalletToDB(userData);
@@ -70,34 +63,22 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
         return true;
       }
     } catch (error) {
-      console.log('🚀 ~ updateUserData ~ error:', error);
       throw new Error(error instanceof Error ? error.message : String(error));
     }
   };
 
-  // New function to update specific fields of userDetails
   const updateUserDetails = (partialUserData: Partial<UserAuth>) => {
     try {
-      console.log('🚀 ~ updateUserDetails ~ partialUserData:', partialUserData);
-
       setUserDetails(prevUserDetails => {
-        // If no existing user details, create new object with partial data
         if (!prevUserDetails) {
-          console.log(
-            'No existing user details found, creating new user details',
-          );
           return partialUserData as UserAuth;
         }
-
-        console.log('Existing user details found, merging with partial data');
-        // Merge existing userDetails with new partial data
         return {
           ...prevUserDetails,
           ...partialUserData,
         };
       });
     } catch (error) {
-      console.log('🚀 ~ updateUserData ~ error:', error);
       throw new Error(error instanceof Error ? error.message : String(error));
     }
   };
@@ -114,7 +95,6 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   );
 };
 
-// Custom hook to use the AuthContext
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

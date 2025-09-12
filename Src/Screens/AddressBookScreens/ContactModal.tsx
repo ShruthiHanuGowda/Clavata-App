@@ -9,7 +9,7 @@ import {
 import {DText} from '../../components/DText';
 import {BottomSheet} from 'react-native-btr';
 import {useAddressBookByWallet} from './Hooks/AddressBookGraphql';
-import {useAuth} from '../../../screens/Provider/authProvider';
+import {useAuth} from '../../providers';
 import LoaderAnimation from '../../components/Loading/LoaderAnimation';
 import {navigateTo} from '../../utils/navigationService';
 
