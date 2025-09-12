@@ -1,6 +1,7 @@
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import React from 'react';
 import TabBar from './TabBar';
+import {RootTabParamList} from '../../types';
 import {
   HomeScreenStack,
   MarketplaceStackFun,
@@ -8,16 +9,9 @@ import {
   WalletStack,
 } from '.';
 
-type RootTabParamList = {
-  'D.Energy': undefined;
-  Wallet: undefined;
-  Marketplace: undefined;
-  dApps: undefined;
-  Stake: undefined;
-};
-
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderTabBar = (props: any) => <TabBar {...props} />;
 
 export default function Tabs() {

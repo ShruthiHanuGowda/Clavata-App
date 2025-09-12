@@ -1,6 +1,6 @@
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import React from 'react';
-import {RootStackParamList} from '../../types';
+import {RootStackParamList, CoinWalletStackParamList, HomeStackParamList, WalletStackParamList, StakeStackParamList, MarketplaceStackParamList} from '../../types';
 import LoginScreen from '../../Src/Screens/AuthScreens/loginScreen';
 import {NavigationContainer} from '@react-navigation/native';
 import {StyleSheet, View} from 'react-native';
@@ -39,48 +39,10 @@ import AddressBookList from '../Screens/AddressBookScreens/AddressBookList';
 import CreateAddress from '../Screens/AddressBookScreens/CreateAddress';
 import Swap from '../Screens/Swap';
 import NFTDetailHistory from '../Screens/MarketPlace/WalletNFTDetailsPage/NFTDetailHistory';
-// import NFTTransactionDetails from '../Screens/MarketPlace/WalletNFTDetailsPage/NFTTransactionDetails';
 
-// Extended RootStackParamList to include common screens
-type ExtendedRootStackParamList = RootStackParamList & {
-  // Main navigation screens
-  root: undefined;
-  intro: undefined;
-  appScreens: undefined;
-  authScreens: undefined;
-  OffsetScreen: undefined;
-
-  // Common NFT/Marketplace screens
-  walletNFTDetails: undefined;
-  NFTDetailHistory: undefined;
-  SellNFT: undefined;
-  UserNFTs: undefined;
-  BuyNFT: undefined;
-  NFTDetailsPage: undefined;
-  collectionDetails: {contractAddress: string};
-
-  // Common transaction/wallet screens
-  transactionHistory: undefined;
-
-  // Common account screens
-  ProfileSettings: undefined;
-  AddressBook: undefined;
-  CreateAddress: undefined;
-  beneficary: undefined;
-  contactus: undefined;
-
-  // Common news screens
-  News: undefined;
-  NewsDetail: undefined;
-
-  // Common stake screens
-  ValidatorDetailsScreen: undefined;
-  StakeScreen: undefined;
-  UnstakeScreen: undefined;
-};
 
 function RootScreenStack() {
-  const RootStack = createNativeStackNavigator<ExtendedRootStackParamList>();
+  const RootStack = createNativeStackNavigator<RootStackParamList>();
   return (
     <RootStack.Navigator
       initialRouteName="root"
@@ -179,7 +141,7 @@ function RootScreenStack() {
       />
       <RootStack.Screen
         name="NewsDetail"
-        component={NewsDetail as any}
+        component={NewsDetail}
         options={{headerShown: false}}
       />
 
@@ -203,14 +165,6 @@ function RootScreenStack() {
   );
 }
 
-type CoinWalletStackParamList = {
-  coinWallet: undefined;
-  ReceiveScreen: undefined;
-  VerifyAddress: undefined;
-  [SCREEN_CONSTANT.TRANSFERCOIN]: undefined;
-  [SCREEN_CONSTANT.SENDCOIN]: undefined;
-  swap: undefined;
-};
 
 const CoinWalletStack = createNativeStackNavigator<CoinWalletStackParamList>();
 
@@ -242,25 +196,6 @@ export function CoinWalletStackFun() {
   );
 }
 
-// Simplified stack param lists (removed common screens)
-type HomeStackParamList = {
-  'D.Energy': undefined;
-  coinWalletStack: undefined;
-  account: undefined;
-};
-
-type WalletStackParamList = {
-  wallet: undefined;
-  coinWalletStack: undefined;
-};
-
-type StakeStackParamList = {
-  stake: undefined;
-};
-
-type MarketplaceStackParamList = {
-  marketplace: undefined;
-};
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 

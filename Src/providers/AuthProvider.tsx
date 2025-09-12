@@ -1,7 +1,9 @@
-import React, {createContext, useState, ReactNode, useContext} from 'react';
+import React, {createContext, useState, ReactNode, useContext, useEffect, useCallback} from 'react';
 import {useMutation} from '@apollo/client';
 import {CREATE_USER_WALLETS} from '../graphql/queries';
-import {UserAuth} from '../utils/type';
+import {UserAuth, NetworkCheckResult} from '../utils/type';
+import AuthenticationService, {AuthSession, LoginCredentials, AuthError} from '../services/authenticationService';
+import {useMagic} from './MagicProvider';
 
 interface CreateUserWalletsResult {
   createUserWalletAddress: {
@@ -13,20 +15,211 @@ interface CreateUserWalletsResult {
   };
 }
 
+export enum AuthState {
+  LOADING = 'loading',
+  AUTHENTICATED = 'authenticated',
+  UNAUTHENTICATED = 'unauthenticated',
+  ERROR = 'error',
+}
+
 interface AuthContextType {
+  // Authentication state
+  authState: AuthState;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  session: AuthSession | null;
+  error: AuthError | null;
+
+  // Authentication actions
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
+  checkAuthStatus: () => Promise<boolean>;
+  checkAllNetworksStatus: () => Promise<NetworkCheckResult>;
+
+  // User data management (legacy compatibility)
   updateUserData: (
     userData: UserAuth,
     isExist: boolean,
   ) => Promise<boolean | CreateUserWalletsResult>;
   updateUserDetails: (partialUserData: Partial<UserAuth>) => void;
   userDetails: UserAuth | null;
+
+  // Clear error
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({children}: {children: ReactNode}) => {
   const [createUserWallets] = useMutation(CREATE_USER_WALLETS);
+  const magic = useMagic();
+  
+  // Core authentication state
+  const [authState, setAuthState] = useState<AuthState>(AuthState.LOADING);
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [error, setError] = useState<AuthError | null>(null);
+  
+  // Legacy user data state (for backward compatibility)
   const [userDetails, setUserDetails] = useState<UserAuth | null>(null);
+
+  // Computed values
+  const isAuthenticated = authState === AuthState.AUTHENTICATED;
+  const isLoading = authState === AuthState.LOADING;
+
+  // Initialize AuthenticationService with Magic instance
+  useEffect(() => {
+    if (magic?.magic) {
+      AuthenticationService.setMagicInstance(magic.magic);
+    }
+  }, [magic]);
+
+  // Initialize authentication state on mount
+  useEffect(() => {
+    initializeAuth();
+  }, []);
+
+  const initializeAuth = useCallback(async () => {
+    try {
+      setAuthState(AuthState.LOADING);
+      setError(null);
+
+      const savedSession = await AuthenticationService.getSession();
+      
+      if (savedSession && savedSession.isAuthenticated) {
+        // Verify session is still valid
+        const isStillAuthenticated = await AuthenticationService.isAuthenticated();
+        
+        if (isStillAuthenticated) {
+          setSession(savedSession);
+          setAuthState(AuthState.AUTHENTICATED);
+          
+          // Sync user details with session
+          if (savedSession.userData) {
+            setUserDetails(savedSession.userData);
+          }
+        } else {
+          // Session expired, clear it
+          await AuthenticationService.clearSession();
+          setSession(null);
+          setAuthState(AuthState.UNAUTHENTICATED);
+        }
+      } else {
+        setAuthState(AuthState.UNAUTHENTICATED);
+      }
+    } catch (error: any) {
+      console.error('Failed to initialize auth:', error);
+      setError(new AuthError('INIT_FAILED', 'Failed to initialize authentication'));
+      setAuthState(AuthState.ERROR);
+    }
+  }, []);
+
+  const login = useCallback(async (credentials: LoginCredentials) => {
+    try {
+      setAuthState(AuthState.LOADING);
+      setError(null);
+
+      const newSession = await AuthenticationService.login(credentials);
+      
+      setSession(newSession);
+      setAuthState(AuthState.AUTHENTICATED);
+
+      // If we have user data in session, sync it
+      if (newSession.userData) {
+        setUserDetails(newSession.userData);
+      }
+
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      const authError = error instanceof AuthError ? error : new AuthError('LOGIN_FAILED', error.message || 'Login failed');
+      setError(authError);
+      setAuthState(AuthState.ERROR);
+      throw authError;
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      setAuthState(AuthState.LOADING);
+      setError(null);
+
+      await AuthenticationService.logout();
+      
+      setSession(null);
+      setUserDetails(null);
+      setAuthState(AuthState.UNAUTHENTICATED);
+    } catch (error: any) {
+      console.error('Logout failed:', error);
+      const authError = error instanceof AuthError ? error : new AuthError('LOGOUT_FAILED', error.message || 'Logout failed');
+      setError(authError);
+      
+      // Even if logout fails, clear local state
+      setSession(null);
+      setUserDetails(null);
+      setAuthState(AuthState.UNAUTHENTICATED);
+      
+      throw authError;
+    }
+  }, []);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const newToken = await AuthenticationService.refreshToken();
+      
+      if (newToken && session) {
+        const updatedSession: AuthSession = {
+          ...session,
+          accessToken: newToken,
+          expiresAt: Date.now() + (24 * 60 * 60 * 1000),
+        };
+        
+        setSession(updatedSession);
+      }
+    } catch (error: any) {
+      console.error('Session refresh failed:', error);
+      const authError = error instanceof AuthError ? error : new AuthError('REFRESH_FAILED', error.message || 'Session refresh failed');
+      setError(authError);
+      
+      // If refresh fails, user needs to re-login
+      await logout();
+    }
+  }, [session, logout]);
+
+  const checkAuthStatus = useCallback(async (): Promise<boolean> => {
+    try {
+      const authenticated = await AuthenticationService.isAuthenticated();
+      
+      if (!authenticated && isAuthenticated) {
+        // User is no longer authenticated, update state
+        setSession(null);
+        setUserDetails(null);
+        setAuthState(AuthState.UNAUTHENTICATED);
+      }
+      
+      return authenticated;
+    } catch (error: any) {
+      console.error('Auth status check failed:', error);
+      return false;
+    }
+  }, [isAuthenticated]);
+
+  const checkAllNetworksStatus = useCallback(async (): Promise<NetworkCheckResult> => {
+    try {
+      return await AuthenticationService.checkAllNetworksStatus();
+    } catch (error: any) {
+      console.error('Network status check failed:', error);
+      throw error instanceof AuthError ? error : new AuthError('NETWORK_CHECK_FAILED', error.message || 'Network check failed');
+    }
+  }, []);
+
+  const clearError = useCallback(() => {
+    setError(null);
+    if (authState === AuthState.ERROR) {
+      setAuthState(AuthState.UNAUTHENTICATED);
+    }
+  }, [authState]);
+
+  // ============ LEGACY FUNCTIONS (for backward compatibility) ============
 
   const handleSaveWalletToDB = async (
     user: UserAuth,
@@ -57,6 +250,17 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   ): Promise<boolean | CreateUserWalletsResult> => {
     try {
       updateUserDetails(userData);
+      
+      // Also update session if authenticated
+      if (session && isAuthenticated) {
+        const updatedSession: AuthSession = {
+          ...session,
+          userData,
+        };
+        setSession(updatedSession);
+        await AuthenticationService.saveSession(updatedSession);
+      }
+      
       if (!isExist) {
         return await handleSaveWalletToDB(userData);
       } else {
@@ -70,26 +274,54 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
   const updateUserDetails = (partialUserData: Partial<UserAuth>) => {
     try {
       setUserDetails(prevUserDetails => {
-        if (!prevUserDetails) {
-          return partialUserData as UserAuth;
+        const newUserDetails = prevUserDetails 
+          ? { ...prevUserDetails, ...partialUserData }
+          : partialUserData as UserAuth;
+
+        // Also update session if authenticated
+        if (session && isAuthenticated) {
+          const updatedSession: AuthSession = {
+            ...session,
+            userData: newUserDetails,
+          };
+          setSession(updatedSession);
+          // Save session asynchronously
+          AuthenticationService.saveSession(updatedSession).catch(console.error);
         }
-        return {
-          ...prevUserDetails,
-          ...partialUserData,
-        };
+
+        return newUserDetails;
       });
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : String(error));
     }
   };
 
+  const contextValue: AuthContextType = {
+    // Authentication state
+    authState,
+    isAuthenticated,
+    isLoading,
+    session,
+    error,
+
+    // Authentication actions
+    login,
+    logout,
+    refreshSession,
+    checkAuthStatus,
+    checkAllNetworksStatus,
+
+    // Legacy functions (for backward compatibility)
+    updateUserData,
+    updateUserDetails,
+    userDetails,
+
+    // Error management
+    clearError,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        updateUserData,
-        updateUserDetails,
-        userDetails,
-      }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

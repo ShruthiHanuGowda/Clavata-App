@@ -13,6 +13,51 @@ declare global {
 }
 
 export type RootStackParamList = {
+  // Main navigation screens
+  root: undefined;
+  intro: undefined;
+  appScreens: undefined;
+  authScreens: undefined;
+  OffsetScreen: undefined;
+
+  // Common NFT/Marketplace screens
+  walletNFTDetails: {nftId?: string; contractAddress?: string};
+  NFTDetailHistory: undefined;
+  SellNFT: {
+    variant?: string;
+    nftToSell?: any;
+    refresh?: () => void;
+  };
+  UserNFTs: undefined;
+  BuyNFT: {
+    nftToBuy?: any;
+    currentSeller?: string;
+  };
+  NFTDetailsPage: undefined;
+  collectionDetails: {contractAddress: string};
+
+  // Common transaction/wallet screens
+  transactionHistory: undefined;
+
+  // Common account screens
+  ProfileSettings: undefined;
+  AddressBook: undefined;
+  CreateAddress: undefined;
+  beneficary: undefined;
+  contactus: undefined;
+
+  // Common news screens
+  News: undefined;
+  NewsDetail: {
+    blogID: string;
+  };
+
+  // Common stake screens
+  ValidatorDetailsScreen: undefined;
+  StakeScreen: undefined;
+  UnstakeScreen: undefined;
+
+  // Deprecated types (kept for backwards compatibility)
   Root: NavigatorScreenParams<RootTabParamList> | undefined;
   Modal: undefined;
   NotFound: undefined;
@@ -24,8 +69,42 @@ export type RootStackScreenProps<Screen extends keyof RootStackParamList> = Nati
 >;
 
 export type RootTabParamList = {
+  'D.Energy': undefined;
+  Wallet: undefined;
+  Marketplace: undefined;
+  dApps: undefined;
+  Stake: undefined;
+  // Deprecated types (kept for backwards compatibility)
   Login: undefined;
   Web3: undefined;
+};
+
+export type HomeStackParamList = {
+  'D.Energy': undefined;
+  coinWalletStack: undefined;
+  account: undefined;
+};
+
+export type WalletStackParamList = {
+  wallet: undefined;
+  coinWalletStack: undefined;
+};
+
+export type CoinWalletStackParamList = {
+  coinWallet: undefined;
+  ReceiveScreen: undefined;
+  VerifyAddress: undefined;
+  TRANSFERCOIN: undefined;
+  SENDCOIN: undefined;
+  swap: undefined;
+};
+
+export type StakeStackParamList = {
+  stake: undefined;
+};
+
+export type MarketplaceStackParamList = {
+  marketplace: undefined;
 };
 
 export type TabOneParamList = {

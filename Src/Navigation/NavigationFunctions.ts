@@ -1,55 +1,24 @@
 import {createNavigationContainerRef} from '@react-navigation/native';
 import {RootStackParamList} from '../../types';
 
-// Extended RootStackParamList to include common screens
-type ExtendedRootStackParamList = RootStackParamList & {
-  // Common NFT/Marketplace screens
-  walletNFTDetails: {nftId?: string; contractAddress?: string};
-  SellNFT: undefined;
-  UserNFTs: undefined;
-  BuyNFT: undefined;
-  NFTDetailsPage: undefined;
-  collectionDetails: {contractAddress: string};
-
-  // Common transaction/wallet screens
-  transactionHistory: undefined;
-
-  // Common account screens
-  ProfileSettings: undefined;
-  AddressBook: undefined;
-  CreateAddress: undefined;
-  beneficary: undefined;
-  contactus: undefined;
-
-  // Common news screens
-  News: undefined;
-  NewsDetail: undefined;
-
-  // Common stake screens
-  ValidatorDetailsScreen: undefined;
-  StakeScreen: undefined;
-  UnstakeScreen: undefined;
-};
-
-export const navigationRef =
-  createNavigationContainerRef<ExtendedRootStackParamList>();
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export const navigateBack = () => {
   navigationRef?.goBack();
 };
 
-export const navigate = <T extends keyof ExtendedRootStackParamList>(
+export const navigate = <T extends keyof RootStackParamList>(
   screenName: T,
-  ...params: undefined extends ExtendedRootStackParamList[T]
-    ? [ExtendedRootStackParamList[T]?]
-    : [ExtendedRootStackParamList[T]]
+  ...params: undefined extends RootStackParamList[T]
+    ? [RootStackParamList[T]?]
+    : [RootStackParamList[T]]
 ) => {
   try {
     if (navigationRef.current?.isReady()) {
       if (params.length > 0 && params[0] !== undefined) {
-        (navigationRef.current as any).navigate(screenName, params[0]);
+        navigationRef.current.navigate(screenName, params[0]);
       } else {
-        (navigationRef.current as any).navigate(screenName);
+        navigationRef.current.navigate(screenName);
       }
     } else {
       console.warn('[Navigation] Navigation is not ready yet');
@@ -59,18 +28,18 @@ export const navigate = <T extends keyof ExtendedRootStackParamList>(
   }
 };
 
-export const navReset = <T extends keyof ExtendedRootStackParamList>(
+export const navReset = <T extends keyof RootStackParamList>(
   screenName: T,
-  ...params: undefined extends ExtendedRootStackParamList[T]
-    ? [ExtendedRootStackParamList[T]?]
-    : [ExtendedRootStackParamList[T]]
+  ...params: undefined extends RootStackParamList[T]
+    ? [RootStackParamList[T]?]
+    : [RootStackParamList[T]]
 ) => {
   if (navigationRef.current?.isReady()) {
     const routeConfig =
       params.length > 0 && params[0] !== undefined
         ? {name: screenName, params: params[0]}
         : {name: screenName};
-    (navigationRef.current as any).reset({
+    navigationRef.current.reset({
       index: 0,
       routes: [routeConfig],
     });
