@@ -50,12 +50,26 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
           rpcUrl: CUSTOM_RPC_URL,
           chainId: CUSTOM_NETWORK_CHAIN_ID,
         },
+        settings: {
+          overlayStyles: `
+            .magic-otp-modal {
+              margin-top: 40px !important;
+            }
+          `,
+        },
       };
     } else {
       config = {
         network: {
           rpcUrl: SEPOLIA_RPC_URL,
           chainId: SEPOLIA_CHAIN_ID,
+        },
+        settings: {
+          overlayStyles: `
+            .magic-otp-modal {
+              margin-top: 40px !important;
+            }
+          `,
         },
       };
     }
@@ -71,12 +85,26 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
           rpcUrl: CUSTOM_RPC_URL,
           chainId: CUSTOM_NETWORK_CHAIN_ID,
         },
+        settings: {
+          overlayStyles: `
+            .magic-otp-modal {
+              margin-top: 40px !important;
+            }
+          `,
+        },
       };
     } else {
       config = {
         network: {
           rpcUrl: SEPOLIA_RPC_URL,
           chainId: SEPOLIA_CHAIN_ID,
+        },
+        settings: {
+          overlayStyles: `
+            .magic-otp-modal {
+              margin-top: 40px !important;
+            }
+          `,
         },
       };
     }
