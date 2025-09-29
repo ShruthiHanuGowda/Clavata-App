@@ -368,7 +368,7 @@ export interface GetKycDetailsVariables {
  * Get KYC details response
  */
 export interface GetKycDetailsResponse {
-  getKycUserDetails: {
+  getKycUserSumsubDetails: {
     response: any;
   };
 }

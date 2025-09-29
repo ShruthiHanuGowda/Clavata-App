@@ -83,7 +83,7 @@ interface GetKycDetailsVariables {
 }
 
 interface GetKycDetailsResponse {
-  getKycUserDetails: {
+  getKycUserSumsubDetails: {
     response: any;
   };
 }
@@ -167,8 +167,8 @@ const UPDATE_KYC_STATUS = gql`
 `;
 
 const GET_COMPANY_DETAILS = gql`
-  query getKycUserDetails($applicantId: String!) {
-    getKycUserDetails(applicantId: $applicantId) {
+  query getKycUserSumsubDetails($applicantId: String!) {
+    getKycUserSumsubDetails(applicantId: $applicantId) {
       response
     }
   }
@@ -218,7 +218,7 @@ export const KycProvider: React.FC<KycProviderProps> = ({children}) => {
           fetchPolicy: 'network-only',
         });
 
-        return data?.getKycUserDetails?.response || [];
+        return data?.getKycUserSumsubDetails?.response || [];
       } catch (error) {
         throw error;
       }
