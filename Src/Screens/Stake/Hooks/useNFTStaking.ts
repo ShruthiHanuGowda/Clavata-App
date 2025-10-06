@@ -221,7 +221,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
 
           if (!approvalSuccess) {
             console.error('[NFT Staking] Failed to approve staking contract');
-            throw new Error('Failed to approve staking contract');
+            // throw new Error('Failed to approve staking contract');
           }
         } else {
           console.error('[NFT Staking] Staking contract already approved');
@@ -237,6 +237,13 @@ export const useNFTStaking = (validatorAddress?: string) => {
         const amountInWei = parseUnits(amount, 6); // Adjust decimals as needed
 
         const tokenIdBigInt = BigInt(tokenId);
+        console.log('tokenIdBigInt', {
+          erc1155Contract,
+          delegatorAddress,
+          validatorAddress,
+          tokenIdBigInt,
+          amountInWei,
+        });
 
         const tx = await stakingContract.delegateERC1155(
           erc1155Contract,
