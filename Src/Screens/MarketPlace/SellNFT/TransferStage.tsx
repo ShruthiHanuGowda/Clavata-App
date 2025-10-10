@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,17 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import {NftToken} from '../../../types/types';
 import {useAuth} from '../../../providers';
 import {formatQuantityMWh} from '../../../utils';
-import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
+import {
+  NFT_DEFAULT_IMAGE_URL,
+  API_ACCOUNT_VALIDATE_URL,
+} from '../../../constants';
 import ContactModal from '../../AddressBookScreens/ContactModal';
+import axios from 'axios';
 
 const isValidAccountId = (accountId: string): boolean => {
   if (!accountId || typeof accountId !== 'string') {
@@ -50,6 +55,13 @@ const TransferStage = ({
   const {userDetails} = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [qrScannerVisible, setQrScannerVisible] = useState(false);
+  const [isValidatingAccount, setIsValidatingAccount] = useState(false);
+  const [accountValidationResult, setAccountValidationResult] = useState<{
+    isValid: boolean;
+    accountName?: string;
+    errorMessage?: string;
+  } | null>(null);
+  const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const transferAddressEqualsConnectedAddress =
     transferAddress.toUpperCase() === userDetails?.userWallet?.toUpperCase();
@@ -69,7 +81,9 @@ const TransferStage = ({
       !transferAddress ||
       transferAddressEqualsConnectedAddress ||
       isQtyInvalid ||
-      quantityGreaterThanAvailable,
+      quantityGreaterThanAvailable ||
+      isValidatingAccount ||
+      (accountValidationResult && !accountValidationResult.isValid),
   );
 
   const handleSelectAddress = (address: string) => {
@@ -125,12 +139,77 @@ const TransferStage = ({
     setQrScannerVisible(false);
   };
 
+  const validateAccountId = useCallback(async (accountCode: string) => {
+    if (!accountCode || accountCode.length !== 8) {
+      setAccountValidationResult(null);
+      return;
+    }
+
+    setIsValidatingAccount(true);
+    setAccountValidationResult(null);
+
+    try {
+      const response = await axios.get(API_ACCOUNT_VALIDATE_URL, {
+        params: {code: accountCode},
+      });
+      const data = response.data;
+
+      if (data.success && data.data?.valid) {
+        setAccountValidationResult({
+          isValid: true,
+          accountName: data.data.accountDetails?.name,
+        });
+      } else {
+        setAccountValidationResult({
+          isValid: false,
+          errorMessage:
+            data.error?.message || 'The specified account code does not exist',
+        });
+      }
+    } catch (error) {
+      setAccountValidationResult({
+        isValid: false,
+        errorMessage: 'Failed to validate account. Please try again.',
+      });
+    } finally {
+      setIsValidatingAccount(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (validationTimeoutRef.current) {
+      clearTimeout(validationTimeoutRef.current);
+    }
+
+    if (transferAddress && isValidAccountId(transferAddress)) {
+      validationTimeoutRef.current = setTimeout(() => {
+        validateAccountId(transferAddress);
+      }, 500);
+    } else {
+      setAccountValidationResult(null);
+      setIsValidatingAccount(false);
+    }
+
+    return () => {
+      if (validationTimeoutRef.current) {
+        clearTimeout(validationTimeoutRef.current);
+      }
+    };
+  }, [transferAddress, validateAccountId]);
+
   const getAddressErrorText = () => {
     if (isInvalidTransferAddress) {
       return 'Please enter a valid account ID.';
     }
     if (transferAddressEqualsConnectedAddress) {
       return 'Cannot transfer to your own account.';
+    }
+    if (
+      accountValidationResult &&
+      !accountValidationResult.isValid &&
+      !isValidatingAccount
+    ) {
+      return accountValidationResult.errorMessage;
     }
     return null;
   };
@@ -149,7 +228,6 @@ const TransferStage = ({
 
   return (
     <View style={styles.container}>
-      {/* Header Section */}
       <View style={styles.header}>
         <Text style={styles.title}>Transfer NFT</Text>
         <Text style={styles.subtitle}>
@@ -194,7 +272,7 @@ const TransferStage = ({
             ]}>
             <TextInput
               style={styles.textInput}
-              placeholder="T0IJL6DR"
+              placeholder="e.g., T0IJL6DR"
               placeholderTextColor="#999"
               value={transferAddress}
               onChangeText={accountId =>
@@ -208,7 +286,15 @@ const TransferStage = ({
 
             {/* Icons Container */}
             <View style={styles.iconsContainer}>
-              <TouchableOpacity
+              {isValidatingAccount && (
+                <ActivityIndicator size="small" color="#81c8c3" />
+              )}
+              {!isValidatingAccount &&
+                accountValidationResult?.isValid &&
+                transferAddress.length === 8 && (
+                  <AntDesignIcon name="checkcircle" size={20} color="#4caf50" />
+                )}
+              {/* <TouchableOpacity
                 style={styles.iconButton}
                 onPress={openContactModal}
                 activeOpacity={0.7}>
@@ -220,12 +306,18 @@ const TransferStage = ({
                 onPress={handleQRScan}
                 activeOpacity={0.7}>
                 <AntDesignIcon name="qrcode" size={23} color="#81c8c3" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
           {getAddressErrorText() && (
             <Text style={styles.errorText}>{getAddressErrorText()}</Text>
           )}
+          {accountValidationResult?.isValid &&
+            accountValidationResult.accountName && (
+              <Text style={styles.successText}>
+                ✓ Valid account: {accountValidationResult.accountName}
+              </Text>
+            )}
           <Text style={styles.helperText}>
             Enter the 8-character account ID where you want to send this NFT
           </Text>
@@ -466,6 +558,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#ff4757',
     marginTop: 6,
+  },
+  successText: {
+    fontSize: 14,
+    color: '#4caf50',
+    marginTop: 6,
+    fontWeight: '500',
   },
   helperText: {
     fontSize: 14,
