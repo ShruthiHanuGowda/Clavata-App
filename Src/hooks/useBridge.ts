@@ -4,22 +4,20 @@ import {
   Contract,
   TransactionReceipt,
   parseUnits,
+  formatUnits,
 } from 'ethers';
 import {useMagic} from '../providers';
 import {useAuth} from '../providers';
 import {
-  BANK_ADDRESS,
   USDC_ADDRESS,
   BRIDGE_ADDRESS,
   EURC_ADDRESS,
   DENERGY_USDC_ADDRESS,
   DESTINATION_ADDRESS,
   DENERGY_EURC_ADDRESS,
-  BRIDGE_API_URL,
-  BRIDGE_API_KEY,
 } from '../constants';
 import {useWallet} from '../providers';
-import {BRIDGE_ABI, ERC20_ABI, DEPOSIT_TOKEN_ABI} from '../utils/Contracts';
+import {ERC20_ABI, BRIDGE_ABI, DEPOSIT_TOKEN_ABI} from '../utils/Contracts';
 
 interface BridgeSuccess {
   txHash: string;
@@ -30,23 +28,6 @@ interface BridgeSuccess {
 }
 
 type SuccessCallback = (result: BridgeSuccess) => void;
-
-const apiCall = async (transactionDetails: any, endPoint: string) => {
-  const apiUrl = `${BRIDGE_API_URL}/bridge_api/${endPoint}`;
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': BRIDGE_API_KEY,
-      },
-      body: JSON.stringify(transactionDetails),
-    });
-    await response.json();
-  } catch (error) {
-    console.error('API call failed:', error);
-  }
-};
 
 export const useBridge = () => {
   const {refreshBalance} = useWallet();
@@ -75,17 +56,16 @@ export const useBridge = () => {
           progress: 15,
         },
         CHECKING_BALANCE: {text: 'Checking token balance...', progress: 25},
-        APPROVING_TOKEN: {text: 'Approving token spend...', progress: 40},
+        APPROVING_TOKEN: {text: 'Approving token spend...', progress: 45},
         WAITING_APPROVAL: {
           text: 'Waiting for approval confirmation...',
-          progress: 55,
+          progress: 60,
         },
-        DEPOSITING: {text: 'Depositing tokens to bridge...', progress: 70},
+        DEPOSITING: {text: 'Depositing tokens to bridge...', progress: 75},
         WAITING_DEPOSIT: {
           text: 'Waiting for deposit confirmation...',
-          progress: 85,
+          progress: 90,
         },
-        API_CALL: {text: 'Updating bridge records...', progress: 95},
         COMPLETED: {
           text: 'Bridge deposit completed successfully!',
           progress: 100,
@@ -103,15 +83,14 @@ export const useBridge = () => {
         },
         APPROVING_TOKEN: {
           text: 'Approving wrapped token spend...',
-          progress: 40,
+          progress: 45,
         },
         WAITING_APPROVAL: {
           text: 'Waiting for approval confirmation...',
-          progress: 55,
+          progress: 60,
         },
-        BURNING: {text: 'Burning wrapped tokens...', progress: 70},
-        WAITING_BURN: {text: 'Waiting for burn confirmation...', progress: 85},
-        API_CALL: {text: 'Processing withdrawal records...', progress: 95},
+        BURNING: {text: 'Burning wrapped tokens...', progress: 75},
+        WAITING_BURN: {text: 'Waiting for burn confirmation...', progress: 90},
         COMPLETED: {
           text: 'Bridge withdrawal completed successfully!',
           progress: 100,
@@ -179,37 +158,109 @@ export const useBridge = () => {
 
         updateProcessingStep('DEPOSIT', 'CHECKING_BALANCE');
         try {
-          await usdcContract.balanceOf(await signer.getAddress());
+          const balance = await usdcContract.balanceOf(
+            await signer.getAddress(),
+          );
+          const amountWei = parseUnits(amount, 6);
+          if (balance < amountWei) {
+            throw new Error('Insufficient balance');
+          }
         } catch (err) {}
 
-        // Approve bank to spend USDC
-        updateProcessingStep('DEPOSIT', 'APPROVING_TOKEN');
-        const approveTx = await usdcContract.approve(
-          bankAddress,
-          parseUnits(amount, 6),
+        // Check if token is whitelisted
+        console.log('Checking if token is whitelisted...');
+        const isWhitelisted = await bridgeContract.isTokenWhitelisted(
+          usdcAddress,
         );
+        console.log('Token whitelisted:', isWhitelisted);
+        if (!isWhitelisted) {
+          throw new Error('USDC is not whitelisted on the bridge');
+        }
 
-        updateProcessingStep('DEPOSIT', 'WAITING_APPROVAL');
-        await approveTx.wait();
+        const amountWei = parseUnits(amount, 6);
+        console.log('Amount in wei:', amountWei.toString());
+
+        // Calculate fee
+        console.log('Calculating fee...');
+        const fee = await bridgeContract.calculateFee(amountWei);
+        console.log(`Bridge fee: ${formatUnits(fee, 6)} USDC`);
+
+        // Check and approve if needed
+        console.log('Checking allowance...');
+        const currentAllowance = await usdcContract.allowance(
+          await signer.getAddress(),
+          bridgeAddress,
+        );
+        console.log('Current allowance:', formatUnits(currentAllowance, 6));
+
+        if (currentAllowance < amountWei) {
+          // Approve bank to spend USDC
+          updateProcessingStep('DEPOSIT', 'APPROVING_TOKEN');
+          console.log('Approving token transfer...');
+          const approveTx = await usdcContract.approve(
+            bridgeAddress,
+            amountWei,
+          );
+
+          updateProcessingStep('DEPOSIT', 'WAITING_APPROVAL');
+          const approveReceipt = await approveTx.wait();
+          console.log(
+            'Approval confirmed in block:',
+            approveReceipt.blockNumber,
+          );
+        } else {
+          console.log('Sufficient allowance already exists');
+        }
 
         // Deposit USDC to bridge
         updateProcessingStep('DEPOSIT', 'DEPOSITING');
+        console.log('Calling depositERC20...');
         const depositTx = await bridgeContract.depositERC20(
           usdcAddress,
-          parseUnits(amount, 6),
+          amountWei,
         );
+        console.log('Deposit tx hash:', depositTx.hash);
 
         updateProcessingStep('DEPOSIT', 'WAITING_DEPOSIT');
         const receipt = await depositTx.wait();
+        console.log('Deposit confirmed in block:', receipt.blockNumber);
+        console.log('Gas used:', receipt.gasUsed.toString());
         setTransactionHash(receipt.hash);
+
+        // Extract depositNonce from event
+        console.log('Parsing transaction logs...');
+        const depositEvent = receipt.logs
+          .map((log: any) => {
+            try {
+              return bridgeContract.interface.parseLog(log);
+            } catch {
+              return null;
+            }
+          })
+          .find((event: any) => event?.name === 'TokenDeposited');
+
+        if (depositEvent) {
+          const depositNonce = Number(depositEvent.args.depositNonce);
+          console.log('✓ Deposit nonce:', depositNonce);
+          console.log('✓ Token:', depositEvent.args.token);
+          console.log('✓ User:', depositEvent.args.user);
+          console.log('✓ Amount:', formatUnits(depositEvent.args.amount, 6));
+          console.log('✓ Fee:', formatUnits(depositEvent.args.fee, 6));
+          console.log(
+            '✓ Destination Chain ID:',
+            depositEvent.args.destinationChainId.toString(),
+          );
+        } else {
+          console.warn('TokenDeposited event not found in transaction logs');
+        }
 
         // Get user address from Auth provider
         const userAddress = userDetails?.userWallet || '';
 
         refreshBalance('USDC');
 
-        // API call
-        updateProcessingStep('DEPOSIT', 'API_CALL');
+        updateProcessingStep('DEPOSIT', 'COMPLETED');
+        setBridgeSuccess(true);
 
         // Call success callback if provided
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
@@ -220,18 +271,6 @@ export const useBridge = () => {
             sourceChain: 'ETH',
             coinCode: 'USDC',
           };
-
-          const transactionDetails = {
-            amount,
-            userAddress: userAddress,
-            hash: '',
-            sourceChainCode: 'ETH',
-            coinCode: 'USDC',
-          };
-          apiCall(transactionDetails, 'depositErc20Token').then();
-
-          updateProcessingStep('DEPOSIT', 'COMPLETED');
-          setBridgeSuccess(true);
           onSuccess(successData);
         }
 
@@ -281,39 +320,111 @@ export const useBridge = () => {
         // Check EURC balance before proceeding
         updateProcessingStep('DEPOSIT', 'CHECKING_BALANCE');
         try {
-          await eurcContract.balanceOf(await signer.getAddress());
+          const balance = await eurcContract.balanceOf(
+            await signer.getAddress(),
+          );
+          const amountWei = parseUnits(amount, 6);
+          if (balance < amountWei) {
+            throw new Error('Insufficient balance');
+          }
         } catch (err) {
           // Balance check failed, continue anyway
         }
 
-        // Approve bank to spend EURC
-        updateProcessingStep('DEPOSIT', 'APPROVING_TOKEN');
-        const approveTx = await eurcContract.approve(
-          bankAddress,
-          parseUnits(amount, 6), // EURC has 6 decimals
+        // Check if token is whitelisted
+        console.log('Checking if token is whitelisted...');
+        const isWhitelisted = await bridgeContract.isTokenWhitelisted(
+          eurcAddress,
         );
+        console.log('Token whitelisted:', isWhitelisted);
+        if (!isWhitelisted) {
+          throw new Error('EURC is not whitelisted on the bridge');
+        }
 
-        updateProcessingStep('DEPOSIT', 'WAITING_APPROVAL');
-        await approveTx.wait();
+        const amountWei = parseUnits(amount, 6);
+        console.log('Amount in wei:', amountWei.toString());
+
+        // Calculate fee
+        console.log('Calculating fee...');
+        const fee = await bridgeContract.calculateFee(amountWei);
+        console.log(`Bridge fee: ${formatUnits(fee, 6)} EURC`);
+
+        // Check and approve if needed
+        console.log('Checking allowance...');
+        const currentAllowance = await eurcContract.allowance(
+          await signer.getAddress(),
+          bridgeAddress,
+        );
+        console.log('Current allowance:', formatUnits(currentAllowance, 6));
+
+        if (currentAllowance < amountWei) {
+          // Approve bank to spend EURC
+          updateProcessingStep('DEPOSIT', 'APPROVING_TOKEN');
+          console.log('Approving token transfer...');
+          const approveTx = await eurcContract.approve(
+            bridgeAddress,
+            amountWei,
+          );
+
+          updateProcessingStep('DEPOSIT', 'WAITING_APPROVAL');
+          const approveReceipt = await approveTx.wait();
+          console.log(
+            'Approval confirmed in block:',
+            approveReceipt.blockNumber,
+          );
+        } else {
+          console.log('Sufficient allowance already exists');
+        }
 
         // Deposit EURC to bridge
         updateProcessingStep('DEPOSIT', 'DEPOSITING');
+        console.log('Calling depositERC20...');
         const depositTx = await bridgeContract.depositERC20(
           eurcAddress,
-          parseUnits(amount, 6),
+          amountWei,
         );
+        console.log('Deposit tx hash:', depositTx.hash);
 
         updateProcessingStep('DEPOSIT', 'WAITING_DEPOSIT');
         const receipt = await depositTx.wait();
+        console.log('Deposit confirmed in block:', receipt.blockNumber);
+        console.log('Gas used:', receipt.gasUsed.toString());
         setTransactionHash(receipt.hash);
+
+        // Extract depositNonce from event
+        console.log('Parsing transaction logs...');
+        const depositEvent = receipt.logs
+          .map((log: any) => {
+            try {
+              return bridgeContract.interface.parseLog(log);
+            } catch {
+              return null;
+            }
+          })
+          .find((event: any) => event?.name === 'TokenDeposited');
+
+        if (depositEvent) {
+          const depositNonce = Number(depositEvent.args.depositNonce);
+          console.log('✓ Deposit nonce:', depositNonce);
+          console.log('✓ Token:', depositEvent.args.token);
+          console.log('✓ User:', depositEvent.args.user);
+          console.log('✓ Amount:', formatUnits(depositEvent.args.amount, 6));
+          console.log('✓ Fee:', formatUnits(depositEvent.args.fee, 6));
+          console.log(
+            '✓ Destination Chain ID:',
+            depositEvent.args.destinationChainId.toString(),
+          );
+        } else {
+          console.warn('TokenDeposited event not found in transaction logs');
+        }
 
         // Get user address from Auth provider
         const userAddress = userDetails?.userWallet || '';
 
         refreshBalance('EURC');
 
-        // API call
-        updateProcessingStep('DEPOSIT', 'API_CALL');
+        updateProcessingStep('DEPOSIT', 'COMPLETED');
+        setBridgeSuccess(true);
 
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
           const successData = {
@@ -323,18 +434,6 @@ export const useBridge = () => {
             sourceChain: 'ETH',
             coinCode: 'EURC',
           };
-
-          const transactionDetails = {
-            amount,
-            userAddress: userAddress,
-            hash: '',
-            sourceChainCode: 'ETH',
-            coinCode: 'EURC',
-          };
-          apiCall(transactionDetails, 'depositErc20Token').then();
-
-          updateProcessingStep('DEPOSIT', 'COMPLETED');
-          setBridgeSuccess(true);
           onSuccess(successData);
         }
 
@@ -388,39 +487,92 @@ export const useBridge = () => {
         // Check WUSDC balance before proceeding
         updateProcessingStep('WITHDRAW', 'CHECKING_BALANCE');
         try {
-          await wusdcContract.balanceOf(await signer.getAddress());
+          const balance = await wusdcContract.balanceOf(
+            await signer.getAddress(),
+          );
+          const amountWei = parseUnits(amount, 6);
+          if (balance < amountWei) {
+            throw new Error('Insufficient balance');
+          }
         } catch (err) {
           // Balance check failed, continue anyway
         }
 
-        // Approve USDC to spend WUSDC
-        updateProcessingStep('WITHDRAW', 'APPROVING_TOKEN');
-        const approveTx = await wusdcContract.approve(
+        const amountWei = parseUnits(amount, 6);
+        console.log('Amount in wei:', amountWei.toString());
+
+        // Check and approve if needed
+        console.log('Checking allowance...');
+        const currentAllowance = await wusdcContract.allowance(
+          await signer.getAddress(),
           destinationAddress,
-          parseUnits(amount, 6), // WUSDC has 6 decimals
         );
+        console.log('Current allowance:', formatUnits(currentAllowance, 6));
 
-        updateProcessingStep('WITHDRAW', 'WAITING_APPROVAL');
-        await approveTx.wait();
+        if (currentAllowance < amountWei) {
+          // Approve USDC to spend WUSDC
+          updateProcessingStep('WITHDRAW', 'APPROVING_TOKEN');
+          console.log('Approving token burn...');
+          const approveTx = await wusdcContract.approve(
+            destinationAddress,
+            amountWei,
+          );
 
-        // Deposit WUSDC to destination
+          updateProcessingStep('WITHDRAW', 'WAITING_APPROVAL');
+          const approveReceipt = await approveTx.wait();
+          console.log(
+            'Approval confirmed in block:',
+            approveReceipt.blockNumber,
+          );
+        } else {
+          console.log('Sufficient allowance already exists');
+        }
+
+        // Burn wrapped tokens
         updateProcessingStep('WITHDRAW', 'BURNING');
-        const depositTx = await destinationContract.burnERC20(
-          wusdcAddress,
-          parseUnits(amount, 6),
-        );
+        console.log('Calling burn...');
+        const burnTx = await destinationContract.burn(wusdcAddress, amountWei);
+        console.log('Burn tx hash:', burnTx.hash);
 
         updateProcessingStep('WITHDRAW', 'WAITING_BURN');
-        const receipt = await depositTx.wait();
+        const receipt = await burnTx.wait();
+        console.log('Burn confirmed in block:', receipt.blockNumber);
+        console.log('Gas used:', receipt.gasUsed.toString());
         setTransactionHash(receipt.hash);
+
+        // Extract burn nonce from event
+        console.log('Parsing transaction logs...');
+        const transferEvent = receipt.logs
+          .map((log: any) => {
+            try {
+              return destinationContract.interface.parseLog(log);
+            } catch {
+              return null;
+            }
+          })
+          .find(
+            (event: any) => event?.name === 'Transfer' && event.args.step === 1,
+          );
+
+        if (transferEvent) {
+          const burnNonce = Number(transferEvent.args.nonce);
+          console.log('✓ Burn nonce:', burnNonce);
+          console.log('✓ Token:', transferEvent.args.token);
+          console.log('✓ From:', transferEvent.args.from);
+          console.log('✓ To:', transferEvent.args.to);
+          console.log('✓ Amount:', formatUnits(transferEvent.args.amount, 6));
+          console.log('✓ Step:', transferEvent.args.step, '(1 = Burn)');
+        } else {
+          console.warn('Transfer event (step=1) not found in transaction logs');
+        }
 
         // Get user address from Auth provider
         const userAddress = userDetails?.userWallet || '';
 
         refreshBalance('WUSDC');
 
-        // API call
-        updateProcessingStep('WITHDRAW', 'API_CALL');
+        updateProcessingStep('WITHDRAW', 'COMPLETED');
+        setBridgeSuccess(true);
 
         // Call success callback if provided
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
@@ -431,20 +583,6 @@ export const useBridge = () => {
             sourceChain: 'DENERGY',
             coinCode: 'WUSDC',
           };
-
-          const transactionDetails = {
-            amount,
-            userAddress: userAddress,
-            tokenAddress: USDC_ADDRESS,
-            hash: '',
-            sourceChainCode: 'DENERGY',
-            coinCode: 'WUSDC',
-            destinationChainCode: 'ETH',
-          };
-          apiCall(transactionDetails, 'withdrawErc20Token').then();
-
-          updateProcessingStep('WITHDRAW', 'COMPLETED');
-          setBridgeSuccess(true);
           onSuccess(successData);
         }
 
@@ -498,41 +636,93 @@ export const useBridge = () => {
 
         // Check WEURC balance before proceeding
         updateProcessingStep('WITHDRAW', 'CHECKING_BALANCE');
-        // try {
-        //   const balance = await weurcContract.balanceOf(
-        //     await signer.getAddress(),
-        //   );
-        // } catch (err) {
-        //   // Balance check failed, continue anyway
-        // }
+        try {
+          const balance = await weurcContract.balanceOf(
+            await signer.getAddress(),
+          );
+          const amountWei = parseUnits(amount, 6);
+          if (balance < amountWei) {
+            throw new Error('Insufficient balance');
+          }
+        } catch (err) {
+          // Balance check failed, continue anyway
+        }
 
-        // Approve EURC to spend WEURC
-        updateProcessingStep('WITHDRAW', 'APPROVING_TOKEN');
-        const approveTx = await weurcContract.approve(
+        const amountWei = parseUnits(amount, 6);
+        console.log('Amount in wei:', amountWei.toString());
+
+        // Check and approve if needed
+        console.log('Checking allowance...');
+        const currentAllowance = await weurcContract.allowance(
+          await signer.getAddress(),
           destinationAddress,
-          parseUnits(amount, 6), // WEURC has 6 decimals
         );
+        console.log('Current allowance:', formatUnits(currentAllowance, 6));
 
-        updateProcessingStep('WITHDRAW', 'WAITING_APPROVAL');
-        await approveTx.wait();
+        if (currentAllowance < amountWei) {
+          // Approve EURC to spend WEURC
+          updateProcessingStep('WITHDRAW', 'APPROVING_TOKEN');
+          console.log('Approving token burn...');
+          const approveTx = await weurcContract.approve(
+            destinationAddress,
+            amountWei,
+          );
 
-        // Deposit WEURC to destination
+          updateProcessingStep('WITHDRAW', 'WAITING_APPROVAL');
+          const approveReceipt = await approveTx.wait();
+          console.log(
+            'Approval confirmed in block:',
+            approveReceipt.blockNumber,
+          );
+        } else {
+          console.log('Sufficient allowance already exists');
+        }
+
+        // Burn wrapped tokens
         updateProcessingStep('WITHDRAW', 'BURNING');
-        const depositTx = await destinationContract.burnERC20(
-          weurcAddress,
-          parseUnits(amount, 6),
-        );
+        console.log('Calling burn...');
+        const burnTx = await destinationContract.burn(weurcAddress, amountWei);
+        console.log('Burn tx hash:', burnTx.hash);
 
         updateProcessingStep('WITHDRAW', 'WAITING_BURN');
-        const receipt = await depositTx.wait();
+        const receipt = await burnTx.wait();
+        console.log('Burn confirmed in block:', receipt.blockNumber);
+        console.log('Gas used:', receipt.gasUsed.toString());
+        setTransactionHash(receipt.hash);
+
+        // Extract burn nonce from event
+        console.log('Parsing transaction logs...');
+        const transferEvent = receipt.logs
+          .map((log: any) => {
+            try {
+              return destinationContract.interface.parseLog(log);
+            } catch {
+              return null;
+            }
+          })
+          .find(
+            (event: any) => event?.name === 'Transfer' && event.args.step === 1,
+          );
+
+        if (transferEvent) {
+          const burnNonce = Number(transferEvent.args.nonce);
+          console.log('✓ Burn nonce:', burnNonce);
+          console.log('✓ Token:', transferEvent.args.token);
+          console.log('✓ From:', transferEvent.args.from);
+          console.log('✓ To:', transferEvent.args.to);
+          console.log('✓ Amount:', formatUnits(transferEvent.args.amount, 6));
+          console.log('✓ Step:', transferEvent.args.step, '(1 = Burn)');
+        } else {
+          console.warn('Transfer event (step=1) not found in transaction logs');
+        }
 
         // Get user address from Auth provider
         const userAddress = userDetails?.userWallet || '';
 
         refreshBalance('WEURC');
 
-        // API call
-        updateProcessingStep('WITHDRAW', 'API_CALL');
+        updateProcessingStep('WITHDRAW', 'COMPLETED');
+        setBridgeSuccess(true);
 
         if (onSuccess && typeof onSuccess === 'function' && receipt) {
           const successData = {
@@ -542,20 +732,6 @@ export const useBridge = () => {
             sourceChain: 'DENERGY',
             coinCode: 'WEURC',
           };
-
-          const transactionDetails = {
-            amount,
-            userAddress: userAddress,
-            tokenAddress: EURC_ADDRESS,
-            hash: '',
-            sourceChainCode: 'DENERGY',
-            coinCode: 'WEURC',
-            destinationChainCode: 'ETH',
-          };
-          apiCall(transactionDetails, 'withdrawErc20Token').then();
-
-          updateProcessingStep('WITHDRAW', 'COMPLETED');
-          setBridgeSuccess(true);
           onSuccess(successData);
         }
 
