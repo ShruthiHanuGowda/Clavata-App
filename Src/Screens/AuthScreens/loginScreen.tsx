@@ -226,7 +226,7 @@ export default function LoginScreen() {
 
         return {
           isLoggedIn,
-          publicAddress: userInfo?.publicAddress,
+          publicAddress: userInfo?.publicAddress ?? userInfo?.wallets?.ethereum?.publicAddress,
           userData: userInfo,
         };
       }
