@@ -32,7 +32,7 @@ export default function App() {
       }
     };
 
-    checkDeviceSecurity();
+    // checkDeviceSecurity();
   }, []);
 
   if (isSecureDevice === null) {

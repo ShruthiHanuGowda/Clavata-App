@@ -20,6 +20,7 @@ import TransactionHistory from '../Screens/AppScreens/TransactionHistory';
 import Stake from '../Screens/Stake';
 import ValidatorDetailsScreen from '../Screens/Stake/ValidatorDetailsScreen';
 import StakeScreen from '../Screens/Stake/StakeScreen';
+import QueuedDelegationsScreen from '../Screens/Stake/QueuedDelegationsScreen/index';
 import ReceiveScreen from '../Screens/AppScreens/Receive/ReceiveScreen';
 import TransferCoin from '../Screens/AppScreens/Transfer/TrasferCoin/TransferCoin';
 import Account from '../Screens/AppScreens/Accountpage';
@@ -159,6 +160,11 @@ function RootScreenStack() {
       <RootStack.Screen
         name="UnstakeScreen"
         component={UnstakeScreen}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="QueuedDelegationsScreen"
+        component={QueuedDelegationsScreen}
         options={{headerShown: false}}
       />
     </RootStack.Navigator>

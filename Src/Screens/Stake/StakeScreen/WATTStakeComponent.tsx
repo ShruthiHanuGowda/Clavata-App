@@ -117,6 +117,16 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
       return;
     }
 
+    // Minimum stake validation: 10 WATT (10 MWh)
+    const MIN_STAKE_WATT = 10;
+    if (parseFloat(amount) < MIN_STAKE_WATT) {
+      Alert.alert(
+        'Minimum Stake Required',
+        `The minimum staking amount is ${MIN_STAKE_WATT} WATT. Please enter at least ${MIN_STAKE_WATT} WATT to stake.`,
+      );
+      return;
+    }
+
     if (parseFloat(amount) > parseFloat(wattBalance)) {
       Alert.alert(
         'Insufficient Balance',
@@ -214,7 +224,9 @@ const WATTStakeComponent: React.FC<WATTStakeComponentProps> = ({
 
           {amountError ? (
             <Text style={styles.errorText}>{amountError}</Text>
-          ) : null}
+          ) : (
+            <Text style={styles.hintText}>Minimum stake: 10 WATT</Text>
+          )}
         </View>
 
         {/* Staking Information */}
@@ -365,6 +377,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#FF3B30',
+    fontSize: 12,
+    marginTop: 8,
+    paddingLeft: 4,
+  },
+  hintText: {
+    color: '#009D94',
     fontSize: 12,
     marginTop: 8,
     paddingLeft: 4,

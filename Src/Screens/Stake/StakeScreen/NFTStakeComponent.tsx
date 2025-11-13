@@ -126,6 +126,16 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
       return;
     }
 
+    // Minimum stake validation: 10 MWh
+    const MIN_STAKE_MWH = 10;
+    if (parseFloat(amount) < MIN_STAKE_MWH) {
+      Alert.alert(
+        'Minimum Stake Required',
+        `The minimum staking amount is ${MIN_STAKE_MWH} MWh. Please enter at least ${MIN_STAKE_MWH} MWh to stake.`,
+      );
+      return;
+    }
+
     if (
       selectedNFT.marketData &&
       parseFloat(amount) > parseFloat(selectedNFT.marketData.quantity)
@@ -203,6 +213,8 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
         </TouchableOpacity>
 
         {/* NFT Details Display (non-interactive) */}
+        {console.log(selectedNFT)}
+        
         <View
           style={[
             styles.dropdownContainer,
@@ -243,7 +255,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
             value={amount}
             setValue={handleAmountChange}
             setValid={setIsAmountValid}
-            placeholder="Amount"
+            placeholder="Amount (MWh)"
             keyboardType="decimal-pad"
             containerStyle={[
               styles.dropdownContainer,
@@ -257,6 +269,9 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
           ) : null}
           {!selectedNFT && !amountError && (
             <Text style={styles.errorText}>Please select an NFT </Text>
+          )}
+          {selectedNFT && !amountError && (
+            <Text style={styles.hintText}>Minimum stake: 10 MWh</Text>
           )}
         </View>
       </KeyboardAwareScrollView>
@@ -395,6 +410,13 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#FF3B30',
+    fontSize: 12,
+    marginTop: -12,
+    marginBottom: 16,
+    paddingLeft: 4,
+  },
+  hintText: {
+    color: '#009D94',
     fontSize: 12,
     marginTop: -12,
     marginBottom: 16,

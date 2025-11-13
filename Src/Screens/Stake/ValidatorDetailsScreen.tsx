@@ -9,6 +9,7 @@ import {
   Image,
   Platform,
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import images from '../../Theme/images';
 import useValidators from './Hooks/useValidators';
 import LoaderAnimation from '../../components/Loading/LoaderAnimation';
@@ -77,6 +78,9 @@ const ValidatorDetailsScreen = ({
             jailed: response.validator.status === 'ACTIVE' ? 'Never' : 'Yes',
           };
 
+          console.log("response",response);
+          
+
           setValidator(mappedValidator);
 
           if (response.delegators && response.delegators.length > 0) {
@@ -93,7 +97,8 @@ const ValidatorDetailsScreen = ({
                 lastReward: new Date().toISOString().split('T')[0],
               }),
             );
-
+            console.log("mappedDelegators",mappedDelegators);
+            
             setDelegators(mappedDelegators);
           }
         }
@@ -123,6 +128,18 @@ const ValidatorDetailsScreen = ({
     const date = new Date(dateString);
     const options = {year: 'numeric', month: 'short', day: 'numeric'} as const;
     return date.toLocaleDateString('en-US', options);
+  };
+
+  const truncateAddress = (address: string, startChars = 12, endChars = 8) => {
+    if (address.length <= startChars + endChars) {
+      return address;
+    }
+    return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
+  };
+
+  const handleCopy = (text: string, label: string) => {
+    Clipboard.setString(text);
+    SnackBarMessage(`${label} copied to clipboard`, 'success');
   };
 
   const handleOffersClick = async () => {
@@ -233,16 +250,18 @@ const ValidatorDetailsScreen = ({
         {/* Validator Name Section */}
         <View style={styles.validatorNameContainer}>
           <Text style={styles.validatorName}>{validator.name}</Text>
-          <View style={styles.validatorIdContainer}>
+          <TouchableOpacity
+            style={styles.validatorIdContainer}
+            onPress={() => handleCopy(validator.validatorId, 'Validator ID')}>
             <Text style={styles.validatorId}>ID: </Text>
-            <Text>
+            <Text style={styles.validatorIdText}>
               {`${validator.validatorId.slice(
                 0,
                 16,
               )}...${validator.validatorId.slice(-10)}`}
             </Text>
-            {/* <Text style={styles.validatorId}>ID: {validator.validatorId}</Text> */}
-          </View>
+            <Image source={images.copyIcon} style={styles.copyIconSmall} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.card}>
@@ -251,13 +270,16 @@ const ValidatorDetailsScreen = ({
 
           <View style={styles.row}>
             <Text style={styles.label}>Public Key: </Text>
-            <TouchableOpacity>
+            <TouchableOpacity
+              style={styles.publicKeyContainer}
+              onPress={() => handleCopy(validator.publicKey, 'Public Key')}>
               <Text style={styles.link}>
                 {`${validator.publicKey.slice(
                   0,
                   16,
-                )}...${validator.publicKey.slice(-10)} (Click to copy)`}
+                )}...${validator.publicKey.slice(-10)}`}
               </Text>
+              <Image source={images.copyIcon} style={styles.copyIcon} />
             </TouchableOpacity>
           </View>
 
@@ -304,10 +326,18 @@ const ValidatorDetailsScreen = ({
 
           <View style={styles.delegatorsList}>
             {delegators.map(delegator => (
-              <View key={delegator.id} style={[styles.delegatorCard]}>
+              <TouchableOpacity
+                key={delegator.id}
+                style={[styles.delegatorCard]}
+                activeOpacity={0.7}
+                onPress={() =>
+                  navigation.navigate('QueuedDelegationsScreen', {
+                    delegatorAddress: delegator.address,
+                  })
+                }>
                 <View style={styles.delegatorHeader}>
-                  <Text style={styles.delegatorAddress}>
-                    {delegator.address}
+                  <Text style={styles.delegatorAddress} numberOfLines={1}>
+                    {truncateAddress(delegator.address)}
                   </Text>
                   <Text style={styles.delegatorRewards}>
                     {delegator.rewards} Rewards
@@ -336,7 +366,13 @@ const ValidatorDetailsScreen = ({
                     </Text>
                   </View>
                 </View>
-              </View>
+
+                <View style={styles.viewQueuedButton}>
+                  <Text style={styles.viewQueuedButtonText}>
+                    View Queued Delegations →
+                  </Text>
+                </View>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
@@ -418,10 +454,32 @@ const styles = StyleSheet.create({
   validatorIdContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
   validatorId: {
     fontSize: 14,
     color: '#666',
+  },
+  validatorIdText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  copyIconSmall: {
+    width: 16,
+    height: 20,
+    tintColor: '#009D94',
+    marginLeft: 4,
+  },
+  publicKeyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  copyIcon: {
+    width: 16,
+    height: 20,
+    tintColor: '#009D94',
   },
   card: {
     backgroundColor: '#fff',
@@ -611,6 +669,18 @@ const styles = StyleSheet.create({
   backIcon: {
     width: 20,
     height: 20,
+  },
+  viewQueuedButton: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    alignItems: 'center',
+  },
+  viewQueuedButtonText: {
+    fontSize: 13,
+    color: '#009D94',
+    fontWeight: '600',
   },
 });
 

@@ -56,6 +56,7 @@ export type RootStackParamList = {
   ValidatorDetailsScreen: undefined;
   StakeScreen: undefined;
   UnstakeScreen: undefined;
+  QueuedDelegationsScreen: {delegatorAddress: string};
 
   // Deprecated types (kept for backwards compatibility)
   Root: NavigatorScreenParams<RootTabParamList> | undefined;
