@@ -13,6 +13,7 @@ import useQueuedDelegations from '../Hooks/useQueuedDelegations';
 import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import type {QueuedDelegation, QueuedEntry} from '../Hooks/useQueuedDelegations';
+import { formatQuantityMWh } from '../../../utils';
 
 interface NFTQueuedTabProps {
   delegatorAddress: string;
@@ -178,7 +179,7 @@ const NFTQueuedTab: React.FC<NFTQueuedTabProps> = ({
                   <View style={styles.entryHeader}>
                     <Text style={styles.entryId}>Entry #{entry.id}</Text>
                     <Text style={styles.entryAmount}>
-                      {formatAmount(entry.amount)} WATT
+                      {formatQuantityMWh(Number(entry.amount))}
                     </Text>
                   </View>
 
