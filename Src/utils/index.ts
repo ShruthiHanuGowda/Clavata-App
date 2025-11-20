@@ -1,4 +1,33 @@
 import {Images} from '../Theme';
+import {bech32} from 'bech32';
+
+/**
+ * Convert EVM address to Bech32 Cosmos address
+ * @param evmAddress - EVM address (e.g., '0x390750e5c49339d3fda3f1304266d6cdded10620')
+ * @param prefix - Bech32 prefix (default: 'denergy')
+ * @returns Bech32 address (e.g., 'denergy18yr4pewyjvua8ldr7ycyyekkeh0dzp3q9jkurg')
+ */
+export const evmToBech32 = (evmAddress: string, prefix: string = 'denergy'): string => {
+  try {
+    // Remove '0x' prefix if present
+    const cleanAddress = evmAddress.toLowerCase().replace('0x', '');
+
+    // Convert hex string to bytes
+    const bytes: number[] = [];
+    for (let i = 0; i < cleanAddress.length; i += 2) {
+      bytes.push(parseInt(cleanAddress.substr(i, 2), 16));
+    }
+
+    // Convert to 5-bit words for bech32
+    const words = bech32.toWords(Buffer.from(bytes));
+
+    // Encode with bech32
+    return bech32.encode(prefix, words);
+  } catch (error) {
+    console.error('Error converting EVM to Bech32:', error);
+    return evmAddress; // Return original if conversion fails
+  }
+};
 
 export const formatQuantityMWh = (
   quantity: number,

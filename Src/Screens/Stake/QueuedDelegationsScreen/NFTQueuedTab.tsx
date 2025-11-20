@@ -13,7 +13,7 @@ import useQueuedDelegations from '../Hooks/useQueuedDelegations';
 import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
 import {SnackBarMessage} from '../../../utils/snackBar';
 import type {QueuedDelegation, QueuedEntry} from '../Hooks/useQueuedDelegations';
-import { formatQuantityMWh } from '../../../utils';
+import { formatQuantityMWh, evmToBech32 } from '../../../utils';
 
 interface NFTQueuedTabProps {
   delegatorAddress: string;
@@ -42,7 +42,9 @@ const NFTQueuedTab: React.FC<NFTQueuedTabProps> = ({
 
       try {
         setIsLoading(true);
-        await fetch(delegatorAddress);
+        // Convert EVM address to Bech32 format for Cosmos API
+        const bech32Address = evmToBech32(delegatorAddress);
+        await fetch(bech32Address);
       } catch (err) {
         console.error('Error fetching queued delegations:', err);
         setError('Failed to load queued delegations. Please try again.');
@@ -83,6 +85,22 @@ const NFTQueuedTab: React.FC<NFTQueuedTabProps> = ({
     return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
   };
 
+  // Handle retry
+  const handleRetry = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      // Convert EVM address to Bech32 format for Cosmos API
+      const bech32Address = evmToBech32(delegatorAddress);
+      await fetch(bech32Address);
+    } catch (err) {
+      console.error('Error fetching queued delegations:', err);
+      setError('Failed to load queued delegations. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Show loading state
   if (isLoading || loading) {
     return (
@@ -106,9 +124,7 @@ const NFTQueuedTab: React.FC<NFTQueuedTabProps> = ({
         </Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={() =>
-            navigation.replace('QueuedDelegationsScreen', {delegatorAddress})
-          }>
+          onPress={handleRetry}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>

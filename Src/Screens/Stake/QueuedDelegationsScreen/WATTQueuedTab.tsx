@@ -6,6 +6,7 @@ import useWATTQueuedDelegations from '../Hooks/useWATTQueuedDelegations';
 import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
 import { SnackBarMessage } from '../../../utils/snackBar';
 import type { WATTQueuedDelegation, WATTQueuedEntry } from '../Hooks/useWATTQueuedDelegations';
+import { evmToBech32 } from '../../../utils';
 
 interface WATTQueuedTabProps {
   delegatorAddress: string;
@@ -28,7 +29,9 @@ const WATTQueuedTab: React.FC<WATTQueuedTabProps> = ({ delegatorAddress, navigat
 
       try {
         setIsLoading(true);
-        await fetch(delegatorAddress);
+        // Convert EVM address to Bech32 format for Cosmos API
+        const bech32Address = evmToBech32(delegatorAddress);
+        await fetch(bech32Address);
       } catch (err) {
         console.error('Error fetching WATT queued delegations:', err);
         setError('Failed to load WATT queued delegations. Please try again.');
@@ -80,6 +83,22 @@ const WATTQueuedTab: React.FC<WATTQueuedTabProps> = ({ delegatorAddress, navigat
     return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
   };
 
+  // Handle retry
+  const handleRetry = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      // Convert EVM address to Bech32 format for Cosmos API
+      const bech32Address = evmToBech32(delegatorAddress);
+      await fetch(bech32Address);
+    } catch (err) {
+      console.error('Error fetching WATT queued delegations:', err);
+      setError('Failed to load WATT queued delegations. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isLoading || loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -101,9 +120,7 @@ const WATTQueuedTab: React.FC<WATTQueuedTabProps> = ({ delegatorAddress, navigat
         </Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={() =>
-            navigation.replace('QueuedDelegationsScreen', { delegatorAddress })
-          }>
+          onPress={handleRetry}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>

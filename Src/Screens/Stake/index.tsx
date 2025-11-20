@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useCallback, JSX} from 'react';
 import {Header} from '@rneui/base';
-import {StyleSheet, View} from 'react-native';
+import {StyleSheet, View, Text, TouchableOpacity} from 'react-native';
 import {DText} from '../../components/DText';
 import {Tab} from '@rneui/base';
 import {fontsFamily} from '../../Theme';
@@ -8,6 +8,8 @@ import StakeListingScreen from './StakeListingScreen';
 import ValidatorsScreen from './ValidatorsScreen';
 import useValidators from './Hooks/useValidators';
 import {useAuth} from '../../providers';
+import NFTQueuedTab from './QueuedDelegationsScreen/NFTQueuedTab';
+import WATTQueuedTab from './QueuedDelegationsScreen/WATTQueuedTab';
 
 // Define interfaces
 
@@ -82,6 +84,30 @@ const styles = StyleSheet.create({
   tabStyle: {
     backgroundColor: 'transparent',
   },
+  subTabContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  subTab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  activeSubTab: {
+    borderBottomColor: '#009D94',
+  },
+  subTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  activeSubTabText: {
+    color: '#009D94',
+  },
 });
 
 // Tab content components
@@ -98,7 +124,11 @@ interface StakedPoolsContentProps {
   refreshing: boolean;
   onRefresh: () => void;
   onRetry: () => void;
+  delegatorAddress: string;
+  navigation: any;
 }
+
+type SubTabType = 'staked' | 'queued';
 
 const StakedPoolsContent: React.FC<StakedPoolsContentProps> = ({
   stakedAssets,
@@ -107,18 +137,59 @@ const StakedPoolsContent: React.FC<StakedPoolsContentProps> = ({
   refreshing,
   onRefresh,
   onRetry,
-}) => (
-  <View style={styles.simpleContent}>
-    <StakeListingScreen
-      stakedAssets={stakedAssets}
-      loading={loading}
-      error={error}
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      onRetry={onRetry}
-    />
-  </View>
-);
+  delegatorAddress,
+  navigation,
+}) => {
+  const [activeSubTab, setActiveSubTab] = useState<SubTabType>('staked');
+
+  return (
+    <View style={styles.simpleContent}>
+      {/* Sub Tab Navigation */}
+      <View style={styles.subTabContainer}>
+        <TouchableOpacity
+          style={[styles.subTab, activeSubTab === 'staked' && styles.activeSubTab]}
+          onPress={() => setActiveSubTab('staked')}>
+          <Text
+            style={[
+              styles.subTabText,
+              activeSubTab === 'staked' && styles.activeSubTabText,
+            ]}>
+            Staked
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.subTab, activeSubTab === 'queued' && styles.activeSubTab]}
+          onPress={() => setActiveSubTab('queued')}>
+          <Text
+            style={[
+              styles.subTabText,
+              activeSubTab === 'queued' && styles.activeSubTabText,
+            ]}>
+            Queued
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Sub Tab Content */}
+      {activeSubTab === 'staked' ? (
+        <StakeListingScreen
+          stakedAssets={stakedAssets}
+          loading={loading}
+          error={error}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          onRetry={onRetry}
+        />
+      ) : (
+        <NFTQueuedTab
+          delegatorAddress={delegatorAddress}
+          navigation={navigation}
+        />
+      )}
+    </View>
+  );
+};
 
 const StokedPoolsContent: React.FC<StakedPoolsContentProps> = ({
   stakedAssets,
@@ -127,20 +198,65 @@ const StokedPoolsContent: React.FC<StakedPoolsContentProps> = ({
   refreshing,
   onRefresh,
   onRetry,
-}) => (
-  <View style={styles.simpleContent}>
-    <StakeListingScreen
-      stakedAssets={stakedAssets}
-      loading={loading}
-      error={error}
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      onRetry={onRetry}
-    />
-  </View>
-);
+  delegatorAddress,
+  navigation,
+}) => {
+  const [activeSubTab, setActiveSubTab] = useState<SubTabType>('staked');
 
-function Stake(): JSX.Element {
+  return (
+    <View style={styles.simpleContent}>
+      {/* Sub Tab Navigation */}
+      <View style={styles.subTabContainer}>
+        <TouchableOpacity
+          style={[styles.subTab, activeSubTab === 'staked' && styles.activeSubTab]}
+          onPress={() => setActiveSubTab('staked')}>
+          <Text
+            style={[
+              styles.subTabText,
+              activeSubTab === 'staked' && styles.activeSubTabText,
+            ]}>
+            Staked
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.subTab, activeSubTab === 'queued' && styles.activeSubTab]}
+          onPress={() => setActiveSubTab('queued')}>
+          <Text
+            style={[
+              styles.subTabText,
+              activeSubTab === 'queued' && styles.activeSubTabText,
+            ]}>
+            Queued
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Sub Tab Content */}
+      {activeSubTab === 'staked' ? (
+        <StakeListingScreen
+          stakedAssets={stakedAssets}
+          loading={loading}
+          error={error}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          onRetry={onRetry}
+        />
+      ) : (
+        <WATTQueuedTab
+          delegatorAddress={delegatorAddress}
+          navigation={navigation}
+        />
+      )}
+    </View>
+  );
+};
+
+interface StakeProps {
+  navigation?: any;
+}
+
+function Stake({navigation}: StakeProps): JSX.Element {
   const [index, setIndex] = useState<number>(0);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -302,6 +418,8 @@ function Stake(): JSX.Element {
               refreshing={refreshing}
               onRefresh={onRefresh}
               onRetry={handleRetry}
+              delegatorAddress={userDetails?.userWallet || ''}
+              navigation={navigation}
             />
           )}
           {index === 2 && (
@@ -312,6 +430,8 @@ function Stake(): JSX.Element {
               refreshing={refreshing}
               onRefresh={onRefresh}
               onRetry={handleRetry}
+              delegatorAddress={userDetails?.userWallet || ''}
+              navigation={navigation}
             />
           )}
         </View>
