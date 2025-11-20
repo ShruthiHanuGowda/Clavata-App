@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,12 @@ import {
   Platform,
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
+import axios from 'axios';
 import images from '../../Theme/images';
-import useValidators from './Hooks/useValidators';
 import LoaderAnimation from '../../components/Loading/LoaderAnimation';
-import {useKycCheck} from '../../providers';
-import {SnackBarMessage} from '../../utils/snackBar';
-import {VALIDATORS_API_URL} from '../../constants';
+import { useKycCheck } from '../../providers';
+import { SnackBarMessage } from '../../utils/snackBar';
+import { VALIDATORS_API_URL } from '../../constants';
 
 interface Validator {
   id: number;
@@ -23,23 +23,75 @@ interface Validator {
   validatorId: string;
   description: string;
   publicKey: string;
-  powerConsumption: number;
-  uptime: number;
-  slashes: number;
-  missedBlocks: number;
-  jailed: string;
+  tokens: string;
+  commissionRate: number;
+  maxCommissionRate: number;
+  maxChangeRate: number;
+  minSelfDelegation: string;
+  jailed: boolean;
+  status: string;
+  unbondingHeight: string;
+  unbondingTime: string;
+  country: string;
 }
 
 interface Delegator {
   id: number;
   address: string;
-  stake: {
-    nft: number;
-    watt: number;
+  shares: string;
+  balance: string;
+}
+
+// Cosmos SDK response interfaces
+interface CosmosValidatorResponse {
+  validator: {
+    operator_address: string;
+    consensus_pubkey: {
+      '@type': string;
+      key: string;
+    };
+    jailed: boolean;
+    status: string;
+    tokens: string;
+    delegator_shares: string;
+    description: {
+      moniker: string;
+      identity: string;
+      website: string;
+      security_contact: string;
+      details: string;
+    };
+    unbonding_height: string;
+    unbonding_time: string;
+    commission: {
+      commission_rates: {
+        rate: string;
+        max_rate: string;
+        max_change_rate: string;
+      };
+      update_time: string;
+    };
+    min_self_delegation: string;
+    country?: string;
   };
-  rewards: number;
-  stakeDate: string;
-  lastReward: string;
+}
+
+interface CosmosDelegationsResponse {
+  delegation_responses: Array<{
+    delegation: {
+      delegator_address: string;
+      validator_address: string;
+      shares: string;
+    };
+    balance: {
+      denom: string;
+      amount: string;
+    };
+  }>;
+  pagination: {
+    next_key: string | null;
+    total: string;
+  };
 }
 
 const ValidatorDetailsScreen = ({
@@ -53,53 +105,91 @@ const ValidatorDetailsScreen = ({
   const [delegators, setDelegators] = useState<Delegator[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const {checkKYC, isKycCompleted} = useKycCheck();
+  const { checkKYC, isKycCompleted } = useKycCheck();
 
   const validatorId = route.params?.validatorId || 'val_001';
-  const {singleValidator} = useValidators();
+
+  // Helper function to format status
+  const formatStatus = (status: string): string => {
+    switch (status) {
+      case 'BOND_STATUS_BONDED':
+        return 'Bonded';
+      case 'BOND_STATUS_UNBONDING':
+        return 'Unbonding';
+      case 'BOND_STATUS_UNBONDED':
+        return 'Unbonded';
+      case 'BOND_STATUS_UNSPECIFIED':
+        return 'Unspecified';
+      default:
+        return status;
+    }
+  };
+
+  // Helper function to convert tokens from wei
+  const formatTokens = (tokens: string): string => {
+    if (!tokens) return '0';
+    // Handle decimal strings by removing the decimal part before BigInt conversion
+    const tokensStr = tokens.split('.')[0];
+    try {
+      const tokensInWei = BigInt(tokensStr);
+      const formatted = Number(tokensInWei / BigInt(10 ** 18));
+      return formatted.toLocaleString();
+    } catch {
+      return '0';
+    }
+  };
 
   useEffect(() => {
     const fetchValidatorData = async () => {
       try {
         setIsLoading(true);
-        const apiUrl = `${VALIDATORS_API_URL}?validatorId=${validatorId}`;
-        const response = await singleValidator.fetch(apiUrl);
-        if (response && response.validator) {
+
+        // Fetch validator details from Cosmos SDK
+        const validatorUrl = `${VALIDATORS_API_URL}/${validatorId}`;
+        console.log("validatorUrl", validatorUrl);
+        const validatorResponse = await axios.get<CosmosValidatorResponse>(validatorUrl);
+
+        if (validatorResponse.data && validatorResponse.data.validator) {
+          const v = validatorResponse.data.validator;
           const mappedValidator: Validator = {
             id: 1,
-            name: response.validator.validatorName,
-            validatorId: response.validator.validatorId,
-            description: response.validator.description,
-            publicKey: response.validator.publicKey,
-            powerConsumption: response.validator.powerConsumption,
-            uptime: response.validator.uptime,
-            slashes: response.validator.slashes,
-            missedBlocks: response.validator.missedBlocks,
-            jailed: response.validator.status === 'ACTIVE' ? 'Never' : 'Yes',
+            name: v.description?.moniker || 'Unknown',
+            validatorId: v.operator_address,
+            description: v.description?.details || '',
+            publicKey: v.consensus_pubkey?.key || '',
+            tokens: v.tokens || '0',
+            commissionRate: parseFloat(v.commission?.commission_rates?.rate || '0') * 100,
+            maxCommissionRate: parseFloat(v.commission?.commission_rates?.max_rate || '0') * 100,
+            maxChangeRate: parseFloat(v.commission?.commission_rates?.max_change_rate || '0') * 100,
+            minSelfDelegation: v.min_self_delegation || '0',
+            jailed: v.jailed || false,
+            status: v.status || 'BOND_STATUS_UNSPECIFIED',
+            unbondingHeight: v.unbonding_height || '0',
+            unbondingTime: v.unbonding_time || '',
+            country: v.country || '',
           };
-
-          console.log("response",response);
-          
 
           setValidator(mappedValidator);
 
-          if (response.delegators && response.delegators.length > 0) {
-            const mappedDelegators: Delegator[] = response.delegators.map(
-              (del, index) => ({
-                id: index + 1,
-                address: del.delegatorAddress,
-                stake: {
-                  nft: del.stakedNFT,
-                  watt: del.stakedWatt,
-                },
-                rewards: del.rewardsEarned,
-                stakeDate: new Date().toISOString().split('T')[0],
-                lastReward: new Date().toISOString().split('T')[0],
-              }),
-            );
-            console.log("mappedDelegators",mappedDelegators);
-            
-            setDelegators(mappedDelegators);
+          // Fetch delegations for this validator
+          try {
+            const delegationsUrl = `${VALIDATORS_API_URL}/${validatorId}/delegations`;
+            const delegationsResponse = await axios.get<CosmosDelegationsResponse>(delegationsUrl);
+
+            if (delegationsResponse.data?.delegation_responses) {
+              const mappedDelegators: Delegator[] = delegationsResponse.data.delegation_responses.map(
+                (del, index) => ({
+                  id: index + 1,
+                  address: del.delegation.delegator_address,
+                  shares: del.delegation.shares,
+                  balance: del.balance.amount,
+                }),
+              );
+              setDelegators(mappedDelegators);
+            }
+          } catch (delegationErr) {
+            console.log('No delegations found or error fetching delegations:', delegationErr);
+            // Don't fail the whole screen if delegations fail
           }
         }
       } catch (err) {
@@ -111,22 +201,25 @@ const ValidatorDetailsScreen = ({
     };
 
     fetchValidatorData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validatorId]);
 
-  const formatStake = (nft: number, watt: number) => {
-    const formatNumber = (num: number) => {
-      if (num >= 1000) {
-        return `${(num / 1000).toFixed(0)}K`;
-      }
-      return num.toString();
-    };
-    return `${nft} NFT + ${formatNumber(watt)} Watt`;
+  const formatBalance = (balance: string): string => {
+    if (!balance) return '0';
+    // Handle decimal strings by removing the decimal part before BigInt conversion
+    const balanceStr = balance.split('.')[0];
+    try {
+      const balanceInWei = BigInt(balanceStr);
+      const formatted = Number(balanceInWei / BigInt(10 ** 18));
+      return formatted.toLocaleString();
+    } catch {
+      return '0';
+    }
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString || dateString === '1970-01-01T00:00:00Z') return 'N/A';
     const date = new Date(dateString);
-    const options = {year: 'numeric', month: 'short', day: 'numeric'} as const;
+    const options = { year: 'numeric', month: 'short', day: 'numeric' } as const;
     return date.toLocaleDateString('en-US', options);
   };
 
@@ -146,6 +239,7 @@ const ValidatorDetailsScreen = ({
     if (isKycCompleted && validator) {
       navigation.navigate('StakeScreen', {
         validatorId: validator.validatorId,
+        validatorCountry: validator.country,
       });
     } else {
       await checkKYC({
@@ -153,6 +247,7 @@ const ValidatorDetailsScreen = ({
           if (validator) {
             navigation.navigate('StakeScreen', {
               validatorId: validator.validatorId,
+              validatorCountry: validator.country,
             });
           }
         },
@@ -220,7 +315,7 @@ const ValidatorDetailsScreen = ({
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() =>
-              navigation.replace('ValidatorDetailsScreen', {validatorId})
+              navigation.replace('ValidatorDetailsScreen', { validatorId })
             }>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
@@ -262,61 +357,110 @@ const ValidatorDetailsScreen = ({
             </Text>
             <Image source={images.copyIcon} style={styles.copyIconSmall} />
           </TouchableOpacity>
+          {validator.country ? (
+            <Text style={styles.countryText}>Country: {validator.country}</Text>
+          ) : null}
         </View>
 
+        {/* Validator Info Card */}
         <View style={styles.card}>
-          {/* <Text style={styles.sectionTitle}>Description:</Text>
-          <Text style={styles.description}>"{validator.description}"</Text> */}
+          <Text style={styles.sectionTitle}>Validator Info</Text>
+
+          {validator.publicKey ? (
+            <View style={styles.row}>
+              <Text style={styles.label}>Public Key: </Text>
+              <TouchableOpacity
+                style={styles.publicKeyContainer}
+                onPress={() => handleCopy(validator.publicKey, 'Public Key')}>
+                <Text style={styles.link}>
+                  {`${validator.publicKey.slice(
+                    0,
+                    12,
+                  )}...${validator.publicKey.slice(-8)}`}
+                </Text>
+                <Image source={images.copyIcon} style={styles.copyIcon} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           <View style={styles.row}>
-            <Text style={styles.label}>Public Key: </Text>
-            <TouchableOpacity
-              style={styles.publicKeyContainer}
-              onPress={() => handleCopy(validator.publicKey, 'Public Key')}>
-              <Text style={styles.link}>
-                {`${validator.publicKey.slice(
-                  0,
-                  16,
-                )}...${validator.publicKey.slice(-10)}`}
-              </Text>
-              <Image source={images.copyIcon} style={styles.copyIcon} />
-            </TouchableOpacity>
+            <Text style={styles.label}>Total Tokens: </Text>
+            <Text style={styles.value}>{formatTokens(validator.tokens)}</Text>
           </View>
 
           <View style={styles.row}>
-            <Text style={styles.label}>Power Consumption: </Text>
-            <Text style={styles.value}>{validator.powerConsumption} Watt</Text>
+            <Text style={styles.label}>Status: </Text>
+            <Text style={[
+              styles.value,
+              validator.status === 'BOND_STATUS_BONDED' ? styles.statusActive : styles.statusInactive
+            ]}>
+              {formatStatus(validator.status)}
+            </Text>
           </View>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>Jailed: </Text>
+            <Text style={[
+              styles.value,
+              validator.jailed ? styles.statusInactive : styles.statusActive
+            ]}>
+              {validator.jailed ? 'Yes' : 'No'}
+            </Text>
+          </View>
+
+          {validator.description ? (
+            <View style={styles.descriptionContainer}>
+              <Text style={styles.label}>Description: </Text>
+              <Text style={styles.description}>{validator.description}</Text>
+            </View>
+          ) : null}
         </View>
 
-        {/* Performance Metrics */}
+        {/* Commission Info */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Performance Metrics:</Text>
+          <Text style={styles.sectionTitle}>Commission</Text>
 
           <View style={styles.metricsContainer}>
             <View style={styles.metricRow}>
               <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Uptime:</Text>
-                <Text style={styles.metricValue}>{validator.uptime}%</Text>
+                <Text style={styles.metricLabel}>Rate:</Text>
+                <Text style={styles.metricValue}>{validator.commissionRate.toFixed(2)}%</Text>
               </View>
               <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Slashes:</Text>
-                <Text style={styles.metricValue}>{validator.slashes}</Text>
+                <Text style={styles.metricLabel}>Max Rate:</Text>
+                <Text style={styles.metricValue}>{validator.maxCommissionRate.toFixed(2)}%</Text>
               </View>
             </View>
 
             <View style={styles.metricRow}>
               <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Missed Blocks:</Text>
-                <Text style={styles.metricValue}>{validator.missedBlocks}</Text>
+                <Text style={styles.metricLabel}>Max Change:</Text>
+                <Text style={styles.metricValue}>{validator.maxChangeRate.toFixed(2)}%</Text>
               </View>
               <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Jailed:</Text>
-                <Text style={styles.metricValue}>{validator.jailed}</Text>
+                <Text style={styles.metricLabel}>Min Self:</Text>
+                <Text style={styles.metricValue}>{validator.minSelfDelegation}</Text>
               </View>
             </View>
           </View>
         </View>
+
+        {/* Unbonding Info (if applicable) */}
+        {validator.unbondingHeight !== '0' && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Unbonding Info</Text>
+
+            <View style={styles.row}>
+              <Text style={styles.label}>Unbonding Height: </Text>
+              <Text style={styles.value}>{validator.unbondingHeight}</Text>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.label}>Unbonding Time: </Text>
+              <Text style={styles.value}>{formatDate(validator.unbondingTime)}</Text>
+            </View>
+          </View>
+        )}
 
         {/* Delegators */}
         <View style={styles.delegatorsSection}>
@@ -324,57 +468,39 @@ const ValidatorDetailsScreen = ({
             Delegators ({delegators.length}):
           </Text>
 
-          <View style={styles.delegatorsList}>
-            {delegators.map(delegator => (
-              <TouchableOpacity
-                key={delegator.id}
-                style={[styles.delegatorCard]}
-                activeOpacity={0.7}
-                onPress={() =>
-                  navigation.navigate('QueuedDelegationsScreen', {
-                    delegatorAddress: delegator.address,
-                  })
-                }>
-                <View style={styles.delegatorHeader}>
-                  <Text style={styles.delegatorAddress} numberOfLines={1}>
-                    {truncateAddress(delegator.address)}
-                  </Text>
-                  <Text style={styles.delegatorRewards}>
-                    {delegator.rewards} Rewards
-                  </Text>
-                </View>
-
-                <View style={styles.delegatorDetails}>
-                  <View style={styles.delegatorRow}>
-                    <Text style={styles.delegatorLabel}>Stake:</Text>
-                    <Text style={styles.delegatorValue}>
-                      {formatStake(delegator.stake.nft, delegator.stake.watt)}
+          {delegators.length === 0 ? (
+            <View style={styles.noDelegatorsContainer}>
+              <Text style={styles.noDelegatorsText}>No delegators found</Text>
+            </View>
+          ) : (
+            <View style={styles.delegatorsList}>
+              {delegators.map(delegator => (
+                <View key={delegator.id} style={styles.delegatorCard}>
+                  <View style={styles.delegatorHeader}>
+                    <Text style={styles.delegatorAddress} numberOfLines={1}>
+                      {truncateAddress(delegator.address)}
                     </Text>
                   </View>
 
-                  <View style={styles.delegatorRow}>
-                    <Text style={styles.delegatorLabel}>Stake Date:</Text>
-                    <Text style={styles.delegatorValue}>
-                      {formatDate(delegator.stakeDate)}
-                    </Text>
-                  </View>
+                  <View style={styles.delegatorDetails}>
+                    <View style={styles.delegatorRow}>
+                      <Text style={styles.delegatorLabel}>Balance:</Text>
+                      <Text style={styles.delegatorValue}>
+                        {formatBalance(delegator.balance)}
+                      </Text>
+                    </View>
 
-                  <View style={styles.delegatorRow}>
-                    <Text style={styles.delegatorLabel}>Last Reward:</Text>
-                    <Text style={styles.delegatorValue}>
-                      {formatDate(delegator.lastReward)}
-                    </Text>
+                    <View style={styles.delegatorRow}>
+                      <Text style={styles.delegatorLabel}>Shares:</Text>
+                      <Text style={styles.delegatorValue}>
+                        {formatBalance(delegator.shares)}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-
-                <View style={styles.viewQueuedButton}>
-                  <Text style={styles.viewQueuedButtonText}>
-                    View Queued Delegations →
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Bottom padding for fixed button */}
@@ -440,7 +566,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
@@ -463,6 +589,11 @@ const styles = StyleSheet.create({
   validatorIdText: {
     fontSize: 14,
     color: '#666',
+  },
+  countryText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
   copyIconSmall: {
     width: 16,
@@ -489,7 +620,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
@@ -505,6 +636,27 @@ const styles = StyleSheet.create({
     color: '#333',
     fontStyle: 'italic',
     marginBottom: 12,
+  },
+  descriptionContainer: {
+    marginTop: 8,
+  },
+  statusActive: {
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  statusInactive: {
+    color: '#F44336',
+    fontWeight: '600',
+  },
+  noDelegatorsContainer: {
+    backgroundColor: '#f5f5f5',
+    padding: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  noDelegatorsText: {
+    fontSize: 14,
+    color: '#666',
   },
   row: {
     flexDirection: 'row',
@@ -562,7 +714,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
@@ -614,7 +766,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: -2},
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,

@@ -131,7 +131,7 @@ export const useNFTStaking = (validatorAddress?: string) => {
       try {
         setIsLoading(true);
         setError(null);
-
+``
         const magicInstance = await setActiveNetwork('denergy');
 
         const magicProvider = new BrowserProvider(

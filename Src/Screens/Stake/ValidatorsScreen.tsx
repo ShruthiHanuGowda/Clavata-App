@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,13 @@ import {
   Pressable,
   TouchableOpacity,
 } from 'react-native';
-import {fontsFamily} from '../../Theme';
-import {navigateTo} from '../../utils/navigationService';
-import {BottomSheet} from 'react-native-btr';
-import {DButton} from '../../components';
+import { fontsFamily } from '../../Theme';
+import { navigateTo } from '../../utils/navigationService';
+import { BottomSheet } from 'react-native-btr';
+import { DButton } from '../../components';
 import useValidators from './Hooks/useValidators';
 import LoaderAnimation from '../../components/Loading/LoaderAnimation';
-import {VALIDATORS_API_URL} from '../../constants';
+import { VALIDATORS_API_URL } from '../../constants';
 
 interface Validator {
   validatorId: string;
@@ -26,7 +26,7 @@ interface Validator {
   totalStakedWatt: number;
 }
 
-interface ValidatorsScreenProps {}
+interface ValidatorsScreenProps { }
 
 const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
   const [sortBy, setSortBy] = useState('Commission');
@@ -42,13 +42,14 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
   const statusOptions = ['All', 'Active', 'Inactive'];
 
   // Use our updated hook - only for list
-  const {validatorList} = useValidators();
+  const { validatorList } = useValidators();
   const {
     data,
     loading: isLoading,
     error,
     fetch: fetchValidators,
   } = validatorList;
+  console.log("data", data);
 
   // Fetch validators on component mount
   useEffect(() => {
@@ -73,8 +74,10 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
         validator.status === 'ACTIVE'
           ? 'Active'
           : validator.status === 'INACTIVE'
-          ? 'Inactive'
-          : validator.status;
+            ? 'Inactive'
+            : validator.status === 'UNBONDING'
+              ? 'Unbonding'
+              : validator.status;
       return formattedStatus === filterStatus;
     });
 
@@ -128,17 +131,22 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
   };
 
   const getFormattedStatus = (status: string) => {
-    // Convert API status (ACTIVE/INACTIVE) to UI format (Active/Inactive)
-    return status === 'ACTIVE'
-      ? 'Active'
-      : status === 'INACTIVE'
-      ? 'Inactive'
-      : status;
+    // Convert API status to UI format
+    switch (status) {
+      case 'ACTIVE':
+        return 'Active';
+      case 'INACTIVE':
+        return 'Inactive';
+      case 'UNBONDING':
+        return 'Unbonding';
+      default:
+        return status;
+    }
   };
 
   // Navigate to details screen with validator ID
   const navigateToDetails = (validatorId: string) => {
-    navigateTo('ValidatorDetailsScreen', {validatorId});
+    navigateTo('ValidatorDetailsScreen', { validatorId });
   };
 
   return (

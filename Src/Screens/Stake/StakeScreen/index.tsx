@@ -15,6 +15,7 @@ interface StakeScreenProps {
   route?: {
     params?: {
       validatorId?: string;
+      validatorCountry?: string;
     };
   };
 }
@@ -28,11 +29,13 @@ interface FontFamily {
 // Tab content components
 const NFTStakingContent = ({
   validatorId,
+  validatorCountry,
 }: {
   validatorId: string | undefined;
+  validatorCountry: string | undefined;
 }): React.ReactElement => (
   <View style={styles.tabContent}>
-    <NFTStakeComponent validatorId={validatorId || ''} />
+    <NFTStakeComponent validatorId={validatorId || ''} validatorCountry={validatorCountry || ''} />
   </View>
 );
 
@@ -48,6 +51,7 @@ const WATTStakingContent = ({
 
 const StakeScreen: React.FC<StakeScreenProps> = props => {
   const validatorId = props?.route?.params?.validatorId;
+  const validatorCountry = props?.route?.params?.validatorCountry;
   const navigation = props?.navigation;
 
   const {} = useNFTStaking(validatorId);
@@ -111,7 +115,7 @@ const StakeScreen: React.FC<StakeScreenProps> = props => {
           </View>
 
           <View style={styles.contentContainer}>
-            {index === 0 && <NFTStakingContent validatorId={validatorId} />}
+            {index === 0 && <NFTStakingContent validatorId={validatorId} validatorCountry={validatorCountry} />}
             {index === 1 && <WATTStakingContent validatorId={validatorId} />}
           </View>
         </View>

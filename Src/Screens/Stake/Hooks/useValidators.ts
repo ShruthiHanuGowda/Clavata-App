@@ -24,6 +24,120 @@ interface ValidatorsResponse {
   validators: Validator[];
 }
 
+// Cosmos SDK API response interfaces
+interface CosmosValidator {
+  operator_address: string;
+  consensus_pubkey: {
+    '@type': string;
+    key: string;
+  };
+  jailed: boolean;
+  status: string;
+  tokens: string;
+  delegator_shares: string;
+  description: {
+    moniker: string;
+    identity: string;
+    website: string;
+    security_contact: string;
+    details: string;
+  };
+  unbonding_height: string;
+  unbonding_time: string;
+  commission: {
+    commission_rates: {
+      rate: string;
+      max_rate: string;
+      max_change_rate: string;
+    };
+    update_time: string;
+  };
+  min_self_delegation: string;
+  total_nft_delegation?: string;
+  country?: string;
+}
+
+interface CosmosValidatorsResponse {
+  validators: CosmosValidator[];
+  pagination: {
+    next_key: string | null;
+    total: string;
+  };
+}
+
+// Helper function to map Cosmos SDK status to app status
+const mapValidatorStatus = (status: string): string => {
+  switch (status) {
+    case 'BOND_STATUS_BONDED':
+    case 'ACTIVE':
+      return 'ACTIVE';
+    case 'BOND_STATUS_UNBONDING':
+      return 'UNBONDING';
+    case 'BOND_STATUS_UNBONDED':
+    case 'BOND_STATUS_UNSPECIFIED':
+    case 'INACTIVE':
+    default:
+      return 'INACTIVE';
+  }
+};
+
+// Helper function to transform Cosmos SDK validator to app format
+const transformCosmosValidator = (cosmosValidator: CosmosValidator): Validator => {
+  // Convert tokens from wei string to number (18 decimals)
+  let totalStake = 0;
+  if (cosmosValidator.tokens) {
+    // Handle decimal strings by removing the decimal part before BigInt conversion
+    const tokensStr = cosmosValidator.tokens.split('.')[0];
+    try {
+      const tokensInWei = BigInt(tokensStr);
+      totalStake = Number(tokensInWei / BigInt(10 ** 18));
+    } catch {
+      totalStake = 0;
+    }
+  }
+
+  // Convert commission rate from decimal string to percentage
+  let commissionRate = 0;
+  if (cosmosValidator.commission?.commission_rates?.rate) {
+    commissionRate = parseFloat(cosmosValidator.commission.commission_rates.rate) * 100;
+  }
+
+  // Calculate validator age from commission update time
+  let ageInDays = 0;
+  if (cosmosValidator.commission?.update_time) {
+    const updateTime = new Date(cosmosValidator.commission.update_time);
+    const now = new Date();
+    ageInDays = Math.floor((now.getTime() - updateTime.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  // Convert NFT delegation
+  const totalNftDelegation = Number(cosmosValidator.total_nft_delegation || '0');
+
+  return {
+    validatorId: cosmosValidator.operator_address || '',
+    validatorName: cosmosValidator.description?.moniker || 'Unknown',
+    description: cosmosValidator.description?.details || '',
+    publicKey: cosmosValidator.consensus_pubkey?.key || '',
+    commissionRate: commissionRate,
+    totalStakeAmount: totalStake,
+    totalStakedNFT: totalNftDelegation,
+    totalStakedWatt: totalStake,
+    validatorAge: ageInDays,
+    status: mapValidatorStatus(cosmosValidator.status),
+    uptime: 100,
+    slashes: 0,
+    missedBlocks: 0,
+    powerConsumption: 0,
+  };
+};
+
+// Transform Cosmos SDK response to app format
+const transformCosmosResponse = (cosmosResponse: CosmosValidatorsResponse): ValidatorsResponse => {
+  return {
+    validators: cosmosResponse.validators.map(transformCosmosValidator),
+  };
+};
+
 interface Delegator {
   delegatorAddress: string;
   stakedAmount: number;
@@ -98,9 +212,13 @@ const useValidators = () => {
     setValidatorListError(null);
 
     try {
-      const response = await axios.get<ValidatorsResponse>(url, axiosConfig);
-      setValidatorListData(response.data);
-      return response.data;
+      const response = await axios.get<CosmosValidatorsResponse>(url, axiosConfig);
+      console.log('Raw API response:', JSON.stringify(response.data, null, 2));
+      // Transform Cosmos SDK response to app format
+      const transformedData = transformCosmosResponse(response.data);
+      console.log('Transformed data:', JSON.stringify(transformedData, null, 2));
+      setValidatorListData(transformedData);
+      return transformedData;
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -119,10 +237,20 @@ const useValidators = () => {
     setSingleValidatorError(null);
 
     try {
-      const response = await axios.get<ValidatorResponse>(url, axiosConfig);
+      // Cosmos SDK returns a single validator response
+      const response = await axios.get<{validator: CosmosValidator}>(url, axiosConfig);
 
-      setSingleValidator(response.data);
-      return response.data;
+      // Transform the Cosmos SDK validator to app format
+      const transformedValidator = transformCosmosValidator(response.data.validator);
+
+      // Create the response in the expected format
+      const validatorResponse: ValidatorResponse = {
+        validator: transformedValidator,
+        delegators: [], // Delegators need to be fetched separately
+      };
+
+      setSingleValidator(validatorResponse);
+      return validatorResponse;
     } catch (error) {
       const errorMessage =
         error instanceof Error

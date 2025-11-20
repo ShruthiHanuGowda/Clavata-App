@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,28 +7,31 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
-import {BottomSheet} from 'react-native-btr';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { BottomSheet } from 'react-native-btr';
 import Icon from 'react-native-vector-icons/Entypo';
-import {DTextInput} from '../../../components/Dinputs';
-import {DButton} from '../../../components';
-import {useMagic} from '../../../providers';
-import {useNFTStaking} from '../Hooks/useNFTStaking';
-import {formatQuantityMWh} from '../../../utils';
-import {useNft} from '../../../providers';
+import { BrowserProvider, Contract } from 'ethers';
+import { DTextInput } from '../../../components/Dinputs';
+import { DButton } from '../../../components';
+import { useMagic } from '../../../providers';
+import { useNFTStaking } from '../Hooks/useNFTStaking';
+import { formatQuantityMWh } from '../../../utils';
+import { useNft } from '../../../providers';
 import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
+import { ERC1155_ABI } from '../../../utils/Contracts';
 
 interface NFTStakeComponentProps {
   validatorId: string;
+  validatorCountry: string;
 }
 
-const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
-  const {nfts, isLoading, refresh} = useNft();
+const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({ validatorId, validatorCountry }) => {
+  const { nfts, isLoading, refresh } = useNft();
 
-  const {isLoading: isNFTStakingLoading, delegateERC1155} =
+  const { isLoading: isNFTStakingLoading, delegateERC1155 } =
     useNFTStaking(validatorId);
 
-  const {setActiveNetwork, activeNetwork} = useMagic();
+  const { magic, setActiveNetwork, activeNetwork } = useMagic();
 
   const [bottomSheetVisible, setBottomSheetVisible] = useState<boolean>(false);
 
@@ -38,6 +41,58 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
   const [isAmountValid, setIsAmountValid] = useState<boolean>(false);
   const [amountError, setAmountError] = useState<string>('');
   const [txStatus, setTxStatus] = useState<string>('idle');
+  const [filteredNfts, setFilteredNfts] = useState<any[]>([]);
+  const [isFilteringNfts, setIsFilteringNfts] = useState<boolean>(false);
+
+  // Function to get country from ERC1155 contract
+  const getNftCountry = useCallback(async (contractAddress: string): Promise<string> => {
+    try {
+      if (!magic) {
+        return '';
+      }
+      const magicProvider = new BrowserProvider(magic.rpcProvider as any);
+      const contract = new Contract(contractAddress, ERC1155_ABI, magicProvider);
+      const country = await contract.country();
+      return country;
+    } catch (err) {
+      console.error('Error fetching NFT country:', err);
+      return '';
+    }
+  }, [magic]);
+
+  // Filter NFTs by validator country
+  useEffect(() => {
+    const filterNftsByCountry = async () => {
+      if (!nfts || nfts.length === 0 || !validatorCountry) {
+        setFilteredNfts(nfts || []);
+        return;
+      }
+
+      setIsFilteringNfts(true);
+      try {
+        const nftsWithCountry = await Promise.all(
+          nfts.map(async (nft: any) => {
+            const contractAddress = nft.contractAddress || nft.collectionAddress;
+            const nftCountry = await getNftCountry(contractAddress);
+            return { ...nft, nftCountry };
+          })
+        );
+
+        const filtered = nftsWithCountry.filter(
+          (nft) => nft.nftCountry.toLowerCase() === validatorCountry.toLowerCase()
+        );
+        setFilteredNfts(filtered);
+      } catch (err) {
+        console.error('Error filtering NFTs by country:', err);
+        setFilteredNfts(nfts || []);
+      } finally {
+        setIsFilteringNfts(false);
+      }
+    };
+
+    filterNftsByCountry();
+  }, [nfts, validatorCountry, getNftCountry]);
+
   useEffect(() => {
     if (activeNetwork !== 'denergy') {
       setActiveNetwork('denergy');
@@ -114,7 +169,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
         0,
         10,
       )}...`,
-      [{text: 'OK', onPress: () => console.log('OK')}],
+      [{ text: 'OK', onPress: () => console.log('OK') }],
     );
   };
 
@@ -163,7 +218,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
 
       // Show error alert
       Alert.alert('NFT Staking Failed', 'Something went wrong while staking', [
-        {text: 'OK'},
+        { text: 'OK' },
       ]);
     } finally {
       if (txStatus !== 'success') {
@@ -172,7 +227,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isFilteringNfts) {
     return (
       <View style={styles.loaderContainer}>
         {/* <ActivityIndicator size="large" color="#008060" />
@@ -182,7 +237,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
           size={'large'}
           speed={1.5}
           showText
-          text="Loading Certificates..."
+          text={"Loading Certificates..."}
         />
       </View>
     );
@@ -200,7 +255,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
         extraHeight={120}
         extraScrollHeight={120}
         keyboardOpeningTime={250}
-        resetScrollToCoords={{x: 0, y: 0}}
+        resetScrollToCoords={{ x: 0, y: 0 }}
         scrollEventThrottle={16}>
         {/* NFT Selection Dropdown */}
         <TouchableOpacity
@@ -212,9 +267,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
           <Icon name="chevron-small-down" size={24} color="#333" />
         </TouchableOpacity>
 
-        {/* NFT Details Display (non-interactive) */}
-        {console.log(selectedNFT)}
-        
+
         <View
           style={[
             styles.dropdownContainer,
@@ -287,7 +340,7 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
               !isAmountValid ||
               txStatus === 'staking' ||
               isNFTStakingLoading) &&
-              styles.disabledButton,
+            styles.disabledButton,
           ]}
           disabled={
             !selectedNFT ||
@@ -317,8 +370,8 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
           </View>
 
           <ScrollView style={styles.optionsContainer}>
-            {nfts && nfts.length > 0 ? (
-              nfts.map((nft: any, index: number) => (
+            {filteredNfts && filteredNfts.length > 0 ? (
+              filteredNfts.map((nft: any, index: number) => (
                 <TouchableOpacity
                   key={index}
                   style={styles.optionItem}
@@ -327,7 +380,11 @@ const NFTStakeComponent: React.FC<NFTStakeComponentProps> = ({validatorId}) => {
                 </TouchableOpacity>
               ))
             ) : (
-              <Text style={styles.noOptionsText}>No NFTs available</Text>
+              <Text style={styles.noOptionsText}>
+                {validatorCountry
+                  ? `No NFTs available for ${validatorCountry}`
+                  : 'No NFTs available'}
+              </Text>
             )}
           </ScrollView>
         </View>
