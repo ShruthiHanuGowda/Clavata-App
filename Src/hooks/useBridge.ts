@@ -1,4 +1,4 @@
-import {useState, useCallback, useMemo} from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   BrowserProvider,
   Contract,
@@ -6,8 +6,8 @@ import {
   parseUnits,
   formatUnits,
 } from 'ethers';
-import {useMagic} from '../providers';
-import {useAuth} from '../providers';
+import { useMagic } from '../providers';
+import { useAuth } from '../providers';
 import {
   USDC_ADDRESS,
   BRIDGE_ADDRESS,
@@ -15,9 +15,10 @@ import {
   DENERGY_USDC_ADDRESS,
   DESTINATION_ADDRESS,
   DENERGY_EURC_ADDRESS,
+  BANK_ADDRESS,
 } from '../constants';
-import {useWallet} from '../providers';
-import {ERC20_ABI, BRIDGE_ABI, DEPOSIT_TOKEN_ABI} from '../utils/Contracts';
+import { useWallet } from '../providers';
+import { ERC20_ABI, BRIDGE_ABI, DEPOSIT_TOKEN_ABI } from '../utils/Contracts';
 
 interface BridgeSuccess {
   txHash: string;
@@ -30,7 +31,7 @@ interface BridgeSuccess {
 type SuccessCallback = (result: BridgeSuccess) => void;
 
 export const useBridge = () => {
-  const {refreshBalance} = useWallet();
+  const { refreshBalance } = useWallet();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,27 +42,27 @@ export const useBridge = () => {
   const [transactionHash, setTransactionHash] = useState<string>('');
 
   // Get magic instance from the provider
-  const {setActiveNetwork} = useMagic();
+  const { setActiveNetwork } = useMagic();
 
   // Get user details from auth provider
-  const {userDetails} = useAuth();
+  const { userDetails } = useAuth();
 
   // Processing steps for different bridge operations
   const BRIDGE_PROCESSING_STEPS = useMemo(
     () => ({
       DEPOSIT: {
-        INITIALIZING: {text: 'Initializing deposit process...', progress: 5},
+        INITIALIZING: { text: 'Initializing deposit process...', progress: 5 },
         SWITCHING_NETWORK: {
           text: 'Switching to Ethereum network...',
           progress: 15,
         },
-        CHECKING_BALANCE: {text: 'Checking token balance...', progress: 25},
-        APPROVING_TOKEN: {text: 'Approving token spend...', progress: 45},
+        CHECKING_BALANCE: { text: 'Checking token balance...', progress: 25 },
+        APPROVING_TOKEN: { text: 'Approving token spend...', progress: 45 },
         WAITING_APPROVAL: {
           text: 'Waiting for approval confirmation...',
           progress: 60,
         },
-        DEPOSITING: {text: 'Depositing tokens to bridge...', progress: 75},
+        DEPOSITING: { text: 'Depositing tokens to bridge...', progress: 75 },
         WAITING_DEPOSIT: {
           text: 'Waiting for deposit confirmation...',
           progress: 90,
@@ -72,7 +73,7 @@ export const useBridge = () => {
         },
       },
       WITHDRAW: {
-        INITIALIZING: {text: 'Initializing withdrawal process...', progress: 5},
+        INITIALIZING: { text: 'Initializing withdrawal process...', progress: 5 },
         SWITCHING_NETWORK: {
           text: 'Switching to DENERGY network...',
           progress: 15,
@@ -89,8 +90,8 @@ export const useBridge = () => {
           text: 'Waiting for approval confirmation...',
           progress: 60,
         },
-        BURNING: {text: 'Burning wrapped tokens...', progress: 75},
-        WAITING_BURN: {text: 'Waiting for burn confirmation...', progress: 90},
+        BURNING: { text: 'Burning wrapped tokens...', progress: 75 },
+        WAITING_BURN: { text: 'Waiting for burn confirmation...', progress: 90 },
         COMPLETED: {
           text: 'Bridge withdrawal completed successfully!',
           progress: 100,
@@ -165,7 +166,7 @@ export const useBridge = () => {
           if (balance < amountWei) {
             throw new Error('Insufficient balance');
           }
-        } catch (err) {}
+        } catch (err) { }
 
         // Check if token is whitelisted
         console.log('Checking if token is whitelisted...');

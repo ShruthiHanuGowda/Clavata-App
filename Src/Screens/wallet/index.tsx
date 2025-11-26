@@ -1,11 +1,11 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {Text, View, ScrollView, RefreshControl} from 'react-native';
-import {NavigationProp, RouteProp} from '@react-navigation/native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Text, View, ScrollView, RefreshControl } from 'react-native';
+import { NavigationProp, RouteProp } from '@react-navigation/native';
 
 import style from './style';
 import Portfolio from './Portfolio';
-import {SCREEN_CONSTANT} from '../../Navigation/constant';
-import {useWallet} from '../../providers';
+import { SCREEN_CONSTANT } from '../../Navigation/constant';
+import { useWallet } from '../../providers';
 import MyCertificatesList from '../../components/Certificates/MyCertificatesList';
 import CryptoMarketCard from '../HomeScreen/CryptoMarketCard';
 
@@ -56,7 +56,7 @@ const ITEMS: WalletItem[] = [
 ];
 
 export default function Wallet(props: WalletProps) {
-  const {getBalance, refreshAllBalances, isBalanceLoading, portfolio} =
+  const { getBalance, refreshAllBalances, isBalanceLoading, portfolio } =
     useWallet();
   const [_items, setItems] = useState<WalletItem[]>([]);
   const [pullToRefreshLoading, setPullToRefreshLoading] =
@@ -79,11 +79,11 @@ export default function Wallet(props: WalletProps) {
       code: 'ETH',
       coinValue: null,
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive'],
       growth: 0,
@@ -94,32 +94,32 @@ export default function Wallet(props: WalletProps) {
       title: 'USDC Coin',
       code: 'USDC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
       balance: formatValue(getBalance('USDC')?.balance, 4),
       dollar: formatValue(getBalance('USDC')?.balanceUsd),
     },
-    {
-      title: 'EURC Coin',
-      code: 'EURC',
-      chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
-      ],
-      operationsTypes: ['Send', 'Receive', 'Bridge'],
-      growth: 0,
-      balance: formatValue(getBalance('EURC')?.balance),
-      dollar: formatValue(getBalance('EURC')?.balanceUsd),
-    },
+    // {
+    //   title: 'EURC Coin',
+    //   code: 'EURC',
+    //   chartData: [
+    //     { x: 1, y: 0 },
+    //     { x: 2, y: 0 },
+    //     { x: 3, y: 0 },
+    //     { x: 4, y: 0 },
+    //     { x: 5, y: 0 },
+    //   ],
+    //   operationsTypes: ['Send', 'Receive', 'Bridge'],
+    //   growth: 0,
+    //   balance: formatValue(getBalance('EURC')?.balance),
+    //   dollar: formatValue(getBalance('EURC')?.balanceUsd),
+    // },
   ];
 
   const dEnergyCoins: CoinData[] = [
@@ -127,11 +127,11 @@ export default function Wallet(props: WalletProps) {
       title: 'Watt Coin',
       code: 'WATT',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive', 'Swap'],
       growth: 0,
@@ -142,32 +142,32 @@ export default function Wallet(props: WalletProps) {
       title: 'wUSDC Coin',
       code: 'WUSDC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
       balance: formatValue(getBalance('WUSDC')?.balance),
       dollar: formatValue(getBalance('WUSDC')?.balanceUsd),
     },
-    {
-      title: 'wEURC Coin',
-      code: 'WEURC',
-      chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
-      ],
-      operationsTypes: ['Send', 'Receive', 'Bridge'],
-      growth: 0,
-      balance: formatValue(getBalance('WEURC')?.balance),
-      dollar: formatValue(getBalance('WEURC')?.balanceUsd),
-    },
+    // {
+    //   title: 'wEURC Coin',
+    //   code: 'WEURC',
+    //   chartData: [
+    //     {x: 1, y: 0},
+    //     {x: 2, y: 0},
+    //     {x: 3, y: 0},
+    //     {x: 4, y: 0},
+    //     {x: 5, y: 0},
+    //   ],
+    //   operationsTypes: ['Send', 'Receive', 'Bridge'],
+    //   growth: 0,
+    //   balance: formatValue(getBalance('WEURC')?.balance),
+    //   dollar: formatValue(getBalance('WEURC')?.balanceUsd),
+    // },
   ];
 
   const scrollToTop = useCallback((): void => {
@@ -193,10 +193,10 @@ export default function Wallet(props: WalletProps) {
           };
         } catch (error) {
           setPullToRefreshLoading(false);
-          return {...item};
+          return { ...item };
         }
       }
-      return {...item};
+      return { ...item };
     });
 
     const resolvedItems = await Promise.all(updated);
@@ -215,8 +215,8 @@ export default function Wallet(props: WalletProps) {
   const balanceData = {
     WATT: {
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
       ],
       percentage: 0,
     },

@@ -1,17 +1,17 @@
 import React from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {DText} from '../../components/DText';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { DText } from '../../components/DText';
 import CryptoMarketCard from './CryptoMarketCard';
-import {fontsFamily} from '../../Theme';
-import {useWallet} from '../../providers';
-import {useNavigation} from '@react-navigation/native';
-import {useAuth} from '../../providers';
+import { fontsFamily } from '../../Theme';
+import { useWallet } from '../../providers';
+import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../providers';
 import MyCertificatesList from '../../components/Certificates/MyCertificatesList';
-import {navigateTo} from '../../utils/navigationService';
-import {SCREEN_CONSTANT} from '../../Navigation/constant';
+import { navigateTo } from '../../utils/navigationService';
+import { SCREEN_CONSTANT } from '../../Navigation/constant';
 export default function CryptoMarketPlace(props: any) {
-  const {getBalance} = useWallet();
-  const {userDetails} = useAuth();
+  const { getBalance } = useWallet();
+  const { userDetails } = useAuth();
   const navigation = useNavigation<any>();
 
   const account = (userDetails?.userWallet ??
@@ -28,11 +28,11 @@ export default function CryptoMarketPlace(props: any) {
       title: 'ETH Coin',
       code: 'ETH',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive'],
       growth: 0,
@@ -43,32 +43,32 @@ export default function CryptoMarketPlace(props: any) {
       title: 'USDC Coin',
       code: 'USDC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
       balance: formatValue(getBalance('USDC')?.balance, 4), //props?.USDC?.fiatBalance
       dollar: formatValue(getBalance('USDC')?.balanceUsd), //props?.USDC?.tokenBalance
     },
-    {
-      title: 'EURC Coin',
-      code: 'EURC',
-      chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
-      ],
-      operationsTypes: ['Send', 'Receive', 'Bridge'],
-      growth: 0,
-      balance: formatValue(getBalance('EURC')?.balance), //props?.EURC?.fiatBalance
-      dollar: formatValue(getBalance('EURC')?.balanceUsd), //props?.EURC?.tokenBalance
-    },
+    // {
+    //   title: 'EURC Coin',
+    //   code: 'EURC',
+    //   chartData: [
+    //     { x: 1, y: 0 },
+    //     { x: 2, y: 0 },
+    //     { x: 3, y: 0 },
+    //     { x: 4, y: 0 },
+    //     { x: 5, y: 0 },
+    //   ],
+    //   operationsTypes: ['Send', 'Receive', 'Bridge'],
+    //   growth: 0,
+    //   balance: formatValue(getBalance('EURC')?.balance), //props?.EURC?.fiatBalance
+    //   dollar: formatValue(getBalance('EURC')?.balanceUsd), //props?.EURC?.tokenBalance
+    // },
   ];
 
   const dEnergyCoins = [
@@ -76,11 +76,11 @@ export default function CryptoMarketPlace(props: any) {
       title: 'Watt Coin',
       code: 'WATT',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive', 'Swap'],
       growth: 0,
@@ -91,32 +91,32 @@ export default function CryptoMarketPlace(props: any) {
       title: 'wUSDC Coin',
       code: 'WUSDC',
       chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+        { x: 3, y: 0 },
+        { x: 4, y: 0 },
+        { x: 5, y: 0 },
       ],
       operationsTypes: ['Send', 'Receive', 'Bridge'],
       growth: 0,
       balance: formatValue(getBalance('WUSDC')?.balance), //props?.WUSDC?.fiatBalance
       dollar: formatValue(getBalance('WUSDC')?.balanceUsd), //props?.WUSDC?.tokenBalance
     },
-    {
-      title: 'wEURC Coin',
-      code: 'WEURC',
-      chartData: [
-        {x: 1, y: 0},
-        {x: 2, y: 0},
-        {x: 3, y: 0},
-        {x: 4, y: 0},
-        {x: 5, y: 0},
-      ],
-      operationsTypes: ['Send', 'Receive', 'Bridge'],
-      growth: 0,
-      balance: formatValue(getBalance('WEURC')?.balance), //props?.WEURC?.fiatBalance
-      dollar: formatValue(getBalance('WEURC')?.balanceUsd), //props?.WEURC?.tokenBalance
-    },
+    // {
+    //   title: 'wEURC Coin',
+    //   code: 'WEURC',
+    //   chartData: [
+    //     {x: 1, y: 0},
+    //     {x: 2, y: 0},
+    //     {x: 3, y: 0},
+    //     {x: 4, y: 0},
+    //     {x: 5, y: 0},
+    //   ],
+    //   operationsTypes: ['Send', 'Receive', 'Bridge'],
+    //   growth: 0,
+    //   balance: formatValue(getBalance('WEURC')?.balance), //props?.WEURC?.fiatBalance
+    //   dollar: formatValue(getBalance('WEURC')?.balanceUsd), //props?.WEURC?.tokenBalance
+    // },
   ];
   return (
     <View style={[marketPlaceStyles.container]}>
