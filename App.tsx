@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react';
-import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import React, { useEffect, useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   Appearance,
   View,
@@ -10,9 +10,9 @@ import {
 import JailMonkey from 'jail-monkey'; // ✅ Import jailbreak detection
 
 import NavigationWrapper from './Src/Navigation';
-import {AppProvider} from './Src/providers';
+import { AppProvider } from './Src/providers';
 import GlobalKycBottomSheet from './Src/hooks/GlobalKycBottomSheet';
-import {fontsFamily} from './Src/Theme';
+import { fontsFamily } from './Src/Theme';
 import colors from './Src/Theme/Colors';
 
 export default function App() {
@@ -30,7 +30,7 @@ export default function App() {
       } else {
         setIsSecureDevice(true);
       }
-    };
+    };  
 
     // checkDeviceSecurity();
   }, []);

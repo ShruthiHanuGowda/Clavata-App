@@ -1,13 +1,13 @@
-import {useState} from 'react';
-import {formatUnits, parseUnits, JsonRpcProvider} from 'ethers';
-import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
-import {useMutation} from '@apollo/client';
+import { useState } from 'react';
+import { formatUnits, parseUnits, JsonRpcProvider } from 'ethers';
+import { CREATE_TRANSACTION_HISTORY_MOBILE } from '../graphql/queries';
+import { useMutation } from '@apollo/client';
 import {
   CUSTOM_NETWORK_CHAIN_ID,
   CUSTOM_RPC_URL,
   DEFAULT_GAS_LIMIT,
 } from '../constants';
-import {errorService, TransactionError} from '../services/errorService';
+import { errorService, TransactionError } from '../services/errorService';
 
 const DENERGY_RPC_URL = CUSTOM_RPC_URL;
 
@@ -93,21 +93,21 @@ export const useSendWatt = (magic: any, userAddress: string | undefined) => {
 
       if (onSuccess && typeof onSuccess === 'function') {
         try {
-          await createTransactionHistoryMobile({
-            variables: {
-              input: {
-                transactionHash: txHash,
-                method: 'send',
-                createdAt: new Date().toISOString(),
-                from: userAddress,
-                to: transactionDetails.to,
-                amount: parseFloat(transactionDetails.amount),
-                txnFee: parseFloat(gasCost.toString()),
-                coinCode: 'WATT',
-                transactionStatus: 'success',
-              },
-            },
-          });
+          // await createTransactionHistoryMobile({
+          //   variables: {
+          //     input: {
+          //       transactionHash: txHash,
+          //       method: 'send',
+          //       createdAt: new Date().toISOString(),
+          //       from: userAddress,
+          //       to: transactionDetails.to,
+          //       amount: parseFloat(transactionDetails.amount),
+          //       txnFee: parseFloat(gasCost.toString()),
+          //       coinCode: 'WATT',
+          //       transactionStatus: 'success',
+          //     },
+          //   },
+          // });
         } catch (historyError: any) {
           throw new Error(historyError);
         }

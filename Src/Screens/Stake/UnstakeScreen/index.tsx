@@ -34,7 +34,8 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
 
   useEffect(() => {
     setActiveNetwork('denergy');
-  }, [setActiveNetwork]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Validate amount input
   const validateAmount = (value: string): boolean => {
@@ -64,10 +65,14 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
       return true;
     }
 
-    // Check if amount exceeds staked amount
-    if (parseFloat(value) > stakingData.stake.nft) {
+    // Check if amount exceeds staked amount based on stake type
+    const maxAmount = stakingData.stakeType === 'nft'
+      ? stakingData.stake.nft
+      : stakingData.stake.watt;
+
+    if (parseFloat(value) > maxAmount) {
       setAmountError(
-        `Cannot unstake more than staked amount (${stakingData.stake.nft})`,
+        `Cannot unstake more than staked amount (${maxAmount})`,
       );
       return false;
     }
@@ -117,20 +122,33 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
       return;
     }
 
-    if (parseFloat(amount) > stakingData.stake.nft) {
+    const maxAmount = stakingData.stakeType === 'nft'
+      ? stakingData.stake.nft
+      : stakingData.stake.watt;
+
+    if (parseFloat(amount) > maxAmount) {
       Alert.alert(
         'Invalid Amount',
-        `You can't unstake more than you have staked (${stakingData.stake.nft})`,
+        `You can't unstake more than you have staked (${maxAmount})`,
       );
       return;
     }
 
-    // Update status and start unstaking process
+    // Check if this is a WATT stake
+    if (stakingData.stakeType === 'watt') {
+      Alert.alert(
+        'WATT Unstaking',
+        'WATT unstaking functionality is not yet implemented. Please check back later.',
+      );
+      return;
+    }
+
+    // Update status and start unstaking process for NFT
     setTxStatus('unstaking');
 
     try {
       await undelegateERC1155(
-        stakingData.originalData.erc1155Contract,
+        stakingData.originalData.nftContractAddress,
         stakingData.originalData.tokenId,
         amount,
         handleUnstakeSuccess,
@@ -159,7 +177,9 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
               style={styles.iconContainer}>
               <Image source={images.back} style={styles.backIcon} />
             </Pressable>
-            <Text style={styles.header}>Unstake NFT</Text>
+            <Text style={styles.header}>
+              {stakingData.stakeType === 'nft' ? 'Unstake NFT' : 'Unstake WATT'}
+            </Text>
           </View>
 
           <KeyboardAwareScrollView
@@ -191,7 +211,11 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
               {/* Highlighted Stats Row */}
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{stakingData.stake.nft}</Text>
+                  <Text style={styles.statValue}>
+                    {stakingData.stakeType === 'nft'
+                      ? stakingData.stake.nft
+                      : `${stakingData.stake.watt.toFixed(4)} WATT`}
+                  </Text>
                   <Text style={styles.statLabel}>Staked Amount</Text>
                 </View>
                 <View style={styles.statDivider} />
@@ -207,17 +231,19 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
               <View style={styles.detailsSection}>
                 <Text style={styles.sectionTitle}>Details</Text>
 
-                <View style={styles.detailItem}>
-                  <View style={styles.iconContainer}>
-                    <Text style={styles.iconText}>🏷️</Text>
+                {stakingData.stakeType === 'nft' && (
+                  <View style={styles.detailItem}>
+                    <View style={styles.iconContainer}>
+                      <Text style={styles.iconText}>🏷️</Text>
+                    </View>
+                    <View style={styles.detailContent}>
+                      <Text style={styles.detailLabel}>Token ID</Text>
+                      <Text style={styles.detailValue}>
+                        {stakingData.originalData.tokenId}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.detailContent}>
-                    <Text style={styles.detailLabel}>Token ID</Text>
-                    <Text style={styles.detailValue}>
-                      {stakingData.originalData.tokenId}
-                    </Text>
-                  </View>
-                </View>
+                )}
 
                 <View style={styles.detailItem}>
                   <View style={styles.iconContainer}>
@@ -231,19 +257,21 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
                   </View>
                 </View>
 
-                <View style={styles.detailItem}>
-                  <View style={styles.iconContainer}>
-                    <Text style={styles.iconText}>📄</Text>
+                {stakingData.stakeType === 'nft' && (
+                  <View style={styles.detailItem}>
+                    <View style={styles.iconContainer}>
+                      <Text style={styles.iconText}>📄</Text>
+                    </View>
+                    <View style={styles.detailContent}>
+                      <Text style={styles.detailLabel}>Contract</Text>
+                      <Text style={styles.detailValue}>
+                        {formatContractAddress(
+                          stakingData.originalData.nftContractAddress,
+                        )}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.detailContent}>
-                    <Text style={styles.detailLabel}>Contract</Text>
-                    <Text style={styles.detailValue}>
-                      {formatContractAddress(
-                        stakingData.originalData.erc1155Contract,
-                      )}
-                    </Text>
-                  </View>
-                </View>
+                )}
 
                 <View style={styles.detailItem}>
                   <View style={styles.iconContainer}>
@@ -277,7 +305,10 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
                 <Text style={styles.errorText}>{amountError}</Text>
               ) : (
                 <Text style={styles.availableAmountText}>
-                  Available to unstake: {stakingData.stake.nft}
+                  Available to unstake:{' '}
+                  {stakingData.stakeType === 'nft'
+                    ? stakingData.stake.nft
+                    : `${stakingData.stake.watt.toFixed(4)} WATT`}
                 </Text>
               )}
             </View>

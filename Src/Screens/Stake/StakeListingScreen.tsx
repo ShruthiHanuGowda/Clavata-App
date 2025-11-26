@@ -44,7 +44,8 @@ interface StakedAsset {
   status: 'active' | 'unbonding';
   unbondingTime?: string;
   finalRewards?: number;
-  originalData?: NFTDelegation;
+  originalData?: any; // Can be NFT or WATT data
+  stakeType: 'nft' | 'watt';
 }
 
 interface StakeListingScreenProps {
@@ -368,43 +369,76 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
               style={styles.detailsScrollView}
               showsVerticalScrollIndicator={false}>
               <View style={styles.detailsContent}>
-                {/* Token Information */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>
-                    Token Information
-                  </Text>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Token ID:</Text>
-                    <View style={styles.tokenIdBadge}>
-                      <Text style={styles.tokenIdText}>
-                        {selectedAsset.originalData.tokenId}
-                      </Text>
+                {/* Token Information - NFT Stakes */}
+                {selectedAsset.stakeType === 'nft' && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailSectionTitle}>
+                      NFT Stake Information
+                    </Text>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Token ID:</Text>
+                      <View style={styles.tokenIdBadge}>
+                        <Text style={styles.tokenIdText}>
+                          {selectedAsset.originalData.tokenId}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Balance:</Text>
+                      <View style={styles.amountBadge}>
+                        <Text style={styles.amountText}>
+                          {selectedAsset.originalData.balance} NFT
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Shares:</Text>
+                      <View style={styles.sharesBadge}>
+                        <Text style={styles.sharesText}>
+                          {(
+                            parseFloat(selectedAsset.originalData.shares) / 1e18
+                          ).toLocaleString(undefined, {
+                            maximumFractionDigits: 4,
+                            minimumFractionDigits: 0,
+                          })}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Amount:</Text>
-                    <View style={styles.amountBadge}>
-                      <Text style={styles.amountText}>
-                        {formatQuantityMWh(
-                          parseFloat(selectedAsset.originalData.amount),
-                        )}
-                      </Text>
+                )}
+
+                {/* WATT Stake Information */}
+                {selectedAsset.stakeType === 'watt' && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailSectionTitle}>
+                      WATT Stake Information
+                    </Text>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Amount (WATT):</Text>
+                      <View style={styles.amountBadge}>
+                        <Text style={styles.amountText}>
+                          {selectedAsset.originalData.balanceInWATT.toFixed(4)} WATT
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Amount (awatt):</Text>
+                      <View style={styles.sharesBadge}>
+                        <Text style={styles.sharesText}>
+                          {selectedAsset.originalData.balanceInAwatt}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Shares:</Text>
+                      <View style={styles.sharesBadge}>
+                        <Text style={styles.sharesText}>
+                          {parseFloat(selectedAsset.originalData.shares).toFixed(4)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                  {/* <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Shares:</Text>
-                    <View style={styles.sharesBadge}>
-                      <Text style={styles.sharesText}>
-                        {(
-                          parseInt(selectedAsset.originalData.shares) / 1e18
-                        ).toLocaleString(undefined, {
-                          maximumFractionDigits: 2,
-                          minimumFractionDigits: 0,
-                        })}
-                      </Text>
-                    </View>
-                  </View> */}
-                </View>
+                )}
 
                 {/* Address Information */}
                 <View style={styles.detailSection}>
@@ -417,15 +451,15 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
                       style={styles.addressContainer}
                       onPress={() =>
                         handleAddressPress(
-                          selectedAsset.originalData!.delegator,
+                          selectedAsset.originalData!.delegatorAddress,
                           'Delegator',
                         )
                       }>
                       <Text style={styles.addressText}>
-                        {`${selectedAsset.originalData.delegator.slice(
+                        {`${selectedAsset.originalData.delegatorAddress.slice(
                           0,
                           16,
-                        )}...${selectedAsset.originalData.delegator.slice(
+                        )}...${selectedAsset.originalData.delegatorAddress.slice(
                           -10,
                         )}`}
                       </Text>
@@ -433,94 +467,51 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
                     </TouchableOpacity>
                   </View>
                   <View style={styles.addressDetailRow}>
-                    <Text style={styles.detailLabel}>Contract Address:</Text>
+                    <Text style={styles.detailLabel}>Validator Address:</Text>
                     <TouchableOpacity
                       style={styles.addressContainer}
                       onPress={() =>
                         handleAddressPress(
-                          selectedAsset.originalData!.erc1155Contract,
-                          'Contract',
+                          selectedAsset.originalData!.validatorAddress,
+                          'Validator',
                         )
                       }>
                       <Text style={styles.addressText}>
-                        {`${selectedAsset.originalData.erc1155Contract.slice(
+                        {`${selectedAsset.originalData.validatorAddress.slice(
                           0,
                           16,
-                        )}...${selectedAsset.originalData.erc1155Contract.slice(
+                        )}...${selectedAsset.originalData.validatorAddress.slice(
                           -10,
                         )}`}
                       </Text>
                       <Text style={styles.copyIcon}>📋</Text>
                     </TouchableOpacity>
                   </View>
+                  {selectedAsset.stakeType === 'nft' && (
+                    <View style={styles.addressDetailRow}>
+                      <Text style={styles.detailLabel}>Contract Address:</Text>
+                      <TouchableOpacity
+                        style={styles.addressContainer}
+                        onPress={() =>
+                          handleAddressPress(
+                            selectedAsset.originalData!.nftContractAddress,
+                            'Contract',
+                          )
+                        }>
+                        <Text style={styles.addressText}>
+                          {`${selectedAsset.originalData.nftContractAddress.slice(
+                            0,
+                            16,
+                          )}...${selectedAsset.originalData.nftContractAddress.slice(
+                            -10,
+                          )}`}
+                        </Text>
+                        <Text style={styles.copyIcon}>📋</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
 
-                {/* Timeline Information */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Timeline</Text>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Created:</Text>
-                    <Text style={styles.detailValue}>
-                      {new Date(
-                        parseInt(selectedAsset.originalData.createdAt, 10) *
-                          1000,
-                      ).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Updated:</Text>
-                    <Text style={styles.detailValue}>
-                      {new Date(
-                        parseInt(selectedAsset.originalData.updatedAt, 10) *
-                          1000,
-                      ).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Technical Information */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>
-                    Technical Details
-                  </Text>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Type:</Text>
-                    <Text style={styles.detailValue}>
-                      {selectedAsset.originalData.__typename}
-                    </Text>
-                  </View>
-                  <View style={styles.addressDetailRow}>
-                    <Text style={styles.detailLabel}>Unique ID:</Text>
-                    <TouchableOpacity
-                      style={styles.addressContainer}
-                      onPress={() =>
-                        handleAddressPress(
-                          selectedAsset.originalData!.id,
-                          'Unique ID',
-                        )
-                      }>
-                      <Text style={styles.addressText}>
-                        {`${selectedAsset.originalData.id.slice(
-                          0,
-                          20,
-                        )}...${selectedAsset.originalData.id.slice(-12)}`}
-                      </Text>
-                      <Text style={styles.copyIcon}>📋</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
               </View>
             </ScrollView>
           )}

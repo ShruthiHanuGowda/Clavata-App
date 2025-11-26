@@ -1,13 +1,15 @@
-import React, {useEffect, useState, useCallback, JSX} from 'react';
-import {Header} from '@rneui/base';
-import {StyleSheet, View, Text, TouchableOpacity} from 'react-native';
-import {DText} from '../../components/DText';
-import {Tab} from '@rneui/base';
-import {fontsFamily} from '../../Theme';
+import React, { useEffect, useState, useCallback, JSX } from 'react';
+import { Header } from '@rneui/base';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { DText } from '../../components/DText';
+import { Tab } from '@rneui/base';
+import { fontsFamily } from '../../Theme';
 import StakeListingScreen from './StakeListingScreen';
 import ValidatorsScreen from './ValidatorsScreen';
-import useValidators from './Hooks/useValidators';
-import {useAuth} from '../../providers';
+import useNFTStakedAssets from './Hooks/useNFTStakedAssets';
+import useWATTStakedAssets from './Hooks/useWATTStakedAssets';
+import { useAuth } from '../../providers';
+import { WATT_STAKED_ASSETS_API_URL } from '../../constants';
 import NFTQueuedTab from './QueuedDelegationsScreen/NFTQueuedTab';
 import WATTQueuedTab from './QueuedDelegationsScreen/WATTQueuedTab';
 
@@ -17,18 +19,6 @@ interface FontFamily {
   MulishExtraBold: string;
   MulishBold: string;
   // Add other font properties as needed
-}
-
-interface NFTDelegation {
-  id: string;
-  amount: string;
-  createdAt: string;
-  delegator: string;
-  erc1155Contract: string;
-  shares: string;
-  tokenId: string;
-  updatedAt: string;
-  __typename?: string;
 }
 
 interface StakedAsset {
@@ -47,7 +37,8 @@ interface StakedAsset {
   status: 'active' | 'unbonding';
   unbondingTime?: string;
   finalRewards?: number;
-  originalData?: NFTDelegation;
+  originalData?: any; // Stores original LCD API data (NFT or WATT)
+  stakeType: 'nft' | 'watt'; // Identifies the type of stake
 }
 
 const styles = StyleSheet.create({
@@ -205,7 +196,6 @@ const StokedPoolsContent: React.FC<StakedPoolsContentProps> = ({
 
   return (
     <View style={styles.simpleContent}>
-      {/* Sub Tab Navigation */}
       <View style={styles.subTabContainer}>
         <TouchableOpacity
           style={[styles.subTab, activeSubTab === 'staked' && styles.activeSubTab]}
@@ -256,20 +246,32 @@ interface StakeProps {
   navigation?: any;
 }
 
-function Stake({navigation}: StakeProps): JSX.Element {
+function Stake({ navigation }: StakeProps): JSX.Element {
   const [index, setIndex] = useState<number>(0);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [processedAssets, setProcessedAssets] = useState<StakedAsset[]>([]);
+  const [processedNFTAssets, setProcessedNFTAssets] = useState<StakedAsset[]>([]);
+  const [processedWATTAssets, setProcessedWATTAssets] = useState<StakedAsset[]>([]);
 
-  const {userDetails} = useAuth();
-  const {stakedPool} = useValidators();
+  const { userDetails } = useAuth();
+
+  // NFT Staked Assets hook
+  const nftStakedAssets = useNFTStakedAssets();
   const {
-    data: stakedPoolData,
-    loading: stakedPoolLoading,
-    error: stakedPoolError,
-    fetch: fetchStakedPool,
-  } = stakedPool;
+    data: nftStakedData,
+    loading: nftStakedLoading,
+    error: nftStakedError,
+    fetch: fetchNFTStaked,
+  } = nftStakedAssets;
+
+  // WATT Staked Assets hook
+  const wattStakedAssets = useWATTStakedAssets();
+  const {
+    data: wattStakedData,
+    loading: wattStakedLoading,
+    error: wattStakedError,
+    fetch: fetchWATTStaked,
+  } = wattStakedAssets;
 
   const TAB_ITEMS: readonly string[] = [
     'Total Pools',
@@ -277,61 +279,79 @@ function Stake({navigation}: StakeProps): JSX.Element {
     'Stoked EACs',
   ];
 
-  // Fetch staked pool data
+  // Fetch staked pool data from LCD APIs
   const fetchStakedPoolData = useCallback(() => {
     if (userDetails?.userWallet) {
-      fetchStakedPool({
-        delegatorAddress: userDetails.userWallet,
-        first: 20,
-        orderBy: 'createdAt',
-        orderDirection: 'desc',
-        skip: 0,
-      });
+      console.log("Calling LCD APIs for wallet:", userDetails.userWallet);
+
+      // Fetch NFT staked assets from LCD API
+      fetchNFTStaked(userDetails.userWallet, 50);
+
+      // Fetch WATT staked assets from LCD API
+      fetchWATTStaked(WATT_STAKED_ASSETS_API_URL, userDetails.userWallet, 200);
     }
-  }, [userDetails?.userWallet, fetchStakedPool]);
+  }, [userDetails?.userWallet, fetchNFTStaked, fetchWATTStaked]);
 
   // Initial data fetch
   useEffect(() => {
     if (isInitialLoad && userDetails?.userWallet) {
+      console.log("Initial load - fetching staked pool data");
       fetchStakedPoolData();
       setIsInitialLoad(false);
     }
-  }, [userDetails?.userWallet, fetchStakedPoolData, isInitialLoad]);
+  }, [isInitialLoad, userDetails?.userWallet, fetchStakedPoolData]);
 
-  // Process API data into UI format
+  // Process NFT staked assets from LCD API
   useEffect(() => {
-    if (stakedPoolData && Array.isArray(stakedPoolData)) {
-      const processed = stakedPoolData.map(
-        (item: NFTDelegation, _index: number) => {
-          const startDate = new Date(parseInt(item.createdAt, 10) * 1000)
-            .toISOString()
-            .split('T')[0];
-
-          const stakeAmount = parseInt(item.amount, 10);
-          const tokenId = parseInt(item.tokenId, 10);
-
-          return {
-            id: item.id,
-            stakeNumber: `Token ID ${tokenId}`,
-            validator: {
-              name: `Validator ${tokenId}`,
-              description: item.erc1155Contract.slice(0, 10) + '...',
-            },
-            stake: {
-              nft: stakeAmount,
-              watt: 0,
-            },
-            startDate: startDate,
-            rewards: Math.floor(Math.random() * 100),
-            status: 'active' as const,
-            originalData: item,
-          };
+    if (nftStakedData && Array.isArray(nftStakedData)) {
+      const nftAssets = nftStakedData.map((nftStake, index) => ({
+        id: `nft-${nftStake.validatorAddress}-${nftStake.tokenId}-${index}`,
+        stakeNumber: `NFT Token #${nftStake.tokenId}`,
+        validator: {
+          name: nftStake.validatorAddress.slice(0, 20) + '...',
+          description: nftStake.nftContractAddress.slice(0, 10) + '...',
         },
-      ) as StakedAsset[];
-
-      setProcessedAssets(processed);
+        stake: {
+          nft: nftStake.balance,
+          watt: 0,
+        },
+        startDate: new Date().toISOString().split('T')[0],
+        rewards: 0,
+        status: 'active' as const,
+        stakeType: 'nft' as const,
+        originalData: nftStake, // Store the full LCD API response
+      })) as StakedAsset[];
+      setProcessedNFTAssets(nftAssets);
+    } else {
+      setProcessedNFTAssets([]);
     }
-  }, [stakedPoolData]);
+  }, [nftStakedData]);
+
+  // Process WATT staked assets from LCD API
+  useEffect(() => {
+    if (wattStakedData && Array.isArray(wattStakedData)) {
+      const wattAssets = wattStakedData.map((wattStake, index) => ({
+        id: `watt-${wattStake.validatorAddress}-${index}`,
+        stakeNumber: `WATT Stake ${index + 1}`,
+        validator: {
+          name: wattStake.validatorAddress.slice(0, 20) + '...',
+          description: `Staked: ${wattStake.balanceInWATT.toFixed(2)} WATT`,
+        },
+        stake: {
+          nft: 0,
+          watt: wattStake.balanceInWATT,
+        },
+        startDate: new Date().toISOString().split('T')[0],
+        rewards: 0,
+        status: 'active' as const,
+        stakeType: 'watt' as const,
+        originalData: wattStake, // Store the full LCD API response
+      })) as StakedAsset[];
+      setProcessedWATTAssets(wattAssets);
+    } else {
+      setProcessedWATTAssets([]);
+    }
+  }, [wattStakedData]);
 
   // Pull to refresh handler
   const onRefresh = useCallback(() => {
@@ -344,13 +364,14 @@ function Stake({navigation}: StakeProps): JSX.Element {
     }, 2000);
 
     // Also listen for when loading stops
-    if (!stakedPoolLoading) {
+    const isLoading = nftStakedLoading || wattStakedLoading;
+    if (!isLoading) {
       clearTimeout(timeoutId);
       setRefreshing(false);
     }
 
     return () => clearTimeout(timeoutId);
-  }, [fetchStakedPoolData, stakedPoolLoading]);
+  }, [fetchStakedPoolData, nftStakedLoading, wattStakedLoading]);
 
   // Handle retry for errors
   const handleRetry = useCallback(() => {
@@ -360,13 +381,14 @@ function Stake({navigation}: StakeProps): JSX.Element {
 
   // Reset refreshing state when loading completes
   useEffect(() => {
-    if (!stakedPoolLoading && refreshing) {
+    const isLoading = nftStakedLoading || wattStakedLoading;
+    if (!isLoading && refreshing) {
       const timer = setTimeout(() => {
         setRefreshing(false);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [stakedPoolLoading, refreshing]);
+  }, [nftStakedLoading, wattStakedLoading, refreshing]);
 
   return (
     <View style={styles.container}>
@@ -412,9 +434,9 @@ function Stake({navigation}: StakeProps): JSX.Element {
           {index === 0 && <TotalPoolsContent />}
           {index === 1 && (
             <StakedPoolsContent
-              stakedAssets={processedAssets}
-              loading={stakedPoolLoading && !refreshing}
-              error={stakedPoolError}
+              stakedAssets={processedNFTAssets}
+              loading={nftStakedLoading && !refreshing}
+              error={nftStakedError}
               refreshing={refreshing}
               onRefresh={onRefresh}
               onRetry={handleRetry}
@@ -424,9 +446,9 @@ function Stake({navigation}: StakeProps): JSX.Element {
           )}
           {index === 2 && (
             <StokedPoolsContent
-              stakedAssets={processedAssets}
-              loading={stakedPoolLoading && !refreshing}
-              error={stakedPoolError}
+              stakedAssets={processedWATTAssets}
+              loading={wattStakedLoading && !refreshing}
+              error={wattStakedError}
               refreshing={refreshing}
               onRefresh={onRefresh}
               onRetry={handleRetry}
