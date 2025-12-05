@@ -1,15 +1,15 @@
-import React, { useEffect, useState, useCallback, JSX } from 'react';
-import { Header } from '@rneui/base';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import { DText } from '../../components/DText';
-import { Tab } from '@rneui/base';
-import { fontsFamily } from '../../Theme';
+import React, {useEffect, useState, useCallback, JSX} from 'react';
+import {Header} from '@rneui/base';
+import {StyleSheet, View, Text, TouchableOpacity} from 'react-native';
+import {DText} from '../../components/DText';
+import {Tab} from '@rneui/base';
+import {fontsFamily} from '../../Theme';
 import StakeListingScreen from './StakeListingScreen';
 import ValidatorsScreen from './ValidatorsScreen';
 import useNFTStakedAssets from './Hooks/useNFTStakedAssets';
 import useWATTStakedAssets from './Hooks/useWATTStakedAssets';
-import { useAuth } from '../../providers';
-import { WATT_STAKED_ASSETS_API_URL } from '../../constants';
+import {useAuth} from '../../providers';
+import {WATT_STAKED_ASSETS_API_URL} from '../../constants';
 import NFTQueuedTab from './QueuedDelegationsScreen/NFTQueuedTab';
 import WATTQueuedTab from './QueuedDelegationsScreen/WATTQueuedTab';
 
@@ -138,7 +138,10 @@ const StakedPoolsContent: React.FC<StakedPoolsContentProps> = ({
       {/* Sub Tab Navigation */}
       <View style={styles.subTabContainer}>
         <TouchableOpacity
-          style={[styles.subTab, activeSubTab === 'staked' && styles.activeSubTab]}
+          style={[
+            styles.subTab,
+            activeSubTab === 'staked' && styles.activeSubTab,
+          ]}
           onPress={() => setActiveSubTab('staked')}>
           <Text
             style={[
@@ -150,7 +153,10 @@ const StakedPoolsContent: React.FC<StakedPoolsContentProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.subTab, activeSubTab === 'queued' && styles.activeSubTab]}
+          style={[
+            styles.subTab,
+            activeSubTab === 'queued' && styles.activeSubTab,
+          ]}
           onPress={() => setActiveSubTab('queued')}>
           <Text
             style={[
@@ -198,7 +204,10 @@ const StokedPoolsContent: React.FC<StakedPoolsContentProps> = ({
     <View style={styles.simpleContent}>
       <View style={styles.subTabContainer}>
         <TouchableOpacity
-          style={[styles.subTab, activeSubTab === 'staked' && styles.activeSubTab]}
+          style={[
+            styles.subTab,
+            activeSubTab === 'staked' && styles.activeSubTab,
+          ]}
           onPress={() => setActiveSubTab('staked')}>
           <Text
             style={[
@@ -210,7 +219,10 @@ const StokedPoolsContent: React.FC<StakedPoolsContentProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.subTab, activeSubTab === 'queued' && styles.activeSubTab]}
+          style={[
+            styles.subTab,
+            activeSubTab === 'queued' && styles.activeSubTab,
+          ]}
           onPress={() => setActiveSubTab('queued')}>
           <Text
             style={[
@@ -246,14 +258,18 @@ interface StakeProps {
   navigation?: any;
 }
 
-function Stake({ navigation }: StakeProps): JSX.Element {
+function Stake({navigation}: StakeProps): JSX.Element {
   const [index, setIndex] = useState<number>(0);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [processedNFTAssets, setProcessedNFTAssets] = useState<StakedAsset[]>([]);
-  const [processedWATTAssets, setProcessedWATTAssets] = useState<StakedAsset[]>([]);
+  const [processedNFTAssets, setProcessedNFTAssets] = useState<StakedAsset[]>(
+    [],
+  );
+  const [processedWATTAssets, setProcessedWATTAssets] = useState<StakedAsset[]>(
+    [],
+  );
 
-  const { userDetails } = useAuth();
+  const {userDetails} = useAuth();
 
   // NFT Staked Assets hook
   const nftStakedAssets = useNFTStakedAssets();
@@ -276,13 +292,13 @@ function Stake({ navigation }: StakeProps): JSX.Element {
   const TAB_ITEMS: readonly string[] = [
     'Total Pools',
     'Staked Pools',
-    'Stoked EACs',
+    'Staked EACs',
   ];
 
   // Fetch staked pool data from LCD APIs
   const fetchStakedPoolData = useCallback(() => {
     if (userDetails?.userWallet) {
-      console.log("Calling LCD APIs for wallet:", userDetails.userWallet);
+      console.log('Calling LCD APIs for wallet:', userDetails.userWallet);
 
       // Fetch NFT staked assets from LCD API
       fetchNFTStaked(userDetails.userWallet, 50);
@@ -295,7 +311,7 @@ function Stake({ navigation }: StakeProps): JSX.Element {
   // Initial data fetch
   useEffect(() => {
     if (isInitialLoad && userDetails?.userWallet) {
-      console.log("Initial load - fetching staked pool data");
+      console.log('Initial load - fetching staked pool data');
       fetchStakedPoolData();
       setIsInitialLoad(false);
     }

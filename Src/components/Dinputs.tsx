@@ -46,7 +46,7 @@ interface DSearchInputProps {
 
 export function DEmailInput({
   value,
-  placeholder = 'example@drexs.com',
+  placeholder = 'example@d.energy',
   setValue,
   setValid,
   inputAccessoryViewID,

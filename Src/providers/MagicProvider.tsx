@@ -53,7 +53,8 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
         settings: {
           overlayStyles: `
             .magic-otp-modal {
-              margin-top: 40px !important;
+              margin-top: 120px !important;
+              padding-top: 20px !important;
             }
           `,
         },
@@ -67,7 +68,8 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
         settings: {
           overlayStyles: `
             .magic-otp-modal {
-              margin-top: 40px !important;
+              margin-top: 120px !important;
+              padding-top: 20px !important;
             }
           `,
         },
@@ -88,7 +90,8 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
         settings: {
           overlayStyles: `
             .magic-otp-modal {
-              margin-top: 40px !important;
+              margin-top: 120px !important;
+              padding-top: 20px !important;
             }
           `,
         },
@@ -102,7 +105,8 @@ export const MagicProvider: React.FC<MagicProviderProps> = ({
         settings: {
           overlayStyles: `
             .magic-otp-modal {
-              margin-top: 40px !important;
+              margin-top: 120px !important;
+              padding-top: 20px !important;
             }
           `,
         },
