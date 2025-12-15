@@ -155,6 +155,12 @@ const Account: React.FC<AccountProps> = ({navigation}) => {
         />
 
         <MenuList
+          onPress={() => navigateTo('WalletConnect')}
+          img={images.addbenificiaries}
+          title="Connected Apps"
+        />
+
+        <MenuList
           onPress={() => navigateTo('contactus')}
           img={images.help}
           title="Contact Us"

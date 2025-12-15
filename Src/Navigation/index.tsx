@@ -40,6 +40,7 @@ import AddressBookList from '../Screens/AddressBookScreens/AddressBookList';
 import CreateAddress from '../Screens/AddressBookScreens/CreateAddress';
 import Swap from '../Screens/Swap';
 import NFTDetailHistory from '../Screens/MarketPlace/WalletNFTDetailsPage/NFTDetailHistory';
+import WalletConnectScreen from '../Screens/WalletConnect';
 
 
 function RootScreenStack() {
@@ -131,6 +132,11 @@ function RootScreenStack() {
       <RootStack.Screen
         name="contactus"
         component={ContactUs}
+        options={{headerShown: false}}
+      />
+      <RootStack.Screen
+        name="WalletConnect"
+        component={WalletConnectScreen}
         options={{headerShown: false}}
       />
 

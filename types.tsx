@@ -45,6 +45,7 @@ export type RootStackParamList = {
   CreateAddress: undefined;
   beneficary: undefined;
   contactus: undefined;
+  WalletConnect: undefined;
 
   // Common news screens
   News: undefined;

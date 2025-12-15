@@ -5,3 +5,4 @@ export {KycProvider, useKyc, useKycCheck} from './KycProvider';
 export {MagicProvider, useMagic} from './MagicProvider';
 export {NftProvider, useNft} from './NftProvider';
 export {WalletProvider, useWallet} from './WalletProvider';
+export {WalletConnectProvider, useWalletConnect} from './WalletConnectProvider';

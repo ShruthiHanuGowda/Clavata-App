@@ -51,6 +51,7 @@ import {
   DEFAULT_GAS_LIMIT as DEFAULT_GAS_LIMIT_ENV,
   API_TRANSFER_URL as API_TRANSFER_URL_ENV,
   API_ACCOUNT_VALIDATE_URL as API_ACCOUNT_VALIDATE_URL_ENV,
+  WALLETCONNECT_PROJECT_ID as WALLETCONNECT_PROJECT_ID_ENV,
 } from '@env';
 
 export const CUSTOM_RPC_URL = CUSTOM_RPC_URL_ENV;
@@ -118,3 +119,13 @@ export const TOKEN_CONTRACTS = {
   },
   nftMarket: NFT_MARKET_ADDRESS,
 };
+
+// WalletConnect Configuration
+export const WALLETCONNECT_PROJECT_ID = WALLETCONNECT_PROJECT_ID_ENV;
+
+// WalletConnect supported chains in CAIP-2 format
+export const WALLETCONNECT_CHAINS = {
+  denergy: `eip155:${CUSTOM_NETWORK_CHAIN_ID}`,
+  sepolia: `eip155:${SEPOLIA_CHAIN_ID}`,
+};
+
