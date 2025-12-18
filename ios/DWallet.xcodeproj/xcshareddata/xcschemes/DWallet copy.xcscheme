@@ -15,7 +15,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "7C4DCE2D2ECC767600DE8CE4"
+               BlueprintIdentifier = "7CB281322EF40CF30053EB86"
                BuildableName = "DWallet TestNet.app"
                BlueprintName = "DWallet TestNet"
                ReferencedContainer = "container:DWallet.xcodeproj">
@@ -44,7 +44,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7C4DCE2D2ECC767600DE8CE4"
+            BlueprintIdentifier = "7CB281322EF40CF30053EB86"
             BuildableName = "DWallet TestNet.app"
             BlueprintName = "DWallet TestNet"
             ReferencedContainer = "container:DWallet.xcodeproj">
@@ -61,7 +61,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7C4DCE2D2ECC767600DE8CE4"
+            BlueprintIdentifier = "7CB281322EF40CF30053EB86"
             BuildableName = "DWallet TestNet.app"
             BlueprintName = "DWallet TestNet"
             ReferencedContainer = "container:DWallet.xcodeproj">

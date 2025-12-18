@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>D Wallet</string>
+	<string>D WalletTestnet</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -31,33 +31,41 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your location is used to help verify your identity and prevent unauthorized access to your account when using Magic authentication.</string>
-	
 	<key>NSCameraUsageDescription</key>
 	<string>D Wallet needs access to your camera to verify your identity documents and take a selfie for KYC verification.</string>
-
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is used to help verify your identity and prevent unauthorized access to your account when using Magic authentication.</string>
 	<key>NSMicrophoneUsageDescription</key>
-
 	<string>D Wallet needs access to your microphone for video identification during the KYC verification process.</string>
-
-	<key>NSPhotoLibraryUsageDescription</key>
-
-	<string>D Wallet needs access to your photo library to allow you to upload existing identity documents for KYC verification.</string>
-
 	<key>NSPhotoLibraryAddUsageDescription</key>
-
 	<string>D Wallet needs access to your photo library to allow you to upload existing identity documents for KYC verification.</string>
-
-
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>D Wallet needs access to your photo library to allow you to upload existing identity documents for KYC verification.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Mulish-Bold.ttf</string>
 		<string>Mulish-ExtraBold.ttf</string>
 		<string>Mulish-Regular.ttf</string>
 		<string>Mulish-SemiBold.ttf</string>
-		<string>Entypo.ttf</string>
 		<string>AntDesign.ttf</string>
+		<string>Entypo.ttf</string>
+		<string>EvilIcons.ttf</string>
+		<string>Feather.ttf</string>
+		<string>FontAwesome.ttf</string>
+		<string>FontAwesome5_Brands.ttf</string>
+		<string>FontAwesome5_Regular.ttf</string>
+		<string>FontAwesome5_Solid.ttf</string>
+		<string>FontAwesome6_Brands.ttf</string>
+		<string>FontAwesome6_Regular.ttf</string>
+		<string>FontAwesome6_Solid.ttf</string>
+		<string>Fontisto.ttf</string>
+		<string>Foundation.ttf</string>
+		<string>Ionicons.ttf</string>
+		<string>MaterialCommunityIcons.ttf</string>
+		<string>MaterialIcons.ttf</string>
+		<string>Octicons.ttf</string>
+		<string>SimpleLineIcons.ttf</string>
+		<string>Zocial.ttf</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
