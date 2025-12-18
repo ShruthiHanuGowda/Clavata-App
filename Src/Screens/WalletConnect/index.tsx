@@ -16,10 +16,12 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Entypo';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {useWalletConnect} from '../../providers';
 import {navigateBack} from '../../utils/navigationService';
 import QRCodeScannerModal from '../../components/QRScan/QRCodeScannerModal';
 import {SnackBarMessage} from '../../utils/snackBar';
+import {useMagic} from '../../providers';
 import {
   CUSTOM_NETWORK_CHAIN_ID,
   SEPOLIA_CHAIN_ID,
@@ -29,24 +31,27 @@ import {
 const SessionApprovalModal: React.FC<{
   visible: boolean;
   proposal: any;
-  onApprove: (chainId: number) => void;
+  onApprove: () => void;
   onReject: () => void;
-}> = ({visible, proposal, onApprove, onReject}) => {
+  currentNetwork: string;
+}> = ({visible, proposal, onApprove, onReject, currentNetwork}) => {
   if (!proposal) return null;
 
   const {proposer} = proposal.params;
   const metadata = proposer?.metadata || {};
-  const [selectedChainId, setSelectedChainId] = useState<number>(parseInt(CUSTOM_NETWORK_CHAIN_ID, 10));
 
-  const handleApprove = () => {
-    onApprove(selectedChainId);
+  const getNetworkName = () => {
+    return currentNetwork === 'denergy' ? 'D-Energy (Mainnet)' : 'Sepolia (Testnet)';
   };
-
 
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
+          <TouchableOpacity style={styles.modalCloseButton} onPress={onReject}>
+            <Icon name="cross" size={24} color="#666" />
+          </TouchableOpacity>
+
           <Text style={styles.modalTitle}>Connection Request</Text>
 
           {metadata.icons?.[0] && (
@@ -61,39 +66,20 @@ const SessionApprovalModal: React.FC<{
           </Text>
 
           <View style={styles.permissionsContainer}>
-            <Text style={styles.permissionsTitle}>Select Network:</Text>
-            
-            <TouchableOpacity 
-              style={[
-                styles.networkOption, 
-                selectedChainId === parseInt(CUSTOM_NETWORK_CHAIN_ID, 10) && styles.networkOptionSelected
-              ]}
-              onPress={() => setSelectedChainId(parseInt(CUSTOM_NETWORK_CHAIN_ID, 10))}
-            >
-              <MaterialCommunityIcons 
-                name={selectedChainId === parseInt(CUSTOM_NETWORK_CHAIN_ID, 10) ? "radiobox-marked" : "radiobox-blank"} 
-                size={24} 
-                color={selectedChainId === parseInt(CUSTOM_NETWORK_CHAIN_ID, 10) ? "#009D94" : "#666"} 
+            {/* <Text style={styles.permissionsTitle}>Network:</Text>
+            <View style={styles.networkInfo}>
+              <MaterialCommunityIcons
+                name="check-circle"
+                size={20}
+                color="#009D94"
               />
-              <Text style={styles.networkName}>D-Energy (Mainnet)</Text>
-            </TouchableOpacity>
+              <Text style={styles.networkInfoText}>{getNetworkName()}</Text>
+            </View>
+            <Text style={styles.networkHint}>
+              You can switch networks after connecting
+            </Text> */}
 
-            <TouchableOpacity 
-              style={[
-                styles.networkOption, 
-                selectedChainId === parseInt(SEPOLIA_CHAIN_ID, 10) && styles.networkOptionSelected
-              ]}
-              onPress={() => setSelectedChainId(parseInt(SEPOLIA_CHAIN_ID, 10))}
-            >
-               <MaterialCommunityIcons 
-                name={selectedChainId === parseInt(SEPOLIA_CHAIN_ID, 10) ? "radiobox-marked" : "radiobox-blank"} 
-                size={24} 
-                 color={selectedChainId === parseInt(SEPOLIA_CHAIN_ID, 10) ? "#009D94" : "#666"} 
-              />
-              <Text style={styles.networkName}>Sepolia (Testnet)</Text>
-            </TouchableOpacity>
-
-            <View style={styles.permissionsDivider} />
+            {/* <View style={styles.permissionsDivider} /> */}
 
             <Text style={styles.permissionsTitle}>Permissions:</Text>
             <Text style={styles.permissionItem}>• View your wallet address</Text>
@@ -108,8 +94,8 @@ const SessionApprovalModal: React.FC<{
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modalButton, styles.approveButton]}
-              onPress={handleApprove}>
-              <Text style={styles.approveButtonText}>Approve</Text>
+              onPress={onApprove}>
+              <Text style={styles.approveButtonText}>Connect</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -184,8 +170,10 @@ const RequestApprovalModal: React.FC<{
 const SessionCard: React.FC<{
   session: any;
   onDisconnect: (topic: string) => void;
-}> = ({session, onDisconnect}) => {
+  onSwitchNetwork: (topic: string) => void;
+}> = ({session, onDisconnect, onSwitchNetwork}) => {
   const metadata = session.peer?.metadata || {};
+  
 
   return (
     <View style={styles.sessionCard}>
@@ -202,13 +190,22 @@ const SessionCard: React.FC<{
           <Text style={styles.sessionUrl} numberOfLines={1}>
             {metadata.url || ''}
           </Text>
+         
         </View>
       </View>
-      <TouchableOpacity
-        style={styles.disconnectButton}
-        onPress={() => onDisconnect(session.topic)}>
-        <Text style={styles.disconnectButtonText}>Disconnect</Text>
-      </TouchableOpacity>
+      <View style={styles.sessionActions}>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => onSwitchNetwork(session.topic)}>
+          <Ionicons name="swap-vertical" size={16} color="#009D94" />
+          <Text style={styles.switchButtonText}>Switch</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.disconnectButton}
+          onPress={() => onDisconnect(session.topic)}>
+          <Text style={styles.disconnectButtonText}>Disconnect</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -229,13 +226,17 @@ const WalletConnectScreen: React.FC = () => {
     rejectRequest,
     disconnect,
     initialize,
+    switchSessionNetwork,
   } = useWalletConnect();
+
+  const {activeNetwork} = useMagic();
 
   const [showUriModal, setShowUriModal] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [uriInput, setUriInput] = useState('');
   const [isPairing, setIsPairing] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [switchingTopic, setSwitchingTopic] = useState<string | null>(null);
 
   const handleRetry = async () => {
     setIsRetrying(true);
@@ -285,6 +286,11 @@ const WalletConnectScreen: React.FC = () => {
     }
   };
 
+  const handleApproveSession = async () => {
+    // Approve with current active network
+    await approveSession();
+  };
+
   const handleDisconnect = async (topic: string) => {
     Alert.alert(
       'Disconnect',
@@ -298,6 +304,22 @@ const WalletConnectScreen: React.FC = () => {
         },
       ],
     );
+  };
+
+  const handleSwitchNetwork = async (topic: string) => {
+    setSwitchingTopic(topic);
+  };
+
+  const handleNetworkSelected = async (chainId: number) => {
+    if (!switchingTopic) return;
+
+    try {
+      await switchSessionNetwork(switchingTopic, chainId);
+      setSwitchingTopic(null);
+      SnackBarMessage('Network switched successfully!', 'success');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to switch network');
+    }
   };
 
   // Show error or loading state
@@ -365,7 +387,11 @@ const WalletConnectScreen: React.FC = () => {
             data={activeSessions}
             keyExtractor={(item) => item.topic}
             renderItem={({item}) => (
-              <SessionCard session={item} onDisconnect={handleDisconnect} />
+              <SessionCard
+                session={item}
+                onDisconnect={handleDisconnect}
+                onSwitchNetwork={handleSwitchNetwork}
+              />
             )}
             contentContainerStyle={styles.sessionsList}
           />
@@ -387,13 +413,7 @@ const WalletConnectScreen: React.FC = () => {
             </>
           )}
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.pasteButton}
-          onPress={() => setShowUriModal(true)}
-          disabled={isConnecting || isPairing}>
-          <Icon name="clipboard" size={18} color="#009D94" />
-          <Text style={styles.pasteButtonText}>Paste URI</Text>
-        </TouchableOpacity>
+      
       </View>
 
       {/* QR Scanner Modal */}
@@ -463,8 +483,9 @@ const WalletConnectScreen: React.FC = () => {
       <SessionApprovalModal
         visible={!!pendingProposal}
         proposal={pendingProposal}
-        onApprove={approveSession}
+        onApprove={handleApproveSession}
         onReject={rejectSession}
+        currentNetwork={activeNetwork}
       />
 
       {/* Request Approval Modal */}
@@ -474,6 +495,44 @@ const WalletConnectScreen: React.FC = () => {
         onApprove={approveRequest}
         onReject={rejectRequest}
       />
+
+      {/* Network Switch Modal */}
+      <Modal visible={!!switchingTopic} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setSwitchingTopic(null)}>
+              <Icon name="cross" size={24} color="#666" />
+            </TouchableOpacity>
+
+            <Text style={styles.modalTitle}>Switch Network</Text>
+            <Text style={styles.modalDescription}>
+              Select the network you want to use with this app
+            </Text>
+
+            <TouchableOpacity
+              style={styles.networkOption}
+              onPress={() => handleNetworkSelected(parseInt(CUSTOM_NETWORK_CHAIN_ID, 10))}>
+              <MaterialCommunityIcons name="radiobox-blank" size={24} color="#666" />
+              <Text style={styles.networkName}>D-Energy</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.networkOption}
+              onPress={() => handleNetworkSelected(parseInt(SEPOLIA_CHAIN_ID, 10))}>
+              <MaterialCommunityIcons name="radiobox-blank" size={24} color="#666" />
+              <Text style={styles.networkName}>Sepolia</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.rejectButton, {marginTop: 16}]}
+              onPress={() => setSwitchingTopic(null)}>
+              <Text style={styles.rejectButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -570,9 +629,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sessionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     padding: 16,
     backgroundColor: '#f9f9f9',
     borderRadius: 12,
@@ -582,6 +638,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginBottom: 12,
   },
   sessionIcon: {
     width: 40,
@@ -609,6 +666,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  networkBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: '#e0f7f6',
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    gap: 4,
+  },
+  networkBadgeText: {
+    fontSize: 11,
+    color: '#009D94',
+    fontWeight: '600',
+  },
+  sessionActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  switchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#e0f7f6',
+    borderRadius: 6,
+    gap: 4,
+  },
+  switchButtonText: {
+    fontSize: 12,
+    color: '#009D94',
+    fontWeight: '600',
   },
   disconnectButton: {
     paddingHorizontal: 12,
@@ -680,6 +771,16 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 24,
     paddingBottom: 40,
+    position: 'relative',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
   },
   modalTitle: {
     fontSize: 20,
@@ -801,6 +902,26 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#eee',
     marginVertical: 16,
+  },
+  networkInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#e0f7f6',
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  networkInfoText: {
+    marginLeft: 8,
+    fontSize: 15,
+    color: '#009D94',
+    fontWeight: '600',
+  },
+  networkHint: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
   },
 });
 

@@ -35,12 +35,13 @@ export interface WalletConnectContextType {
   // Actions
   initialize: () => Promise<void>;
   pair: (uri: string) => Promise<void>;
-  approveSession: (chainId?: number) => Promise<void>;
+  approveSession: () => Promise<void>;
   rejectSession: () => Promise<void>;
   approveRequest: () => Promise<void>;
   rejectRequest: () => Promise<void>;
   disconnect: (topic: string) => Promise<void>;
   disconnectAll: () => Promise<void>;
+  switchSessionNetwork: (topic: string, chainId: number) => Promise<void>;
 
   // UI State
   clearPendingProposal: () => void;
@@ -92,15 +93,26 @@ export const WalletConnectProvider: React.FC<WalletConnectProviderProps> = ({chi
   }, [activeNetwork]);
 
   // Get supported namespaces for session approval
-  const getSupportedNamespaces = useCallback((chainId?: number) => {
-    const selectedChainId = chainId || getCurrentChainId();
+  const getSupportedNamespaces = useCallback(() => {
     const address = userDetails?.userWallet || '';
-    const caipChain = `eip155:${selectedChainId}`;
-    const caipAccount = `eip155:${selectedChainId}:${address}`;
+
+    // Support both networks so users can switch between them
+    const denergyChainId = parseInt(CUSTOM_NETWORK_CHAIN_ID, 10);
+    const sepoliaChainId = parseInt(SEPOLIA_CHAIN_ID, 10);
+
+    const chains = [
+      `eip155:${denergyChainId}`,
+      `eip155:${sepoliaChainId}`,
+    ];
+
+    const accounts = [
+      `eip155:${denergyChainId}:${address}`,
+      `eip155:${sepoliaChainId}:${address}`,
+    ];
 
     return {
       eip155: {
-        chains: [caipChain],
+        chains,
         methods: [
           'eth_sendTransaction',
           'eth_signTransaction',
@@ -110,10 +122,10 @@ export const WalletConnectProvider: React.FC<WalletConnectProviderProps> = ({chi
           'eth_signTypedData_v4',
         ],
         events: ['chainChanged', 'accountsChanged'],
-        accounts: [caipAccount],
+        accounts,
       },
     };
-  }, [getCurrentChainId, userDetails?.userWallet]);
+  }, [userDetails?.userWallet]);
 
   // Initialize WalletConnect
   const initialize = useCallback(async () => {
@@ -219,13 +231,13 @@ export const WalletConnectProvider: React.FC<WalletConnectProviderProps> = ({chi
   );
 
   // Approve session proposal
-  const approveSession = useCallback(async (chainId?: number) => {
+  const approveSession = useCallback(async () => {
     if (!web3wallet || !pendingProposal) {
       return;
     }
 
     try {
-      const namespaces = getSupportedNamespaces(chainId);
+      const namespaces = getSupportedNamespaces();
 
       await web3wallet.approveSession({
         id: pendingProposal.id,
@@ -429,6 +441,54 @@ export const WalletConnectProvider: React.FC<WalletConnectProviderProps> = ({chi
     }
   }, [web3wallet, disconnect]);
 
+  // Switch network for an existing session
+  const switchSessionNetwork = useCallback(
+    async (topic: string, chainId: number) => {
+      if (!web3wallet) {
+        throw new Error('WalletConnect not initialized');
+      }
+
+      try {
+        const address = userDetails?.userWallet || '';
+        const caipChain = `eip155:${chainId}`;
+
+        // First, update the session namespaces to include both chains
+        const namespaces = getSupportedNamespaces();
+        await web3wallet.updateSession({
+          topic,
+          namespaces,
+        });
+
+        // Then emit the chainChanged event
+        await web3wallet.emitSessionEvent({
+          topic,
+          event: {
+            name: 'chainChanged',
+            data: chainId,
+          },
+          chainId: caipChain,
+        });
+
+        // Emit accountsChanged event to refresh the account on the new chain
+        await web3wallet.emitSessionEvent({
+          topic,
+          event: {
+            name: 'accountsChanged',
+            data: [address],
+          },
+          chainId: caipChain,
+        });
+
+        updateActiveSessions(web3wallet);
+        console.log('[WalletConnect] Network switched successfully for session:', topic);
+      } catch (error: any) {
+        console.error('[WalletConnect] Network switch error:', error);
+        throw new Error(error.message || 'Failed to switch network');
+      }
+    },
+    [web3wallet, userDetails?.userWallet, getSupportedNamespaces],
+  );
+
   // Clear pending states
   const clearPendingProposal = useCallback(() => {
     setPendingProposal(null);
@@ -461,6 +521,7 @@ export const WalletConnectProvider: React.FC<WalletConnectProviderProps> = ({chi
     rejectRequest,
     disconnect,
     disconnectAll,
+    switchSessionNetwork,
     clearPendingProposal,
     clearPendingRequest,
   };
