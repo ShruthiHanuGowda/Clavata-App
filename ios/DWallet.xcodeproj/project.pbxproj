@@ -7,12 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0C80B921A6F3F58F76C31292 /* libPods-DWallet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-DWallet.a */; };
+		0C80B921A6F3F58F76C31292 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		7CB281352EF40CF30053EB86 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
-		7CB281372EF40CF30053EB86 /* libPods-DWallet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-DWallet.a */; };
-		7CB281382EF40CF30053EB86 /* libPods-DWallet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-DWallet.a */; };
 		7CB2813A2EF40CF30053EB86 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		7CB2813B2EF40CF30053EB86 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		7CB2813C2EF40CF30053EB86 /* success.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8BB9CA552E04122E0061942D /* success.mp3 */; };
@@ -20,7 +18,8 @@
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		8BB9CA562E04122E0061942D /* success.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8BB9CA552E04122E0061942D /* success.mp3 */; };
 		B546173A53C5DB9AD545BB7E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
-		BA9509783759694AB94AD2D4 /* libPods-DWallet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-DWallet.a */; };
+		BA9509783759694AB94AD2D4 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		C79CD4098C95D8579519D913 /* libPods-DWallet TestNet.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 27A377CA44A93312AC235869 /* libPods-DWallet TestNet.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,10 +28,11 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = DWallet/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = DWallet/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		22CFD8B0B1DF45BB83E5ADE2 /* Mulish-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Mulish-ExtraBold.ttf"; path = "../Src/Assets/Fonts/Mulish-ExtraBold.ttf"; sourceTree = "<group>"; };
+		27A377CA44A93312AC235869 /* libPods-DWallet TestNet.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-DWallet TestNet.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C81633A537F4A9BBC53F584 /* Mulish-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Mulish-SemiBold.ttf"; path = "../Src/Assets/Fonts/Mulish-SemiBold.ttf"; sourceTree = "<group>"; };
-		5DCACB8F33CDC322A6C60F78 /* libPods-DWallet.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-DWallet.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F592047F6D2BC943CC55745 /* Pods-DWallet.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DWallet.debug.xcconfig"; path = "Target Support Files/Pods-DWallet/Pods-DWallet.debug.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = DWallet/AppDelegate.swift; sourceTree = "<group>"; };
+		76FBFE015D3365F86A9C6EB3 /* Pods-DWallet TestNet.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DWallet TestNet.release.xcconfig"; path = "Target Support Files/Pods-DWallet TestNet/Pods-DWallet TestNet.release.xcconfig"; sourceTree = "<group>"; };
 		7814A8717E4048563C6C6C58 /* Pods-DWallet.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DWallet.release.xcconfig"; path = "Target Support Files/Pods-DWallet/Pods-DWallet.release.xcconfig"; sourceTree = "<group>"; };
 		7C4DCE3F2ECC767600DE8CE4 /* DWallet copy2-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "DWallet copy2-Info.plist"; path = "/Users/a1234/Documents/Projets/d_wallet/ios/DWallet copy2-Info.plist"; sourceTree = "<absolute>"; };
 		7CB281312EF40B8C0053EB86 /* DWallet copy3-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "DWallet copy3-Info.plist"; path = "/Users/a1234/Documents/Projets/d_wallet/ios/DWallet copy3-Info.plist"; sourceTree = "<absolute>"; };
@@ -61,6 +61,7 @@
 		8B7BE55E2DE874D000A66297 /* Entypo.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Entypo.ttf; sourceTree = "<group>"; };
 		8BB9CA552E04122E0061942D /* success.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = success.mp3; sourceTree = "<group>"; };
 		A834B6072ABF4889902F9EBB /* Mulish-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Mulish-Regular.ttf"; path = "../Src/Assets/Fonts/Mulish-Regular.ttf"; sourceTree = "<group>"; };
+		E67C19CDBCBF7E1C7325DAA1 /* Pods-DWallet TestNet.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DWallet TestNet.debug.xcconfig"; path = "Target Support Files/Pods-DWallet TestNet/Pods-DWallet TestNet.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -69,8 +70,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C80B921A6F3F58F76C31292 /* libPods-DWallet.a in Frameworks */,
-				BA9509783759694AB94AD2D4 /* libPods-DWallet.a in Frameworks */,
+				0C80B921A6F3F58F76C31292 /* (null) in Frameworks */,
+				BA9509783759694AB94AD2D4 /* (null) in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,8 +79,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7CB281372EF40CF30053EB86 /* libPods-DWallet.a in Frameworks */,
-				7CB281382EF40CF30053EB86 /* libPods-DWallet.a in Frameworks */,
+				C79CD4098C95D8579519D913 /* libPods-DWallet TestNet.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,7 +103,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				5DCACB8F33CDC322A6C60F78 /* libPods-DWallet.a */,
+				27A377CA44A93312AC235869 /* libPods-DWallet TestNet.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -147,6 +147,8 @@
 			children = (
 				6F592047F6D2BC943CC55745 /* Pods-DWallet.debug.xcconfig */,
 				7814A8717E4048563C6C6C58 /* Pods-DWallet.release.xcconfig */,
+				E67C19CDBCBF7E1C7325DAA1 /* Pods-DWallet TestNet.debug.xcconfig */,
+				76FBFE015D3365F86A9C6EB3 /* Pods-DWallet TestNet.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -195,6 +197,7 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
 				E235C05ADACE081382539298 /* [CP] Copy Pods Resources */,
+				7CB281472EF42F130053EB86 /* Setup Environment File */,
 			);
 			buildRules = (
 			);
@@ -216,6 +219,7 @@
 				7CB2813E2EF40CF30053EB86 /* Bundle React Native code and images */,
 				7CB2813F2EF40CF30053EB86 /* [CP] Embed Pods Frameworks */,
 				7CB281402EF40CF30053EB86 /* [CP] Copy Pods Resources */,
+				7CB281462EF42E7A0053EB86 /* Setup Environment File */,
 			);
 			buildRules = (
 			);
@@ -336,7 +340,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-DWallet-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-DWallet TestNet-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -365,19 +369,19 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-DWallet/Pods-DWallet-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-DWallet TestNet/Pods-DWallet TestNet-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			inputPaths = (
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-DWallet/Pods-DWallet-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-DWallet TestNet/Pods-DWallet TestNet-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DWallet/Pods-DWallet-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DWallet TestNet/Pods-DWallet TestNet-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		7CB281402EF40CF30053EB86 /* [CP] Copy Pods Resources */ = {
@@ -386,20 +390,58 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-DWallet/Pods-DWallet-resources-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-DWallet TestNet/Pods-DWallet TestNet-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			inputPaths = (
 			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-DWallet/Pods-DWallet-resources-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-DWallet TestNet/Pods-DWallet TestNet-resources-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DWallet/Pods-DWallet-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DWallet TestNet/Pods-DWallet TestNet-resources.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		7CB281462EF42E7A0053EB86 /* Setup Environment File */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Setup Environment File";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\"${PROJECT_DIR}/scripts/setup-env.sh\"\n";
+		};
+		7CB281472EF42F130053EB86 /* Setup Environment File */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Setup Environment File";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\"${PROJECT_DIR}/scripts/setup-env.sh\"\n";
 		};
 		C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -542,13 +584,13 @@
 		};
 		7CB281422EF40CF30053EB86 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6F592047F6D2BC943CC55745 /* Pods-DWallet.debug.xcconfig */;
+			baseConfigurationReference = E67C19CDBCBF7E1C7325DAA1 /* Pods-DWallet TestNet.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = X8G5F8WMN8;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = "DWallet copy-Info.plist";
@@ -580,13 +622,13 @@
 		};
 		7CB281432EF40CF30053EB86 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7814A8717E4048563C6C6C58 /* Pods-DWallet.release.xcconfig */;
+			baseConfigurationReference = 76FBFE015D3365F86A9C6EB3 /* Pods-DWallet TestNet.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = X8G5F8WMN8;
 				INFOPLIST_FILE = "DWallet copy-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = DWallet;

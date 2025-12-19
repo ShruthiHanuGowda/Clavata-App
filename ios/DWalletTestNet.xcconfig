@@ -1,0 +1,3 @@
+// Configuration for DWallet TestNet
+#include? "tmp.xcconfig"
+ENVFILE=.env.dwallet.testnet

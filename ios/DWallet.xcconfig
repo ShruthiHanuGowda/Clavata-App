@@ -1,0 +1,3 @@
+// Configuration for DWallet (Production/Mainnet)
+#include? "tmp.xcconfig"
+ENVFILE=.env.dwallet

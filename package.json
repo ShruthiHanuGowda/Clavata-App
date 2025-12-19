@@ -4,10 +4,17 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "android:dwallet": "ENVFILE=.env.dwallet react-native run-android",
+    "android:testnet": "ENVFILE=.env.dwallet.testnet react-native run-android",
+    "ios": "react-native run-ios --scheme DWallet",
+    "ios:dwallet": "react-native run-ios --scheme DWallet",
+    "ios:testnet": "react-native run-ios --scheme \"DWallet copy\"",
     "lint": "eslint .",
-    "start": "react-native start",
-    "test": "jest"
+    "start": "react-native start --reset-cache",
+    "start:dwallet": "ENVFILE=.env.dwallet react-native start --reset-cache",
+    "start:testnet": "ENVFILE=.env.dwallet.testnet react-native start --reset-cache",
+    "test": "jest",
+    "pods:install": "cd ios && pod install && cd .."
   },
   "dependencies": {
     "@apollo/client": "^3.13.8",
@@ -46,6 +53,7 @@
     "react-native-bootsplash": "^6.3.8",
     "react-native-btr": "^2.2.1",
     "react-native-chart-kit": "^6.12.0",
+    "react-native-config": "^1.6.1",
     "react-native-date-picker": "^5.0.12",
     "react-native-device-info": "^10.7.0",
     "react-native-fs": "^2.20.0",
