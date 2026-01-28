@@ -12,6 +12,7 @@ import JailMonkey from 'jail-monkey'; // ✅ Import jailbreak detection
 import NavigationWrapper from './Src/Navigation';
 import { AppProvider } from './Src/providers';
 import GlobalKycBottomSheet from './Src/hooks/GlobalKycBottomSheet';
+import GlobalWalletConnectModals from './Src/components/GlobalWalletConnectModals';
 import { fontsFamily } from './Src/Theme';
 import colors from './Src/Theme/Colors';
 
@@ -61,6 +62,7 @@ export default function App() {
         <AppProvider>
           <NavigationWrapper />
           <GlobalKycBottomSheet />
+          <GlobalWalletConnectModals />
         </AppProvider>
       </GestureHandlerRootView>
     </View>

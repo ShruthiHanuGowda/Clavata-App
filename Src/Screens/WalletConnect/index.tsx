@@ -218,12 +218,9 @@ const WalletConnectScreen: React.FC = () => {
     initError,
     activeSessions,
     pendingProposal,
-    pendingRequest,
     pair,
     approveSession,
     rejectSession,
-    approveRequest,
-    rejectRequest,
     disconnect,
     initialize,
     switchSessionNetwork,
@@ -488,13 +485,8 @@ const WalletConnectScreen: React.FC = () => {
         currentNetwork={activeNetwork}
       />
 
-      {/* Request Approval Modal */}
-      <RequestApprovalModal
-        visible={!!pendingRequest}
-        request={pendingRequest}
-        onApprove={approveRequest}
-        onReject={rejectRequest}
-      />
+      {/* Note: Transaction request modals are now handled globally via GlobalWalletConnectModals in App.tsx */}
+      {/* This allows users to see and respond to dApp requests from any screen in the app */}
 
       {/* Network Switch Modal */}
       <Modal visible={!!switchingTopic} transparent animationType="slide">
