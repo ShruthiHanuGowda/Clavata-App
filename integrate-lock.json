@@ -1,0 +1,349 @@
+{
+  "lockfileVersion": 1,
+  "packages": {
+    "@apollo/client": {
+      "version": "^3.13.8",
+      "integrated": false
+    },
+    "@babel/core": {
+      "version": "^7.25.2",
+      "integrated": false
+    },
+    "@babel/preset-env": {
+      "version": "^7.25.3",
+      "integrated": false
+    },
+    "@babel/runtime": {
+      "version": "^7.25.0",
+      "integrated": false
+    },
+    "@ethersproject/shims": {
+      "version": "^5.8.0",
+      "integrated": false
+    },
+    "@gorhom/bottom-sheet": {
+      "version": "^4.4.5",
+      "integrated": false
+    },
+    "@magic-ext/gdkms": {
+      "version": "latest",
+      "integrated": false
+    },
+    "@magic-ext/react-native-bare-oauth": {
+      "version": "latest",
+      "integrated": false
+    },
+    "@magic-sdk/react-native-bare": {
+      "version": "latest",
+      "integrated": false
+    },
+    "@react-native-async-storage/async-storage": {
+      "version": "^2.1.2",
+      "integrated": false
+    },
+    "@react-native-camera-roll/camera-roll": {
+      "version": "^7.10.0",
+      "integrated": false
+    },
+    "@react-native-clipboard/clipboard": {
+      "version": "^1.16.2",
+      "integrated": false
+    },
+    "@react-native-community/cli": {
+      "version": "15.0.1",
+      "integrated": false
+    },
+    "@react-native-community/cli-platform-android": {
+      "version": "15.0.1",
+      "integrated": false
+    },
+    "@react-native-community/cli-platform-ios": {
+      "version": "15.0.1",
+      "integrated": false
+    },
+    "@react-native-community/netinfo": {
+      "version": "^11.1.2",
+      "integrated": false
+    },
+    "@react-native/babel-preset": {
+      "version": "0.78.1",
+      "integrated": false
+    },
+    "@react-native/eslint-config": {
+      "version": "0.78.1",
+      "integrated": false
+    },
+    "@react-native/metro-config": {
+      "version": "0.78.1",
+      "integrated": false
+    },
+    "@react-native/typescript-config": {
+      "version": "0.78.1",
+      "integrated": false
+    },
+    "@react-navigation/bottom-tabs": {
+      "version": "^6.5.4",
+      "integrated": false
+    },
+    "@react-navigation/native": {
+      "version": "^6.1.7",
+      "integrated": false
+    },
+    "@react-navigation/native-stack": {
+      "version": "^6.9.8",
+      "integrated": false
+    },
+    "@rneui/base": {
+      "version": "^4.0.0-rc.8",
+      "integrated": false
+    },
+    "@shopify/react-native-skia": {
+      "version": "2.1.1",
+      "integrated": false
+    },
+    "@sumsub/react-native-mobilesdk-module": {
+      "version": "^1.35.1",
+      "integrated": false
+    },
+    "@types/jest": {
+      "version": "^29.5.13",
+      "integrated": false
+    },
+    "@types/react": {
+      "version": "^19.0.0",
+      "integrated": false
+    },
+    "@types/react-test-renderer": {
+      "version": "^19.0.0",
+      "integrated": false
+    },
+    "@walletconnect/core": {
+      "version": "2.17.2",
+      "integrated": false
+    },
+    "@walletconnect/utils": {
+      "version": "2.17.2",
+      "integrated": false
+    },
+    "@walletconnect/web3wallet": {
+      "version": "1.16.1",
+      "integrated": false
+    },
+    "axios": {
+      "version": "^1.9.0",
+      "integrated": false
+    },
+    "bech32": {
+      "version": "^2.0.0",
+      "integrated": false
+    },
+    "buffer": {
+      "version": "^6.0.3",
+      "integrated": false
+    },
+    "date-fns": {
+      "version": "^4.1.0",
+      "integrated": false
+    },
+    "eslint": {
+      "version": "^8.19.0",
+      "integrated": false
+    },
+    "ethers": {
+      "version": "^6.14.1",
+      "integrated": false
+    },
+    "events": {
+      "version": "^1.0.0",
+      "integrated": false
+    },
+    "global": {
+      "version": "^4.4.0",
+      "integrated": false
+    },
+    "graphql": {
+      "version": "^16.11.0",
+      "integrated": false
+    },
+    "jail-monkey": {
+      "version": "^2.8.4",
+      "integrated": false
+    },
+    "jest": {
+      "version": "^29.6.3",
+      "integrated": false
+    },
+    "lottie-react-native": {
+      "version": "^7.2.2",
+      "integrated": false
+    },
+    "metro-react-native-babel-preset": {
+      "version": "^0.77.0",
+      "integrated": false
+    },
+    "moment": {
+      "version": "^2.30.1",
+      "integrated": false
+    },
+    "prettier": {
+      "version": "2.8.8",
+      "integrated": false
+    },
+    "react": {
+      "version": "19.0.0",
+      "integrated": false
+    },
+    "react-dom": {
+      "version": "~19.0.0",
+      "integrated": false
+    },
+    "react-native": {
+      "version": "0.78.1",
+      "integrated": false
+    },
+    "react-native-bootsplash": {
+      "version": "^6.3.8",
+      "integrated": false
+    },
+    "react-native-btr": {
+      "version": "^2.2.1",
+      "integrated": false
+    },
+    "react-native-chart-kit": {
+      "version": "^6.12.0",
+      "integrated": false
+    },
+    "react-native-config": {
+      "version": "^1.6.1",
+      "integrated": true
+    },
+    "react-native-date-picker": {
+      "version": "^5.0.12",
+      "integrated": false
+    },
+    "react-native-device-info": {
+      "version": "^10.7.0",
+      "integrated": false
+    },
+    "react-native-dotenv": {
+      "version": "^3.4.11",
+      "integrated": false
+    },
+    "react-native-fs": {
+      "version": "^2.20.0",
+      "integrated": false
+    },
+    "react-native-gesture-handler": {
+      "version": "^2.25.0",
+      "integrated": false
+    },
+    "react-native-get-random-values": {
+      "version": "^1.11.0",
+      "integrated": false
+    },
+    "react-native-inappbrowser-reborn": {
+      "version": "^3.7.0",
+      "integrated": false
+    },
+    "react-native-keyboard-aware-scroll-view": {
+      "version": "^0.9.5",
+      "integrated": false
+    },
+    "react-native-keychain": {
+      "version": "^10.0.0",
+      "integrated": false
+    },
+    "react-native-linear-gradient": {
+      "version": "^2.8.3",
+      "integrated": false
+    },
+    "react-native-modal": {
+      "version": "^14.0.0-rc.1",
+      "integrated": false
+    },
+    "react-native-paper": {
+      "version": "^5.13.3",
+      "integrated": false
+    },
+    "react-native-qrcode-svg": {
+      "version": "^6.3.15",
+      "integrated": false
+    },
+    "react-native-reanimated": {
+      "version": "^3.17.5",
+      "integrated": false
+    },
+    "react-native-render-html": {
+      "version": "^6.3.4",
+      "integrated": false
+    },
+    "react-native-safe-area-context": {
+      "version": "5.3.0",
+      "integrated": false
+    },
+    "react-native-screens": {
+      "version": "~4.10.0",
+      "integrated": false
+    },
+    "react-native-share": {
+      "version": "^12.0.9",
+      "integrated": false
+    },
+    "react-native-snackbar": {
+      "version": "^2.9.0",
+      "integrated": false
+    },
+    "react-native-sound": {
+      "version": "^0.11.2",
+      "integrated": false
+    },
+    "react-native-svg": {
+      "version": "^15.12.0",
+      "integrated": false
+    },
+    "react-native-vector-icons": {
+      "version": "^10.2.0",
+      "integrated": false
+    },
+    "react-native-vision-camera": {
+      "version": "^4.7.0",
+      "integrated": false
+    },
+    "react-native-webview": {
+      "version": "^13.3.0",
+      "integrated": false
+    },
+    "react-test-renderer": {
+      "version": "19.0.0",
+      "integrated": false
+    },
+    "readable-stream": {
+      "version": "^4.3.0",
+      "integrated": false
+    },
+    "stream-browserify": {
+      "version": "^1.0.0",
+      "integrated": false
+    },
+    "text-encoding": {
+      "version": "^0.7.0",
+      "integrated": false
+    },
+    "typescript": {
+      "version": "5.0.4",
+      "integrated": false
+    },
+    "uuid": {
+      "version": "^11.1.0",
+      "integrated": false
+    },
+    "victory-native": {
+      "version": "^41.17.3",
+      "integrated": false
+    },
+    "vm-browserify": {
+      "version": "0.0.4",
+      "integrated": false
+    }
+  }
+}

@@ -74,7 +74,7 @@ const NFTDetailsScreen = ({route}: any) => {
   const navigateToSellNFT = () => {
     navigation.navigate('SellNFT', {
       variant: 'adjust',
-      nftToSell: nft,
+      nftToSell: combinedNft,
       refresh: () => {
         refetch();
         refetchActivity();

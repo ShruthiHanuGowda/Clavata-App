@@ -1,13 +1,14 @@
 import React from 'react';
-import {View, Text, StyleSheet, Image, TouchableOpacity} from 'react-native';
-import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
 import images from '../../../Theme/images';
+import { parseUnits } from 'ethers';
 
 interface EditStageProps {
   nftToSell: {
     name: string;
     collectionName: string;
-    image: {thumbnail: string};
+    image: { thumbnail: string };
     collectionAddress: string;
     tokenId: string;
   };
@@ -25,12 +26,14 @@ const EditStage: React.FC<EditStageProps> = ({
   continueToRemoveFromMarketStage,
 }) => {
   const imageUrl = nftToSell?.image?.thumbnail || NFT_DEFAULT_IMAGE_URL;
+  const displayCurrentPrice = parseUnits(currentPrice?.toString() || '0', 6);
+  const displayLowestPrice = parseUnits(lowestPrice?.toString() || '0', 6);
 
   return (
     <View style={styles.container}>
       {/* NFT Card */}
       <View style={styles.nftCard}>
-        <Image source={{uri: imageUrl}} style={styles.nftImage} />
+        <Image source={{ uri: imageUrl }} style={styles.nftImage} />
         <View style={styles.nftDetails}>
           <Text style={styles.nftName}>{nftToSell?.name}</Text>
           <Text style={styles.collectionName}>{nftToSell?.collectionName}</Text>
@@ -47,7 +50,7 @@ const EditStage: React.FC<EditStageProps> = ({
             <Text style={styles.priceLabel}>Your Listing Price</Text>
             <View style={styles.priceRow}>
               <Image source={images.usdc} style={styles.currencyIcon} />
-              <Text style={styles.currentPrice}>{currentPrice} USDC</Text>
+              <Text style={styles.currentPrice}>{displayCurrentPrice} USDC</Text>
             </View>
           </View>
         )}
@@ -57,7 +60,7 @@ const EditStage: React.FC<EditStageProps> = ({
             <Text style={styles.priceLabel}>Current Floor Price</Text>
             <View style={styles.priceRow}>
               <Image source={images.usdc} style={styles.currencyIcon} />
-              <Text style={styles.floorPrice}>{lowestPrice} USDC</Text>
+              <Text style={styles.floorPrice}>{displayLowestPrice} USDC</Text>
             </View>
           </View>
         )}
@@ -73,15 +76,15 @@ const EditStage: React.FC<EditStageProps> = ({
               ]}>
               {currentPrice > lowestPrice
                 ? `${(
-                    ((currentPrice - lowestPrice) / lowestPrice) *
-                    100
-                  ).toFixed(1)}% above floor`
+                  ((currentPrice - lowestPrice) / lowestPrice) *
+                  100
+                ).toFixed(1)}% above floor`
                 : currentPrice < lowestPrice
-                ? `${(
+                  ? `${(
                     ((lowestPrice - currentPrice) / lowestPrice) *
                     100
                   ).toFixed(1)}% below floor`
-                : 'At floor price'}
+                  : 'At floor price'}
             </Text>
           </View>
         )}

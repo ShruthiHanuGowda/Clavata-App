@@ -1,10 +1,11 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, Image} from 'react-native';
-import {activeAsks} from '../../../types/types';
-import {useAuth} from '../../../providers';
-import {shortenAddress} from '../../../utils/shortenAddress';
-import {formatQuantityMWh} from '../../../utils';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { activeAsks } from '../../../types/types';
+import { useAuth } from '../../../providers';
+import { shortenAddress } from '../../../utils/shortenAddress';
+import { formatQuantityMWh } from '../../../utils';
 import images from '../../../Theme/images';
+import { parseUnits } from 'ethers';
 
 interface OwnerListProps {
   owners: activeAsks[];
@@ -17,7 +18,7 @@ const OwnerList: React.FC<OwnerListProps> = ({
   onBuyPress,
   onSellPress,
 }) => {
-  const {userDetails} = useAuth();
+  const { userDetails } = useAuth();
 
   return (
     <View style={styles.card}>
@@ -31,7 +32,7 @@ const OwnerList: React.FC<OwnerListProps> = ({
             owner.seller?.id.toLowerCase() ===
             userDetails?.userWallet?.toLocaleLowerCase();
           const isLast = index === owners.length - 1;
-
+          const price = parseUnits(owner.askPrice.toString(), 6);
           return (
             <View
               key={owner.id}
@@ -53,7 +54,7 @@ const OwnerList: React.FC<OwnerListProps> = ({
                     resizeMode="contain"
                   />
                   <Text style={styles.priceText}>
-                    ${owner.askPrice} per MWh
+                    ${price} per MWh
                   </Text>
                 </View>
               </View>

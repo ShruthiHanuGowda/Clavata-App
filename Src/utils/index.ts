@@ -1,5 +1,5 @@
-import {Images} from '../Theme';
-import {bech32} from 'bech32';
+import { Images } from '../Theme';
+import { bech32 } from 'bech32';
 
 /**
  * Convert EVM address to Bech32 Cosmos address
@@ -35,19 +35,18 @@ export const formatQuantityMWh = (
   decimal: number = 2,
 ): string => {
   const mwh = quantity / 1_000_000;
-  return `${mwh % 1 === 0 ? mwh.toFixed(0) : mwh.toFixed(decimal)} ${
-    unit ? 'MWh' : ''
-  }`;
+  return `${mwh % 1 === 0 ? mwh.toFixed(0) : mwh.toFixed(decimal)} ${unit ? 'MWh' : ''
+    }`;
 };
 
 export const formatPrice = (price: number | undefined): string => {
-  if (price === undefined || price === null) {return '$0.00 per MWh';}
+  if (price === undefined || price === null) { return '$0.00 per MWh'; }
   const adjustedPrice = price * 1000000;
   return `$${adjustedPrice.toFixed(2)} per MWh`;
 };
 
 export function getAccountAskPrice(
-  data: {askPrice: string; seller: {id: string}}[],
+  data: { askPrice: string; seller: { id: string } }[],
   accountId: `0x${string}`,
 ): number {
   if (!Array.isArray(data) || data.length === 0) {
@@ -65,7 +64,7 @@ export function getAccountAskPrice(
 }
 
 export function getAccountNFTQuantity(
-  data: {askPrice: string; seller: {id: string}; amount: string}[],
+  data: { askPrice: string; seller: { id: string }; amount: string }[],
   accountId: `0x${string}`,
 ): string {
   if (!Array.isArray(data) || data.length === 0) {
@@ -84,7 +83,7 @@ export function getAccountNFTQuantity(
 
 export function isOwnNft(
   accountAddress: `0x${string}` | undefined,
-  data: {askPrice: string; seller: {id: string}}[],
+  data: { askPrice: string; seller: { id: string } }[],
 ): boolean {
   if (!accountAddress) {
     return false;

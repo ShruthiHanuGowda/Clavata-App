@@ -79,3 +79,5 @@ ios/Podfile.lock
 .env
 .env.dwallet
 .env.dwallet.testnet
+# react-native-config codegen
+ios/tmp.xcconfig

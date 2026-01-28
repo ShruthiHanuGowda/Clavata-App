@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import { useEffect, useState } from 'react';
 import {
   ScrollView,
   Animated,
@@ -8,21 +8,22 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import useNfts from '../../../hooks/useNfts';
-import {getMinAsk} from '../../../hooks/marketPlace';
-import {ApiCollection, ApiSingleCollectionResponse} from '../../../types/types';
+import { getMinAsk } from '../../../hooks/marketPlace';
+import { ApiCollection, ApiSingleCollectionResponse } from '../../../types/types';
 import useApi from '../../../hooks/useApi';
-import {API_NFT_URL} from '../../../constants';
-import {Header} from '../../../components';
-import {navigateBack} from '../../../Navigation/NavigationFunctions';
+import { API_NFT_URL } from '../../../constants';
+import { Header } from '../../../components';
+import { navigateBack } from '../../../Navigation/NavigationFunctions';
 import NFTCard from '../../../components/MarketPlace/NFTCard';
 import LoaderAnimation from '../../../components/Loading/LoaderAnimation';
 import images from '../../../Theme/images';
+import { parseUnits } from 'ethers';
 
-const CollectionDetailsScreen = ({route}: any) => {
-  const {contractAddress} = route.params;
+const CollectionDetailsScreen = ({ route }: any) => {
+  const { contractAddress } = route.params;
   const [fadeAnim] = useState(new Animated.Value(0));
   const [collection, setCollection] = useState<ApiCollection | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,7 +35,7 @@ const CollectionDetailsScreen = ({route}: any) => {
     refetch,
   } = useApi<ApiSingleCollectionResponse>(
     `${API_NFT_URL}/nftMarketplace_getCollections/?contractAddress=${contractAddress}`,
-    {method: 'GET'},
+    { method: 'GET' },
   );
 
   const {
@@ -174,7 +175,7 @@ const CollectionDetailsScreen = ({route}: any) => {
                     <NFTCard
                       key={nft.tokenId}
                       nft={nftData}
-                      currentAskPrice={Number(currentAsk?.askPrice) || 0}
+                      currentAskPrice={Number(parseUnits(currentAsk?.askPrice?.toString() ?? '0', 6))}
                       quantity={totalQuantity || 0}
                     />
                   );
@@ -213,7 +214,7 @@ const DetailCard = ({
   return (
     <View style={styles.detailCard}>
       <Image
-        source={typeof icon === 'string' ? {uri: icon} : icon}
+        source={typeof icon === 'string' ? { uri: icon } : icon}
         style={styles.detailImage}
         resizeMode="contain"
       />
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
