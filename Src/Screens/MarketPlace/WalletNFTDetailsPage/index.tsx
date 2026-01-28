@@ -174,35 +174,35 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     }
   };
 
-  useEffect(() => {
-    const fetchCurrentQuantity = async () => {
-      try {
-        setActiveNetwork('denergy');
-        if (!nft?.collectionAddress) {
-          console.error('Missing collection address in NFT data.');
-          return;
-        }
-
-        const magicProvider = new BrowserProvider(magic.rpcProvider as any);
-        const signer = await magicProvider.getSigner();
-
-        const collectionContract = new Contract(
-          nft.collectionAddress,
-          ERC1155_ABI,
-          signer,
-        );
-
-        const balance = await collectionContract.balanceOf(
-          signer.address,
-          nft?.tokenId,
-        );
-
-        setCurrentQuantity(balance);
-      } catch (error) {
-        console.error('Error fetching current quantity:', error);
+  const fetchCurrentQuantity = async () => {
+    try {
+      setActiveNetwork('denergy');
+      if (!nft?.collectionAddress) {
+        console.error('Missing collection address in NFT data.');
+        return;
       }
-    };
 
+      const magicProvider = new BrowserProvider(magic.rpcProvider as any);
+      const signer = await magicProvider.getSigner();
+
+      const collectionContract = new Contract(
+        nft.collectionAddress,
+        ERC1155_ABI,
+        signer,
+      );
+
+      const balance = await collectionContract.balanceOf(
+        signer.address,
+        nft?.tokenId,
+      );
+
+      setCurrentQuantity(balance);
+    } catch (error) {
+      console.error('Error fetching current quantity:', error);
+    }
+  };
+
+  useEffect(() => {
     fetchCurrentQuantity();
     fetchNftMetadata();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -222,6 +222,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
             refetch();
             refresh();
             refetchActivity();
+            fetchCurrentQuantity();
           },
         });
         break;
@@ -233,6 +234,7 @@ const WalletNFTDetailsScreen = ({route}: any) => {
             refetch();
             refresh();
             refetchActivity();
+            fetchCurrentQuantity();
           },
         });
         break;
@@ -271,10 +273,10 @@ const WalletNFTDetailsScreen = ({route}: any) => {
       variant: variant,
       nftToSell: nftToken,
       refresh: () => {
-        // Alert.alert('NFT Sent');
         refetch();
         refreshNfts();
         refetchActivity();
+        fetchCurrentQuantity();
       },
     });
   };
@@ -362,11 +364,14 @@ const WalletNFTDetailsScreen = ({route}: any) => {
     );
   }
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    refetch();
-    refetchActivity();
-    fetchNftMetadata();
+    await Promise.all([
+      refetch(),
+      refetchActivity(),
+      fetchNftMetadata(),
+      fetchCurrentQuantity(),
+    ]);
     setRefreshing(false);
   };
 
@@ -416,8 +421,13 @@ const WalletNFTDetailsScreen = ({route}: any) => {
             />
             <ActionButton
               icon={images.sendIcon}
-              label="Send"
+              label="Evident Send"
               onPress={() => handleSendNft(nft, 'transfer')}
+            />
+            <ActionButton
+              icon={images.sendIcon}
+              label="Send"
+              onPress={() => handleSendNft(nft, 'addressTransfer')}
             />
             <ActionButton
               icon={images.buyIcon}

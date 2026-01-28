@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   View,
   Text,
@@ -14,24 +14,25 @@ import SetPriceStage from './SetPriceStage';
 import EditStage from './EditStage';
 import RemoveStage from './RemoveStage';
 import TransferStage from './TransferStage';
+import AddressTransferStage from './AddressTransferStage';
 import ConfirmStage from './ConfirmStage';
 import TransactionConfirmed from './TransactionConfirmed';
-import { parseUnits } from 'ethers';
-import { NftToken } from '../../../types/types';
-import { getMinAskPrice } from '../../../hooks/marketPlace';
-import { useAuth } from '../../../providers';
-import { useCallWithGasPrice } from '../../../hooks/marketplace/useCallWithGasPrice';
-import { useMagic } from '../../../providers';
+import {parseUnits} from 'ethers';
+import {NftToken} from '../../../types/types';
+import {getMinAskPrice} from '../../../hooks/marketPlace';
+import {useAuth} from '../../../providers';
+import {useCallWithGasPrice} from '../../../hooks/marketplace/useCallWithGasPrice';
+import {useMagic} from '../../../providers';
 import {
   getNftMarketContract,
   useNftMarketCollectionContract,
 } from '../../../hooks/marketplace/useContracts';
-import { API_TRANSFER_URL, TOKEN_CONTRACTS } from '../../../constants';
+import {API_TRANSFER_URL, TOKEN_CONTRACTS} from '../../../constants';
 import useApproveConfirmTransaction from '../../../hooks/marketplace/useApproveConfirmTransaction';
-import { isApprovedForAll } from '../../../hooks/marketplace/requiresApproval';
-import { SnackBarMessage } from '../../../utils/snackBar';
+import {isApprovedForAll} from '../../../hooks/marketplace/requiresApproval';
+import {SnackBarMessage} from '../../../utils/snackBar';
 import ApproveAndConfirmStage from './ApproveAndConfirmStage';
-import { getAccountAskPrice, getAccountNFTQuantity } from '../../../utils';
+import {getAccountAskPrice, getAccountNFTQuantity} from '../../../utils';
 import axios from 'axios';
 
 enum SellingStage {
@@ -45,6 +46,8 @@ enum SellingStage {
   CONFIRM_REMOVE_FROM_MARKET = 'CONFIRM_REMOVE_FROM_MARKET',
   TRANSFER = 'TRANSFER',
   CONFIRM_TRANSFER = 'CONFIRM_TRANSFER',
+  ADDRESS_TRANSFER = 'ADDRESS_TRANSFER',
+  CONFIRM_ADDRESS_TRANSFER = 'CONFIRM_ADDRESS_TRANSFER',
   TX_CONFIRMED = 'TX_CONFIRMED',
 }
 
@@ -52,7 +55,7 @@ interface SellScreenProps {
   navigation: any; // React Navigation prop
   route: {
     params: {
-      variant?: 'sell' | 'adjust' | 'transfer';
+      variant?: 'sell' | 'adjust' | 'transfer' | 'addressTransfer';
       nftToSell: NftToken;
       refresh: () => void;
     };
@@ -70,6 +73,8 @@ const screenTitles: Record<SellingStage, string> = {
   [SellingStage.CONFIRM_REMOVE_FROM_MARKET]: 'Confirm Removal',
   [SellingStage.TRANSFER]: 'Transfer NFT',
   [SellingStage.CONFIRM_TRANSFER]: 'Confirm Transfer',
+  [SellingStage.ADDRESS_TRANSFER]: 'Transfer NFT',
+  [SellingStage.CONFIRM_ADDRESS_TRANSFER]: 'Confirm Transfer',
   [SellingStage.TX_CONFIRMED]: 'Transaction Confirmed',
 };
 
@@ -82,6 +87,8 @@ const stagesWithBackButton = [
   SellingStage.CONFIRM_REMOVE_FROM_MARKET,
   SellingStage.TRANSFER,
   SellingStage.CONFIRM_TRANSFER,
+  SellingStage.ADDRESS_TRANSFER,
+  SellingStage.CONFIRM_ADDRESS_TRANSFER,
 ];
 
 const getToastText = (variant: string, stage: SellingStage) => {
@@ -89,6 +96,9 @@ const getToastText = (variant: string, stage: SellingStage) => {
     return 'Your Certificate has been returned to your wallet';
   }
   if (stage === SellingStage.CONFIRM_TRANSFER) {
+    return 'Your Certificate has been transferred to another wallet';
+  }
+  if (stage === SellingStage.CONFIRM_ADDRESS_TRANSFER) {
     return 'Your Certificate has been transferred to another wallet';
   }
   if (variant === 'sell') {
@@ -106,6 +116,9 @@ const getSuccessType = (
   if (stage === SellingStage.CONFIRM_TRANSFER) {
     return 'transfer';
   }
+  if (stage === SellingStage.CONFIRM_ADDRESS_TRANSFER) {
+    return 'transfer';
+  }
   if (variant === 'sell') {
     return 'listing';
   }
@@ -115,17 +128,19 @@ const getSuccessType = (
   return 'listing';
 };
 
-const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
-  const { variant = 'sell', nftToSell, refresh } = route.params;
+const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
+  const {variant = 'sell', nftToSell, refresh} = route.params;
 
   const [stage, setStage] = useState<SellingStage>(
     variant === 'sell'
       ? SellingStage.SELL
       : variant === 'adjust'
-        ? SellingStage.EDIT
-        : variant === 'transfer'
-          ? SellingStage.TRANSFER
-          : SellingStage.SELL,
+      ? SellingStage.EDIT
+      : variant === 'transfer'
+      ? SellingStage.TRANSFER
+      : variant === 'addressTransfer'
+      ? SellingStage.ADDRESS_TRANSFER
+      : SellingStage.SELL,
   );
   const [prevStage, setprevStage] = useState(SellingStage.SELL);
 
@@ -135,10 +150,12 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
         variant === 'sell'
           ? SellingStage.SELL
           : variant === 'adjust'
-            ? SellingStage.EDIT
-            : variant === 'transfer'
-              ? SellingStage.TRANSFER
-              : SellingStage.SELL,
+          ? SellingStage.EDIT
+          : variant === 'transfer'
+          ? SellingStage.TRANSFER
+          : variant === 'addressTransfer'
+          ? SellingStage.ADDRESS_TRANSFER
+          : SellingStage.SELL,
       ),
     [variant],
   );
@@ -149,20 +166,18 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
   const [confirmedTxHash, setConfirmedTxHash] = useState('');
   const [currentAskPrice, setCurrentAskPrice] = useState<number>(0);
   const lowestPrice = getMinAskPrice(nftToSell?.activeAsks ?? []);
-  const { userDetails } = useAuth();
-  const { callWithGasPrice } = useCallWithGasPrice();
-  const { magic, setActiveNetwork, activeNetwork } = useMagic();
+  const {userDetails} = useAuth();
+  const {callWithGasPrice} = useCallWithGasPrice();
+  const {magic, setActiveNetwork, activeNetwork} = useMagic();
 
   const collectionContract = useNftMarketCollectionContract(
     nftToSell?.collectionAddress,
   );
 
-
   const nftMarketContract = getNftMarketContract();
   const marketAddress = TOKEN_CONTRACTS.nftMarket as `0x${string}`;
 
   const account = userDetails?.userWallet as `0x${string}`;
-
 
   useEffect(() => {
     if (account) {
@@ -218,6 +233,12 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
       case SellingStage.CONFIRM_TRANSFER:
         setStage(SellingStage.TRANSFER);
         break;
+      case SellingStage.ADDRESS_TRANSFER:
+        navigation.goBack();
+        break;
+      case SellingStage.CONFIRM_ADDRESS_TRANSFER:
+        setStage(SellingStage.ADDRESS_TRANSFER);
+        break;
       default:
         navigation.goBack();
         break;
@@ -246,17 +267,19 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
       case SellingStage.TRANSFER:
         setStage(SellingStage.CONFIRM_TRANSFER);
         break;
+      case SellingStage.ADDRESS_TRANSFER:
+        setStage(SellingStage.CONFIRM_ADDRESS_TRANSFER);
+        break;
       default:
         break;
     }
   };
 
-
   const onSuccessSale = () => {
     refresh?.();
   };
 
-  const { isApproving, isApproved, isConfirming, handleApprove, handleConfirm } =
+  const {isApproving, isApproved, isConfirming, handleApprove, handleConfirm} =
     useApproveConfirmTransaction({
       onRequiresApproval: async () => {
         if (!account) {
@@ -332,6 +355,17 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
           }
         }
 
+        if (stage === SellingStage.CONFIRM_ADDRESS_TRANSFER) {
+          // Transfer NFT directly to wallet address using safeTransferFrom
+          return callWithGasPrice(collectionContract, 'safeTransferFrom', [
+            account,
+            transferAddress,
+            BigInt(nftToSell.tokenId),
+            adjustedQuantity,
+            '0x',
+          ]);
+        }
+
         if (variant === 'sell') {
           return callWithGasPrice(nftMarketContract, 'createAskOrder', [
             nftToSell.collectionAddress,
@@ -353,7 +387,7 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
           BigInt(adjustedQuantity),
         ]);
       },
-      onSuccess: async ({ receipt }) => {
+      onSuccess: async ({receipt}) => {
         if (!variant) {
           return;
         }
@@ -486,6 +520,23 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({ navigation, route }) => {
           />
         )}
         {stage === SellingStage.CONFIRM_TRANSFER && (
+          <ConfirmStage
+            isConfirming={isConfirming}
+            handleConfirm={handleConfirm}
+          />
+        )}
+        {stage === SellingStage.ADDRESS_TRANSFER && (
+          <AddressTransferStage
+            nftToSell={nftToSell}
+            lowestPrice={lowestPrice}
+            continueToNextStage={continueToNextStage}
+            transferAddress={transferAddress}
+            setTransferAddress={setTransferAddress}
+            quantity={quantity}
+            setQuantity={setQuantity}
+          />
+        )}
+        {stage === SellingStage.CONFIRM_ADDRESS_TRANSFER && (
           <ConfirmStage
             isConfirming={isConfirming}
             handleConfirm={handleConfirm}
