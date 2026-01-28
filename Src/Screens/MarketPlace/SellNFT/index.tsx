@@ -14,6 +14,7 @@ import SetPriceStage from './SetPriceStage';
 import EditStage from './EditStage';
 import RemoveStage from './RemoveStage';
 import TransferStage from './TransferStage';
+import AddressTransferStage from './AddressTransferStage';
 import ConfirmStage from './ConfirmStage';
 import TransactionConfirmed from './TransactionConfirmed';
 import {parseUnits} from 'ethers';
@@ -45,6 +46,8 @@ enum SellingStage {
   CONFIRM_REMOVE_FROM_MARKET = 'CONFIRM_REMOVE_FROM_MARKET',
   TRANSFER = 'TRANSFER',
   CONFIRM_TRANSFER = 'CONFIRM_TRANSFER',
+  ADDRESS_TRANSFER = 'ADDRESS_TRANSFER',
+  CONFIRM_ADDRESS_TRANSFER = 'CONFIRM_ADDRESS_TRANSFER',
   TX_CONFIRMED = 'TX_CONFIRMED',
 }
 
@@ -52,7 +55,7 @@ interface SellScreenProps {
   navigation: any; // React Navigation prop
   route: {
     params: {
-      variant?: 'sell' | 'adjust' | 'transfer';
+      variant?: 'sell' | 'adjust' | 'transfer' | 'addressTransfer';
       nftToSell: NftToken;
       refresh: () => void;
     };
@@ -70,6 +73,8 @@ const screenTitles: Record<SellingStage, string> = {
   [SellingStage.CONFIRM_REMOVE_FROM_MARKET]: 'Confirm Removal',
   [SellingStage.TRANSFER]: 'Transfer NFT',
   [SellingStage.CONFIRM_TRANSFER]: 'Confirm Transfer',
+  [SellingStage.ADDRESS_TRANSFER]: 'Transfer NFT',
+  [SellingStage.CONFIRM_ADDRESS_TRANSFER]: 'Confirm Transfer',
   [SellingStage.TX_CONFIRMED]: 'Transaction Confirmed',
 };
 
@@ -82,6 +87,8 @@ const stagesWithBackButton = [
   SellingStage.CONFIRM_REMOVE_FROM_MARKET,
   SellingStage.TRANSFER,
   SellingStage.CONFIRM_TRANSFER,
+  SellingStage.ADDRESS_TRANSFER,
+  SellingStage.CONFIRM_ADDRESS_TRANSFER,
 ];
 
 const getToastText = (variant: string, stage: SellingStage) => {
@@ -89,6 +96,9 @@ const getToastText = (variant: string, stage: SellingStage) => {
     return 'Your Certificate has been returned to your wallet';
   }
   if (stage === SellingStage.CONFIRM_TRANSFER) {
+    return 'Your Certificate has been transferred to another wallet';
+  }
+  if (stage === SellingStage.CONFIRM_ADDRESS_TRANSFER) {
     return 'Your Certificate has been transferred to another wallet';
   }
   if (variant === 'sell') {
@@ -104,6 +114,9 @@ const getSuccessType = (
     return 'removal';
   }
   if (stage === SellingStage.CONFIRM_TRANSFER) {
+    return 'transfer';
+  }
+  if (stage === SellingStage.CONFIRM_ADDRESS_TRANSFER) {
     return 'transfer';
   }
   if (variant === 'sell') {
@@ -125,6 +138,8 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
       ? SellingStage.EDIT
       : variant === 'transfer'
       ? SellingStage.TRANSFER
+      : variant === 'addressTransfer'
+      ? SellingStage.ADDRESS_TRANSFER
       : SellingStage.SELL,
   );
   const [prevStage, setprevStage] = useState(SellingStage.SELL);
@@ -138,6 +153,8 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
           ? SellingStage.EDIT
           : variant === 'transfer'
           ? SellingStage.TRANSFER
+          : variant === 'addressTransfer'
+          ? SellingStage.ADDRESS_TRANSFER
           : SellingStage.SELL,
       ),
     [variant],
@@ -216,6 +233,12 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
       case SellingStage.CONFIRM_TRANSFER:
         setStage(SellingStage.TRANSFER);
         break;
+      case SellingStage.ADDRESS_TRANSFER:
+        navigation.goBack();
+        break;
+      case SellingStage.CONFIRM_ADDRESS_TRANSFER:
+        setStage(SellingStage.ADDRESS_TRANSFER);
+        break;
       default:
         navigation.goBack();
         break;
@@ -243,6 +266,9 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
         break;
       case SellingStage.TRANSFER:
         setStage(SellingStage.CONFIRM_TRANSFER);
+        break;
+      case SellingStage.ADDRESS_TRANSFER:
+        setStage(SellingStage.CONFIRM_ADDRESS_TRANSFER);
         break;
       default:
         break;
@@ -325,6 +351,17 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
             console.error('API call error:', error);
             throw error;
           }
+        }
+
+        if (stage === SellingStage.CONFIRM_ADDRESS_TRANSFER) {
+          // Transfer NFT directly to wallet address using safeTransferFrom
+          return callWithGasPrice(collectionContract, 'safeTransferFrom', [
+            account,
+            transferAddress,
+            BigInt(nftToSell.tokenId),
+            adjustedQuantity,
+            '0x',
+          ]);
         }
 
         if (variant === 'sell') {
@@ -481,6 +518,23 @@ const SellNFTScreen: React.FC<SellScreenProps> = ({navigation, route}) => {
           />
         )}
         {stage === SellingStage.CONFIRM_TRANSFER && (
+          <ConfirmStage
+            isConfirming={isConfirming}
+            handleConfirm={handleConfirm}
+          />
+        )}
+        {stage === SellingStage.ADDRESS_TRANSFER && (
+          <AddressTransferStage
+            nftToSell={nftToSell}
+            lowestPrice={lowestPrice}
+            continueToNextStage={continueToNextStage}
+            transferAddress={transferAddress}
+            setTransferAddress={setTransferAddress}
+            quantity={quantity}
+            setQuantity={setQuantity}
+          />
+        )}
+        {stage === SellingStage.CONFIRM_ADDRESS_TRANSFER && (
           <ConfirmStage
             isConfirming={isConfirming}
             handleConfirm={handleConfirm}
