@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import {formatQuantityMWh} from '../../../utils';
 import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
+import {parseUnits} from 'ethers';
 
 interface ReviewStageProps {
   nftToBuy: {
@@ -45,7 +46,8 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
   availableQuantity,
 }) => {
   const feePercentage = 0.025;
-  const nftPriceWithFee = nftPrice * (1 + feePercentage);
+  const displayPrice = parseUnits(nftPrice.toString(), 6);
+  const nftPriceWithFee = Number(displayPrice) * (1 + feePercentage);
   const totalPayment = nftPriceWithFee * quantity;
   const quantityExceeds = quantity * 1_000_000 > availableQuantity;
   const notEnoughBalance = totalPayment > walletBalance;
@@ -74,7 +76,7 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
             Token ID: {nftToBuy?.tokenId || 'Token ID'}
           </Text>
           <Text style={styles.nftPrice}>
-            {nftPrice} {paymentCurrency} each
+            {displayPrice.toString()} {paymentCurrency}
           </Text>
         </View>
       </View>
@@ -142,7 +144,7 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}> Item Price </Text>
             <Text style={styles.priceValue}>
-              {nftPrice} {paymentCurrency}
+              {displayPrice.toString()} {paymentCurrency}
             </Text>
           </View>
           <View style={styles.priceRow}>
@@ -152,7 +154,7 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}> Subtotal </Text>
             <Text style={styles.priceValue}>
-              {(nftPrice * quantity).toFixed(2)} {paymentCurrency}
+              {(Number(displayPrice) * quantity).toFixed(2)} {paymentCurrency}
             </Text>
           </View>
           <View style={styles.priceRow}>
@@ -160,7 +162,7 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
               Platform Fee({(feePercentage * 100).toFixed(2)}%)
             </Text>
             <Text style={styles.priceValue}>
-              {(nftPrice * quantity * feePercentage).toFixed(2)}{' '}
+              {(Number(displayPrice) * quantity * feePercentage).toFixed(2)}{' '}
               {paymentCurrency}
             </Text>
           </View>
