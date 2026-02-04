@@ -34,6 +34,7 @@ interface ActionButtonProps {
   icon: any;
   label: string;
   onPress: () => void;
+  iconStyle?: object;
 }
 
 interface NFTMetadata {
@@ -49,10 +50,10 @@ interface NFTMetadata {
   }>;
 }
 
-const ActionButton = ({icon, label, onPress}: ActionButtonProps) => (
+const ActionButton = ({icon, label, onPress, iconStyle}: ActionButtonProps) => (
   <TouchableOpacity style={styles.actionContainer} onPress={onPress}>
     <View style={styles.actionIconWrapper}>
-      <Image source={icon} style={styles.actionIcon} />
+      <Image source={icon} style={[styles.actionIcon, iconStyle]} />
     </View>
     <Text style={styles.actionLabel}>{label}</Text>
   </TouchableOpacity>
@@ -435,8 +436,9 @@ const WalletNFTDetailsScreen = ({route}: any) => {
               onPress={() => handleOffersClick()}
             />
             <ActionButton
-              icon={images.history}
+              icon={images.swapcoin}
               label="History"
+              iconStyle={{transform: [{rotate: '90deg'}]}}
               onPress={() => {
                 navigation.navigate('NFTDetailHistory', {
                   collectionAddress: nft?.collectionAddress,

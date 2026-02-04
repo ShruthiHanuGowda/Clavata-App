@@ -151,6 +151,8 @@ const useChartData = (
       }
 
       const processedData = processChartData(prices, toggleValue);
+      console.log('🚀 ~ useChartData ~ processedData:', processedData);
+
       setChartData(processedData);
     } catch (err) {
       console.error('Chart data fetch error:', err);
@@ -172,7 +174,7 @@ const useChartData = (
   useEffect(() => {
     fetchChartData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchChartData]);
 
   return {chartData, loading, error, refetch: fetchChartData};
 };
@@ -484,20 +486,25 @@ const CoinWallet: React.FC<CoinWalletProps> = ({route}) => {
                 <Text style={style.HeaderFont}>
                   {toggleValue === 'day' ? 'Today' : 'This Week'} Average
                 </Text>
-                <View style={style.toggleView}>
+                <View style={localStyles.toggleTabsContainer}>
                   {toggleOptions.map((item, i) => (
                     <TouchableOpacity
                       key={i}
-                      style={localStyles.toggleButton}
+                      style={[
+                        localStyles.toggleButton,
+                        toggleValue === item
+                          ? localStyles.activeToggleButton
+                          : localStyles.inactiveToggleButton,
+                      ]}
                       onPress={() => handleToggleChange(item)}>
                       <Text
                         style={[
-                          style.toggleItemStyle,
+                          localStyles.toggleButtonText,
                           toggleValue === item
-                            ? localStyles.activeButton
-                            : localStyles.inActiveButton,
+                            ? localStyles.activeToggleText
+                            : localStyles.inactiveToggleText,
                         ]}>
-                        {item}
+                        {item.charAt(0).toUpperCase() + item.slice(1)}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -608,20 +615,48 @@ const localStyles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  toggleTabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    padding: 4,
+    gap: 4,
   },
   toggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    minWidth: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    borderRadius: 3,
   },
-  activeButton: {
+  activeToggleButton: {
     backgroundColor: '#FFFFFF',
-    marginRight: 4,
-    padding: 3,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  inActiveButton: {
-    backgroundColor: '#EEEEEE',
+  inactiveToggleButton: {
+    backgroundColor: 'transparent',
+  },
+  toggleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  activeToggleText: {
+    color: '#009D94',
+    fontFamily: fontsFamily.MulishExtraBold,
+    fontWeight: '700',
+  },
+  inactiveToggleText: {
+    color: '#6B7280',
+    fontFamily: fontsFamily.MulishBold,
+    fontWeight: '600',
   },
   chartContainer: {
     left: -20,
