@@ -49,7 +49,6 @@ const ValidatorsScreen: React.FC<ValidatorsScreenProps> = () => {
     error,
     fetch: fetchValidators,
   } = validatorList;
-  console.log("data", data);
 
   // Fetch validators on component mount
   useEffect(() => {

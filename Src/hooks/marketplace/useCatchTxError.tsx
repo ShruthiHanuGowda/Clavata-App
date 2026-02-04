@@ -47,12 +47,12 @@ export default function useCatchTxError(params?: Params) {
         );
 
         if (!isUserRejected(error)) {
-          if (!tx && !throwCustomError) {
-            // Error already logged by errorService
-          } else if (throwCustomError) {
+          // Display user-friendly error message
+          const userMessage = errorService.getUserFriendlyMessage(txError);
+          SnackBarMessage(userMessage, 'error');
+
+          if (throwCustomError) {
             throwCustomError();
-          } else {
-            // Error already logged by errorService
           }
         }
 

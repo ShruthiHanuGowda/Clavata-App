@@ -2,17 +2,13 @@ import React, {useState, useCallback, useMemo, useEffect} from 'react';
 import {
   View,
   StyleSheet,
-  TouchableOpacity,
   TextInput,
-  ScrollView,
   Alert,
   Image,
   SafeAreaView,
   Text,
   Pressable,
 } from 'react-native';
-import {BottomSheet} from 'react-native-btr';
-import Icon from 'react-native-vector-icons/Entypo';
 import {v4 as uuidv4} from 'uuid';
 import {DTextInput} from '../../../components/Dinputs';
 import {DButton} from '../../../components';
@@ -57,18 +53,6 @@ interface Contact {
   chain: string;
 }
 
-interface ChainOption {
-  id: string;
-  name: string;
-  image: any; // Changed from color to image
-}
-
-// Available chains - only Ethereum and DEnergy
-const AVAILABLE_CHAINS: ChainOption[] = [
-  {id: 'ETH', name: 'Ethereum', image: images.ethereum},
-  {id: 'DEnergy', name: 'DEnergy', image: images.watt},
-];
-
 const CreateAddress: React.FC<CreateAddressProps> = ({
   onSave,
   onCancel,
@@ -87,10 +71,9 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
   const [formData, setFormData] = useState<CreateAddressData>({
     beneficiaryAddress: '',
     name: '',
-    chain: '',
+    chain: 'DEnergy',
   });
   const [errors, setErrors] = useState<Partial<CreateAddressData>>({});
-  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [isNameValid, setIsNameValid] = useState(false);
   const [isAddressValid, setIsAddressValid] = useState(false);
   const {magic} = useMagic();
@@ -124,16 +107,12 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
       setFormData({
         beneficiaryAddress: '',
         name: '',
-        chain: '',
+        chain: 'DEnergy',
       });
       setIsNameValid(false);
       setIsAddressValid(false);
     }
   }, [editMode, contactToEdit, route?.params]);
-
-  const selectedChain = useMemo(() => {
-    return AVAILABLE_CHAINS.find(chain => chain.id === formData.chain);
-  }, [formData.chain]);
 
   const handleInputChange = useCallback(
     (field: keyof CreateAddressData, value: string) => {
@@ -146,21 +125,6 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
     [errors],
   );
 
-  const handleChainSelect = useCallback(
-    (chain: ChainOption) => {
-      setFormData(prev => ({...prev, chain: chain.id}));
-      setBottomSheetVisible(false);
-      if (errors.chain) {
-        setErrors(prev => ({...prev, chain: ''}));
-      }
-    },
-    [errors.chain],
-  );
-
-  const handleCloseBottomSheet = useCallback(() => {
-    setBottomSheetVisible(false);
-  }, []);
-
   const validateForm = useCallback((): boolean => {
     const newErrors: Partial<CreateAddressData> = {};
 
@@ -169,11 +133,6 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
       newErrors.name = 'Name is required';
     } else if (formData.name.trim().length < 2) {
       newErrors.name = 'Name must be at least 2 characters';
-    }
-
-    // Validate chain
-    if (!formData.chain) {
-      newErrors.chain = 'Please select a chain';
     }
 
     // Validate beneficiary address
@@ -238,7 +197,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
       }
 
       // Reset form after successful save
-      setFormData({beneficiaryAddress: '', name: '', chain: ''});
+      setFormData({beneficiaryAddress: '', name: '', chain: 'DEnergy'});
       setIsNameValid(false);
       setIsAddressValid(false);
       navigateBack();
@@ -281,7 +240,7 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
 
   const handleCancel = useCallback(() => {
     // Reset form state
-    setFormData({beneficiaryAddress: '', name: '', chain: ''});
+    setFormData({beneficiaryAddress: '', name: '', chain: 'DEnergy'});
     setErrors({});
     setIsNameValid(false);
     setIsAddressValid(false);
@@ -297,7 +256,6 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
     return (
       isNameValid &&
       isAddressValid &&
-      formData.chain &&
       formData.name.trim().length >= 2 &&
       formData.beneficiaryAddress.trim().length >= 10 &&
       userDetails?.userWallet // Ensure wallet address is available
@@ -342,41 +300,6 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
             )}
           </View>
 
-          {/* Chain Selection Dropdown */}
-          <TouchableOpacity
-            style={[
-              localStyles.uniformContainer,
-              localStyles.dropdownStyle,
-              errors.chain ? localStyles.inputError : null,
-              localStyles.chainDropdownContainer,
-            ]}
-            onPress={() => setBottomSheetVisible(true)}>
-            {selectedChain ? (
-              <View style={localStyles.selectedChainContent}>
-                <Image
-                  source={selectedChain.image}
-                  style={localStyles.chainImage}
-                  resizeMode="contain"
-                />
-                <Text style={localStyles.dropdownLabel}>
-                  {selectedChain.name}
-                </Text>
-              </View>
-            ) : (
-              <Text
-                style={[
-                  localStyles.dropdownLabel,
-                  localStyles.placeholderText,
-                ]}>
-                Select Chain
-              </Text>
-            )}
-            <Icon name="chevron-small-down" size={24} color="#333" />
-          </TouchableOpacity>
-          {errors.chain && (
-            <Text style={localStyles.errorText}>{errors.chain}</Text>
-          )}
-
           {/* Beneficiary Address Input */}
           <View>
             <View
@@ -394,12 +317,6 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
                 placeholder="Wallet Address"
                 multiline
                 numberOfLines={3}
-                // containerStyle={[
-                //   localStyles.uniformContainer,
-                //   {paddingHorizontal: 5, paddingVertical: 5},
-                //   errors.beneficiaryAddress ? localStyles.inputError : null,
-                // ]}
-                editable={!!selectedChain}
               />
             </View>
             {errors.beneficiaryAddress && (
@@ -407,14 +324,9 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
                 {errors.beneficiaryAddress}
               </Text>
             )}
-            {selectedChain && !isAddressValid && !errors.beneficiaryAddress && (
+            {!isAddressValid && !errors.beneficiaryAddress && (
               <Text style={localStyles.errorText}>
                 Please enter a valid wallet address
-              </Text>
-            )}
-            {!selectedChain && !errors.beneficiaryAddress && (
-              <Text style={localStyles.errorText}>
-                Please select a chain first
               </Text>
             )}
           </View>
@@ -457,57 +369,6 @@ const CreateAddress: React.FC<CreateAddressProps> = ({
                 : 'Add Contact'}
             </Text>
           </DButton>
-
-          {/* Bottom Sheet for Chain Selection */}
-          <BottomSheet
-            visible={bottomSheetVisible}
-            onBackButtonPress={handleCloseBottomSheet}
-            onBackdropPress={handleCloseBottomSheet}>
-            <View style={localStyles.bottomSheetCard}>
-              <View style={localStyles.bottomSheetHeader}>
-                <Text style={localStyles.bottomSheetTitle}>Select Chain</Text>
-                <TouchableOpacity
-                  onPress={handleCloseBottomSheet}
-                  style={localStyles.closeButton}>
-                  <Text style={localStyles.closeText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={localStyles.optionsContainer}>
-                {AVAILABLE_CHAINS && AVAILABLE_CHAINS.length > 0 ? (
-                  AVAILABLE_CHAINS.map((chain: ChainOption, index: number) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        localStyles.optionItem,
-                        // Remove border from last item
-                        index === AVAILABLE_CHAINS.length - 1 &&
-                          localStyles.lastOptionItem,
-                      ]}
-                      onPress={() => handleChainSelect(chain)}>
-                      <View style={localStyles.chainOptionContent}>
-                        <Image
-                          source={chain.image}
-                          style={localStyles.bottomSheetChainImage}
-                          resizeMode="contain"
-                        />
-                        <View style={localStyles.chainInfo}>
-                          <Text style={localStyles.optionText}>
-                            {chain.name}
-                          </Text>
-                          <Text style={localStyles.chainId}>{chain.id}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))
-                ) : (
-                  <Text style={localStyles.noOptionsText}>
-                    No chains available
-                  </Text>
-                )}
-              </ScrollView>
-            </View>
-          </BottomSheet>
         </View>
       </View>
     </SafeAreaView>

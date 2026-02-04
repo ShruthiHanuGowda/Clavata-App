@@ -1,7 +1,7 @@
-import {useState} from 'react';
+import { useState } from 'react';
 import axios from 'axios';
-import {getStakedPoolData} from './stakedGraphql';
-import {NftDelegation} from '../../../types/types';
+import { getStakedPoolData } from './stakedGraphql';
+import { NftDelegation } from '../../../types/types';
 
 interface Validator {
   validatorId: string;
@@ -213,8 +213,6 @@ const useValidators = () => {
 
     try {
       const response = await axios.get<CosmosValidatorsResponse>(url, axiosConfig);
-      console.log('Raw API response:', JSON.stringify(response.data, null, 2));
-      // Transform Cosmos SDK response to app format
       const transformedData = transformCosmosResponse(response.data);
       console.log('Transformed data:', JSON.stringify(transformedData, null, 2));
       setValidatorListData(transformedData);
@@ -238,7 +236,7 @@ const useValidators = () => {
 
     try {
       // Cosmos SDK returns a single validator response
-      const response = await axios.get<{validator: CosmosValidator}>(url, axiosConfig);
+      const response = await axios.get<{ validator: CosmosValidator }>(url, axiosConfig);
 
       // Transform the Cosmos SDK validator to app format
       const transformedValidator = transformCosmosValidator(response.data.validator);

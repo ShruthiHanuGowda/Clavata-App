@@ -115,6 +115,12 @@ class ErrorService {
     } else if (this.isNetworkError(error)) {
       code = ErrorCode.NETWORK_ERROR;
       message = 'Network connection error';
+    } else if (this.isPriceRangeError(error)) {
+      code = ErrorCode.VALIDATION_ERROR;
+      message = 'Price must be at least 1 USDC per MWH. Please increase your price and try again.';
+    } else if (this.isContractError(error)) {
+      // Extract user-friendly message from contract errors
+      message = this.extractContractErrorMessage(error);
     } else if (error?.message) {
       message = error.message;
     }
@@ -178,6 +184,8 @@ class ErrorService {
         return 'The wallet address is invalid. Please check and try again.';
       case ErrorCode.NETWORK_ERROR:
         return 'Network connection issue. Please check your internet and try again.';
+      case ErrorCode.VALIDATION_ERROR:
+        return error.message || 'Validation error. Please check your input and try again.';
       case ErrorCode.API_UNAUTHORIZED:
         return 'Please log in again to continue.';
       case ErrorCode.API_NOT_FOUND:
@@ -185,6 +193,10 @@ class ErrorService {
       case ErrorCode.API_TIMEOUT:
         return 'Request is taking too long. Please try again.';
       default:
+        // Use the error message if it looks user-friendly
+        if (error.message && error.message.length < 150 && !error.message.includes('0x')) {
+          return error.message;
+        }
         return 'Something went wrong. Please try again or contact support if the issue persists.';
     }
   }
@@ -192,21 +204,62 @@ class ErrorService {
   private isUserRejectedError(error: any): boolean {
     const message = error?.message?.toLowerCase() || '';
     return message.includes('user rejected') ||
-           message.includes('user denied') ||
-           error?.code === 4001;
+      message.includes('user denied') ||
+      error?.code === 4001;
   }
 
   private isInsufficientFundsError(error: any): boolean {
     const message = error?.message?.toLowerCase() || '';
     return message.includes('insufficient funds') ||
-           message.includes('insufficient balance');
+      message.includes('insufficient balance');
   }
 
   private isNetworkError(error: any): boolean {
     const message = error?.message?.toLowerCase() || '';
     return message.includes('network') ||
-           message.includes('connection') ||
-           error?.code === 'NETWORK_ERROR';
+      message.includes('connection') ||
+      error?.code === 'NETWORK_ERROR';
+  }
+
+  private isPriceRangeError(error: any): boolean {
+    const message = error?.message?.toLowerCase() || '';
+    const reason = error?.reason?.toLowerCase() || '';
+    const data = error?.data?.toLowerCase() || '';
+
+    return message.includes('price not in range') ||
+      message.includes('price range') ||
+      reason.includes('price not in range') ||
+      data.includes('price not in range');
+  }
+
+  private isContractError(error: any): boolean {
+    return error?.reason ||
+      error?.data?.message ||
+      error?.error?.message ||
+      (error?.message && error?.message.includes('execution reverted'));
+  }
+
+  private extractContractErrorMessage(error: any): string {
+    // Try to extract the actual error message from contract revert
+    const reason = error?.reason;
+    const dataMessage = error?.data?.message;
+    const errorMessage = error?.error?.message;
+    const message = error?.message;
+
+    // Check for common contract errors
+    if (reason) return reason;
+    if (dataMessage) return dataMessage;
+    if (errorMessage) return errorMessage;
+
+    // Parse execution reverted messages
+    if (message && message.includes('execution reverted:')) {
+      const match = message.match(/execution reverted: (.+)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+
+    return 'Contract execution failed. Please check your transaction details and try again.';
   }
 }
 

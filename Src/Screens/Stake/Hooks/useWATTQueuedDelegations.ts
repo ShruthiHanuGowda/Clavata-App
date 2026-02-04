@@ -1,13 +1,14 @@
-import {useState} from 'react';
+import { useState } from 'react';
 import axios from 'axios';
-import {WATT_QUEUED_DELEGATIONS_API_URL} from '../../../constants';
+import { WATT_QUEUED_DELEGATIONS_API_URL } from '../../../constants';
 
 interface WATTQueuedEntry {
-  creation_height: string;
-  completion_time: string;
-  initial_balance: string;
-  shares: string;
-  balance: string;
+  id: string;
+  creation_epoch: string;
+  activation_epoch: string;
+  amount: string;
+  denom: string;
+  bond_status: string;
 }
 
 interface WATTQueuedDelegation {
@@ -16,14 +17,8 @@ interface WATTQueuedDelegation {
   entries: WATTQueuedEntry[];
 }
 
-interface Pagination {
-  next_key: string | null;
-  total: string;
-}
-
 interface WATTQueuedDelegationsResponse {
-  unbonding_responses: WATTQueuedDelegation[];
-  pagination: Pagination;
+  queued_delegations: WATTQueuedDelegation[];
 }
 
 /**
@@ -57,6 +52,8 @@ const useWATTQueuedDelegations = () => {
         url,
         axiosConfig,
       );
+      console.log(response.data);
+
       setWattQueuedDelegationsData(response.data);
       return response.data;
     } catch (err) {

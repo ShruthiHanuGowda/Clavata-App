@@ -9,9 +9,9 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import {formatQuantityMWh} from '../../../utils';
-import {NFT_DEFAULT_IMAGE_URL} from '../../../constants';
-import {parseUnits} from 'ethers';
+import { formatQuantityMWh } from '../../../utils';
+import { NFT_DEFAULT_IMAGE_URL } from '../../../constants';
+import { parseUnits } from 'ethers';
 
 interface ReviewStageProps {
   nftToBuy: {
@@ -204,7 +204,7 @@ const ReviewStage: React.FC<ReviewStageProps> = ({
         style={[
           styles.continueButton,
           (notEnoughBalance || !quantity || quantityExceeds) &&
-            styles.disabledButton,
+          styles.disabledButton,
         ]}
         disabled={notEnoughBalance || !quantity || quantityExceeds}
         onPress={continueToNextStage}>

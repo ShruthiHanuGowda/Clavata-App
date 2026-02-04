@@ -45,31 +45,34 @@ const WATTQueuedTab: React.FC<WATTQueuedTabProps> = ({ delegatorAddress, navigat
   }, [delegatorAddress]);
 
   useEffect(() => {
-    if (data?.unbonding_responses) {
-      setQueuedDelegations(data.unbonding_responses);
+    if (data?.queued_delegations) {
+      setQueuedDelegations(data.queued_delegations);
     }
   }, [data]);
 
   const formatAmount = (amount: string) => {
+    // Convert from base denomination (atwatt) to WATT
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount)) return amount;
-    if (numAmount >= 1_000_000) return `${(numAmount / 1_000_000).toFixed(2)}M`;
-    if (numAmount >= 1_000) return `${(numAmount / 1_000).toFixed(2)}K`;
-    return numAmount.toLocaleString();
+
+    // atwatt has 18 decimals, so divide by 10^18
+    const wattAmount = numAmount / Math.pow(10, 18);
+
+    if (wattAmount >= 1_000_000) return `${(wattAmount / 1_000_000).toFixed(2)}M`;
+    if (wattAmount >= 1_000) return `${(wattAmount / 1_000).toFixed(2)}K`;
+    return wattAmount.toFixed(2);
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return dateString;
+  const getBondStatusLabel = (status: string) => {
+    switch (status) {
+      case 'BOND_STATUS_BONDED':
+        return 'Bonded';
+      case 'BOND_STATUS_UNBONDING':
+        return 'Unbonding';
+      case 'BOND_STATUS_UNBONDED':
+        return 'Unbonded';
+      default:
+        return status;
     }
   };
 
@@ -149,7 +152,7 @@ const WATTQueuedTab: React.FC<WATTQueuedTabProps> = ({ delegatorAddress, navigat
 
       <View style={styles.countCard}>
         <Text style={styles.countLabel}>Total Queued Delegations:</Text>
-        <Text style={styles.countValue}>{data?.pagination?.total || 0}</Text>
+        <Text style={styles.countValue}>{queuedDelegations.length}</Text>
       </View>
 
       {queuedDelegations.map((delegation, idx) => (
@@ -168,38 +171,36 @@ const WATTQueuedTab: React.FC<WATTQueuedTabProps> = ({ delegatorAddress, navigat
 
           <View style={styles.entriesSection}>
             <Text style={styles.entriesTitle}>
-              Unbonding Entries ({delegation.entries.length}):
+              Queued Entries ({delegation.entries.length}):
             </Text>
 
-            {delegation.entries.map((entry: WATTQueuedEntry, entryIdx) => (
-              <View key={entryIdx} style={styles.entryCard}>
+            {delegation.entries.map((entry: WATTQueuedEntry) => (
+              <View key={entry.id} style={styles.entryCard}>
                 <View style={styles.entryHeader}>
-                  <Text style={styles.entryId}>Entry #{entryIdx + 1}</Text>
+                  <Text style={styles.entryId}>Entry #{entry.id}</Text>
                   <Text style={styles.entryAmount}>
-                    {formatAmount(entry.balance)} WATT
+                    {formatAmount(entry.amount)} WATT
                   </Text>
                 </View>
 
                 <View style={styles.entryDetails}>
                   <View style={styles.entryRow}>
-                    <Text style={styles.entryLabel}>Initial Balance:</Text>
+                    <Text style={styles.entryLabel}>Denom:</Text>
+                    <Text style={styles.entryValue}>{entry.denom}</Text>
+                  </View>
+                  <View style={styles.entryRow}>
+                    <Text style={styles.entryLabel}>Creation Epoch:</Text>
+                    <Text style={styles.entryValue}>{entry.creation_epoch}</Text>
+                  </View>
+                  <View style={styles.entryRow}>
+                    <Text style={styles.entryLabel}>Activation Epoch:</Text>
+                    <Text style={styles.entryValue}>{entry.activation_epoch}</Text>
+                  </View>
+                  <View style={styles.entryRow}>
+                    <Text style={styles.entryLabel}>Bond Status:</Text>
                     <Text style={styles.entryValue}>
-                      {formatAmount(entry.initial_balance)} WATT
+                      {getBondStatusLabel(entry.bond_status)}
                     </Text>
-                  </View>
-                  <View style={styles.entryRow}>
-                    <Text style={styles.entryLabel}>Creation Height:</Text>
-                    <Text style={styles.entryValue}>{entry.creation_height}</Text>
-                  </View>
-                  <View style={styles.entryRow}>
-                    <Text style={styles.entryLabel}>Completion Time:</Text>
-                    <Text style={styles.entryValue}>
-                      {formatDate(entry.completion_time)}
-                    </Text>
-                  </View>
-                  <View style={styles.entryRow}>
-                    <Text style={styles.entryLabel}>Shares:</Text>
-                    <Text style={styles.entryValue}>{entry.shares}</Text>
                   </View>
                 </View>
               </View>
