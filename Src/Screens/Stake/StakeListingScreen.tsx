@@ -158,9 +158,9 @@ const StakeListingScreen: React.FC<StakeListingScreenProps> = ({
           </View>
           <View style={styles.stakeAmountContainer}>
             <Text style={styles.stakeAmount}>
-              {formatQuantityMWh(
-                parseFloat(formatStake(asset.stake.nft, asset.stake.watt)),
-              )}
+              {asset.stakeType === 'nft'
+                ? formatQuantityMWh(asset.stake.nft)
+                : `${asset.stake.watt.toFixed(4)} WATT`}
             </Text>
           </View>
         </View>

@@ -7,6 +7,7 @@ import images from '../../../Theme/images';
 import {useMagic} from '../../../providers';
 import styles from './styles';
 import {useNFTStaking} from '../Hooks/useNFTStaking';
+import {useWATTStaking} from '../Hooks/useWATTStaking';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 
 // Interface for component props
@@ -19,7 +20,12 @@ interface UnstakeScreenProps {
 }
 
 const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
-  const {isLoading: isNFTStakingLoading, undelegateERC1155} = useNFTStaking();
+  const {isLoading: isNFTStakingLoading, undelegateERC1155} = useNFTStaking(
+    route?.params?.stakingData?.originalData?.validatorAddress,
+  );
+  const {isLoading: isWATTStakingLoading, undelegateWATT} = useWATTStaking(
+    route?.params?.stakingData?.originalData?.validatorAddress,
+  );
 
   const {setActiveNetwork} = useMagic();
 
@@ -134,25 +140,22 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
       return;
     }
 
-    // Check if this is a WATT stake
-    if (stakingData.stakeType === 'watt') {
-      Alert.alert(
-        'WATT Unstaking',
-        'WATT unstaking functionality is not yet implemented. Please check back later.',
-      );
-      return;
-    }
-
-    // Update status and start unstaking process for NFT
+    // Update status and start unstaking process
     setTxStatus('unstaking');
 
     try {
-      await undelegateERC1155(
-        stakingData.originalData.nftContractAddress,
-        stakingData.originalData.tokenId,
-        amount,
-        handleUnstakeSuccess,
-      );
+      // Handle WATT unstaking
+      if (stakingData.stakeType === 'watt') {
+        await undelegateWATT(amount, handleUnstakeSuccess);
+      } else {
+        // Handle NFT unstaking
+        await undelegateERC1155(
+          stakingData.originalData.nftContractAddress,
+          stakingData.originalData.tokenId,
+          amount,
+          handleUnstakeSuccess,
+        );
+      }
     } catch (err) {
       console.error('Unstaking failed:', err);
       setTxStatus('failed');
@@ -316,12 +319,13 @@ const UnstakeScreen: React.FC<UnstakeScreenProps> = ({route}) => {
             {/* Unstake Button */}
             <DButton
               onPress={handleUnstake}
-              loading={txStatus === 'unstaking' || isNFTStakingLoading}
+              loading={txStatus === 'unstaking' || isNFTStakingLoading || isWATTStakingLoading}
               style={styles.unstakeButton}
               disabled={
                 !isAmountValid ||
                 txStatus === 'unstaking' ||
                 isNFTStakingLoading ||
+                isWATTStakingLoading ||
                 !!amountError
               }>
               <Text style={styles.unstakeButtonText}>

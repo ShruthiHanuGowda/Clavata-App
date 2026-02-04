@@ -135,7 +135,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
           delegatorAddress,
           validatorAddress,
           amountInWei,
-          {gasLimit: 500000},
+          {gasLimit: 500000, value: amountInWei}, // Send WATT as value for native coin staking
         );
 
         const receipt = await tx.wait();
@@ -207,8 +207,8 @@ export const useWATTStaking = (validatorAddress?: string) => {
           signer,
         );
 
-        // Convert amount to proper format
-        const amountInWei = parseUnits(amount, 6); // Based on your original code using 6 decimals
+        // Convert amount to proper format (WATT is native coin with 18 decimals)
+        const amountInWei = parseUnits(amount, 18);
 
         // Call the undelegate function according to ABI
         // function undelegate(address delegatorAddress, string validatorAddress, uint256 amount) returns (int64 completionTime)
@@ -335,7 +335,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
                 onDelegate({
                   delegatorAddress,
                   validatorAddress: eventValidatorAddress,
-                  amount: formatUnits(amount, 6),
+                  amount: formatUnits(amount, 18), // WATT uses 18 decimals
                   newShares: newShares.toString(),
                   transactionHash: event.transactionHash,
                 });
@@ -358,7 +358,7 @@ export const useWATTStaking = (validatorAddress?: string) => {
                 onUnbond({
                   delegatorAddress,
                   validatorAddress: eventValidatorAddress,
-                  amount: formatUnits(amount, 6),
+                  amount: formatUnits(amount, 18), // WATT uses 18 decimals
                   completionTime: completionTime.toString(),
                   transactionHash: event.transactionHash,
                 });
