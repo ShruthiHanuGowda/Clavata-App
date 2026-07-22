@@ -6,7 +6,7 @@ import {
   HomeScreenStack,
   MarketplaceStackFun,
   StakeStackFun,
-  WalletStack,
+  ExploreStack,
 } from '.';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -29,7 +29,7 @@ export default function Tabs() {
       />
       <Tab.Screen
         name="Explore"
-        component={WalletStack}
+        component={ExploreStack}
         options={{headerShown: false}}
       />
       <Tab.Screen

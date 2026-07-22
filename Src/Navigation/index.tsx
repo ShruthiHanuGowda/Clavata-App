@@ -15,6 +15,7 @@ import HomeScreenPage from '../Screens/Home/HomeScreenPage';
 // import {VerifyAddress} from '../Screens/Send/VerifyAdress';
 // import SendCoin from '../Screens/Send/SendCoin';
 import { navigationRef } from './NavigationFunctions';
+import ExplorePage from '../Screens/Explore/ExplorePage';
 // import CollectionDetailsScreen from '../Screens/MarketPlace/CollectionDetailsPage';
 // import NFTDetailsScreen from '../Screens/MarketPlace/NFTDetailsPage';
 // import WalletNFTDetailsScreen from '../Screens/MarketPlace/WalletNFTDetailsPage';
@@ -239,17 +240,34 @@ export function HomeScreenStack() {
 
 const walletStack = createNativeStackNavigator<WalletStackParamList>();
 
-export function WalletStack() {
+// export function ExploreStack() {
+//   return (
+//     <walletStack.Navigator
+//       initialRouteName="wallet"
+//       screenOptions={{ headerShown: false }}>
+//       {/* <walletStack.Screen name="wallet" component={Wallet} /> */}
+//       <walletStack.Screen
+//         name="coinWalletStack"
+//         component={CoinWalletStackFun}
+//       />
+//     </walletStack.Navigator>
+//   );
+// }
+
+const ExploreStackNavigator =
+  createNativeStackNavigator<WalletStackParamList>();
+
+export function ExploreStack() {
   return (
-    <walletStack.Navigator
-      initialRouteName="wallet"
+    <ExploreStackNavigator.Navigator
       screenOptions={{ headerShown: false }}>
-      {/* <walletStack.Screen name="wallet" component={Wallet} /> */}
-      <walletStack.Screen
-        name="coinWalletStack"
-        component={CoinWalletStackFun}
+
+      <ExploreStackNavigator.Screen
+        name="explore"
+        component={ExplorePage}
       />
-    </walletStack.Navigator>
+
+    </ExploreStackNavigator.Navigator>
   );
 }
 
