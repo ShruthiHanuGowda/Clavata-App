@@ -1,4 +1,4 @@
-import React, {useEffect, useReducer, useRef} from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import {
   Image,
   LayoutChangeEvent,
@@ -8,39 +8,39 @@ import {
   Text,
   View,
 } from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {Circle, Path, Svg} from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Circle, Path, Svg } from 'react-native-svg';
 import images from '../Theme/images';
 import fontsFamily from '../Theme/fontsFamily';
 
-type TabIconKeys = 'D.Energy' | 'Wallet' | 'Marketplace' | 'dApps' | 'Stake';
+type TabIconKeys = 'Nex' | 'Home' | 'Bookings' | 'Explore' | 'Profile';
 
 const tabIconsActive: {
-  Marketplace: {};
-  Wallet: {};
-  dApps: {};
-  'D.Energy': {};
-  Stake: {};
+  Bookings: {};
+  Home: {};
+  Explore: {};
+  'Nex': {};
+  Profile: {};
 } = {
-  'D.Energy': images?.homeActive,
-  Wallet: images?.walletActive,
-  Marketplace: images?.shopActive,
-  dApps: images?.categoryActive,
-  Stake: images?.stakeActive,
+  'Nex': images?.homeActive,
+  Home: images?.walletActive,
+  Bookings: images?.shopActive,
+  Explore: images?.categoryActive,
+  Profile: images?.stakeActive,
 };
 
 const tabIcons: {
-  Marketplace: {};
-  Wallet: {};
-  dApps: {};
-  'D.Energy': {};
-  Stake: {};
+  Bookings: {};
+  Home: {};
+  Explore: {};
+  'Nex': {};
+  Profile: {};
 } = {
-  'D.Energy': images?.home,
-  Wallet: images?.wallet,
-  Marketplace: images?.shop,
-  dApps: images?.category,
-  Stake: images?.stake,
+  'Nex': images?.home,
+  Home: images?.wallet,
+  Bookings: images?.shop,
+  Explore: images?.category,
+  Profile: images?.stake,
 };
 
 interface NavigationIconProps {
@@ -48,7 +48,7 @@ interface NavigationIconProps {
   route: TabIconKeys;
 }
 
-const NavigationIcon: React.FC<NavigationIconProps> = ({isFocused, route}) => {
+const NavigationIcon: React.FC<NavigationIconProps> = ({ isFocused, route }) => {
   return <Image source={isFocused ? tabIconsActive[route] : tabIcons[route]} />;
 };
 
@@ -79,7 +79,7 @@ const TabBarComponent: React.FC<TabBarComponentProps> = ({
   onLayout,
   onPress,
 }) => {
-  const ref = useRef<{play: () => void} | null>(null);
+  const ref = useRef<{ play: () => void } | null>(null);
 
   useEffect(() => {
     if (active && ref?.current) {
@@ -130,27 +130,27 @@ interface TabBarProps {
 }
 
 const TabBar: React.FC<TabBarProps> = ({
-  state: {index: activeIndex, routes},
+  state: { index: activeIndex, routes },
   navigation,
   descriptors,
 }) => {
-  const {bottom} = useSafeAreaInsets();
+  const { bottom } = useSafeAreaInsets();
 
   const reducer = (
     state: LayoutState[],
     action: LayoutAction,
   ): LayoutState[] => {
-    return [...state, {x: action.x, index: action.index}];
+    return [...state, { x: action.x, index: action.index }];
   };
 
   const [layout, dispatch] = useReducer(reducer, []);
 
   const handleLayout = (event: LayoutChangeEvent, index: number) => {
-    dispatch({x: event?.nativeEvent?.layout?.x, index});
+    dispatch({ x: event?.nativeEvent?.layout?.x, index });
   };
 
   let xOffset = 0;
-  const item = [...layout].find(({index}) => index === activeIndex);
+  const item = [...layout].find(({ index }) => index === activeIndex);
   if (!item) {
     xOffset = -25;
   } else {
@@ -168,7 +168,7 @@ const TabBar: React.FC<TabBarProps> = ({
     <View
       style={[
         styles.tabBar,
-        Platform.OS === 'android' ? {paddingBottom: bottom} : styles.tabBarIOS,
+        Platform.OS === 'android' ? { paddingBottom: bottom } : styles.tabBarIOS,
       ]}>
       <Svg
         width={110}
@@ -177,7 +177,7 @@ const TabBar: React.FC<TabBarProps> = ({
         style={[
           styles.activeBackground,
           styles.svgPositioning,
-          {transform: [{translateX: typeof xOffset === 'number' ? xOffset : 1}]},
+          { transform: [{ translateX: typeof xOffset === 'number' ? xOffset : 1 }] },
         ]}>
         <Circle
           translateY={-12}
@@ -196,7 +196,7 @@ const TabBar: React.FC<TabBarProps> = ({
       <View style={styles.tabBarContainer}>
         {routes.map((route, index) => {
           const active = index === activeIndex;
-          const {options} = descriptors[route.key];
+          const { options } = descriptors[route.key];
 
           return (
             <TabBarComponent
@@ -275,10 +275,10 @@ const styles = StyleSheet.create({
     fontFamily: fontsFamily.MulishSemiBold,
   },
   componentCircleActive: {
-    transform: [{scale: 1}],
+    transform: [{ scale: 1 }],
   },
   componentCircleInactive: {
-    transform: [{scale: 0}],
+    transform: [{ scale: 0 }],
   },
   iconContainerActive: {
     opacity: 1,

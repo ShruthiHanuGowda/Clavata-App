@@ -1,20 +1,21 @@
-import React, {useEffect, useState, useCallback, useRef} from 'react';
-import {Text, View, ScrollView, Alert, SafeAreaView} from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Text, View, ScrollView, Alert, SafeAreaView } from 'react-native';
 import 'react-native-get-random-values';
 import '@ethersproject/shims';
 import LottieView from 'lottie-react-native';
 import styles from './styles';
-import {useMagic} from '../../providers';
-import {useAuth} from '../../providers';
-import {navReset} from '../../Navigation/NavigationFunctions';
-import {DButton, Header} from '../../components';
-import {Animation, Colors} from '../../Theme';
-import {DEmailInput} from '../../components/Dinputs';
-import {useLazyQuery} from '@apollo/client';
-import {GET_USER_WALLET_ADDRESS} from '../../graphql/queries';
-import {UserAuth, ExtractedKycInfo, UserData} from '../../utils/type';
-import {useApolloClientContext} from '../../providers';
-import {useKycCheck} from '../../providers';
+// import { useMagic } from '../../providers';
+// import { useAuth } from '../../providers';
+import { navReset } from '../../Navigation/NavigationFunctions';
+import { DButton, Header } from '../../components';
+import { Animation, Colors } from '../../Theme';
+import { DMobileInput } from '../../components/Dinputs';
+import { useLazyQuery, useMutation } from '@apollo/client';
+import { SEND_OTP, VERIFY_OTP } from '../../graphql/queries';
+import { UserAuth, ExtractedKycInfo, UserData } from '../../utils/type';
+import { useApolloClientContext } from '../../providers';
+// import { useKycCheck } from '../../providers';
+import { useNavigation } from '@react-navigation/native';
 
 export const parseDataAndReturnFixedInfo = (data: any) => {
   try {
@@ -43,7 +44,7 @@ export const parseDataAndReturnFixedInfo = (data: any) => {
   }
 };
 
-const LoadingScreen = ({message}: {message: string}) => (
+const LoadingScreen = ({ message }: { message: string }) => (
   <View style={styles.loadingContainer}>
     <LottieView
       source={Animation.loaderAnimation}
@@ -58,23 +59,22 @@ const LoadingScreen = ({message}: {message: string}) => (
         },
       ]}
     />
-
     <Text style={styles.loadingMessage}>{message}</Text>
-
     <Text style={styles.loadingSubtitle}>Please wait...</Text>
   </View>
 );
 
 export default function LoginScreen() {
-  const {magic, setActiveNetwork} = useMagic();
-  const {updateUserData} = useAuth();
-  const {updateClientWithToken} = useApolloClientContext();
-  const {checkKYC, isKycCompleted} = useKycCheck();
+  const navigation = useNavigation();
+  // const { magic, setActiveNetwork } = useMagic();
+  // const { updateUserData } = useAuth();
+  // const { updateClientWithToken } = useApolloClientContext();
+  // const { checkKYC, isKycCompleted } = useKycCheck();
 
   const [isValid, setValid] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isScreenLoading, setIsScreenLoading] = useState(true);
+  // const [isScreenLoading, setIsScreenLoading] = useState(true);
   const [isKycSkipped, setIsKycSkipped] = useState(false);
   const [kycInProgress, setKycInProgress] = useState(false);
 
@@ -82,18 +82,21 @@ export default function LoginScreen() {
   const kycCompletionTimeoutRef = useRef<any>(null);
   const kycPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [getUserWallet, {data: userData, error: queryError}] = useLazyQuery(
-    GET_USER_WALLET_ADDRESS,
-    {
-      fetchPolicy: 'no-cache',
-    },
-  );
+  // const [getUserWallet, { data: userData, error: queryError }] = useLazyQuery(
+  //   SEND_OTP,
+  //   {
+  //     fetchPolicy: 'no-cache',
+  //   },
+  // );
+
+  const [sendOTP, { data: userData, error: queryError }] = useMutation(SEND_OTP);
+  const [verifyOTP] = useMutation(VERIFY_OTP);
 
   useEffect(() => {
     if (userData && !callbackExecutedRef.current && !isKycSkipped) {
       callbackExecutedRef.current = true;
 
-      handleUserData(userData);
+      // handleUserData(userData);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData, isKycSkipped]);
@@ -101,7 +104,7 @@ export default function LoginScreen() {
   useEffect(() => {
     if (queryError) {
       console.error('❌ Error fetching user data:', queryError);
-      setIsScreenLoading(false);
+      // setIsScreenLoading(false);
       setLoading(false);
 
       Alert.alert(
@@ -115,317 +118,32 @@ export default function LoginScreen() {
     (navReset as any)('appScreens');
   }, []);
 
-  const handleKycProcess = useCallback(async () => {
-    try {
-      setKycInProgress(true);
 
-      await checkKYC({
-        onSuccess: () => {
-          setKycInProgress(false);
-          setIsKycSkipped(true);
 
-          if (kycPollingIntervalRef.current) {
-            clearInterval(kycPollingIntervalRef.current);
-            kycPollingIntervalRef.current = null;
-          }
-          if (kycCompletionTimeoutRef.current) {
-            clearTimeout(kycCompletionTimeoutRef.current);
-            kycCompletionTimeoutRef.current = null;
-          }
-
-          setTimeout(() => navigateToApp(), 100);
-        },
-        onSkip: () => {
-          setKycInProgress(false);
-          setIsKycSkipped(true);
-
-          if (kycPollingIntervalRef.current) {
-            clearInterval(kycPollingIntervalRef.current);
-            kycPollingIntervalRef.current = null;
-          }
-          if (kycCompletionTimeoutRef.current) {
-            clearTimeout(kycCompletionTimeoutRef.current);
-            kycCompletionTimeoutRef.current = null;
-          }
-
-          setTimeout(() => navigateToApp(), 100);
-        },
-        onError: error => {
-          console.error('❌ KYC error:', error);
-          setKycInProgress(false);
-
-          if (kycPollingIntervalRef.current) {
-            clearInterval(kycPollingIntervalRef.current);
-            kycPollingIntervalRef.current = null;
-          }
-          if (kycCompletionTimeoutRef.current) {
-            clearTimeout(kycCompletionTimeoutRef.current);
-            kycCompletionTimeoutRef.current = null;
-          }
-        },
-        showAlerts: false,
-      });
-
-      // Polling mechanism
-      kycPollingIntervalRef.current = setInterval(async () => {
-        try {
-          if (isKycCompleted && kycInProgress) {
-            if (kycPollingIntervalRef.current) {
-              clearInterval(kycPollingIntervalRef.current);
-              kycPollingIntervalRef.current = null;
-            }
-            if (kycCompletionTimeoutRef.current) {
-              clearTimeout(kycCompletionTimeoutRef.current);
-              kycCompletionTimeoutRef.current = null;
-            }
-
-            setKycInProgress(false);
-            setIsKycSkipped(true);
-            setTimeout(() => navigateToApp(), 100);
-          }
-        } catch (pollingError) {
-          console.error('Error polling KYC status:', pollingError);
-        }
-      }, 2000);
-
-      // Timeout fallback
-      kycCompletionTimeoutRef.current = setTimeout(() => {
-        if (kycPollingIntervalRef.current) {
-          clearInterval(kycPollingIntervalRef.current);
-          kycPollingIntervalRef.current = null;
-        }
-
-        setKycInProgress(false);
-        setIsKycSkipped(true);
-        navigateToApp();
-      }, 60000);
-    } catch (error) {
-      console.error('Error in KYC process:', error);
-      setKycInProgress(false);
-
-      if (kycPollingIntervalRef.current) {
-        clearInterval(kycPollingIntervalRef.current);
-        kycPollingIntervalRef.current = null;
-      }
-      if (kycCompletionTimeoutRef.current) {
-        clearTimeout(kycCompletionTimeoutRef.current);
-        kycCompletionTimeoutRef.current = null;
-      }
-    }
-  }, [checkKYC, isKycCompleted, kycInProgress, navigateToApp]);
-
-  // Network authentication functions
-  const checkPrimaryNetworkAuth = useCallback(async () => {
-    try {
-      const isLoggedIn = await magic.user.isLoggedIn();
-
-      if (isLoggedIn) {
-        const userInfo = await magic.user.getInfo();
-        // CRITICAL: Update Apollo client with token BEFORE any GraphQL queries
-        await updateClientWithToken();
-
-        return {
-          isLoggedIn,
-          publicAddress: userInfo?.publicAddress ?? userInfo?.wallets?.ethereum?.publicAddress,
-          userData: userInfo,
-        };
-      }
-      return {isLoggedIn, publicAddress: null, userData: null};
-    } catch (error) {
-      console.error('❌ Primary network auth error:', error);
-      return {isLoggedIn: false, publicAddress: null, userData: null, error};
-    }
-  }, [magic.user, updateClientWithToken]);
-
-  const checkAllNetworks = useCallback(async () => {
-    try {
-      // CRITICAL: First check primary network (this updates Apollo client token)
-      const primaryNetworkData = await checkPrimaryNetworkAuth();
-
-      if (!primaryNetworkData.isLoggedIn) {
-        return {isLoggedIn: false, addresses: {}};
-      }
-
-      // For simplicity, using primary address for all networks
-      // You can uncomment below if you need separate network addresses
-      // const sepoliaNetworkData = await checkSepoliaNetworkAuth();
-      // const denergyNetworkData = await checkDenergyNetworkAuth();
-
-      const addresses = {
-        primary: primaryNetworkData.publicAddress,
-        sepolia: primaryNetworkData.publicAddress,
-        denergy: primaryNetworkData.publicAddress,
-      };
-
-      return {
-        isLoggedIn: true,
-        addresses,
-        networkData: {
-          primary: primaryNetworkData,
-          sepolia: primaryNetworkData,
-          denergy: primaryNetworkData,
-        },
-      };
-    } catch (error) {
-      console.error('❌ Error checking all networks:', error);
-      return {isLoggedIn: false, addresses: {}, error};
-    }
-  }, [checkPrimaryNetworkAuth]);
-
-  // Handle user data from GraphQL query
-  const handleUserData = useCallback(
-    async (data: UserData): Promise<void> => {
-      try {
-        if (data?.getUserWalletAddress) {
-          await checkAllNetworks();
-
-          // User exists in DB - store data in context
-          const apiData: UserAuth = {
-            date: data.getUserWalletAddress.date || new Date().toISOString(),
-            userWallet: data.getUserWalletAddress.userWallet || null,
-            emailAddress: data.getUserWalletAddress.emailAddress || null,
-            is_verified: data.getUserWalletAddress.is_verified || false,
-            kycDetails: data.getUserWalletAddress.kycDetails,
-            accessToken: data.getUserWalletAddress.accessToken,
-            applicantId: data.getUserWalletAddress.applicantId,
-          };
-
-          // Process KYC details
-          if (apiData.kycDetails && typeof apiData.kycDetails === 'string') {
-            const kycDetailsParsed = JSON.parse(apiData.kycDetails);
-            const extractedKycInfo: ExtractedKycInfo | null =
-              parseDataAndReturnFixedInfo(kycDetailsParsed);
-
-            if (extractedKycInfo) {
-              apiData.kycDetails = extractedKycInfo;
-            }
-          }
-
-          await updateUserData(apiData, true);
-
-          const isVerified: boolean =
-            apiData?.is_verified === true || apiData?.is_verified === 'true';
-
-          if (
-            !isVerified &&
-            !isKycCompleted &&
-            !isKycSkipped &&
-            !kycInProgress
-          ) {
-            setTimeout(() => handleKycProcess(), 300);
-          } else {
-            navigateToApp();
-          }
-
-          setLoading(false);
-          setIsScreenLoading(false);
-        } else {
-          // User not in DB - prepare new user data
-          await prepareNewUserData();
-        }
-      } catch (error) {
-        console.error('❌ Error handling user data:', error);
-        setLoading(false);
-        setIsScreenLoading(false);
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      checkAllNetworks,
-      updateUserData,
-      isKycCompleted,
-      isKycSkipped,
-      kycInProgress,
-      handleKycProcess,
-      navigateToApp,
-    ],
-  );
-
-  // Prepare data for new users
-  const prepareNewUserData = useCallback(async () => {
-    try {
-      const result = await checkAllNetworks();
-      setActiveNetwork('sepolia');
-      const userInfo = await magic.user.getInfo();
-
-      const walletData: any = {
-        emailAddress: userInfo.email,
-        userWallet: result?.networkData?.primary?.publicAddress,
-        date: new Date().toISOString(),
-        is_verified: false,
-      };
-
-      await updateUserData(walletData, false);
-      setLoading(false);
-      setIsScreenLoading(false);
-
-      setTimeout(() => handleKycProcess(), 300);
-    } catch (error) {
-      console.error('❌ Error preparing user data:', error);
-      setLoading(false);
-      setIsScreenLoading(false);
-      throw error;
-    }
-  }, [
-    checkAllNetworks,
-    setActiveNetwork,
-    magic.user,
-    updateUserData,
-    handleKycProcess,
-  ]);
-
-  // Check user session on app start
-  const checkUserSession = useCallback(async () => {
-    try {
-      setIsScreenLoading(true);
-      callbackExecutedRef.current = false;
-
-      const isLoggedIn = await magic.user.isLoggedIn();
-
-      if (isLoggedIn) {
-        const userMetadata = await magic.user.getInfo();
-
-        await updateClientWithToken();
-
-        await getUserWallet({
-          variables: {emailAddress: userMetadata?.email?.toLowerCase()},
-        });
-      } else {
-        setIsScreenLoading(false);
-      }
-    } catch (error) {
-      console.error('❌ Error checking user session:', error);
-      setIsScreenLoading(false);
-    }
-  }, [magic.user, updateClientWithToken, getUserWallet]);
-
-  // Check for active session on component mount
-  useEffect(() => {
-    checkUserSession();
-  }, [checkUserSession]);
-
-  // FIXED: Login with email OTP - ensuring token update before GraphQL
-  const loginEmailOTP = useCallback(async () => {
+  const loginWithPhone = useCallback(async () => {
     try {
       setLoading(true);
-      callbackExecutedRef.current = false;
-
-      await magic.auth.loginWithEmailOTP({email: userEmail});
-
-      await updateClientWithToken();
-
-      await getUserWallet({
-        variables: {emailAddress: userEmail.toLowerCase()},
+      console.log('User Phone Number:', userEmail);
+      // await updateClientWithToken();
+      const { data } = await sendOTP({
+        variables: {
+          phoneNumber: userEmail,
+        },
       });
+
+      console.log('OTP sent response:', data);
+
+      if (data?.sendOTP.success) {
+        navigation.navigate('VerifyOTP', {
+          phoneNumber: userEmail,
+        });
+      }
     } catch (err) {
-      console.error('❌ Login failed:', err);
+      console.error(err);
+    } finally {
       setLoading(false);
-      Alert.alert(
-        'Login Failed',
-        'Unable to login with the provided email. Please try again.',
-      );
     }
-  }, [userEmail, magic.auth, updateClientWithToken, getUserWallet]);
+  }, [userEmail, sendOTP]);
 
   // Cleanup on component unmount
   useEffect(() => {
@@ -440,65 +158,61 @@ export default function LoginScreen() {
   }, []);
 
   // Listen for KYC completion changes
-  useEffect(() => {
-    if (isKycCompleted && kycInProgress) {
-      if (kycPollingIntervalRef.current) {
-        clearInterval(kycPollingIntervalRef.current);
-        kycPollingIntervalRef.current = null;
-      }
-      if (kycCompletionTimeoutRef.current) {
-        clearTimeout(kycCompletionTimeoutRef.current);
-        kycCompletionTimeoutRef.current = null;
-      }
+  // useEffect(() => {
+  //   if (isKycCompleted && kycInProgress) {
+  //     if (kycPollingIntervalRef.current) {
+  //       clearInterval(kycPollingIntervalRef.current);
+  //       kycPollingIntervalRef.current = null;
+  //     }
+  //     if (kycCompletionTimeoutRef.current) {
+  //       clearTimeout(kycCompletionTimeoutRef.current);
+  //       kycCompletionTimeoutRef.current = null;
+  //     }
 
-      setKycInProgress(false);
-      setIsKycSkipped(true);
-      setTimeout(() => navigateToApp(), 500);
-    }
-  }, [isKycCompleted, kycInProgress, navigateToApp]);
+  //     setKycInProgress(false);
+  //     setIsKycSkipped(true);
+  //     setTimeout(() => navigateToApp(), 500);
+  //   }
+  // }, [isKycCompleted, kycInProgress, navigateToApp]);
 
   return (
     <SafeAreaView style={styles.safeAreaContainer}>
-      {isScreenLoading ? (
-        <LoadingScreen
-          message={kycInProgress ? 'Processing KYC...' : 'Checking session...'}
-        />
-      ) : (
-        <View style={styles.flexContainer}>
-          <Header headerTitle="Login" hideBorder={true} hideBackIcon={true} />
-          <ScrollView>
-            <View style={styles.contentContainer}>
-              <Text style={[styles.content, styles.welcomeText]}>Welcome</Text>
-              <View style={styles.emailInputWrapper}>
-                <DEmailInput
-                  inputAccessoryViewID={'sendOtp'}
-                  setValid={setValid}
-                  value={userEmail}
-                  setValue={setUserEmail}
-                />
-                {!isValid && userEmail && (
-                  <Text style={[styles.errorMessage]}>
-                    Please enter a valid email.
-                  </Text>
-                )}
-              </View>
-              <DButton
-                type="primary"
-                style={styles.loginBtnStyle}
-                disabled={!(userEmail && isValid) || loading || kycInProgress}
-                onPress={loginEmailOTP}>
-                <Text style={[styles.loginText]}>
-                  {loading
-                    ? 'Sending...'
-                    : kycInProgress
-                    ? 'Processing...'
-                    : 'Log In'}
-                </Text>
-              </DButton>
-            </View>
-          </ScrollView>
+      <View style={styles.flexContainer}>
+
+        <View style={styles.loginContent}>
+
+          <Text style={styles.title}>
+            Nex
+          </Text>
+
+          <Text style={styles.subtitle}>
+            Book trusted salon services{"\n"}
+            or manage your salon business.
+          </Text>
+
+          <View style={styles.emailInputWrapper}>
+            <DMobileInput
+              inputAccessoryViewID={'sendOtp'}
+              setValid={setValid}
+              value={userEmail}
+              setValue={setUserEmail}
+            />
+          </View>
+
+          <DButton
+            type="primary"
+            style={styles.loginBtnStyle}
+            disabled={!(userEmail && isValid) || loading}
+            onPress={loginWithPhone}
+          >
+            <Text style={styles.loginText}>
+              {loading ? 'Sending...' : 'Continue'}
+            </Text>
+          </DButton>
+
         </View>
-      )}
+
+      </View>
     </SafeAreaView>
   );
 }

@@ -13,6 +13,7 @@ import {
 import Colors from '../Theme/Colors';
 import fontsFamily from '../Theme/fontsFamily';
 import Images from '../Theme/images';
+import { useNavigation } from '@react-navigation/native';
 
 // Get device width for responsive layout
 const deviceWidth = Dimensions.get('window').width;
@@ -31,7 +32,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = props => {
-  const {headerTitle, hideBorder, headerTextStyleProps} = props;
+  const navigation = useNavigation();
+  const { headerTitle, hideBorder, headerTextStyleProps } = props;
 
   return (
     <SafeAreaView
@@ -44,7 +46,9 @@ const Header: React.FC<HeaderProps> = props => {
         <View style={[style.headerIcons, props.backArrowStyle]}>
           {!props.hideBackIcon && (
             <TouchableOpacity
-              onPress={() => (props.backBtn ? props.backBtn() : null)}>
+              onPress={() =>
+                props.backBtn ? props.backBtn() : navigation.goBack()}
+            >
               <Image source={Images.backHeaderArrow} />
             </TouchableOpacity>
           )}

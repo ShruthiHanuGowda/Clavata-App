@@ -1,8 +1,8 @@
 import React from 'react';
-import {useWalletConnect} from '../providers';
-import {useMagic} from '../providers';
-import {useAuth} from '../providers';
-import SpendingCapRequestModal from '../Screens/WalletConnect/SpendingCapRequestModal';
+// import {useWalletConnect} from '../providers';
+// import {useMagic} from '../providers';
+// import {useAuth} from '../providers';
+// import SpendingCapRequestModal from '../Screens/WalletConnect/SpendingCapRequestModal';
 
 /**
  * GlobalWalletConnectModals
@@ -15,37 +15,38 @@ import SpendingCapRequestModal from '../Screens/WalletConnect/SpendingCapRequest
  * signature requests, etc.) even when they're not on the WalletConnect screen.
  */
 const GlobalWalletConnectModals: React.FC = () => {
-  const {
-    pendingRequest,
-    approveRequest,
-    rejectRequest,
-    activeSessions,
-  } = useWalletConnect();
+  // const {
+  //   pendingRequest,
+  //   approveRequest,
+  //   rejectRequest,
+  //   activeSessions,
+  // } = useWalletConnect();
 
-  const {activeNetwork} = useMagic();
-  const {userDetails} = useAuth();
+  // const {activeNetwork} = useMagic();
+  // const {userDetails} = useAuth();
 
   // Don't render anything if there's no pending request
-  if (!pendingRequest) {
-    return null;
-  }
+  // if (!pendingRequest) {
+  //   return null;
+  // }
 
-  // Get dApp metadata from the active session that matches this request
-  const dappMetadata = activeSessions.find(
-    session => session.topic === pendingRequest?.topic,
-  )?.peer?.metadata;
+  // // Get dApp metadata from the active session that matches this request
+  // const dappMetadata = activeSessions.find(
+  //   session => session.topic === pendingRequest?.topic,
+  // )?.peer?.metadata;
 
   return (
-    <SpendingCapRequestModal
-      visible={!!pendingRequest}
-      request={pendingRequest}
-      accountAddress={userDetails?.userWallet || ''}
-      networkName={activeNetwork === 'denergy' ? 'D-Energy' : 'Sepolia'}
-      networkSymbol={activeNetwork === 'denergy' ? 'D-Energy' : 'SepoliaETH'}
-      dappMetadata={dappMetadata}
-      onApprove={approveRequest}
-      onReject={rejectRequest}
-    />
+    // <SpendingCapRequestModal
+    //   visible="true"
+    //   request={pendingRequest}
+    //   accountAddress={userDetails?.userWallet || ''}
+    //   networkName={activeNetwork === 'denergy' ? 'D-Energy' : 'Sepolia'}
+    //   networkSymbol={activeNetwork === 'denergy' ? 'D-Energy' : 'SepoliaETH'}
+    //   dappMetadata={dappMetadata}
+    //   onApprove={approveRequest}
+    //   onReject={rejectRequest}
+    // />
+    <></>
   );
 };
 

@@ -1,113 +1,98 @@
+// 
+
 import React, {
   createContext,
   ReactNode,
   useContext,
-  useEffect,
   useState,
   useCallback,
 } from 'react';
+
 import {
   ApolloClient,
   InMemoryCache,
   ApolloProvider,
   NormalizedCacheObject,
+  HttpLink,
 } from '@apollo/client';
-import {useMagic} from './MagicProvider';
-import {MERGED_API_URL} from '../constants';
 
-const createApolloClient = (
-  magicAccessToken: string = '',
-): ApolloClient<NormalizedCacheObject> => {
+import { MERGED_API_URL } from '../constants';
+
+const APPSYNC_API_KEY = 'da2-u4e6ychzkrbsfmfqpc33ujdbvy';
+
+const httpLink = new HttpLink({
+  uri: "https://3ncgvnrobfe33fepo7cyia3kte.appsync-api.ap-south-2.amazonaws.com/graphql",
+  headers: {
+    'x-api-key': APPSYNC_API_KEY,
+  },
+});
+
+const createApolloClient = (): ApolloClient<NormalizedCacheObject> => {
+  // console.log('🔗 Apollo URL:', MERGED_API_URL);
+  console.log('🔑 Using API Key Authentication', APPSYNC_API_KEY);
+
   return new ApolloClient({
-    uri: MERGED_API_URL,
+    link: httpLink,
     cache: new InMemoryCache(),
-    headers: {
-      Authorization: magicAccessToken ? `Bearer ${magicAccessToken}` : '',
-    },
   });
 };
+
 
 interface GraphQLProviderProps {
   children: ReactNode;
 }
 
+
 interface ApolloClientContextType {
   client: ApolloClient<NormalizedCacheObject>;
-  updateClientWithToken: () => Promise<void>;
   resetClient: () => void;
-  isUpdatingToken: boolean;
 }
 
-export interface WithApolloClientProps {
-  client: ApolloClient<NormalizedCacheObject>;
-}
 
-const ApolloClientContext = createContext<ApolloClientContextType | null>(null);
+const ApolloClientContext =
+  createContext<ApolloClientContextType | null>(null);
 
-export const useApolloClientContext = (): ApolloClientContextType => {
+
+export const useApolloClientContext = () => {
   const context = useContext(ApolloClientContext);
+
   if (!context) {
     throw new Error(
-      'useApolloClientContext must be used within GraphQLProvider',
+      'useApolloClientContext must be used inside GraphQLProvider',
     );
   }
+
   return context;
 };
 
-export const GraphQLProvider: React.FC<GraphQLProviderProps> = ({children}) => {
-  const [apolloClient, setApolloClient] = useState<
-    ApolloClient<NormalizedCacheObject>
-  >(() => createApolloClient());
 
-  const [isUpdatingToken, setIsUpdatingToken] = useState(false);
-  const {magic} = useMagic();
+export const GraphQLProvider: React.FC<GraphQLProviderProps> = ({
+  children,
+}) => {
 
-  const updateClientWithToken = useCallback(async () => {
-    if (!magic) {
-      return;
-    }
+  console.log('🚀 GraphQLProvider rendered');
+  const [apolloClient, setApolloClient] =
+    useState<ApolloClient<NormalizedCacheObject>>(
+      () => createApolloClient(),
+    );
 
-    setIsUpdatingToken(true);
-    try {
-      const isLoggedIn = await magic.user.isLoggedIn();
-
-      if (isLoggedIn) {
-        const idToken = await magic.user.getIdToken({lifespan: 86400});
-        const clientWithToken = createApolloClient(idToken);
-        setApolloClient(clientWithToken);
-      } else {
-        const clientWithoutToken = createApolloClient();
-        setApolloClient(clientWithoutToken);
-      }
-    } catch (error) {
-      const clientWithoutToken = createApolloClient();
-      setApolloClient(clientWithoutToken);
-    } finally {
-      setIsUpdatingToken(false);
-    }
-  }, [magic]);
 
   const resetClient = useCallback(() => {
-    const clientWithoutToken = createApolloClient();
-    setApolloClient(clientWithoutToken);
+    const client = createApolloClient();
+    setApolloClient(client);
   }, []);
 
-  useEffect(() => {
-    if (magic) {
-      updateClientWithToken();
-    }
-  }, [magic, updateClientWithToken]);
-
-  const contextValue: ApolloClientContextType = {
-    client: apolloClient,
-    updateClientWithToken,
-    resetClient,
-    isUpdatingToken,
-  };
 
   return (
-    <ApolloClientContext.Provider value={contextValue}>
-      <ApolloProvider client={apolloClient}>{children}</ApolloProvider>
+    <ApolloClientContext.Provider
+      value={{
+        client: apolloClient,
+        resetClient,
+      }}
+    >
+      <ApolloProvider client={apolloClient}>
+        {children}
+      </ApolloProvider>
     </ApolloClientContext.Provider>
   );
 };

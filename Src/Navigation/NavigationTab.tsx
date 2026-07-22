@@ -17,28 +17,28 @@ const renderTabBar = (props: any) => <TabBar {...props} />;
 export default function Tabs() {
   return (
     <Tab.Navigator
-      initialRouteName="D.Energy"
+      initialRouteName="Nex"
       tabBar={renderTabBar}
       screenOptions={{
         unmountOnBlur: true,
       }}>
       <Tab.Screen
-        name="D.Energy"
+        name="Home"
         component={HomeScreenStack}
         options={{headerShown: false}}
       />
       <Tab.Screen
-        name="Wallet"
+        name="Explore"
         component={WalletStack}
         options={{headerShown: false}}
       />
       <Tab.Screen
-        name="Marketplace"
+        name="Bookings"
         component={MarketplaceStackFun}
         options={{headerShown: false}}
       />
       <Tab.Screen
-        name="Stake"
+        name="Profile"
         component={StakeStackFun}
         options={{headerShown: false}}
       />

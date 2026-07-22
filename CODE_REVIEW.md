@@ -36,7 +36,7 @@ This code review identifies critical security vulnerabilities, architectural fla
 
 ```typescript
 // App.tsx:39
-<MagicProvider apiKey="pk_live_F22A388602152902">
+// <MagicProvider apiKey="pk_live_F22A388602152902">
 
 // screens/Provider/GraphQLProvider.tsx:17
 'x-api-key': 'da2-baxdpa3fcnh55ph4mgfoygz7em'

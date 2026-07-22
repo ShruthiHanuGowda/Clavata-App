@@ -1,4 +1,35 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
+
+export const SEND_OTP = gql`
+  mutation SendOTP($phoneNumber: String!) {
+  sendOTP(phoneNumber: $phoneNumber) {
+    success
+    message
+  }
+}
+`;
+
+export const VERIFY_OTP = gql`
+mutation VerifyOTP($phoneNumber: String!, $otp: String!) {
+  verifyOTP(
+    phoneNumber: $phoneNumber
+    otp: $otp
+  ) {
+    success
+    message
+    isExistingUser
+  }
+}
+`;
+
+export const REGISTER_USER = gql`
+  mutation RegisterUser($input: RegisterUserInput!) {
+    registerUser(input: $input) {
+      success
+      message
+    }
+  }
+`;
 
 // Define the GraphQL mutation
 export const CREATE_USER_WALLETS = gql`
@@ -41,19 +72,22 @@ export const UPDATE_KYC_STATUS = gql`
   }
 `;
 
-export const GET_USER_WALLET_ADDRESS = gql`
-  query getUserWalletAddress($emailAddress: String!) {
-    getUserWalletAddress(emailAddress: $emailAddress) {
-      emailAddress
-      userWallet
-      is_verified
-      date
-      applicantId
-      accessToken
-      kycDetails
-    }
-  }
-`;
+
+
+
+// export const GET_USER_WALLET_ADDRESS = gql`
+//   query getUserWalletAddress($emailAddress: String!) {
+//     getUserWalletAddress(emailAddress: $emailAddress) {
+//       emailAddress
+//       userWallet
+//       is_verified
+//       date
+//       applicantId
+//       accessToken
+//       kycDetails
+//     }
+//   }
+// `;
 
 export const CREATE_KYC_VERIFICATION = gql`
   mutation createKYCVerification($email: String!, $levelName: String!) {

@@ -17,24 +17,16 @@ interface DTextInputProps {
   style?: object;
   containerStyle?: object;
   keyboardType?:
-    | 'default'
-    | 'email-address'
-    | 'numeric'
-    | 'phone-pad'
-    | 'decimal-pad'
-    | 'numeric'
-    | 'url';
+  | 'default'
+  | 'email-address'
+  | 'numeric'
+  | 'phone-pad'
+  | 'decimal-pad'
+  | 'numeric'
+  | 'url';
   multiline?: boolean;
   numberOfLines?: number;
   editable?: boolean;
-}
-
-interface DEmailInputProps {
-  value: string;
-  placeholder?: string;
-  setValue: (text: string) => void;
-  setValid: (isValid: boolean) => void;
-  inputAccessoryViewID?: string;
 }
 
 interface DSearchInputProps {
@@ -44,20 +36,62 @@ interface DSearchInputProps {
   onEndEditing?: () => void;
 }
 
+interface DInputProps {
+  value: string;
+  placeholder?: string;
+  setValue: (text: string) => void;
+  setValid: (isValid: boolean) => void;
+  inputAccessoryViewID?: string;
+}
+
+//for mobile
+export function DMobileInput({
+  value,
+  placeholder = 'Enter Mobile number',
+  setValue,
+  setValid,
+  inputAccessoryViewID,
+}: DInputProps) {
+
+  const handleOnChange = (text: string) => {
+    // Remove spaces and unwanted characters
+    const mobile = text.replace(/\s+/g, '');
+
+    // Indian mobile number validation (+91 optional)
+    const regex = /^(\+91)?[6-9]\d{9}$/;
+
+    setValue(mobile);
+    setValid(regex.test(mobile));
+  };
+
+  return (
+    <View style={styles.mobileInputWrapper}>
+      <TextInput
+        value={value}
+        placeholder={placeholder}
+        onChangeText={handleOnChange}
+        keyboardType="phone-pad"
+        inputAccessoryViewID={inputAccessoryViewID}
+        style={styles.mobileInput}
+      />
+    </View>
+  );
+}
+
+//for email
 export function DEmailInput({
   value,
   placeholder = 'example@d.energy',
   setValue,
   setValid,
   inputAccessoryViewID,
-}: DEmailInputProps) {
+}: DInputProps) {
   const handleOnChange = (text: string) => {
     let re = /\S+@\S+\.\S+/;
     let regex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
     setValue(text.trim());
     setValid(re.test(text) || regex.test(text));
   };
-
   return (
     <View style={styles.wrapperInput}>
       <TextInput
@@ -200,6 +234,21 @@ export function DTextInput({
 }
 
 const styles = StyleSheet.create({
+  mobileInputWrapper: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    height: 52,
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+
+  mobileInput: {
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: Colors.textInput,
+    height: 52,
+  },
   wrapperInput: {
     borderWidth: 0.5,
     borderRadius: 5,

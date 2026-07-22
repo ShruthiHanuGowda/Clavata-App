@@ -8,7 +8,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 declare global {
   namespace ReactNavigation {
-    interface RootParamList extends RootStackParamList {}
+    interface RootParamList extends RootStackParamList { }
   }
 }
 
@@ -18,10 +18,15 @@ export type RootStackParamList = {
   intro: undefined;
   appScreens: undefined;
   authScreens: undefined;
+  RegisterUser: {
+    phoneNumber: string;
+  };
   OffsetScreen: undefined;
-
+  VerifyOTP: {
+    phoneNumber: string;
+  };
   // Common NFT/Marketplace screens
-  walletNFTDetails: {nftId?: string; contractAddress?: string};
+  walletNFTDetails: { nftId?: string; contractAddress?: string };
   NFTDetailHistory: undefined;
   SellNFT: {
     variant?: string;
@@ -34,7 +39,7 @@ export type RootStackParamList = {
     currentSeller?: string;
   };
   NFTDetailsPage: undefined;
-  collectionDetails: {contractAddress: string};
+  collectionDetails: { contractAddress: string };
 
   // Common transaction/wallet screens
   transactionHistory: undefined;
@@ -57,7 +62,7 @@ export type RootStackParamList = {
   ValidatorDetailsScreen: undefined;
   StakeScreen: undefined;
   UnstakeScreen: undefined;
-  QueuedDelegationsScreen: {delegatorAddress: string};
+  QueuedDelegationsScreen: { delegatorAddress: string };
 
   // Deprecated types (kept for backwards compatibility)
   Root: NavigatorScreenParams<RootTabParamList> | undefined;
@@ -71,9 +76,11 @@ export type RootStackScreenProps<Screen extends keyof RootStackParamList> = Nati
 >;
 
 export type RootTabParamList = {
-  'D.Energy': undefined;
-  Wallet: undefined;
-  Marketplace: undefined;
+  'Nex': undefined;
+  Home: undefined;
+  Explore: undefined;
+  Bookings: undefined;
+  Profile: undefined;
   dApps: undefined;
   Stake: undefined;
   // Deprecated types (kept for backwards compatibility)
@@ -82,7 +89,7 @@ export type RootTabParamList = {
 };
 
 export type HomeStackParamList = {
-  'D.Energy': undefined;
+  'Nex': undefined;
   coinWalletStack: undefined;
   account: undefined;
 };

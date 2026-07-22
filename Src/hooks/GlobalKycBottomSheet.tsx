@@ -5,40 +5,40 @@ import BottomSheet, {
   BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
 import {useSafeAreaInsets, EdgeInsets} from 'react-native-safe-area-context';
-import {useKyc} from '../providers';
+// import {useKyc} from '../providers';
 import {Colors} from '../Theme';
 
 // =================== COMPONENT ===================
 const GlobalKycBottomSheet: React.FC = () => {
-  const {
-    isKycBottomSheetVisible,
-    hideKycBottomSheet,
-    startKycVerification,
-    skipKycVerification,
-    kycStatus,
-  } = useKyc();
+  // const {
+  //   isKycBottomSheetVisible,
+  //   hideKycBottomSheet,
+  //   startKycVerification,
+  //   skipKycVerification,
+  //   kycStatus,
+  // } = useKyc();
 
   const insets: EdgeInsets = useSafeAreaInsets();
   const bottomSheetRef = useRef<BottomSheet>(null);
 
   const snapPoints = useMemo(() => ['55%'], []);
 
-  useEffect(() => {
-    if (isKycBottomSheetVisible && bottomSheetRef.current) {
-      bottomSheetRef.current.expand();
-    } else if (!isKycBottomSheetVisible && bottomSheetRef.current) {
-      bottomSheetRef.current.close();
-    }
-  }, [isKycBottomSheetVisible]);
+  // useEffect(() => {
+  //   if (isKycBottomSheetVisible && bottomSheetRef.current) {
+  //     bottomSheetRef.current.expand();
+  //   } else if (!isKycBottomSheetVisible && bottomSheetRef.current) {
+  //     bottomSheetRef.current.close();
+  //   }
+  // }, [isKycBottomSheetVisible]);
 
-  const handleSheetChanges = useCallback(
-    (index: number): void => {
-      if (index === -1) {
-        hideKycBottomSheet();
-      }
-    },
-    [hideKycBottomSheet],
-  );
+  // const handleSheetChanges = useCallback(
+  //   (index: number): void => {
+  //     if (index === -1) {
+  //       hideKycBottomSheet();
+  //     }
+  //   },
+  //   [hideKycBottomSheet],
+  // );
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -54,27 +54,27 @@ const GlobalKycBottomSheet: React.FC = () => {
   );
 
   const handleStartKyc = useCallback(async (): Promise<void> => {
-    hideKycBottomSheet();
+    // hideKycBottomSheet();
 
     setTimeout(async () => {
       try {
-        await startKycVerification();
+        // await startKycVerification();
       } catch (error) {
         console.error('Error starting KYC:', error);
       }
     }, 300);
-  }, [startKycVerification, hideKycBottomSheet]);
+  }, []);
 
   // Handle KYC skip with improved event handling - SAME logic as your original
   const handleSkipKyc = useCallback((): void => {
     setTimeout(async () => {
       try {
-        await skipKycVerification();
+        // await skipKycVerification();
       } catch (error) {
         console.error('Error skipping KYC:', error);
       }
     }, 300);
-  }, [skipKycVerification]);
+  }, []);
 
   // SAME render structure as your original - no UI changes!
   return (
@@ -82,13 +82,14 @@ const GlobalKycBottomSheet: React.FC = () => {
       ref={bottomSheetRef}
       index={-1}
       snapPoints={snapPoints}
-      onChange={handleSheetChanges}
-      enablePanDownToClose={!isKycBottomSheetVisible}
+      // onChange={handleSheetChanges}
+      // enablePanDownToClose={!isKycBottomSheetVisible}
       backdropComponent={renderBackdrop}
       handleIndicatorStyle={styles.handleIndicator}
       backgroundStyle={styles.bottomSheetBackground}>
       <View style={[styles.contentContainer, {paddingBottom: insets.bottom}]}>
-        {isKycBottomSheetVisible && (
+        {}
+        {(
           <>
             <Text style={styles.title}>KYC Verification</Text>
             <Text style={styles.description}>
@@ -101,7 +102,7 @@ const GlobalKycBottomSheet: React.FC = () => {
                 style={styles.optionButton}
                 activeOpacity={0.7}
                 onPress={handleStartKyc}
-                disabled={kycStatus.isProcessing}>
+                >
                 <View style={styles.optionIconContainer}>
                   {/* <Image
                     source={require('../../assets/images/kyc-verify.png')}
@@ -121,7 +122,7 @@ const GlobalKycBottomSheet: React.FC = () => {
                 style={[styles.optionButton, styles.skipButton]}
                 activeOpacity={0.7}
                 onPress={handleSkipKyc}
-                disabled={kycStatus.isProcessing}>
+                >
                 <View style={styles.optionIconContainer}>
                   {/* <Image
                     source={require('../../assets/images/skip.png')}

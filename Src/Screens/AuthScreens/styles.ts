@@ -1,4 +1,4 @@
-import {StyleSheet, TextStyle, ViewStyle, Platform} from 'react-native';
+import { StyleSheet, TextStyle, ViewStyle, Platform } from 'react-native';
 import Colors from '../../Theme/Colors';
 import fontsFamily from '../../Theme/fontsFamily';
 
@@ -6,6 +6,8 @@ import fontsFamily from '../../Theme/fontsFamily';
 interface Styles {
   container: ViewStyle;
   contentContainer: ViewStyle;
+  title: TextStyle;
+  subtitle: TextStyle;
   content: TextStyle;
   emailInputWrapper: ViewStyle;
   errorMessage: TextStyle;
@@ -14,6 +16,7 @@ interface Styles {
   loadingContainer: ViewStyle;
   lottieAnimation: ViewStyle;
   flexContainer: ViewStyle;
+  loginContent: ViewStyle;
   safeAreaContainer: ViewStyle;
   welcomeText: TextStyle;
   loadingMessage: TextStyle;
@@ -28,6 +31,29 @@ const styles = StyleSheet.create<Styles>({
   },
   contentContainer: {
     marginTop: 10,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+    // marginTop: 24,
+  },
+
+  loginContent: {
+    // justifyContent: 'center',
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 90,
+  },
+
+  subtitle: {
+    fontSize: 15,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 32,
+    paddingHorizontal: 20,
   },
   content: {
     color: '#747474',
