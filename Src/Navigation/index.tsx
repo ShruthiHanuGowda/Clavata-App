@@ -9,6 +9,7 @@ import { StyleSheet, View } from 'react-native';
 import { Root } from '../Screens/RootScreen';
 import Tabs from './NavigationTab';
 import { SCREEN_CONSTANT } from './constant';
+import HomeScreenPage from '../Screens/Home/HomeScreenPage';
 // import CoinWallet from '../Screens/AppScreens/CoinWallet/CoinWallet';
 // import Drex from '../Screens/HomeScreen';
 // import {VerifyAddress} from '../Screens/Send/VerifyAdress';
@@ -226,11 +227,12 @@ const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 export function HomeScreenStack() {
   return (
     <HomeStack.Navigator
-      initialRouteName="D.Energy"
+      initialRouteName="Nex"
       screenOptions={{ headerShown: false }}>
-      {/* <HomeStack.Screen name="D.Energy" component={Drex} />
-      <HomeStack.Screen name="account" component={Account} /> */}
-      <HomeStack.Screen name="coinWalletStack" component={CoinWalletStackFun} />
+      <HomeStack.Screen name="HomeScreen" component={HomeScreenPage} />
+      {/* <HomeStack.Screen name="Nex" component={Drex} /> */}
+      {/* <HomeStack.Screen name="account" component={Account} />  */}
+      {/* <HomeStack.Screen name="HomeScreen" component={CoinWalletStackFun} /> */}
     </HomeStack.Navigator>
   );
 }

@@ -90,6 +90,7 @@ export type RootTabParamList = {
 
 export type HomeStackParamList = {
   'Nex': undefined;
+  HomeScreen: undefined;
   coinWalletStack: undefined;
   account: undefined;
 };
