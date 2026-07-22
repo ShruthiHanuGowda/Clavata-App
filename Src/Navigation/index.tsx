@@ -16,6 +16,7 @@ import HomeScreenPage from '../Screens/Home/HomeScreenPage';
 // import SendCoin from '../Screens/Send/SendCoin';
 import { navigationRef } from './NavigationFunctions';
 import ExplorePage from '../Screens/Explore/ExplorePage';
+import BookingPage from '../Screens/Booking/BookingPage';
 // import CollectionDetailsScreen from '../Screens/MarketPlace/CollectionDetailsPage';
 // import NFTDetailsScreen from '../Screens/MarketPlace/NFTDetailsPage';
 // import WalletNFTDetailsScreen from '../Screens/MarketPlace/WalletNFTDetailsPage';
@@ -238,22 +239,6 @@ export function HomeScreenStack() {
   );
 }
 
-const walletStack = createNativeStackNavigator<WalletStackParamList>();
-
-// export function ExploreStack() {
-//   return (
-//     <walletStack.Navigator
-//       initialRouteName="wallet"
-//       screenOptions={{ headerShown: false }}>
-//       {/* <walletStack.Screen name="wallet" component={Wallet} /> */}
-//       <walletStack.Screen
-//         name="coinWalletStack"
-//         component={CoinWalletStackFun}
-//       />
-//     </walletStack.Navigator>
-//   );
-// }
-
 const ExploreStackNavigator =
   createNativeStackNavigator<WalletStackParamList>();
 
@@ -263,11 +248,26 @@ export function ExploreStack() {
       screenOptions={{ headerShown: false }}>
 
       <ExploreStackNavigator.Screen
-        name="explore"
+        name="Booking"
         component={ExplorePage}
       />
 
     </ExploreStackNavigator.Navigator>
+  );
+}
+
+const BookingplaceStack =
+  createNativeStackNavigator<WalletStackParamList>();
+
+export function BookingStack() {
+  return (
+    <BookingplaceStack.Navigator
+      screenOptions={{ headerShown: false }}>
+      <BookingplaceStack.Screen
+        name="explore"
+        component={BookingPage}
+      />
+    </BookingplaceStack.Navigator>
   );
 }
 
@@ -280,23 +280,6 @@ export function StakeStackFun() {
     //   screenOptions={{ headerShown: false }}>
     //   <StakeStack.Screen name="stake" component={Stake} />
     // </StakeStack.Navigator>
-    <></>
-  );
-}
-
-const MarketplaceStack =
-  createNativeStackNavigator<MarketplaceStackParamList>();
-
-export function MarketplaceStackFun() {
-  return (
-    // <MarketplaceStack.Navigator
-    //   initialRouteName="marketplace"
-    //   screenOptions={{ headerShown: false }}>
-    //   <MarketplaceStack.Screen
-    //     name="marketplace"
-    //     component={CollectionListingPage}
-    //   />
-    // </MarketplaceStack.Navigator>
     <></>
   );
 }

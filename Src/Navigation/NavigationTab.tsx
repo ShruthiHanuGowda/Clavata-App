@@ -4,7 +4,7 @@ import TabBar from './TabBar';
 import {RootTabParamList} from '../../types';
 import {
   HomeScreenStack,
-  MarketplaceStackFun,
+  BookingStack,
   StakeStackFun,
   ExploreStack,
 } from '.';
@@ -34,7 +34,7 @@ export default function Tabs() {
       />
       <Tab.Screen
         name="Bookings"
-        component={MarketplaceStackFun}
+        component={BookingStack}
         options={{headerShown: false}}
       />
       <Tab.Screen

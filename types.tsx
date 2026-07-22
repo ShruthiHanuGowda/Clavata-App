@@ -96,8 +96,10 @@ export type HomeStackParamList = {
 };
 
 export type WalletStackParamList = {
+  explore: undefined;
   wallet: undefined;
   coinWalletStack: undefined;
+  Booking: undefined;
 };
 
 export type CoinWalletStackParamList = {
@@ -115,6 +117,7 @@ export type StakeStackParamList = {
 
 export type MarketplaceStackParamList = {
   marketplace: undefined;
+  Booking: undefined;
 };
 
 export type TabOneParamList = {
