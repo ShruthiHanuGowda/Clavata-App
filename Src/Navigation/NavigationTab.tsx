@@ -5,7 +5,7 @@ import {RootTabParamList} from '../../types';
 import {
   HomeScreenStack,
   BookingStack,
-  StakeStackFun,
+  ProfileStack,
   ExploreStack,
 } from '.';
 
@@ -39,7 +39,7 @@ export default function Tabs() {
       />
       <Tab.Screen
         name="Profile"
-        component={StakeStackFun}
+        component={ProfileStack}
         options={{headerShown: false}}
       />
       {/* <Tab.Screen

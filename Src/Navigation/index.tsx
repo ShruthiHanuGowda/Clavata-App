@@ -17,6 +17,7 @@ import HomeScreenPage from '../Screens/Home/HomeScreenPage';
 import { navigationRef } from './NavigationFunctions';
 import ExplorePage from '../Screens/Explore/ExplorePage';
 import BookingPage from '../Screens/Booking/BookingPage';
+import ProfileScreen from '../Screens/Profile/ProfileScreen';
 // import CollectionDetailsScreen from '../Screens/MarketPlace/CollectionDetailsPage';
 // import NFTDetailsScreen from '../Screens/MarketPlace/NFTDetailsPage';
 // import WalletNFTDetailsScreen from '../Screens/MarketPlace/WalletNFTDetailsPage';
@@ -271,16 +272,17 @@ export function BookingStack() {
   );
 }
 
-const StakeStack = createNativeStackNavigator<StakeStackParamList>();
+const ProfilePlaceStack = createNativeStackNavigator<StakeStackParamList>();
 
-export function StakeStackFun() {
+export function ProfileStack() {
   return (
-    // <StakeStack.Navigator
-    //   initialRouteName="stake"
-    //   screenOptions={{ headerShown: false }}>
-    //   <StakeStack.Screen name="stake" component={Stake} />
-    // </StakeStack.Navigator>
-    <></>
+   <ProfilePlaceStack.Navigator
+      screenOptions={{ headerShown: false }}>
+      <ProfilePlaceStack.Screen
+        name="profile"
+        component={ProfileScreen}
+      />
+    </ProfilePlaceStack.Navigator>
   );
 }
 
