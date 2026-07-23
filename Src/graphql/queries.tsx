@@ -10,16 +10,32 @@ export const SEND_OTP = gql`
 `;
 
 export const VERIFY_OTP = gql`
-mutation VerifyOTP($phoneNumber: String!, $otp: String!) {
-  verifyOTP(
-    phoneNumber: $phoneNumber
-    otp: $otp
-  ) {
-    success
-    message
-    isExistingUser
+  mutation VerifyOTP($phoneNumber: String!, $otp: String!) {
+    verifyOTP(
+      phoneNumber: $phoneNumber
+      otp: $otp
+    ) {
+      success
+      message
+      isExistingUser
+
+      user {
+        userId
+        phoneNumber
+        fullName
+        activeRole
+        providerStatus
+
+        roles {
+          customer
+          businessPartner
+        }
+
+        createdAt
+        updatedAt
+      }
+    }
   }
-}
 `;
 
 export const REGISTER_USER = gql`

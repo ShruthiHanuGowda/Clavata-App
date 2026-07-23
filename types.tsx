@@ -18,6 +18,7 @@ export type RootStackParamList = {
   intro: undefined;
   appScreens: undefined;
   authScreens: undefined;
+  BecomePartner: undefined;
   RegisterUser: {
     phoneNumber: string;
   };

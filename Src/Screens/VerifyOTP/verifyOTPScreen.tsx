@@ -16,11 +16,8 @@ import { DButton, Header } from '../../components';
 export default function VerifyOTPScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-
   const { phoneNumber } = route.params;
-
   const [otp, setOtp] = useState('');
-
   const [verifyOTP, { loading }] = useMutation(VERIFY_OTP);
 
   const onVerifyOTP = async () => {

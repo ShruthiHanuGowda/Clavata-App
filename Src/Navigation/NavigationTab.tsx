@@ -1,7 +1,7 @@
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
 import TabBar from './TabBar';
-import {RootTabParamList} from '../../types';
+import { RootTabParamList } from '../../types';
 import {
   HomeScreenStack,
   BookingStack,
@@ -25,22 +25,22 @@ export default function Tabs() {
       <Tab.Screen
         name="Home"
         component={HomeScreenStack}
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
       />
       <Tab.Screen
         name="Explore"
         component={ExploreStack}
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
       />
       <Tab.Screen
         name="Bookings"
         component={BookingStack}
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileStack}
-        options={{headerShown: false}}
+        options={{ headerShown: false }}
       />
       {/* <Tab.Screen
         name="dApps"

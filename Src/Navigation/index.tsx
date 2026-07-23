@@ -3,6 +3,7 @@ import React from 'react';
 import { RootStackParamList, CoinWalletStackParamList, HomeStackParamList, WalletStackParamList, StakeStackParamList, MarketplaceStackParamList } from '../../types';
 import LoginScreen from '../../Src/Screens/AuthScreens/loginScreen';
 import RegisterUser from '../../Src/Screens/RegisterUser/registerUser';
+import BecomePartnerScreen from '../../Src/Screens/Provider/BecomePartnerScreen';
 import VerifyOTPScreen from '../../Src/Screens/VerifyOTP/verifyOTPScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { StyleSheet, View } from 'react-native';
@@ -18,6 +19,7 @@ import { navigationRef } from './NavigationFunctions';
 import ExplorePage from '../Screens/Explore/ExplorePage';
 import BookingPage from '../Screens/Booking/BookingPage';
 import ProfileScreen from '../Screens/Profile/ProfileScreen';
+import PartnerStack from './PartnerStack';
 // import CollectionDetailsScreen from '../Screens/MarketPlace/CollectionDetailsPage';
 // import NFTDetailsScreen from '../Screens/MarketPlace/NFTDetailsPage';
 // import WalletNFTDetailsScreen from '../Screens/MarketPlace/WalletNFTDetailsPage';
@@ -72,6 +74,11 @@ function RootScreenStack() {
       <RootStack.Screen
         name="RegisterUser"
         component={RegisterUser}
+        options={{ headerShown: false }}
+      />
+      <RootStack.Screen
+        name="BecomePartner"
+        component={PartnerStack}
         options={{ headerShown: false }}
       />
       {/* <RootStack.Screen
@@ -276,7 +283,7 @@ const ProfilePlaceStack = createNativeStackNavigator<StakeStackParamList>();
 
 export function ProfileStack() {
   return (
-   <ProfilePlaceStack.Navigator
+    <ProfilePlaceStack.Navigator
       screenOptions={{ headerShown: false }}>
       <ProfilePlaceStack.Screen
         name="profile"

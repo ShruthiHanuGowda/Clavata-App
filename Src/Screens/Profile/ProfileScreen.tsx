@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const menuItems = [
   { title: 'My Bookings', icon: '📅' },
@@ -25,7 +26,9 @@ const settingsItems = [
 
 export default function ProfileScreen() {
   // Replace with actual value from API
-  const isSalonOwner = true;
+  // const isSalonOwner = true;
+  const navigation = useNavigation<any>();
+  const isBusinessPartner = false;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -62,12 +65,15 @@ export default function ProfileScreen() {
         </View>
 
         {/* Salon */}
+        {/* Salon */}
         <View style={styles.section}>
-          <TouchableOpacity style={styles.row}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => navigation.navigate('BecomePartner')}>
             <Text style={styles.leftIcon}>🏪</Text>
 
             <Text style={styles.rowTitle}>
-              {isSalonOwner
+              {isBusinessPartner
                 ? 'Manage My Salon'
                 : 'Become a Salon Partner'}
             </Text>
