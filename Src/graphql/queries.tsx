@@ -47,6 +47,17 @@ export const REGISTER_USER = gql`
   }
 `;
 
+export const REGISTER_SALON_PARTNER = gql`
+  mutation RegisterSalonPartner(
+    $input: RegisterSalonPartnerInput!
+  ) {
+    registerSalonPartner(input: $input) {
+      success
+      message
+    }
+  }
+`;
+
 // Define the GraphQL mutation
 export const CREATE_USER_WALLETS = gql`
   mutation createUserWalletAddress(
