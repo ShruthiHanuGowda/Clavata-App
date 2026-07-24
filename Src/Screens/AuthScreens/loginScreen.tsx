@@ -178,18 +178,14 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.safeAreaContainer}>
       <View style={styles.flexContainer}>
-
         <View style={styles.loginContent}>
-
           <Text style={styles.title}>
             Nex
           </Text>
-
           <Text style={styles.subtitle}>
             Book trusted salon services{"\n"}
             or manage your salon business.
           </Text>
-
           <View style={styles.emailInputWrapper}>
             <DMobileInput
               inputAccessoryViewID={'sendOtp'}
@@ -198,7 +194,6 @@ export default function LoginScreen() {
               setValue={setUserEmail}
             />
           </View>
-
           <DButton
             type="primary"
             style={styles.loginBtnStyle}
@@ -209,9 +204,7 @@ export default function LoginScreen() {
               {loading ? 'Sending...' : 'Continue'}
             </Text>
           </DButton>
-
         </View>
-
       </View>
     </SafeAreaView>
   );

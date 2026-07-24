@@ -10,8 +10,6 @@ import {
 } from '.';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
-
-
 const renderTabBar = (props: any) => <TabBar {...props} />;
 
 export default function Tabs() {

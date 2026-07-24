@@ -10,9 +10,11 @@ import {
 } from 'react-native';
 import { Header, DButton } from '../../components';
 import { useSalonRegistration } from '../../context/SalonRegistrationContext';
+import { useUser } from '../../context/UserContext';
 
 export default function SalonRegistrationScreen({ navigation }: any) {
   const { updateData } = useSalonRegistration();
+  const { currentUser } = useUser();
 
   const [salonName, setSalonName] = useState('');
   const [ownerName, setOwnerName] = useState('');
@@ -30,10 +32,14 @@ export default function SalonRegistrationScreen({ navigation }: any) {
       return;
     }
 
+    if (!currentUser) {
+      Alert.alert('Error', 'User not found. Please login again.');
+      return;
+    }
+
     updateData({
-      // Replace these with logged in user values
-      userId: 'e8a3b5f6-d501-48ff-9164-fea8e17317b4',
-      phoneNumber: '7349140867',
+      userId: currentUser.userId,
+      phoneNumber: currentUser.phoneNumber,
       salonName,
       ownerName,
       email,

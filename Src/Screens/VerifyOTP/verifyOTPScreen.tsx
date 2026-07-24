@@ -9,14 +9,15 @@ import {
 } from 'react-native';
 import { useMutation } from '@apollo/client';
 import { useNavigation, useRoute } from '@react-navigation/native';
-
 import { VERIFY_OTP } from '../../graphql/queries';
 import { DButton, Header } from '../../components';
+import { useUser } from '../../context/UserContext';
 
 export default function VerifyOTPScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { phoneNumber } = route.params;
+  const { setCurrentUser } = useUser();
   const [otp, setOtp] = useState('');
   const [verifyOTP, { loading }] = useMutation(VERIFY_OTP);
 
@@ -34,6 +35,12 @@ export default function VerifyOTPScreen() {
         },
       });
 
+      console.log(
+        'Verify OTP user:',
+        JSON.stringify(data.verifyOTP.user, null, 2),
+      );
+      const user = data.verifyOTP.user;
+      setCurrentUser(user);
       console.log('Verify OTP Response:', data);
 
       if (!data?.verifyOTP.success) {
@@ -42,6 +49,7 @@ export default function VerifyOTPScreen() {
       }
 
       if (data.verifyOTP.isExistingUser) {
+        setCurrentUser(data.verifyOTP.user);
         // Existing user
         navigation.reset({
           index: 0,

@@ -9,6 +9,7 @@ import { SalonRegistrationProvider } from '../context/SalonRegistrationContext';
 // import {KycProvider} from './KycProvider';
 // import { NftProvider } from './NftProvider';
 import { MAGIC_API_KEY_PROD } from '../constants';
+import { UserProvider } from '../context/UserContext';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -19,19 +20,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // <MagicProvider apiKey={MAGIC_API_KEY_PROD}>
     <SafeAreaProvider>
       <GraphQLProvider>
-        <SalonRegistrationProvider>
-          {/* <AuthProvider> */}
-          {/* <WalletConnectProvider> */}
-          {/* <KycProvider> */}
-          {/* <WalletProvider> */}
-          {/* <NftProvider> */}
-          {children}
-          {/* </NftProvider> */}
-          {/* </WalletProvider> */}
-          {/* </KycProvider> */}
-          {/* </WalletConnectProvider> */}
-          {/* </AuthProvider> */}
-        </SalonRegistrationProvider>
+        <UserProvider>
+          <SalonRegistrationProvider>
+            {/* <AuthProvider> */}
+            {/* <WalletConnectProvider> */}
+            {/* <KycProvider> */}
+            {/* <WalletProvider> */}
+            {/* <NftProvider> */}
+            {children}
+            {/* </NftProvider> */}
+            {/* </WalletProvider> */}
+            {/* </KycProvider> */}
+            {/* </WalletConnectProvider> */}
+            {/* </AuthProvider> */}
+          </SalonRegistrationProvider>
+        </UserProvider>
       </GraphQLProvider>
     </SafeAreaProvider>
     // </MagicProvider>

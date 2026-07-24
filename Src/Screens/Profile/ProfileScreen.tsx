@@ -8,6 +8,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useUser } from '../../context/UserContext';
+import { Alert } from 'react-native';
 
 const menuItems = [
   { title: 'My Bookings', icon: '📅' },
@@ -29,7 +31,105 @@ export default function ProfileScreen() {
   // const isSalonOwner = true;
   const navigation = useNavigation<any>();
   const isBusinessPartner = false;
+  const { currentUser, setCurrentUser } = useUser();
+  console.log('currentUser?.providerStatus', currentUser?.providerStatus);
+  const partnerTitle = (() => {
+    switch (currentUser?.providerStatus) {
+      case 'PENDING':
+        return 'Salon Verification Pending';
 
+      case 'APPROVED':
+        return 'Switch to Salon Mode';
+
+      case 'REJECTED':
+        return 'Resubmit Salon Registration';
+
+      default:
+        return 'Become a Salon Partner';
+    }
+  })();
+
+  const onLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            // Clear logged in user
+            setCurrentUser(null);
+
+            // Go back to Login
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'authScreens' }],
+            });
+          },
+        },
+      ],
+    );
+  };
+
+  // const onPartnerPress = () => {
+  //   switch (currentUser?.providerStatus) {
+  //     case 'PENDING':
+  //       navigation.navigate('SalonPendingVerification', {
+  //         screen: 'BecomePartner',
+  //       });
+  //       break;
+
+  //     case 'APPROVED':
+  //       // Later this can switch activeRole or open the salon dashboard
+  //       navigation.navigate('SalonDashboard', {
+  //         screen: 'BecomePartner',
+  //       });
+  //       break;
+
+  //     case 'REJECTED':
+  //       navigation.navigate('RejectedScreen', {
+  //         screen: 'BecomePartner',
+  //       });
+  //       break;
+
+  //     default:
+  //       navigation.navigate('BecomePartner', {
+  //         screen: 'BecomePartner',
+  //       });
+  //   }
+  // };
+  const onPartnerPress = () => {
+    switch (currentUser?.providerStatus) {
+      case 'PENDING':
+        navigation.navigate('BecomePartner', {
+          screen: 'SalonPendingVerification',
+        });
+        break;
+
+      case 'APPROVED':
+        navigation.navigate('BecomePartner', {
+          screen: 'SalonDashboard',
+        });
+        break;
+
+      case 'REJECTED':
+        navigation.navigate('BecomePartner', {
+          screen: 'RejectedScreen',
+        });
+        break;
+
+      default:
+        navigation.navigate('BecomePartner', {
+          screen: 'BecomePartner',
+        });
+        break;
+    }
+  };
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -56,9 +156,7 @@ export default function ProfileScreen() {
           {menuItems.map(item => (
             <TouchableOpacity key={item.title} style={styles.row}>
               <Text style={styles.leftIcon}>{item.icon}</Text>
-
               <Text style={styles.rowTitle}>{item.title}</Text>
-
               <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>
           ))}
@@ -69,15 +167,14 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.row}
-            onPress={() => navigation.navigate('BecomePartner')}>
+            onPress={onPartnerPress}>
             <Text style={styles.leftIcon}>🏪</Text>
-
             <Text style={styles.rowTitle}>
-              {isBusinessPartner
+              {/* {isBusinessPartner
                 ? 'Manage My Salon'
-                : 'Become a Salon Partner'}
+                : 'Become a Salon Partner'} */}
+              {partnerTitle}
             </Text>
-
             <Text style={styles.arrow}>›</Text>
           </TouchableOpacity>
         </View>
@@ -96,7 +193,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
