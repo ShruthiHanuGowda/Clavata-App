@@ -8,18 +8,19 @@ import VerifyOTPScreen from '../../Src/Screens/VerifyOTP/verifyOTPScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { StyleSheet, View } from 'react-native';
 import { Root } from '../Screens/RootScreen';
-import Tabs from './NavigationTab';
+import Tabs from './CustomerTabs';
 import { SCREEN_CONSTANT } from './constant';
-import HomeScreenPage from '../Screens/Home/HomeScreenPage';
+import HomeScreenPage from '../Screens/CustomerTabs/Home/HomeScreenPage';
 // import CoinWallet from '../Screens/AppScreens/CoinWallet/CoinWallet';
 // import Drex from '../Screens/HomeScreen';
 // import {VerifyAddress} from '../Screens/Send/VerifyAdress';
 // import SendCoin from '../Screens/Send/SendCoin';
 import { navigationRef } from './NavigationFunctions';
-import ExplorePage from '../Screens/Explore/ExplorePage';
-import BookingPage from '../Screens/Booking/BookingPage';
-import ProfileScreen from '../Screens/Profile/ProfileScreen';
+import ExplorePage from '../Screens/CustomerTabs/Explore/ExplorePage';
+import BookingPage from '../Screens/CustomerTabs/Booking/BookingPage';
+import ProfileScreen from '../Screens/CustomerTabs/Profile/ProfileScreen';
 import PartnerStack from './PartnerStack';
+import AppTabs from './AppTabs';
 // import CollectionDetailsScreen from '../Screens/MarketPlace/CollectionDetailsPage';
 // import NFTDetailsScreen from '../Screens/MarketPlace/NFTDetailsPage';
 // import WalletNFTDetailsScreen from '../Screens/MarketPlace/WalletNFTDetailsPage';
@@ -60,7 +61,7 @@ function RootScreenStack() {
       {/* Main navigation screens */}
       <RootStack.Screen name="root" component={Root} />
       {/* <RootStack.Screen name="intro" component={Onboarding} /> */}
-      <RootStack.Screen name="appScreens" component={Tabs} />
+      <RootStack.Screen name="appScreens" component={AppTabs} />
       <RootStack.Screen
         name="authScreens"
         options={{ headerShown: false }}

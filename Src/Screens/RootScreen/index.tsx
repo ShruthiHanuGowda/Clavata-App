@@ -10,9 +10,9 @@ export const Root = () => {
       const value = await secureStorage.getItem('isInfoDone');
 
       if (value === 'true') {
-        (navReset as any)('authScreens');
+        (navReset as any)('appScreens');
       } else {
-        (navReset as any)('intro');
+        (navReset as any)('authScreens');
       }
     } catch (e) {
       (navReset as any)('intro');

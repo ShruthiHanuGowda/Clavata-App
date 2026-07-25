@@ -8,8 +8,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useUser } from '../../context/UserContext';
+import { useUser } from '../../../context/UserContext';
 import { Alert } from 'react-native';
+import secureStorage from '../../../utils/secureStorage';
 
 const menuItems = [
   { title: 'My Bookings', icon: '📅' },
@@ -49,6 +50,32 @@ export default function ProfileScreen() {
     }
   })();
 
+  // const onLogout = () => {
+  //   Alert.alert(
+  //     'Logout',
+  //     'Are you sure you want to logout?',
+  //     [
+  //       {
+  //         text: 'Cancel',
+  //         style: 'cancel',
+  //       },
+  //       {
+  //         text: 'Logout',
+  //         style: 'destructive',
+  //         onPress: () => {
+  //           // Clear logged in user
+  //           setCurrentUser(null);
+
+  //           // Go back to Login
+  //           navigation.reset({
+  //             index: 0,
+  //             routes: [{ name: 'authScreens' }],
+  //           });
+  //         },
+  //       },
+  //     ],
+  //   );
+  // };
   const onLogout = () => {
     Alert.alert(
       'Logout',
@@ -61,48 +88,20 @@ export default function ProfileScreen() {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: () => {
-            // Clear logged in user
+          onPress: async () => {
+            await secureStorage.removeItem('isInfoDone');
+
             setCurrentUser(null);
 
-            // Go back to Login
             navigation.reset({
               index: 0,
-              routes: [{ name: 'authScreens' }],
+              routes: [{ name: 'root' }],
             });
           },
         },
       ],
     );
   };
-
-  // const onPartnerPress = () => {
-  //   switch (currentUser?.providerStatus) {
-  //     case 'PENDING':
-  //       navigation.navigate('SalonPendingVerification', {
-  //         screen: 'BecomePartner',
-  //       });
-  //       break;
-
-  //     case 'APPROVED':
-  //       // Later this can switch activeRole or open the salon dashboard
-  //       navigation.navigate('SalonDashboard', {
-  //         screen: 'BecomePartner',
-  //       });
-  //       break;
-
-  //     case 'REJECTED':
-  //       navigation.navigate('RejectedScreen', {
-  //         screen: 'BecomePartner',
-  //       });
-  //       break;
-
-  //     default:
-  //       navigation.navigate('BecomePartner', {
-  //         screen: 'BecomePartner',
-  //       });
-  //   }
-  // };
   const onPartnerPress = () => {
     switch (currentUser?.providerStatus) {
       case 'PENDING':
@@ -112,9 +111,11 @@ export default function ProfileScreen() {
         break;
 
       case 'APPROVED':
-        navigation.navigate('BecomePartner', {
-          screen: 'SalonDashboard',
+        setCurrentUser({
+          ...currentUser,
+          activeRole: 'SALON',
         });
+        console.log('Switching to SALON');
         break;
 
       case 'REJECTED':
@@ -143,7 +144,7 @@ export default function ProfileScreen() {
           <Text style={styles.phone}>+91 9876543210</Text>
 
           <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>Customer</Text>
+            <Text>{currentUser?.activeRole === 'SALON' ? 'Salon' : 'Customer'}</Text>
           </View>
 
           <TouchableOpacity style={styles.editButton}>
