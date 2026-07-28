@@ -10,9 +10,11 @@ import { useMutation } from '@apollo/client';
 import { Header, DButton } from '../../components';
 import { REGISTER_SALON_PARTNER } from '../../graphql/queries';
 import { useSalonRegistration } from '../../context/SalonRegistrationContext';
+import { useUser } from '../../context/UserContext';
 
 export default function SalonReviewScreen({ navigation }: any) {
   const { data, reset } = useSalonRegistration();
+  const { currentUser, setCurrentUser } = useUser();
   console.log("Salon Registration Datas");
   console.log(data);
   const [registerSalonPartner, { loading }] =
@@ -30,10 +32,12 @@ export default function SalonReviewScreen({ navigation }: any) {
             ownerName: data.ownerName,
             email: data.email,
             businessType: data.businessType,
-            addressLine: data.addressLine,
-            city: data.city,
-            state: data.state,
-            pincode: data.pincode,
+            address: {
+              addressLine: data.addressLine,
+              city: data.city,
+              state: data.state,
+              pincode: data.pincode,
+            },
             gstNumber: data.gstNumber,
             panNumber: data.panNumber,
             aadhaarNumber: data.aadhaarNumber,
@@ -42,9 +46,30 @@ export default function SalonReviewScreen({ navigation }: any) {
           },
         },
       });
-
       if (response.data?.registerSalonPartner?.success) {
+
+        const salonId =
+          response.data.registerSalonPartner.salonId;
+
+        if (!currentUser) {
+          Alert.alert(
+            'Error',
+            'User session expired. Please login again.'
+          );
+          return;
+        }
+
+        setCurrentUser({
+          ...currentUser,
+          roles: {
+            ...currentUser.roles,
+            businessPartner: true,
+          },
+          providerStatus: "PENDING",
+          salonId,
+        });
         reset();
+
         navigation.replace('SalonSuccess');
       } else {
         Alert.alert(

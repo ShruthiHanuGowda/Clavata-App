@@ -35,35 +35,41 @@ export default function VerifyOTPScreen() {
         },
       });
 
-      console.log(
-        'Verify OTP user:',
-        JSON.stringify(data.verifyOTP.user, null, 2),
-      );
-      const user = data.verifyOTP.user;
-      setCurrentUser(user);
-      console.log('Verify OTP Response:', data);
+      const result = data?.verifyOTP;
 
-      if (!data?.verifyOTP.success) {
-        Alert.alert('Verification Failed', data.verifyOTP.message);
+      if (!result?.success) {
+        Alert.alert(
+          'Verification Failed',
+          result?.message || 'Invalid OTP'
+        );
         return;
       }
 
-      if (data.verifyOTP.isExistingUser) {
-        setCurrentUser(data.verifyOTP.user);
-        // Existing user
+      console.log(
+        'Verify OTP Response:',
+        JSON.stringify(result, null, 2)
+      );
+
+      if (result.isExistingUser) {
+        setCurrentUser(result.user);
+
         navigation.reset({
           index: 0,
           routes: [{ name: 'appScreens' }],
         });
+
       } else {
-        // New user
         navigation.navigate('RegisterUser', {
           phoneNumber,
         });
       }
+
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Unable to verify OTP.');
+      Alert.alert(
+        'Error',
+        'Unable to verify OTP.'
+      );
     }
   };
 

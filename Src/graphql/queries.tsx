@@ -23,8 +23,10 @@ export const VERIFY_OTP = gql`
         userId
         phoneNumber
         fullName
+        
         activeRole
         providerStatus
+        salonId
 
         roles {
           customer
@@ -43,6 +45,23 @@ export const REGISTER_USER = gql`
     registerUser(input: $input) {
       success
       message
+
+      user {
+        userId
+        phoneNumber
+        fullName
+        salonId
+        activeRole
+        providerStatus
+
+        roles {
+          customer
+          businessPartner
+        }
+
+        createdAt
+        updatedAt
+      }
     }
   }
 `;
@@ -54,9 +73,78 @@ export const REGISTER_SALON_PARTNER = gql`
     registerSalonPartner(input: $input) {
       success
       message
+      salonId
     }
   }
 `;
+
+
+export const CREATE_SERVICE = gql`
+  mutation CreateService($input: CreateServiceInput!) {
+    createService(input: $input) {
+      success
+      message
+      service {
+        serviceId
+        salonId
+        name
+        category
+        description
+        duration
+        price
+        gender
+        popular
+        active
+        createdAt
+      }
+    }
+  }
+`;
+
+export const UPDATE_SERVICE = gql`
+mutation UpdateService($input: UpdateServiceInput!) {
+  updateService(input: $input) {
+    success
+    message
+    service {
+      serviceId
+      name
+      category
+      description
+      duration
+      price
+      gender
+      popular
+      active
+    }
+  }
+}`;
+
+
+export const DELETE_SERVICE = gql`
+mutation DeleteService($input: DeleteServiceInput!) {
+  deleteService(input: $input) {
+    success
+    message
+  }
+}`;
+
+export const LIST_SERVICES = gql`
+query ListServices($salonId: ID!) {
+  listServices(salonId: $salonId) {
+    serviceId
+    salonId
+    name
+    category
+    description
+    duration
+    price
+    gender
+    popular
+    active
+    createdAt
+  }
+}`
 
 // Define the GraphQL mutation
 export const CREATE_USER_WALLETS = gql`

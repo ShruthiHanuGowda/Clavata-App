@@ -13,10 +13,12 @@ import { useMutation } from '@apollo/client';
 
 import { Header, DButton } from '../../components';
 import { REGISTER_USER } from '../../graphql/queries';
+import { useUser } from '../../context/UserContext';
 
 export default function RegisterUser() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { setCurrentUser } = useUser();
 
   const { phoneNumber } = route.params;
 
@@ -70,10 +72,8 @@ export default function RegisterUser() {
       }
 
       console.log('Registration Successful');
-      console.log('Navigating to appScreens...');
 
-      // TODO:
-      // Save access token if returned by backend.
+      setCurrentUser(data.registerUser.user);
 
       navigation.reset({
         index: 0,

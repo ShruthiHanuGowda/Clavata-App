@@ -90,8 +90,6 @@ export default function LoginScreen() {
   // );
 
   const [sendOTP, { data: userData, error: queryError }] = useMutation(SEND_OTP);
-  const [verifyOTP] = useMutation(VERIFY_OTP);
-
   useEffect(() => {
     if (userData && !callbackExecutedRef.current && !isKycSkipped) {
       callbackExecutedRef.current = true;

@@ -27,7 +27,7 @@ export default StyleSheet.create({
         backgroundColor: '#FFF',
         margin: 20,
         borderRadius: 12,
-        height: 48,
+        height: 50,
         justifyContent: 'center',
         paddingHorizontal: 16,
         elevation: 2,
@@ -75,6 +75,7 @@ export default StyleSheet.create({
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
     },
 
     serviceName: {
@@ -86,6 +87,7 @@ export default StyleSheet.create({
     duration: {
         marginTop: 6,
         color: '#6B7280',
+        fontSize: 14,
     },
 
     price: {
@@ -141,6 +143,7 @@ export default StyleSheet.create({
     buttonText: {
         color: '#FFF',
         fontWeight: '700',
+        fontSize: 15,
     },
 
     fab: {
@@ -160,61 +163,102 @@ export default StyleSheet.create({
         color: '#FFF',
         fontSize: 34,
         marginTop: -2,
+        fontWeight: '600',
     },
+
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: 'rgba(0,0,0,0.45)',
         justifyContent: 'flex-end',
     },
 
     modalContainer: {
         backgroundColor: '#FFF',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        padding: 20,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingHorizontal: 20,
+        paddingTop: 24,
+        paddingBottom: 30,
+        maxHeight: '92%',
     },
 
     modalTitle: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: '700',
         color: '#111827',
-        marginBottom: 20,
+        marginBottom: 22,
     },
 
     input: {
         borderWidth: 1,
         borderColor: '#E5E7EB',
-        borderRadius: 10,
+        borderRadius: 12,
         paddingHorizontal: 14,
-        height: 48,
-        marginBottom: 15,
+        paddingVertical: 12,
+        minHeight: 52,
+        marginBottom: 16,
         backgroundColor: '#FFF',
+        fontSize: 15,
+        color: '#111827',
+    },
+
+    modalLabel: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: 10,
+    },
+
+    genderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 18,
+    },
+
+    genderButton: {
+        flex: 1,
+        height: 48,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginHorizontal: 4,
+        backgroundColor: '#FFF',
+    },
+
+    genderButtonSelected: {
+        backgroundColor: PRIMARY,
+        borderColor: PRIMARY,
+    },
+
+    genderButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#374151',
+    },
+
+    genderButtonTextSelected: {
+        color: '#FFF',
     },
 
     modalSwitchRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 10,
-        marginBottom: 5,
-    },
-
-    modalLabel: {
-        fontSize: 16,
-        color: '#111827',
-        fontWeight: '500',
+        marginVertical: 10,
     },
 
     modalButtonRow: {
         flexDirection: 'row',
-        marginTop: 30,
+        marginTop: 24,
     },
 
     cancelButton: {
         flex: 1,
-        backgroundColor: '#9CA3AF',
+        backgroundColor: '#E5E7EB',
         paddingVertical: 14,
-        borderRadius: 10,
+        borderRadius: 12,
         alignItems: 'center',
         marginRight: 10,
     },
@@ -223,8 +267,14 @@ export default StyleSheet.create({
         flex: 1,
         backgroundColor: PRIMARY,
         paddingVertical: 14,
-        borderRadius: 10,
+        borderRadius: 12,
         alignItems: 'center',
+    },
+
+    cancelButtonText: {
+        color: '#374151',
+        fontSize: 16,
+        fontWeight: '700',
     },
 
     modalButtonText: {

@@ -129,3 +129,22 @@ export const WALLETCONNECT_CHAINS = {
   sepolia: `eip155:${SEPOLIA_CHAIN_ID}`,
 };
 
+export const SERVICE_CATEGORIES = [
+    'Hair',
+    'Hair Color',
+    'Hair Spa',
+    'Facial',
+    'Cleanup',
+    'Bleach',
+    'Threading',
+    'Waxing',
+    'Makeup',
+    'Bridal',
+    'Nails',
+    'Massage',
+    'Skin',
+    'Beard',
+    'Shaving',
+    'Kids',
+    'Other',
+];

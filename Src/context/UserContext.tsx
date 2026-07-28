@@ -12,6 +12,7 @@ type User = {
 
     activeRole: string;
     providerStatus: string;
+    salonId?: string | null;
 };
 
 type UserContextType = {

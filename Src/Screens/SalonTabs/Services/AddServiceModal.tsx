@@ -6,28 +6,40 @@ import {
     TextInput,
     TouchableOpacity,
     Switch,
+    Alert,
 } from 'react-native';
+import { useMutation } from '@apollo/client';
 
+import { useUser } from '../../../context/UserContext';
+import { CREATE_SERVICE } from '../../../graphql/queries';
 import ServiceCategory from './ServiceCategory';
 import styles from './styles';
 
-const PRIMARY = '#009D94';
-
 type Service = {
-    id?: string;
+    serviceId?: string;
+    salonId?: string;
+
     name: string;
     category: string;
-    duration: string;
+    description?: string;
+
+    duration: number;
     price: number;
+
+    gender: 'MEN' | 'WOMEN' | 'UNISEX';
+
     active: boolean;
     popular: boolean;
+
+    createdAt?: string;
+    updatedAt?: string;
 };
 
 type Props = {
     visible: boolean;
     categories: string[];
     onClose: () => void;
-    onSave: (service: Service) => void;
+    onSave?: (service: Service) => void;
     initialData?: Service | null;
 };
 
@@ -38,43 +50,186 @@ export default function AddServiceModal({
     onSave,
     initialData,
 }: Props) {
+    const { currentUser } = useUser();
+
+    const [createService, { loading }] =
+        useMutation(CREATE_SERVICE);
+
     const [name, setName] = useState('');
-    const [category, setCategory] = useState('Hair');
+    const [category, setCategory] = useState(
+        categories[0] || 'Hair',
+    );
+
+    const [description, setDescription] =
+        useState('');
+
     const [duration, setDuration] = useState('');
+
     const [price, setPrice] = useState('');
-    const [popular, setPopular] = useState(false);
-    const [active, setActive] = useState(true);
+
+    const [gender, setGender] =
+        useState<'MEN' | 'WOMEN' | 'UNISEX'>(
+            'UNISEX',
+        );
+
+    const [popular, setPopular] =
+        useState(false);
+
+    const [active, setActive] =
+        useState(true);
 
     useEffect(() => {
         if (initialData) {
             setName(initialData.name);
             setCategory(initialData.category);
-            setDuration(initialData.duration);
-            setPrice(String(initialData.price));
+
+            setDescription(
+                initialData.description ?? '',
+            );
+
+            setDuration(
+                String(initialData.duration),
+            );
+
+            setPrice(
+                String(initialData.price),
+            );
+
+            setGender(initialData.gender);
+
             setPopular(initialData.popular);
+
             setActive(initialData.active);
         } else {
             setName('');
-            setCategory(categories[1] || 'Hair');
+
+            setCategory(
+                categories[0] || 'Hair',
+            );
+
+            setDescription('');
+
             setDuration('');
+
             setPrice('');
+
+            setGender('UNISEX');
+
             setPopular(false);
+
             setActive(true);
         }
     }, [initialData, visible, categories]);
 
-    const handleSave = () => {
-        onSave({
-            id: initialData?.id,
-            name,
-            category,
-            duration,
-            price: Number(price),
-            popular,
-            active,
-        });
+    const handleSave = async () => {
+        if (!currentUser?.salonId) {
+            Alert.alert(
+                'Error',
+                'Salon not found',
+            );
+            return;
+        }
 
-        onClose();
+        if (!name.trim()) {
+            Alert.alert(
+                'Validation',
+                'Please enter service name',
+            );
+            return;
+        }
+
+        if (!duration.trim()) {
+            Alert.alert(
+                'Validation',
+                'Please enter duration',
+            );
+            return;
+        }
+
+        if (!price.trim()) {
+            Alert.alert(
+                'Validation',
+                'Please enter price',
+            );
+            return;
+        }
+
+        if (Number(duration) <= 0) {
+            Alert.alert(
+                'Validation',
+                'Duration must be greater than 0',
+            );
+            return;
+        }
+
+        if (Number(price) <= 0) {
+            Alert.alert(
+                'Validation',
+                'Price must be greater than 0',
+            );
+            return;
+        }
+
+        const service: Service = {
+            salonId: currentUser.salonId,
+
+            name: name.trim(),
+
+            category,
+
+            description: description.trim(),
+
+            duration: Number(duration),
+
+            price: Number(price),
+
+            gender,
+
+            popular,
+
+            active,
+        };
+
+        try {
+            const { data } =
+                await createService({
+                    variables: {
+                        input: service,
+                    },
+                });
+
+            if (
+                data?.createService?.success
+            ) {
+                Alert.alert(
+                    'Success',
+                    initialData
+                        ? 'Service updated successfully'
+                        : 'Service added successfully',
+                );
+
+                onSave?.(
+                    data.createService
+                        .service,
+                );
+
+                onClose();
+            } else {
+                Alert.alert(
+                    'Error',
+                    data?.createService
+                        ?.message ??
+                    'Unable to save service',
+                );
+            }
+        } catch (error) {
+            console.log(error);
+
+            Alert.alert(
+                'Error',
+                'Something went wrong',
+            );
+        }
     };
 
     return (
@@ -83,13 +238,12 @@ export default function AddServiceModal({
             transparent
             animationType="slide"
             onRequestClose={onClose}>
-            <View
-                style={styles.modalOverlay}>
-                <View
-                    style={styles.modalContainer}>
-                    <Text
-                        style={styles.modalTitle}>
-                        {initialData ? 'Edit Service' : 'Add Service'}
+            <View style={styles.modalOverlay}>
+                <View style={styles.modalContainer}>
+                    <Text style={styles.modalTitle}>
+                        {initialData
+                            ? 'Edit Service'
+                            : 'Add Service'}
                     </Text>
 
                     <TextInput
@@ -106,51 +260,127 @@ export default function AddServiceModal({
                     />
 
                     <TextInput
-                        placeholder="Duration (e.g. 45 mins)"
+                        placeholder="Description (Optional)"
+                        value={description}
+                        onChangeText={setDescription}
+                        multiline
+                        numberOfLines={3}
+                        style={[
+                            styles.input,
+                            {
+                                height: 80,
+                                textAlignVertical: 'top',
+                            },
+                        ]}
+                    />
+
+                    <Text style={styles.modalLabel}>
+                        Gender
+                    </Text>
+
+                    <View style={styles.genderRow}>
+                        {(['MEN', 'WOMEN', 'UNISEX'] as const).map(item => (
+                            <TouchableOpacity
+                                key={item}
+                                style={[
+                                    styles.genderButton,
+                                    gender === item && styles.genderButtonSelected,
+                                ]}
+                                onPress={() => setGender(item)}>
+                                <Text
+                                    style={[
+                                        styles.genderButtonText,
+                                        gender === item &&
+                                        styles.genderButtonTextSelected,
+                                    ]}>
+                                    {item}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <TextInput
+                        placeholder="Duration (minutes)"
                         value={duration}
                         onChangeText={setDuration}
+                        keyboardType="numeric"
                         style={styles.input}
                     />
 
                     <TextInput
                         placeholder="Price"
-                        keyboardType="numeric"
                         value={price}
                         onChangeText={setPrice}
-                      style={styles.input}
+                        keyboardType="numeric"
+                        style={styles.input}
                     />
 
-                    <View style={styles.modalSwitchRow}>
-                        <Text style={styles.modalLabel}>Popular</Text>
+                    <View
+                        style={
+                            styles.modalSwitchRow
+                        }>
+                        <Text
+                            style={
+                                styles.modalLabel
+                            }>
+                            Popular
+                        </Text>
+
                         <Switch
                             value={popular}
-                            onValueChange={setPopular}
-                        />
-                    </View>
-
-                    <View style={styles.modalSwitchRow}>
-                        <Text style={styles.modalLabel}>Active</Text>
-                        <Switch
-                            value={active}
-                            onValueChange={setActive}
+                            onValueChange={
+                                setPopular
+                            }
                         />
                     </View>
 
                     <View
-                        style={styles.modalButtonRow}>
+                        style={
+                            styles.modalSwitchRow
+                        }>
+                        <Text
+                            style={
+                                styles.modalLabel
+                            }>
+                            Active
+                        </Text>
+
+                        <Switch
+                            value={active}
+                            onValueChange={
+                                setActive
+                            }
+                        />
+                    </View>
+                    <View
+                        style={
+                            styles.modalButtonRow
+                        }>
                         <TouchableOpacity
-                          style={styles.cancelButton}
+                            style={
+                                styles.cancelButton
+                            }
                             onPress={onClose}>
-                            <Text style={styles.modalButtonText}>
+                            <Text style={styles.cancelButtonText}>
                                 Cancel
                             </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={styles.saveButton}
+                            style={
+                                styles.saveButton
+                            }
+                            disabled={loading}
                             onPress={handleSave}>
-                            <Text style={styles.modalButtonText}>
-                                {initialData ? 'Update' : 'Save'}
+                            <Text
+                                style={
+                                    styles.modalButtonText
+                                }>
+                                {loading
+                                    ? 'Saving...'
+                                    : initialData
+                                        ? 'Update'
+                                        : 'Save'}
                             </Text>
                         </TouchableOpacity>
                     </View>

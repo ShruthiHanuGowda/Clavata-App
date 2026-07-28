@@ -13,14 +13,15 @@ import SummaryCard from './SummaryCard';
 import QuickActions from './QuickActions';
 import AppointmentCard from './AppointmentCard';
 import ReviewCard from './ReviewCard';
-
 import {
     summaryData,
     appointments,
     reviews,
 } from './dummyData';
+import { useNavigation } from '@react-navigation/native';
 
 export default function SalonDashboardScreen() {
+    const navigation = useNavigation<any>();
     const onQuickAction = (action: string) => {
         switch (action) {
             case 'Add Booking':
@@ -32,7 +33,7 @@ export default function SalonDashboardScreen() {
                 break;
 
             case 'Add Service':
-                Alert.alert('Add Service');
+                navigation.navigate('SalonServices');
                 break;
 
             case 'Block Time':
