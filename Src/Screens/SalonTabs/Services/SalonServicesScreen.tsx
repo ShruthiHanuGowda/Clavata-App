@@ -291,10 +291,10 @@ export default function SalonServicesScreen() {
           setModalVisible(false);
           setSelectedService(null);
         }}
-        onSave={() => {
+        onSave={async () => {
           setModalVisible(false);
           setSelectedService(null);
-          refreshServices();
+          await refreshServices();
         }}
       />
     </SafeAreaView>

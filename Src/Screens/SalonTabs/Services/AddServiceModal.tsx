@@ -9,9 +9,8 @@ import {
     Alert,
 } from 'react-native';
 import { useMutation } from '@apollo/client';
-
 import { useUser } from '../../../context/UserContext';
-import { CREATE_SERVICE } from '../../../graphql/queries';
+import { CREATE_SERVICE, UPDATE_SERVICE } from '../../../graphql/queries';
 import ServiceCategory from './ServiceCategory';
 import styles from './styles';
 
@@ -52,8 +51,11 @@ export default function AddServiceModal({
 }: Props) {
     const { currentUser } = useUser();
 
-    const [createService, { loading }] =
+    const [createService, { loading: creating }] =
         useMutation(CREATE_SERVICE);
+    const [updateService, { loading: updating }] =
+        useMutation(UPDATE_SERVICE);
+    const loading = creating || updating;
 
     const [name, setName] = useState('');
     const [category, setCategory] = useState(
@@ -191,36 +193,65 @@ export default function AddServiceModal({
         };
 
         try {
-            const { data } =
-                await createService({
+            const input = {
+                salonId: currentUser.salonId,
+                name: name.trim(),
+                category,
+                description: description.trim(),
+                duration: Number(duration),
+                price: Number(price),
+                gender,
+                popular,
+                active,
+            };
+
+            if (initialData) {
+                const { data } = await updateService({
                     variables: {
-                        input: service,
+                        input: {
+                            serviceId: initialData.serviceId,
+                            ...input,
+                        },
                     },
                 });
 
-            if (
-                data?.createService?.success
-            ) {
-                Alert.alert(
-                    'Success',
-                    initialData
-                        ? 'Service updated successfully'
-                        : 'Service added successfully',
-                );
+                if (data?.updateService?.success) {
+                    Alert.alert(
+                        'Success',
+                        'Service updated successfully',
+                    );
 
-                onSave?.(
-                    data.createService
-                        .service,
-                );
-
-                onClose();
+                    await onSave?.(data.updateService.service);
+                    onClose();
+                } else {
+                    Alert.alert(
+                        'Error',
+                        data?.updateService?.message ??
+                        'Unable to update service',
+                    );
+                }
             } else {
-                Alert.alert(
-                    'Error',
-                    data?.createService
-                        ?.message ??
-                    'Unable to save service',
-                );
+                const { data } = await createService({
+                    variables: {
+                        input,
+                    },
+                });
+
+                if (data?.createService?.success) {
+                    Alert.alert(
+                        'Success',
+                        'Service added successfully',
+                    );
+
+                    await onSave?.(data.createService.service);
+                    onClose();
+                } else {
+                    Alert.alert(
+                        'Error',
+                        data?.createService?.message ??
+                        'Unable to save service',
+                    );
+                }
             }
         } catch (error) {
             console.log(error);
@@ -230,6 +261,47 @@ export default function AddServiceModal({
                 'Something went wrong',
             );
         }
+
+        // try {
+        //     const { data } =
+        //         await createService({
+        //             variables: {
+        //                 input: service,
+        //             },
+        //         });
+
+        //     if (
+        //         data?.createService?.success
+        //     ) {
+        //         Alert.alert(
+        //             'Success',
+        //             initialData
+        //                 ? 'Service updated successfully'
+        //                 : 'Service added successfully',
+        //         );
+
+        //         onSave?.(
+        //             data.createService
+        //                 .service,
+        //         );
+
+        //         onClose();
+        //     } else {
+        //         Alert.alert(
+        //             'Error',
+        //             data?.createService
+        //                 ?.message ??
+        //             'Unable to save service',
+        //         );
+        //     }
+        // } catch (error) {
+        //     console.log(error);
+
+        //     Alert.alert(
+        //         'Error',
+        //         'Something went wrong',
+        //     );
+        // }
     };
 
     return (
