@@ -33,7 +33,7 @@ export default function SalonDashboardScreen() {
                 break;
 
             case 'Add Service':
-                navigation.navigate('SalonServices');
+                navigation.navigate('Services');
                 break;
 
             case 'Block Time':
