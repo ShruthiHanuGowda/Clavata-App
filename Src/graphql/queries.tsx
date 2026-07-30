@@ -169,6 +169,44 @@ export const GET_NEARBY_SALONS = gql`
 }
 `;
 
+export const CREATE_BOOKING = gql`
+mutation CreateBooking($input: CreateBookingInput!) {
+  createBooking(input: $input) {
+    success
+    message
+    booking {
+      bookingId
+    }
+  }
+}`;
+
+export const CUSTOMER_BOOKINGS = gql`
+  query CustomerBookings($customerUserId: ID!) {
+    customerBookings(customerUserId: $customerUserId) {
+      bookingId
+      salonId
+      customerUserId
+      salonName
+      customerName
+      bookingDate
+      startTime
+      endTime
+      totalAmount
+      paymentMethod
+      paymentStatus
+      bookingStatus
+      notes
+      services {
+        serviceId
+        name
+        category
+        duration
+        price
+      }
+    }
+  }
+`;
+
 // Define the GraphQL mutation
 // export const CREATE_USER_WALLETS = gql`
 //   mutation createUserWalletAddress(

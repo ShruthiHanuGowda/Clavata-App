@@ -67,7 +67,7 @@ export default function SalonCard({ salon }: Props) {
                         style={styles.button}
                         onPress={() =>
                             navigation.navigate('SalonDetails', {
-                                salonId: salon.salonId ?? salon.id,
+                                salon,
                             })
                         }
                     >

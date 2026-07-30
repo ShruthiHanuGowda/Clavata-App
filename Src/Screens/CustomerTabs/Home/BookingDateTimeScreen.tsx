@@ -42,7 +42,8 @@ export default function BookingDateTimeScreen({
     navigation,
     route,
 }: any) {
-    const { services } = route.params;
+    const { salonId,
+        customerUserId, services } = route.params;
 
     const [selectedDate, setSelectedDate] = useState(dates[0]);
 
@@ -164,6 +165,8 @@ export default function BookingDateTimeScreen({
                             navigation.navigate(
                                 'BookingSummary',
                                 {
+                                    salonId,
+                                    customerUserId,
                                     services,
                                     date: selectedDate,
                                     time: selectedSlot,

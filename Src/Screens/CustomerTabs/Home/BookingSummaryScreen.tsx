@@ -7,7 +7,10 @@ import {
     FlatList,
     StyleSheet,
     TextInput,
+    Alert,
 } from 'react-native';
+import { useMutation } from '@apollo/client';
+import { CREATE_BOOKING } from '../../../graphql/queries';
 
 const PRIMARY = '#008060';
 
@@ -16,10 +19,19 @@ export default function BookingSummaryScreen({
     route,
 }: any) {
     const {
+        salonId,
+        customerUserId,
         services,
         date,
         time,
     } = route.params;
+    console.log('BookingSummaryScreen params:', route.params);
+
+    const temp_bookingDate = '2026-07-30';
+    const temp_startTime = '10:00'
+
+    const [createBooking, { loading }] =
+        useMutation(CREATE_BOOKING);
 
     const [paymentMethod, setPaymentMethod] =
         useState<'SALON' | 'ONLINE'>('SALON');
@@ -45,6 +57,54 @@ export default function BookingSummaryScreen({
         subtotal +
         platformFee +
         gst;
+
+    const formatTime = (time: string) => {
+        const [clock, period] = time.split(' ');
+        let [hour, minute] = clock.split(':');
+
+        let h = parseInt(hour, 10);
+
+        if (period === 'PM' && h !== 12) h += 12;
+        if (period === 'AM' && h === 12) h = 0;
+
+        return `${String(h).padStart(2, '0')}:${minute}`;
+    };
+
+    const confirmBooking = async () => {
+        try {
+            const response = await createBooking({
+                variables: {
+                    input: {
+                        salonId,
+                        customerUserId,
+                        bookingDate: temp_bookingDate,
+                        startTime: formatTime(temp_startTime),
+                        paymentMethod:
+                            paymentMethod === 'ONLINE'
+                                ? 'ONLINE'
+                                : 'PAY_AT_SALON',
+                        services: [
+                            {
+                                serviceId: '9b00ca30-b61f-44b6-ba19-8b013bd71f04',
+                            },
+                        ],
+                        notes: '',
+                    },
+                },
+            });
+
+            if (response.data.createBooking.success) {
+                navigation.replace('BookingSuccess', {
+                    bookingId:
+                        response.data.createBooking.booking.bookingId,
+                });
+            } else {
+                Alert.alert(response.data.createBooking.message);
+            }
+        } catch (err: any) {
+            Alert.alert(err.message);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -242,16 +302,11 @@ export default function BookingSummaryScreen({
 
                         <TouchableOpacity
                             style={styles.confirm}
-                            onPress={() =>
-                                navigation.navigate(
-                                    'BookingSuccess',
-                                )
-                            }>
-                            <Text
-                                style={
-                                    styles.confirmText
-                                }>
-                                Confirm Booking
+                            disabled={loading}
+                            onPress={confirmBooking}
+                        >
+                            <Text style={styles.confirmText}>
+                                {loading ? 'Booking...' : 'Confirm Booking'}
                             </Text>
                         </TouchableOpacity>
                     </>

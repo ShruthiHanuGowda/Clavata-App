@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     FlatList,
 } from 'react-native';
+import { useUser } from '../../../context/UserContext';
 
 const PRIMARY = '#008060';
 
@@ -40,9 +41,15 @@ const servicesData = [
 
 export default function SalonDetailsScreen({
     navigation,
+    route,
 }: any) {
+    const { currentUser } = useUser();
     const [selectedServices, setSelectedServices] = useState<any[]>([]);
-
+    const { salonId } = route.params;
+    console.log('SalonDetails route.params:', route.params);
+    console.log('Salon object:', route.params?.salon);
+    console.log('Current User:', currentUser);
+    
     const toggleService = (service: any) => {
         const exists = selectedServices.find(
             x => x.id === service.id,
@@ -193,6 +200,8 @@ export default function SalonDetailsScreen({
                         style={styles.continueButton}
                         onPress={() =>
                             navigation.navigate('BookingDateTime', {
+                                salonId,
+                                customerUserId: currentUser?.userId,
                                 services: selectedServices,
                             })
                         }>
