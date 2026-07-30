@@ -8,6 +8,7 @@ import VerifyOTPScreen from '../../Src/Screens/VerifyOTP/verifyOTPScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { StyleSheet, View } from 'react-native';
 import { Root } from '../Screens/RootScreen';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Tabs from './CustomerTabs';
 import { SCREEN_CONSTANT } from './constant';
 import HomeScreenPage from '../Screens/CustomerTabs/Home/HomeScreenPage';
@@ -297,9 +298,11 @@ export function ProfileStack() {
 export function NavigationWrapper() {
   return (
     <View style={styles.container}>
-      <NavigationContainer ref={navigationRef}>
-        <RootScreenStack />
-      </NavigationContainer>
+      {/* <GestureHandlerRootView style={{ flex: 1 }}> */}
+        <NavigationContainer ref={navigationRef}>
+          <RootScreenStack />
+        </NavigationContainer>
+      {/* </GestureHandlerRootView> */}
     </View>
   );
 }
