@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   FlatList,
@@ -10,6 +10,7 @@ import SearchBar from './SearchBar';
 import ServiceChips from './ServiceChips';
 import SalonCard from './SalonCard';
 import LocationBottomSheet from './LocationBottomSheet';
+import { getSavedLocation } from '../../../services/locationStorage';
 
 const salons = [
   {
@@ -40,6 +41,18 @@ export default function HomeScreenPage() {
   const [selectedLocation, setSelectedLocation] = useState(
     'Choose Location',
   );
+
+  useEffect(() => {
+    loadLocation();
+  }, []);
+
+  const loadLocation = async () => {
+    const location = await getSavedLocation();
+    console.log('Loaded Location:', location);
+    if (location) {
+      setSelectedLocation(location.address);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>

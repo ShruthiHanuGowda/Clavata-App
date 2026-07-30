@@ -17,6 +17,7 @@ import {
     RESULTS,
 } from 'react-native-permissions';
 import { reverseGeocode } from '../../../services/locationService';
+import { saveLocation } from '../../../services/locationStorage';
 
 const PRIMARY = '#008060';
 
@@ -195,13 +196,9 @@ export default function LocationBottomSheet({
                                 borderRadius: 12,
                                 alignItems: 'center',
                             }}
-                            onPress={() => {
-                                console.log('Selected Location', detectedLocation);
-                                 onLocationSelected(detectedLocation);
-                                // Later:
-                                // 1. Update Home Header
-                                // 2. Save to AsyncStorage
-                                // 3. Call getNearbySalons()
+                            onPress={async () => {
+                                await saveLocation(detectedLocation);
+                                onLocationSelected(detectedLocation);
                                 onClose();
                             }}
                         >
