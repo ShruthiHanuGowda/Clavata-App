@@ -100,8 +100,10 @@ export default function HomeScreenPage() {
       setSelectedLocation(location.address);
 
       fetchNearbySalons(
-        location.latitude,
-        location.longitude,
+        12.9740959,
+        77.6125687,
+        // location.latitude,
+        // location.longitude,
       );
     }
   };

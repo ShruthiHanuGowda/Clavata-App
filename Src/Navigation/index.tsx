@@ -22,6 +22,10 @@ import BookingPage from '../Screens/CustomerTabs/Booking/BookingPage';
 import ProfileScreen from '../Screens/CustomerTabs/Profile/ProfileScreen';
 import PartnerStack from './PartnerStack';
 import AppTabs from './AppTabs';
+import SalonDetailsScreen from '../Screens/CustomerTabs/Home/SalonDetailsScreen';
+import BookingDateTimeScreen from '../Screens/CustomerTabs/Home/BookingDateTimeScreen';
+import BookingSummaryScreen from '../Screens/CustomerTabs/Home/BookingSummaryScreen';
+import BookingSuccessScreen from '../Screens/CustomerTabs/Home/BookingSuccessScreen';
 // import CollectionDetailsScreen from '../Screens/MarketPlace/CollectionDetailsPage';
 // import NFTDetailsScreen from '../Screens/MarketPlace/NFTDetailsPage';
 // import WalletNFTDetailsScreen from '../Screens/MarketPlace/WalletNFTDetailsPage';
@@ -242,6 +246,22 @@ export function HomeScreenStack() {
       initialRouteName="Nex"
       screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="HomeScreen" component={HomeScreenPage} />
+      <HomeStack.Screen
+        name="SalonDetails"
+        component={SalonDetailsScreen}
+      />
+      <HomeStack.Screen
+        name="BookingDateTime"
+        component={BookingDateTimeScreen}
+      />
+      <HomeStack.Screen
+        name="BookingSummary"
+        component={BookingSummaryScreen}
+      />
+      <HomeStack.Screen
+        name="BookingSuccess"
+        component={BookingSuccessScreen}
+      />
       {/* <HomeStack.Screen name="Nex" component={Drex} /> */}
       {/* <HomeStack.Screen name="account" component={Account} />  */}
       {/* <HomeStack.Screen name="HomeScreen" component={CoinWalletStackFun} /> */}
@@ -299,9 +319,9 @@ export function NavigationWrapper() {
   return (
     <View style={styles.container}>
       {/* <GestureHandlerRootView style={{ flex: 1 }}> */}
-        <NavigationContainer ref={navigationRef}>
-          <RootScreenStack />
-        </NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
+        <RootScreenStack />
+      </NavigationContainer>
       {/* </GestureHandlerRootView> */}
     </View>
   );

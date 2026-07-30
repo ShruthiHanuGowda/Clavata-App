@@ -6,12 +6,14 @@ import {
     TouchableOpacity,
     StyleSheet,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const PRIMARY = '#008060';
 
 type Props = {
     salon: {
         id: string;
+        salonId?: string;
         name: string;
         rating: number;
         reviews?: number;
@@ -23,21 +25,27 @@ type Props = {
 };
 
 export default function SalonCard({ salon }: Props) {
+    const navigation = useNavigation<any>();
+
     return (
-        <TouchableOpacity style={styles.card}>
+        <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() =>
+                navigation.navigate('SalonDetails', {
+                    salonId: salon.salonId ?? salon.id,
+                })
+            }
+        >
             <Image
                 source={{
-                    uri:
-                        salon.image ||
-                        'https://picsum.photos/300/300',
+                    uri: salon.image || 'https://picsum.photos/300/300',
                 }}
                 style={styles.image}
             />
 
             <View style={styles.content}>
-                <Text style={styles.name}>
-                    {salon.name}
-                </Text>
+                <Text style={styles.name}>{salon.name}</Text>
 
                 <Text style={styles.rating}>
                     ⭐ {(salon.rating ?? 0).toFixed(1)}
@@ -55,13 +63,14 @@ export default function SalonCard({ salon }: Props) {
                 )}
 
                 <View style={styles.bottom}>
-                    <Text style={styles.price}>
-                        {salon.price
-                            ? `Starts ₹${salon.price}`
-                            : 'Book Appointment'}
-                    </Text>
-
-                    <TouchableOpacity style={styles.button}>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={() =>
+                            navigation.navigate('SalonDetails', {
+                                salonId: salon.salonId ?? salon.id,
+                            })
+                        }
+                    >
                         <Text style={styles.buttonText}>
                             Book
                         </Text>
@@ -123,20 +132,14 @@ const styles = StyleSheet.create({
     bottom: {
         marginTop: 12,
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'center',
-    },
-
-    price: {
-        color: PRIMARY,
-        fontWeight: '700',
-        fontSize: 15,
     },
 
     button: {
         backgroundColor: PRIMARY,
-        paddingHorizontal: 18,
-        paddingVertical: 8,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
         borderRadius: 20,
     },
 

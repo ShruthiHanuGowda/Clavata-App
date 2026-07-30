@@ -92,7 +92,13 @@ export type RootTabParamList = {
 export type HomeStackParamList = {
   'Nex': undefined;
   HomeScreen: undefined;
+  SalonDetails: {
+    salonId: string;
+  };
+  BookingDateTime: undefined;
+  BookingSummary: undefined;
   coinWalletStack: undefined;
+  BookingSuccess: undefined;
   account: undefined;
 };
 
