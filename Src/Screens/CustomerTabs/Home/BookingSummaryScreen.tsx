@@ -20,6 +20,7 @@ export default function BookingSummaryScreen({
 }: any) {
     const {
         salonId,
+        salon,
         customerUserId,
         services,
         date,
@@ -27,8 +28,8 @@ export default function BookingSummaryScreen({
     } = route.params;
     console.log('BookingSummaryScreen params:', route.params);
 
-    const temp_bookingDate = '2026-07-30';
-    const temp_startTime = '10:00'
+    // const temp_bookingDate = '2026-07-30';
+    // const temp_startTime = '10:00 AM'
 
     const [createBooking, { loading }] =
         useMutation(CREATE_BOOKING);
@@ -77,17 +78,15 @@ export default function BookingSummaryScreen({
                     input: {
                         salonId,
                         customerUserId,
-                        bookingDate: temp_bookingDate,
-                        startTime: formatTime(temp_startTime),
+                        bookingDate: date.id,
+                        startTime: formatTime(time),
                         paymentMethod:
                             paymentMethod === 'ONLINE'
                                 ? 'ONLINE'
                                 : 'PAY_AT_SALON',
-                        services: [
-                            {
-                                serviceId: '9b00ca30-b61f-44b6-ba19-8b013bd71f04',
-                            },
-                        ],
+                        services: services.map((service: any) => ({
+                            serviceId: service.serviceId,
+                        })),
                         notes: '',
                     },
                 },
@@ -119,11 +118,11 @@ export default function BookingSummaryScreen({
 
                         <View style={styles.card}>
                             <Text style={styles.salon}>
-                                Rajeev Beauty Salon
+                                {salon?.name}
                             </Text>
 
                             <Text style={styles.address}>
-                                📍 Whitefield
+                                📍  {salon.address.addressLine}, {salon.address.city}
                             </Text>
                         </View>
 
@@ -133,7 +132,7 @@ export default function BookingSummaryScreen({
                             </Text>
 
                             <Text>
-                                📅 {date.day} {date.date}
+                                📅 {date.label}, {date.dayNumber} {date.month} {date.date.getFullYear()}
                             </Text>
 
                             <Text style={{ marginTop: 8 }}>

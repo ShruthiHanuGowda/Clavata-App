@@ -9,35 +9,37 @@ import {
     FlatList,
 } from 'react-native';
 import { useUser } from '../../../context/UserContext';
+import { useQuery } from '@apollo/client';
+import { LIST_SERVICES } from '../../../graphql/queries';
 
 const PRIMARY = '#008060';
 
-const servicesData = [
-    {
-        id: '1',
-        name: 'Haircut',
-        price: 299,
-        duration: 45,
-    },
-    {
-        id: '2',
-        name: 'Hair Spa',
-        price: 799,
-        duration: 60,
-    },
-    {
-        id: '3',
-        name: 'Facial',
-        price: 999,
-        duration: 90,
-    },
-    {
-        id: '4',
-        name: 'Hair Coloring',
-        price: 1499,
-        duration: 120,
-    },
-];
+// const servicesData = [
+//     {
+//         id: '1',
+//         name: 'Haircut',
+//         price: 299,
+//         duration: 45,
+//     },
+//     {
+//         id: '2',
+//         name: 'Hair Spa',
+//         price: 799,
+//         duration: 60,
+//     },
+//     {
+//         id: '3',
+//         name: 'Facial',
+//         price: 999,
+//         duration: 90,
+//     },
+//     {
+//         id: '4',
+//         name: 'Hair Coloring',
+//         price: 1499,
+//         duration: 120,
+//     },
+// ];
 
 export default function SalonDetailsScreen({
     navigation,
@@ -45,11 +47,27 @@ export default function SalonDetailsScreen({
 }: any) {
     const { currentUser } = useUser();
     const [selectedServices, setSelectedServices] = useState<any[]>([]);
-    const { salonId } = route.params;
+    const { salon } = route.params;
     console.log('SalonDetails route.params:', route.params);
+    console.log('SalonDetails salon:', salon);
+    const salonId = salon.id;
+    const {
+        data,
+        loading,
+        error,
+        refetch,
+    } = useQuery(LIST_SERVICES, {
+        variables: {
+            salonId,
+        },
+        fetchPolicy: 'network-only',
+    });
+    const servicesData = data?.listServices ?? [];
+    console.log('SalonDetails salonId:', salonId);
+    console.log('servicesData', servicesData);
     console.log('Salon object:', route.params?.salon);
     console.log('Current User:', currentUser);
-    
+
     const toggleService = (service: any) => {
         const exists = selectedServices.find(
             x => x.id === service.id,
@@ -86,7 +104,7 @@ export default function SalonDetailsScreen({
                             </TouchableOpacity>
 
                             <Text style={styles.title}>
-                                Rajeev Beauty Salon
+                                {salon.name}
                             </Text>
 
                             <TouchableOpacity>
@@ -105,11 +123,13 @@ export default function SalonDetailsScreen({
                         {/* Rating */}
                         <View style={styles.info}>
                             <Text style={styles.rating}>
-                                ⭐ 4.8 (235 reviews)
+                                {/* ⭐ 4.8 (235 reviews) */}
+                                ⭐ {(salon.rating ?? 0).toFixed(1)}
+                                {salon.reviews != null && ` (${salon.reviews})`}
                             </Text>
 
                             <Text style={styles.distance}>
-                                📍 650 m away
+                                📍{salon.distance}
                             </Text>
 
                             <Text style={styles.status}>
@@ -190,7 +210,6 @@ export default function SalonDetailsScreen({
                                 ? 's'
                                 : ''}
                         </Text>
-
                         <Text style={styles.total}>
                             ₹{totalPrice}
                         </Text>
@@ -198,13 +217,16 @@ export default function SalonDetailsScreen({
 
                     <TouchableOpacity
                         style={styles.continueButton}
-                        onPress={() =>
-                            navigation.navigate('BookingDateTime', {
-                                salonId,
+                        onPress={() => {
+                            const params = {
+                                salonId: salon.id,
+                                salon,
                                 customerUserId: currentUser?.userId,
                                 services: selectedServices,
-                            })
-                        }>
+                            };
+                            console.log('Sending to BookingDateTime:', params);
+                            navigation.navigate('BookingDateTime', params);
+                        }}>
                         <Text
                             style={styles.continueText}>
                             Continue

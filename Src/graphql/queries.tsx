@@ -162,8 +162,11 @@ export const GET_NEARBY_SALONS = gql`
     averageRating
     logoUrl
     distance
-    address {
+     address {
+      addressLine
       city
+      state
+      pincode
     }
   }
 }

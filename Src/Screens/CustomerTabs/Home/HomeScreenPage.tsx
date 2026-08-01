@@ -70,23 +70,25 @@ export default function HomeScreenPage() {
         fetchPolicy: 'network-only',
       });
 
+      console.log('Nearby Salons Data:', data);
+
       const formatted = data.nearbySalons.map((item: any) => ({
         id: item.salonId,
         name: item.salonName,
         rating: item.averageRating,
-        reviews: 0,
+        reviews: item.totalReviews,
         distance:
           item.distance < 1
             ? `${Math.round(item.distance * 1000)} m`
             : `${item.distance.toFixed(1)} km`,
-        services: item.address.city,
-        price: 0,
-        image:
-          item.logoUrl ||
-          'https://picsum.photos/300/300',
-      }));
 
+        address: item.address,
+        price: 0,
+        image: item.logoUrl || 'https://picsum.photos/300/300',
+      }));
       setSalons(formatted);
+
+      console.log('formatted Salons Data:', formatted);
 
     } catch (e) {
       console.log(e);
