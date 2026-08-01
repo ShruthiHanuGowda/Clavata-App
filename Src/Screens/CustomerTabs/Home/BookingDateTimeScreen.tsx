@@ -199,6 +199,11 @@ export default function BookingDateTimeScreen({
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
+                <TouchableOpacity
+                    onPress={() => navigation.goBack()}>
+                    <Text style={styles.back}>←</Text>
+                </TouchableOpacity>
+
                 <Text style={styles.title}>
                     Select Appointment
                 </Text>
@@ -248,60 +253,6 @@ export default function BookingDateTimeScreen({
                     textDisabledColor: '#d2d2d2',
                 }}
             />
-
-            {/* <View style={styles.calendarWrapper}>
-                <CalendarStrip
-                    scrollable
-                    style={{
-                        height: 120,
-                        paddingTop: 10,
-                        paddingBottom: 10,
-                    }}
-                    calendarColor="#F6F7FB"
-                    calendarHeaderStyle={{
-                        color: '#111',
-                        fontSize: 18,
-                        fontWeight: '700',
-                    }}
-                    dateNumberStyle={{
-                        color: '#111',
-                        fontSize: 18,
-                        fontWeight: '700',
-                    }}
-                    dateNameStyle={{
-                        color: '#777',
-                        fontSize: 12,
-                    }}
-                    highlightDateNumberStyle={{
-                        color: '#FFF',
-                    }}
-                    highlightDateNameStyle={{
-                        color: '#FFF',
-                    }}
-                    highlightDateContainerStyle={{
-                        backgroundColor: PRIMARY,
-                        borderRadius: 14,
-                        width: 50,
-                        height: 70,
-                    }}
-                    iconContainer={{ flex: 0.05 }}
-                    selectedDate={moment(selectedDate.date)}
-                    minDate={moment()}
-                    onDateSelected={(date) => {
-                        setSelectedDate({
-                            id: date.format('YYYY-MM-DD'),
-                            date: date.toDate(),
-                            label: date.format('ddd'),
-                            day: date.format('ddd'),
-                            dayNumber: date.format('DD'),
-                            month: date.format('MMM'),
-                        });
-
-                        setSelectedSlot(null);
-                    }}
-                />
-            </View> */}
-
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{
@@ -475,6 +426,13 @@ const styles = StyleSheet.create({
 
     dateNumberSelected: {
         color: '#FFF',
+    },
+    back: {
+        fontSize: 28,
+        fontWeight: '700',
+    },
+    favorite: {
+        fontSize: 28,
     },
 
     dateMonth: {

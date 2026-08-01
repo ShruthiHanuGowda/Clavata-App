@@ -27,6 +27,7 @@ export default function BookingSummaryScreen({
         time,
     } = route.params;
     console.log('BookingSummaryScreen params:', route.params);
+    console.log("date", date);
 
     // const temp_bookingDate = '2026-07-30';
     // const temp_startTime = '10:00 AM'
@@ -78,7 +79,7 @@ export default function BookingSummaryScreen({
                     input: {
                         salonId,
                         customerUserId,
-                        bookingDate: date.id,
+                        bookingDate: date.date.toISOString().split('T')[0],
                         startTime: formatTime(time),
                         paymentMethod:
                             paymentMethod === 'ONLINE'
@@ -107,6 +108,10 @@ export default function BookingSummaryScreen({
 
     return (
         <SafeAreaView style={styles.container}>
+            <TouchableOpacity
+                onPress={() => navigation.goBack()}>
+                <Text style={styles.back}>←</Text>
+            </TouchableOpacity>
             <FlatList
                 data={services}
                 keyExtractor={(item) => item.id}
@@ -411,6 +416,11 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+
+    back: {
+        fontSize: 28,
+        fontWeight: '700',
     },
 
     confirmText: {
