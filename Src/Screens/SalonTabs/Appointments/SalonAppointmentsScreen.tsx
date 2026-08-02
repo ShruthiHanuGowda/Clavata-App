@@ -90,6 +90,7 @@ export default function SalonAppointmentsScreen() {
   const acceptBooking = async (
     bookingId: string,
   ) => {
+    console.log("bookingId", bookingId);
     try {
       await acceptBookingMutation({
         variables: {
