@@ -8,34 +8,37 @@ import {
 import styles from './styles';
 
 type Props = {
+  bookingId: string;
   customer: string;
   service: string;
-  staff: string;
   amount: number;
   time: string;
   status: string;
   phone: string;
   onPress: () => void;
+  onAccept: () => void;
+  onReject: () => void;
 };
 
 export default function AppointmentCard({
   customer,
   service,
-  staff,
   amount,
   time,
   status,
   phone,
   onPress,
+  onAccept,
+  onReject,
 }: Props) {
 
   const badgeColor = () => {
     switch (status) {
+      case 'PENDING':
+        return '#FFF3CD';
+
       case 'CONFIRMED':
         return '#E8F8F6';
-
-      case 'IN_PROGRESS':
-        return '#FFF3CD';
 
       case 'COMPLETED':
         return '#D4EDDA';
@@ -50,11 +53,11 @@ export default function AppointmentCard({
 
   const textColor = () => {
     switch (status) {
+      case 'PENDING':
+        return '#F59E0B';
+
       case 'CONFIRMED':
         return '#009D94';
-
-      case 'IN_PROGRESS':
-        return '#F59E0B';
 
       case 'COMPLETED':
         return '#28A745';
@@ -69,8 +72,8 @@ export default function AppointmentCard({
 
   return (
     <TouchableOpacity
-      style={styles.card}
       activeOpacity={0.9}
+      style={styles.card}
       onPress={onPress}>
 
       <View style={styles.row}>
@@ -85,21 +88,20 @@ export default function AppointmentCard({
             {service}
           </Text>
 
-          <Text style={styles.staff}>
-            Staff : {staff}
-          </Text>
-
           <Text style={styles.phone}>
             {phone}
           </Text>
 
-        </View>
-
-        <View style={{ alignItems: 'flex-end' }}>
-
           <Text style={styles.time}>
             {time}
           </Text>
+
+        </View>
+
+        <View
+          style={{
+            alignItems: 'flex-end',
+          }}>
 
           <Text style={styles.amount}>
             ₹{amount}
@@ -112,7 +114,6 @@ export default function AppointmentCard({
                 backgroundColor: badgeColor(),
               },
             ]}>
-
             <Text
               style={[
                 styles.badgeText,
@@ -122,12 +123,43 @@ export default function AppointmentCard({
               ]}>
               {status}
             </Text>
-
           </View>
 
         </View>
 
       </View>
+
+      {status === 'PENDING' && (
+        <View
+          style={{
+            flexDirection: 'row',
+            marginTop: 16,
+          }}>
+
+          <TouchableOpacity
+            style={styles.rejectButton}
+            onPress={onReject}>
+
+            <Text
+              style={styles.rejectButtonText}>
+              Reject
+            </Text>
+
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.acceptButton}
+            onPress={onAccept}>
+
+            <Text
+              style={styles.acceptButtonText}>
+              Accept
+            </Text>
+
+          </TouchableOpacity>
+
+        </View>
+      )}
 
     </TouchableOpacity>
   );

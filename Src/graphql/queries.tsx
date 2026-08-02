@@ -183,6 +183,7 @@ mutation CreateBooking($input: CreateBookingInput!) {
   }
 }`;
 
+//customer bookings
 export const CUSTOMER_BOOKINGS = gql`
   query CustomerBookings($customerUserId: ID!) {
     customerBookings(customerUserId: $customerUserId) {
@@ -208,6 +209,68 @@ export const CUSTOMER_BOOKINGS = gql`
       }
     }
   }
+`;
+
+//list salon bookings
+export const LIST_BOOKINGS = gql`query SalonBookings($salonId: ID!) {
+  salonBookings(salonId: $salonId) {
+    bookingId
+    customerName
+    customerPhone
+    bookingDate
+    startTime
+    endTime
+    bookingStatus
+    totalAmount
+    services {
+      name
+    }
+  }
+}`;
+
+export const ACCEPT_BOOKING = gql`
+mutation AcceptBooking(
+  $bookingId: ID!,
+  $salonNote: String
+) {
+  updateBookingStatus(
+    input: {
+      bookingId: $bookingId
+      bookingStatus: CONFIRMED
+      salonNote: $salonNote
+    }
+  ) {
+    success
+    message
+    booking {
+      bookingId
+      bookingStatus
+      salonNote
+    }
+  }
+}
+`;
+
+export const REJECT_BOOKING = gql`
+mutation RejectBooking(
+  $bookingId: ID!,
+  $salonNote: String
+) {
+  updateBookingStatus(
+    input: {
+      bookingId: $bookingId
+      bookingStatus: CANCELLED
+      salonNote: $salonNote
+    }
+  ) {
+    success
+    message
+    booking {
+      bookingStatus
+      salonNote
+    }
+  }
+}
 `;
 
 // Define the GraphQL mutation

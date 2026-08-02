@@ -17,13 +17,10 @@ export default function BookingSuccessScreen({
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
-
                 <Text style={styles.icon}>✅</Text>
-
                 <Text style={styles.title}>
                     Booking Confirmed
                 </Text>
-
                 <Text style={styles.subtitle}>
                     Your appointment has been booked successfully.
                 </Text>
@@ -67,9 +64,7 @@ export default function BookingSuccessScreen({
                     <Text style={styles.bookingId}>
                         {bookingId}
                     </Text>
-
                 </View>
-
                 <TouchableOpacity
                     style={styles.primaryButton}
                     onPress={() =>

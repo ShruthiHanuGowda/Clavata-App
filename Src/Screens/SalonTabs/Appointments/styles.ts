@@ -17,6 +17,52 @@ export default StyleSheet.create({
     borderBottomRightRadius: 25,
   },
 
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+  },
+
+  acceptButton: {
+    flex: 1,
+    backgroundColor: '#009D94',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+
+  acceptButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+
+  rejectButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DC3545',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginRight: 8,
+  },
+
+  rejectButtonText: {
+    color: '#DC3545',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+
+  // loader: {
+  //   flex: 1,
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   backgroundColor: '#F8F9FA',
+  // },
+
   title: {
     fontSize: 28,
     fontWeight: '700',

@@ -8,8 +8,8 @@ import {
 import styles from './styles';
 
 const filters = [
-  'Today',
-  'Upcoming',
+  'Requests',
+  'Confirmed',
   'Completed',
   'Cancelled',
 ];

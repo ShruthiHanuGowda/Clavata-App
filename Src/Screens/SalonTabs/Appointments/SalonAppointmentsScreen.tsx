@@ -1,43 +1,170 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   SafeAreaView,
   View,
   Text,
   FlatList,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 
+import {
+  useQuery,
+  useMutation,
+} from '@apollo/client';
+
 import styles from './styles';
-import { appointments } from './dummyData';
 import AppointmentCard from './AppointmentCard';
 import AppointmentFilter from './AppointmentFilter';
+import { useUser } from '../../../context/UserContext';
+import {
+  LIST_BOOKINGS,
+  ACCEPT_BOOKING,
+  REJECT_BOOKING,
+} from '../../../graphql/queries';
+
+type Booking = {
+  bookingId: string;
+  customerName: string;
+  customerPhone: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  bookingStatus: string;
+  totalAmount: number;
+  services: {
+    name: string;
+  }[];
+};
 
 export default function SalonAppointmentsScreen() {
+
+  const { currentUser } = useUser();
+  const salonId = currentUser?.salonId;
   const [selectedFilter, setSelectedFilter] =
-    useState('Today');
+    useState('Requests');
 
-  const filteredAppointments = appointments.filter(item => {
-    switch (selectedFilter) {
-      case 'Today':
-        return (
-          item.status === 'CONFIRMED' ||
-          item.status === 'IN_PROGRESS'
-        );
-
-      case 'Upcoming':
-        return item.status === 'CONFIRMED';
-
-      case 'Completed':
-        return item.status === 'COMPLETED';
-
-      case 'Cancelled':
-        return item.status === 'CANCELLED';
-
-      default:
-        return true;
-    }
+  const {
+    data,
+    loading,
+    refetch,
+  } = useQuery(LIST_BOOKINGS, {
+    skip: !salonId,
+    variables: {
+      salonId,
+    },
+    fetchPolicy: 'network-only',
   });
 
+
+  const [acceptBookingMutation] =
+    useMutation(ACCEPT_BOOKING);
+
+  const [rejectBookingMutation] =
+    useMutation(REJECT_BOOKING);
+
+  const bookings: Booking[] =
+    data?.salonBookings ?? [];
+
+  const filteredAppointments = useMemo(() => {
+    return bookings.filter(item => {
+      switch (selectedFilter) {
+        case 'Requests':
+          return item.bookingStatus === 'PENDING';
+
+        case 'Confirmed':
+          return item.bookingStatus === 'CONFIRMED';
+
+        case 'Completed':
+          return item.bookingStatus === 'COMPLETED';
+
+        case 'Cancelled':
+          return item.bookingStatus === 'CANCELLED';
+
+        default:
+          return true;
+      }
+    });
+  }, [bookings, selectedFilter]);
+
+  const acceptBooking = async (
+    bookingId: string,
+  ) => {
+    try {
+      await acceptBookingMutation({
+        variables: {
+          bookingId,
+          salonNote: 'See you at your appointment.',
+        },
+      });
+
+      Alert.alert(
+        'Success',
+        'Appointment accepted.',
+      );
+
+      refetch();
+    } catch (error: any) {
+      Alert.alert(
+        'Error',
+        error.message,
+      );
+    }
+  };
+
+  const rejectBooking = async (
+    bookingId: string,
+  ) => {
+    Alert.alert(
+      'Reject Appointment',
+      'Are you sure you want to reject this booking?',
+      [
+        {
+          text: 'No',
+          style: 'cancel',
+        },
+        {
+          text: 'Yes',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await rejectBookingMutation({
+                variables: {
+                  bookingId,
+                  salonNote:
+                    'Salon unavailable.',
+                },
+              });
+
+              Alert.alert(
+                'Cancelled',
+                'Appointment cancelled.',
+              );
+
+              refetch();
+            } catch (error: any) {
+              Alert.alert(
+                'Error',
+                error.message,
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView
+        style={styles.loader}>
+        <ActivityIndicator
+          size="large"
+          color="#009D94"
+        />
+      </SafeAreaView>
+    );
+  }
   return (
     <SafeAreaView style={styles.container}>
 
@@ -49,44 +176,66 @@ export default function SalonAppointmentsScreen() {
         </Text>
       </View>
 
-      {/* Search */}
-
-      <View style={styles.search}>
-        <Text style={styles.searchText}>
-          🔍 Search customer...
-        </Text>
-      </View>
-
-      {/* Filter */}
+      {/* Filters */}
 
       <AppointmentFilter
         selected={selectedFilter}
         onSelect={setSelectedFilter}
       />
 
-      {/* Appointment List */}
+      {/* List */}
 
       <FlatList
         data={filteredAppointments}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.bookingId}
         showsVerticalScrollIndicator={false}
+        refreshing={loading}
+        onRefresh={refetch}
         contentContainerStyle={{
-          paddingBottom: 25,
+          paddingBottom: 30,
+          flexGrow: filteredAppointments.length === 0 ? 1 : 0,
         }}
+        ListEmptyComponent={
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingTop: 80,
+            }}>
+            <Text
+              style={{
+                fontSize: 16,
+                color: '#777',
+              }}>
+              No appointments found
+            </Text>
+          </View>
+        }
         renderItem={({ item }) => (
           <AppointmentCard
-            customer={item.customer}
-            service={item.service}
-            staff={item.staff}
-            amount={item.amount}
-            time={item.time}
-            status={item.status}
-            phone={item.phone}
+            bookingId={item.bookingId}
+            customer={item.customerName}
+            service={item.services
+              .map(service => service.name)
+              .join(', ')}
+            amount={item.totalAmount}
+            phone={item.customerPhone}
+            time={`${item.bookingDate} • ${item.startTime} - ${item.endTime}`}
+            status={item.bookingStatus}
             onPress={() =>
               Alert.alert(
-                item.customer,
-                `${item.service}\n₹${item.amount}`,
+                item.customerName,
+                item.services
+                  .map(service => service.name)
+                  .join('\n')
               )
+            }
+            onAccept={() =>
+              acceptBooking(item.bookingId)
+            }
+            onReject={() =>
+              rejectBooking(item.bookingId)
             }
           />
         )}
