@@ -5,9 +5,9 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { useUser } from '../../../context/UserContext';
 
 const PRIMARY = '#008060';
-
 type Props = {
   location: string;
   onPressLocation: () => void;
@@ -17,11 +17,13 @@ export default function HomeHeader({
   location,
   onPressLocation,
 }: Props) {
+   const { currentUser, setCurrentUser } = useUser();
+   console.log('currentUser?.providerStatus', currentUser?.fullName);
   return (
     <View style={styles.container}>
       <View>
         <Text style={styles.title}>
-          Good Morning 👋
+          Hi {currentUser?.fullName || 'there'}
         </Text>
 
         <Text style={styles.small}>

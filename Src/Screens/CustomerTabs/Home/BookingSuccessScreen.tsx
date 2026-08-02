@@ -1,191 +1,186 @@
 import React from 'react';
 import {
-    SafeAreaView,
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
+  SafeAreaView,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
 } from 'react-native';
 
-const PRIMARY = '#008060';
+const PRIMARY = '#009D94';
 
-export default function BookingSuccessScreen({
-    navigation,
+export default function BookingPaymentScreen({
+  navigation,
+  route,
 }: any) {
-    const bookingId = 'NX458291';
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.content}>
-                <Text style={styles.icon}>✅</Text>
-                <Text style={styles.title}>
-                    Booking Confirmed
-                </Text>
-                <Text style={styles.subtitle}>
-                    Your appointment has been booked successfully.
-                </Text>
+  const booking = route.params?.booking;
 
-                <View style={styles.card}>
+  const totalAmount = booking?.totalAmount ?? 1000;
 
-                    <Text style={styles.label}>
-                        Salon
-                    </Text>
+  const bookingFee = Number((totalAmount * 0.05).toFixed(2));
 
-                    <Text style={styles.value}>
-                        Rajeev Beauty Salon
-                    </Text>
+  const remaining = Number(
+    (totalAmount - bookingFee).toFixed(2),
+  );
 
-                    <View style={styles.divider} />
+  const payNow = () => {
 
-                    <Text style={styles.label}>
-                        Date
-                    </Text>
+    // Razorpay / PhonePe / Cashfree
 
-                    <Text style={styles.value}>
-                        Monday, 10 Aug
-                    </Text>
-
-                    <View style={styles.divider} />
-
-                    <Text style={styles.label}>
-                        Time
-                    </Text>
-
-                    <Text style={styles.value}>
-                        11:30 AM
-                    </Text>
-
-                    <View style={styles.divider} />
-
-                    <Text style={styles.label}>
-                        Booking ID
-                    </Text>
-
-                    <Text style={styles.bookingId}>
-                        {bookingId}
-                    </Text>
-                </View>
-                <TouchableOpacity
-                    style={styles.primaryButton}
-                    onPress={() =>
-                        navigation.navigate('Bookings')
-                    }
-                >
-                    <Text style={styles.primaryText}>
-                        View Booking
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.secondaryButton}
-                    onPress={() =>
-                        navigation.navigate('Home')
-                    }
-                >
-                    <Text style={styles.secondaryText}>
-                        Back to Home
-                    </Text>
-                </TouchableOpacity>
-
-            </View>
-        </SafeAreaView>
+    navigation.replace(
+      'BookingSuccess',
+      {
+        booking: {
+          ...booking,
+          bookingFee,
+          remaining,
+        },
+      },
     );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+
+      <View style={styles.content}>
+
+        <Text style={styles.icon}>🎉</Text>
+
+        <Text style={styles.title}>
+          Appointment Accepted
+        </Text>
+
+        <Text style={styles.subtitle}>
+          Your salon has accepted your booking.
+          Pay a small booking fee to secure
+          your appointment.
+        </Text>
+
+        <View style={styles.card}>
+
+          <Row
+            title="Service Total"
+            value={`₹${totalAmount}`}
+          />
+
+          <Row
+            title="Booking Fee (5%)"
+            value={`₹${bookingFee}`}
+          />
+
+          <Row
+            title="Pay at Salon"
+            value={`₹${remaining}`}
+          />
+
+        </View>
+
+        <TouchableOpacity
+          style={styles.payButton}
+          onPress={payNow}>
+
+          <Text style={styles.payText}>
+            Pay ₹{bookingFee}
+          </Text>
+
+        </TouchableOpacity>
+
+      </View>
+
+    </SafeAreaView>
+  );
+}
+
+function Row({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.label}>
+        {title}
+      </Text>
+
+      <Text style={styles.value}>
+        {value}
+      </Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
 
-    container: {
-        flex: 1,
-        backgroundColor: '#F6F7FB',
-    },
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
 
-    content: {
-        flex: 1,
-        justifyContent: 'center',
-        padding: 24,
-    },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
 
-    icon: {
-        fontSize: 70,
-        textAlign: 'center',
-    },
+  icon: {
+    fontSize: 70,
+    textAlign: 'center',
+  },
 
-    title: {
-        marginTop: 20,
-        fontSize: 28,
-        fontWeight: '700',
-        textAlign: 'center',
-    },
+  title: {
+    marginTop: 18,
+    fontSize: 28,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
 
-    subtitle: {
-        marginTop: 10,
-        color: '#666',
-        textAlign: 'center',
-        fontSize: 15,
-        marginBottom: 35,
-    },
+  subtitle: {
+    marginTop: 12,
+    color: '#666',
+    textAlign: 'center',
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 35,
+  },
 
-    card: {
-        backgroundColor: '#FFF',
-        borderRadius: 16,
-        padding: 20,
-        elevation: 2,
-    },
+  card: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+  },
 
-    label: {
-        color: '#888',
-        fontSize: 13,
-    },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 12,
+  },
 
-    value: {
-        marginTop: 4,
-        fontWeight: '700',
-        fontSize: 17,
-        color: '#111',
-    },
+  label: {
+    color: '#555',
+    fontSize: 16,
+  },
 
-    bookingId: {
-        marginTop: 4,
-        color: PRIMARY,
-        fontWeight: '700',
-        fontSize: 20,
-    },
+  value: {
+    fontWeight: '700',
+    fontSize: 17,
+  },
 
-    divider: {
-        height: 1,
-        backgroundColor: '#EEE',
-        marginVertical: 18,
-    },
+  payButton: {
+    marginTop: 35,
+    height: 56,
+    borderRadius: 30,
+    backgroundColor: PRIMARY,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-    primaryButton: {
-        marginTop: 40,
-        height: 55,
-        borderRadius: 28,
-        backgroundColor: PRIMARY,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-
-    primaryText: {
-        color: '#FFF',
-        fontWeight: '700',
-        fontSize: 16,
-    },
-
-    secondaryButton: {
-        marginTop: 15,
-        height: 55,
-        borderRadius: 28,
-        borderWidth: 1,
-        borderColor: PRIMARY,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-
-    secondaryText: {
-        color: PRIMARY,
-        fontWeight: '700',
-        fontSize: 16,
-    },
+  payText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 18,
+  },
 
 });

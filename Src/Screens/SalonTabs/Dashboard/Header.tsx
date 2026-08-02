@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 
 import styles from './styles';
+import { useUser } from '../../../context/UserContext';
 
 type Props = {
   salonName: string;
@@ -14,8 +15,8 @@ type Props = {
 export default function Header({
   salonName,
 }: Props) {
+  const { currentUser, setCurrentUser } = useUser();
   const today = new Date();
-
   const formattedDate = today.toLocaleDateString('en-IN', {
     weekday: 'long',
     day: 'numeric',
@@ -30,9 +31,9 @@ export default function Header({
         <Text style={{ fontSize: 20 }}>🔔</Text>
       </TouchableOpacity>
 
-      <Text style={styles.greeting}>
-        Good Morning 👋
-      </Text>
+      {/* <Text style={styles.greeting}>
+        Hi {currentUser?.fullName || 'there'}
+      </Text> */}
 
       <Text style={styles.salonName}>
         {salonName}

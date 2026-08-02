@@ -13,9 +13,7 @@ import { CUSTOMER_BOOKINGS } from '../../../graphql/queries';
 
 export default function BookingPage() {
     const [tab, setTab] = useState('Upcoming');
-
     const { currentUser } = useUser();
-
     const { data, loading, error, refetch } = useQuery(
         CUSTOMER_BOOKINGS,
         {
