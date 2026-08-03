@@ -6,12 +6,15 @@ import {
     Text,
     TouchableOpacity,
     StyleSheet,
+    Alert,
 } from 'react-native';
-import { useQuery } from '@apollo/client';
+import { useMutation, useQuery } from '@apollo/client';
 import { useUser } from '../../../context/UserContext';
-import { CUSTOMER_BOOKINGS } from '../../../graphql/queries';
+import { CUSTOMER_BOOKINGS, CANCEL_BOOKING } from '../../../graphql/queries';
+import { useNavigation } from '@react-navigation/native';
 
 export default function BookingPage() {
+    const navigation = useNavigation<any>();
     const [tab, setTab] = useState('Upcoming');
     const { currentUser } = useUser();
     const { data, loading, error, refetch } = useQuery(
@@ -24,6 +27,9 @@ export default function BookingPage() {
             fetchPolicy: 'network-only',
         },
     );
+
+    const [cancelBookingMutation] =
+        useMutation(CANCEL_BOOKING);
 
     const filteredBookings =
         data?.customerBookings?.filter((booking: any) => {
@@ -44,6 +50,52 @@ export default function BookingPage() {
 
             return false;
         }) || [];
+
+    const getBookingStatus = (booking: any) => {
+        if (booking.bookingStatus === 'PENDING') {
+            return {
+                text: '🟡 Waiting for Salon',
+                color: '#F59E0B',
+                background: '#FFF7E6',
+            };
+        }
+
+        if (
+            booking.bookingStatus === 'CONFIRMED' &&
+            booking.bookingFeeStatus !== 'PAID'
+        ) {
+            return {
+                text: '🟠 Payment Required',
+                color: '#EA580C',
+                background: '#FFF3E8',
+            };
+        }
+
+        if (
+            booking.bookingStatus === 'CONFIRMED' &&
+            booking.bookingFeeStatus === 'PAID'
+        ) {
+            return {
+                text: '🟢 Booking Confirmed',
+                color: '#16A34A',
+                background: '#ECFDF5',
+            };
+        }
+
+        if (booking.bookingStatus === 'COMPLETED') {
+            return {
+                text: '✅ Completed',
+                color: '#16A34A',
+                background: '#ECFDF5',
+            };
+        }
+
+        return {
+            text: '❌ Cancelled',
+            color: '#DC2626',
+            background: '#FEF2F2',
+        };
+    };
 
     if (loading) {
         return (
@@ -74,6 +126,49 @@ export default function BookingPage() {
         );
     }
 
+    const cancelBooking = (bookingId: string) => {
+        Alert.alert(
+            'Cancel Booking',
+            'Are you sure you want to cancel this booking?',
+            [
+                {
+                    text: 'No',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Yes',
+                    onPress: async () => {
+                        try {
+                            await cancelBookingMutation({
+                                variables: {
+                                    bookingId,
+                                },
+                            });
+
+                            refetch();
+
+                            Alert.alert(
+                                'Success',
+                                'Booking cancelled.'
+                            );
+                        } catch (e: any) {
+                            Alert.alert(
+                                'Error',
+                                e.message
+                            );
+                        }
+                    },
+                },
+            ],
+        );
+    };
+
+    const viewBooking = (bookingId: string) => {
+        console.log(bookingId);
+
+        // navigation.navigate(...)
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView
@@ -94,7 +189,7 @@ export default function BookingPage() {
                             style={[
                                 styles.tab,
                                 tab === item &&
-                                    styles.activeTab,
+                                styles.activeTab,
                             ]}
                             onPress={() =>
                                 setTab(item)
@@ -103,7 +198,7 @@ export default function BookingPage() {
                                 style={[
                                     styles.tabText,
                                     tab === item &&
-                                        styles.activeText,
+                                    styles.activeText,
                                 ]}>
                                 {item}
                             </Text>
@@ -172,12 +267,25 @@ export default function BookingPage() {
                                         }
                                     </Text>
 
-                                    <Text>
-                                        Status:{' '}
-                                        {
-                                            item.bookingStatus
-                                        }
-                                    </Text>
+                                    <View
+                                        style={[
+                                            styles.statusContainer,
+                                            {
+                                                backgroundColor:
+                                                    getBookingStatus(item).background,
+                                            },
+                                        ]}>
+                                        <Text
+                                            style={[
+                                                styles.statusText,
+                                                {
+                                                    color:
+                                                        getBookingStatus(item).color,
+                                                },
+                                            ]}>
+                                            {getBookingStatus(item).text}
+                                        </Text>
+                                    </View>
 
                                     <Text
                                         style={
@@ -188,25 +296,97 @@ export default function BookingPage() {
                                             item.totalAmount
                                         }
                                     </Text>
+                                    {item.bookingStatus === 'CONFIRMED' &&
+                                        item.bookingFeeStatus === 'PENDING' && (
+
+                                            <View style={styles.paymentCard}>
+
+                                                <Text style={styles.paymentTitle}>
+                                                    🟠 Payment Required
+                                                </Text>
+
+                                                <Text style={styles.paymentMessage}>
+                                                    Your appointment has been accepted by the salon.
+                                                </Text>
+
+                                                <Text style={styles.paymentAmount}>
+                                                    Pay ₹{item.bookingFee} to secure your booking.
+                                                </Text>
+
+                                                <Text style={styles.remainingAmount}>
+                                                    Remaining ₹{item.remainingAmount} will be paid at the salon.
+                                                </Text>
+
+                                                <TouchableOpacity
+                                                    style={styles.payNowButton}
+                                                    onPress={() =>
+                                                        navigation.navigate(
+                                                            'BookingPayment',
+                                                            {
+                                                                booking: item,
+                                                            },
+                                                        )
+                                                    }>
+
+                                                    <Text style={styles.payNowText}>
+                                                        Pay Now
+                                                    </Text>
+
+                                                </TouchableOpacity>
+
+                                            </View>
+
+                                        )}
+                                    {item.bookingStatus === 'CONFIRMED' &&
+                                        item.bookingFeeStatus === 'PAID' && (
+
+                                            <View style={styles.confirmedCard}>
+
+                                                <Text style={styles.confirmedTitle}>
+                                                    🟢 Booking Confirmed
+                                                </Text>
+
+                                                <Text style={styles.confirmedMessage}>
+                                                    Booking fee received successfully.
+                                                </Text>
+
+                                                <Text style={styles.remainingAmount}>
+                                                    Remaining ₹{item.remainingAmount} will be paid at salon.
+                                                </Text>
+
+                                            </View>
+
+                                        )}
 
                                     {tab ===
-                                    'Upcoming' ? (
-                                        <View
-                                            style={
-                                                styles.buttons
-                                            }>
+                                        'Upcoming' ? (
+                                        <View style={styles.buttons}>
+
                                             <TouchableOpacity
-                                                style={
-                                                    styles.primaryButton
+                                                style={styles.secondaryButton}
+                                                onPress={() =>
+                                                    cancelBooking(item.bookingId)
                                                 }>
+
                                                 <Text
-                                                    style={
-                                                        styles.primaryText
-                                                    }>
-                                                    View
-                                                    Booking
+                                                    style={styles.secondaryText}>
+                                                    Cancel
                                                 </Text>
+
                                             </TouchableOpacity>
+
+                                            <TouchableOpacity
+                                                style={styles.primaryButton}
+                                                onPress={() =>
+                                                    viewBooking(item.bookingId)
+                                                }>
+
+                                                <Text style={styles.primaryText}>
+                                                    View Bookings
+                                                </Text>
+
+                                            </TouchableOpacity>
+
                                         </View>
                                     ) : (
                                         <View
@@ -315,6 +495,10 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: '700',
     },
+    secondaryText: {
+        color: '#008060',
+        fontWeight: '700',
+    },
 
     secondaryButton: {
         borderWidth: 1,
@@ -322,5 +506,85 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 10,
         alignItems: 'center',
+    },
+    statusContainer: {
+        alignSelf: 'flex-start',
+        marginTop: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+
+    statusText: {
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    paymentCard: {
+        marginTop: 12,
+        backgroundColor: '#FFF7ED',
+        borderWidth: 1,
+        borderColor: '#FDBA74',
+        borderRadius: 12,
+        padding: 12,
+    },
+
+    paymentTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#C2410C',
+        marginBottom: 6,
+    },
+
+    paymentMessage: {
+        fontSize: 14,
+        color: '#444',
+        marginBottom: 6,
+    },
+
+    paymentAmount: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#111827',
+    },
+
+    remainingAmount: {
+        marginTop: 5,
+        color: '#666',
+        fontSize: 13,
+    },
+
+    confirmedCard: {
+        marginTop: 12,
+        backgroundColor: '#ECFDF5',
+        borderWidth: 1,
+        borderColor: '#86EFAC',
+        borderRadius: 12,
+        padding: 12,
+    },
+
+    confirmedTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#15803D',
+        marginBottom: 6,
+    },
+
+    confirmedMessage: {
+        fontSize: 14,
+        color: '#444',
+    },
+    payNowButton: {
+        marginTop: 15,
+        backgroundColor: '#009D94',
+        borderRadius: 10,
+        height: 46,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    payNowText: {
+        color: '#FFF',
+        fontWeight: '700',
+        fontSize: 16,
     },
 });

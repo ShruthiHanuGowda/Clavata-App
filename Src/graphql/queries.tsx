@@ -184,32 +184,84 @@ mutation CreateBooking($input: CreateBookingInput!) {
 }`;
 
 //customer bookings
+// export const CUSTOMER_BOOKINGS = gql`
+//   query CustomerBookings($customerUserId: ID!) {
+//     customerBookings(customerUserId: $customerUserId) {
+//       bookingId
+//       salonId
+//       customerUserId
+//       salonName
+//       customerName
+//       bookingDate
+//       startTime
+//       endTime
+//       totalAmount
+//       paymentMethod
+//       paymentStatus
+//       bookingStatus
+//       notes
+//       services {
+//         serviceId
+//         name
+//         category
+//         duration
+//         price
+//       }
+//     }
+//   }
+// `;
 export const CUSTOMER_BOOKINGS = gql`
-  query CustomerBookings($customerUserId: ID!) {
-    customerBookings(customerUserId: $customerUserId) {
-      bookingId
-      salonId
-      customerUserId
-      salonName
-      customerName
-      bookingDate
-      startTime
-      endTime
-      totalAmount
-      paymentMethod
-      paymentStatus
-      bookingStatus
-      notes
-      services {
-        serviceId
-        name
-        category
-        duration
-        price
-      }
+query CustomerBookings($customerUserId: ID!) {
+  customerBookings(customerUserId: $customerUserId) {
+    bookingId
+    salonId
+    customerUserId
+    salonName
+    customerName
+
+    bookingDate
+    startTime
+    endTime
+
+    bookingStatus
+
+    paymentMethod
+    paymentStatus
+
+    bookingFee
+    bookingFeeStatus
+    bookingFeePaidAt
+    remainingAmount
+
+    totalAmount
+
+    services {
+      serviceId
+      name
+      category
+      duration
+      price
     }
   }
+}
 `;
+
+export const UPDATE_BOOKING_PAYMENT_STATUS = gql`
+mutation UpdateBookingPaymentStatus(
+$bookingId:ID!,
+$paymentId:String!,
+$bookingFeeStatus:String!
+){
+updateBookingPaymentStatus(
+bookingId:$bookingId,
+paymentId:$paymentId,
+bookingFeeStatus:$bookingFeeStatus
+){
+bookingId
+bookingFeeStatus
+paymentId
+}
+}`;
 
 //list salon bookings
 export const LIST_BOOKINGS = gql`query SalonBookings($salonId: ID!) {
@@ -266,6 +318,29 @@ mutation RejectBooking(
     success
     message
     booking {
+      bookingStatus
+      salonNote
+    }
+  }
+}
+`;
+
+export const CANCEL_BOOKING = gql`
+mutation CancelBooking(
+  $bookingId: ID!,
+  $salonNote: String
+) {
+  updateBookingStatus(
+    input: {
+      bookingId: $bookingId
+      bookingStatus: CANCELLED
+      salonNote: $salonNote
+    }
+  ) {
+    success
+    message
+    booking {
+      bookingId
       bookingStatus
       salonNote
     }

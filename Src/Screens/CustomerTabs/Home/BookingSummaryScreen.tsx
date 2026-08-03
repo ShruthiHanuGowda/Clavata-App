@@ -94,12 +94,21 @@ export default function BookingSummaryScreen({
             });
 
             if (response.data.createBooking.success) {
-                navigation.replace('BookingSuccess', {
-                    bookingId:
-                        response.data.createBooking.booking.bookingId,
-                });
+
+                navigation.replace(
+                    'BookingRequestSent',
+                    {
+                        booking:
+                            response.data.createBooking.booking,
+                    },
+                );
+
             } else {
-                Alert.alert(response.data.createBooking.message);
+
+                Alert.alert(
+                    response.data.createBooking.message,
+                );
+
             }
         } catch (err: any) {
             Alert.alert(err.message);
