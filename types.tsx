@@ -124,6 +124,15 @@ export type CoinWalletStackParamList = {
 export type StakeStackParamList = {
   stake: undefined;
   profile: undefined;
+  Payments: undefined;
+  ProfileBookings: undefined;
+  FavouriteSalons: undefined;
+  SavedAddresses: undefined;
+  OffersRewards: undefined;
+  Settings: undefined;
+  Notifications: undefined;
+  HelpSupport: undefined;
+  PrivacyPolicy: undefined;
 };
 
 export type MarketplaceStackParamList = {

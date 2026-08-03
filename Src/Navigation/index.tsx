@@ -28,6 +28,15 @@ import BookingSummaryScreen from '../Screens/CustomerTabs/Home/BookingSummaryScr
 import BookingSuccessScreen from '../Screens/CustomerTabs/Home/BookingSuccessScreen';
 import BookingRequestSent from '../Screens/CustomerTabs/Home/BookingRequestSent';
 import BookingPayment from '../Screens/CustomerTabs/Home/BookingPayment';
+import Payments from '../Screens/CustomerTabs/Profile/Payments';
+import ProfileBookings from '../Screens/CustomerTabs/Profile/ProfileBookings';
+import FavouriteSalons from '../Screens/CustomerTabs/Profile/FavouriteSalons';
+import SavedAddresses from '../Screens/CustomerTabs/Profile/SavedAddresses';
+import OffersRewards from '../Screens/CustomerTabs/Profile/OffersRewards';
+import Settings from '../Screens/CustomerTabs/Profile/Settings';
+import Notifications from '../Screens/CustomerTabs/Profile/Notifications';
+import HelpSupport from '../Screens/CustomerTabs/Profile/HelpSupport';
+import PrivacyPolicy from '../Screens/CustomerTabs/Profile/PrivacyPolicy';
 
 
 function RootScreenStack() {
@@ -155,6 +164,48 @@ export function ProfileStack() {
       <ProfilePlaceStack.Screen
         name="profile"
         component={ProfileScreen}
+      />
+      <ProfilePlaceStack.Screen
+        name="Payments"
+        component={Payments}
+      />
+      <ProfilePlaceStack.Screen
+        name="ProfileBookings"
+        component={ProfileBookings}
+      />
+      <ProfilePlaceStack.Screen
+        name="FavouriteSalons"
+        component={FavouriteSalons}
+      />
+
+      <ProfilePlaceStack.Screen
+        name="SavedAddresses"
+        component={SavedAddresses}
+      />
+
+      <ProfilePlaceStack.Screen
+        name="OffersRewards"
+        component={OffersRewards}
+      />
+
+      <ProfilePlaceStack.Screen
+        name="Settings"
+        component={Settings}
+      />
+
+      <ProfilePlaceStack.Screen
+        name="Notifications"
+        component={Notifications}
+      />
+
+      <ProfilePlaceStack.Screen
+        name="HelpSupport"
+        component={HelpSupport}
+      />
+
+      <ProfilePlaceStack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicy}
       />
     </ProfilePlaceStack.Navigator>
   );

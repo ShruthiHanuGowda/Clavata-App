@@ -13,18 +13,18 @@ import { Alert } from 'react-native';
 import secureStorage from '../../../utils/secureStorage';
 
 const menuItems = [
-  { title: 'My Bookings', icon: '📅' },
-  { title: 'Favourite Salons', icon: '❤️' },
-  { title: 'Saved Addresses', icon: '📍' },
-  { title: 'Payments', icon: '💳' },
-  { title: 'Offers & Rewards', icon: '🎁' },
+  { title: 'My Bookings', icon: '📅', screen: 'ProfileBookings' },
+  { title: 'Favourite Salons', icon: '❤️', screen: 'FavouriteSalons' },
+  { title: 'Saved Addresses', icon: '📍', screen: 'SavedAddresses' },
+  { title: 'Payments', icon: '💳', screen: 'Payments' },
+  { title: 'Offers & Rewards', icon: '🎁', screen: 'OffersRewards' },
 ];
 
 const settingsItems = [
-  { title: 'Settings', icon: '⚙️' },
-  { title: 'Notifications', icon: '🔔' },
-  { title: 'Help & Support', icon: '❓' },
-  { title: 'Privacy Policy', icon: '📄' },
+  { title: 'Settings', icon: '⚙️', screen: 'Settings' },
+  { title: 'Notifications', icon: '🔔', screen: 'Notifications' },
+  { title: 'Help & Support', icon: '❓', screen: 'HelpSupport' },
+  { title: 'Privacy Policy', icon: '📄', screen: 'PrivacyPolicy' },
 ];
 
 export default function ProfileScreen() {
@@ -131,6 +131,106 @@ export default function ProfileScreen() {
         break;
     }
   };
+
+  const handleProfileNavigation = (item: any) => {
+
+    switch (item.screen) {
+
+      case 'ProfileBookings':
+        navigation.navigate('ProfileBookings');
+        break;
+
+
+      case 'FavouriteSalons':
+        navigation.navigate('FavouriteSalons');
+        break;
+
+
+      case 'SavedAddresses':
+        navigation.navigate('SavedAddresses');
+        break;
+
+
+      case 'Payments':
+        navigation.navigate('Payments');
+        break;
+
+
+      case 'OffersRewards':
+        navigation.navigate('OffersRewards');
+        break;
+
+
+      case 'Settings':
+        navigation.navigate('Settings');
+        break;
+
+
+      case 'Notifications':
+        navigation.navigate('Notifications');
+        break;
+
+
+      case 'HelpSupport':
+        navigation.navigate('HelpSupport');
+        break;
+
+
+      case 'PrivacyPolicy':
+        navigation.navigate('PrivacyPolicy');
+        break;
+
+
+      default:
+        break;
+
+    }
+
+  };
+
+  // const handleSettingPress = (item: any) => {
+  //   switch (item.title) {
+  //     case 'My Bookings':
+  //       navigation.navigate('ProfileBookings');
+  //       break;
+  //     case 'Favourite Salons':
+  //       navigation.navigate('FavouriteSalons');
+  //       break;
+  //     case 'Saved Addresses':
+  //       navigation.navigate('SavedAddresses');
+  //       break;
+  //     case 'Payments':
+  //       navigation.navigate('Payments');
+  //       break;
+  //     case 'Offers & Rewards':
+  //       navigation.navigate('OffersRewards');
+  //       break;
+  //     default:
+  //       break;
+  //   }
+  // };
+
+  // const handleMenuPress = (item: any) => {
+  //   switch (item.title) {
+  //     case 'Settings':
+  //       navigation.navigate('Settings');
+  //       break;
+  //     case 'Favourite Salons':
+  //       navigation.navigate('FavouriteSalons');
+  //       break;
+  //     case 'Saved Addresses':
+  //       navigation.navigate('SavedAddresses');
+  //       break;
+  //     case 'Payments':
+  //       navigation.navigate('Payments');
+  //       break;
+  //     case 'Offers & Rewards':
+  //       navigation.navigate('OffersRewards');
+  //       break;
+  //     default:
+  //       break;
+  //   }
+  // };
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -155,7 +255,7 @@ export default function ProfileScreen() {
         {/* Customer Features */}
         <View style={styles.section}>
           {menuItems.map(item => (
-            <TouchableOpacity key={item.title} style={styles.row}>
+            <TouchableOpacity key={item.title} style={styles.row} onPress={() => handleProfileNavigation(item)}>
               <Text style={styles.leftIcon}>{item.icon}</Text>
               <Text style={styles.rowTitle}>{item.title}</Text>
               <Text style={styles.arrow}>›</Text>
@@ -183,7 +283,7 @@ export default function ProfileScreen() {
         {/* Settings */}
         <View style={styles.section}>
           {settingsItems.map(item => (
-            <TouchableOpacity key={item.title} style={styles.row}>
+            <TouchableOpacity key={item.title} style={styles.row} onPress={() => handleProfileNavigation(item)}>
               <Text style={styles.leftIcon}>{item.icon}</Text>
 
               <Text style={styles.rowTitle}>{item.title}</Text>
