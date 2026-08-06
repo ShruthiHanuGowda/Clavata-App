@@ -12,9 +12,9 @@ import RazorpayCheckout from 'react-native-razorpay';
 import { useMutation } from '@apollo/client';
 
 import {
-    UPDATE_BOOKING_PAYMENT_STATUS,
+    CREATE_RAZORPAY_ORDER,
+    VERIFY_RAZORPAY_PAYMENT,
 } from '../../../graphql/queries';
-
 
 export default function BookingPayment({ route, navigation }: any) {
 
@@ -22,12 +22,11 @@ export default function BookingPayment({ route, navigation }: any) {
 
     const [loading, setLoading] = useState(false);
 
+    const [createRazorpayOrder] =
+        useMutation(CREATE_RAZORPAY_ORDER);
 
-    const [updatePaymentStatus] =
-        useMutation(
-            UPDATE_BOOKING_PAYMENT_STATUS
-        );
-
+    const [verifyRazorpayPayment] =
+        useMutation(VERIFY_RAZORPAY_PAYMENT);
 
     const startPayment = async () => {
 
@@ -35,6 +34,21 @@ export default function BookingPayment({ route, navigation }: any) {
 
             setLoading(true);
 
+            // Create Razorpay Order
+            const orderResponse =
+                await createRazorpayOrder({
+                    variables: {
+                        input: {
+                            bookingId:
+                                booking.bookingId,
+                        },
+                    },
+                });
+
+            const order =
+                orderResponse.data
+                    .createRazorpayOrder
+                    .order;
 
             const options = {
 
@@ -45,26 +59,24 @@ export default function BookingPayment({ route, navigation }: any) {
                     'https://your-logo-url.com/logo.png',
 
                 currency:
-                    'INR',
+                    order.currency,
 
                 key:
-                    'YOUR_RAZORPAY_KEY',
+                    order.keyId,
 
                 amount:
-                    booking.bookingFee * 100,
-
+                    order.amount,
 
                 order_id:
-                    "order_TEST123456",
-
+                    order.orderId,
 
                 name:
                     booking.salonName,
 
-
                 prefill: {
+
                     email:
-                        'customer@email.com',
+                        "customer@email.com",
 
                     contact:
                         booking.customerPhone,
@@ -73,80 +85,91 @@ export default function BookingPayment({ route, navigation }: any) {
                         booking.customerName,
                 },
 
-
                 theme: {
                     color: '#009D94'
                 }
-
             };
 
-            RazorpayCheckout.open(options)
+            const payment =
+                await RazorpayCheckout.open(
+                    options
+                );
 
-                .then(async (data: any) => {
+            console.log(
+                "Payment Success",
+                payment
+            );
 
+            const verifyResponse =
+                await verifyRazorpayPayment({
 
-                    console.log(
-                        "Payment Success",
-                        data
-                    );
+                    variables: {
 
-
-                    await updatePaymentStatus({
-
-                        variables: {
+                        input: {
 
                             bookingId:
                                 booking.bookingId,
 
+                            razorpayOrderId:
+                                payment.razorpay_order_id,
 
-                            paymentId:
-                                data.razorpay_payment_id,
+                            razorpayPaymentId:
+                                payment.razorpay_payment_id,
 
-
-                            bookingFeeStatus:
-                                "PAID"
-
-                        }
-
-                    });
-
-
-
-                    Alert.alert(
-                        "Payment Successful",
-                        "Your booking is confirmed"
-                    );
-
-
-                    navigation.goBack();
-
-
-
-                })
-
-                .catch((error: any) => {
-
-
-                    console.log(error);
-
-
-                    Alert.alert(
-                        "Payment Failed",
-                        error.description
-                    );
-
-
+                            razorpaySignature:
+                                payment.razorpay_signature,
+                        },
+                    },
                 });
 
+            if (
+                verifyResponse.data
+                    .verifyRazorpayPayment
+                    .success
+            ) {
+
+                Alert.alert(
+                    "Payment Successful",
+                    "Booking fee paid successfully.",
+                    [
+                        {
+                            text: "OK",
+                            onPress: () =>
+                                navigation.goBack()
+                        }
+                    ]
+                );
+
+            } else {
+
+                Alert.alert(
+                    "Verification Failed",
+                    verifyResponse.data
+                        .verifyRazorpayPayment
+                        .message
+                );
+
+            }
 
         }
-        catch (e: any) {
+        catch (error: any) {
+
+            console.log(error);
+
+            if (error?.code === 0) {
+                Alert.alert(
+                    "Payment Cancelled",
+                    "You cancelled the payment."
+                );
+                return;
+            }
 
             Alert.alert(
-                "Error",
-                e.message
+                "Payment Failed",
+                error?.description ||
+                error?.message ||
+                "Something went wrong."
             );
-
         }
         finally {
 
@@ -154,152 +177,138 @@ export default function BookingPayment({ route, navigation }: any) {
 
         }
 
-    }
-
-
+    };
 
     return (
-
         <SafeAreaView style={styles.container}>
-
-
             <View style={styles.card}>
-
 
                 <Text style={styles.title}>
                     Confirm Payment
                 </Text>
 
-
                 <Text style={styles.salon}>
                     {booking.salonName}
                 </Text>
 
-
-                <Text>
+                <Text style={styles.label}>
                     Appointment Date
                 </Text>
-
 
                 <Text style={styles.value}>
                     {booking.bookingDate}
                 </Text>
 
-
-                <Text>
+                <Text style={styles.label}>
                     Booking Fee
                 </Text>
-
 
                 <Text style={styles.amount}>
                     ₹{booking.bookingFee}
                 </Text>
 
-
                 <Text style={styles.note}>
                     Remaining ₹
                     {booking.remainingAmount}
-                    {' '}
-                    will be paid at salon
+                    {" "}
+                    will be paid at salon.
                 </Text>
 
-
-
                 <TouchableOpacity
-                    style={styles.button}
-                    onPress={startPayment}
+                    style={[
+                        styles.button,
+                        loading && styles.buttonDisabled
+                    ]}
                     disabled={loading}
+                    onPress={startPayment}
                 >
-
                     <Text style={styles.buttonText}>
                         {
                             loading
-                                ?
-                                "Processing..."
-                                :
-                                "Pay Now"
+                                ? "Processing..."
+                                : "Pay Now"
                         }
                     </Text>
-
                 </TouchableOpacity>
 
-
             </View>
-
-
         </SafeAreaView>
-
-    )
-
+    );
 }
-
-
 
 const styles = StyleSheet.create({
 
     container: {
         flex: 1,
-        backgroundColor: '#F7F8FA',
-        justifyContent: 'center',
-        padding: 20
+        justifyContent: "center",
+        backgroundColor: "#F7F8FA",
+        padding: 20,
     },
-
 
     card: {
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 20
+        backgroundColor: "#FFFFFF",
+        borderRadius: 20,
+        padding: 24,
+        elevation: 3,
     },
-
 
     title: {
         fontSize: 24,
-        fontWeight: '700',
-        marginBottom: 20
+        fontWeight: "700",
+        marginBottom: 20,
+        color: "#111827",
     },
-
 
     salon: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: 15
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#009D94",
+        marginBottom: 20,
     },
 
+    label: {
+        fontSize: 14,
+        color: "#6B7280",
+        marginTop: 10,
+    },
 
     value: {
-        fontSize: 16,
-        marginBottom: 15
+        fontSize: 17,
+        fontWeight: "600",
+        marginBottom: 12,
+        color: "#111827",
     },
-
 
     amount: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: '#009D94',
-        marginVertical: 10
+        fontSize: 32,
+        fontWeight: "700",
+        color: "#009D94",
+        marginVertical: 15,
     },
-
 
     note: {
-        color: '#666',
-        marginBottom: 20
+        fontSize: 14,
+        color: "#6B7280",
+        marginBottom: 25,
+        lineHeight: 22,
     },
-
 
     button: {
-        height: 50,
-        backgroundColor: '#009D94',
+        height: 52,
         borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center'
+        backgroundColor: "#009D94",
+        justifyContent: "center",
+        alignItems: "center",
     },
 
+    buttonDisabled: {
+        opacity: 0.7,
+    },
 
     buttonText: {
-        color: '#fff',
+        color: "#FFFFFF",
         fontSize: 17,
-        fontWeight: '700'
-    }
-
+        fontWeight: "700",
+    },
 
 });

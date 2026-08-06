@@ -246,22 +246,62 @@ query CustomerBookings($customerUserId: ID!) {
 }
 `;
 
-export const UPDATE_BOOKING_PAYMENT_STATUS = gql`
-mutation UpdateBookingPaymentStatus(
-$bookingId:ID!,
-$paymentId:String!,
-$bookingFeeStatus:String!
+// export const UPDATE_BOOKING_PAYMENT_STATUS = gql`
+// mutation UpdateBookingPaymentStatus(
+// $bookingId:ID!,
+// $paymentId:String!,
+// $bookingFeeStatus:String!
+// ){
+// updateBookingPaymentStatus(
+// bookingId:$bookingId,
+// paymentId:$paymentId,
+// bookingFeeStatus:$bookingFeeStatus
+// ){
+// bookingId
+// bookingFeeStatus
+// paymentId
+// }
+// }`;
+
+export const CREATE_RAZORPAY_ORDER = gql`
+mutation CreateRazorpayOrder(
+  $input: CreateRazorpayOrderInput!
 ){
-updateBookingPaymentStatus(
-bookingId:$bookingId,
-paymentId:$paymentId,
-bookingFeeStatus:$bookingFeeStatus
-){
-bookingId
-bookingFeeStatus
-paymentId
+  createRazorpayOrder(
+    input:$input
+  ){
+    success
+    message
+    order{
+      orderId
+      amount
+      currency
+      keyId
+    }
+  }
 }
-}`;
+`;
+
+export const VERIFY_RAZORPAY_PAYMENT = gql`
+mutation VerifyRazorpayPayment(
+  $input: VerifyRazorpayPaymentInput!
+){
+  verifyRazorpayPayment(
+    input:$input
+  ){
+    success
+    message
+    booking{
+      bookingId
+      bookingFeeStatus
+      paymentStatus
+      bookingFeePaidAt
+      razorpayOrderId
+      razorpayPaymentId
+    }
+  }
+}
+`;
 
 //list salon bookings
 export const LIST_BOOKINGS = gql`query SalonBookings($salonId: ID!) {
