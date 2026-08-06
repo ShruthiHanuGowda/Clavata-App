@@ -37,6 +37,7 @@ import Settings from '../Screens/CustomerTabs/Profile/Settings';
 import Notifications from '../Screens/CustomerTabs/Profile/Notifications';
 import HelpSupport from '../Screens/CustomerTabs/Profile/HelpSupport';
 import PrivacyPolicy from '../Screens/CustomerTabs/Profile/PrivacyPolicy';
+import RateReviewScreen from '../Screens/CustomerTabs/RateReviewScreen';
 
 
 function RootScreenStack() {
@@ -150,6 +151,10 @@ export function BookingStack() {
       <BookingplaceStack.Screen
         name="BookingPayment"
         component={BookingPayment}
+      />
+      <BookingplaceStack.Screen
+        name="RateReview"
+        component={RateReviewScreen}
       />
     </BookingplaceStack.Navigator>
   );

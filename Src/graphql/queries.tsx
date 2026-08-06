@@ -183,33 +183,6 @@ mutation CreateBooking($input: CreateBookingInput!) {
   }
 }`;
 
-//customer bookings
-// export const CUSTOMER_BOOKINGS = gql`
-//   query CustomerBookings($customerUserId: ID!) {
-//     customerBookings(customerUserId: $customerUserId) {
-//       bookingId
-//       salonId
-//       customerUserId
-//       salonName
-//       customerName
-//       bookingDate
-//       startTime
-//       endTime
-//       totalAmount
-//       paymentMethod
-//       paymentStatus
-//       bookingStatus
-//       notes
-//       services {
-//         serviceId
-//         name
-//         category
-//         duration
-//         price
-//       }
-//     }
-//   }
-// `;
 export const CUSTOMER_BOOKINGS = gql`
 query CustomerBookings($customerUserId: ID!) {
   customerBookings(customerUserId: $customerUserId) {
@@ -218,23 +191,21 @@ query CustomerBookings($customerUserId: ID!) {
     customerUserId
     salonName
     customerName
-
     bookingDate
     startTime
     endTime
-
+    reviewSubmitted
+    rating
+    review
+    reviewedAt
     bookingStatus
-
     paymentMethod
     paymentStatus
-
     bookingFee
     bookingFeeStatus
     bookingFeePaidAt
     remainingAmount
-
     totalAmount
-
     services {
       serviceId
       name
@@ -403,6 +374,19 @@ export const COMPLETE_BOOKING = gql`
     }
   }
 `;
+
+export const CREATE_REVIEW = gql`
+mutation CreateReview($input: CreateReviewInput!) {
+  createReview(input: $input) {
+    success
+    message
+    review {
+      reviewId
+      rating
+      review
+    }
+  }
+}`;
 
 // Define the GraphQL mutation
 // export const CREATE_USER_WALLETS = gql`

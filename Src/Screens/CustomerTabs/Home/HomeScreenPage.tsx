@@ -6,7 +6,6 @@ import {
   View,
   Text,
 } from 'react-native';
-
 import HomeHeader from './HomeHeader';
 import SearchBar from './SearchBar';
 import ServiceChips from './ServiceChips';
@@ -15,43 +14,47 @@ import LocationBottomSheet from './LocationBottomSheet';
 import { getSavedLocation } from '../../../services/locationStorage';
 import { GET_NEARBY_SALONS } from '../../../graphql/queries';
 import { useApolloClient } from '@apollo/client';
+import ReviewPopup from './ReviewPopup';
+import { CUSTOMER_BOOKINGS } from '../../../graphql/queries';
+import { useNavigation } from '@react-navigation/native';
+import { useUser } from '../../../context/UserContext';
 
-// const salons = [
-//   {
-//     id: '1',
-//     name: 'Style Studio',
-//     rating: 4.8,
-//     reviews: 234,
-//     distance: '650 m',
-//     services: 'Hair • Spa • Facial',
-//     price: 299,
-//     image: 'https://picsum.photos/300/300',
-//   },
-//   {
-//     id: '2',
-//     name: 'Royal Salon',
-//     rating: 4.9,
-//     reviews: 612,
-//     distance: '1.4 km',
-//     services: 'Hair • Bridal',
-//     price: 499,
-//     image: 'https://picsum.photos/301/301',
-//   },
-// ];
+type Booking = {
+  bookingId: string;
+  salonId: string;
+  customerUserId: string;
+  customerName: string;
+  salonName: string;
+  bookingStatus: string;
+  reviewSubmitted?: boolean;
+};
 
 export default function HomeScreenPage() {
   const client = useApolloClient();
+  const navigation = useNavigation<any>();
+  const [showReviewPopup, setShowReviewPopup] = useState(false);
+  const [pendingBooking, setPendingBooking] =
+    useState<Booking | null>(null);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [salons, setSalons] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(
     'Choose Location',
   );
+  const { currentUser } = useUser();
 
+  // useEffect(() => {
+  //   loadLocation();
+  //   loadCustomerBookings();
+  // }, []);
 
   useEffect(() => {
     loadLocation();
-  }, []);
+    if (currentUser?.userId) {
+      loadCustomerBookings();
+    }
+  }, [currentUser]);
 
   const fetchNearbySalons = async (
     latitude: number,
@@ -110,6 +113,33 @@ export default function HomeScreenPage() {
     }
   };
 
+  const loadCustomerBookings = async () => {
+    try {
+      const { data } = await client.query({
+        query: CUSTOMER_BOOKINGS,
+        variables: {
+          customerUserId: currentUser?.userId
+        },
+        fetchPolicy: "network-only"
+      });
+      setBookings(data.customerBookings);
+      const booking =
+        data.customerBookings.find(
+          (item: any) =>
+            item.bookingStatus === "COMPLETED" &&
+            item.reviewSubmitted === false
+        );
+      if (booking) {
+        setPendingBooking(booking);
+        setShowReviewPopup(true);
+      }
+    } catch (error) {
+      console.log(
+        "Booking loading error",
+        error
+      );
+    }
+  };
   return (
     <SafeAreaView style={styles.container}>
       {/* <FlatList
@@ -186,6 +216,27 @@ export default function HomeScreenPage() {
             12.963694,
             77.4014239,
           );
+        }}
+      />
+      <ReviewPopup
+        visible={showReviewPopup}
+        salonName={
+          pendingBooking?.salonName
+        }
+        onRate={() => {
+          setShowReviewPopup(false);
+          navigation.navigate(
+            "Bookings",
+            {
+              screen: "RateReview",
+              params: {
+                booking: pendingBooking
+              }
+            }
+          );
+        }}
+        onLater={() => {
+          setShowReviewPopup(false);
         }}
       />
     </SafeAreaView>
