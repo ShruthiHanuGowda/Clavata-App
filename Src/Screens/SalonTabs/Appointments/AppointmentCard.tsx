@@ -14,10 +14,13 @@ type Props = {
   amount: number;
   time: string;
   status: string;
+  bookingFee: number;
+  bookingFeeStatus: string;
   phone: string;
   onPress: () => void;
   onAccept: () => void;
   onReject: () => void;
+  onComplete: () => void;
 };
 
 export default function AppointmentCard({
@@ -30,6 +33,9 @@ export default function AppointmentCard({
   onPress,
   onAccept,
   onReject,
+  bookingFee,
+  bookingFeeStatus,
+  onComplete,
 }: Props) {
 
   const badgeColor = () => {
@@ -159,6 +165,68 @@ export default function AppointmentCard({
           </TouchableOpacity>
 
         </View>
+      )}
+
+      {status === 'CONFIRMED' && (
+        bookingFeeStatus === 'PAID' ? (
+          <View
+            style={{
+              marginTop: 12,
+              backgroundColor: '#E8F8F6',
+              borderRadius: 8,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+            }}>
+            <Text
+              style={{
+                color: '#009D94',
+                fontWeight: '700',
+                fontSize: 13,
+              }}>
+              ✅ Advance ₹{bookingFee} Paid
+            </Text>
+          </View>
+        ) : (
+          <View
+            style={{
+              marginTop: 12,
+              backgroundColor: '#FFF4E5',
+              borderRadius: 8,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+            }}>
+            <Text
+              style={{
+                color: '#F59E0B',
+                fontWeight: '700',
+                fontSize: 13,
+              }}>
+              ⏳ Waiting for Advance Payments
+            </Text>
+          </View>
+        )
+      )}
+
+      {status === 'CONFIRMED' && (
+        <TouchableOpacity
+          onPress={onComplete}
+          style={{
+            marginTop: 16,
+            backgroundColor: '#009D94',
+            height: 48,
+            borderRadius: 10,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <Text
+            style={{
+              color: '#FFFFFF',
+              fontSize: 16,
+              fontWeight: '700',
+            }}>
+            Complete Service
+          </Text>
+        </TouchableOpacity>
       )}
 
     </TouchableOpacity>

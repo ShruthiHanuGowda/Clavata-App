@@ -314,6 +314,8 @@ export const LIST_BOOKINGS = gql`query SalonBookings($salonId: ID!) {
     endTime
     bookingStatus
     totalAmount
+    bookingFeeStatus
+    bookingFee
     services {
       name
     }
@@ -386,6 +388,20 @@ mutation CancelBooking(
     }
   }
 }
+`;
+
+export const COMPLETE_BOOKING = gql`
+  mutation CompleteBooking($input: UpdateBookingStatusInput!) {
+    updateBookingStatus(input: $input) {
+      success
+      message
+      booking {
+        bookingId
+        bookingStatus
+        updatedAt
+      }
+    }
+  }
 `;
 
 // Define the GraphQL mutation

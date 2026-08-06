@@ -21,6 +21,7 @@ import {
   LIST_BOOKINGS,
   ACCEPT_BOOKING,
   REJECT_BOOKING,
+  COMPLETE_BOOKING,
 } from '../../../graphql/queries';
 
 type Booking = {
@@ -35,6 +36,8 @@ type Booking = {
   services: {
     name: string;
   }[];
+  bookingFeeStatus: string; // <-- Add
+  bookingFee: number;       // <-- Add
 };
 
 export default function SalonAppointmentsScreen() {
@@ -56,6 +59,8 @@ export default function SalonAppointmentsScreen() {
     fetchPolicy: 'network-only',
   });
 
+  const [completeBookingMutation] =
+    useMutation(COMPLETE_BOOKING);
 
   const [acceptBookingMutation] =
     useMutation(ACCEPT_BOOKING);
@@ -65,6 +70,56 @@ export default function SalonAppointmentsScreen() {
 
   const bookings: Booking[] =
     data?.salonBookings ?? [];
+
+  console.log("updated book", bookings);
+
+  const completeBooking = async (
+    bookingId: string,
+  ) => {
+
+    Alert.alert(
+      'Complete Service',
+      'Have you completed the service and collected the remaining payment?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Complete',
+          onPress: async () => {
+            try {
+
+              await completeBookingMutation({
+                variables: {
+                  input: {
+                    bookingId,
+                    bookingStatus: "COMPLETED",
+                    salonNote: "Service completed.",
+                  },
+                },
+              });
+
+              Alert.alert(
+                'Success',
+                'Booking completed successfully.',
+              );
+
+              refetch();
+
+            } catch (error: any) {
+
+              Alert.alert(
+                'Error',
+                error.message,
+              );
+
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const filteredAppointments = useMemo(() => {
     return bookings.filter(item => {
@@ -232,11 +287,16 @@ export default function SalonAppointmentsScreen() {
                   .join('\n')
               )
             }
+            bookingFeeStatus={item.bookingFeeStatus}
+            bookingFee={item.bookingFee}
             onAccept={() =>
               acceptBooking(item.bookingId)
             }
             onReject={() =>
               rejectBooking(item.bookingId)
+            }
+            onComplete={() =>
+              completeBooking(item.bookingId)
             }
           />
         )}
