@@ -441,6 +441,64 @@ export const SALON_DASHBOARD_QUERY = gql`
   }
 `;
 
+export const LIST_STAFF = gql`
+    query ListStaff($salonId: ID!) {
+        listStaff(salonId: $salonId) {
+            staffId
+            salonId
+            name
+            phoneNumber
+            email
+            gender
+            profileImageUrl
+            specializations
+            isActive
+            createdAt
+            updatedAt
+        }
+    }
+`;
+
+export const UPDATE_STAFF = gql`
+    mutation UpdateStaff($input: UpdateStaffInput!) {
+        updateStaff(input: $input) {
+            success
+            message
+            staff {
+                staffId
+                salonId
+                name
+                phoneNumber
+                email
+                gender
+                specializations
+                isActive
+            }
+        }
+    }
+`;
+
+
+export const CREATE_STAFF = gql`
+    mutation CreateStaff($input: CreateStaffInput!) {
+        createStaff(input: $input) {
+            success
+            message
+
+            staff {
+                staffId
+                salonId
+                name
+                phoneNumber
+                email
+                gender
+                specializations
+                isActive
+            }
+        }
+    }
+`;
+
 // Define the GraphQL mutation
 // export const CREATE_USER_WALLETS = gql`
 //   mutation createUserWalletAddress(

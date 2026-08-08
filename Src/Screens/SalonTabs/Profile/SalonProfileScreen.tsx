@@ -137,7 +137,12 @@ export default function ProfileScreen() {
 
                     <MenuItem title="Salon Information" />
                     <MenuItem title="Business Hours" />
-                    <MenuItem title="Staff Management" />
+                    <MenuItem
+                        title="Staff Managements"
+                        onPress={() => {
+                            navigation.getParent()?.navigate('StaffManagement');
+                        }}
+                    />
                     <MenuItem title="Manage Services" />
                     <MenuItem title="Payment Settings" />
                 </View>
@@ -179,11 +184,13 @@ export default function ProfileScreen() {
 
 function MenuItem({
     title,
+    onPress,
 }: {
     title: string;
+    onPress?: () => void;
 }) {
     return (
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={onPress}>
             <Text style={styles.menuText}>
                 {title}
             </Text>
