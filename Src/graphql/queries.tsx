@@ -388,6 +388,59 @@ mutation CreateReview($input: CreateReviewInput!) {
   }
 }`;
 
+export const SALON_DASHBOARD_QUERY = gql`
+  query SalonDashboard($salonId: ID!) {
+    salonBookings(salonId: $salonId) {
+      bookingId
+      salonId
+      customerUserId
+      salonName
+      customerName
+      customerPhone
+      bookingDate
+      startTime
+      endTime
+
+      services {
+        serviceId
+        name
+        category
+        duration
+        price
+      }
+
+      totalDuration
+      subtotal
+      discount
+      totalAmount
+
+      paymentMethod
+      paymentStatus
+      bookingStatus
+
+      notes
+      salonNote
+
+      bookingFee
+      bookingFeeStatus
+      bookingFeePaidAt
+      remainingAmount
+
+      razorpayOrderId
+      razorpayPaymentId
+      paymentGateway
+
+      reviewSubmitted
+      rating
+      review
+      reviewedAt
+
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 // Define the GraphQL mutation
 // export const CREATE_USER_WALLETS = gql`
 //   mutation createUserWalletAddress(
