@@ -126,7 +126,6 @@ const SPECIALIZATIONS = [
     'Waxing',
     'Massage',
 ];
-
 export default function AddStaffScreen() {
     const navigation = useNavigation();
     const { currentUser } = useUser();
@@ -135,8 +134,8 @@ export default function AddStaffScreen() {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [email, setEmail] = useState('');
     const [gender, setGender] = useState<
-        'MEN' | 'WOMEN' | 'UNISEX'
-    >('UNISEX');
+        'MALE' | 'FEMALE' | 'OTHER'
+    >('FEMALE');
     const [specializations, setSpecializations] =
         useState<string[]>([]);
     const [workingHours] = useState(
@@ -258,7 +257,6 @@ export default function AddStaffScreen() {
                     <Text style={styles.errorTitle}>
                         Salon not found
                     </Text>
-
                     <Text style={styles.errorText}>
                         Your account is not linked to a salon.
                     </Text>
@@ -271,6 +269,10 @@ export default function AddStaffScreen() {
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}>
+                <TouchableOpacity
+                    onPress={() => navigation.goBack()}>
+                    <Text style={styles.back}>←</Text>
+                </TouchableOpacity>
                 <Text style={styles.title}>
                     Add Staff
                 </Text>
@@ -321,16 +323,16 @@ export default function AddStaffScreen() {
                 <View style={styles.optionRow}>
                     {[
                         {
-                            label: 'Men',
-                            value: 'MEN',
+                            label: 'Male',
+                            value: 'MALE',
                         },
                         {
-                            label: 'Women',
-                            value: 'WOMEN',
+                            label: 'Female',
+                            value: 'FEMALE',
                         },
                         {
-                            label: 'Unisex',
-                            value: 'UNISEX',
+                            label: 'Other',
+                            value: 'OTHER',
                         },
                     ].map(option => {
                         const selected =
@@ -347,9 +349,9 @@ export default function AddStaffScreen() {
                                 onPress={() =>
                                     setGender(
                                         option.value as
-                                        | 'MEN'
-                                        | 'WOMEN'
-                                        | 'UNISEX',
+                                        | 'MALE'
+                                        | 'FEMALE'
+                                        | 'OTHER',
                                     )
                                 }>
                                 <Text

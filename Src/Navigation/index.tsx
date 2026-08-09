@@ -40,6 +40,7 @@ import PrivacyPolicy from '../Screens/CustomerTabs/Profile/PrivacyPolicy';
 import RateReviewScreen from '../Screens/CustomerTabs/RateReviewScreen';
 import SalonProfileScreen from '../Screens/SalonTabs/Profile/SalonProfileScreen';
 import StaffManagementScreen from '../Screens/SalonTabs/Profile/StaffManagementScreen';
+import AddStaff from '../Screens/SalonTabs/Profile/staff/AddStaffScreen';
 
 
 function RootScreenStack() {
@@ -213,6 +214,10 @@ export function SalonProfileStack() {
       <SalonProfilePlaceStack.Screen
         name="StaffManagementScreen"
         component={StaffManagementScreen}
+      />
+        <SalonProfilePlaceStack.Screen
+        name="AddStaff"
+        component={AddStaff}
       />
     </SalonProfilePlaceStack.Navigator>
   );

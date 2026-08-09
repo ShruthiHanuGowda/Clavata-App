@@ -374,6 +374,11 @@ export default StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
+  back: {
+    fontSize: 28,
+    color: '#333',
+    marginRight: 15,
+  },
 
   switchButtonText: {
     color: '#FFF',

@@ -13,7 +13,6 @@ import { useMutation, useQuery } from '@apollo/client';
 import styles from './styles';
 import { useUser } from '../../../context/UserContext';
 import { LIST_STAFF, UPDATE_STAFF } from '../../../graphql/queries';
-
 type Staff = {
     staffId: string;
     salonId: string;
@@ -27,15 +26,12 @@ type Staff = {
     createdAt: string;
     updatedAt: string;
 };
-
 type ListStaffResponse = {
     listStaff: Staff[];
 };
-
 type ListStaffVariables = {
     salonId: string;
 };
-
 type UpdateStaffResponse = {
     updateStaff: {
         success: boolean;
@@ -43,7 +39,6 @@ type UpdateStaffResponse = {
         staff?: Staff | null;
     };
 };
-
 type UpdateStaffVariables = {
     input: {
         salonId: string;
@@ -76,7 +71,6 @@ export default function StaffManagementScreen() {
             fetchPolicy: 'network-only',
         },
     );
-
     React.useEffect(() => {
         console.log(
             '========== LIST STAFF RESPONSE =========='
@@ -86,12 +80,10 @@ export default function StaffManagementScreen() {
             'data:',
             JSON.stringify(data, null, 2)
         );
-
         console.log(
             'error:',
             error
         );
-
         console.log(
             'staff:',
             JSON.stringify(
@@ -100,22 +92,17 @@ export default function StaffManagementScreen() {
                 2
             )
         );
-
         console.log(
             '=========================================='
         );
     }, [data, error]);
-
     const [updateStaff, { loading: updating }] = useMutation<
         UpdateStaffResponse,
         UpdateStaffVariables
     >(UPDATE_STAFF);
-
     const staff = data?.listStaff ?? [];
-
     const handleDisableStaff = (member: Staff) => {
         const newStatus = !member.isActive;
-
         Alert.alert(
             newStatus ? 'Enable Staff' : 'Disable Staff',
             newStatus
@@ -140,7 +127,6 @@ export default function StaffManagementScreen() {
                                     },
                                 },
                             });
-
                             if (
                                 result.data?.updateStaff.success
                             ) {
@@ -157,7 +143,6 @@ export default function StaffManagementScreen() {
                                 'Update staff error:',
                                 err,
                             );
-
                             Alert.alert(
                                 'Error',
                                 'Unable to update staff',
@@ -168,11 +153,9 @@ export default function StaffManagementScreen() {
             ],
         );
     };
-
     const handleAddStaff = () => {
         navigation.getParent()?.navigate('AddStaff');
     };
-
     const handleEditStaff: any = (member: Staff) => {
         navigation.navigate(
             'EditStaff' as never,
@@ -181,7 +164,6 @@ export default function StaffManagementScreen() {
             } as never,
         );
     };
-
     if (!salonId) {
         return (
             <SafeAreaView style={styles.container}>
@@ -189,7 +171,6 @@ export default function StaffManagementScreen() {
                     <Text style={styles.emptyTitle}>
                         Salon not found
                     </Text>
-
                     <Text style={styles.emptyDescription}>
                         Your account is not linked to a salon yet.
                     </Text>
@@ -197,7 +178,6 @@ export default function StaffManagementScreen() {
             </SafeAreaView>
         );
     }
-
     if (loading && !data) {
         return (
             <SafeAreaView style={styles.container}>
@@ -211,7 +191,6 @@ export default function StaffManagementScreen() {
             </SafeAreaView>
         );
     }
-
     if (error) {
         return (
             <SafeAreaView style={styles.container}>
@@ -219,11 +198,9 @@ export default function StaffManagementScreen() {
                     <Text style={styles.emptyTitle}>
                         Unable to load staff
                     </Text>
-
                     <Text style={styles.emptyDescription}>
                         {error.message}
                     </Text>
-
                     <TouchableOpacity
                         style={styles.primaryButton}
                         onPress={() => refetch()}>
@@ -235,26 +212,25 @@ export default function StaffManagementScreen() {
             </SafeAreaView>
         );
     }
-
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}>
-
                 {/* Header */}
-
                 <View style={styles.header}>
                     <View>
+                        <TouchableOpacity
+                            onPress={() => navigation.goBack()}>
+                            <Text style={styles.back}>←</Text>
+                        </TouchableOpacity>
                         <Text style={styles.title}>
                             Staff Management
                         </Text>
-
                         <Text style={styles.subtitle}>
                             Manage your salon team
                         </Text>
                     </View>
-
                     <TouchableOpacity
                         style={styles.addButton}
                         onPress={handleAddStaff}
@@ -263,28 +239,22 @@ export default function StaffManagementScreen() {
                         <Text style={styles.addButtonText}>
                             + Add Staff
                         </Text>
-
                     </TouchableOpacity>
                 </View>
-
                 {/* Staff count */}
-
                 <View style={styles.summaryCard}>
                     <View>
                         <Text style={styles.summaryLabel}>
                             Total Staff
                         </Text>
-
                         <Text style={styles.summaryValue}>
                             {staff.length}
                         </Text>
                     </View>
-
                     <View>
                         <Text style={styles.summaryLabel}>
                             Active
                         </Text>
-
                         <Text style={styles.summaryValue}>
                             {
                                 staff.filter(
@@ -293,12 +263,10 @@ export default function StaffManagementScreen() {
                             }
                         </Text>
                     </View>
-
                     <View>
                         <Text style={styles.summaryLabel}>
                             Inactive
                         </Text>
-
                         <Text style={styles.summaryValue}>
                             {
                                 staff.filter(
@@ -308,46 +276,34 @@ export default function StaffManagementScreen() {
                         </Text>
                     </View>
                 </View>
-
                 {/* Staff list */}
-
                 {staff.length === 0 ? (
                     <View style={styles.emptyContainer}>
-
                         <Text style={styles.emptyIcon}>
                             👥
                         </Text>
-
                         <Text style={styles.emptyTitle}>
                             No staff added yet
                         </Text>
-
                         <Text style={styles.emptyDescription}>
                             Add your salon staff to manage their
                             availability and bookings.
                         </Text>
-
                         <TouchableOpacity
                             style={styles.primaryButton}
                             onPress={handleAddStaff}>
-
                             <Text style={styles.primaryButtonText}>
                                 + Add Staff
                             </Text>
-
                         </TouchableOpacity>
-
                     </View>
                 ) : (
                     <View style={styles.staffList}>
-
                         {staff.map(member => (
                             <View
                                 key={member.staffId}
                                 style={styles.staffCard}>
-
                                 <View style={styles.staffTopRow}>
-
                                     <View style={styles.avatar}>
                                         <Text style={styles.avatarText}>
                                             {member.name
@@ -355,25 +311,19 @@ export default function StaffManagementScreen() {
                                                 .toUpperCase()}
                                         </Text>
                                     </View>
-
                                     <View style={styles.staffInfo}>
-
                                         <Text style={styles.staffName}>
                                             {member.name}
                                         </Text>
-
                                         <Text style={styles.staffPhone}>
                                             {member.phoneNumber}
                                         </Text>
-
                                         {member.email ? (
                                             <Text style={styles.staffEmail}>
                                                 {member.email}
                                             </Text>
                                         ) : null}
-
                                     </View>
-
                                     <View
                                         style={[
                                             styles.statusBadge,
@@ -381,7 +331,6 @@ export default function StaffManagementScreen() {
                                                 ? styles.activeBadge
                                                 : styles.inactiveBadge,
                                         ]}>
-
                                         <View
                                             style={[
                                                 styles.statusDot,
@@ -390,7 +339,6 @@ export default function StaffManagementScreen() {
                                                     : styles.inactiveDot,
                                             ]}
                                         />
-
                                         <Text
                                             style={[
                                                 styles.statusText,
@@ -402,52 +350,38 @@ export default function StaffManagementScreen() {
                                                 ? 'Active'
                                                 : 'Inactive'}
                                         </Text>
-
                                     </View>
-
                                 </View>
-
                                 {/* Specializations */}
-
                                 {member.specializations?.length > 0 && (
                                     <View style={styles.specializationContainer}>
-
                                         {member.specializations.map(
                                             specialization => (
                                                 <View
                                                     key={specialization}
                                                     style={styles.specializationTag}>
-
                                                     <Text
                                                         style={
                                                             styles.specializationText
                                                         }>
                                                         {specialization}
                                                     </Text>
-
                                                 </View>
                                             ),
                                         )}
-
                                     </View>
                                 )}
-
                                 {/* Actions */}
-
                                 <View style={styles.actionRow}>
-
                                     <TouchableOpacity
                                         style={styles.editButton}
                                         onPress={() =>
                                             handleEditStaff(member)
                                         }>
-
                                         <Text style={styles.editButtonText}>
                                             Edit
                                         </Text>
-
                                     </TouchableOpacity>
-
                                     <TouchableOpacity
                                         style={[
                                             styles.disableButton,
@@ -458,7 +392,6 @@ export default function StaffManagementScreen() {
                                         onPress={() =>
                                             handleDisableStaff(member)
                                         }>
-
                                         <Text
                                             style={[
                                                 styles.disableButtonText,
@@ -469,17 +402,12 @@ export default function StaffManagementScreen() {
                                                 ? 'Disable'
                                                 : 'Enable'}
                                         </Text>
-
                                     </TouchableOpacity>
-
                                 </View>
-
                             </View>
                         ))}
-
                     </View>
                 )}
-
             </ScrollView>
         </SafeAreaView>
     );

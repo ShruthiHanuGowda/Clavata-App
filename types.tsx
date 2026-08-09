@@ -140,6 +140,7 @@ export type StakeStackParamList = {
 export type SalonProfileStackParamList = {
   profile: undefined;
   StaffManagementScreen: undefined;
+  AddStaff: undefined;
 };
 
 export type MarketplaceStackParamList = {

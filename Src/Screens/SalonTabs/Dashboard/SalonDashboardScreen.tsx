@@ -341,12 +341,12 @@ export default function SalonDashboardScreen() {
                     'Booking creation screen can be connected here.',
                 );
                 break;
-
             case 'Add Staff':
-                Alert.alert(
-                    'Add Staff',
-                    'Staff management can be connected here.',
-                );
+                // Alert.alert(
+                //     'Add Staff',
+                //     'Staff management can be connected here.',
+                // );
+                navigation.navigate('StaffManagementScreen' as never);
                 break;
 
             case 'Add Service':

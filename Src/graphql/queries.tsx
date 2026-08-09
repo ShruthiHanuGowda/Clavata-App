@@ -452,6 +452,45 @@ export const LIST_STAFF = gql`
             gender
             profileImageUrl
             specializations
+
+            workingHours {
+                MONDAY {
+                    open
+                    close
+                    isWorking
+                }
+                TUESDAY {
+                    open
+                    close
+                    isWorking
+                }
+                WEDNESDAY {
+                    open
+                    close
+                    isWorking
+                }
+                THURSDAY {
+                    open
+                    close
+                    isWorking
+                }
+                FRIDAY {
+                    open
+                    close
+                    isWorking
+                }
+                SATURDAY {
+                    open
+                    close
+                    isWorking
+                }
+                SUNDAY {
+                    open
+                    close
+                    isWorking
+                }
+            }
+
             isActive
             createdAt
             updatedAt
@@ -464,6 +503,7 @@ export const UPDATE_STAFF = gql`
         updateStaff(input: $input) {
             success
             message
+
             staff {
                 staffId
                 salonId
@@ -471,13 +511,54 @@ export const UPDATE_STAFF = gql`
                 phoneNumber
                 email
                 gender
+                profileImageUrl
                 specializations
+
+                workingHours {
+                    MONDAY {
+                        open
+                        close
+                        isWorking
+                    }
+                    TUESDAY {
+                        open
+                        close
+                        isWorking
+                    }
+                    WEDNESDAY {
+                        open
+                        close
+                        isWorking
+                    }
+                    THURSDAY {
+                        open
+                        close
+                        isWorking
+                    }
+                    FRIDAY {
+                        open
+                        close
+                        isWorking
+                    }
+                    SATURDAY {
+                        open
+                        close
+                        isWorking
+                    }
+                    SUNDAY {
+                        open
+                        close
+                        isWorking
+                    }
+                }
+
                 isActive
+                createdAt
+                updatedAt
             }
         }
     }
 `;
-
 
 export const CREATE_STAFF = gql`
     mutation CreateStaff($input: CreateStaffInput!) {

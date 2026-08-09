@@ -31,7 +31,6 @@ export default function QuickActions({
           <Text style={styles.actionText}>
             {item.title}
           </Text>
-
         </TouchableOpacity>
       ))}
     </View>
