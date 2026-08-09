@@ -56,6 +56,11 @@ export default function StaffManagementScreen() {
     const navigation = useNavigation<any>();
     const { currentUser } = useUser();
     const salonId = currentUser?.salonId;
+    console.log('========== STAFF MANAGEMENT ==========');
+    console.log('currentUser:', currentUser);
+    console.log('currentUser.salonId:', currentUser?.salonId);
+    console.log('salonId used for LIST_STAFF:', salonId);
+    console.log('======================================');
     const {
         data,
         loading,
@@ -68,9 +73,38 @@ export default function StaffManagementScreen() {
                 salonId: salonId as string,
             },
             skip: !salonId,
-            fetchPolicy: 'cache-and-network',
+            fetchPolicy: 'network-only',
         },
     );
+
+    React.useEffect(() => {
+        console.log(
+            '========== LIST STAFF RESPONSE =========='
+        );
+
+        console.log(
+            'data:',
+            JSON.stringify(data, null, 2)
+        );
+
+        console.log(
+            'error:',
+            error
+        );
+
+        console.log(
+            'staff:',
+            JSON.stringify(
+                data?.listStaff ?? [],
+                null,
+                2
+            )
+        );
+
+        console.log(
+            '=========================================='
+        );
+    }, [data, error]);
 
     const [updateStaff, { loading: updating }] = useMutation<
         UpdateStaffResponse,
@@ -136,10 +170,10 @@ export default function StaffManagementScreen() {
     };
 
     const handleAddStaff = () => {
-        navigation.navigate('AddStaff');
+        navigation.getParent()?.navigate('AddStaff');
     };
 
-    const handleEditStaff = (member: Staff) => {
+    const handleEditStaff: any = (member: Staff) => {
         navigation.navigate(
             'EditStaff' as never,
             {
