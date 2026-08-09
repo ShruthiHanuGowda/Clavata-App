@@ -1,6 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
-import { RootStackParamList, CoinWalletStackParamList, HomeStackParamList, WalletStackParamList, StakeStackParamList, MarketplaceStackParamList } from '../../types';
+import { RootStackParamList, CoinWalletStackParamList, HomeStackParamList, WalletStackParamList, StakeStackParamList, MarketplaceStackParamList, SalonProfileStackParamList } from '../../types';
 import LoginScreen from '../../Src/Screens/AuthScreens/loginScreen';
 import RegisterUser from '../../Src/Screens/RegisterUser/registerUser';
 import BecomePartnerScreen from '../../Src/Screens/Provider/BecomePartnerScreen';
@@ -38,6 +38,8 @@ import Notifications from '../Screens/CustomerTabs/Profile/Notifications';
 import HelpSupport from '../Screens/CustomerTabs/Profile/HelpSupport';
 import PrivacyPolicy from '../Screens/CustomerTabs/Profile/PrivacyPolicy';
 import RateReviewScreen from '../Screens/CustomerTabs/RateReviewScreen';
+import SalonProfileScreen from '../Screens/SalonTabs/Profile/SalonProfileScreen';
+import StaffManagementScreen from '../Screens/SalonTabs/Profile/StaffManagementScreen';
 
 
 function RootScreenStack() {
@@ -70,21 +72,12 @@ function RootScreenStack() {
         component={PartnerStack}
         options={{ headerShown: false }}
       />
-      {/* <RootStack.Screen
-        name="OffsetScreen"
-        component={OffsetScreen}
-        options={{headerShown: false}}
-      /> */}
     </RootStack.Navigator>
   );
 }
 
-
 const CoinWalletStack = createNativeStackNavigator<CoinWalletStackParamList>();
-
-
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
-
 export function HomeScreenStack() {
   return (
     <HomeStack.Navigator
@@ -110,12 +103,6 @@ export function HomeScreenStack() {
       <HomeStack.Screen
         name="BookingRequestSent"
         component={BookingRequestSent} />
-      {/* <HomeStack.Screen
-        name="BookingPayment"
-        component={BookingPayment} /> */}
-      {/* <HomeStack.Screen name="Nex" component={Drex} /> */}
-      {/* <HomeStack.Screen name="account" component={Account} />  */}
-      {/* <HomeStack.Screen name="HomeScreen" component={CoinWalletStackFun} /> */}
     </HomeStack.Navigator>
   );
 }
@@ -127,12 +114,10 @@ export function ExploreStack() {
   return (
     <ExploreStackNavigator.Navigator
       screenOptions={{ headerShown: false }}>
-
       <ExploreStackNavigator.Screen
         name="Booking"
         component={ExplorePage}
       />
-
     </ExploreStackNavigator.Navigator>
   );
 }
@@ -161,7 +146,6 @@ export function BookingStack() {
 }
 
 const ProfilePlaceStack = createNativeStackNavigator<StakeStackParamList>();
-
 export function ProfileStack() {
   return (
     <ProfilePlaceStack.Navigator
@@ -213,6 +197,24 @@ export function ProfileStack() {
         component={PrivacyPolicy}
       />
     </ProfilePlaceStack.Navigator>
+  );
+}
+
+
+const SalonProfilePlaceStack = createNativeStackNavigator<SalonProfileStackParamList>();
+export function SalonProfileStack() {
+  return (
+    <SalonProfilePlaceStack.Navigator
+      screenOptions={{ headerShown: false }}>
+      <SalonProfilePlaceStack.Screen
+        name="profile"
+        component={SalonProfileScreen}
+      />
+      <SalonProfilePlaceStack.Screen
+        name="StaffManagementScreen"
+        component={StaffManagementScreen}
+      />
+    </SalonProfilePlaceStack.Navigator>
   );
 }
 

@@ -7,17 +7,21 @@ import {
     TouchableOpacity,
     Image,
     Switch,
+    Alert,
 } from 'react-native';
-import styles from './styles';
 import { useNavigation } from '@react-navigation/native';
-import { Alert } from 'react-native';
+import styles from './styles';
 import { useUser } from '../../../context/UserContext';
 import secureStorage from '../../../utils/secureStorage';
 
-export default function ProfileScreen() {
-    const navigation = useNavigation<any>();
-    // const [salonMode, setSalonMode] = React.useState(true);
+export default function SalonProfileScreen() {
+    const navigation = useNavigation();
     const { currentUser, setCurrentUser } = useUser();
+    /**
+     * ================================
+     * LOGOUT
+     * ================================
+     */
     const onLogout = () => {
         Alert.alert(
             'Logout',
@@ -31,10 +35,11 @@ export default function ProfileScreen() {
                     text: 'Logout',
                     style: 'destructive',
                     onPress: async () => {
-                        setCurrentUser(null);
+                        await secureStorage.removeItem(
+                            'isInfoDone',
+                        );
 
-                        await secureStorage.removeItem('isInfoDone');
-                        // or await secureStorage.setItem('isInfoDone', 'false');
+                        setCurrentUser(null);
 
                         navigation.reset({
                             index: 0,
@@ -46,13 +51,173 @@ export default function ProfileScreen() {
         );
     };
 
+    /**
+     * ================================
+     * SWITCH CUSTOMER / SALON MODE
+     * ================================
+     */
+    const handleModeChange = (value: boolean) => {
+        if (!currentUser) {
+            return;
+        }
+
+        // Don't allow Salon Mode if salon is not approved
+        if (
+            value &&
+            currentUser.providerStatus !== 'APPROVED'
+        ) {
+            Alert.alert(
+                'Salon Not Approved',
+                'Your salon must be approved before you can switch to Salon Mode.',
+            );
+
+            return;
+        }
+
+        setCurrentUser({
+            ...currentUser,
+            activeRole: value ? 'SALON' : 'CUSTOMER',
+        });
+
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'appScreens' }],
+        });
+    };
+
+    /**
+     * ================================
+     * BUSINESS NAVIGATION
+     * ================================
+     */
+    const handleBusinessNavigation = (
+        screen: string,
+    ) => {
+        switch (screen) {
+            case 'SalonInformation':
+                navigation
+                    .getParent()
+                    ?.navigate('SalonInformation');
+                break;
+
+            case 'BusinessHours':
+                navigation
+                    .getParent()
+                    ?.navigate('BusinessHours');
+                break;
+
+            case 'StaffManagement':
+                 navigation.getParent()?.navigate('StaffManagementScreen');
+                break;
+
+            case 'ManageServices':
+                navigation
+                    .getParent()
+                    ?.navigate('ManageServices');
+                break;
+
+            case 'PaymentSettings':
+                navigation
+                    .getParent()
+                    ?.navigate('PaymentSettings');
+                break;
+
+            default:
+                console.log(
+                    'Unknown business screen:',
+                    screen,
+                );
+                break;
+        }
+    };
+
+    /**
+     * ================================
+     * ACCOUNT NAVIGATION
+     * ================================
+     */
+    const handleAccountNavigation = (
+        screen: string,
+    ) => {
+        switch (screen) {
+            case 'EditProfile':
+                navigation
+                    .getParent()
+                    ?.navigate('EditProfile');
+                break;
+
+            case 'Notifications':
+                navigation
+                    .getParent()
+                    ?.navigate('Notifications');
+                break;
+
+            case 'ChangePassword':
+                navigation
+                    .getParent()
+                    ?.navigate('ChangePassword');
+                break;
+
+            case 'Language':
+                navigation
+                    .getParent()
+                    ?.navigate('Language');
+                break;
+
+            default:
+                console.log(
+                    'Unknown account screen:',
+                    screen,
+                );
+                break;
+        }
+    };
+
+    /**
+     * ================================
+     * SUPPORT NAVIGATION
+     * ================================
+     */
+    const handleSupportNavigation = (
+        screen: string,
+    ) => {
+        switch (screen) {
+            case 'HelpCenter':
+                navigation
+                    .getParent()
+                    ?.navigate('HelpCenter');
+                break;
+
+            case 'PrivacyPolicy':
+                navigation
+                    .getParent()
+                    ?.navigate('PrivacyPolicy');
+                break;
+
+            case 'TermsConditions':
+                navigation
+                    .getParent()
+                    ?.navigate('TermsConditions');
+                break;
+
+            default:
+                console.log(
+                    'Unknown support screen:',
+                    screen,
+                );
+                break;
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView
-                showsVerticalScrollIndicator={false}>
+                showsVerticalScrollIndicator={false}
+            >
+                {/* =================================
+                    PROFILE HEADER
+                ================================= */}
 
-                {/* Header */}
                 <View style={styles.profileHeader}>
                     <Image
                         source={{
@@ -62,7 +227,8 @@ export default function ProfileScreen() {
                     />
 
                     <Text style={styles.profileName}>
-                        Shruthi
+                        {currentUser?.fullName ||
+                            'User'}
                     </Text>
 
                     <Text style={styles.profileRole}>
@@ -70,7 +236,10 @@ export default function ProfileScreen() {
                     </Text>
                 </View>
 
-                {/* Switch Mode */}
+                {/* =================================
+                    SWITCH MODE
+                ================================= */}
+
                 <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
                         Switch Mode
@@ -81,106 +250,202 @@ export default function ProfileScreen() {
                             Salon Mode
                         </Text>
 
-                        {/* <Switch
-                            value={salonMode}
-                            onValueChange={setSalonMode}
-                            trackColor={{
-                                false: '#D1D5DB',
-                                true: '#009D94',
-                            }}
-                        /> */}
                         <Switch
-                            value={currentUser?.activeRole === 'SALON'}
-                            onValueChange={(value) => {
-                                if (!currentUser) {
-                                    return;
-                                }
-
-                                setCurrentUser({
-                                    ...currentUser,
-                                    activeRole: value ? 'SALON' : 'CUSTOMER',
-                                });
-
-                                if (value) {
-                                    navigation.reset({
-                                        index: 0,
-                                        routes: [{ name: 'appScreens' }],
-                                    });
-                                } else {
-                                    navigation.reset({
-                                        index: 0,
-                                        routes: [{ name: 'appScreens' }],
-                                    });
-                                }
-                            }}
+                            value={
+                                currentUser?.activeRole ===
+                                'SALON'
+                            }
+                            onValueChange={
+                                handleModeChange
+                            }
                             trackColor={{
                                 false: '#D1D5DB',
                                 true: '#009D94',
                             }}
+                            thumbColor="#FFFFFF"
                         />
                     </View>
 
-                    {currentUser?.activeRole === 'CUSTOMER' && (
-                        <TouchableOpacity style={styles.switchButton}>
-                            <Text style={styles.switchButtonText}>
-                                Customer Mode
+                    {/* Show button when user is in Customer Mode */}
+
+                    {currentUser?.activeRole ===
+                        'CUSTOMER' && (
+                        <TouchableOpacity
+                            style={
+                                styles.switchButton
+                            }
+                            onPress={() =>
+                                handleModeChange(true)
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.switchButtonText
+                                }
+                            >
+                                Switch to Salon Mode
                             </Text>
                         </TouchableOpacity>
                     )}
                 </View>
 
-                {/* Business */}
+                {/* =================================
+                    BUSINESS
+                ================================= */}
+
                 <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
                         Business
                     </Text>
-
-                    <MenuItem title="Salon Information" />
-                    <MenuItem title="Business Hours" />
                     <MenuItem
-                        title="Staff Managements"
-                        onPress={() => {
-                            navigation.getParent()?.navigate('StaffManagement');
-                        }}
+                        title="Salon Information"
+                        onPress={() =>
+                            handleBusinessNavigation(
+                                'SalonInformation',
+                            )
+                        }
                     />
-                    <MenuItem title="Manage Services" />
-                    <MenuItem title="Payment Settings" />
+                    <MenuItem
+                        title="Business Hours"
+                        onPress={() =>
+                            handleBusinessNavigation(
+                                'BusinessHours',
+                            )
+                        }
+                    />
+                    <MenuItem
+                        title="Staff Management"
+                        onPress={() =>
+                            handleBusinessNavigation(
+                                'StaffManagement',
+                            )
+                        }
+                    />
+                    <MenuItem
+                        title="Manage Services"
+                        onPress={() =>
+                            handleBusinessNavigation(
+                                'ManageServices',
+                            )
+                        }
+                    />
+                    <MenuItem
+                        title="Payment Settings"
+                        onPress={() =>
+                            handleBusinessNavigation(
+                                'PaymentSettings',
+                            )
+                        }
+                    />
                 </View>
 
-                {/* Account */}
+                {/* =================================
+                    ACCOUNT
+                ================================= */}
+
                 <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
                         Account
                     </Text>
 
-                    <MenuItem title="Edit Profile" />
-                    <MenuItem title="Notifications" />
-                    <MenuItem title="Change Password" />
-                    <MenuItem title="Language" />
+                    <MenuItem
+                        title="Edit Profile"
+                        onPress={() =>
+                            handleAccountNavigation(
+                                'EditProfile',
+                            )
+                        }
+                    />
+
+                    <MenuItem
+                        title="Notifications"
+                        onPress={() =>
+                            handleAccountNavigation(
+                                'Notifications',
+                            )
+                        }
+                    />
+
+                    <MenuItem
+                        title="Change Password"
+                        onPress={() =>
+                            handleAccountNavigation(
+                                'ChangePassword',
+                            )
+                        }
+                    />
+
+                    <MenuItem
+                        title="Language"
+                        onPress={() =>
+                            handleAccountNavigation(
+                                'Language',
+                            )
+                        }
+                    />
                 </View>
 
-                {/* Support */}
+                {/* =================================
+                    SUPPORT
+                ================================= */}
+
                 <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
                         Support
                     </Text>
 
-                    <MenuItem title="Help Center" />
-                    <MenuItem title="Privacy Policy" />
-                    <MenuItem title="Terms & Conditions" />
+                    <MenuItem
+                        title="Help Center"
+                        onPress={() =>
+                            handleSupportNavigation(
+                                'HelpCenter',
+                            )
+                        }
+                    />
+
+                    <MenuItem
+                        title="Privacy Policy"
+                        onPress={() =>
+                            handleSupportNavigation(
+                                'PrivacyPolicy',
+                            )
+                        }
+                    />
+
+                    <MenuItem
+                        title="Terms & Conditions"
+                        onPress={() =>
+                            handleSupportNavigation(
+                                'TermsConditions',
+                            )
+                        }
+                    />
                 </View>
 
+                {/* =================================
+                    LOGOUT
+                ================================= */}
+
                 <TouchableOpacity
-                    style={styles.logoutButton} onPress={onLogout}>
+                    style={styles.logoutButton}
+                    onPress={onLogout}
+                >
                     <Text style={styles.logoutText}>
                         Logout
                     </Text>
                 </TouchableOpacity>
 
+                <View style={{ height: 30 }} />
             </ScrollView>
         </SafeAreaView>
     );
 }
+
+/**
+ * ============================================
+ * MENU ITEM
+ * ============================================
+ */
 
 function MenuItem({
     title,
@@ -190,11 +455,14 @@ function MenuItem({
     onPress?: () => void;
 }) {
     return (
-        <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+        <TouchableOpacity
+            style={styles.menuRow}
+            onPress={onPress}
+            activeOpacity={0.7}
+        >
             <Text style={styles.menuText}>
                 {title}
             </Text>
-
             <Text style={styles.menuArrow}>
                 ›
             </Text>

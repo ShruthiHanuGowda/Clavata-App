@@ -137,6 +137,11 @@ export type StakeStackParamList = {
   PrivacyPolicy: undefined;
 };
 
+export type SalonProfileStackParamList = {
+  profile: undefined;
+  StaffManagementScreen: undefined;
+};
+
 export type MarketplaceStackParamList = {
   marketplace: undefined;
   Booking: undefined;

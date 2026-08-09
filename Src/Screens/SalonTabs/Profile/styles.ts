@@ -20,6 +20,12 @@ export default StyleSheet.create({
   //   flex: 1,
   //   backgroundColor: '#F7F9F9',
   // },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
 
   content: {
     padding: 20,
@@ -349,14 +355,16 @@ export default StyleSheet.create({
   },
 
   menuText: {
+    flex: 1,
     fontSize: 16,
     color: '#111827',
     fontWeight: '500',
   },
 
   menuArrow: {
-    fontSize: 22,
-    color: '#9CA3AF',
+    fontSize: 24,
+    color: '#BDBDBD',
+    marginLeft: 12,
   },
 
   switchButton: {
