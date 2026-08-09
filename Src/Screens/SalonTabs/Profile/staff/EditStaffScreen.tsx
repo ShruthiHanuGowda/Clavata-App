@@ -119,6 +119,7 @@ export default function EditStaffScreen() {
             );
             return;
         }
+
         if (!phoneNumber.trim()) {
             Alert.alert(
                 'Validation',
@@ -126,41 +127,88 @@ export default function EditStaffScreen() {
             );
             return;
         }
+
         try {
+            const cleanWorkingHours = {
+                MONDAY: {
+                    open: workingHours.MONDAY.open,
+                    close: workingHours.MONDAY.close,
+                    isWorking: workingHours.MONDAY.isWorking,
+                },
+                TUESDAY: {
+                    open: workingHours.TUESDAY.open,
+                    close: workingHours.TUESDAY.close,
+                    isWorking: workingHours.TUESDAY.isWorking,
+                },
+                WEDNESDAY: {
+                    open: workingHours.WEDNESDAY.open,
+                    close: workingHours.WEDNESDAY.close,
+                    isWorking: workingHours.WEDNESDAY.isWorking,
+                },
+                THURSDAY: {
+                    open: workingHours.THURSDAY.open,
+                    close: workingHours.THURSDAY.close,
+                    isWorking: workingHours.THURSDAY.isWorking,
+                },
+                FRIDAY: {
+                    open: workingHours.FRIDAY.open,
+                    close: workingHours.FRIDAY.close,
+                    isWorking: workingHours.FRIDAY.isWorking,
+                },
+                SATURDAY: {
+                    open: workingHours.SATURDAY.open,
+                    close: workingHours.SATURDAY.close,
+                    isWorking: workingHours.SATURDAY.isWorking,
+                },
+                SUNDAY: {
+                    open: workingHours.SUNDAY.open,
+                    close: workingHours.SUNDAY.close,
+                    isWorking: workingHours.SUNDAY.isWorking,
+                },
+            };
+
+            const input = {
+                salonId: staff.salonId,
+                staffId: staff.staffId,
+                name: name.trim(),
+                phoneNumber: phoneNumber.trim(),
+                email: email.trim() || undefined,
+                gender: gender || undefined,
+
+                specializations: specializations
+                    .split(',')
+                    .map(item => item.trim())
+                    .filter(Boolean),
+
+                workingHours: cleanWorkingHours,
+            };
+
+            console.log(
+                '========== UPDATE STAFF INPUTS =========='
+            );
+
+            console.log(
+                JSON.stringify(input, null, 2)
+            );
+
+            console.log(
+                '========================================='
+            );
+
             const result = await updateStaff({
                 variables: {
-                    input: {
-                        salonId: staff.salonId,
-                        staffId: staff.staffId,
-                        name: name.trim(),
-                        phoneNumber:
-                            phoneNumber.trim(),
-                        email:
-                            email.trim() || undefined,
-                        gender:
-                            gender || undefined,
-                        specializations:
-                            specializations
-                                .split(',')
-                                .map(item =>
-                                    item.trim(),
-                                )
-                                .filter(Boolean),
-                        workingHours,
-                    },
+                    input,
                 },
             });
-            if (
-                result.data?.updateStaff.success
-            ) {
+
+            if (result.data?.updateStaff.success) {
                 Alert.alert(
                     'Success',
                     'Staff updated successfully.',
                     [
                         {
                             text: 'OK',
-                            onPress: () =>
-                                navigation.goBack(),
+                            onPress: () => navigation.goBack(),
                         },
                     ],
                 );
@@ -176,6 +224,7 @@ export default function EditStaffScreen() {
                 'Update staff error:',
                 error,
             );
+
             Alert.alert(
                 'Error',
                 'Unable to update staff.',

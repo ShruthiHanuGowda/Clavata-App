@@ -503,7 +503,6 @@ export const UPDATE_STAFF = gql`
         updateStaff(input: $input) {
             success
             message
-
             staff {
                 staffId
                 salonId

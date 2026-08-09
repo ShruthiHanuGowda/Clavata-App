@@ -19,9 +19,48 @@ type Staff = {
     name: string;
     phoneNumber: string;
     email?: string | null;
-    gender?: string | null;
+    gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
     profileImageUrl?: string | null;
     specializations: string[];
+
+    workingHours: {
+        MONDAY: {
+            open: string;
+            close: string;
+            isWorking: boolean;
+        };
+        TUESDAY: {
+            open: string;
+            close: string;
+            isWorking: boolean;
+        };
+        WEDNESDAY: {
+            open: string;
+            close: string;
+            isWorking: boolean;
+        };
+        THURSDAY: {
+            open: string;
+            close: string;
+            isWorking: boolean;
+        };
+        FRIDAY: {
+            open: string;
+            close: string;
+            isWorking: boolean;
+        };
+        SATURDAY: {
+            open: string;
+            close: string;
+            isWorking: boolean;
+        };
+        SUNDAY: {
+            open: string;
+            close: string;
+            isWorking: boolean;
+        };
+    };
+
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
@@ -43,7 +82,50 @@ type UpdateStaffVariables = {
     input: {
         salonId: string;
         staffId: string;
-        isActive: boolean;
+        name?: string;
+        phoneNumber?: string;
+        email?: string | null;
+        gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
+        profileImageUrl?: string | null;
+        specializations?: string[];
+        workingHours?: {
+            MONDAY: {
+                open: string;
+                close: string;
+                isWorking: boolean;
+            };
+            TUESDAY: {
+                open: string;
+                close: string;
+                isWorking: boolean;
+            };
+            WEDNESDAY: {
+                open: string;
+                close: string;
+                isWorking: boolean;
+            };
+            THURSDAY: {
+                open: string;
+                close: string;
+                isWorking: boolean;
+            };
+            FRIDAY: {
+                open: string;
+                close: string;
+                isWorking: boolean;
+            };
+            SATURDAY: {
+                open: string;
+                close: string;
+                isWorking: boolean;
+            };
+            SUNDAY: {
+                open: string;
+                close: string;
+                isWorking: boolean;
+            };
+        };
+        isActive?: boolean;
     };
 };
 
@@ -156,8 +238,8 @@ export default function StaffManagementScreen() {
     const handleAddStaff = () => {
         navigation.getParent()?.navigate('AddStaff');
     };
-    const handleEditStaff: any = (member: Staff) => {
-        navigation.navigate(
+    const handleEditStaff = (member: Staff) => {
+        navigation.getParent()?.navigate(
             'EditStaff' as never,
             {
                 staff: member,

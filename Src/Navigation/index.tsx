@@ -41,7 +41,7 @@ import RateReviewScreen from '../Screens/CustomerTabs/RateReviewScreen';
 import SalonProfileScreen from '../Screens/SalonTabs/Profile/SalonProfileScreen';
 import StaffManagementScreen from '../Screens/SalonTabs/Profile/StaffManagementScreen';
 import AddStaff from '../Screens/SalonTabs/Profile/staff/AddStaffScreen';
-
+import EditStaff from '../Screens/SalonTabs/Profile/staff/EditStaffScreen';
 
 function RootScreenStack() {
   const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -77,7 +77,7 @@ function RootScreenStack() {
   );
 }
 
-const CoinWalletStack = createNativeStackNavigator<CoinWalletStackParamList>();
+// const CoinWalletStack = createNativeStackNavigator<CoinWalletStackParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 export function HomeScreenStack() {
   return (
@@ -110,7 +110,6 @@ export function HomeScreenStack() {
 
 const ExploreStackNavigator =
   createNativeStackNavigator<WalletStackParamList>();
-
 export function ExploreStack() {
   return (
     <ExploreStackNavigator.Navigator
@@ -167,32 +166,26 @@ export function ProfileStack() {
         name="FavouriteSalons"
         component={FavouriteSalons}
       />
-
       <ProfilePlaceStack.Screen
         name="SavedAddresses"
         component={SavedAddresses}
       />
-
       <ProfilePlaceStack.Screen
         name="OffersRewards"
         component={OffersRewards}
       />
-
       <ProfilePlaceStack.Screen
         name="Settings"
         component={Settings}
       />
-
       <ProfilePlaceStack.Screen
         name="Notifications"
         component={Notifications}
       />
-
       <ProfilePlaceStack.Screen
         name="HelpSupport"
         component={HelpSupport}
       />
-
       <ProfilePlaceStack.Screen
         name="PrivacyPolicy"
         component={PrivacyPolicy}
@@ -215,9 +208,13 @@ export function SalonProfileStack() {
         name="StaffManagementScreen"
         component={StaffManagementScreen}
       />
-        <SalonProfilePlaceStack.Screen
+      <SalonProfilePlaceStack.Screen
         name="AddStaff"
         component={AddStaff}
+      />
+      <SalonProfilePlaceStack.Screen
+        name="EditStaff"
+        component={EditStaff}
       />
     </SalonProfilePlaceStack.Navigator>
   );
