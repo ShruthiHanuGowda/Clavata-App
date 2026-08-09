@@ -8,7 +8,7 @@ import {
     ActivityIndicator,
     Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useMutation, useQuery } from '@apollo/client';
 import styles from './styles';
 import { useUser } from '../../../context/UserContext';
@@ -153,6 +153,23 @@ export default function StaffManagementScreen() {
             fetchPolicy: 'network-only',
         },
     );
+    useFocusEffect(
+        React.useCallback(() => {
+            if (!salonId) {
+                return;
+            }
+
+            console.log(
+                '========== STAFF MANAGEMENT FOCUSED =========='
+            );
+
+            refetch();
+
+            console.log(
+                '==============================================='
+            );
+        }, [salonId, refetch])
+    );
     React.useEffect(() => {
         console.log(
             '========== LIST STAFF RESPONSE =========='
@@ -185,6 +202,7 @@ export default function StaffManagementScreen() {
     const staff = data?.listStaff ?? [];
     const handleDisableStaff = (member: Staff) => {
         const newStatus = !member.isActive;
+
         Alert.alert(
             newStatus ? 'Enable Staff' : 'Disable Staff',
             newStatus
@@ -209,9 +227,8 @@ export default function StaffManagementScreen() {
                                     },
                                 },
                             });
-                            if (
-                                result.data?.updateStaff.success
-                            ) {
+
+                            if (result.data?.updateStaff.success) {
                                 await refetch();
                             } else {
                                 Alert.alert(
@@ -221,10 +238,8 @@ export default function StaffManagementScreen() {
                                 );
                             }
                         } catch (err) {
-                            console.error(
-                                'Update staff error:',
-                                err,
-                            );
+                            console.error('Update staff error:', err);
+
                             Alert.alert(
                                 'Error',
                                 'Unable to update staff',
