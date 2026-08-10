@@ -21,7 +21,7 @@ export default function HomeHeader({
     <View style={styles.container}>
       <View>
         <Text style={styles.title}>
-          Hi {currentUser?.fullName || 'there'}
+          Hello, {currentUser?.fullName || 'there'}
         </Text>
         <Text style={styles.small}>
           Delivering Near
@@ -35,9 +35,9 @@ export default function HomeHeader({
           </Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.avatar}>
+      {/* <TouchableOpacity style={styles.avatar}>
         <Text style={{ fontSize: 20 }}>👤</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 }
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 16,
     fontWeight: '700',
     color: '#111',
   },
