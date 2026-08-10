@@ -21,6 +21,7 @@
     "@apollo/client": "^3.13.8",
     "@ethersproject/shims": "^5.8.0",
     "@gorhom/bottom-sheet": "^5.2.14",
+    "@lottiefiles/dotlottie-react-native": "^0.12.1",
     "@magic-ext/gdkms": "latest",
     "@magic-ext/react-native-bare-oauth": "latest",
     "@magic-sdk/react-native-bare": "latest",

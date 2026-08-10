@@ -1,224 +1,247 @@
 import React from 'react';
 import {
-  View,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  ScrollView,
+    View,
+    TouchableOpacity,
+    Text,
+    StyleSheet,
+    ScrollView,
+    Image,
 } from 'react-native';
 
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+// ============================================================
+// SERVICE IMAGES
+// ============================================================
 
 const services = [
-  {
-    name: 'Hair',
-    icon: 'content-cut',
-    color: '#8B5CF6',
-    background: '#F3E8FF',
-  },
-  {
-    name: 'Face',
-    icon: 'face-woman',
-    color: '#F97316',
-    background: '#FFF1E6',
-  },
-  {
-    name: 'Skin',
-    icon: 'face',
-    color: '#3B82F6',
-    background: '#EFF6FF',
-  },
-  {
-    name: 'Nails',
-    icon: 'hand-back-right',
-    color: '#EC4899',
-    background: '#FCE7F3',
-  },
-  {
-    name: 'Makeup',
-    icon: 'lipstick',
-    color: '#EF4444',
-    background: '#FEE2E2',
-  },
-  {
-    name: 'Beard',
-    icon: 'face-man',
-    color: '#92400E',
-    background: '#FEF3C7',
-  },
-  {
-    name: 'Spa',
-    icon: 'spa',
-    color: '#10B981',
-    background: '#D1FAE5',
-  },
-  {
-    name: 'Massage',
-    icon: 'hand-heart',
-    color: '#F59E0B',
-    background: '#FEF3C7',
-  },
-  {
-    name: 'Waxing',
-    icon: 'hair-dryer',
-    color: '#06B6D4',
-    background: '#CFFAFE',
-  },
-  {
-    name: 'Threading',
-    icon: 'eye-outline',
-    color: '#7C3AED',
-    background: '#EDE9FE',
-  },
-  {
-    name: 'Bridal',
-    icon: 'ring',
-    color: '#DB2777',
-    background: '#FCE7F3',
-  },
-  {
-    name: "Men's Grooming",
-    icon: 'account-tie',
-    color: '#2563EB',
-    background: '#DBEAFE',
-  },
+    {
+        name: 'Hair',
+        image: require('../../../assets/3d/hair.png'),
+    },
+    {
+        name: 'Face',
+        image: require('../../../assets/3d/face.png'),
+    },
+    {
+        name: 'Skin',
+        image: require('../../../assets/3d/skin.png'),
+    },
+    {
+        name: 'Nails',
+        image: require('../../../assets/3d/nails.png'),
+    },
+    {
+        name: 'Makeup',
+        image: require('../../../assets/3d/makeup.png'),
+    },
+    {
+        name: 'Beard',
+        image: require('../../../assets/3d/beard.png'),
+    },
+    {
+        name: 'Spa',
+        image: require('../../../assets/3d/spa.png'),
+    },
+    {
+        name: 'Massage',
+        image: require('../../../assets/3d/massage.png'),
+    },
+    {
+        name: 'Waxing',
+        image: require('../../../assets/3d/waxing.png'),
+    },
+    {
+        name: 'Threading',
+        image: require('../../../assets/3d/threading.png'),
+    },
+    {
+        name: 'Bridal',
+        image: require('../../../assets/3d/bridal.png'),
+    },
+    {
+        name: "Men's Grooming",
+        image: require('../../../assets/3d/mens_grooming.png'),
+    },
 ];
 
 type Props = {
-  onSelect: (category: string) => void;
-  selectedCategory?: string;
+    onSelect: (category: string) => void;
+    selectedCategory?: string;
 };
 
 export default function ServiceChips({
-  onSelect,
-  selectedCategory = '',
+    onSelect,
+    selectedCategory = '',
 }: Props) {
-  return (
-    <View style={styles.wrapper}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.container}
-      >
-        {services.map((item) => {
-          const isSelected =
-            selectedCategory === item.name;
-
-          return (
-            <TouchableOpacity
-              key={item.name}
-              activeOpacity={0.75}
-              style={[
-                styles.chip,
-                isSelected &&
-                  styles.selectedChip,
-              ]}
-              onPress={() => {
-                console.log(
-                  'Category chip pressed:',
-                  item.name,
-                );
-
-                onSelect(item.name);
-              }}
+    return (
+        <View style={styles.wrapper}>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.container}
             >
-              {/* ICON */}
-              <View
-                style={[
-                  styles.iconContainer,
-                  {
-                    backgroundColor:
-                      isSelected
-                        ? '#FFFFFF'
-                        : item.background,
-                  },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={item.icon}
-                  size={23}
-                  color={
-                    isSelected
-                      ? '#009D94'
-                      : item.color
-                  }
-                />
-              </View>
+                {services.map((item) => {
+                    const isSelected =
+                        selectedCategory === item.name;
 
-              {/* CATEGORY NAME */}
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.text,
-                  isSelected &&
-                    styles.selectedText,
-                ]}
-              >
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
+                    return (
+                        <TouchableOpacity
+                            key={item.name}
+                            activeOpacity={0.8}
+                            style={[
+                                styles.chip,
+                                isSelected && styles.selectedChip,
+                            ]}
+                            onPress={() => {
+                                console.log(
+                                    'Category chip pressed:',
+                                    item.name,
+                                );
+
+                                onSelect(item.name);
+                            }}
+                        >
+                            {/* ==================================================
+                  REALISTIC TRANSPARENT IMAGE
+                 ================================================== */}
+
+                            <View
+                                style={[
+                                    styles.imageContainer,
+                                    isSelected &&
+                                    styles.selectedImageContainer,
+                                ]}
+                            >
+                                <Image
+                                    source={item.image}
+                                    style={styles.serviceImage}
+                                    resizeMode="contain"
+                                />
+                            </View>
+
+                            {/* ==================================================
+                  CATEGORY NAME
+                 ================================================== */}
+
+                            <Text
+                                numberOfLines={1}
+                                ellipsizeMode="tail"
+                                style={[
+                                    styles.text,
+                                    isSelected &&
+                                    styles.selectedText,
+                                ]}
+                            >
+                                {item.name}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </ScrollView>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    marginBottom: 20,
-  },
+    wrapper: {
+        marginBottom: 18,
+    },
 
-  container: {
-    paddingHorizontal: 20,
-    paddingVertical: 5,
-  },
+    container: {
+        paddingHorizontal: 20,
+        paddingVertical: 6,
+    },
 
-  chip: {
-    width: 88,
-    height: 92,
+    // ============================================================
+    // CARD
+    // ============================================================
 
-    backgroundColor: '#FFFFFF',
+    chip: {
+        width: 92,
+        height: 112,
 
-    borderRadius: 16,
+        backgroundColor: '#FFFFFF',
 
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
+        borderRadius: 18,
 
-    alignItems: 'center',
-    justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#E8E8E8',
 
-    marginRight: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
 
-    paddingHorizontal: 8,
-  },
+        marginRight: 12,
 
-  selectedChip: {
-    backgroundColor: '#009D94',
-    borderColor: '#009D94',
-  },
+        paddingHorizontal: 7,
 
-  iconContainer: {
-    width: 44,
-    height: 44,
+        // subtle elevation
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
 
-    borderRadius: 22,
+        elevation: 2,
+    },
 
-    alignItems: 'center',
-    justifyContent: 'center',
+    // ============================================================
+    // SELECTED CARD
+    // ============================================================
 
-    marginBottom: 7,
-  },
+    selectedChip: {
+        borderColor: '#009D94',
+        borderWidth: 1.5,
 
-  text: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#333333',
-    textAlign: 'center',
-  },
+        backgroundColor: '#F0FAF9',
 
-  selectedText: {
-    color: '#FFFFFF',
-  },
+        shadowOpacity: 0.08,
+    },
+
+    // ============================================================
+    // IMAGE AREA
+    // ============================================================
+
+    imageContainer: {
+        width: 68,
+        height: 68,
+
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        marginBottom: 5,
+    },
+
+    selectedImageContainer: {
+        transform: [
+            {
+                scale: 1.05,
+            },
+        ],
+    },
+
+    serviceImage: {
+        width: 68,
+        height: 68,
+    },
+
+    // ============================================================
+    // TEXT
+    // ============================================================
+
+    text: {
+        fontSize: 12,
+        fontWeight: '600',
+
+        color: '#303030',
+
+        textAlign: 'center',
+
+        maxWidth: 82,
+    },
+
+    selectedText: {
+        color: '#009D94',
+        fontWeight: '700',
+    },
 });
-
