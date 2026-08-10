@@ -222,6 +222,88 @@ query CustomerBookings($customerUserId: ID!) {
 }
 `;
 
+export const GET_SALON = gql`
+    query GetSalon($salonId: ID!) {
+        getSalon(salonId: $salonId) {
+            salonId
+            ownerUserId
+            salonName
+            ownerName
+            businessType
+            ownerPhoneNumber
+            alternatePhone
+            email
+
+            address {
+                addressLine
+                city
+                state
+                pincode
+            }
+
+            latitude
+            longitude
+            distance
+
+            logoUrl
+            coverImageUrl
+            galleryImages
+
+            businessHours {
+                MONDAY {
+                    open
+                    close
+                    isOpen
+                }
+                TUESDAY {
+                    open
+                    close
+                    isOpen
+                }
+                WEDNESDAY {
+                    open
+                    close
+                    isOpen
+                }
+                THURSDAY {
+                    open
+                    close
+                    isOpen
+                }
+                FRIDAY {
+                    open
+                    close
+                    isOpen
+                }
+                SATURDAY {
+                    open
+                    close
+                    isOpen
+                }
+                SUNDAY {
+                    open
+                    close
+                    isOpen
+                }
+            }
+
+            kycStatus
+            salonStatus
+            isActive
+            isVisible
+            isDeleted
+
+            averageRating
+            totalReviews
+            totalAppointments
+            totalCompletedAppointments
+            totalCancelledAppointments
+
+            createdAt
+            updatedAt
+        }
+    }
+`;
 // export const UPDATE_BOOKING_PAYMENT_STATUS = gql`
 // mutation UpdateBookingPaymentStatus(
 // $bookingId:ID!,

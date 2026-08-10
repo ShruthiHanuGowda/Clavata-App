@@ -127,28 +127,6 @@ export default function HomeScreenPage() {
     const cleanSearch = searchText.trim();
     const cleanCategory = category.trim();
 
-    /*
-     * IMPORTANT:
-     *
-     * If category is selected:
-     *   search = null
-     *   category = selected category
-     *
-     * If text search is entered:
-     *   search = text
-     *   category = null
-     *
-     * If both are empty:
-     *   search = null
-     *   category = null
-     *
-     * This gives us:
-     *
-     * Nearby salons
-     * Nearby salons by category
-     * Nearby salons by search
-     */
-
     let finalSearch: string | null = null;
     let finalCategory: string | null = null;
 
