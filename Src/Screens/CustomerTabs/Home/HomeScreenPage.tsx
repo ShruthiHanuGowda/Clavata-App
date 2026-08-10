@@ -6,7 +6,6 @@ import {
   View,
   Text,
 } from 'react-native';
-import HomeAdBanner from './HomeAdCarousel';
 import HomeHeader from './HomeHeader';
 import SearchBar from './SearchBar';
 import ServiceChips from './ServiceChips';
@@ -547,6 +546,32 @@ export default function HomeScreenPage() {
               }
             />
             <HomeAdCarousel onAdPress={(ad) => { console.log('Advertisement clicked:', ad,); /* * Later we can navigate based * on ad.targetType / targetId. * * Example: * * navigation.navigate( * 'Explore' * ); */ }} />
+            {/* SALON RESULTS HEADER */}
+            <View style={styles.salonSectionHeader}>
+              <View>
+                <Text style={styles.salonSectionTitle}>
+                  {search.trim()
+                    ? 'Search Results'
+                    : selectedCategory
+                      ? `${selectedCategory} Near You`
+                      : 'Nearby Salons'}
+                </Text>
+
+                {!search.trim() &&
+                  !selectedCategory && (
+                    <Text style={styles.salonSectionSubtitle}>
+                      Salons near your location
+                    </Text>
+                  )}
+              </View>
+
+              <Text style={styles.salonCount}>
+                {salons.length}{' '}
+                {salons.length === 1
+                  ? 'salon'
+                  : 'salons'}
+              </Text>
+            </View>
           </>
         }
 
@@ -682,6 +707,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
+  },
+  salonSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 10,
+  },
+
+  salonSectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111',
+  },
+
+  salonSectionSubtitle: {
+    marginTop: 3,
+    fontSize: 12,
+    color: '#888',
+  },
+
+  salonCount: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#008060',
+    backgroundColor: '#E8F6F3',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
   },
 });
 
