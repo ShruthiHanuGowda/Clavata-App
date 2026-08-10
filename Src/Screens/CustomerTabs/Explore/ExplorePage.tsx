@@ -319,7 +319,10 @@ export default function ExplorePage() {
     // ========================================================
     // STATE
     // ========================================================
-
+    console.log(
+        'EXPLORE PAGE NAVIGATION STATE:',
+        navigation.getState()
+    );
     const [salons, setSalons] =
         useState<Salon[]>([]);
 
@@ -645,20 +648,19 @@ export default function ExplorePage() {
 
         const openNow =
             isSalonOpenNow(item);
+        const handlePress = () => {
+            console.log('Salon selected:', item.salonId);
+
+            navigation.navigate('SalonDetails', {
+                salonId: item.salonId,
+            });
+        };
 
         return (
             <TouchableOpacity
                 activeOpacity={0.9}
                 style={styles.card}
-                onPress={() => {
-                    navigation.navigate(
-                        'SalonDetails',
-                        {
-                            salonId:
-                                item.salonId,
-                        },
-                    );
-                }}
+                onPress={handlePress}
             >
                 {/* IMAGE */}
 
@@ -900,6 +902,7 @@ export default function ExplorePage() {
                             style={
                                 styles.viewText
                             }
+
                         >
                             View salon
                         </Text>

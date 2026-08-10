@@ -82,7 +82,7 @@ const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 export function HomeScreenStack() {
   return (
     <HomeStack.Navigator
-      initialRouteName="Nex"
+      initialRouteName="HomeScreen"
       screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="HomeScreen" component={HomeScreenPage} />
       <HomeStack.Screen
@@ -113,10 +113,17 @@ const ExploreStackNavigator =
 export function ExploreStack() {
   return (
     <ExploreStackNavigator.Navigator
-      screenOptions={{ headerShown: false }}>
+      initialRouteName="Explore"
+      screenOptions={{ headerShown: false }}
+    >
       <ExploreStackNavigator.Screen
-        name="Booking"
+        name="Explore"
         component={ExplorePage}
+      />
+
+      <ExploreStackNavigator.Screen
+        name="SalonDetails"
+        component={SalonDetailsScreen}
       />
     </ExploreStackNavigator.Navigator>
   );
