@@ -1,71 +1,105 @@
 import React from 'react';
 import {
-    View,
-    TouchableOpacity,
-    Text,
-    StyleSheet,
+  View,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
 } from 'react-native';
 
-const services=[
-    'Hair Cut',
-    'Facial',
-    'Hair Spa',
-    'Beard',
-    'Makeup',
+const services = [
+  'Hair',
+  'Face',
+  'Skin',
+  'Nails',
+  'Makeup',
+  'Beard',
+  'Spa',
+  'Massage',
+  'Waxing',
+  'Threading',
+  'Bridal',
+  "Men's Grooming",
 ];
 
-export default function ServiceChips({onSelect}:any){
+type Props = {
+  onSelect: (category: string) => void;
+  selectedCategory?: string;
+};
 
-    return(
+export default function ServiceChips({
+  onSelect,
+  selectedCategory = '',
+}: Props) {
+  return (
+    <View style={styles.container}>
+      {services.map((item) => {
+        const isSelected =
+          selectedCategory === item;
 
-        <View style={styles.container}>
+        return (
+          <TouchableOpacity
+            key={item}
+            style={[
+              styles.chip,
+              isSelected &&
+                styles.selectedChip,
+            ]}
+            onPress={() => {
+              console.log(
+                'Category chip pressed:',
+                item,
+              );
 
-            {services.map(item=>(
-
-                <TouchableOpacity
-
-                    key={item}
-
-                    style={styles.chip}
-
-                    onPress={()=>onSelect(item)}
-
-                >
-
-                    <Text style={styles.text}>
-                        {item}
-                    </Text>
-
-                </TouchableOpacity>
-
-            ))}
-
-        </View>
-
-    );
-
+              onSelect(item);
+            }}
+          >
+            <Text
+              style={[
+                styles.text,
+                isSelected &&
+                  styles.selectedText,
+              ]}
+            >
+              {item}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
 }
 
-const styles=StyleSheet.create({
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
 
-    container:{
-        flexDirection:'row',
-        flexWrap:'wrap',
-        paddingHorizontal:20,
-        marginBottom:25,
-    },
+  chip: {
+    backgroundColor: '#FFF',
+    borderRadius: 25,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    marginRight: 10,
+    marginBottom: 10,
 
-    chip:{
-        backgroundColor:'#FFF',
-        borderRadius:25,
-        paddingHorizontal:18,
-        paddingVertical:10,
-        marginRight:10,
-        marginBottom:10,
-    },
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
 
-    text:{
-        fontWeight:'600',
-    }
+  selectedChip: {
+    backgroundColor: '#009D94',
+    borderColor: '#009D94',
+  },
 
+  text: {
+    fontWeight: '600',
+    color: '#333',
+  },
+
+  selectedText: {
+    color: '#FFF',
+  },
 });

@@ -148,28 +148,33 @@ query ListServices($salonId: ID!) {
 
 export const GET_NEARBY_SALONS = gql`
   query NearbySalons(
-  $latitude: Float!
-  $longitude: Float!
-  $radius: Float!
-) {
-  nearbySalons(
-    latitude: $latitude
-    longitude: $longitude
-    radius: $radius
+    $latitude: Float!
+    $longitude: Float!
+    $radius: Float!
+    $search: String
+    $category: String
   ) {
-    salonId
-    salonName
-    averageRating
-    logoUrl
-    distance
-     address {
-      addressLine
-      city
-      state
-      pincode
+    nearbySalons(
+      latitude: $latitude
+      longitude: $longitude
+      radius: $radius
+      search: $search
+      category: $category
+    ) {
+      salonId
+      salonName
+      averageRating
+      totalReviews
+      logoUrl
+      distance
+      address {
+        addressLine
+        city
+        state
+        pincode
+      }
     }
   }
-}
 `;
 
 export const CREATE_BOOKING = gql`
