@@ -156,8 +156,8 @@ const styles = StyleSheet.create({
     // ============================================================
 
     chip: {
-        width: 92,
-        height: 112,
+        width: 80,
+        height: 80,
 
         backgroundColor: '#FFFFFF',
 
@@ -203,8 +203,8 @@ const styles = StyleSheet.create({
     // ============================================================
 
     imageContainer: {
-        width: 68,
-        height: 68,
+        width: 50,
+        height: 50,
 
         alignItems: 'center',
         justifyContent: 'center',
@@ -221,8 +221,8 @@ const styles = StyleSheet.create({
     },
 
     serviceImage: {
-        width: 68,
-        height: 68,
+        width: 50,
+        height: 50,
     },
 
     // ============================================================
