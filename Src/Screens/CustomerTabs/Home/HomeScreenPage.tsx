@@ -6,7 +6,7 @@ import {
   View,
   Text,
 } from 'react-native';
-
+import HomeAdBanner from './HomeAdCarousel';
 import HomeHeader from './HomeHeader';
 import SearchBar from './SearchBar';
 import ServiceChips from './ServiceChips';
@@ -23,6 +23,7 @@ import {
 import { useApolloClient } from '@apollo/client';
 import { useNavigation } from '@react-navigation/native';
 import { useUser } from '../../../context/UserContext';
+import HomeAdCarousel from './HomeAdCarousel';
 
 type Booking = {
   bookingId: string;
@@ -545,6 +546,7 @@ export default function HomeScreenPage() {
                 handleCategorySelect
               }
             />
+            <HomeAdCarousel onAdPress={(ad) => { console.log('Advertisement clicked:', ad,); /* * Later we can navigate based * on ad.targetType / targetId. * * Example: * * navigation.navigate( * 'Explore' * ); */ }} />
           </>
         }
 
