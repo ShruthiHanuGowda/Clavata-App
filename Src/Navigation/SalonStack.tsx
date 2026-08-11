@@ -15,14 +15,14 @@ export default function SalonStack() {
                 name="SalonTabs"
                 component={SalonTabs}
             />
-            <Stack.Screen
+            {/* <Stack.Screen
                 name="StaffManagement"
                 component={StaffManagementScreen}
             />
             <Stack.Screen
                 name="AddStaff"
                 component={AddStaffScreen}
-            />
+            /> */}
         </Stack.Navigator>
     );
 }

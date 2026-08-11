@@ -4,7 +4,6 @@ import React, {
     useMemo,
     useState,
 } from 'react';
-
 import {
     SafeAreaView,
     FlatList,
@@ -17,32 +16,23 @@ import {
     ActivityIndicator,
     RefreshControl,
 } from 'react-native';
-
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-
 import { useApolloClient } from '@apollo/client';
-
 import { useNavigation } from '@react-navigation/native';
-
 import { GET_NEARBY_SALONS } from '../../../graphql/queries';
-
 import { getSavedLocation } from '../../../services/locationStorage';
-
 // ============================================================
 // TYPES
 // ============================================================
-
 type FilterType =
     | 'Nearby'
     | 'Top Rated'
     | 'Open Now';
-
 type BusinessDay = {
     open: string;
     close: string;
     isOpen: boolean;
 };
-
 type BusinessHours = {
     MONDAY: BusinessDay;
     TUESDAY: BusinessDay;
@@ -473,7 +463,6 @@ export default function ExplorePage() {
 
     useEffect(() => {
         loadLocation();
-
         fetchSalons('', 'All');
     }, []);
 

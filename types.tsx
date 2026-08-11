@@ -144,6 +144,7 @@ export type SalonProfileStackParamList = {
   StaffManagementScreen: undefined;
   AddStaff: undefined;
   EditStaff: undefined;
+  BusinessHoursScreen: undefined;
 };
 
 export type MarketplaceStackParamList = {

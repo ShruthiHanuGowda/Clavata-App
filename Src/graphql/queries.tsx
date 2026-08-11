@@ -167,6 +167,46 @@ export const GET_NEARBY_SALONS = gql`
       totalReviews
       logoUrl
       distance
+      salonStatus
+
+      businessHours {
+        MONDAY {
+          open
+          close
+          isOpen
+        }
+        TUESDAY {
+          open
+          close
+          isOpen
+        }
+        WEDNESDAY {
+          open
+          close
+          isOpen
+        }
+        THURSDAY {
+          open
+          close
+          isOpen
+        }
+        FRIDAY {
+          open
+          close
+          isOpen
+        }
+        SATURDAY {
+          open
+          close
+          isOpen
+        }
+        SUNDAY {
+          open
+          close
+          isOpen
+        }
+      }
+
       address {
         addressLine
         city
@@ -303,6 +343,108 @@ export const GET_SALON = gql`
             updatedAt
         }
     }
+`;
+
+export const UPDATE_BUSINESS_HOURS = gql`
+  mutation UpdateBusinessHours(
+    $input: UpdateBusinessHoursInput!
+  ) {
+    updateBusinessHours(input: $input) {
+      success
+      message
+
+      salon {
+        salonId
+        salonName
+        businessHours {
+          MONDAY {
+            open
+            close
+            isOpen
+          }
+          TUESDAY {
+            open
+            close
+            isOpen
+          }
+          WEDNESDAY {
+            open
+            close
+            isOpen
+          }
+          THURSDAY {
+            open
+            close
+            isOpen
+          }
+          FRIDAY {
+            open
+            close
+            isOpen
+          }
+          SATURDAY {
+            open
+            close
+            isOpen
+          }
+          SUNDAY {
+            open
+            close
+            isOpen
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const GET_SALON_BUSINESS_HOURS = gql`
+  query GetSalonBusinessHours(
+    $salonId: ID!
+  ) {
+    getSalon(salonId: $salonId) {
+      salonId
+      salonName
+
+      businessHours {
+        MONDAY {
+          open
+          close
+          isOpen
+        }
+        TUESDAY {
+          open
+          close
+          isOpen
+        }
+        WEDNESDAY {
+          open
+          close
+          isOpen
+        }
+        THURSDAY {
+          open
+          close
+          isOpen
+        }
+        FRIDAY {
+          open
+          close
+          isOpen
+        }
+        SATURDAY {
+          open
+          close
+          isOpen
+        }
+        SUNDAY {
+          open
+          close
+          isOpen
+        }
+      }
+    }
+  }
 `;
 // export const UPDATE_BOOKING_PAYMENT_STATUS = gql`
 // mutation UpdateBookingPaymentStatus(

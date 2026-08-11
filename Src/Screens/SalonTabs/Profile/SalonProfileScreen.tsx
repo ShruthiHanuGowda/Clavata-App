@@ -103,7 +103,7 @@ export default function SalonProfileScreen() {
             case 'BusinessHours':
                 navigation
                     .getParent()
-                    ?.navigate('BusinessHours');
+                    ?.navigate('BusinessHoursScreen');
                 break;
 
             case 'StaffManagement':
