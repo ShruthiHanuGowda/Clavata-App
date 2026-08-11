@@ -4,7 +4,7 @@ type User = {
     userId: string;
     phoneNumber: string;
     fullName: string;
-
+    profileImageUrl?: string;
     roles: {
         customer: boolean;
         businessPartner: boolean;

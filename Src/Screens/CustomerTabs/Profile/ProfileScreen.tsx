@@ -147,7 +147,7 @@ export default function ProfileScreen() {
           <View style={styles.roleBadge}>
             <Text>{currentUser?.activeRole === 'SALON' ? 'Salon' : 'Customer'}</Text>
           </View>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditProfile')}>
             <Text style={styles.editButtonText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>

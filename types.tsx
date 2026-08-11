@@ -138,6 +138,7 @@ export type StakeStackParamList = {
   HelpSupport: undefined;
   PrivacyPolicy: undefined;
   BookingDetails: undefined;
+  EditProfile: undefined;
 };
 
 export type SalonProfileStackParamList = {
