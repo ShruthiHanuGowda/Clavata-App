@@ -418,11 +418,7 @@ export default function BusinessHoursScreen() {
      */
     const handleSave = async () => {
         if (!currentUser?.salonId) {
-            Alert.alert(
-                'Error',
-                'Salon ID not found.'
-            );
-
+            Alert.alert('Error', 'Salon ID not found.');
             return;
         }
 
@@ -433,6 +429,56 @@ export default function BusinessHoursScreen() {
         try {
             setLoading(true);
 
+            /**
+             * IMPORTANT:
+             * Build a fresh GraphQL input object.
+             *
+             * Do NOT send `hours` directly.
+             */
+            const businessHoursInput = {
+                MONDAY: {
+                    open: hours.MONDAY.open,
+                    close: hours.MONDAY.close,
+                    isOpen: hours.MONDAY.isOpen,
+                },
+
+                TUESDAY: {
+                    open: hours.TUESDAY.open,
+                    close: hours.TUESDAY.close,
+                    isOpen: hours.TUESDAY.isOpen,
+                },
+
+                WEDNESDAY: {
+                    open: hours.WEDNESDAY.open,
+                    close: hours.WEDNESDAY.close,
+                    isOpen: hours.WEDNESDAY.isOpen,
+                },
+
+                THURSDAY: {
+                    open: hours.THURSDAY.open,
+                    close: hours.THURSDAY.close,
+                    isOpen: hours.THURSDAY.isOpen,
+                },
+
+                FRIDAY: {
+                    open: hours.FRIDAY.open,
+                    close: hours.FRIDAY.close,
+                    isOpen: hours.FRIDAY.isOpen,
+                },
+
+                SATURDAY: {
+                    open: hours.SATURDAY.open,
+                    close: hours.SATURDAY.close,
+                    isOpen: hours.SATURDAY.isOpen,
+                },
+
+                SUNDAY: {
+                    open: hours.SUNDAY.open,
+                    close: hours.SUNDAY.close,
+                    isOpen: hours.SUNDAY.isOpen,
+                },
+            };
+
             console.log(
                 '======================================'
             );
@@ -442,37 +488,39 @@ export default function BusinessHoursScreen() {
             );
 
             console.log(
+                'Salon ID:',
+                currentUser.salonId
+            );
+
+            console.log(
+                'Business Hours Input:',
                 JSON.stringify(
-                    hours,
+                    businessHoursInput,
                     null,
                     2
                 )
             );
 
             console.log(
-                'Salon ID:',
-                currentUser.salonId
-            );
-
-            console.log(
                 '======================================'
             );
 
-            const result =
-                await updateBusinessHours({
-                    variables: {
-                        input: {
-                            salonId:
-                                currentUser.salonId,
-
-                            businessHours: hours,
-                        },
+            const result = await updateBusinessHours({
+                variables: {
+                    input: {
+                        salonId: currentUser.salonId,
+                        businessHours: businessHoursInput,
                     },
-                });
+                },
+            });
 
             console.log(
-                'Business hours response:',
-                result.data
+                'UPDATE BUSINESS HOURS RESPONSE:',
+                JSON.stringify(
+                    result.data,
+                    null,
+                    2
+                )
             );
 
             const response =
@@ -494,16 +542,42 @@ export default function BusinessHoursScreen() {
                 [
                     {
                         text: 'OK',
-
-                        onPress: () =>
-                            navigation.goBack(),
+                        onPress: () => {
+                            navigation.goBack();
+                        },
                     },
                 ]
             );
         } catch (error: any) {
             console.error(
-                'SAVE BUSINESS HOURS ERROR:',
+                '======================================'
+            );
+
+            console.error(
+                'SAVE BUSINESS HOURS ERROR'
+            );
+
+            console.error(
                 error
+            );
+
+            console.error(
+                'GraphQL Error Message:',
+                error?.message
+            );
+
+            console.error(
+                'GraphQL Errors:',
+                error?.graphQLErrors
+            );
+
+            console.error(
+                'Network Error:',
+                error?.networkError
+            );
+
+            console.error(
+                '======================================'
             );
 
             Alert.alert(
@@ -515,6 +589,7 @@ export default function BusinessHoursScreen() {
             setLoading(false);
         }
     };
+
 
     /**
      * Currently selected picker value
