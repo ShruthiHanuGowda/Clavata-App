@@ -186,18 +186,16 @@ export default function HomeScreenPage() {
         (data?.nearbySalons || []).map(
           (item: any) => ({
             id: item.salonId,
+            salonId: item.salonId,
 
             name: item.salonName,
 
             rating: item.averageRating,
-
             reviews: item.totalReviews,
 
             distance:
               item.distance < 1
-                ? `${Math.round(
-                  item.distance * 1000,
-                )} m`
+                ? `${Math.round(item.distance * 1000)} m`
                 : `${item.distance.toFixed(1)} km`,
 
             address: item.address,
@@ -207,6 +205,12 @@ export default function HomeScreenPage() {
             image:
               item.logoUrl ||
               'https://picsum.photos/300/300',
+
+            // IMPORTANT
+            salonStatus: item.salonStatus,
+            businessHours: item.businessHours,
+
+            categories: item.categories || [],
           }),
         );
 

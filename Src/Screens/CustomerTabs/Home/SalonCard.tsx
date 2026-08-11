@@ -8,6 +8,21 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 const PRIMARY = '#008060';
+type BusinessDay = {
+    open: string;
+    close: string;
+    isOpen: boolean;
+};
+
+type BusinessHours = {
+    MONDAY: BusinessDay;
+    TUESDAY: BusinessDay;
+    WEDNESDAY: BusinessDay;
+    THURSDAY: BusinessDay;
+    FRIDAY: BusinessDay;
+    SATURDAY: BusinessDay;
+    SUNDAY: BusinessDay;
+};
 type Props = {
     salon: {
         id: string;
@@ -24,9 +39,102 @@ type Props = {
         };
         // NEW
         salonStatus?: 'OPEN' | 'CLOSED' | 'TEMPORARILY_CLOSED';
+        businessHours?: BusinessHours;
         // NEW
         categories?: string[];
         image?: string;
+    };
+};
+
+const getSalonCurrentStatus = (
+    salonStatus?: 'OPEN' | 'CLOSED' | 'TEMPORARILY_CLOSED',
+    businessHours?: BusinessHours,
+) => {
+    // Temporary closure always wins
+    if (salonStatus === 'TEMPORARILY_CLOSED') {
+        return {
+            isOpen: false,
+            text: 'Temporarily Closed',
+        };
+    }
+
+    // No business hours available
+    if (!businessHours) {
+        return {
+            isOpen: false,
+            text: 'Closed',
+        };
+    }
+
+    const now = new Date();
+
+    const days: Array<keyof BusinessHours> = [
+        'SUNDAY',
+        'MONDAY',
+        'TUESDAY',
+        'WEDNESDAY',
+        'THURSDAY',
+        'FRIDAY',
+        'SATURDAY',
+    ];
+
+    const today = days[now.getDay()];
+    const todayHours = businessHours[today];
+
+    // Salon is closed for this day
+    if (!todayHours?.isOpen) {
+        return {
+            isOpen: false,
+            text: 'Closed',
+        };
+    }
+
+    if (!todayHours.open || !todayHours.close) {
+        return {
+            isOpen: false,
+            text: 'Closed',
+        };
+    }
+
+    const currentMinutes =
+        now.getHours() * 60 + now.getMinutes();
+
+    const [openHour, openMinute] =
+        todayHours.open.split(':').map(Number);
+
+    const [closeHour, closeMinute] =
+        todayHours.close.split(':').map(Number);
+
+    const openMinutes =
+        openHour * 60 + openMinute;
+
+    const closeMinutes =
+        closeHour * 60 + closeMinute;
+
+    let isOpen = false;
+
+    // Normal same-day schedule
+    if (closeMinutes > openMinutes) {
+        isOpen =
+            currentMinutes >= openMinutes &&
+            currentMinutes < closeMinutes;
+    }
+
+    // Handles schedules such as 18:00 -> 02:00
+    else if (closeMinutes < openMinutes) {
+        isOpen =
+            currentMinutes >= openMinutes ||
+            currentMinutes < closeMinutes;
+    }
+
+    // open === close means closed
+    else {
+        isOpen = false;
+    }
+
+    return {
+        isOpen,
+        text: isOpen ? 'Open' : 'Closed',
     };
 };
 
@@ -47,13 +155,11 @@ export default function SalonCard({ salon }: Props) {
         } as never);
     };
     // Salon status
-    const isOpen = salon.salonStatus === 'OPEN';
-    const statusText =
-        salon.salonStatus === 'OPEN'
-            ? 'Open'
-            : salon.salonStatus === 'TEMPORARILY_CLOSED'
-                ? 'Temporarily Closed'
-                : 'Closed';
+    const { isOpen, text: statusText } =
+        getSalonCurrentStatus(
+            salon.salonStatus,
+            salon.businessHours,
+        );
     // Show maximum 3 categories on card
     const categoryText =
         salon.categories && salon.categories.length > 0
