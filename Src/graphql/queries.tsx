@@ -146,6 +146,67 @@ query ListServices($salonId: ID!) {
   }
 }`
 
+export const GET_BOOKING = gql`
+    query GetBooking($bookingId: ID!) {
+        GetBooking(bookingId: $bookingId) {
+            bookingId
+            salonId
+            customerUserId
+
+            salonName
+            customerName
+            customerPhone
+
+            bookingDate
+            startTime
+            endTime
+
+            staffId
+            staffName
+
+            services {
+                serviceId
+                name
+                category
+                duration
+                price
+            }
+
+            totalDuration
+            subtotal
+            discount
+            totalAmount
+
+            paymentMethod
+            paymentStatus
+
+            bookingStatus
+
+            notes
+            salonNote
+
+            bookingFee
+            bookingFeeStatus
+            bookingFeePaidAt
+            remainingAmount
+
+            razorpayOrderId
+            razorpayPaymentId
+            paymentGateway
+
+            reviewSubmitted
+            rating
+            review
+            reviewedAt
+
+            createdAt
+            updatedAt
+        }
+    }
+`;
+
+
+
 export const GET_NEARBY_SALONS = gql`
   query NearbySalons(
     $latitude: Float!

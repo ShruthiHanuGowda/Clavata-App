@@ -43,6 +43,7 @@ import StaffManagementScreen from '../Screens/SalonTabs/Profile/StaffManagementS
 import AddStaff from '../Screens/SalonTabs/Profile/staff/AddStaffScreen';
 import EditStaff from '../Screens/SalonTabs/Profile/staff/EditStaffScreen';
 import BusinessHoursScreen from '../Screens/SalonTabs/Profile/BusinessHoursScreen';
+import BookingDetails from '../Screens/CustomerTabs/Profile/BookingDetails';
 
 function RootScreenStack() {
   const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -169,6 +170,10 @@ export function ProfileStack() {
       <ProfilePlaceStack.Screen
         name="ProfileBookings"
         component={ProfileBookings}
+      />
+       <ProfilePlaceStack.Screen
+        name="BookingDetails"
+        component={BookingDetails}
       />
       <ProfilePlaceStack.Screen
         name="FavouriteSalons"

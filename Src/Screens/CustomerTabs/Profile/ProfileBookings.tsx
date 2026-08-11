@@ -437,9 +437,8 @@ export default function ProfileBookings() {
         navigation.navigate(
             'BookingDetails',
             {
-                bookingId:
-                    booking.bookingId,
-                booking,
+                bookingId:booking.bookingId,
+                // booking,
             },
         );
     };
