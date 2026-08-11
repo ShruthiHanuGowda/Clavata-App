@@ -33,6 +33,8 @@ export default function ProfileScreen() {
   console.log('currentUser?.providerStatus', currentUser?.providerStatus);
   const partnerTitle = (() => {
     switch (currentUser?.providerStatus) {
+      case 'NOT_REGISTERED':
+        return 'Become a Salon Partner';
       case 'PENDING':
         return 'Salon Verification Pending';
       case 'APPROVED':
@@ -69,6 +71,11 @@ export default function ProfileScreen() {
   };
   const onPartnerPress = () => {
     switch (currentUser?.providerStatus) {
+      case 'NOT_REGISTERED':
+        navigation.navigate('BecomePartner', {
+          screen: 'BecomePartner',
+        });
+        break;
       case 'PENDING':
         navigation.navigate('BecomePartner', {
           screen: 'SalonPendingVerification',

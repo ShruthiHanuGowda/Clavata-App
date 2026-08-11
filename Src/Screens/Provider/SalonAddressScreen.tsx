@@ -36,7 +36,7 @@ export default function SalonAddressScreen({ navigation }: any) {
       pincode,
     });
 
-    navigation.navigate('SalonKYC');
+    navigation.navigate('SalonBusinessHours');
   };
 
   return (

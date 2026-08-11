@@ -38,6 +38,7 @@ export default function SalonReviewScreen({ navigation }: any) {
               state: data.state,
               pincode: data.pincode,
             },
+            businessHours: data.businessHours,
             gstNumber: data.gstNumber,
             panNumber: data.panNumber,
             aadhaarNumber: data.aadhaarNumber,
