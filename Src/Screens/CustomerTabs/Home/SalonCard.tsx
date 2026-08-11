@@ -7,7 +7,17 @@ import {
     StyleSheet,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useUser } from '../../../context/UserContext';
+import { useMutation, useQuery } from '@apollo/client';
+
+import {
+    ADD_FAVORITE_SALON,
+    REMOVE_FAVORITE_SALON,
+    IS_FAVORITE_SALON,
+} from '../../../graphql/queries';
+
 const PRIMARY = '#008060';
+
 type BusinessDay = {
     open: string;
     close: string;
@@ -23,6 +33,7 @@ type BusinessHours = {
     SATURDAY: BusinessDay;
     SUNDAY: BusinessDay;
 };
+
 type Props = {
     salon: {
         id: string;
@@ -31,17 +42,20 @@ type Props = {
         rating: number;
         reviews?: number;
         distance: string;
+
         address?: {
             addressLine?: string;
             city?: string;
             state?: string;
             pincode?: string;
         };
-        // NEW
+
         salonStatus?: 'OPEN' | 'CLOSED' | 'TEMPORARILY_CLOSED';
+
         businessHours?: BusinessHours;
-        // NEW
+
         categories?: string[];
+
         image?: string;
     };
 };
@@ -58,7 +72,7 @@ const getSalonCurrentStatus = (
         };
     }
 
-    // No business hours available
+    // No business hours
     if (!businessHours) {
         return {
             isOpen: false,
@@ -79,9 +93,9 @@ const getSalonCurrentStatus = (
     ];
 
     const today = days[now.getDay()];
+
     const todayHours = businessHours[today];
 
-    // Salon is closed for this day
     if (!todayHours?.isOpen) {
         return {
             isOpen: false,
@@ -113,21 +127,21 @@ const getSalonCurrentStatus = (
 
     let isOpen = false;
 
-    // Normal same-day schedule
+    // Normal schedule
     if (closeMinutes > openMinutes) {
         isOpen =
             currentMinutes >= openMinutes &&
             currentMinutes < closeMinutes;
     }
 
-    // Handles schedules such as 18:00 -> 02:00
+    // Overnight schedule e.g. 18:00 -> 02:00
     else if (closeMinutes < openMinutes) {
         isOpen =
             currentMinutes >= openMinutes ||
             currentMinutes < closeMinutes;
     }
 
-    // open === close means closed
+    // Same opening/closing time = closed
     else {
         isOpen = false;
     }
@@ -139,7 +153,50 @@ const getSalonCurrentStatus = (
 };
 
 export default function SalonCard({ salon }: Props) {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
+
+    const { currentUser } = useUser();
+
+    const [favoriteLoading, setFavoriteLoading] =
+        React.useState(false);
+
+    const salonId =
+        salon.salonId ?? salon.id;
+
+    /*
+     * Check favorite status
+     */
+    const {
+        data: favoriteData,
+        loading: favoriteStatusLoading,
+        refetch: refetchFavoriteStatus,
+    } = useQuery(IS_FAVORITE_SALON, {
+        variables: {
+            userId: currentUser?.userId ?? '',
+            salonId,
+        },
+        skip: !currentUser?.userId || !salonId,
+        fetchPolicy: 'network-only',
+    });
+
+    /*
+     * Add favorite
+     */
+    const [addFavorite] =
+        useMutation(ADD_FAVORITE_SALON);
+
+    /*
+     * Remove favorite
+     */
+    const [removeFavorite] =
+        useMutation(REMOVE_FAVORITE_SALON);
+
+    /*
+     * Current favorite state
+     */
+    const isFavorite =
+        favoriteData?.isFavoriteSalon === true;
+
     const address = [
         salon.address?.addressLine,
         salon.address?.city,
@@ -147,24 +204,118 @@ export default function SalonCard({ salon }: Props) {
         .filter(Boolean)
         .join(', ');
 
+    /*
+     * Navigate to salon details
+     */
     const handlePress = () => {
-        console.log('Navigating to SalonDetails for salonId:', salon.salonId ?? salon.id);
-        navigation.navigate('SalonDetails' as any, {
-            salonId: salon.salonId ?? salon.id,
-            salon,
-        } as never);
-    };
-    // Salon status
-    const { isOpen, text: statusText } =
-        getSalonCurrentStatus(
-            salon.salonStatus,
-            salon.businessHours,
+        console.log(
+            'Navigating to SalonDetails:',
+            salonId,
         );
-    // Show maximum 3 categories on card
+
+        navigation.navigate('SalonDetails', {
+            salonId,
+            salon,
+        });
+    };
+
+    /*
+     * Salon open/closed status
+     */
+    const {
+        isOpen,
+        text: statusText,
+    } = getSalonCurrentStatus(
+        salon.salonStatus,
+        salon.businessHours,
+    );
+
+    /*
+     * Maximum 3 categories
+     */
     const categoryText =
-        salon.categories && salon.categories.length > 0
-            ? salon.categories.slice(0, 3).join(' • ')
+        salon.categories &&
+            salon.categories.length > 0
+            ? salon.categories
+                .slice(0, 3)
+                .join(' • ')
             : '';
+
+    /*
+     * Add/remove favorite
+     */
+    const handleFavorite = async () => {
+        if (!currentUser?.userId) {
+            console.log(
+                'User is not logged in',
+            );
+            return;
+        }
+
+        if (!salonId) {
+            console.log(
+                'Salon ID is missing',
+            );
+            return;
+        }
+
+        try {
+            setFavoriteLoading(true);
+
+            if (isFavorite) {
+                /*
+                 * REMOVE
+                 */
+                const { data } =
+                    await removeFavorite({
+                        variables: {
+                            input: {
+                                userId:
+                                    currentUser.userId,
+                                salonId,
+                            },
+                        },
+                    });
+
+                console.log(
+                    'Remove favorite response:',
+                    data?.removeFavoriteSalon,
+                );
+            } else {
+                /*
+                 * ADD
+                 */
+                const { data } =
+                    await addFavorite({
+                        variables: {
+                            input: {
+                                userId:
+                                    currentUser.userId,
+                                salonId,
+                            },
+                        },
+                    });
+
+                console.log(
+                    'Add favorite response:',
+                    data?.addFavoriteSalon,
+                );
+            }
+
+            /*
+             * Reload status from backend
+             */
+            await refetchFavoriteStatus();
+        } catch (error) {
+            console.error(
+                'Favorite salon error:',
+                error,
+            );
+        } finally {
+            setFavoriteLoading(false);
+        }
+    };
+
     return (
         <TouchableOpacity
             style={styles.card}
@@ -181,24 +332,34 @@ export default function SalonCard({ salon }: Props) {
                     }}
                     style={styles.image}
                 />
+
                 {/* Favorite */}
                 <TouchableOpacity
                     style={styles.favorite}
                     activeOpacity={0.8}
-                    onPress={() => {
-                        console.log(
-                            'Favorite salon:',
-                            salon.name,
-                        );
-                    }}
+                    disabled={
+                        favoriteLoading ||
+                        favoriteStatusLoading
+                    }
+                    onPress={handleFavorite}
                 >
-                    <Text style={styles.heart}>♡</Text>
+                    <Text
+                        style={[
+                            styles.heart,
+                            isFavorite &&
+                            styles.heartActive,
+                        ]}
+                    >
+                        {isFavorite
+                            ? '♥'
+                            : '♡'}
+                    </Text>
                 </TouchableOpacity>
             </View>
 
             {/* Content */}
             <View style={styles.content}>
-                {/* Salon Name + Open/Closed */}
+                {/* Name + Status */}
                 <View style={styles.nameRow}>
                     <Text
                         style={styles.name}
@@ -206,6 +367,7 @@ export default function SalonCard({ salon }: Props) {
                     >
                         {salon.name}
                     </Text>
+
                     <View
                         style={[
                             styles.statusBadge,
@@ -222,6 +384,7 @@ export default function SalonCard({ salon }: Props) {
                                     : styles.closedDot,
                             ]}
                         />
+
                         <Text
                             style={[
                                 styles.statusText,
@@ -234,23 +397,39 @@ export default function SalonCard({ salon }: Props) {
                         </Text>
                     </View>
                 </View>
+
                 {/* Rating + Distance */}
                 <View style={styles.infoRow}>
-                    <View style={styles.ratingBox}>
-                        <Text style={styles.star}>
+                    <View
+                        style={styles.ratingBox}
+                    >
+                        <Text
+                            style={styles.star}
+                        >
                             ★
                         </Text>
-                        <Text style={styles.rating}>
-                            {(salon.rating ?? 0).toFixed(1)}
+
+                        <Text
+                            style={styles.rating}
+                        >
+                            {(salon.rating ?? 0).toFixed(
+                                1,
+                            )}
                         </Text>
 
                         {salon.reviews != null && (
-                            <Text style={styles.reviews}>
+                            <Text
+                                style={
+                                    styles.reviews
+                                }
+                            >
                                 ({salon.reviews})
                             </Text>
                         )}
                     </View>
+
                     <View style={styles.dot} />
+
                     <Text
                         style={styles.distance}
                         numberOfLines={1}
@@ -258,6 +437,7 @@ export default function SalonCard({ salon }: Props) {
                         {salon.distance}
                     </Text>
                 </View>
+
                 {/* Address */}
                 {!!address && (
                     <Text
@@ -267,6 +447,7 @@ export default function SalonCard({ salon }: Props) {
                         📍 {address}
                     </Text>
                 )}
+
                 {/* Categories */}
                 {!!categoryText && (
                     <Text
@@ -276,15 +457,19 @@ export default function SalonCard({ salon }: Props) {
                         {categoryText}
                     </Text>
                 )}
+
                 {/* View Salon */}
                 <TouchableOpacity
                     style={styles.button}
                     activeOpacity={0.85}
                     onPress={handlePress}
                 >
-                    <Text style={styles.buttonText}>
+                    <Text
+                        style={styles.buttonText}
+                    >
                         View Salon
                     </Text>
+
                     <Text style={styles.arrow}>
                         →
                     </Text>
@@ -293,6 +478,7 @@ export default function SalonCard({ salon }: Props) {
         </TouchableOpacity>
     );
 }
+
 const styles = StyleSheet.create({
     card: {
         marginHorizontal: 16,
@@ -310,17 +496,20 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.08,
         shadowRadius: 5,
     },
+
     imageContainer: {
         width: 105,
         height: 120,
         position: 'relative',
     },
+
     image: {
         width: '100%',
         height: '100%',
         borderRadius: 13,
         backgroundColor: '#F0F0F0',
     },
+
     favorite: {
         position: 'absolute',
         top: 7,
@@ -328,25 +517,34 @@ const styles = StyleSheet.create({
         width: 30,
         height: 30,
         borderRadius: 15,
-        backgroundColor: 'rgba(255,255,255,0.95)',
+        backgroundColor:
+            'rgba(255,255,255,0.95)',
         alignItems: 'center',
         justifyContent: 'center',
     },
+
     heart: {
         fontSize: 21,
         color: '#333',
         lineHeight: 23,
     },
+
+    heartActive: {
+        color: '#E53935',
+    },
+
     content: {
         flex: 1,
         marginLeft: 12,
         paddingVertical: 2,
         minWidth: 0,
     },
+
     nameRow: {
         flexDirection: 'row',
         alignItems: 'center',
     },
+
     name: {
         flex: 1,
         fontSize: 17,
@@ -354,7 +552,7 @@ const styles = StyleSheet.create({
         color: '#111111',
         marginRight: 6,
     },
-    // STATUS
+
     statusBadge: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -362,59 +560,72 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         borderRadius: 10,
     },
+
     openBadge: {
         backgroundColor: '#E8F7EF',
     },
+
     closedBadge: {
         backgroundColor: '#FDECEC',
     },
+
     statusDot: {
         width: 6,
         height: 6,
         borderRadius: 3,
         marginRight: 4,
     },
+
     openDot: {
         backgroundColor: '#16A34A',
     },
+
     closedDot: {
         backgroundColor: '#DC2626',
     },
+
     statusText: {
         fontSize: 10,
         fontWeight: '700',
     },
+
     openText: {
         color: '#15803D',
     },
+
     closedText: {
         color: '#B91C1C',
     },
-    // RATING + DISTANCE
+
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: 7,
     },
+
     ratingBox: {
         flexDirection: 'row',
         alignItems: 'center',
     },
+
     star: {
         fontSize: 14,
         color: '#F5A623',
         marginRight: 3,
     },
+
     rating: {
         fontSize: 13,
         fontWeight: '700',
         color: '#333333',
     },
+
     reviews: {
         marginLeft: 3,
         fontSize: 12,
         color: '#888888',
     },
+
     dot: {
         width: 3,
         height: 3,
@@ -422,25 +633,26 @@ const styles = StyleSheet.create({
         backgroundColor: '#AAAAAA',
         marginHorizontal: 8,
     },
+
     distance: {
         fontSize: 12,
         color: PRIMARY,
         fontWeight: '600',
     },
-    // ADDRESS
+
     address: {
         marginTop: 6,
         fontSize: 12,
         color: '#777777',
     },
-    // CATEGORIES
+
     categories: {
         marginTop: 6,
         fontSize: 12,
         color: '#555555',
         fontWeight: '600',
     },
-    // BUTTON
+
     button: {
         alignSelf: 'flex-start',
         marginTop: 9,
@@ -451,11 +663,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+
     buttonText: {
         color: PRIMARY,
         fontSize: 12,
         fontWeight: '700',
     },
+
     arrow: {
         marginLeft: 5,
         color: PRIMARY,
