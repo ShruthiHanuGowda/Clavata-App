@@ -1,4 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, {
+  useEffect,
+  useState,
+} from 'react';
+
 import {
   SafeAreaView,
   FlatList,
@@ -6,23 +10,46 @@ import {
   View,
   Text,
 } from 'react-native';
+
+import {
+  useApolloClient,
+} from '@apollo/client';
+
+import {
+  useNavigation,
+} from '@react-navigation/native';
+
 import HomeHeader from './HomeHeader';
 import SearchBar from './SearchBar';
 import ServiceChips from './ServiceChips';
 import SalonCard from './SalonCard';
 import LocationBottomSheet from './LocationBottomSheet';
 import ReviewPopup from './ReviewPopup';
+import HomeAdCarousel from './HomeAdCarousel';
 
-import { getSavedLocation } from '../../../services/locationStorage';
+import {
+  getActiveLocation,
+  LocationData,
+} from '../../../services/locationStorage';
+
+import {
+  DEFAULT_LOCATION_RADIUS,
+  USE_HARDCODED_LOCATION,
+} from '../../../services/locationConfig';
+
 import {
   GET_NEARBY_SALONS,
   CUSTOMER_BOOKINGS,
 } from '../../../graphql/queries';
 
-import { useApolloClient } from '@apollo/client';
-import { useNavigation } from '@react-navigation/native';
-import { useUser } from '../../../context/UserContext';
-import HomeAdCarousel from './HomeAdCarousel';
+import {
+  useUser,
+} from '../../../context/UserContext';
+
+
+// ============================================================
+// TYPES
+// ============================================================
 
 type Booking = {
   bookingId: string;
@@ -34,505 +61,788 @@ type Booking = {
   reviewSubmitted?: boolean;
 };
 
+
+// ============================================================
+// COMPONENT
+// ============================================================
+
 export default function HomeScreenPage() {
   const client = useApolloClient();
+
   const navigation = useNavigation();
+
   const { currentUser } = useUser();
 
-  const [showReviewPopup, setShowReviewPopup] = useState(false);
-  const [pendingBooking, setPendingBooking] =
-    useState<Booking | null>(null);
 
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [salons, setSalons] = useState<any[]>([]);
+  // ==========================================================
+  // STATE
+  // ==========================================================
 
-  const [search, setSearch] = useState('');
+  const [
+    showReviewPopup,
+    setShowReviewPopup,
+  ] = useState(false);
 
-  const [showLocationModal, setShowLocationModal] =
-    useState(false);
+  const [
+    pendingBooking,
+    setPendingBooking,
+  ] = useState<Booking | null>(null);
 
-  const [selectedLocation, setSelectedLocation] =
-    useState('Choose Location');
+  const [
+    bookings,
+    setBookings,
+  ] = useState<any[]>([]);
 
-  const [selectedCategory, setSelectedCategory] =
-    useState('');
+  const [
+    salons,
+    setSalons,
+  ] = useState<any[]>([]);
 
-  /*
-   * LOCATION IS HARD CODED FOR TESTING
-   */
-  const HARDCODED_LATITUDE = 12.963694;
-  const HARDCODED_LONGITUDE = 77.4014239;
+  const [
+    search,
+    setSearch,
+  ] = useState('');
 
-  /*
-   * Keep these coordinates in state only for UI/location flow.
-   * Actual API request uses the hardcoded coordinates above.
-   */
-  const [locationCoordinates, setLocationCoordinates] =
-    useState<{
-      latitude: number;
-      longitude: number;
-    } | null>(null);
+  const [
+    showLocationModal,
+    setShowLocationModal,
+  ] = useState(false);
 
-  // ============================================================
+  const [
+    selectedLocation,
+    setSelectedLocation,
+  ] = useState('Choose Location');
+
+  const [
+    selectedCategory,
+    setSelectedCategory,
+  ] = useState('');
+
+  const [
+    locationCoordinates,
+    setLocationCoordinates,
+  ] = useState<LocationData | null>(null);
+
+
+  // ==========================================================
   // INITIAL LOAD
-  // ============================================================
+  // ==========================================================
 
   useEffect(() => {
+    console.log('');
     console.log('======================================');
-    console.log('HOME SCREEN INITIAL LOAD');
+    console.log('🏠 HOME SCREEN INITIAL LOAD');
     console.log('======================================');
 
-    console.log('Current User:', currentUser);
+    console.log(
+      'Current User:',
+      currentUser,
+    );
+
+    console.log(
+      'Location Mode:',
+      USE_HARDCODED_LOCATION
+        ? '🧪 HARDCODED TEST'
+        : '🚀 PRODUCTION',
+    );
 
     loadLocation();
 
     if (currentUser?.userId) {
-      console.log(
-        'Loading bookings for user:',
-        currentUser.userId,
-      );
-
       loadCustomerBookings();
-    } else {
-      console.log(
-        'No currentUser.userId available yet',
-      );
     }
   }, [currentUser]);
 
-  // ============================================================
-  // FETCH NEARBY SALONS
-  // ============================================================
 
-  const fetchNearbySalons = async (
-    _latitude?: number,
-    _longitude?: number,
-    searchText = '',
-    category = '',
-  ) => {
-    console.log('');
-    console.log('======================================');
-    console.log('FETCH NEARBY SALONS');
-    console.log('======================================');
-
-    /*
-     * ONLY LATITUDE AND LONGITUDE ARE HARDCODED
-     */
-    const latitude = HARDCODED_LATITUDE;
-    const longitude = HARDCODED_LONGITUDE;
-
-    /*
-     * Clean search/category values
-     */
-    const cleanSearch = searchText.trim();
-    const cleanCategory = category.trim();
-
-    let finalSearch: string | null = null;
-    let finalCategory: string | null = null;
-
-    if (cleanCategory) {
-      finalCategory = cleanCategory;
-      finalSearch = null;
-    } else if (cleanSearch) {
-      finalSearch = cleanSearch;
-      finalCategory = null;
-    }
-
-    console.log('Latitude:', latitude);
-    console.log('Longitude:', longitude);
-    console.log('Original Search:', searchText);
-    console.log('Original Category:', category);
-    console.log('Final Search:', finalSearch);
-    console.log('Final Category:', finalCategory);
-
-    const variables = {
-      latitude,
-      longitude,
-      radius: 10,
-      search: finalSearch,
-      category: finalCategory,
-    };
-
-    console.log(
-      'GraphQL Variables:',
-      JSON.stringify(variables, null, 2),
-    );
-
-    try {
-      const { data } = await client.query({
-        query: GET_NEARBY_SALONS,
-        variables,
-        fetchPolicy: 'network-only',
-      });
-
-      console.log('');
-      console.log('GRAPHQL RESPONSE:');
-
-      console.log(
-        JSON.stringify(data, null, 2),
-      );
-
-      console.log(
-        'Number of salons:',
-        data?.nearbySalons?.length || 0,
-      );
-
-      console.log(
-        'Nearby Salons:',
-        data?.nearbySalons,
-      );
-
-      const formatted =
-        (data?.nearbySalons || []).map(
-          (item: any) => ({
-            id: item.salonId,
-            salonId: item.salonId,
-
-            name: item.salonName,
-
-            rating: item.averageRating,
-            reviews: item.totalReviews,
-
-            distance:
-              item.distance < 1
-                ? `${Math.round(item.distance * 1000)} m`
-                : `${item.distance.toFixed(1)} km`,
-
-            address: item.address,
-
-            price: 0,
-
-            image:
-              item.logoUrl ||
-              'https://picsum.photos/300/300',
-
-            // IMPORTANT
-            salonStatus: item.salonStatus,
-            businessHours: item.businessHours,
-
-            categories: item.categories || [],
-          }),
-        );
-
-      console.log('');
-      console.log('FORMATTED SALONS:');
-
-      console.log(
-        JSON.stringify(formatted, null, 2),
-      );
-
-      setSalons(formatted);
-    } catch (error) {
-      console.log('');
-      console.log('❌ NEARBY SALONS ERROR:');
-      console.log(error);
-    }
-  };
-
-  // ============================================================
-  // LOAD LOCATION
-  // ============================================================
+  // ==========================================================
+  // LOAD ACTIVE LOCATION
+  // ==========================================================
 
   const loadLocation = async () => {
     try {
       console.log('');
       console.log('======================================');
-      console.log('LOAD SAVED LOCATION');
+      console.log('📍 HOME SCREEN - LOAD LOCATION');
       console.log('======================================');
 
-      const location = await getSavedLocation();
+      const location =
+        await getActiveLocation();
 
-      console.log('Saved Location:', location);
-
-      if (location) {
-        setSelectedLocation(
-          location.address,
-        );
-
-        setLocationCoordinates({
-          latitude: location.latitude,
-          longitude: location.longitude,
-        });
-
-        /*
-         * First load:
-         *
-         * No search
-         * No category
-         *
-         * Therefore show ALL nearby salons.
-         */
-        fetchNearbySalons(
-          HARDCODED_LATITUDE,
-          HARDCODED_LONGITUDE,
-          '',
-          '',
-        );
-      } else {
-        /*
-         * Even if there is no saved location,
-         * still load using hardcoded coordinates.
-         */
+      if (!location) {
         console.log(
-          'No saved location. Using hardcoded coordinates.',
+          'ℹ️ No active location found',
         );
 
-        setLocationCoordinates({
-          latitude: HARDCODED_LATITUDE,
-          longitude: HARDCODED_LONGITUDE,
-        });
-
-        fetchNearbySalons(
-          HARDCODED_LATITUDE,
-          HARDCODED_LONGITUDE,
-          '',
-          '',
+        setSelectedLocation(
+          'Choose Location',
         );
+
+        setLocationCoordinates(null);
+
+        setSalons([]);
+
+        return;
       }
+
+      console.log(
+        '📍 Active Location:',
+        location,
+      );
+
+      // --------------------------------------------------------
+      // UPDATE UI
+      // --------------------------------------------------------
+
+      setSelectedLocation(
+        location.address,
+      );
+
+      setLocationCoordinates(
+        location,
+      );
+
+      // --------------------------------------------------------
+      // FETCH SALONS
+      // --------------------------------------------------------
+
+      await fetchNearbySalons(
+        location.latitude,
+        location.longitude,
+        '',
+        '',
+      );
+
     } catch (error) {
       console.log(
-        'Location loading error:',
+        '❌ Location loading error:',
         error,
       );
     }
   };
 
-  // ============================================================
-  // LOAD CUSTOMER BOOKINGS
-  // ============================================================
 
-  const loadCustomerBookings = async () => {
+  // ==========================================================
+  // GET ACTIVE COORDINATES
+  // ==========================================================
+
+  const getActiveCoordinates =
+    (): LocationData | null => {
+
+      if (locationCoordinates) {
+        return {
+          ...locationCoordinates,
+        };
+      }
+
+      return null;
+    };
+
+
+  // ==========================================================
+  // FETCH NEARBY SALONS
+  // ==========================================================
+
+  const fetchNearbySalons = async (
+    latitude?: number,
+    longitude?: number,
+    searchText = '',
+    category = '',
+  ) => {
+
+    console.log('');
+    console.log('======================================');
+    console.log('🔎 FETCH NEARBY SALONS');
+    console.log('======================================');
+
+    // --------------------------------------------------------
+    // DETERMINE LOCATION
+    // --------------------------------------------------------
+
+    let finalLatitude:
+      number | null = null;
+
+    let finalLongitude:
+      number | null = null;
+
+
+    // ========================================================
+    // HARDCODED MODE
+    // ========================================================
+
+    if (USE_HARDCODED_LOCATION) {
+
+      console.log(
+        '🧪 HARDCODED LOCATION MODE',
+      );
+
+      const activeLocation =
+        await getActiveLocation();
+
+      if (activeLocation) {
+        finalLatitude =
+          activeLocation.latitude;
+
+        finalLongitude =
+          activeLocation.longitude;
+      }
+
+    }
+
+
+    // ========================================================
+    // PRODUCTION MODE
+    // ========================================================
+
+    else {
+
+      const activeLocation =
+        getActiveCoordinates();
+
+      finalLatitude =
+        latitude ??
+        activeLocation?.latitude ??
+        null;
+
+      finalLongitude =
+        longitude ??
+        activeLocation?.longitude ??
+        null;
+    }
+
+
+    // ========================================================
+    // NO LOCATION
+    // ========================================================
+
+    if (
+      finalLatitude === null ||
+      finalLongitude === null
+    ) {
+
+      console.log(
+        '⚠️ Cannot fetch salons: no location available',
+      );
+
+      setSalons([]);
+
+      return;
+    }
+
+
+    console.log(
+      '📍 Latitude:',
+      finalLatitude,
+    );
+
+    console.log(
+      '📍 Longitude:',
+      finalLongitude,
+    );
+
+
+    // ========================================================
+    // SEARCH / CATEGORY
+    // ========================================================
+
+    const cleanSearch =
+      searchText.trim();
+
+    const cleanCategory =
+      category.trim();
+
+    let finalSearch:
+      string | null = null;
+
+    let finalCategory:
+      string | null = null;
+
+
+    if (cleanCategory) {
+
+      finalCategory =
+        cleanCategory;
+
+    } else if (cleanSearch) {
+
+      finalSearch =
+        cleanSearch;
+    }
+
+
+    // ========================================================
+    // GRAPHQL VARIABLES
+    // ========================================================
+
+    const variables = {
+      latitude:
+        finalLatitude,
+
+      longitude:
+        finalLongitude,
+
+      radius:
+        DEFAULT_LOCATION_RADIUS,
+
+      search:
+        finalSearch,
+
+      category:
+        finalCategory,
+    };
+
+
+    console.log(
+      'GraphQL Variables:',
+      JSON.stringify(
+        variables,
+        null,
+        2,
+      ),
+    );
+
+
+    // ========================================================
+    // API CALL
+    // ========================================================
+
     try {
-      console.log('');
-      console.log(
-        '======================================',
-      );
-      console.log(
-        'LOAD CUSTOMER BOOKINGS',
-      );
-      console.log(
-        '======================================',
-      );
 
       const { data } =
         await client.query({
-          query: CUSTOMER_BOOKINGS,
+          query:
+            GET_NEARBY_SALONS,
 
-          variables: {
-            customerUserId:
-              currentUser?.userId,
-          },
+          variables,
 
-          fetchPolicy: 'network-only',
+          fetchPolicy:
+            'network-only',
         });
 
+
       console.log(
-        'Customer bookings:',
-        data?.customerBookings,
+        'Nearby salons:',
+        data?.nearbySalons,
       );
 
-      setBookings(
-        data?.customerBookings || [],
-      );
 
-      const booking =
-        data?.customerBookings?.find(
-          (item: any) =>
-            item.bookingStatus ===
-            'COMPLETED' &&
-            item.reviewSubmitted === false,
+      // ======================================================
+      // FORMAT RESULTS
+      // ======================================================
+
+      const formatted =
+        (
+          data?.nearbySalons ||
+          []
+        ).map(
+          (item: any) => ({
+
+            id:
+              item.salonId,
+
+            salonId:
+              item.salonId,
+
+            name:
+              item.salonName,
+
+            rating:
+              item.averageRating,
+
+            reviews:
+              item.totalReviews,
+
+            distance:
+              item.distance < 1
+                ? `${Math.round(
+                  item.distance * 1000,
+                )} m`
+                : `${item.distance.toFixed(
+                  1,
+                )} km`,
+
+            address:
+              item.address,
+
+            price:
+              0,
+
+            image:
+              item.logoUrl ||
+              'https://picsum.photos/300/300',
+
+            salonStatus:
+              item.salonStatus,
+
+            businessHours:
+              item.businessHours,
+
+            categories:
+              item.categories ||
+              [],
+          }),
         );
 
-      console.log(
-        'Pending review booking:',
-        booking,
+
+      setSalons(
+        formatted,
       );
 
-      if (booking) {
-        setPendingBooking(booking);
-        setShowReviewPopup(true);
-      }
     } catch (error) {
+
       console.log(
-        'Booking loading error:',
+        '❌ NEARBY SALONS ERROR:',
         error,
       );
+
+      setSalons([]);
     }
   };
 
-  // ============================================================
+
+  // ==========================================================
+  // LOCATION SELECTED
+  // ==========================================================
+
+  const handleLocationSelected =
+    async (
+      location: LocationData,
+    ) => {
+
+      console.log('');
+      console.log('======================================');
+      console.log('📍 LOCATION SELECTED');
+      console.log('======================================');
+
+      console.log(
+        location,
+      );
+
+
+      // --------------------------------------------------------
+      // UPDATE UI
+      // --------------------------------------------------------
+
+      setSelectedLocation(
+        location.address,
+      );
+
+      setLocationCoordinates(
+        location,
+      );
+
+
+      // --------------------------------------------------------
+      // FETCH SALONS
+      // --------------------------------------------------------
+
+      await fetchNearbySalons(
+        location.latitude,
+        location.longitude,
+        search,
+        selectedCategory,
+      );
+
+
+      // --------------------------------------------------------
+      // CLOSE MODAL
+      // --------------------------------------------------------
+
+      setShowLocationModal(false);
+    };
+
+
+  // ==========================================================
+  // LOAD CUSTOMER BOOKINGS
+  // ==========================================================
+
+  const loadCustomerBookings =
+    async () => {
+
+      try {
+
+        console.log('');
+        console.log('======================================');
+        console.log('📋 LOAD CUSTOMER BOOKINGS');
+        console.log('======================================');
+
+
+        const { data } =
+          await client.query({
+            query:
+              CUSTOMER_BOOKINGS,
+
+            variables: {
+              customerUserId:
+                currentUser?.userId,
+            },
+
+            fetchPolicy:
+              'network-only',
+          });
+
+
+        console.log(
+          'Customer bookings:',
+          data?.customerBookings,
+        );
+
+
+        setBookings(
+          data?.customerBookings ||
+          [],
+        );
+
+
+        // ======================================================
+        // FIND PENDING REVIEW
+        // ======================================================
+
+        const booking =
+          data?.customerBookings?.find(
+            (item: Booking) =>
+              item.bookingStatus ===
+              'COMPLETED' &&
+              item.reviewSubmitted ===
+              false,
+          );
+
+
+        console.log(
+          'Pending review booking:',
+          booking,
+        );
+
+
+        if (booking) {
+
+          setPendingBooking(
+            booking,
+          );
+
+          setShowReviewPopup(
+            true,
+          );
+
+        }
+
+      } catch (error) {
+
+        console.log(
+          '❌ Booking loading error:',
+          error,
+        );
+      }
+    };
+
+
+  // ==========================================================
   // SEARCH TEXT CHANGED
-  // ============================================================
+  // ==========================================================
 
-  const handleSearchChange = (
-    text: string,
-  ) => {
-    console.log('');
-    console.log(
-      '======================================',
-    );
-    console.log('SEARCH CHANGED');
-    console.log(
-      '======================================',
-    );
+  const handleSearchChange =
+    (text: string) => {
 
-    console.log('Search text:', text);
-
-    setSearch(text);
-
-    /*
-     * When user starts typing:
-     *
-     * Remove category selection.
-     */
-    if (text.trim() !== '') {
       console.log(
-        'Text search active. Clearing category.',
+        'Search text:',
+        text,
       );
 
-      setSelectedCategory('');
-      return;
-    }
+      setSearch(text);
 
-    /*
-     * When search is completely cleared:
-     *
-     * Show ALL nearby salons.
-     */
-    console.log(
-      'Search cleared. Loading all nearby salons.',
-    );
 
-    setSelectedCategory('');
+      // --------------------------------------------------------
+      // If user is typing, don't fetch on every keystroke
+      // --------------------------------------------------------
 
-    fetchNearbySalons(
-      HARDCODED_LATITUDE,
-      HARDCODED_LONGITUDE,
-      '',
-      '',
-    );
-  };
+      if (text.trim() !== '') {
 
-  // ============================================================
-  // SEARCH SUBMIT
-  // ============================================================
+        setSelectedCategory('');
 
-  const handleSearchSubmit = () => {
-    const cleanSearch =
-      search.trim();
+        return;
+      }
 
-    console.log('');
-    console.log(
-      '======================================',
-    );
-    console.log('SEARCH SUBMITTED');
-    console.log(
-      '======================================',
-    );
 
-    console.log(
-      'Search:',
-      cleanSearch,
-    );
-
-    /*
-     * Empty search
-     * => show nearby salons
-     */
-    if (!cleanSearch) {
-      console.log(
-        'Empty search. Loading all nearby salons.',
-      );
+      // --------------------------------------------------------
+      // Empty search
+      // --------------------------------------------------------
 
       setSelectedCategory('');
+
+
+      const location =
+        getActiveCoordinates();
+
+
+      if (!location) {
+        return;
+      }
+
 
       fetchNearbySalons(
-        HARDCODED_LATITUDE,
-        HARDCODED_LONGITUDE,
+        location.latitude,
+        location.longitude,
         '',
         '',
       );
+    };
 
-      return;
-    }
 
-    /*
-     * Text search
-     * => search only
-     */
-    setSelectedCategory('');
+  // ==========================================================
+  // SEARCH SUBMIT
+  // ==========================================================
 
-    fetchNearbySalons(
-      HARDCODED_LATITUDE,
-      HARDCODED_LONGITUDE,
-      cleanSearch,
-      '',
-    );
-  };
+  const handleSearchSubmit =
+    () => {
 
-  // ============================================================
+      const cleanSearch =
+        search.trim();
+
+
+      console.log(
+        'Search submitted:',
+        cleanSearch,
+      );
+
+
+      const location =
+        getActiveCoordinates();
+
+
+      if (!location) {
+
+        console.log(
+          '⚠️ No location selected',
+        );
+
+        setShowLocationModal(
+          true,
+        );
+
+        return;
+      }
+
+
+      // --------------------------------------------------------
+      // Empty search
+      // --------------------------------------------------------
+
+      if (!cleanSearch) {
+
+        setSelectedCategory('');
+
+        fetchNearbySalons(
+          location.latitude,
+          location.longitude,
+          '',
+          '',
+        );
+
+        return;
+      }
+
+
+      // --------------------------------------------------------
+      // Search
+      // --------------------------------------------------------
+
+      setSelectedCategory('');
+
+
+      fetchNearbySalons(
+        location.latitude,
+        location.longitude,
+        cleanSearch,
+        '',
+      );
+    };
+
+
+  // ==========================================================
   // CATEGORY SELECTED
-  // ============================================================
+  // ==========================================================
 
-  const handleCategorySelect = (
-    category: string,
-  ) => {
-    console.log('');
-    console.log(
-      '======================================',
-    );
-    console.log('CATEGORY SELECTED');
-    console.log(
-      '======================================',
-    );
+  const handleCategorySelect =
+    (category: string) => {
 
-    console.log(
-      'Selected Category:',
-      category,
-    );
+      console.log(
+        'Selected Category:',
+        category,
+      );
 
-    /*
-     * Category becomes the active filter.
-     */
-    setSelectedCategory(category);
 
-    /*
-     * Clear text search.
-     */
-    setSearch('');
+      setSelectedCategory(
+        category,
+      );
 
-    /*
-     * Send:
-     *
-     * search = null
-     * category = selected category
-     */
-    fetchNearbySalons(
-      HARDCODED_LATITUDE,
-      HARDCODED_LONGITUDE,
-      '',
-      category,
-    );
-  };
+      setSearch('');
 
-  // ============================================================
+
+      const location =
+        getActiveCoordinates();
+
+
+      if (!location) {
+
+        console.log(
+          '⚠️ No location selected',
+        );
+
+        setShowLocationModal(
+          true,
+        );
+
+        return;
+      }
+
+
+      fetchNearbySalons(
+        location.latitude,
+        location.longitude,
+        '',
+        category,
+      );
+    };
+
+
+  // ==========================================================
   // RENDER
-  // ============================================================
+  // ==========================================================
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={
+        styles.container
+      }
+    >
+
       <FlatList
+
         ListHeaderComponent={
           <>
+            {/* ================================================== */}
+            {/* HEADER */}
+            {/* ================================================== */}
+
             <HomeHeader
-              location={selectedLocation}
+              location={
+                selectedLocation
+              }
               onPressLocation={() =>
-                setShowLocationModal(true)
+                setShowLocationModal(
+                  true,
+                )
               }
             />
 
+
+            {/* ================================================== */}
+            {/* SEARCH */}
+            {/* ================================================== */}
+
             <SearchBar
-              value={search}
+              value={
+                search
+              }
               onChangeText={
                 handleSearchChange
               }
@@ -540,6 +850,11 @@ export default function HomeScreenPage() {
                 handleSearchSubmit
               }
             />
+
+
+            {/* ================================================== */}
+            {/* SERVICE CATEGORIES */}
+            {/* ================================================== */}
 
             <ServiceChips
               selectedCategory={
@@ -549,11 +864,41 @@ export default function HomeScreenPage() {
                 handleCategorySelect
               }
             />
-            <HomeAdCarousel onAdPress={(ad) => { console.log('Advertisement clicked:', ad,); /* * Later we can navigate based * on ad.targetType / targetId. * * Example: * * navigation.navigate( * 'Explore' * ); */ }} />
+
+
+            {/* ================================================== */}
+            {/* ADVERTISEMENT */}
+            {/* ================================================== */}
+
+            <HomeAdCarousel
+              onAdPress={
+                ad => {
+                  console.log(
+                    'Advertisement clicked:',
+                    ad,
+                  );
+                }
+              }
+            />
+
+
+            {/* ================================================== */}
             {/* SALON RESULTS HEADER */}
-            <View style={styles.salonSectionHeader}>
+            {/* ================================================== */}
+
+            <View
+              style={
+                styles.salonSectionHeader
+              }
+            >
+
               <View>
-                <Text style={styles.salonSectionTitle}>
+
+                <Text
+                  style={
+                    styles.salonSectionTitle
+                  }
+                >
                   {search.trim()
                     ? 'Search Results'
                     : selectedCategory
@@ -561,63 +906,123 @@ export default function HomeScreenPage() {
                       : 'Nearby Salons'}
                 </Text>
 
+
                 {!search.trim() &&
                   !selectedCategory && (
-                    <Text style={styles.salonSectionSubtitle}>
-                      Salons near your location
+                    <Text
+                      style={
+                        styles.salonSectionSubtitle
+                      }
+                    >
+                      Salons near your
+                      location
                     </Text>
                   )}
+
               </View>
 
-              <Text style={styles.salonCount}>
-                {salons.length}{' '}
-                {salons.length === 1
-                  ? 'salon'
-                  : 'salons'}
+
+              <Text
+                style={
+                  styles.salonCount
+                }
+              >
+                {
+                  salons.length
+                }{' '}
+                {
+                  salons.length === 1
+                    ? 'salon'
+                    : 'salons'
+                }
               </Text>
+
             </View>
+
           </>
         }
 
-        data={salons}
 
-        keyExtractor={(item) =>
-          item.id
+        // ======================================================
+        // SALON DATA
+        // ======================================================
+
+        data={
+          salons
         }
 
-        renderItem={({ item }) => (
-          <SalonCard salon={item} />
+
+        keyExtractor={
+          item =>
+            item.id
+        }
+
+
+        // ======================================================
+        // SALON CARD
+        // ======================================================
+
+        renderItem={({
+          item,
+        }) => (
+
+          <SalonCard
+            salon={
+              item
+            }
+          />
+
         )}
 
+
+        // ======================================================
+        // EMPTY RESULTS
+        // ======================================================
+
         ListEmptyComponent={
+
           <View
             style={
               styles.emptyContainer
             }
           >
+
             <Text
               style={
                 styles.emptyTitle
               }
             >
-              No salons found nearby
+              {locationCoordinates
+                ? 'No salons found nearby'
+                : 'Choose your location'}
             </Text>
+
 
             <Text
               style={
                 styles.emptySubtitle
               }
             >
-              Try changing your search,
-              category or location.
+              {locationCoordinates
+                ? 'Try changing your search, category or location.'
+                : 'Select a saved address or use your current location.'}
             </Text>
+
           </View>
+
         }
+
 
         contentContainerStyle={{
           paddingBottom: 30,
         }}
+
       />
+
+
+      {/* ====================================================== */}
+      {/* LOCATION BOTTOM SHEET */}
+      {/* ====================================================== */}
 
       <LocationBottomSheet
         visible={
@@ -625,35 +1030,20 @@ export default function HomeScreenPage() {
         }
 
         onClose={() =>
-          setShowLocationModal(false)
+          setShowLocationModal(
+            false,
+          )
         }
 
-        onLocationSelected={(
-          location,
-        ) => {
-          console.log(
-            'New location selected:',
-            location,
-          );
-
-          setSelectedLocation(
-            location.address,
-          );
-
-          /*
-           * Still using hardcoded
-           * latitude/longitude.
-           */
-          fetchNearbySalons(
-            HARDCODED_LATITUDE,
-            HARDCODED_LONGITUDE,
-            search,
-            selectedCategory,
-          );
-
-          setShowLocationModal(false);
-        }}
+        onLocationSelected={
+          handleLocationSelected
+        }
       />
+
+
+      {/* ====================================================== */}
+      {/* REVIEW POPUP */}
+      {/* ====================================================== */}
 
       <ReviewPopup
         visible={
@@ -665,82 +1055,171 @@ export default function HomeScreenPage() {
         }
 
         onRate={() => {
-          setShowReviewPopup(false);
+
+          setShowReviewPopup(
+            false,
+          );
+
 
           navigation.navigate(
             'Bookings' as any,
             {
-              screen: 'RateReview',
+              screen:
+                'RateReview',
+
               params: {
                 booking:
                   pendingBooking,
               },
             } as never,
           );
+
         }}
 
         onLater={() => {
-          setShowReviewPopup(false);
+
+          setShowReviewPopup(
+            false,
+          );
+
         }}
       />
+
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F6F7FB',
-  },
 
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 60,
-    paddingHorizontal: 20,
-  },
+// ============================================================
+// STYLES
+// ============================================================
 
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111',
-  },
+const styles =
+  StyleSheet.create({
 
-  emptySubtitle: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  salonSectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 10,
-  },
+    container: {
+      flex: 1,
+      backgroundColor:
+        '#F6F7FB',
+    },
 
-  salonSectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#111',
-  },
 
-  salonSectionSubtitle: {
-    marginTop: 3,
-    fontSize: 12,
-    color: '#888',
-  },
+    // ========================================================
+    // EMPTY STATE
+    // ========================================================
 
-  salonCount: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#008060',
-    backgroundColor: '#E8F6F3',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-});
+    emptyContainer: {
+      alignItems:
+        'center',
 
+      justifyContent:
+        'center',
+
+      marginTop:
+        60,
+
+      paddingHorizontal:
+        20,
+    },
+
+
+    emptyTitle: {
+      fontSize:
+        18,
+
+      fontWeight:
+        '700',
+
+      color:
+        '#111',
+    },
+
+
+    emptySubtitle: {
+      marginTop:
+        8,
+
+      fontSize:
+        14,
+
+      color:
+        '#666',
+
+      textAlign:
+        'center',
+    },
+
+
+    // ========================================================
+    // SALON SECTION
+    // ========================================================
+
+    salonSectionHeader: {
+      flexDirection:
+        'row',
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'space-between',
+
+      paddingHorizontal:
+        16,
+
+      paddingTop:
+        18,
+
+      paddingBottom:
+        10,
+    },
+
+
+    salonSectionTitle: {
+      fontSize:
+        20,
+
+      fontWeight:
+        '800',
+
+      color:
+        '#111',
+    },
+
+
+    salonSectionSubtitle: {
+      marginTop:
+        3,
+
+      fontSize:
+        12,
+
+      color:
+        '#888',
+    },
+
+
+    salonCount: {
+      fontSize:
+        12,
+
+      fontWeight:
+        '700',
+
+      color:
+        '#008060',
+
+      backgroundColor:
+        '#E8F6F3',
+
+      paddingHorizontal:
+        10,
+
+      paddingVertical:
+        6,
+
+      borderRadius:
+        14,
+    },
+
+  });
