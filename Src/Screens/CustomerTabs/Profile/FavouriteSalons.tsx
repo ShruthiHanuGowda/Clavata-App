@@ -25,16 +25,12 @@ import {
 export default function FavouriteSalons() {
     const navigation = useNavigation<any>();
     const client = useApolloClient();
-
     const { currentUser } = useUser();
-
     const [salons, setSalons] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
-
     const [removeFavorite] = useMutation(
         REMOVE_FAVORITE_SALON,
     );
-
     const loadFavorites = React.useCallback(async () => {
         if (!currentUser?.userId) {
             setSalons([]);
@@ -44,7 +40,6 @@ export default function FavouriteSalons() {
 
         try {
             setLoading(true);
-
             const result = await client.query({
                 query: GET_FAVORITE_SALONS,
                 variables: {
@@ -55,7 +50,7 @@ export default function FavouriteSalons() {
 
             const favorites =
                 result.data?.favoriteSalons ?? [];
-
+            console.log("favorites", favorites)
             setSalons(favorites);
         } catch (error) {
             console.error(
@@ -107,7 +102,7 @@ export default function FavouriteSalons() {
                 Alert.alert(
                     'Error',
                     result.data?.removeFavoriteSalon?.message ||
-                        'Unable to remove favourite.',
+                    'Unable to remove favourite.',
                 );
             }
         } catch (error) {
@@ -313,8 +308,8 @@ const styles = StyleSheet.create({
     },
 
     favoriteButton: {
-        width: 40,
-        height: 40,
+        width: 30,
+        height: 30,
         borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
@@ -323,7 +318,7 @@ const styles = StyleSheet.create({
     },
 
     heart: {
-        fontSize: 22,
+        fontSize: 14,
         color: '#E53935',
     },
 

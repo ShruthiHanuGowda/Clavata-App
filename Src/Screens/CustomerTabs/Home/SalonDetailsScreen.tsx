@@ -11,12 +11,19 @@ import {
     Alert,
 } from 'react-native';
 
-import { useQuery } from '@apollo/client';
+import {
+    useQuery,
+    useMutation,
+} from '@apollo/client';
+
 import { useUser } from '../../../context/UserContext';
 
 import {
     GET_SALON,
     LIST_SERVICES,
+    ADD_FAVORITE_SALON,
+    REMOVE_FAVORITE_SALON,
+    IS_FAVORITE_SALON,
 } from '../../../graphql/queries';
 
 const PRIMARY = '#008060';
@@ -91,6 +98,20 @@ export default function SalonDetailsScreen({
 
     /**
      * ----------------------------------------------------
+     * FAVORITE LOCAL STATE
+     * ----------------------------------------------------
+     *
+     * Local state prevents the heart from visually
+     * resetting while Apollo is loading/refetching.
+     */
+    const [isFavorite, setIsFavorite] =
+        useState(false);
+
+    const [favoriteLoading, setFavoriteLoading] =
+        useState(false);
+
+    /**
+     * ----------------------------------------------------
      * GET SALON
      * ----------------------------------------------------
      */
@@ -132,48 +153,337 @@ export default function SalonDetailsScreen({
         (service: Service) => service.active,
     );
 
+    /**
+     * ----------------------------------------------------
+     * GET FAVORITE STATUS
+     * ----------------------------------------------------
+     */
+    const {
+        data: favoriteData,
+        loading: favoriteStatusLoading,
+        refetch: refetchFavoriteStatus,
+    } = useQuery(IS_FAVORITE_SALON, {
+        variables: {
+            userId: currentUser?.userId ?? '',
+            salonId,
+        },
+
+        skip:
+            !currentUser?.userId ||
+            !salonId,
+
+        fetchPolicy: 'network-only',
+
+        notifyOnNetworkStatusChange: true,
+    });
+
+    /**
+     * ----------------------------------------------------
+     * SYNC BACKEND FAVORITE STATUS
+     * ----------------------------------------------------
+     */
+    React.useEffect(() => {
+        if (
+            favoriteData &&
+            favoriteData.isFavoriteSalon !== undefined
+        ) {
+            setIsFavorite(
+                favoriteData.isFavoriteSalon === true,
+            );
+        }
+    }, [favoriteData]);
+
+    /**
+     * ----------------------------------------------------
+     * ADD FAVORITE
+     * ----------------------------------------------------
+     */
+    const [addFavorite] =
+        useMutation(ADD_FAVORITE_SALON);
+
+    /**
+     * ----------------------------------------------------
+     * REMOVE FAVORITE
+     * ----------------------------------------------------
+     */
+    const [removeFavorite] =
+        useMutation(REMOVE_FAVORITE_SALON);
+
+    /**
+     * ----------------------------------------------------
+     * TOGGLE FAVORITE
+     * ----------------------------------------------------
+     */
+    const handleFavorite = async () => {
+        /**
+         * User must be logged in.
+         */
+        if (!currentUser?.userId) {
+            Alert.alert(
+                'Login required',
+                'Please login to add salons to your favorites.',
+            );
+
+            return;
+        }
+
+        /**
+         * Salon ID must exist.
+         */
+        if (!salonId) {
+            console.log(
+                'Salon ID is missing',
+            );
+
+            return;
+        }
+
+        /**
+         * Prevent duplicate clicks.
+         */
+        if (favoriteLoading) {
+            return;
+        }
+
+        try {
+            setFavoriteLoading(true);
+
+            /**
+             * Save previous state.
+             *
+             * This is important for rollback if
+             * the backend request fails.
+             */
+            const previousState =
+                isFavorite;
+
+            /**
+             * ------------------------------------------------
+             * OPTIMISTIC UI
+             * ------------------------------------------------
+             *
+             * Change the heart immediately.
+             */
+            setIsFavorite(
+                !previousState,
+            );
+
+            /**
+             * ------------------------------------------------
+             * REMOVE FAVORITE
+             * ------------------------------------------------
+             */
+            if (previousState) {
+                const { data } =
+                    await removeFavorite({
+                        variables: {
+                            input: {
+                                userId:
+                                    currentUser.userId,
+
+                                salonId,
+                            },
+                        },
+                    });
+
+                console.log(
+                    'Remove favorite response:',
+                    data?.removeFavoriteSalon,
+                );
+
+                /**
+                 * Backend failed.
+                 *
+                 * Restore previous heart.
+                 */
+                if (
+                    !data?.removeFavoriteSalon
+                        ?.success
+                ) {
+                    setIsFavorite(
+                        previousState,
+                    );
+
+                    console.log(
+                        'Remove favorite failed:',
+                        data
+                            ?.removeFavoriteSalon
+                            ?.message,
+                    );
+                }
+            }
+
+            /**
+             * ------------------------------------------------
+             * ADD FAVORITE
+             * ------------------------------------------------
+             */
+            else {
+                const { data } =
+                    await addFavorite({
+                        variables: {
+                            input: {
+                                userId:
+                                    currentUser.userId,
+
+                                salonId,
+                            },
+                        },
+                    });
+
+                console.log(
+                    'Add favorite response:',
+                    data?.addFavoriteSalon,
+                );
+
+                /**
+                 * Backend failed.
+                 *
+                 * Restore previous heart.
+                 */
+                if (
+                    !data?.addFavoriteSalon
+                        ?.success
+                ) {
+                    setIsFavorite(
+                        previousState,
+                    );
+
+                    console.log(
+                        'Add favorite failed:',
+                        data
+                            ?.addFavoriteSalon
+                            ?.message,
+                    );
+                }
+            }
+
+            /**
+             * ------------------------------------------------
+             * REFRESH BACKEND STATUS
+             * ------------------------------------------------
+             *
+             * Makes sure UI and DynamoDB agree.
+             */
+            await refetchFavoriteStatus();
+        } catch (error) {
+            console.error(
+                'Favorite salon error:',
+                error,
+            );
+
+            /**
+             * Roll back to the state that existed
+             * before the request.
+             */
+            setIsFavorite(
+                isFavorite
+                    ? true
+                    : false,
+            );
+        } finally {
+            setFavoriteLoading(false);
+        }
+    };
+
+    /**
+     * ----------------------------------------------------
+     * CATEGORIES
+     * ----------------------------------------------------
+     */
     const categories = Array.from(
         new Set(
             services
-                .map(service => service.category)
+                .map(
+                    service =>
+                        service.category,
+                )
                 .filter(Boolean),
         ),
     );
 
-    const totalPrice = selectedServices.reduce(
-        (sum, item) =>
-            sum + Number(item.price || 0),
-        0,
+    /**
+     * ----------------------------------------------------
+     * TOTAL PRICE
+     * ----------------------------------------------------
+     */
+    const totalPrice =
+        selectedServices.reduce(
+            (sum, item) =>
+                sum +
+                Number(
+                    item.price || 0,
+                ),
+            0,
+        );
+
+    /**
+     * ----------------------------------------------------
+     * TOTAL DURATION
+     * ----------------------------------------------------
+     */
+    const totalDuration =
+        selectedServices.reduce(
+            (sum, item) =>
+                sum +
+                Number(
+                    item.duration || 0,
+                ),
+            0,
+        );
+
+    console.log(
+        '======================================',
     );
 
-    const totalDuration = selectedServices.reduce(
-        (sum, item) =>
-            sum + Number(item.duration || 0),
-        0,
+    console.log(
+        'SALON DETAILS',
     );
 
-    console.log('======================================');
-    console.log('SALON DETAILS');
-    console.log('Salon:', salon);
-    console.log('Services:', services);
-    console.log('======================================');
+    console.log(
+        'Salon:',
+        salon,
+    );
+
+    console.log(
+        'Services:',
+        services,
+    );
+
+    console.log(
+        'Favorite:',
+        isFavorite,
+    );
+
+    console.log(
+        '======================================',
+    );
 
     /**
      * ----------------------------------------------------
      * LOADING
      * ----------------------------------------------------
      */
-    if (salonLoading || servicesLoading) {
+    if (
+        salonLoading ||
+        servicesLoading
+    ) {
         return (
             <SafeAreaView
-                style={styles.loadingContainer}
+                style={
+                    styles.loadingContainer
+                }
             >
                 <ActivityIndicator
                     size="large"
                     color={PRIMARY}
                 />
 
-                <Text style={styles.loadingText}>
+                <Text
+                    style={
+                        styles.loadingText
+                    }
+                >
                     Loading salon...
                 </Text>
             </SafeAreaView>
@@ -185,7 +495,10 @@ export default function SalonDetailsScreen({
      * ERROR
      * ----------------------------------------------------
      */
-    if (salonError || servicesError) {
+    if (
+        salonError ||
+        servicesError
+    ) {
         console.log(
             'Salon Error:',
             salonError,
@@ -198,24 +511,40 @@ export default function SalonDetailsScreen({
 
         return (
             <SafeAreaView
-                style={styles.loadingContainer}
+                style={
+                    styles.loadingContainer
+                }
             >
-                <Text style={styles.errorTitle}>
+                <Text
+                    style={
+                        styles.errorTitle
+                    }
+                >
                     Unable to load salon
                 </Text>
 
-                <Text style={styles.errorText}>
-                    Please check your internet connection
-                    and try again.
+                <Text
+                    style={
+                        styles.errorText
+                    }
+                >
+                    Please check your internet
+                    connection and try again.
                 </Text>
 
                 <TouchableOpacity
-                    style={styles.retryButton}
+                    style={
+                        styles.retryButton
+                    }
                     onPress={() =>
                         navigation.goBack()
                     }
                 >
-                    <Text style={styles.retryText}>
+                    <Text
+                        style={
+                            styles.retryText
+                        }
+                    >
                         Go Back
                     </Text>
                 </TouchableOpacity>
@@ -231,23 +560,40 @@ export default function SalonDetailsScreen({
     if (!salon) {
         return (
             <SafeAreaView
-                style={styles.loadingContainer}
+                style={
+                    styles.loadingContainer
+                }
             >
-                <Text style={styles.errorTitle}>
+                <Text
+                    style={
+                        styles.errorTitle
+                    }
+                >
                     Salon not found
                 </Text>
 
-                <Text style={styles.errorText}>
-                    This salon may no longer be available.
+                <Text
+                    style={
+                        styles.errorText
+                    }
+                >
+                    This salon may no longer be
+                    available.
                 </Text>
 
                 <TouchableOpacity
-                    style={styles.retryButton}
+                    style={
+                        styles.retryButton
+                    }
                     onPress={() =>
                         navigation.goBack()
                     }
                 >
-                    <Text style={styles.retryText}>
+                    <Text
+                        style={
+                            styles.retryText
+                        }
+                    >
                         Go Back
                     </Text>
                 </TouchableOpacity>
@@ -260,16 +606,18 @@ export default function SalonDetailsScreen({
      * CURRENT DAY
      * ----------------------------------------------------
      */
-    const getCurrentDay = (): keyof NonNullable<
-        Salon['businessHours']
-    > => {
-        const day = new Date().getDay();
+    const getCurrentDay =
+        (): keyof NonNullable<
+            Salon['businessHours']
+        > => {
+            const day =
+                new Date().getDay();
 
-        const days: (
-            keyof NonNullable<
-                Salon['businessHours']
-            >
-        )[] = [
+            const days: (
+                keyof NonNullable<
+                    Salon['businessHours']
+                >
+            )[] = [
                 'SUNDAY',
                 'MONDAY',
                 'TUESDAY',
@@ -279,13 +627,16 @@ export default function SalonDetailsScreen({
                 'SATURDAY',
             ];
 
-        return days[day];
-    };
+            return days[day];
+        };
 
-    const today = getCurrentDay();
+    const today =
+        getCurrentDay();
 
     const todayHours =
-        salon.businessHours?.[today];
+        salon.businessHours?.[
+            today
+        ];
 
     /**
      * ----------------------------------------------------
@@ -299,13 +650,18 @@ export default function SalonDetailsScreen({
     const parseTimeToMinutes = (
         time: string,
     ): number => {
-        const parts = time.split(':');
+        const parts =
+            time.split(':');
 
-        const hours = Number(parts[0]);
-        const minutes = Number(parts[1] || 0);
+        const hours =
+            Number(parts[0]);
 
-        // IMPORTANT:
-        // 24:00 means midnight/end of day.
+        const minutes =
+            Number(parts[1] || 0);
+
+        /**
+         * 24:00 means midnight/end of day.
+         */
         if (hours === 24) {
             return 24 * 60;
         }
@@ -319,165 +675,168 @@ export default function SalonDetailsScreen({
     /**
      * ----------------------------------------------------
      * CURRENT OPEN/CLOSED STATUS
-     *
-     * IMPORTANT:
-     * We DO NOT use salon.salonStatus here.
-     *
-     * The backend currently returns:
-     *
-     * salonStatus: CLOSED
-     *
-     * but Tuesday is:
-     *
-     * 09:00 -> 24:00
-     * isOpen: true
-     *
-     * Therefore businessHours determine the
-     * current open/closed state on this screen.
      * ----------------------------------------------------
      */
-    const getIsSalonOpen = (): boolean => {
-        // No hours
-        if (!todayHours) {
-            return false;
-        }
+    const getIsSalonOpen =
+        (): boolean => {
+            /**
+             * No hours.
+             */
+            if (!todayHours) {
+                return false;
+            }
 
-        // Today is marked closed
-        if (todayHours.isOpen !== true) {
-            return false;
-        }
+            /**
+             * Today is marked closed.
+             */
+            if (
+                todayHours.isOpen !==
+                true
+            ) {
+                return false;
+            }
 
-        // Missing hours
-        if (
-            !todayHours.open ||
-            !todayHours.close
-        ) {
-            return false;
-        }
+            /**
+             * Missing hours.
+             */
+            if (
+                !todayHours.open ||
+                !todayHours.close
+            ) {
+                return false;
+            }
 
-        const now = new Date();
+            const now =
+                new Date();
 
-        const currentMinutes =
-            now.getHours() * 60 +
-            now.getMinutes();
+            const currentMinutes =
+                now.getHours() *
+                    60 +
+                now.getMinutes();
 
-        const openMinutes =
-            parseTimeToMinutes(
-                todayHours.open,
-            );
+            const openMinutes =
+                parseTimeToMinutes(
+                    todayHours.open,
+                );
 
-        const closeMinutes =
-            parseTimeToMinutes(
-                todayHours.close,
-            );
-
-        console.log(
-            '======================================',
-        );
-
-        console.log(
-            'SALON OPEN STATUS',
-        );
-
-        console.log(
-            'Salon Status from backend:',
-            salon.salonStatus,
-        );
-
-        console.log(
-            'Today:',
-            today,
-        );
-
-        console.log(
-            'Today Hours:',
-            todayHours,
-        );
-
-        console.log(
-            'Current Time:',
-            now.toLocaleTimeString(),
-        );
-
-        console.log(
-            'Current Minutes:',
-            currentMinutes,
-        );
-
-        console.log(
-            'Open Minutes:',
-            openMinutes,
-        );
-
-        console.log(
-            'Close Minutes:',
-            closeMinutes,
-        );
-
-        /**
-         * ------------------------------------------------
-         * CASE 1
-         *
-         * 09:00 -> 19:00
-         * ------------------------------------------------
-         */
-        if (closeMinutes > openMinutes) {
-            const result =
-                currentMinutes >=
-                openMinutes &&
-                currentMinutes <
-                closeMinutes;
+            const closeMinutes =
+                parseTimeToMinutes(
+                    todayHours.close,
+                );
 
             console.log(
-                'Normal schedule result:',
-                result,
+                '======================================',
             );
-
-            return result;
-        }
-
-        /**
-         * ------------------------------------------------
-         * CASE 2
-         *
-         * 18:00 -> 02:00
-         *
-         * Overnight schedule
-         * ------------------------------------------------
-         */
-        if (closeMinutes < openMinutes) {
-            const result =
-                currentMinutes >=
-                openMinutes ||
-                currentMinutes <
-                closeMinutes;
 
             console.log(
-                'Overnight schedule result:',
-                result,
+                'SALON OPEN STATUS',
             );
 
-            return result;
-        }
+            console.log(
+                'Salon Status from backend:',
+                salon.salonStatus,
+            );
 
-        /**
-         * ------------------------------------------------
-         * CASE 3
-         *
-         * 09:00 -> 09:00
-         *
-         * Same opening and closing time.
-         * Treat as closed.
-         * ------------------------------------------------
-         */
-        console.log(
-            'Opening and closing time are identical.',
-        );
+            console.log(
+                'Today:',
+                today,
+            );
 
-        return false;
-    };
+            console.log(
+                'Today Hours:',
+                todayHours,
+            );
 
-    const isOpen = getIsSalonOpen();
+            console.log(
+                'Current Time:',
+                now.toLocaleTimeString(),
+            );
+
+            console.log(
+                'Current Minutes:',
+                currentMinutes,
+            );
+
+            console.log(
+                'Open Minutes:',
+                openMinutes,
+            );
+
+            console.log(
+                'Close Minutes:',
+                closeMinutes,
+            );
+
+            /**
+             * ------------------------------------------------
+             * CASE 1
+             *
+             * 09:00 -> 19:00
+             * ------------------------------------------------
+             */
+            if (
+                closeMinutes >
+                openMinutes
+            ) {
+                const result =
+                    currentMinutes >=
+                        openMinutes &&
+                    currentMinutes <
+                        closeMinutes;
+
+                console.log(
+                    'Normal schedule result:',
+                    result,
+                );
+
+                return result;
+            }
+
+            /**
+             * ------------------------------------------------
+             * CASE 2
+             *
+             * 18:00 -> 02:00
+             *
+             * Overnight schedule
+             * ------------------------------------------------
+             */
+            if (
+                closeMinutes <
+                openMinutes
+            ) {
+                const result =
+                    currentMinutes >=
+                        openMinutes ||
+                    currentMinutes <
+                        closeMinutes;
+
+                console.log(
+                    'Overnight schedule result:',
+                    result,
+                );
+
+                return result;
+            }
+
+            /**
+             * ------------------------------------------------
+             * CASE 3
+             *
+             * 09:00 -> 09:00
+             *
+             * Treat as closed.
+             * ------------------------------------------------
+             */
+            console.log(
+                'Opening and closing time are identical.',
+            );
+
+            return false;
+        };
+
+    const isOpen =
+        getIsSalonOpen();
 
     /**
      * ----------------------------------------------------
@@ -519,7 +878,8 @@ export default function SalonDetailsScreen({
      * ----------------------------------------------------
      */
     const address = [
-        salon.address?.addressLine,
+        salon.address
+            ?.addressLine,
         salon.address?.city,
     ]
         .filter(Boolean)
@@ -544,11 +904,13 @@ export default function SalonDetailsScreen({
                 keyExtractor={item =>
                     item.serviceId
                 }
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={
+                    false
+                }
                 contentContainerStyle={{
                     paddingBottom:
                         selectedServices.length >
-                            0
+                        0
                             ? 130
                             : 30,
                 }}
@@ -557,8 +919,12 @@ export default function SalonDetailsScreen({
                         {/* HEADER */}
 
                         <View
-                            style={styles.header}
+                            style={
+                                styles.header
+                            }
                         >
+                            {/* BACK */}
+
                             <TouchableOpacity
                                 style={
                                     styles.headerButton
@@ -568,38 +934,56 @@ export default function SalonDetailsScreen({
                                 }
                             >
                                 <Text
-                                    style={styles.back}
+                                    style={
+                                        styles.back
+                                    }
                                 >
                                     ‹
                                 </Text>
                             </TouchableOpacity>
 
+                            {/* TITLE */}
+
                             <Text
                                 style={
                                     styles.headerTitle
                                 }
-                                numberOfLines={1}
+                                numberOfLines={
+                                    1
+                                }
                             >
-                                {salon.salonName}
+                                {
+                                    salon.salonName
+                                }
                             </Text>
+
+                            {/* FAVORITE */}
 
                             <TouchableOpacity
                                 style={
                                     styles.headerButton
                                 }
-                                onPress={() =>
-                                    console.log(
-                                        'Favorite salon:',
-                                        salon.salonId,
-                                    )
+                                activeOpacity={
+                                    0.8
+                                }
+                                disabled={
+                                    favoriteLoading ||
+                                    favoriteStatusLoading
+                                }
+                                onPress={
+                                    handleFavorite
                                 }
                             >
                                 <Text
-                                    style={
-                                        styles.favorite
-                                    }
+                                    style={[
+                                        styles.favorite,
+                                        isFavorite &&
+                                            styles.favoriteActive,
+                                    ]}
                                 >
-                                    ♡
+                                    {isFavorite
+                                        ? '♥'
+                                        : '♡'}
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -610,7 +994,9 @@ export default function SalonDetailsScreen({
                             source={{
                                 uri: coverImage,
                             }}
-                            style={styles.cover}
+                            style={
+                                styles.cover
+                            }
                         />
 
                         {/* SALON INFO */}
@@ -624,9 +1010,13 @@ export default function SalonDetailsScreen({
                                 style={
                                     styles.salonName
                                 }
-                                numberOfLines={1}
+                                numberOfLines={
+                                    1
+                                }
                             >
-                                {salon.salonName}
+                                {
+                                    salon.salonName
+                                }
                             </Text>
 
                             {/* RATING */}
@@ -657,7 +1047,9 @@ export default function SalonDetailsScreen({
                                         {(
                                             salon.averageRating ??
                                             0
-                                        ).toFixed(1)}
+                                        ).toFixed(
+                                            1,
+                                        )}
                                     </Text>
                                 </View>
 
@@ -679,9 +1071,12 @@ export default function SalonDetailsScreen({
                                     style={
                                         styles.address
                                     }
-                                    numberOfLines={2}
+                                    numberOfLines={
+                                        2
+                                    }
                                 >
-                                    📍 {address}
+                                    📍{' '}
+                                    {address}
                                 </Text>
                             )}
 
@@ -740,49 +1135,49 @@ export default function SalonDetailsScreen({
 
                         {categories.length >
                             0 && (
-                                <View
+                            <View
+                                style={
+                                    styles.categorySection
+                                }
+                            >
+                                <Text
                                     style={
-                                        styles.categorySection
+                                        styles.sectionTitle
                                     }
                                 >
-                                    <Text
-                                        style={
-                                            styles.sectionTitle
-                                        }
-                                    >
-                                        Services available
-                                    </Text>
+                                    Services available
+                                </Text>
 
-                                    <View
-                                        style={
-                                            styles.categoryRow
-                                        }
-                                    >
-                                        {categories.map(
-                                            category => (
-                                                <View
-                                                    key={
-                                                        category
-                                                    }
+                                <View
+                                    style={
+                                        styles.categoryRow
+                                    }
+                                >
+                                    {categories.map(
+                                        category => (
+                                            <View
+                                                key={
+                                                    category
+                                                }
+                                                style={
+                                                    styles.categoryChip
+                                                }
+                                            >
+                                                <Text
                                                     style={
-                                                        styles.categoryChip
+                                                        styles.categoryText
                                                     }
                                                 >
-                                                    <Text
-                                                        style={
-                                                            styles.categoryText
-                                                        }
-                                                    >
-                                                        {
-                                                            category
-                                                        }
-                                                    </Text>
-                                                </View>
-                                            ),
-                                        )}
-                                    </View>
+                                                    {
+                                                        category
+                                                    }
+                                                </Text>
+                                            </View>
+                                        ),
+                                    )}
                                 </View>
-                            )}
+                            </View>
+                        )}
 
                         {/* SERVICES HEADER */}
 
@@ -805,8 +1200,11 @@ export default function SalonDetailsScreen({
                                         styles.serviceCount
                                     }
                                 >
-                                    {services.length}{' '}
-                                    services available
+                                    {
+                                        services.length
+                                    }{' '}
+                                    services
+                                    available
                                 </Text>
                             </View>
                         </View>
@@ -825,7 +1223,7 @@ export default function SalonDetailsScreen({
                             style={[
                                 styles.serviceCard,
                                 selected &&
-                                styles.selectedServiceCard,
+                                    styles.selectedServiceCard,
                             ]}
                         >
                             <View
@@ -842,9 +1240,13 @@ export default function SalonDetailsScreen({
                                         style={
                                             styles.serviceName
                                         }
-                                        numberOfLines={1}
+                                        numberOfLines={
+                                            1
+                                        }
                                     >
-                                        {item.name}
+                                        {
+                                            item.name
+                                        }
                                     </Text>
 
                                     {item.popular && (
@@ -870,7 +1272,9 @@ export default function SalonDetailsScreen({
                                             styles.serviceCategory
                                         }
                                     >
-                                        {item.category}
+                                        {
+                                            item.category
+                                        }
                                     </Text>
                                 )}
 
@@ -879,9 +1283,13 @@ export default function SalonDetailsScreen({
                                         style={
                                             styles.description
                                         }
-                                        numberOfLines={2}
+                                        numberOfLines={
+                                            2
+                                        }
                                     >
-                                        {item.description}
+                                        {
+                                            item.description
+                                        }
                                     </Text>
                                 )}
 
@@ -895,7 +1303,10 @@ export default function SalonDetailsScreen({
                                             styles.price
                                         }
                                     >
-                                        ₹{item.price}
+                                        ₹
+                                        {
+                                            item.price
+                                        }
                                     </Text>
 
                                     <View
@@ -909,7 +1320,9 @@ export default function SalonDetailsScreen({
                                             styles.duration
                                         }
                                     >
-                                        {item.duration}{' '}
+                                        {
+                                            item.duration
+                                        }{' '}
                                         mins
                                     </Text>
                                 </View>
@@ -919,20 +1332,22 @@ export default function SalonDetailsScreen({
                                 style={[
                                     styles.addButton,
                                     selected &&
-                                    styles.selectedAddButton,
+                                        styles.selectedAddButton,
                                 ]}
                                 onPress={() =>
                                     toggleService(
                                         item,
                                     )
                                 }
-                                activeOpacity={0.8}
+                                activeOpacity={
+                                    0.8
+                                }
                             >
                                 <Text
                                     style={[
                                         styles.addButtonText,
                                         selected &&
-                                        styles.selectedAddButtonText,
+                                            styles.selectedAddButtonText,
                                     ]}
                                 >
                                     {selected
@@ -962,8 +1377,9 @@ export default function SalonDetailsScreen({
                                 styles.emptyText
                             }
                         >
-                            This salon has not added any
-                            services yet.
+                            This salon has not
+                            added any services
+                            yet.
                         </Text>
                     </View>
                 }
@@ -973,106 +1389,115 @@ export default function SalonDetailsScreen({
 
             {selectedServices.length >
                 0 && (
+                <View
+                    style={
+                        styles.bottomBar
+                    }
+                >
                     <View
                         style={
-                            styles.bottomBar
+                            styles.bottomInfo
                         }
                     >
-                        <View
+                        <Text
                             style={
-                                styles.bottomInfo
+                                styles.selectedText
                             }
                         >
-                            <Text
-                                style={
-                                    styles.selectedText
-                                }
-                            >
-                                {selectedServices.length}{' '}
-                                {selectedServices.length ===
-                                    1
-                                    ? 'service'
-                                    : 'services'}
-                            </Text>
+                            {
+                                selectedServices.length
+                            }{' '}
+                            {selectedServices.length ===
+                            1
+                                ? 'service'
+                                : 'services'}
+                        </Text>
 
-                            <Text
-                                style={
-                                    styles.totalPrice
-                                }
-                            >
-                                ₹{totalPrice}
-                            </Text>
-
-                            <Text
-                                style={
-                                    styles.totalDuration
-                                }
-                            >
-                                {totalDuration} mins
-                            </Text>
-                        </View>
-
-                        <TouchableOpacity
-                            style={[
-                                styles.continueButton,
-                                !isOpen &&
-                                styles.disabledButton,
-                            ]}
-                            disabled={!isOpen}
-                            onPress={() => {
-                                if (
-                                    !currentUser?.userId
-                                ) {
-                                    Alert.alert(
-                                        'Login required',
-                                        'Please login to continue booking.',
-                                    );
-                                    return;
-                                }
-
-                                const params = {
-                                    salonId:
-                                        salon.salonId,
-                                    salon,
-                                    customerUserId:
-                                        currentUser.userId,
-                                    services:
-                                        selectedServices,
-                                };
-
-                                console.log(
-                                    'Sending to BookingDateTime:',
-                                    params,
-                                );
-
-                                navigation.navigate(
-                                    'BookingDateTime',
-                                    params,
-                                );
-                            }}
+                        <Text
+                            style={
+                                styles.totalPrice
+                            }
                         >
+                            ₹{totalPrice}
+                        </Text>
+
+                        <Text
+                            style={
+                                styles.totalDuration
+                            }
+                        >
+                            {
+                                totalDuration
+                            }{' '}
+                            mins
+                        </Text>
+                    </View>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.continueButton,
+                            !isOpen &&
+                                styles.disabledButton,
+                        ]}
+                        disabled={!isOpen}
+                        onPress={() => {
+                            if (
+                                !currentUser?.userId
+                            ) {
+                                Alert.alert(
+                                    'Login required',
+                                    'Please login to continue booking.',
+                                );
+
+                                return;
+                            }
+
+                            const params = {
+                                salonId:
+                                    salon.salonId,
+
+                                salon,
+
+                                customerUserId:
+                                    currentUser.userId,
+
+                                services:
+                                    selectedServices,
+                            };
+
+                            console.log(
+                                'Sending to BookingDateTime:',
+                                params,
+                            );
+
+                            navigation.navigate(
+                                'BookingDateTime',
+                                params,
+                            );
+                        }}
+                    >
+                        <Text
+                            style={
+                                styles.continueText
+                            }
+                        >
+                            {isOpen
+                                ? 'Continue'
+                                : 'Currently Closed'}
+                        </Text>
+
+                        {isOpen && (
                             <Text
                                 style={
-                                    styles.continueText
+                                    styles.continueArrow
                                 }
                             >
-                                {isOpen
-                                    ? 'Continue'
-                                    : 'Currently Closed'}
+                                →
                             </Text>
-
-                            {isOpen && (
-                                <Text
-                                    style={
-                                        styles.continueArrow
-                                    }
-                                >
-                                    →
-                                </Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
-                )}
+                        )}
+                    </TouchableOpacity>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
@@ -1157,8 +1582,13 @@ const styles = StyleSheet.create({
     },
 
     favorite: {
-        fontSize: 30,
-        color: '#222',
+        fontSize: 16,
+        color: '#333',
+        lineHeight: 34,
+    },
+
+    favoriteActive: {
+        color: '#E53935',
     },
 
     cover: {
@@ -1492,4 +1922,3 @@ const styles = StyleSheet.create({
         marginLeft: 7,
     },
 });
-

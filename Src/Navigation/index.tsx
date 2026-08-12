@@ -185,6 +185,10 @@ export function ProfileStack() {
         component={FavouriteSalons}
       />
       <ProfilePlaceStack.Screen
+        name="SalonDetails"
+        component={SalonDetailsScreen}
+      />
+      <ProfilePlaceStack.Screen
         name="SavedAddresses"
         component={SavedAddresses}
       />

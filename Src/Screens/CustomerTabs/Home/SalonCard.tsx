@@ -64,7 +64,6 @@ const getSalonCurrentStatus = (
     salonStatus?: 'OPEN' | 'CLOSED' | 'TEMPORARILY_CLOSED',
     businessHours?: BusinessHours,
 ) => {
-    // Temporary closure always wins
     if (salonStatus === 'TEMPORARILY_CLOSED') {
         return {
             isOpen: false,
@@ -72,7 +71,6 @@ const getSalonCurrentStatus = (
         };
     }
 
-    // No business hours
     if (!businessHours) {
         return {
             isOpen: false,
@@ -127,22 +125,15 @@ const getSalonCurrentStatus = (
 
     let isOpen = false;
 
-    // Normal schedule
     if (closeMinutes > openMinutes) {
         isOpen =
             currentMinutes >= openMinutes &&
             currentMinutes < closeMinutes;
-    }
-
-    // Overnight schedule e.g. 18:00 -> 02:00
-    else if (closeMinutes < openMinutes) {
+    } else if (closeMinutes < openMinutes) {
         isOpen =
             currentMinutes >= openMinutes ||
             currentMinutes < closeMinutes;
-    }
-
-    // Same opening/closing time = closed
-    else {
+    } else {
         isOpen = false;
     }
 
@@ -157,14 +148,23 @@ export default function SalonCard({ salon }: Props) {
 
     const { currentUser } = useUser();
 
-    const [favoriteLoading, setFavoriteLoading] =
-        React.useState(false);
-
     const salonId =
         salon.salonId ?? salon.id;
 
-    /*
-     * Check favorite status
+    /**
+     * Local favorite state
+     *
+     * This prevents the heart from visually resetting
+     * while Apollo is loading/refetching.
+     */
+    const [isFavorite, setIsFavorite] =
+        React.useState(false);
+
+    const [favoriteLoading, setFavoriteLoading] =
+        React.useState(false);
+
+    /**
+     * Get favorite status from backend
      */
     const {
         data: favoriteData,
@@ -175,28 +175,45 @@ export default function SalonCard({ salon }: Props) {
             userId: currentUser?.userId ?? '',
             salonId,
         },
-        skip: !currentUser?.userId || !salonId,
+
+        skip:
+            !currentUser?.userId ||
+            !salonId,
+
         fetchPolicy: 'network-only',
+
+        notifyOnNetworkStatusChange: true,
     });
 
-    /*
+    /**
+     * Sync backend status -> local state
+     */
+    React.useEffect(() => {
+        if (
+            favoriteData &&
+            favoriteData.isFavoriteSalon !== undefined
+        ) {
+            setIsFavorite(
+                favoriteData.isFavoriteSalon === true,
+            );
+        }
+    }, [favoriteData]);
+
+    /**
      * Add favorite
      */
     const [addFavorite] =
         useMutation(ADD_FAVORITE_SALON);
 
-    /*
+    /**
      * Remove favorite
      */
     const [removeFavorite] =
         useMutation(REMOVE_FAVORITE_SALON);
 
-    /*
-     * Current favorite state
+    /**
+     * Address
      */
-    const isFavorite =
-        favoriteData?.isFavoriteSalon === true;
-
     const address = [
         salon.address?.addressLine,
         salon.address?.city,
@@ -204,23 +221,21 @@ export default function SalonCard({ salon }: Props) {
         .filter(Boolean)
         .join(', ');
 
-    /*
-     * Navigate to salon details
+    /**
+     * Navigate to salon
      */
     const handlePress = () => {
-        console.log(
-            'Navigating to SalonDetails:',
-            salonId,
+        navigation.navigate(
+            'SalonDetails',
+            {
+                salonId,
+                salon,
+            },
         );
-
-        navigation.navigate('SalonDetails', {
-            salonId,
-            salon,
-        });
     };
 
-    /*
-     * Salon open/closed status
+    /**
+     * Current salon status
      */
     const {
         isOpen,
@@ -230,8 +245,8 @@ export default function SalonCard({ salon }: Props) {
         salon.businessHours,
     );
 
-    /*
-     * Maximum 3 categories
+    /**
+     * Categories
      */
     const categoryText =
         salon.categories &&
@@ -241,8 +256,8 @@ export default function SalonCard({ salon }: Props) {
                 .join(' • ')
             : '';
 
-    /*
-     * Add/remove favorite
+    /**
+     * Toggle favorite
      */
     const handleFavorite = async () => {
         if (!currentUser?.userId) {
@@ -259,11 +274,27 @@ export default function SalonCard({ salon }: Props) {
             return;
         }
 
+        if (favoriteLoading) {
+            return;
+        }
+
         try {
             setFavoriteLoading(true);
 
-            if (isFavorite) {
-                /*
+            /**
+             * Save previous state.
+             */
+            const previousState = isFavorite;
+
+            /**
+             * Optimistic UI
+             *
+             * Immediately change heart.
+             */
+            setIsFavorite(!previousState);
+
+            if (previousState) {
+                /**
                  * REMOVE
                  */
                 const { data } =
@@ -281,8 +312,25 @@ export default function SalonCard({ salon }: Props) {
                     'Remove favorite response:',
                     data?.removeFavoriteSalon,
                 );
+
+                /**
+                 * Backend failed
+                 */
+                if (
+                    !data?.removeFavoriteSalon?.success
+                ) {
+                    setIsFavorite(
+                        previousState,
+                    );
+
+                    console.log(
+                        'Remove favorite failed:',
+                        data?.removeFavoriteSalon
+                            ?.message,
+                    );
+                }
             } else {
-                /*
+                /**
                  * ADD
                  */
                 const { data } =
@@ -300,16 +348,43 @@ export default function SalonCard({ salon }: Props) {
                     'Add favorite response:',
                     data?.addFavoriteSalon,
                 );
+
+                /**
+                 * Backend failed
+                 */
+                if (
+                    !data?.addFavoriteSalon?.success
+                ) {
+                    setIsFavorite(
+                        previousState,
+                    );
+
+                    console.log(
+                        'Add favorite failed:',
+                        data?.addFavoriteSalon
+                            ?.message,
+                    );
+                }
             }
 
-            /*
-             * Reload status from backend
+            /**
+             * Refresh backend state.
+             *
+             * This ensures the local state and
+             * DynamoDB eventually agree.
              */
             await refetchFavoriteStatus();
         } catch (error) {
             console.error(
                 'Favorite salon error:',
                 error,
+            );
+
+            /**
+             * Rollback UI if request failed.
+             */
+            setIsFavorite(
+                !isFavorite,
             );
         } finally {
             setFavoriteLoading(false);
@@ -322,7 +397,6 @@ export default function SalonCard({ salon }: Props) {
             activeOpacity={0.92}
             onPress={handlePress}
         >
-            {/* Salon Image */}
             <View style={styles.imageContainer}>
                 <Image
                     source={{
@@ -333,7 +407,7 @@ export default function SalonCard({ salon }: Props) {
                     style={styles.image}
                 />
 
-                {/* Favorite */}
+                {/* FAVORITE */}
                 <TouchableOpacity
                     style={styles.favorite}
                     activeOpacity={0.8}
@@ -357,9 +431,7 @@ export default function SalonCard({ salon }: Props) {
                 </TouchableOpacity>
             </View>
 
-            {/* Content */}
             <View style={styles.content}>
-                {/* Name + Status */}
                 <View style={styles.nameRow}>
                     <Text
                         style={styles.name}
@@ -398,20 +470,13 @@ export default function SalonCard({ salon }: Props) {
                     </View>
                 </View>
 
-                {/* Rating + Distance */}
                 <View style={styles.infoRow}>
-                    <View
-                        style={styles.ratingBox}
-                    >
-                        <Text
-                            style={styles.star}
-                        >
+                    <View style={styles.ratingBox}>
+                        <Text style={styles.star}>
                             ★
                         </Text>
 
-                        <Text
-                            style={styles.rating}
-                        >
+                        <Text style={styles.rating}>
                             {(salon.rating ?? 0).toFixed(
                                 1,
                             )}
@@ -438,7 +503,6 @@ export default function SalonCard({ salon }: Props) {
                     </Text>
                 </View>
 
-                {/* Address */}
                 {!!address && (
                     <Text
                         style={styles.address}
@@ -448,7 +512,6 @@ export default function SalonCard({ salon }: Props) {
                     </Text>
                 )}
 
-                {/* Categories */}
                 {!!categoryText && (
                     <Text
                         style={styles.categories}
@@ -458,7 +521,6 @@ export default function SalonCard({ salon }: Props) {
                     </Text>
                 )}
 
-                {/* View Salon */}
                 <TouchableOpacity
                     style={styles.button}
                     activeOpacity={0.85}
@@ -514,8 +576,8 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 7,
         right: 7,
-        width: 30,
-        height: 30,
+        width: 25,
+        height: 25,
         borderRadius: 15,
         backgroundColor:
             'rgba(255,255,255,0.95)',
@@ -524,7 +586,7 @@ const styles = StyleSheet.create({
     },
 
     heart: {
-        fontSize: 21,
+        fontSize: 14,
         color: '#333',
         lineHeight: 23,
     },

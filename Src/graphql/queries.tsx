@@ -924,11 +924,13 @@ export const GET_FAVORITE_SALONS = gql`
 `;
 
 export const IS_FAVORITE_SALON = gql`
-    query IsFavoriteSalon($userId: ID!, $salonId: ID!) {
+    query IsFavoriteSalon(
+        $userId: ID!
+        $salonId: ID!
+    ) {
         isFavoriteSalon(
             userId: $userId
             salonId: $salonId
         )
     }
 `;
-
