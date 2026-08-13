@@ -222,9 +222,7 @@ export default function LoginScreen() {
               </View>
 
               <Text style={styles.securityText}>
-                We'll send you an OTP to
-                {'\n'}
-                verify your mobile number
+                We'll send you an OTP to verify your mobile number
               </Text>
 
             </View>
