@@ -14,13 +14,13 @@ import secureStorage from '../../../utils/secureStorage';
 const menuItems = [
   { title: 'My Bookings', icon: '📅', screen: 'ProfileBookings' },
   { title: 'Favourite Salons', icon: '❤️', screen: 'FavouriteSalons' },
-  { title: 'Saved Addresses', icon: '📍', screen: 'SavedAddresses' },
+  // { title: 'Saved Addresses', icon: '📍', screen: 'SavedAddresses' },
   { title: 'Payments', icon: '💳', screen: 'Payments' },
   { title: 'Offers & Rewards', icon: '🎁', screen: 'OffersRewards' },
 ];
 const settingsItems = [
   { title: 'Settings', icon: '⚙️', screen: 'Settings' },
-  { title: 'Notifications', icon: '🔔', screen: 'Notifications' },
+  // { title: 'Notifications', icon: '🔔', screen: 'Notifications' },
   { title: 'Help & Support', icon: '❓', screen: 'HelpSupport' },
   { title: 'Privacy Policy', icon: '📄', screen: 'PrivacyPolicy' },
 ];
