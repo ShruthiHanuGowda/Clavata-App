@@ -66,6 +66,7 @@ export const REGISTER_USER = gql`
   }
 `;
 
+
 export const REGISTER_SALON_PARTNER = gql`
   mutation RegisterSalonPartner(
     $input: RegisterSalonPartnerInput!

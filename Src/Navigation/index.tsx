@@ -3,7 +3,6 @@ import React from 'react';
 import { RootStackParamList, HomeStackParamList, WalletStackParamList, StakeStackParamList, SalonProfileStackParamList } from '../../types';
 import LoginScreen from '../Screens/Login/loginScreen';
 import RegisterUser from '../../Src/Screens/RegisterUser/registerUser';
-// import VerifyOTPScreen from '../../Src/Screens/VerifyOTP/verifyOTPScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { StyleSheet, View } from 'react-native';
 import { Root } from '../Screens/RootScreen';
@@ -48,11 +47,6 @@ function RootScreenStack() {
       {/* Main navigation screens */}
       <RootStack.Screen name="root" component={Root} />
       <RootStack.Screen name="appScreens" component={AppTabs} />
-      {/* <RootStack.Screen
-        name="welcomeChoiceScreen"
-        options={{ headerShown: false }}
-        component={WelcomeChoiceScreen}
-      /> */}
       <RootStack.Screen
         name="authScreens"
         options={{ headerShown: false }}
@@ -63,11 +57,6 @@ function RootScreenStack() {
         options={{ headerShown: false }}
         component={LoginScreen}
       />
-      {/* <RootStack.Screen
-        name="VerifyOTP"
-        component={VerifyOTPScreen}
-        options={{ headerShown: false }}
-      /> */}
       <RootStack.Screen
         name="RegisterUser"
         component={RegisterUser}
