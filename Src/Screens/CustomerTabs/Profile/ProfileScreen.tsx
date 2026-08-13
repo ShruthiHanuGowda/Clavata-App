@@ -60,9 +60,14 @@ export default function ProfileScreen() {
           onPress: async () => {
             await secureStorage.removeItem('isInfoDone');
             setCurrentUser(null);
+            //goes to root
+            // navigation.reset({
+            //   index: 0,
+            //   routes: [{ name: 'root' }],
+            // });
             navigation.reset({
               index: 0,
-              routes: [{ name: 'root' }],
+              routes: [{ name: 'LoginScreen' }],
             });
           },
         },
