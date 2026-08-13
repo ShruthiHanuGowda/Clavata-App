@@ -3,7 +3,7 @@ import React from 'react';
 import { RootStackParamList, HomeStackParamList, WalletStackParamList, StakeStackParamList, SalonProfileStackParamList } from '../../types';
 import LoginScreen from '../Screens/Login/loginScreen';
 import RegisterUser from '../../Src/Screens/RegisterUser/registerUser';
-import VerifyOTPScreen from '../../Src/Screens/VerifyOTP/verifyOTPScreen';
+// import VerifyOTPScreen from '../../Src/Screens/VerifyOTP/verifyOTPScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { StyleSheet, View } from 'react-native';
 import { Root } from '../Screens/RootScreen';
@@ -63,11 +63,11 @@ function RootScreenStack() {
         options={{ headerShown: false }}
         component={LoginScreen}
       />
-      <RootStack.Screen
+      {/* <RootStack.Screen
         name="VerifyOTP"
         component={VerifyOTPScreen}
         options={{ headerShown: false }}
-      />
+      /> */}
       <RootStack.Screen
         name="RegisterUser"
         component={RegisterUser}

@@ -16,19 +16,20 @@ import '@ethersproject/shims';
 
 import { useMutation } from '@apollo/client';
 import { useNavigation } from '@react-navigation/native';
-
+import OTPModal from "../../components/OTPModal/OTPModal"
 import styles from './styles';
 import { DButton } from '../../components';
 import { DMobileInput } from '../../components/Dinputs';
 import { SEND_OTP } from '../../graphql/queries';
+import { useUser } from '../../context/UserContext';
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
-
+  const { setCurrentUser } = useUser();
+  const [showOTP, setShowOTP] = useState(false);
   const [isValid, setValid] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
-
   const [sendOTP, { error: queryError }] = useMutation(SEND_OTP);
 
   useEffect(() => {
@@ -63,9 +64,7 @@ export default function LoginScreen() {
       console.log('OTP response:', data);
 
       if (data?.sendOTP?.success) {
-        navigation.navigate('VerifyOTP', {
-          phoneNumber,
-        });
+        setShowOTP(true);
       } else {
         Alert.alert(
           'Unable to continue',
@@ -263,6 +262,36 @@ export default function LoginScreen() {
 
         </ScrollView>
       </KeyboardAvoidingView>
+      <OTPModal
+        visible={showOTP}
+        phoneNumber={phoneNumber}
+        onClose={() => {
+          setShowOTP(false);
+        }}
+        onVerified={(result: any) => {
+          setShowOTP(false);
+
+          if (result.isExistingUser) {
+            setCurrentUser(result.user);
+
+            navigation.reset({
+              index: 0,
+              routes: [
+                {
+                  name: 'appScreens',
+                },
+              ],
+            });
+          } else {
+            navigation.navigate(
+              'RegisterUser',
+              {
+                phoneNumber,
+              },
+            );
+          }
+        }}
+      />
     </SafeAreaView>
   );
 }
