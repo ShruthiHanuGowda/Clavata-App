@@ -77,7 +77,7 @@ export type RootStackScreenProps<Screen extends keyof RootStackParamList> = Nati
 >;
 
 export type RootTabParamList = {
-  'Nex': undefined;
+  'Clavata': undefined;
   Home: undefined;
   Explore: undefined;
   Bookings: undefined;
@@ -90,7 +90,7 @@ export type RootTabParamList = {
 };
 
 export type HomeStackParamList = {
-  'Nex': undefined;
+  'Clavata': undefined;
   HomeScreen: undefined;
   SalonDetails: {
     salonId: string;

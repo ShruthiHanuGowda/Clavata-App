@@ -178,7 +178,7 @@ export default function LoginScreen() {
       <View style={styles.flexContainer}>
         <View style={styles.loginContent}>
           <Text style={styles.title}>
-            Nex
+            Clavata
           </Text>
           <Text style={styles.subtitle}>
             Book trusted salon services{"\n"}

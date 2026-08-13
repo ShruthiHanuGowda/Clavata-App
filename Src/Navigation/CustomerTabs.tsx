@@ -15,7 +15,7 @@ const renderTabBar = (props: any) => <TabBar {...props} />;
 export default function Tabs() {
   return (
     <Tab.Navigator
-      initialRouteName="Nex"
+      initialRouteName="Clavata"
       tabBar={renderTabBar}
       screenOptions={{
         unmountOnBlur: true,

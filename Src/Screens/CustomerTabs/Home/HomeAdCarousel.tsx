@@ -51,7 +51,7 @@ const ADS: Ad[] = [
         eyebrow: 'BEAUTY • WELLNESS • STYLE',
         title: 'One app for your beauty needs.',
         subtitle:
-            'Hair, facial, spa, nails and more — discover it all with Nex.',
+            'Hair, facial, spa, nails and more — discover it all with Clavata.',
         buttonText: 'Explore services',
         image:
             'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1000&q=80',
@@ -207,7 +207,7 @@ export default function HomeAdCarousel({
                     </View>
                 </View>
 
-                {/* Nex badge */}
+                {/* Clavata badge */}
                 <View
                     style={
                         styles.nexBadge

@@ -13,16 +13,16 @@ import { Circle, Path, Svg } from 'react-native-svg';
 import images from '../Theme/images';
 import fontsFamily from '../Theme/fontsFamily';
 
-type TabIconKeys = 'Nex' | 'Home' | 'Bookings' | 'Explore' | 'Profile';
+type TabIconKeys = 'Clavata' | 'Home' | 'Bookings' | 'Explore' | 'Profile';
 
 const tabIconsActive: {
   Bookings: {};
   Home: {};
   Explore: {};
-  'Nex': {};
+  'Clavata': {};
   Profile: {};
 } = {
-  'Nex': images?.homeActive,
+  'Clavata': images?.homeActive,
   Home: images?.walletActive,
   Bookings: images?.shopActive,
   Explore: images?.categoryActive,
@@ -33,10 +33,10 @@ const tabIcons: {
   Bookings: {};
   Home: {};
   Explore: {};
-  'Nex': {};
+  'Clavata': {};
   Profile: {};
 } = {
-  'Nex': images?.home,
+  'Clavata': images?.home,
   Home: images?.wallet,
   Bookings: images?.shop,
   Explore: images?.category,
