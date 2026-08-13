@@ -8,8 +8,9 @@ import {
     StatusBar,
     Image,
     Dimensions,
+    Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const PRIMARY = '#009D94';
 const DARK = '#102A2A';
@@ -22,19 +23,46 @@ const { width } = Dimensions.get('window');
 
 const WelcomeChoiceScreen = () => {
     const navigation = useNavigation<any>();
+    const route = useRoute<any>();
 
+    const registrationIncomplete =
+        route.params?.registrationIncomplete === true;
+
+    const phoneNumber =
+        route.params?.phoneNumber || '';
+
+    /*
+     * FIND A SERVICE
+     *
+     * This starts the customer authentication flow.
+     */
     const handleFindService = () => {
-        // Change this to your actual customer registration/login screen
-        navigation.navigate('Login');
+        navigation.navigate('LoginScreen', {
+            mode: 'CUSTOMER',
+            phoneNumber,
+        });
     };
 
+    /*
+     * PROVIDE A SERVICE
+     *
+     * This starts the salon/provider flow.
+     *
+     * IMPORTANT:
+     * Replace SalonRegistration with your actual
+     * provider onboarding screen if the route name differs.
+     */
     const handleProvideService = () => {
-        // Change this to your actual provider registration screen
         navigation.navigate('SalonRegistration');
     };
 
+    /*
+     * SIGN IN
+     */
     const handleSignIn = () => {
-        navigation.navigate('LoginScreen');
+        navigation.navigate('LoginScreen', {
+            mode: 'SIGN_IN',
+        });
     };
 
     return (
@@ -47,8 +75,8 @@ const WelcomeChoiceScreen = () => {
             <View style={styles.container}>
 
                 {/* Logo */}
+
                 <View style={styles.logoContainer}>
-                    {/* Replace this with your actual Clavata logo */}
                     <Image
                         source={require('../../assets/logo.png')}
                         style={styles.logo}
@@ -56,56 +84,76 @@ const WelcomeChoiceScreen = () => {
                     />
                 </View>
 
-                {/* Heading */}
-                {/* <View style={styles.headingContainer}>
-                    <Text style={styles.welcome}>
-                        Welcome to Clavata
-                    </Text>
+                {/* Registration incomplete message */}
 
-                    <Text style={styles.subtitle}>
-                        One place to discover and provide
-                        {'\n'}
-                        trusted services.
-                    </Text>
-                </View> */}
+                {registrationIncomplete && (
+                    <View style={styles.incompleteContainer}>
+                        <View style={styles.incompleteIcon}>
+                            <Text style={styles.incompleteIconText}>
+                                !
+                            </Text>
+                        </View>
+
+                        <View style={styles.incompleteContent}>
+                            <Text style={styles.incompleteTitle}>
+                                Registration not complete
+                            </Text>
+
+                            <Text style={styles.incompleteText}>
+                                Your mobile number is verified, but your
+                                Clavata account is not complete yet.
+                                Choose how you'd like to continue.
+                            </Text>
+                        </View>
+                    </View>
+                )}
 
                 {/* Options */}
+
                 <View style={styles.optionsContainer}>
 
                     {/* Find Service */}
+
                     <TouchableOpacity
                         activeOpacity={0.88}
                         style={styles.optionCard}
                         onPress={handleFindService}
                     >
                         <View style={styles.iconContainerPrimary}>
-                            <Text style={styles.searchIcon}>⌕</Text>
+                            <Text style={styles.searchIcon}>
+                                ⌕
+                            </Text>
                         </View>
 
                         <View style={styles.optionTextContainer}>
                             <Text style={styles.optionTitle}>
-                                Find a Service
+                                Find a Services
                             </Text>
 
                             <Text style={styles.optionDescription}>
-                                Discover salons, beauty services
-                                and professionals near you.
+                                Discover salons, beauty services and
+                                professionals near you.
                             </Text>
                         </View>
 
                         <View style={styles.arrowContainer}>
-                            <Text style={styles.arrow}>›</Text>
+                            <Text style={styles.arrow}>
+                                ›
+                            </Text>
                         </View>
                     </TouchableOpacity>
 
                     {/* Provide Service */}
+
                     <TouchableOpacity
                         activeOpacity={0.88}
                         style={styles.optionCard}
                         onPress={handleProvideService}
                     >
                         <View style={styles.iconContainerSecondary}>
-                            <Text style={styles.sparkle}>✦</Text>
+                            <Text style={styles.sparkle}>
+                                ✦
+                            </Text>
                         </View>
 
                         <View style={styles.optionTextContainer}>
@@ -114,19 +162,22 @@ const WelcomeChoiceScreen = () => {
                             </Text>
 
                             <Text style={styles.optionDescription}>
-                                Grow your business and connect
-                                with more customers.
+                                Grow your business and connect with
+                                more customers.
                             </Text>
                         </View>
 
                         <View style={styles.arrowContainer}>
-                            <Text style={styles.arrow}>›</Text>
+                            <Text style={styles.arrow}>
+                                ›
+                            </Text>
                         </View>
                     </TouchableOpacity>
 
                 </View>
 
                 {/* Bottom */}
+
                 <View style={styles.bottomContainer}>
                     <Text style={styles.bottomText}>
                         Already have an account?
@@ -171,25 +222,47 @@ const styles = StyleSheet.create({
         height: 110,
     },
 
-    headingContainer: {
+    incompleteContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#FFF8E8',
+        borderWidth: 1,
+        borderColor: '#F2D48A',
+        borderRadius: 16,
+        padding: 14,
+        marginBottom: 18,
+    },
+
+    incompleteIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#F4B942',
+        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 38,
+        marginRight: 10,
     },
 
-    welcome: {
-        fontSize: 27,
+    incompleteIconText: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '800',
+    },
+
+    incompleteContent: {
+        flex: 1,
+    },
+
+    incompleteTitle: {
+        fontSize: 14,
         fontWeight: '700',
-        color: DARK,
-        letterSpacing: -0.5,
-        marginBottom: 10,
+        color: '#6B4F00',
+        marginBottom: 3,
     },
 
-    subtitle: {
-        fontSize: 15,
-        lineHeight: 23,
-        textAlign: 'center',
-        color: MUTED,
-        fontWeight: '400',
+    incompleteText: {
+        fontSize: 12,
+        lineHeight: 18,
+        color: '#806A28',
     },
 
     optionsContainer: {
@@ -300,6 +373,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+
     bottomText: {
         fontSize: 13,
         color: MUTED,

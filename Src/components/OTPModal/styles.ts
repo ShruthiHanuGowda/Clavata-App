@@ -1,221 +1,174 @@
-import { StyleSheet } from 'react-native';
+import {
+    StyleSheet,
+} from 'react-native';
+
+const PRIMARY = '#009D94';
 
 export default StyleSheet.create({
 
     blur: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        ...StyleSheet.absoluteFillObject,
     },
 
     overlay: {
         flex: 1,
-
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor:
-            'rgba(20, 15, 30, 0.20)',
-
-        justifyContent: 'flex-end',
+            'rgba(0,0,0,0.12)',
     },
 
     outside: {
-        position: 'absolute',
-
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        ...StyleSheet.absoluteFillObject,
     },
 
     keyboard: {
         width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 20,
     },
-
-    /*
-     * Bottom sheet
-     */
 
     card: {
         width: '100%',
+        maxWidth: 390,
 
         backgroundColor: '#FFFFFF',
 
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
+        borderRadius: 26,
 
-        paddingHorizontal: 26,
+        paddingHorizontal: 24,
         paddingTop: 30,
-        paddingBottom: 35,
+        paddingBottom: 25,
 
         shadowColor: '#000',
-
         shadowOffset: {
             width: 0,
-            height: -5,
+            height: 10,
         },
-
         shadowOpacity: 0.15,
-        shadowRadius: 20,
+        shadowRadius: 25,
 
-        elevation: 20,
+        elevation: 10,
     },
-
-    /*
-     * Close
-     */
 
     closeButton: {
         position: 'absolute',
 
-        right: 20,
-        top: 18,
+        right: 15,
+        top: 15,
 
-        width: 38,
-        height: 38,
+        width: 34,
+        height: 34,
 
-        borderRadius: 19,
+        borderRadius: 17,
 
-        backgroundColor: '#F5F4F7',
+        backgroundColor: '#F3F5F5',
 
-        justifyContent: 'center',
         alignItems: 'center',
+        justifyContent: 'center',
 
         zIndex: 10,
     },
 
     closeText: {
-        fontSize: 28,
+        fontSize: 25,
+        lineHeight: 28,
+        color: '#667070',
         fontWeight: '300',
-
-        color: '#555963',
-
-        lineHeight: 30,
     },
 
-    /*
-     * Icon
-     */
-
     iconContainer: {
-        width: 58,
-        height: 58,
+        width: 62,
+        height: 62,
 
-        borderRadius: 29,
+        borderRadius: 31,
 
-        backgroundColor: '#F5EFFF',
+        backgroundColor: '#E7F7F5',
 
-        justifyContent: 'center',
         alignItems: 'center',
+        justifyContent: 'center',
 
         alignSelf: 'center',
 
-        marginBottom: 17,
+        marginBottom: 18,
     },
 
     icon: {
-        fontSize: 25,
+        color: PRIMARY,
+        fontSize: 28,
         fontWeight: '800',
-
-        color: '#8B3DFF',
     },
 
-    /*
-     * Heading
-     */
-
     title: {
-        fontSize: 25,
-
-        fontWeight: '800',
-
-        color: '#171D2D',
-
+        fontSize: 23,
+        fontWeight: '700',
+        color: '#172525',
         textAlign: 'center',
 
-        marginBottom: 7,
+        marginBottom: 8,
     },
 
     subtitle: {
-        fontSize: 15,
-
-        color: '#777F90',
-
+        fontSize: 14,
+        color: '#718080',
         textAlign: 'center',
     },
 
     phone: {
         fontSize: 16,
-
         fontWeight: '700',
-
-        color: '#252B3A',
-
+        color: '#172525',
         textAlign: 'center',
 
-        marginTop: 5,
+        marginTop: 6,
         marginBottom: 22,
     },
 
-    /*
-     * OTP
-     */
-
     otpInput: {
-        width: '100%',
-        height: 60,
+        height: 58,
 
-        borderWidth: 1.5,
+        borderWidth: 1,
+        borderColor: '#DDE5E5',
 
-        borderColor: '#E1E3E8',
+        borderRadius: 14,
 
-        borderRadius: 15,
+        backgroundColor: '#FAFCFC',
 
-        backgroundColor: '#FAFAFB',
+        paddingHorizontal: 16,
 
         fontSize: 24,
-
         fontWeight: '700',
 
-        color: '#171D2D',
+        letterSpacing: 9,
 
         textAlign: 'center',
 
-        letterSpacing: 10,
-
-        paddingLeft: 10,
-
-        marginBottom: 10,
+        color: '#172525',
     },
 
     otpInputError: {
-        borderColor: '#E05260',
+        borderColor: '#E53935',
     },
 
     error: {
-        fontSize: 13,
+        color: '#E53935',
 
-        color: '#D64555',
+        fontSize: 13,
 
         textAlign: 'center',
 
-        marginBottom: 10,
+        marginTop: 9,
     },
-
-    /*
-     * Verify
-     */
 
     verifyButton: {
         width: '100%',
-        height: 56,
 
-        borderRadius: 15,
+        minHeight: 52,
 
-        justifyContent: 'center',
-        alignItems: 'center',
+        borderRadius: 13,
 
-        marginTop: 4,
+        marginTop: 20,
     },
 
     buttonText: {
@@ -228,32 +181,28 @@ export default StyleSheet.create({
         textAlign: 'center',
     },
 
-    /*
-     * Resend
-     */
-
     resendContainer: {
         flexDirection: 'row',
 
         justifyContent: 'center',
+
         alignItems: 'center',
 
         marginTop: 20,
     },
 
     resendText: {
-        fontSize: 14,
+        color: '#718080',
 
-        color: '#7B8290',
+        fontSize: 13,
     },
 
     resendLink: {
-        fontSize: 14,
+        color: PRIMARY,
 
-        color: '#8B3DFF',
+        fontSize: 13,
 
         fontWeight: '700',
-
-        marginLeft: 5,
     },
+
 });

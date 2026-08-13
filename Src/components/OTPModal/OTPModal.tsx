@@ -1,4 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+
 import {
   Modal,
   View,
@@ -9,13 +14,21 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
+
 import { BlurView } from '@react-native-community/blur';
+
 import { useMutation } from '@apollo/client';
-import { VERIFY_OTP, SEND_OTP } from '../../graphql/queries';
+
+import {
+  VERIFY_OTP,
+  SEND_OTP,
+} from '../../graphql/queries';
+
 import { DButton } from '../index';
+
 import styles from './styles';
 
-type OTPResult = {
+export type OTPResult = {
   success: boolean;
   message?: string;
   isExistingUser?: boolean;
@@ -23,12 +36,16 @@ type OTPResult = {
 };
 
 type OTPModalProps = {
+
   visible: boolean;
+
   phoneNumber: string;
 
   onClose: () => void;
 
-  onVerified: (result: OTPResult) => void;
+  onVerified: (
+    result: OTPResult,
+  ) => void;
 };
 
 export default function OTPModal({
@@ -37,127 +54,179 @@ export default function OTPModal({
   onClose,
   onVerified,
 }: OTPModalProps) {
-  const [otp, setOtp] = useState('');
-  const [error, setError] = useState('');
-  const [resending, setResending] = useState(false);
 
-  const inputRef = useRef<TextInput>(null);
+  const [otp, setOtp] =
+    useState('');
 
-  const [verifyOTP, { loading }] =
-    useMutation(VERIFY_OTP);
+  const [error, setError] =
+    useState('');
+
+  const [resending, setResending] =
+    useState(false);
+
+  const inputRef =
+    useRef<TextInput>(null);
+
+  const [
+    verifyOTP,
+    { loading },
+  ] = useMutation(
+    VERIFY_OTP,
+  );
 
   const [sendOTP] =
-    useMutation(SEND_OTP);
+    useMutation(
+      SEND_OTP,
+    );
 
   /*
-   * Focus OTP input when modal opens
+   * Reset + focus
    */
+
   useEffect(() => {
-    if (visible) {
-      setOtp('');
-      setError('');
 
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 450);
-
-      return () => clearTimeout(timer);
-    }
-  }, [visible]);
-
-  /*
-   * Verify OTP
-   */
-  const handleVerify = async () => {
-    if (otp.length !== 6) {
-      setError('Please enter the 6-digit OTP.');
+    if (!visible) {
       return;
     }
 
-    try {
-      setError('');
+    setOtp('');
+    setError('');
 
-      const { data } = await verifyOTP({
-        variables: {
-          phoneNumber,
-          otp,
-        },
-      });
+    const timer =
+      setTimeout(() => {
 
-      const result = data?.verifyOTP;
-
-      if (!result?.success) {
-        setError(
-          result?.message ||
-            'Invalid OTP. Please try again.',
-        );
-
-        setOtp('');
         inputRef.current?.focus();
+
+      }, 450);
+
+    return () => {
+      clearTimeout(timer);
+    };
+
+  }, [visible]);
+
+  /*
+   * Verify
+   */
+
+  const handleVerify =
+    async () => {
+
+      if (
+        otp.length !== 6
+      ) {
+
+        setError(
+          'Please enter the 6-digit OTP.',
+        );
 
         return;
       }
 
-      /*
-       * Let the parent decide what happens next.
-       */
-      onVerified(result);
+      try {
 
-    } catch (err) {
-      console.error(
-        'OTP verification error:',
-        err,
-      );
+        setError('');
 
-      setError(
-        'Unable to verify OTP. Please try again.',
-      );
-    }
-  };
+        const { data } =
+          await verifyOTP({
+            variables: {
+              phoneNumber,
+              otp,
+            },
+          });
 
-  /*
-   * Resend OTP
-   */
-  const handleResend = async () => {
-    if (resending) {
-      return;
-    }
+        const result =
+          data?.verifyOTP;
 
-    try {
-      setResending(true);
-      setError('');
-      setOtp('');
+        if (!result?.success) {
 
-      const { data } = await sendOTP({
-        variables: {
-          phoneNumber,
-        },
-      });
+          setError(
+            result?.message ||
+            'Invalid OTP. Please try again.',
+          );
 
-      if (!data?.sendOTP?.success) {
+          setOtp('');
+
+          inputRef.current?.focus();
+
+          return;
+        }
+
+        /*
+         * IMPORTANT:
+         *
+         * OTPModal does not navigate.
+         *
+         * Parent decides what happens.
+         */
+
+        onVerified(result);
+
+      } catch (err) {
+
+        console.error(
+          'OTP verification error:',
+          err,
+        );
+
         setError(
-          data?.sendOTP?.message ||
-            'Unable to resend OTP.',
+          'Unable to verify OTP. Please try again.',
         );
       }
-
-    } catch (err) {
-      console.error(
-        'Resend OTP error:',
-        err,
-      );
-
-      setError(
-        'Unable to resend OTP.',
-      );
-    } finally {
-      setResending(false);
-    }
-  };
+    };
 
   /*
-   * Don't render anything when closed
+   * Resend
    */
+
+  const handleResend =
+    async () => {
+
+      if (resending) {
+        return;
+      }
+
+      try {
+
+        setResending(true);
+        setError('');
+        setOtp('');
+
+        const { data } =
+          await sendOTP({
+            variables: {
+              phoneNumber,
+            },
+          });
+
+        if (
+          !data?.sendOTP?.success
+        ) {
+
+          setError(
+            data?.sendOTP?.message ||
+            'Unable to resend OTP.',
+          );
+        }
+
+      } catch (err) {
+
+        console.error(
+          'Resend OTP error:',
+          err,
+        );
+
+        setError(
+          'Unable to resend OTP.',
+        );
+
+      } finally {
+
+        setResending(false);
+
+      }
+    };
+
   if (!visible) {
     return null;
   }
@@ -170,18 +239,23 @@ export default function OTPModal({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      {/* Blur background */}
+
+      {/* BLUR */}
 
       <BlurView
         style={styles.blur}
         blurType="light"
         blurAmount={18}
-        reducedTransparencyFallbackColor="rgba(255,255,255,0.92)"
+        reducedTransparencyFallbackColor={
+          'rgba(255,255,255,0.92)'
+        }
       />
 
-      <View style={styles.overlay}>
+      <View
+        style={styles.overlay}
+      >
 
-        {/* Tap outside to close */}
+        {/* OUTSIDE */}
 
         <Pressable
           style={styles.outside}
@@ -194,43 +268,64 @@ export default function OTPModal({
             Platform.OS === 'ios'
               ? 'padding'
               : undefined
-        }>
+          }
+        >
 
-          {/* OTP CARD */}
+          {/* CARD */}
 
-          <View style={styles.card}>
+          <View
+            style={styles.card}
+          >
 
-            {/* Close */}
+            {/* CLOSE */}
 
             <TouchableOpacity
               style={styles.closeButton}
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <Text style={styles.closeText}>
+
+              <Text
+                style={styles.closeText}
+              >
                 ×
               </Text>
+
             </TouchableOpacity>
 
-            {/* Icon */}
+            {/* ICON */}
 
-            <View style={styles.iconContainer}>
-              <Text style={styles.icon}>
+            <View
+              style={
+                styles.iconContainer
+              }
+            >
+
+              <Text
+                style={styles.icon}
+              >
                 ✓
               </Text>
+
             </View>
 
-            {/* Title */}
+            {/* TITLE */}
 
-            <Text style={styles.title}>
+            <Text
+              style={styles.title}
+            >
               Verify your number
             </Text>
 
-            <Text style={styles.subtitle}>
+            <Text
+              style={styles.subtitle}
+            >
               Enter the 6-digit code sent to
             </Text>
 
-            <Text style={styles.phone}>
+            <Text
+              style={styles.phone}
+            >
               {phoneNumber}
             </Text>
 
@@ -240,12 +335,19 @@ export default function OTPModal({
               ref={inputRef}
               value={otp}
               onChangeText={(value) => {
+
                 const numericValue =
                   value
-                    .replace(/[^0-9]/g, '')
+                    .replace(
+                      /[^0-9]/g,
+                      '',
+                    )
                     .slice(0, 6);
 
-                setOtp(numericValue);
+                setOtp(
+                  numericValue,
+                );
+
                 setError('');
               }}
               keyboardType="number-pad"
@@ -262,56 +364,90 @@ export default function OTPModal({
               ]}
             />
 
-            {/* Error */}
+            {/* ERROR */}
 
             {error ? (
-              <Text style={styles.error}>
+              <Text
+                style={styles.error}
+              >
                 {error}
               </Text>
             ) : null}
 
-            {/* Verify */}
+            {/* VERIFY */}
 
             <DButton
               type="primary"
-              style={styles.verifyButton}
+              style={
+                styles.verifyButton
+              }
               disabled={
                 loading ||
                 otp.length !== 6
               }
-              onPress={handleVerify}
+              onPress={
+                handleVerify
+              }
             >
-              <Text style={styles.buttonText}>
+
+              <Text
+                style={
+                  styles.buttonText
+                }
+              >
                 {loading
                   ? 'Verifying...'
                   : 'Verify & Continue'}
               </Text>
+
             </DButton>
 
-            {/* Resend */}
+            {/* RESEND */}
 
-            <View style={styles.resendContainer}>
-              <Text style={styles.resendText}>
+            <View
+              style={
+                styles.resendContainer
+              }
+            >
+
+              <Text
+                style={
+                  styles.resendText
+                }
+              >
                 Didn't receive the code?
               </Text>
 
               <TouchableOpacity
-                onPress={handleResend}
-                disabled={resending}
+                onPress={
+                  handleResend
+                }
+                disabled={
+                  resending
+                }
                 activeOpacity={0.7}
               >
-                <Text style={styles.resendLink}>
+
+                <Text
+                  style={
+                    styles.resendLink
+                  }
+                >
                   {resending
                     ? ' Sending...'
                     : ' Resend OTP'}
                 </Text>
+
               </TouchableOpacity>
+
             </View>
 
           </View>
 
         </KeyboardAvoidingView>
+
       </View>
+
     </Modal>
   );
 }
