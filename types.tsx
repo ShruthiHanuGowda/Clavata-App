@@ -16,6 +16,8 @@ export type RootStackParamList = {
   // Main navigation screens
   root: undefined;
   intro: undefined;
+  welcomeChoiceScreen: undefined;
+  LoginScreen: undefined;
   appScreens: undefined;
   authScreens: undefined;
   BecomePartner: undefined;

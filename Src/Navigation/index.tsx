@@ -1,21 +1,13 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
-import { RootStackParamList, CoinWalletStackParamList, HomeStackParamList, WalletStackParamList, StakeStackParamList, MarketplaceStackParamList, SalonProfileStackParamList } from '../../types';
-import LoginScreen from '../../Src/Screens/AuthScreens/loginScreen';
+import { RootStackParamList, HomeStackParamList, WalletStackParamList, StakeStackParamList, SalonProfileStackParamList } from '../../types';
+import LoginScreen from '../Screens/Login/loginScreen';
 import RegisterUser from '../../Src/Screens/RegisterUser/registerUser';
-import BecomePartnerScreen from '../../Src/Screens/Provider/BecomePartnerScreen';
 import VerifyOTPScreen from '../../Src/Screens/VerifyOTP/verifyOTPScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { StyleSheet, View } from 'react-native';
 import { Root } from '../Screens/RootScreen';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Tabs from './CustomerTabs';
-import { SCREEN_CONSTANT } from './constant';
 import HomeScreenPage from '../Screens/CustomerTabs/Home/HomeScreenPage';
-// import CoinWallet from '../Screens/AppScreens/CoinWallet/CoinWallet';
-// import Drex from '../Screens/HomeScreen';
-// import {VerifyAddress} from '../Screens/Send/VerifyAdress';
-// import SendCoin from '../Screens/Send/SendCoin';
 import { navigationRef } from './NavigationFunctions';
 import ExplorePage from '../Screens/CustomerTabs/Explore/ExplorePage';
 import BookingPage from '../Screens/CustomerTabs/Booking/BookingPage';
@@ -45,6 +37,7 @@ import EditStaff from '../Screens/SalonTabs/Profile/staff/EditStaffScreen';
 import BusinessHoursScreen from '../Screens/SalonTabs/Profile/BusinessHoursScreen';
 import BookingDetails from '../Screens/CustomerTabs/Profile/BookingDetails';
 import EditProfile from '../Screens/CustomerTabs/Profile/EditProfile';
+import WelcomeChoiceScreen from '../Screens/Login/WelcomeChoiceScreen';
 
 function RootScreenStack() {
   const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -54,10 +47,19 @@ function RootScreenStack() {
       screenOptions={{ headerShown: false }}>
       {/* Main navigation screens */}
       <RootStack.Screen name="root" component={Root} />
-      {/* <RootStack.Screen name="intro" component={Onboarding} /> */}
       <RootStack.Screen name="appScreens" component={AppTabs} />
+      {/* <RootStack.Screen
+        name="welcomeChoiceScreen"
+        options={{ headerShown: false }}
+        component={WelcomeChoiceScreen}
+      /> */}
       <RootStack.Screen
         name="authScreens"
+        options={{ headerShown: false }}
+        component={WelcomeChoiceScreen}
+      />
+      <RootStack.Screen
+        name="LoginScreen"
         options={{ headerShown: false }}
         component={LoginScreen}
       />
