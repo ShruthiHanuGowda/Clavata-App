@@ -57,7 +57,7 @@ const WelcomeChoiceScreen = () => {
                 </View>
 
                 {/* Heading */}
-                <View style={styles.headingContainer}>
+                {/* <View style={styles.headingContainer}>
                     <Text style={styles.welcome}>
                         Welcome to Clavata
                     </Text>
@@ -67,7 +67,7 @@ const WelcomeChoiceScreen = () => {
                         {'\n'}
                         trusted services.
                     </Text>
-                </View>
+                </View> */}
 
                 {/* Options */}
                 <View style={styles.optionsContainer}>

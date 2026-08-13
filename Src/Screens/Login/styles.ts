@@ -1,226 +1,327 @@
-import {
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-const PRIMARY = '#009D94';
-const PRIMARY_DARK = '#007F78';
-const BACKGROUND = '#F8FAFA';
-const TEXT = '#152525';
-const MUTED = '#748383';
-const BORDER = '#E1E9E8';
+const PRIMARY = '#9B2C83';
+const PRIMARY_DARK = '#6A1B9A';
+
+const TEXT = '#111827';
+const MUTED = '#6B7280';
+const BORDER = '#E5E7EB';
 
 export default StyleSheet.create({
 
+  /* =============================== */
+  /* ROOT */
+  /* =============================== */
+
   safeAreaContainer: {
     flex: 1,
-    backgroundColor: BACKGROUND,
+    backgroundColor: '#FFFFFF',
   },
 
-  container: {
+  flex: {
     flex: 1,
-    paddingHorizontal: 24,
   },
 
-  /* -------------------------
-     Back
-  ------------------------- */
+  scrollContent: {
+    flexGrow: 1,
+    backgroundColor: '#FFFFFF',
+  },
+
+  /* =============================== */
+  /* HERO */
+  /* =============================== */
+
+  heroContainer: {
+    width: '100%',
+    height: Math.min(height * 0.43, 390),
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: PRIMARY_DARK,
+  },
+
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+
+  heroOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 180,
+    backgroundColor: 'rgba(0,0,0,0.16)',
+  },
+
+  /* =============================== */
+  /* BACK BUTTON */
+  /* =============================== */
 
   backButton: {
     position: 'absolute',
-    top: 12,
+    top: 22,
     left: 20,
 
-    width: 44,
-    height: 44,
+    width: 58,
+    height: 58,
 
-    justifyContent: 'center',
+    borderRadius: 29,
+
+    backgroundColor: 'rgba(255,255,255,0.96)',
+
     alignItems: 'center',
+    justifyContent: 'center',
 
-    zIndex: 10,
+    elevation: 5,
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
   },
 
   back: {
-    fontSize: 36,
+    fontSize: 38,
+    lineHeight: 42,
     fontWeight: '300',
-    color: TEXT,
+    color: '#111827',
 
-    marginTop: -4,
+    marginTop: -3,
   },
 
-  /* -------------------------
-     Main
-  ------------------------- */
+  /* =============================== */
+  /* HERO TEXT */
+  /* =============================== */
 
-  loginContent: {
-    paddingTop: 70,
-    width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
+  heroTextContainer: {
+    position: 'absolute',
+
+    left: 26,
+    right: 26,
+    bottom: 45,
   },
 
-  /* -------------------------
-     Brand
-  ------------------------- */
-
-  brandContainer: {
-    alignItems: 'center',
-    marginBottom: 35,
-  },
-
-  brand: {
+  heroTitle: {
     fontSize: 25,
     fontWeight: '800',
+    color: '#FFFFFF',
 
-    color: PRIMARY,
+    marginBottom: 7,
 
-    letterSpacing: 1.2,
+    letterSpacing: -0.4,
   },
 
-  brandLine: {
-    width: 24,
-    height: 3,
+  heroSubtitle: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: 'rgba(255,255,255,0.90)',
 
-    borderRadius: 2,
-
-    backgroundColor: PRIMARY,
-
-    marginTop: 8,
+    maxWidth: 330,
   },
 
-  /* -------------------------
-     Heading
-  ------------------------- */
+  /* =============================== */
+  /* WHITE CONTENT CARD */
+  /* =============================== */
 
-  headingContainer: {
-    alignItems: 'center',
+  contentCard: {
+    backgroundColor: '#FFFFFF',
 
-    marginBottom: 42,
+    marginTop: -32,
+
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+
+    paddingHorizontal: 24,
+    paddingTop: 34,
+    paddingBottom: 34,
+
+    position: 'relative',
   },
+
+  /* =============================== */
+  /* HEADING */
+  /* =============================== */
 
   title: {
-    fontSize: 30,
-    fontWeight: '700',
+    fontSize: 32,
+    lineHeight: 38,
+
+    fontWeight: '800',
 
     color: TEXT,
 
-    letterSpacing: -0.6,
+    letterSpacing: -0.8,
 
-    marginBottom: 10,
+    marginBottom: 7,
   },
 
   subtitle: {
-    fontSize: 15,
-    lineHeight: 23,
+    fontSize: 17,
+    lineHeight: 24,
 
     color: MUTED,
 
-    textAlign: 'center',
+    marginBottom: 32,
   },
 
-  /* -------------------------
-     Input
-  ------------------------- */
+  /* =============================== */
+  /* INPUT */
+  /* =============================== */
 
   inputSection: {
     width: '100%',
-
-    marginBottom: 24,
+    marginBottom: 20,
   },
 
   inputLabel: {
-    fontSize: 14,
+    fontSize: 16,
+    lineHeight: 22,
+
     fontWeight: '600',
 
     color: TEXT,
 
-    marginBottom: 9,
-    marginLeft: 3,
+    marginBottom: 10,
   },
 
   emailInputWrapper: {
     width: '100%',
   },
 
-  helperText: {
-    fontSize: 12.5,
-    lineHeight: 18,
-
-    color: MUTED,
-
-    marginTop: 9,
-    marginLeft: 3,
-  },
-
-  /* -------------------------
-     Button
-  ------------------------- */
+  /* =============================== */
+  /* CONTINUE BUTTON */
+  /* =============================== */
 
   loginBtnStyle: {
     width: '100%',
-    height: 54,
+    height: 56,
+
     borderRadius: 16,
+
     backgroundColor: PRIMARY,
 
     alignItems: 'center',
     justifyContent: 'center',
 
+    marginTop: 4,
+
+    elevation: 3,
+
     shadowColor: PRIMARY,
     shadowOffset: {
       width: 0,
-      height: 5,
+      height: 4,
     },
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-
-    elevation: 3,
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
   },
 
   loginText: {
     color: '#FFFFFF',
 
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
 
-    letterSpacing: 0.2,
+    textAlign: 'center',
+
+    width: '100%',
   },
 
-  /* -------------------------
-     Bottom
-  ------------------------- */
+  /* =============================== */
+  /* SECURITY / OTP INFO */
+  /* =============================== */
+
+  securityContainer: {
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    marginTop: 24,
+
+    paddingHorizontal: 2,
+  },
+
+  securityIcon: {
+    width: 48,
+    height: 48,
+
+    borderRadius: 24,
+
+    backgroundColor: '#FDF2F8',
+
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    marginRight: 14,
+  },
+
+  securityIconText: {
+    fontSize: 24,
+    fontWeight: '800',
+
+    color: PRIMARY,
+  },
+
+  securityText: {
+    flex: 1,
+
+    fontSize: 14,
+    lineHeight: 21,
+
+    color: MUTED,
+
+    fontWeight: '500',
+  },
+
+  /* =============================== */
+  /* LEGAL */
+  /* =============================== */
 
   bottomContainer: {
     alignItems: 'center',
-    paddingBottom: 22,
-    paddingTop: 14,
+
+    marginTop: 38,
+
+    paddingTop: 4,
   },
 
   bottomText: {
-    fontSize: 11.5,
+    fontSize: 13,
+
     color: MUTED,
+
     textAlign: 'center',
-    marginBottom: 6,
+
+    marginBottom: 5,
   },
 
   legalRow: {
     flexDirection: 'row',
+
     alignItems: 'center',
+
     justifyContent: 'center',
   },
 
   legalLink: {
-    fontSize: 12,
+    fontSize: 13,
 
     color: PRIMARY,
 
-    fontWeight: '600',
+    fontWeight: '700',
+
+    textDecorationLine: 'none',
   },
 
   separator: {
-    fontSize: 11,
+    fontSize: 13,
 
-    color: BORDER,
+    color: MUTED,
   },
 });
