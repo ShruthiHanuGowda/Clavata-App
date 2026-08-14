@@ -2,7 +2,7 @@ import {useState, useEffect, useCallback, useMemo} from 'react';
 import {getCompleteAccountNftData} from './marketPlace';
 import {ApiCollections, NftToken} from '../types/types';
 import useApi from './useApi';
-import {API_NFT_URL} from '../constants';
+import {API_NFT_URL} from '../constants/constants';
 
 export const useNftsForAddress = ({account}: {account: `0x${string}`}) => {
   const [nfts, setNfts] = useState<NftToken[]>([]);

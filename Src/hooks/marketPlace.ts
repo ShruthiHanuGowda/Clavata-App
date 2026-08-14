@@ -1,5 +1,5 @@
 import { Contract, JsonRpcProvider } from 'ethers';
-import { API_NFT_URL, CUSTOM_RPC_URL, GRAPH_API_NFTMARKET } from '../constants';
+import { API_NFT_URL, CUSTOM_RPC_URL, GRAPH_API_NFTMARKET } from '../constants/constants';
 import {
   GET_NFTS_COLLECTIONS_WITH_ASKS,
   GET_NFTS_MARKET_DATA,

@@ -16,7 +16,7 @@ import {
   HttpLink,
 } from '@apollo/client';
 
-import { MERGED_API_URL } from '../constants';
+import { MERGED_API_URL } from '../constants/constants';
 
 const APPSYNC_API_KEY = 'da2-u4e6ychzkrbsfmfqpc33ujdbvy';
 

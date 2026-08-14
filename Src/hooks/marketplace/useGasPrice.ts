@@ -1,6 +1,6 @@
 import {JsonRpcProvider, JsonRpcSigner} from 'ethers';
 import {useEffect, useState} from 'react';
-import {CUSTOM_RPC_URL} from '../../constants';
+import {CUSTOM_RPC_URL} from '../../constants/constants';
 
 export function useGasPrice(
   signer?: JsonRpcSigner,

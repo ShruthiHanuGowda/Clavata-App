@@ -1,6 +1,6 @@
 import {useState, useEffect, useCallback} from 'react';
 import moment from 'moment';
-import {EXPLORER_URL} from '../constants';
+import {EXPLORER_URL} from '../constants/constants';
 
 /**
  * Custom hook for managing transaction history with pagination

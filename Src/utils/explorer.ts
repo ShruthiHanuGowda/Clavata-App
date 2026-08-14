@@ -3,7 +3,7 @@ import {
   EXPLORER_URL,
   SEPOLIA_CHAIN_ID,
   SEPOLIA_EXPLORER_URL,
-} from '../constants';
+} from '../constants/constants';
 
 const denergyTestnet = {
   id: CUSTOM_NETWORK_CHAIN_ID,

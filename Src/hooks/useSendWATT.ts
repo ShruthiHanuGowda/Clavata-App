@@ -6,7 +6,7 @@ import {
   CUSTOM_NETWORK_CHAIN_ID,
   CUSTOM_RPC_URL,
   DEFAULT_GAS_LIMIT,
-} from '../constants';
+} from '../constants/constants';
 import { errorService, TransactionError } from '../services/errorService';
 
 const DENERGY_RPC_URL = CUSTOM_RPC_URL;

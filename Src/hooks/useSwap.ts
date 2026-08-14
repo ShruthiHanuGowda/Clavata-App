@@ -8,7 +8,7 @@ import {
   SWAP_V3_QUOTER,
   SWAP_V3_FACTORY,
   SWAP_WETH,
-} from '../constants';
+} from '../constants/constants';
 
 // Types
 interface Token {

@@ -6,7 +6,7 @@ import {
   API_OFFSETTING_URL,
   DENERGY_USDC_ADDRESS,
   TREASURY_ADDRESS,
-} from '../constants';
+} from '../constants/constants';
 import {useWallet} from '../providers';
 import {useQuery} from '@apollo/client';
 import {LIST_PLATFORM_SETTINGS} from '../graphql/queries';

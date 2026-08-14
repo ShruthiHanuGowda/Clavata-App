@@ -7,7 +7,7 @@ import {
   CUSTOM_RPC_URL,
   DENERGY_EURC_ADDRESS,
   DENERGY_USDC_ADDRESS,
-} from '../constants';
+} from '../constants/constants';
 import {ERC20_ABI} from '../utils/Contracts';
 
 const DENERGY_RPC_URL = CUSTOM_RPC_URL;

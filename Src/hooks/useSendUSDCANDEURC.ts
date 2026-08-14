@@ -15,7 +15,7 @@ import {
   SEPOLIA_CHAIN_ID,
   SEPOLIA_RPC_URL,
   USDC_ADDRESS,
-} from '../constants';
+} from '../constants/constants';
 const INFURA_URL = SEPOLIA_RPC_URL;
 const infuraProvider = new JsonRpcProvider(INFURA_URL);
 

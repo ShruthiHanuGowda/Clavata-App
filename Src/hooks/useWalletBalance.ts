@@ -1,5 +1,5 @@
 import {useState, useCallback} from 'react';
-import {TOKEN_CONTRACTS, CRYPTO_PRICES_API_URL} from '../constants';
+import {TOKEN_CONTRACTS, CRYPTO_PRICES_API_URL} from '../constants/constants';
 import {walletOperations} from '../services/blockchain/walletOperations';
 import {errorService} from '../services/errorService';
 

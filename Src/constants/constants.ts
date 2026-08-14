@@ -2,6 +2,56 @@
 
 import Config from 'react-native-config';
 
+export const COLORS = {
+  background: '#FFFFFF',
+  surface: '#FFFFFF',
+  badgeColor: '#fee8e8',
+  primary: '#111111',
+  text: '#111111',
+  textSecondary: '#6B6B6B',
+  textMuted: '#8A8A8A',
+  border: '#E7E7E7',
+  borderStrong: '#D6D6D6',
+  white: '#FFFFFF',
+  black: '#000000',
+  transparent: 'transparent',
+};
+
+export const FONTS = {
+  regular: 'System',
+  medium: 'System',
+  semiBold: 'System',
+  bold: 'System',
+};
+
+export const FONT_SIZES = {
+  xs: 12,
+  small: 14,
+  body: 16,
+  medium: 17,
+  title: 20,
+  heading: 28,
+  largeHeading: 32,
+};
+
+export const SPACING = {
+  xs: 4,
+  small: 8,
+  medium: 12,
+  large: 16,
+  xl: 20,
+  xxl: 24,
+  xxxl: 32,
+  huge: 40,
+};
+
+export const RADIUS = {
+  small: 8,
+  medium: 12,
+  large: 16,
+  round: 999,
+};
+
 const CUSTOM_RPC_URL_ENV = Config.CUSTOM_RPC_URL;
 const SEPOLIA_RPC_URL_ENV = Config.SEPOLIA_RPC_URL;
 const CUSTOM_NETWORK_ENV = Config.CUSTOM_NETWORK;
@@ -53,13 +103,11 @@ const DEFAULT_GAS_LIMIT_ENV = Config.DEFAULT_GAS_LIMIT;
 const API_TRANSFER_URL_ENV = Config.API_TRANSFER_URL;
 const API_ACCOUNT_VALIDATE_URL_ENV = Config.API_ACCOUNT_VALIDATE_URL;
 const WALLETCONNECT_PROJECT_ID_ENV = Config.WALLETCONNECT_PROJECT_ID;
-console.log("Config.CUSTOM_RPC_URL", Config.CUSTOM_RPC_URL)
 export const CUSTOM_RPC_URL = CUSTOM_RPC_URL_ENV;
 export const SEPOLIA_RPC_URL = SEPOLIA_RPC_URL_ENV;
 export const CUSTOM_NETWORK = CUSTOM_NETWORK_ENV;
 export const CUSTOM_NETWORK_CHAIN_ID = CUSTOM_NETWORK_CHAIN_ID_STR;
 export const SEPOLIA_CHAIN_ID = SEPOLIA_CHAIN_ID_STR;
-
 export const USDC_ADDRESS = USDC_ADDRESS_ENV;
 export const BANK_ADDRESS = BANK_ADDRESS_ENV;
 export const BRIDGE_ADDRESS = BRIDGE_ADDRESS_ENV;
@@ -71,7 +119,6 @@ export const STAKING_ADDRESS = STAKING_ADDRESS_ENV;
 export const WATT_STAKING_ADDRESS = WATT_STAKING_ADDRESS_ENV;
 export const STAKING_VALIDATOR_ADDRESS = STAKING_VALIDATOR_ADDRESS_ENV;
 export const NFT_MARKET_ADDRESS = NFT_MARKET_ADDRESS_ENV;
-
 export const API_NFT_URL = API_NFT_URL_ENV;
 export const API_OFFSETTING_URL = API_OFFSETTING_URL_ENV;
 export const GRAPH_API_NFTMARKET = GRAPH_API_NFTMARKET_ENV;
@@ -107,7 +154,6 @@ export const MERGED_API_URL = MERGED_API_URL_ENV;
 export const DEFAULT_GAS_LIMIT = DEFAULT_GAS_LIMIT_ENV;
 export const API_TRANSFER_URL = API_TRANSFER_URL_ENV;
 export const API_ACCOUNT_VALIDATE_URL = API_ACCOUNT_VALIDATE_URL_ENV;
-
 export const TOKEN_CONTRACTS = {
   denergy: {
     USDC: DENERGY_USDC_ADDRESS_ENV,
@@ -130,21 +176,21 @@ export const WALLETCONNECT_CHAINS = {
 };
 
 export const SERVICE_CATEGORIES = [
-    'Hair',
-    'Hair Color',
-    'Hair Spa',
-    'Facial',
-    'Cleanup',
-    'Bleach',
-    'Threading',
-    'Waxing',
-    'Makeup',
-    'Bridal',
-    'Nails',
-    'Massage',
-    'Skin',
-    'Beard',
-    'Shaving',
-    'Kids',
-    'Other',
+  'Hair',
+  'Hair Color',
+  'Hair Spa',
+  'Facial',
+  'Cleanup',
+  'Bleach',
+  'Threading',
+  'Waxing',
+  'Makeup',
+  'Bridal',
+  'Nails',
+  'Massage',
+  'Skin',
+  'Beard',
+  'Shaving',
+  'Kids',
+  'Other',
 ];

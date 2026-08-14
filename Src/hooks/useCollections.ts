@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Collection } from '../types/types';
 import { getCollectionsMarketData } from './marketPlace';
-import { API_NFT_URL } from '../constants';
+import { API_NFT_URL } from '../constants/constants';
 import { errorService, ErrorCode } from '../services/errorService';
 
 const fetchExtraDetails = async (contractAddress: string) => {

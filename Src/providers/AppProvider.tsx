@@ -8,7 +8,7 @@ import { SalonRegistrationProvider } from '../context/SalonRegistrationContext';
 // import {WalletConnectProvider} from './WalletConnectProvider';
 // import {KycProvider} from './KycProvider';
 // import { NftProvider } from './NftProvider';
-import { MAGIC_API_KEY_PROD } from '../constants';
+import { MAGIC_API_KEY_PROD } from '../constants/constants';
 import { UserProvider } from '../context/UserContext';
 
 interface AppProviderProps {

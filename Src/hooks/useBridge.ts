@@ -16,7 +16,7 @@ import {
   DESTINATION_ADDRESS,
   DENERGY_EURC_ADDRESS,
   BANK_ADDRESS,
-} from '../constants';
+} from '../constants/constants';
 import { useWallet } from '../providers';
 import { ERC20_ABI, BRIDGE_ABI, DEPOSIT_TOKEN_ABI } from '../utils/Contracts';
 

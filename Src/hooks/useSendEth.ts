@@ -8,7 +8,7 @@ import {
 } from 'ethers';
 import {useMutation} from '@apollo/client';
 import {CREATE_TRANSACTION_HISTORY_MOBILE} from '../graphql/queries';
-import {SEPOLIA_CHAIN_ID, SEPOLIA_RPC_URL} from '../constants';
+import {SEPOLIA_CHAIN_ID, SEPOLIA_RPC_URL} from '../constants/constants';
 import {
   errorService,
   ErrorCode,

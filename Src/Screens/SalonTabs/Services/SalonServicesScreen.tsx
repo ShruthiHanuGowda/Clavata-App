@@ -18,7 +18,7 @@ import {
   useMutation,
 } from '@apollo/client';
 import { useUser } from '../../../context/UserContext';
-import { SERVICE_CATEGORIES } from './../../../constants';
+import { SERVICE_CATEGORIES } from '../../../constants/constants';
 import {
   LIST_SERVICES,
   DELETE_SERVICE,
