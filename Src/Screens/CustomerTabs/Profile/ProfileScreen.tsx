@@ -167,20 +167,20 @@ export default function ProfileScreen() {
           ))}
         </View>
         {/* Salon */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <TouchableOpacity
             style={styles.row}
             onPress={onPartnerPress}>
             <Text style={styles.leftIcon}>🏪</Text>
-            <Text style={styles.rowTitle}>
-              {/* {isBusinessPartner
+            <Text style={styles.rowTitle}> */}
+        {/* {isBusinessPartner
                 ? 'Manage My Salon'
                 : 'Become a Salon Partner'} */}
-              {partnerTitle}
+        {/* {partnerTitle}
             </Text>
             <Text style={styles.arrow}>›</Text>
           </TouchableOpacity>
-        </View>
+        </View> */}
         {/* Settings */}
         <View style={styles.section}>
           {settingsItems.map(item => (

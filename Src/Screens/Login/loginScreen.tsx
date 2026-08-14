@@ -19,59 +19,112 @@ import {
 import 'react-native-get-random-values';
 import '@ethersproject/shims';
 
-import { useMutation } from '@apollo/client';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useMutation,
+} from '@apollo/client';
+
+import {
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 
 import OTPModal from '../../components/OTPModal/OTPModal';
 
 import styles from './styles';
 
-import { DButton } from '../../components';
-import { DMobileInput } from '../../components/Dinputs';
+import {
+  DButton,
+} from '../../components';
 
-import { SEND_OTP } from '../../graphql/queries';
+import {
+  DMobileInput,
+} from '../../components/Dinputs';
 
-import { useUser } from '../../context/UserContext';
+import {
+  SEND_OTP,
+} from '../../graphql/queries';
+
+import {
+  useUser,
+} from '../../context/UserContext';
+
+type LoginMode =
+  | 'CUSTOMER'
+  | 'PROVIDER'
+  | 'SIGN_IN';
+
+/*
+ * ----------------------------------------------------------
+ * LOGIN SCREEN
+ * ----------------------------------------------------------
+ */
 
 export default function LoginScreen() {
 
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
+  const navigation =
+    useNavigation<any>();
 
-  const { setCurrentUser } = useUser();
+  const route =
+    useRoute<any>();
+
+  const {
+    setCurrentUser,
+  } = useUser();
 
   /*
-   * Mode:
+   * --------------------------------------------------------
+   * MODE
+   * --------------------------------------------------------
    *
    * CUSTOMER
-   * SIGN_IN
+   *   User came from "Find Service"
    *
-   * Both eventually use the same OTP flow.
+   * PROVIDER
+   *   User came from "Provide Service"
+   *
+   * SIGN_IN
+   *   User explicitly selected "Sign in"
    */
-  const mode =
-    route.params?.mode || 'SIGN_IN';
 
-  const [showOTP, setShowOTP] =
-    useState(false);
+  const mode: LoginMode =
+    route.params?.mode ||
+    'SIGN_IN';
 
-  const [isValid, setValid] =
-    useState(false);
+  const [
+    showOTP,
+    setShowOTP,
+  ] = useState(false);
 
-  const [phoneNumber, setPhoneNumber] =
-    useState(
-      route.params?.phoneNumber || '',
-    );
+  const [
+    isValid,
+    setValid,
+  ] = useState(false);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [
+    phoneNumber,
+    setPhoneNumber,
+  ] = useState(
+    route.params?.phoneNumber || '',
+  );
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
   const [
     sendOTP,
-    { error: queryError },
-  ] = useMutation(SEND_OTP);
+    {
+      error: queryError,
+    },
+  ] = useMutation(
+    SEND_OTP,
+  );
 
   /*
-   * GraphQL error
+   * --------------------------------------------------------
+   * GRAPHQL ERROR
+   * --------------------------------------------------------
    */
 
   useEffect(() => {
@@ -95,136 +148,518 @@ export default function LoginScreen() {
   }, [queryError]);
 
   /*
-   * Send OTP
+   * --------------------------------------------------------
+   * SEND OTP
+   * --------------------------------------------------------
    */
 
-  const loginWithPhone = useCallback(
-    async () => {
+  const loginWithPhone =
+    useCallback(
+      async () => {
 
-      if (
-        !phoneNumber ||
-        !isValid ||
-        loading
-      ) {
-        return;
-      }
+        if (
+          !phoneNumber ||
+          !isValid ||
+          loading
+        ) {
+          return;
+        }
 
-      try {
+        try {
 
-        setLoading(true);
+          setLoading(true);
 
-        console.log(
-          'User Phone Number:',
-          phoneNumber,
-        );
+          console.log(
+            '========== SEND OTP ==========',
+          );
 
-        const { data } =
-          await sendOTP({
+          console.log(
+            'PHONE:',
+            phoneNumber,
+          );
+
+          console.log(
+            'MODE:',
+            mode,
+          );
+
+          const {
+            data,
+          } = await sendOTP({
             variables: {
               phoneNumber,
             },
           });
 
-        console.log(
-          'OTP response:',
-          data,
-        );
+          console.log(
+            'OTP RESPONSE:',
+            JSON.stringify(
+              data,
+              null,
+              2,
+            ),
+          );
 
-        if (
-          data?.sendOTP?.success
-        ) {
+          if (
+            data?.sendOTP?.success
+          ) {
 
-          setShowOTP(true);
+            setShowOTP(true);
 
-        } else {
+          } else {
+
+            Alert.alert(
+              'Unable to continue',
+              data?.sendOTP?.message ||
+              'We could not send the verification code.',
+            );
+
+          }
+
+        } catch (error) {
+
+          console.error(
+            'OTP error:',
+            error,
+          );
 
           Alert.alert(
-            'Unable to continue',
-            data?.sendOTP?.message ||
-            'We could not send the verification code.',
+            'Something went wrong',
+            'Please check your internet connection and try again.',
           );
+
+        } finally {
+
+          setLoading(false);
+
         }
 
-      } catch (error) {
-
-        console.error(
-          'OTP error:',
-          error,
-        );
-
-        Alert.alert(
-          'Something went wrong',
-          'Please check your internet connection and try again.',
-        );
-
-      } finally {
-
-        setLoading(false);
-
-      }
-
-    },
-    [
-      phoneNumber,
-      isValid,
-      loading,
-      sendOTP,
-    ],
-  );
+      },
+      [
+        phoneNumber,
+        isValid,
+        loading,
+        sendOTP,
+        mode,
+      ],
+    );
 
   /*
-   * Back
+   * --------------------------------------------------------
+   * BACK
+   * --------------------------------------------------------
    */
 
   const handleBack =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      if (
-        navigation.canGoBack()
-      ) {
-        navigation.goBack();
-        return;
-      }
+        if (
+          navigation.canGoBack()
+        ) {
 
-      navigation.navigate(
-        'authScreens',
-      );
+          navigation.goBack();
 
-    }, [navigation]);
+          return;
+        }
+
+        navigation.navigate(
+          'authScreens',
+        );
+
+      },
+      [navigation],
+    );
 
   /*
-   * OTP verification completed
+   * --------------------------------------------------------
+   * GET EXISTING USER ROLE
+   * --------------------------------------------------------
    */
 
-  const handleOTPVerified = (result: any) => {
-    setShowOTP(false);
+  const getExistingRole =
+    (user: any) => {
 
-    // Existing user → enter the app
-    if (result.isExistingUser && result.user) {
-      setCurrentUser(result.user);
+      if (
+        user?.roles?.customer === true
+      ) {
+        return 'CUSTOMER';
+      }
+
+      if (
+        user?.roles?.businessPartner === true
+      ) {
+        return 'PROVIDER';
+      }
+
+      /*
+       * Fallback to activeRole if an old record
+       * does not contain roles correctly.
+       */
+
+      if (
+        user?.activeRole === 'CUSTOMER'
+      ) {
+        return 'CUSTOMER';
+      }
+
+      if (
+        user?.activeRole === 'PROVIDER'
+      ) {
+        return 'PROVIDER';
+      }
+
+      return null;
+    };
+
+  /*
+   * --------------------------------------------------------
+   * OPEN EXISTING ACCOUNT
+   * --------------------------------------------------------
+   *
+   * Existing partner who has not completed salon
+   * registration should continue to SalonRegistration.
+   *
+   * Otherwise open appScreens.
+   */
+
+  const openExistingAccount =
+    (user: any) => {
+
+      setCurrentUser(user);
+
+      const existingRole =
+        getExistingRole(user);
+
+      if (
+        existingRole === 'PROVIDER' &&
+        user?.providerStatus ===
+        'NOT_REGISTERED'
+      ) {
+
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name:
+                'SalonRegistration',
+            },
+          ],
+        });
+
+        return;
+      }
 
       navigation.reset({
         index: 0,
         routes: [
           {
-            name: 'appScreens',
+            name:
+              'appScreens',
           },
         ],
       });
+    };
+
+  /*
+   * --------------------------------------------------------
+   * OTP VERIFIED
+   * --------------------------------------------------------
+   */
+  const handleOTPVerified = (result: any) => {
+    console.log(
+      '========== OTP VERIFIED ==========',
+    );
+
+    console.log(
+      'OTP RESULT:',
+      JSON.stringify(result, null, 2),
+    );
+
+    setShowOTP(false);
+
+    /*
+     * ======================================================
+     * OTP FAILED
+     * ======================================================
+     */
+
+    if (result?.success !== true) {
+      Alert.alert(
+        'Verification failed',
+        result?.message ||
+        'OTP verification failed. Please try again.',
+      );
 
       return;
     }
 
-    // OTP is valid but no account exists
-    // → complete customer registration
-    navigation.navigate('RegisterUser', {
-      phoneNumber,
-    });
+    /*
+     * ======================================================
+     * EXISTING USER
+     * ======================================================
+     */
+
+    if (
+      result?.isExistingUser === true &&
+      result?.user
+    ) {
+      const user = result.user;
+
+      const existingRole =
+        getExistingRole(user);
+
+      console.log(
+        '========== EXISTING USER ==========',
+      );
+
+      console.log(
+        'EXISTING ROLE:',
+        existingRole,
+      );
+
+      /*
+       * ------------------------------------------------------
+       * SIGN IN
+       * ------------------------------------------------------
+       */
+
+      if (mode === 'SIGN_IN') {
+        openExistingAccount(user);
+        return;
+      }
+
+      /*
+       * ------------------------------------------------------
+       * CUSTOMER / FIND SERVICE
+       * ------------------------------------------------------
+       */
+
+      if (mode === 'CUSTOMER') {
+
+        if (existingRole === 'CUSTOMER') {
+          openExistingAccount(user);
+          return;
+        }
+
+        /*
+         * Provider trying to use Find Service
+         */
+
+        Alert.alert(
+          'Number already registered',
+          'This mobile number is already registered as a Service Provider. Please sign in.',
+          [
+            {
+              text: 'Sign in',
+              onPress: () => {
+                navigation.replace(
+                  'LoginScreen',
+                  {
+                    mode: 'SIGN_IN',
+                    phoneNumber: phoneNumber,
+                  },
+                );
+              },
+            },
+          ],
+        );
+
+        return;
+      }
+
+      /*
+       * ------------------------------------------------------
+       * PROVIDER / PROVIDE SERVICE
+       * ------------------------------------------------------
+       */
+
+      if (mode === 'PROVIDER') {
+
+        if (existingRole === 'PROVIDER') {
+          openExistingAccount(user);
+          return;
+        }
+
+        /*
+         * Customer trying to become Provider
+         */
+
+        Alert.alert(
+          'Number already registered',
+          'This mobile number is already registered as a customer. Please sign in.',
+          [
+            {
+              text: 'Sign in',
+              onPress: () => {
+                navigation.replace(
+                  'LoginScreen',
+                  {
+                    mode: 'SIGN_IN',
+                    phoneNumber: phoneNumber,
+                  },
+                );
+              },
+            },
+          ],
+        );
+
+        return;
+      }
+
+      return;
+    }
+
+    /*
+     * ======================================================
+     * NEW USER
+     * ======================================================
+     */
+
+    if (result?.isExistingUser === false) {
+
+      console.log(
+        '========== NEW USER ==========',
+      );
+
+      console.log(
+        'MODE:',
+        mode,
+      );
+
+      console.log(
+        'PHONE:',
+        phoneNumber,
+      );
+
+      /*
+       * ------------------------------------------------------
+       * SIGN IN + NEW NUMBER
+       * ------------------------------------------------------
+       */
+
+      if (mode === 'SIGN_IN') {
+
+        Alert.alert(
+          'Account not found',
+          'No Clavata account exists for this mobile number. Please choose Find Service or Provide Service to create an account.',
+          [
+            {
+              text: 'Choose account type',
+              onPress: () => {
+                navigation.replace(
+                  'authScreens',
+                );
+              },
+            },
+          ],
+        );
+
+        return;
+      }
+
+      /*
+       * ------------------------------------------------------
+       * NEW CUSTOMER
+       * ------------------------------------------------------
+       */
+
+      if (mode === 'CUSTOMER') {
+
+        console.log(
+          '➡️ NEW CUSTOMER → RegisterUser',
+        );
+
+        console.log(
+          'PHONE:',
+          phoneNumber,
+        );
+
+        navigation.replace(
+          'RegisterUser',
+          {
+            phoneNumber: phoneNumber,
+            activeRole: 'CUSTOMER',
+          },
+        );
+
+        return;
+      }
+
+      /*
+       * ------------------------------------------------------
+       * NEW PROVIDER
+       * ------------------------------------------------------
+       */
+
+      if (mode === 'PROVIDER') {
+
+        console.log(
+          '➡️ NEW PROVIDER → RegisterUser',
+        );
+
+        console.log(
+          'PHONE:',
+          phoneNumber,
+        );
+
+        navigation.replace(
+          'RegisterUser',
+          {
+            phoneNumber: phoneNumber,
+            activeRole: 'PROVIDER',
+          },
+        );
+
+        return;
+      }
+
+      /*
+       * ------------------------------------------------------
+       * UNKNOWN MODE
+       * ------------------------------------------------------
+       */
+
+      console.error(
+        'UNKNOWN LOGIN MODE:',
+        mode,
+      );
+
+      Alert.alert(
+        'Unable to continue',
+        `Unknown account type: ${mode}`,
+      );
+
+      return;
+    }
+
+    /*
+     * ======================================================
+     * UNKNOWN OTP RESPONSE
+     * ======================================================
+     */
+
+    console.error(
+      'Unknown OTP verification response:',
+      result,
+    );
+
+    Alert.alert(
+      'Unable to continue',
+      'We could not determine your account status. Please try again.',
+    );
   };
+  /*
+   * --------------------------------------------------------
+   * RENDER
+   * --------------------------------------------------------
+   */
 
   return (
     <SafeAreaView
-      style={styles.safeAreaContainer}
+      style={
+        styles.safeAreaContainer
+      }
     >
 
       <KeyboardAvoidingView
@@ -249,26 +684,36 @@ export default function LoginScreen() {
           {/* HERO */}
 
           <View
-            style={styles.heroContainer}
+            style={
+              styles.heroContainer
+            }
           >
 
             <Image
               source={require(
                 '../../assets/logo_badge.png',
               )}
-              style={styles.heroImage}
+              style={
+                styles.heroImage
+              }
               resizeMode="cover"
             />
 
             <View
-              style={styles.heroOverlay}
+              style={
+                styles.heroOverlay
+              }
             />
 
-            {/* Back */}
+            {/* BACK */}
 
             <TouchableOpacity
-              onPress={handleBack}
-              style={styles.backButton}
+              onPress={
+                handleBack
+              }
+              style={
+                styles.backButton
+              }
               activeOpacity={0.8}
               hitSlop={{
                 top: 10,
@@ -277,23 +722,33 @@ export default function LoginScreen() {
                 right: 10,
               }}
             >
-              <Text style={styles.back}>
+
+              <Text
+                style={styles.back}
+              >
                 ‹
               </Text>
+
             </TouchableOpacity>
 
             <View
-              style={styles.heroTextContainer}
+              style={
+                styles.heroTextContainer
+              }
             >
 
               <Text
-                style={styles.heroTitle}
+                style={
+                  styles.heroTitle
+                }
               >
                 Beauty that feels like you
               </Text>
 
               <Text
-                style={styles.heroSubtitle}
+                style={
+                  styles.heroSubtitle
+                }
               >
                 Discover trusted salons and beauty
                 services near you.
@@ -306,29 +761,43 @@ export default function LoginScreen() {
           {/* CONTENT */}
 
           <View
-            style={styles.contentCard}
+            style={
+              styles.contentCard
+            }
           >
 
-            <Text style={styles.title}>
+            <Text
+              style={styles.title}
+            >
               {mode === 'CUSTOMER'
-                ? 'Welcome'
-                : 'Welcome!'}
+                ? 'Find a Service'
+                : mode === 'PROVIDER'
+                  ? 'Provide a Service'
+                  : 'Welcome back'}
             </Text>
 
-            <Text style={styles.subtitle}>
+            <Text
+              style={styles.subtitle}
+            >
               {mode === 'CUSTOMER'
                 ? 'Enter your mobile number to get started.'
-                : 'Sign in securely with your mobile number.'}
+                : mode === 'PROVIDER'
+                  ? 'Enter your mobile number to get started.'
+                  : 'Sign in securely with your mobile number.'}
             </Text>
 
             {/* MOBILE */}
 
             <View
-              style={styles.inputSection}
+              style={
+                styles.inputSection
+              }
             >
 
               <Text
-                style={styles.inputLabel}
+                style={
+                  styles.inputLabel
+                }
               >
                 Mobile number
               </Text>
@@ -341,9 +810,15 @@ export default function LoginScreen() {
 
                 <DMobileInput
                   inputAccessoryViewID="sendOtp"
-                  setValid={setValid}
-                  value={phoneNumber}
-                  setValue={setPhoneNumber}
+                  setValid={
+                    setValid
+                  }
+                  value={
+                    phoneNumber
+                  }
+                  setValue={
+                    setPhoneNumber
+                  }
                 />
 
               </View>
@@ -354,17 +829,23 @@ export default function LoginScreen() {
 
             <DButton
               type="primary"
-              style={styles.loginBtnStyle}
+              style={
+                styles.loginBtnStyle
+              }
               disabled={
                 !phoneNumber ||
                 !isValid ||
                 loading
               }
-              onPress={loginWithPhone}
+              onPress={
+                loginWithPhone
+              }
             >
 
               <Text
-                style={styles.loginText}
+                style={
+                  styles.loginText
+                }
               >
                 {loading
                   ? 'Sending code...'
@@ -382,8 +863,11 @@ export default function LoginScreen() {
             >
 
               <View
-                style={styles.securityIcon}
+                style={
+                  styles.securityIcon
+                }
               >
+
                 <Text
                   style={
                     styles.securityIconText
@@ -391,10 +875,13 @@ export default function LoginScreen() {
                 >
                   ✓
                 </Text>
+
               </View>
 
               <Text
-                style={styles.securityText}
+                style={
+                  styles.securityText
+                }
               >
                 We'll send you an OTP to verify
                 your mobile number
@@ -405,22 +892,29 @@ export default function LoginScreen() {
             {/* TERMS */}
 
             <View
-              style={styles.bottomContainer}
+              style={
+                styles.bottomContainer
+              }
             >
 
               <Text
-                style={styles.bottomText}
+                style={
+                  styles.bottomText
+                }
               >
                 By continuing, you agree to our
               </Text>
 
               <View
-                style={styles.legalRow}
+                style={
+                  styles.legalRow
+                }
               >
 
                 <TouchableOpacity
                   activeOpacity={0.7}
                 >
+
                   <Text
                     style={
                       styles.legalLink
@@ -428,10 +922,13 @@ export default function LoginScreen() {
                   >
                     Terms of Service
                   </Text>
+
                 </TouchableOpacity>
 
                 <Text
-                  style={styles.separator}
+                  style={
+                    styles.separator
+                  }
                 >
                   {'  &  '}
                 </Text>
@@ -439,6 +936,7 @@ export default function LoginScreen() {
                 <TouchableOpacity
                   activeOpacity={0.7}
                 >
+
                   <Text
                     style={
                       styles.legalLink
@@ -446,6 +944,7 @@ export default function LoginScreen() {
                   >
                     Privacy Policy
                   </Text>
+
                 </TouchableOpacity>
 
               </View>
@@ -458,15 +957,21 @@ export default function LoginScreen() {
 
       </KeyboardAvoidingView>
 
-      {/* GENERIC OTP MODAL */}
+      {/* OTP */}
 
       <OTPModal
-        visible={showOTP}
-        phoneNumber={phoneNumber}
+        visible={
+          showOTP
+        }
+        phoneNumber={
+          phoneNumber
+        }
         onClose={() => {
           setShowOTP(false);
         }}
-        onVerified={handleOTPVerified}
+        onVerified={
+          handleOTPVerified
+        }
       />
 
     </SafeAreaView>

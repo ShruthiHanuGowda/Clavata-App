@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 
 import {
@@ -21,9 +22,13 @@ import {
   useRoute,
 } from '@react-navigation/native';
 
-import { useMutation } from '@apollo/client';
+import {
+  useMutation,
+} from '@apollo/client';
 
-import { DButton } from '../../components';
+import {
+  DButton,
+} from '../../components';
 
 import {
   REGISTER_USER,
@@ -33,7 +38,31 @@ import {
   useUser,
 } from '../../context/UserContext';
 
-const PRIMARY = '#009D94';
+import {
+  markAccountCreated,
+} from '../../utils/authStorage';
+
+
+const PRIMARY = '#5B21F4';
+
+
+/*
+ * ==========================================================
+ * ROLE
+ * ==========================================================
+ *
+ * CUSTOMER
+ *   Find Service
+ *
+ * PROVIDER
+ *   Provide Service
+ *
+ */
+
+type ActiveRole =
+  | 'CUSTOMER'
+  | 'PROVIDER';
+
 
 export default function RegisterUser() {
 
@@ -47,28 +76,118 @@ export default function RegisterUser() {
     setCurrentUser,
   } = useUser();
 
+
+  /*
+   * ==========================================================
+   * PHONE NUMBER
+   * ==========================================================
+   */
+
   const phoneNumber =
     route.params?.phoneNumber;
+
+
+  /*
+   * ==========================================================
+   * ACTIVE ROLE
+   * ==========================================================
+   *
+   * IMPORTANT:
+   *
+   * Everywhere in the app we use:
+   *
+   * CUSTOMER
+   * PROVIDER
+   *
+   * NOT:
+   *
+   * PROVIDER
+   * BUSINESS_PARTNER
+   *
+   */
+
+  const activeRole: ActiveRole =
+    route.params?.activeRole ||
+    'CUSTOMER';
+
+
+  const isProvider =
+    activeRole === 'PROVIDER';
+
+
+  /*
+   * ==========================================================
+   * FORM STATE
+   * ==========================================================
+   */
 
   const [
     fullName,
     setFullName,
   ] = useState('');
 
+
   const [
     acceptedTerms,
     setAcceptedTerms,
   ] = useState(false);
 
+
+  /*
+   * ==========================================================
+   * GRAPHQL
+   * ==========================================================
+   */
+
   const [
     registerUser,
-    { loading },
+    {
+      loading,
+    },
   ] = useMutation(
     REGISTER_USER,
   );
 
+
   /*
-   * Register customer
+   * ==========================================================
+   * BACK BUTTON
+   * ==========================================================
+   */
+
+  const handleBack =
+    useCallback(
+      () => {
+
+        if (
+          navigation.canGoBack()
+        ) {
+
+          navigation.goBack();
+
+          return;
+        }
+
+        /*
+         * Fallback if there is no
+         * previous screen.
+         */
+
+        navigation.navigate(
+          'authScreens',
+        );
+
+      },
+      [
+        navigation,
+      ],
+    );
+
+
+  /*
+   * ==========================================================
+   * REGISTER USER
+   * ==========================================================
    */
 
   const onRegister =
@@ -77,6 +196,13 @@ export default function RegisterUser() {
 
         const name =
           fullName.trim();
+
+
+        /*
+         * --------------------------------------------------
+         * NAME
+         * --------------------------------------------------
+         */
 
         if (!name) {
 
@@ -88,7 +214,10 @@ export default function RegisterUser() {
           return;
         }
 
-        if (name.length < 2) {
+
+        if (
+          name.length < 2
+        ) {
 
           Alert.alert(
             'Invalid name',
@@ -97,6 +226,13 @@ export default function RegisterUser() {
 
           return;
         }
+
+
+        /*
+         * --------------------------------------------------
+         * TERMS
+         * --------------------------------------------------
+         */
 
         if (!acceptedTerms) {
 
@@ -108,6 +244,13 @@ export default function RegisterUser() {
           return;
         }
 
+
+        /*
+         * --------------------------------------------------
+         * PHONE
+         * --------------------------------------------------
+         */
+
         if (!phoneNumber) {
 
           Alert.alert(
@@ -118,22 +261,67 @@ export default function RegisterUser() {
           return;
         }
 
+
         try {
 
           console.log(
-            '========== REGISTER USER ==========',
+            '======================================',
           );
 
-          const { data } =
-            await registerUser({
-              variables: {
-                input: {
-                  phoneNumber,
-                  fullName: name,
-                  acceptedTerms,
-                },
+          console.log(
+            'REGISTER USER',
+          );
+
+          console.log(
+            'PHONE:',
+            phoneNumber,
+          );
+
+          console.log(
+            'ACTIVE ROLE:',
+            activeRole,
+          );
+
+          console.log(
+            '======================================',
+          );
+
+
+          /*
+           * ------------------------------------------------
+           * REGISTER USER
+           * ------------------------------------------------
+           *
+           * IMPORTANT:
+           *
+           * activeRole is sent directly.
+           *
+           * CUSTOMER
+           * PROVIDER
+           *
+           */
+
+          const {
+            data,
+          } = await registerUser({
+            variables: {
+
+              input: {
+
+                phoneNumber,
+
+                fullName:
+                  name,
+
+                acceptedTerms,
+
+                activeRole,
+
               },
-            });
+
+            },
+          });
+
 
           console.log(
             'REGISTER RESPONSE:',
@@ -144,10 +332,20 @@ export default function RegisterUser() {
             ),
           );
 
+
           const result =
             data?.registerUser;
 
-          if (!result?.success) {
+
+          /*
+           * ------------------------------------------------
+           * REGISTRATION FAILED
+           * ------------------------------------------------
+           */
+
+          if (
+            !result?.success
+          ) {
 
             Alert.alert(
               'Registration Failed',
@@ -158,27 +356,101 @@ export default function RegisterUser() {
             return;
           }
 
+
           /*
-           * Account created.
+           * ------------------------------------------------
+           * ACCOUNT CREATED
+           * ------------------------------------------------
+           */
+
+          await markAccountCreated();
+
+
+          /*
+           * SAVE USER
+           * ------------------------------------------------
            */
 
           setCurrentUser(
             result.user,
           );
 
+
           /*
-           * Remove all authentication/
-           * registration screens.
+           * =================================================
+           * CUSTOMER
+           * =================================================
+           *
+           * Find Service
+           *
+           * RegisterUser
+           *      ↓
+           * appScreens
+           *
            */
 
-          navigation.reset({
-            index: 0,
-            routes: [
-              {
-                name: 'appScreens',
-              },
-            ],
-          });
+          if (
+            activeRole ===
+            'CUSTOMER'
+          ) {
+
+            console.log(
+              'NEW CUSTOMER ACCOUNT CREATED',
+            );
+
+            navigation.reset({
+              index: 0,
+
+              routes: [
+                {
+                  name:
+                    'appScreens',
+                },
+              ],
+
+            });
+
+            return;
+          }
+
+
+          /*
+           * =================================================
+           * PROVIDER
+           * =================================================
+           *
+           * Provide Service
+           *
+           * RegisterUser
+           *      ↓
+           * SalonRegistration
+           *
+           */
+
+          if (
+            activeRole ===
+            'PROVIDER'
+          ) {
+
+            console.log(
+              'NEW PROVIDER ACCOUNT CREATED',
+            );
+
+            navigation.reset({
+              index: 0,
+
+              routes: [
+                {
+                  name:
+                    'BecomePartner',
+                },
+              ],
+
+            });
+
+            return;
+          }
+
 
         } catch (error: any) {
 
@@ -187,10 +459,19 @@ export default function RegisterUser() {
             error,
           );
 
+
+          const message =
+            error?.graphQLErrors?.[0]
+              ?.message ||
+            error?.message ||
+            'Unable to create your account. Please try again.';
+
+
           Alert.alert(
-            'Something went wrong',
-            'Unable to create your account. Please try again.',
+            'Registration Failed',
+            message,
           );
+
         }
 
       },
@@ -198,11 +479,19 @@ export default function RegisterUser() {
         fullName,
         acceptedTerms,
         phoneNumber,
+        activeRole,
         registerUser,
         setCurrentUser,
         navigation,
       ],
     );
+
+
+  /*
+   * ==========================================================
+   * TERMS
+   * ==========================================================
+   */
 
   const toggleTerms =
     () => {
@@ -211,11 +500,22 @@ export default function RegisterUser() {
         previous =>
           !previous,
       );
+
     };
 
+
+  /*
+   * ==========================================================
+   * RENDER
+   * ==========================================================
+   */
+
   return (
+
     <SafeAreaView
-      style={styles.container}
+      style={
+        styles.container
+      }
     >
 
       <KeyboardAvoidingView
@@ -239,72 +539,188 @@ export default function RegisterUser() {
           }
         >
 
+          {/* ================================================= */}
+          {/* BACK BUTTON */}
+          {/* ================================================= */}
+
+          <TouchableOpacity
+            onPress={
+              handleBack
+            }
+            style={
+              styles.backButton
+            }
+            activeOpacity={0.7}
+            hitSlop={{
+              top: 10,
+              bottom: 10,
+              left: 10,
+              right: 10,
+            }}
+          >
+
+            <Text
+              style={
+                styles.backIcon
+              }
+            >
+              ‹
+            </Text>
+
+            <Text
+              style={
+                styles.backText
+              }
+            >
+              Back
+            </Text>
+
+          </TouchableOpacity>
+
+
+          {/* ================================================= */}
           {/* HEADER */}
+          {/* ================================================= */}
 
           <View
-            style={styles.topSection}
+            style={
+              styles.topSection
+            }
           >
 
             <View
-              style={styles.iconCircle}
+              style={
+                styles.iconCircle
+              }
             >
 
               <Text
-                style={styles.iconText}
+                style={
+                  styles.iconText
+                }
               >
-                C
+                {isProvider
+                  ? 'P'
+                  : 'C'}
               </Text>
 
             </View>
 
-            <Text
-              style={styles.title}
-            >
-              Welcome to Clavata 👋
-            </Text>
 
             <Text
-              style={styles.subtitle}
+              style={
+                styles.title
+              }
             >
-              Just one more step to get started.
+              {isProvider
+                ? 'Become a Service Partner'
+                : 'Welcome to Clavata'}
+            </Text>
+
+
+            <Text
+              style={
+                styles.subtitle
+              }
+            >
+              {isProvider
+                ? 'Just one more step to create your provider account.'
+                : 'Just one more step to get started.'}
             </Text>
 
           </View>
 
+
+          {/* ================================================= */}
           {/* CARD */}
+          {/* ================================================= */}
 
           <View
-            style={styles.card}
+            style={
+              styles.card
+            }
           >
 
+            {/* ================================================= */}
+            {/* ACCOUNT TYPE */}
+            {/* ================================================= */}
+
+            <View
+              style={
+                styles.roleContainer
+              }
+            >
+
+              <Text
+                style={
+                  styles.roleLabel
+                }
+              >
+                Account type
+              </Text>
+
+
+              <Text
+                style={
+                  styles.roleValue
+                }
+              >
+                {isProvider
+                  ? 'Service Provider'
+                  : 'Customer'}
+              </Text>
+
+            </View>
+
+
+            {/* ================================================= */}
+            {/* FULL NAME */}
+            {/* ================================================= */}
+
             <Text
-              style={styles.fieldLabel}
+              style={
+                styles.fieldLabel
+              }
             >
               Full name
             </Text>
 
+
             <TextInput
-              style={styles.input}
+              style={
+                styles.input
+              }
               placeholder="Enter your full name"
               placeholderTextColor="#9CA3AF"
-              value={fullName}
+              value={
+                fullName
+              }
               onChangeText={
                 setFullName
               }
               autoCapitalize="words"
               autoCorrect={false}
               returnKeyType="done"
-              editable={!loading}
+              editable={
+                !loading
+              }
             />
 
+
+            {/* ================================================= */}
             {/* VERIFIED PHONE */}
+            {/* ================================================= */}
 
             <View
-              style={styles.phoneContainer}
+              style={
+                styles.phoneContainer
+              }
             >
 
               <View
-                style={styles.phoneIcon}
+                style={
+                  styles.phoneIcon
+                }
               >
 
                 <Text
@@ -317,18 +733,26 @@ export default function RegisterUser() {
 
               </View>
 
+
               <View
-                style={styles.phoneDetails}
+                style={
+                  styles.phoneDetails
+                }
               >
 
                 <Text
-                  style={styles.phoneLabel}
+                  style={
+                    styles.phoneLabel
+                  }
                 >
                   Mobile number verified
                 </Text>
 
+
                 <Text
-                  style={styles.phoneNumber}
+                  style={
+                    styles.phoneNumber
+                  }
                 >
                   {phoneNumber}
                 </Text>
@@ -337,7 +761,10 @@ export default function RegisterUser() {
 
             </View>
 
+
+            {/* ================================================= */}
             {/* TERMS */}
+            {/* ================================================= */}
 
             <Pressable
               style={
@@ -346,7 +773,9 @@ export default function RegisterUser() {
               onPress={
                 toggleTerms
               }
-              disabled={loading}
+              disabled={
+                loading
+              }
             >
 
               <View
@@ -358,27 +787,38 @@ export default function RegisterUser() {
               >
 
                 {acceptedTerms && (
+
                   <Text
-                    style={styles.tick}
+                    style={
+                      styles.tick
+                    }
                   >
                     ✓
                   </Text>
+
                 )}
 
               </View>
 
+
               <Text
-                style={styles.termsText}
+                style={
+                  styles.termsText
+                }
               >
+
                 I agree to Clavata's{' '}
+
                 <Text
                   style={
                     styles.termsLink
                   }
                 >
                   Terms & Conditions
-                </Text>{' '}
-                and{' '}
+                </Text>
+
+                {' '}and{' '}
+
                 <Text
                   style={
                     styles.termsLink
@@ -386,15 +826,21 @@ export default function RegisterUser() {
                 >
                   Privacy Policy
                 </Text>
+
               </Text>
 
             </Pressable>
 
+
+            {/* ================================================= */}
             {/* CONTINUE */}
+            {/* ================================================= */}
 
             <DButton
               type="primary"
-              style={styles.button}
+              style={
+                styles.button
+              }
               disabled={
                 loading ||
                 !fullName.trim() ||
@@ -406,19 +852,32 @@ export default function RegisterUser() {
             >
 
               <Text
-                style={styles.buttonText}
+                style={
+                  styles.buttonText
+                }
               >
+
                 {loading
                   ? 'Creating account...'
-                  : 'Get Started'}
+                  : isProvider
+                    ? 'Continue to Provider Registration'
+                    : 'Create Account'}
+
               </Text>
 
             </DButton>
 
           </View>
 
+
+          {/* ================================================= */}
+          {/* FOOTER */}
+          {/* ================================================= */}
+
           <Text
-            style={styles.footerText}
+            style={
+              styles.footerText
+            }
           >
             Your verified mobile number will be used
             to secure your Clavata account.
@@ -429,200 +888,406 @@ export default function RegisterUser() {
       </KeyboardAvoidingView>
 
     </SafeAreaView>
+
   );
 }
 
-const styles = StyleSheet.create({
 
-  container: {
-    flex: 1,
-    backgroundColor: '#F7F9FA',
-  },
+RegisterUser.navigationOptions = {
+  header: null,
+};
 
-  keyboardContainer: {
-    flex: 1,
-  },
 
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 22,
-    paddingTop: 45,
-    paddingBottom: 30,
-  },
+/*
+ * ==========================================================
+ * STYLES
+ * ==========================================================
+ */
 
-  topSection: {
-    alignItems: 'center',
-    marginBottom: 28,
-  },
+const styles =
+  StyleSheet.create({
 
-  iconCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: PRIMARY,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-  },
-
-  iconText: {
-    color: '#FFFFFF',
-    fontSize: 27,
-    fontWeight: '800',
-  },
-
-  title: {
-    fontSize: 25,
-    fontWeight: '700',
-    color: '#111827',
-    textAlign: 'center',
-    letterSpacing: -0.3,
-  },
-
-  subtitle: {
-    marginTop: 8,
-    fontSize: 15,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 22,
-
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
+    container: {
+      flex: 1,
+      backgroundColor: '#F7F8FA',
     },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
 
-    elevation: 3,
-  },
+    keyboardContainer: {
+      flex: 1,
+    },
 
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 9,
-  },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: 22,
+      paddingTop: 18,
+      paddingBottom: 30,
+    },
 
-  input: {
-    height: 54,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#FAFAFA',
-  },
 
-  phoneContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 18,
-    padding: 13,
-    borderRadius: 12,
-    backgroundColor: '#F0FAF8',
-  },
+    /*
+     * --------------------------------------------------------
+     * BACK
+     * --------------------------------------------------------
+     */
 
-  phoneIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: PRIMARY,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 11,
-  },
+    backButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
 
-  phoneIconText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+      alignSelf: 'flex-start',
 
-  phoneDetails: {
-    flex: 1,
-  },
+      paddingVertical: 8,
+      paddingRight: 12,
 
-  phoneLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 2,
-  },
+      marginBottom: 18,
+    },
 
-  phoneNumber: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-  },
+    backIcon: {
+      fontSize: 34,
+      lineHeight: 34,
 
-  termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: 22,
-    marginBottom: 22,
-  },
+      color: '#111827',
 
-  checkbox: {
-    width: 21,
-    height: 21,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    borderRadius: 6,
-    marginRight: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-  },
+      fontWeight: '300',
 
-  checkboxSelected: {
-    backgroundColor: PRIMARY,
-    borderColor: PRIMARY,
-  },
+      marginRight: 5,
+    },
 
-  tick: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
+    backText: {
+      fontSize: 15,
 
-  termsText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#6B7280',
-  },
+      color: '#374151',
 
-  termsLink: {
-    color: PRIMARY,
-    fontWeight: '600',
-  },
+      fontWeight: '500',
+    },
 
-  button: {
-    width: '100%',
-    minHeight: 52,
-    borderRadius: 12,
-  },
 
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
+    /*
+     * --------------------------------------------------------
+     * HEADER
+     * --------------------------------------------------------
+     */
 
-  footerText: {
-    marginTop: 22,
-    paddingHorizontal: 15,
-    textAlign: 'center',
-    fontSize: 12,
-    lineHeight: 18,
-    color: '#9CA3AF',
-  },
+    topSection: {
+      alignItems: 'center',
 
-});
+      marginBottom: 28,
+    },
+
+    iconCircle: {
+      width: 58,
+      height: 58,
+
+      borderRadius: 29,
+
+      backgroundColor: PRIMARY,
+
+      alignItems: 'center',
+      justifyContent: 'center',
+
+      marginBottom: 18,
+    },
+
+    iconText: {
+      color: '#FFFFFF',
+
+      fontSize: 27,
+
+      fontWeight: '800',
+    },
+
+    title: {
+      fontSize: 25,
+
+      fontWeight: '700',
+
+      color: '#111827',
+
+      textAlign: 'center',
+
+      letterSpacing: -0.3,
+    },
+
+    subtitle: {
+      marginTop: 8,
+
+      fontSize: 15,
+
+      color: '#6B7280',
+
+      textAlign: 'center',
+    },
+
+
+    /*
+     * --------------------------------------------------------
+     * CARD
+     * --------------------------------------------------------
+     */
+
+    card: {
+      backgroundColor: '#FFFFFF',
+
+      borderRadius: 20,
+
+      padding: 22,
+
+      shadowColor: '#000',
+
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+
+      shadowOpacity: 0.06,
+
+      shadowRadius: 12,
+
+      elevation: 3,
+    },
+
+
+    /*
+     * --------------------------------------------------------
+     * ROLE
+     * --------------------------------------------------------
+     */
+
+    roleContainer: {
+      padding: 14,
+
+      borderRadius: 12,
+
+      backgroundColor: '#F3EEFF',
+
+      marginBottom: 20,
+    },
+
+    roleLabel: {
+      fontSize: 12,
+
+      color: '#6B7280',
+
+      marginBottom: 3,
+    },
+
+    roleValue: {
+      fontSize: 15,
+
+      fontWeight: '700',
+
+      color: PRIMARY,
+    },
+
+
+    /*
+     * --------------------------------------------------------
+     * NAME
+     * --------------------------------------------------------
+     */
+
+    fieldLabel: {
+      fontSize: 14,
+
+      fontWeight: '600',
+
+      color: '#374151',
+
+      marginBottom: 9,
+    },
+
+    input: {
+      height: 54,
+
+      borderWidth: 1,
+
+      borderColor: '#E5E7EB',
+
+      borderRadius: 12,
+
+      paddingHorizontal: 16,
+
+      fontSize: 16,
+
+      color: '#111827',
+
+      backgroundColor: '#FAFAFA',
+    },
+
+
+    /*
+     * --------------------------------------------------------
+     * PHONE
+     * --------------------------------------------------------
+     */
+
+    phoneContainer: {
+      flexDirection: 'row',
+
+      alignItems: 'center',
+
+      marginTop: 18,
+
+      padding: 13,
+
+      borderRadius: 12,
+
+      backgroundColor: '#F3EEFF',
+    },
+
+    phoneIcon: {
+      width: 30,
+      height: 30,
+
+      borderRadius: 15,
+
+      backgroundColor: PRIMARY,
+
+      alignItems: 'center',
+
+      justifyContent: 'center',
+
+      marginRight: 11,
+    },
+
+    phoneIconText: {
+      color: '#FFFFFF',
+
+      fontSize: 16,
+
+      fontWeight: '700',
+    },
+
+    phoneDetails: {
+      flex: 1,
+    },
+
+    phoneLabel: {
+      fontSize: 12,
+
+      color: '#6B7280',
+
+      marginBottom: 2,
+    },
+
+    phoneNumber: {
+      fontSize: 14,
+
+      fontWeight: '600',
+
+      color: '#111827',
+    },
+
+
+    /*
+     * --------------------------------------------------------
+     * TERMS
+     * --------------------------------------------------------
+     */
+
+    termsContainer: {
+      flexDirection: 'row',
+
+      alignItems: 'flex-start',
+
+      marginTop: 22,
+
+      marginBottom: 22,
+    },
+
+    checkbox: {
+      width: 21,
+      height: 21,
+
+      borderWidth: 1.5,
+
+      borderColor: '#CBD5E1',
+
+      borderRadius: 6,
+
+      marginRight: 11,
+
+      alignItems: 'center',
+
+      justifyContent: 'center',
+
+      marginTop: 1,
+    },
+
+    checkboxSelected: {
+      backgroundColor: PRIMARY,
+
+      borderColor: PRIMARY,
+    },
+
+    tick: {
+      color: '#FFFFFF',
+
+      fontSize: 14,
+
+      fontWeight: '800',
+    },
+
+    termsText: {
+      flex: 1,
+
+      fontSize: 13,
+
+      lineHeight: 20,
+
+      color: '#6B7280',
+    },
+
+    termsLink: {
+      color: PRIMARY,
+
+      fontWeight: '600',
+    },
+
+
+    /*
+     * --------------------------------------------------------
+     * BUTTON
+     * --------------------------------------------------------
+     */
+
+    button: {
+      width: '100%',
+
+      minHeight: 52,
+
+      borderRadius: 12,
+    },
+
+    buttonText: {
+      color: '#FFFFFF',
+
+      fontSize: 16,
+
+      fontWeight: '700',
+
+      textAlign: 'center',
+    },
+
+
+    /*
+     * --------------------------------------------------------
+     * FOOTER
+     * --------------------------------------------------------
+     */
+
+    footerText: {
+      marginTop: 22,
+
+      paddingHorizontal: 15,
+
+      textAlign: 'center',
+
+      fontSize: 12,
+
+      lineHeight: 18,
+
+      color: '#9CA3AF',
+    },
+
+  });

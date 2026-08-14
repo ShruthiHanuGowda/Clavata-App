@@ -844,15 +844,15 @@ export default function LocationBottomSheet({
                     {/* SAVED LOCATIONS */}
                     {/* ================================================= */}
 
-                    <Text
+                    {/* <Text
                         style={
                             styles.section
                         }
                     >
                         Saved Locations
-                    </Text>
+                    </Text> */}
 
-
+                    {/* 
                     {filteredSaved.length > 0 ? (
 
                         filteredSaved.map(
@@ -953,7 +953,7 @@ export default function LocationBottomSheet({
 
                         </View>
 
-                    )}
+                    )} */}
 
 
                     {/* ================================================= */}

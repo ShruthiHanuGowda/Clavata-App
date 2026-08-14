@@ -47,31 +47,96 @@ export default function SalonReviewScreen({ navigation }: any) {
           },
         },
       });
-      if (response.data?.registerSalonPartner?.success) {
-
+      if (
+        response.data?.registerSalonPartner?.success
+      ) {
         const salonId =
-          response.data.registerSalonPartner.salonId;
+          response.data
+            .registerSalonPartner
+            .salonId;
 
         if (!currentUser) {
           Alert.alert(
             'Error',
-            'User session expired. Please login again.'
+            'User session expired. Please login again.',
           );
+
           return;
         }
 
-        setCurrentUser({
+        /*
+         * ------------------------------------------------------
+         * UPDATE USER TO PROVIDER
+         * ------------------------------------------------------
+         */
+
+        const updatedUser = {
           ...currentUser,
+
+          activeRole: 'PROVIDER',
+
           roles: {
             ...currentUser.roles,
+
+            customer:
+              currentUser.roles?.customer ?? false,
+
             businessPartner: true,
           },
-          providerStatus: "PENDING",
+
+          providerStatus: 'PENDING',
+
           salonId,
-        });
+        };
+
+        console.log(
+          'UPDATED PROVIDER USER:',
+          JSON.stringify(
+            updatedUser,
+            null,
+            2,
+          ),
+        );
+
+        /*
+         * Save provider state
+         */
+
+        setCurrentUser(
+          updatedUser,
+        );
+
+        /*
+         * Clear salon registration form
+         */
+
         reset();
 
-        navigation.replace('SalonSuccess');
+        /*
+         * ------------------------------------------------------
+         * GO TO MAIN APP
+         * ------------------------------------------------------
+         *
+         * AppTabs will see:
+         *
+         * activeRole = PROVIDER
+         *
+         * and automatically render:
+         *
+         * SalonTabs
+         */
+
+        navigation.reset({
+          index: 0,
+
+          routes: [
+            {
+              name: 'appScreens',
+            },
+          ],
+        });
+
+        return;
       } else {
         Alert.alert(
           'Error',

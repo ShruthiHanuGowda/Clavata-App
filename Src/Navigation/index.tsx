@@ -8,7 +8,7 @@ import { StyleSheet, View } from 'react-native';
 import { Root } from '../Screens/RootScreen';
 import HomeScreenPage from '../Screens/CustomerTabs/Home/HomeScreenPage';
 import { navigationRef } from './NavigationFunctions';
-import ExplorePage from '../Screens/CustomerTabs/Explore/ExplorePage';
+import OfferPage from '../Screens/CustomerTabs/Offer/OfferPage';
 import BookingPage from '../Screens/CustomerTabs/Booking/BookingPage';
 import ProfileScreen from '../Screens/CustomerTabs/Profile/ProfileScreen';
 import PartnerStack from './PartnerStack';
@@ -107,12 +107,12 @@ const ExploreStackNavigator =
 export function ExploreStack() {
   return (
     <ExploreStackNavigator.Navigator
-      initialRouteName="Explore"
+      initialRouteName="Offers"
       screenOptions={{ headerShown: false }}
     >
       <ExploreStackNavigator.Screen
-        name="Explore"
-        component={ExplorePage}
+        name="Offers"
+        component={OfferPage}
       />
 
       <ExploreStackNavigator.Screen

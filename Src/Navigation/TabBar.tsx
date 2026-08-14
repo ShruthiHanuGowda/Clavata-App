@@ -13,33 +13,33 @@ import { Circle, Path, Svg } from 'react-native-svg';
 import images from '../Theme/images';
 import fontsFamily from '../Theme/fontsFamily';
 
-type TabIconKeys = 'Clavata' | 'Home' | 'Bookings' | 'Explore' | 'Profile';
+type TabIconKeys = 'Clavata' | 'Home' | 'Bookings' | 'Offers' | 'Profile';
 
 const tabIconsActive: {
   Bookings: {};
   Home: {};
-  Explore: {};
+  Offers: {};
   'Clavata': {};
   Profile: {};
 } = {
   'Clavata': images?.homeActive,
   Home: images?.walletActive,
   Bookings: images?.shopActive,
-  Explore: images?.categoryActive,
+  Offers: images?.categoryActive,
   Profile: images?.stakeActive,
 };
 
 const tabIcons: {
   Bookings: {};
   Home: {};
-  Explore: {};
+  Offers: {};
   'Clavata': {};
   Profile: {};
 } = {
   'Clavata': images?.home,
   Home: images?.wallet,
   Bookings: images?.shop,
-  Explore: images?.category,
+  Offers: images?.category,
   Profile: images?.stake,
 };
 

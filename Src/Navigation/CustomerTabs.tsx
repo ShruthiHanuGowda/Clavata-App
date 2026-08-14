@@ -26,7 +26,7 @@ export default function Tabs() {
         options={{ headerShown: false }}
       />
       <Tab.Screen
-        name="Explore"
+        name="Offers"
         component={ExploreStack}
         options={{ headerShown: false }}
       />

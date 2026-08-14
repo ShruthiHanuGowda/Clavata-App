@@ -81,7 +81,7 @@ export type RootStackScreenProps<Screen extends keyof RootStackParamList> = Nati
 export type RootTabParamList = {
   'Clavata': undefined;
   Home: undefined;
-  Explore: undefined;
+  Offers: undefined;
   Bookings: undefined;
   Profile: undefined;
   dApps: undefined;
@@ -115,7 +115,7 @@ export type WalletStackParamList = {
   BookingPayment: undefined;
   RateReview: undefined;
   SalonDetails: undefined;
-  Explore: undefined;
+  Offers: undefined;
 };
 
 export type CoinWalletStackParamList = {
