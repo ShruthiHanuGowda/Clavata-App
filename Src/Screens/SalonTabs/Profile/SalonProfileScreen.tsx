@@ -12,10 +12,34 @@ import { useNavigation } from '@react-navigation/native';
 import styles from './styles';
 import { useUser } from '../../../context/UserContext';
 import secureStorage from '../../../utils/secureStorage';
+import { navReset } from '../../../Navigation/NavigationFunctions';
 
 export default function SalonProfileScreen() {
     const navigation = useNavigation();
     const { currentUser, setCurrentUser } = useUser();
+    // const onLogout = () => {
+    //     Alert.alert(
+    //         'Logout',
+    //         'Are you sure you want to logout?',
+    //         [
+    //             {
+    //                 text: 'Cancel',
+    //                 style: 'cancel',
+    //             },
+    //             {
+    //                 text: 'Logout',
+    //                 style: 'destructive',
+    //                 onPress: async () => {
+    //                     await secureStorage.removeItem(
+    //                         'isInfoDone',
+    //                     );
+    //                     setCurrentUser(null);
+    //                     navigation.navigate("LoginScreen")
+    //                 },
+    //             },
+    //         ],
+    //     );
+    // };
     const onLogout = () => {
         Alert.alert(
             'Logout',
@@ -28,12 +52,59 @@ export default function SalonProfileScreen() {
                 {
                     text: 'Logout',
                     style: 'destructive',
+
                     onPress: async () => {
-                        await secureStorage.removeItem(
-                            'isInfoDone',
-                        );
-                        setCurrentUser(null);
-                        navigation.navigate("LoginScreen")
+                        try {
+                            console.log(
+                                '========== PROVIDER LOGOUT =========='
+                            );
+
+                            // ------------------------------------------------
+                            // 1. Remove authenticated session flag
+                            // ------------------------------------------------
+                            await secureStorage.removeItem(
+                                'isAuthenticated',
+                            );
+
+                            console.log(
+                                'isAuthenticated removed',
+                            );
+
+                            // ------------------------------------------------
+                            // 2. RESET ROOT NAVIGATION FIRST
+                            // ------------------------------------------------
+                            navReset(
+                                'LoginScreen',
+                                {
+                                    mode: 'SIGN_IN',
+                                    hideBackButton: true,
+                                },
+                            );
+
+                            console.log(
+                                'Navigation reset to LoginScreen',
+                            );
+
+                            // ------------------------------------------------
+                            // 3. Clear current user AFTER navigation reset
+                            // ------------------------------------------------
+                            setCurrentUser(null);
+
+                            console.log(
+                                'Provider user context cleared',
+                            );
+
+                        } catch (error) {
+                            console.error(
+                                'Provider logout error:',
+                                error,
+                            );
+
+                            Alert.alert(
+                                'Logout failed',
+                                'Unable to logout. Please try again.',
+                            );
+                        }
                     },
                 },
             ],

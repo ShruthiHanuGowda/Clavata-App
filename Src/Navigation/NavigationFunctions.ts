@@ -1,49 +1,98 @@
-import {createNavigationContainerRef} from '@react-navigation/native';
-import {RootStackParamList} from '../../types';
+import {
+  createNavigationContainerRef,
+} from '@react-navigation/native';
 
-export const navigationRef = createNavigationContainerRef<RootStackParamList>();
+import {
+  RootStackParamList,
+} from '../../types';
+
+export const navigationRef =
+  createNavigationContainerRef<RootStackParamList>();
+
+// ============================================================
+// GO BACK
+// ============================================================
 
 export const navigateBack = () => {
-  navigationRef?.goBack();
+  if (!navigationRef.isReady()) {
+    console.warn('[Navigation] Navigation is not ready');
+    return;
+  }
+
+  navigationRef.goBack();
 };
 
-export const navigate = <T extends keyof RootStackParamList>(
-  screenName: T,
-  ...params: undefined extends RootStackParamList[T]
-    ? [RootStackParamList[T]?]
-    : [RootStackParamList[T]]
+// ============================================================
+// NAVIGATE
+// ============================================================
+
+export const navigate = (
+  screenName: keyof RootStackParamList,
+  params?: any,
 ) => {
   try {
-    if (navigationRef.current?.isReady()) {
-      if (params.length > 0 && params[0] !== undefined) {
-        navigationRef.current.navigate(screenName, params[0]);
-      } else {
-        navigationRef.current.navigate(screenName);
-      }
+    if (!navigationRef.isReady()) {
+      console.warn('[Navigation] Navigation is not ready');
+      return;
+    }
+
+    if (params !== undefined) {
+      (navigationRef as any).navigate(
+        screenName,
+        params,
+      );
     } else {
-      console.warn('[Navigation] Navigation is not ready yet');
+      (navigationRef as any).navigate(
+        screenName,
+      );
     }
   } catch (error) {
-    console.error('[Navigation] Error during navigation:', error);
+    console.error(
+      '[Navigation] Navigate error:',
+      error,
+    );
   }
 };
 
-export const navReset = <T extends keyof RootStackParamList>(
-  screenName: T,
-  ...params: undefined extends RootStackParamList[T]
-    ? [RootStackParamList[T]?]
-    : [RootStackParamList[T]]
+// ============================================================
+// RESET ROOT NAVIGATION
+// ============================================================
+
+export const navReset = (
+  screenName: keyof RootStackParamList,
+  params?: any,
 ) => {
-  if (navigationRef.current?.isReady()) {
-    const routeConfig =
-      params.length > 0 && params[0] !== undefined
-        ? {name: screenName, params: params[0]}
-        : {name: screenName};
-    navigationRef.current.reset({
+  try {
+    if (!navigationRef.isReady()) {
+      console.warn(
+        '[Navigation] Navigation is not ready',
+      );
+      return;
+    }
+
+    const route: any = {
+      name: screenName,
+    };
+
+    if (params !== undefined) {
+      route.params = params;
+    }
+
+    console.log(
+      '[Navigation] RESET TO:',
+      screenName,
+      params,
+    );
+
+    navigationRef.reset({
       index: 0,
-      routes: [routeConfig],
+      routes: [route],
     });
-  } else {
-    console.warn('Navigation not ready yet');
+
+  } catch (error) {
+    console.error(
+      '[Navigation] Reset error:',
+      error,
+    );
   }
 };

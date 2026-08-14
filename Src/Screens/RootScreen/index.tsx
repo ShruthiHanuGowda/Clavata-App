@@ -7,7 +7,7 @@ import secureStorage, {initializeAppStorage} from '../../utils/secureStorage';
 export const Root = () => {
   const CheckNav = async () => {
     try {
-      const value = await secureStorage.getItem('isInfoDone');
+      const value = await secureStorage.getItem('isAuthenticated');
 
       if (value === 'true') {
         (navReset as any)('appScreens');

@@ -90,6 +90,9 @@ export default function LoginScreen() {
     route.params?.mode ||
     'SIGN_IN';
 
+  const hideBackButton =
+    route.params?.hideBackButton === true;
+
   const [
     showOTP,
     setShowOTP,
@@ -253,20 +256,15 @@ export default function LoginScreen() {
   const handleBack =
     useCallback(
       () => {
-
         if (
           navigation.canGoBack()
         ) {
-
           navigation.goBack();
-
           return;
         }
-
         navigation.navigate(
           'authScreens',
         );
-
       },
       [navigation],
     );
@@ -705,31 +703,25 @@ export default function LoginScreen() {
               }
             />
 
-            {/* BACK */}
+            {/* BACK BUTTON */}
 
-            <TouchableOpacity
-              onPress={
-                handleBack
-              }
-              style={
-                styles.backButton
-              }
-              activeOpacity={0.8}
-              hitSlop={{
-                top: 10,
-                bottom: 10,
-                left: 10,
-                right: 10,
-              }}
-            >
-
-              <Text
-                style={styles.back}
+            {!hideBackButton && (
+              <TouchableOpacity
+                onPress={handleBack}
+                style={styles.backButton}
+                activeOpacity={0.8}
+                hitSlop={{
+                  top: 10,
+                  bottom: 10,
+                  left: 10,
+                  right: 10,
+                }}
               >
-                ‹
-              </Text>
-
-            </TouchableOpacity>
+                <Text style={styles.back}>
+                  ‹
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <View
               style={

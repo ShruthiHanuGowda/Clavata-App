@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useUser } from '../../../context/UserContext';
 import { Alert } from 'react-native';
 import secureStorage from '../../../utils/secureStorage';
+import { navReset } from '../../../Navigation/NavigationFunctions';
 const menuItems = [
   { title: 'My Bookings', icon: '📅', screen: 'ProfileBookings' },
   { title: 'Favourite Salons', icon: '❤️', screen: 'FavouriteSalons' },
@@ -26,6 +27,92 @@ export default function ProfileScreen() {
   const navigation = useNavigation<any>();
   const { currentUser, setCurrentUser } = useUser();
   console.log('currentUser?.providerStatus', currentUser?.providerStatus);
+  // const onLogout = () => {
+  //   Alert.alert(
+  //     'Logout',
+  //     'Are you sure you want to logout?',
+  //     [
+  //       {
+  //         text: 'Cancel',
+  //         style: 'cancel',
+  //       },
+  //       {
+  //         text: 'Logout',
+  //         style: 'destructive',
+  //         onPress: async () => {
+  //           await secureStorage.removeItem('isInfoDone');
+  //           setCurrentUser(null);
+  //           navigation.replace(
+  //             'LoginScreen',
+  //             {
+  //               mode: 'SIGN_IN',
+  //               hideBackButton: true,
+  //             },
+  //           );
+  //         },
+  //       },
+  //     ],
+  //   );
+  // };
+  // const onLogout = () => {
+  //   Alert.alert(
+  //     'Logout',
+  //     'Are you sure you want to logout?',
+  //     [
+  //       {
+  //         text: 'Cancel',
+  //         style: 'cancel',
+  //       },
+  //       {
+  //         text: 'Logout',
+  //         style: 'destructive',
+  //         onPress: async () => {
+  //           try {
+  //             await secureStorage.removeItem(
+  //               'isInfoDone',
+  //             );
+
+  //             setCurrentUser(null);
+
+  //             /*
+  //              * IMPORTANT:
+  //              *
+  //              * Reset the navigation stack so the user
+  //              * cannot go back into the authenticated app.
+  //              *
+  //              * hideBackButton tells LoginScreen that this
+  //              * LoginScreen was opened because of logout.
+  //              */
+
+  //             navigation.reset({
+  //               index: 0,
+  //               routes: [
+  //                 {
+  //                   name: 'LoginScreen',
+  //                   params: {
+  //                     mode: 'SIGN_IN',
+  //                     hideBackButton: true,
+  //                   },
+  //                 },
+  //               ],
+  //             });
+
+  //           } catch (error) {
+  //             console.error(
+  //               'Logout error:',
+  //               error,
+  //             );
+
+  //             Alert.alert(
+  //               'Logout failed',
+  //               'Unable to logout. Please try again.',
+  //             );
+  //           }
+  //         },
+  //       },
+  //     ],
+  //   );
+  // };
   const onLogout = () => {
     Alert.alert(
       'Logout',
@@ -38,10 +125,45 @@ export default function ProfileScreen() {
         {
           text: 'Logout',
           style: 'destructive',
+
           onPress: async () => {
-            await secureStorage.removeItem('isInfoDone');
-            setCurrentUser(null);
-            navigation.navigate("LoginScreen")
+            try {
+              console.log(
+                '========== CUSTOMER LOGOUT =========='
+              );
+
+              // Remove login/session flag
+              await secureStorage.removeItem(
+                'isAuthenticated',
+              );
+
+              // Reset ROOT navigation
+              navReset(
+                'LoginScreen',
+                {
+                  mode: 'SIGN_IN',
+                  hideBackButton: true,
+                },
+              );
+
+              // Clear user context
+              setCurrentUser(null);
+
+              console.log(
+                'Customer logout completed',
+              );
+
+            } catch (error) {
+              console.error(
+                'Customer logout error:',
+                error,
+              );
+
+              Alert.alert(
+                'Logout failed',
+                'Unable to logout. Please try again.',
+              );
+            }
           },
         },
       ],

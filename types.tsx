@@ -17,7 +17,10 @@ export type RootStackParamList = {
   root: undefined;
   intro: undefined;
   welcomeChoiceScreen: undefined;
-  LoginScreen: undefined;
+  LoginScreen: {
+    mode?: 'SIGN_IN';
+    hideBackButton?: boolean;
+  } | undefined;
   appScreens: undefined;
   authScreens: undefined;
   BecomePartner: undefined;
