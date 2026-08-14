@@ -17,29 +17,6 @@ import { navReset } from '../../../Navigation/NavigationFunctions';
 export default function SalonProfileScreen() {
     const navigation = useNavigation();
     const { currentUser, setCurrentUser } = useUser();
-    // const onLogout = () => {
-    //     Alert.alert(
-    //         'Logout',
-    //         'Are you sure you want to logout?',
-    //         [
-    //             {
-    //                 text: 'Cancel',
-    //                 style: 'cancel',
-    //             },
-    //             {
-    //                 text: 'Logout',
-    //                 style: 'destructive',
-    //                 onPress: async () => {
-    //                     await secureStorage.removeItem(
-    //                         'isInfoDone',
-    //                     );
-    //                     setCurrentUser(null);
-    //                     navigation.navigate("LoginScreen")
-    //                 },
-    //             },
-    //         ],
-    //     );
-    // };
     const onLogout = () => {
         Alert.alert(
             'Logout',
@@ -52,24 +29,20 @@ export default function SalonProfileScreen() {
                 {
                     text: 'Logout',
                     style: 'destructive',
-
                     onPress: async () => {
                         try {
                             console.log(
                                 '========== PROVIDER LOGOUT =========='
                             );
-
                             // ------------------------------------------------
                             // 1. Remove authenticated session flag
                             // ------------------------------------------------
                             await secureStorage.removeItem(
                                 'isAuthenticated',
                             );
-
                             console.log(
                                 'isAuthenticated removed',
                             );
-
                             // ------------------------------------------------
                             // 2. RESET ROOT NAVIGATION FIRST
                             // ------------------------------------------------
@@ -80,7 +53,6 @@ export default function SalonProfileScreen() {
                                     hideBackButton: true,
                                 },
                             );
-
                             console.log(
                                 'Navigation reset to LoginScreen',
                             );
@@ -89,17 +61,14 @@ export default function SalonProfileScreen() {
                             // 3. Clear current user AFTER navigation reset
                             // ------------------------------------------------
                             setCurrentUser(null);
-
                             console.log(
                                 'Provider user context cleared',
                             );
-
                         } catch (error) {
                             console.error(
                                 'Provider logout error:',
                                 error,
                             );
-
                             Alert.alert(
                                 'Logout failed',
                                 'Unable to logout. Please try again.',
