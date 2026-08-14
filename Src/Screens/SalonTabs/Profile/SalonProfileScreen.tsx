@@ -107,7 +107,7 @@ export default function SalonProfileScreen() {
                 break;
 
             case 'StaffManagement':
-                 navigation.getParent()?.navigate('StaffManagementScreen');
+                navigation.getParent()?.navigate('StaffManagementScreen');
                 break;
 
             case 'ManageServices':
@@ -240,16 +240,14 @@ export default function SalonProfileScreen() {
                     SWITCH MODE
                 ================================= */}
 
-                <View style={styles.profileCard}>
-                    <Text style={styles.sectionTitle}>
+                {/* <View style={styles.profileCard}> */}
+                    {/* <Text style={styles.sectionTitle}>
                         Switch Mode
                     </Text>
-
                     <View style={styles.switchRow}>
                         <Text style={styles.menuText}>
                             Salon Mode
                         </Text>
-
                         <Switch
                             value={
                                 currentUser?.activeRole ===
@@ -264,30 +262,29 @@ export default function SalonProfileScreen() {
                             }}
                             thumbColor="#FFFFFF"
                         />
-                    </View>
-
+                    </View> */}
                     {/* Show button when user is in Customer Mode */}
-
+{/* 
                     {currentUser?.activeRole ===
                         'CUSTOMER' && (
-                        <TouchableOpacity
-                            style={
-                                styles.switchButton
-                            }
-                            onPress={() =>
-                                handleModeChange(true)
-                            }
-                        >
-                            <Text
+                            <TouchableOpacity
                                 style={
-                                    styles.switchButtonText
+                                    styles.switchButton
+                                }
+                                onPress={() =>
+                                    handleModeChange(true)
                                 }
                             >
-                                Switch to Salon Mode
-                            </Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
+                                <Text
+                                    style={
+                                        styles.switchButtonText
+                                    }
+                                >
+                                    Switch to Salon Mode
+                                </Text>
+                            </TouchableOpacity>
+                        )} */}
+                {/* </View> */}
 
                 {/* =================================
                     BUSINESS
