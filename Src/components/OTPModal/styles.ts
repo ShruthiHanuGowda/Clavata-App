@@ -1,208 +1,205 @@
+import { StyleSheet } from 'react-native';
 import {
-    StyleSheet,
-} from 'react-native';
+    COLORS,
+    FONTS,
+    FONT_SIZES,
+    SPACING,
+    RADIUS,
+} from '../../constants/constants';
 
-const PRIMARY = '#009D94';
-
-export default StyleSheet.create({
-
+const styles = StyleSheet.create({
     blur: {
         ...StyleSheet.absoluteFillObject,
     },
-
     overlay: {
         flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.28)',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor:
-            'rgba(0,0,0,0.12)',
+        paddingHorizontal: 20,
     },
-
     outside: {
         ...StyleSheet.absoluteFillObject,
     },
-
     keyboard: {
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 20,
     },
-
     card: {
         width: '100%',
-        maxWidth: 390,
-
-        backgroundColor: '#FFFFFF',
-
-        borderRadius: 26,
-
+        maxWidth: 420,
+        backgroundColor: COLORS.background,
+        borderRadius: RADIUS.large,
         paddingHorizontal: 24,
-        paddingTop: 30,
-        paddingBottom: 25,
-
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 10,
-        },
-        shadowOpacity: 0.15,
-        shadowRadius: 25,
-
-        elevation: 10,
+        paddingTop: 28,
+        paddingBottom: 24,
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
-
     closeButton: {
         position: 'absolute',
-
-        right: 15,
-        top: 15,
-
-        width: 34,
-        height: 34,
-
-        borderRadius: 17,
-
-        backgroundColor: '#F3F5F5',
-
+        right: 16,
+        top: 14,
+        width: 32,
+        height: 32,
         alignItems: 'center',
         justifyContent: 'center',
-
-        zIndex: 10,
+        zIndex: 5,
     },
-
     closeText: {
-        fontSize: 25,
-        lineHeight: 28,
-        color: '#667070',
+        fontFamily: FONTS.regular,
+        fontSize: 27,
+        lineHeight: 30,
         fontWeight: '300',
+        color: COLORS.textSecondary,
+        includeFontPadding: false,
     },
-
     iconContainer: {
-        width: 62,
-        height: 62,
-
-        borderRadius: 31,
-
-        backgroundColor: '#E7F7F5',
-
+        width: 42,
+        height: 42,
+        borderRadius: RADIUS.round,
+        borderWidth: 1,
+        borderColor: COLORS.borderStrong,
+        backgroundColor: COLORS.surface,
         alignItems: 'center',
         justifyContent: 'center',
-
         alignSelf: 'center',
-
         marginBottom: 18,
     },
-
     icon: {
-        color: PRIMARY,
-        fontSize: 28,
-        fontWeight: '800',
+        fontFamily: FONTS.semiBold,
+        fontSize: 18,
+        lineHeight: 20,
+        color: COLORS.primary,
+        includeFontPadding: false,
     },
-
     title: {
-        fontSize: 23,
-        fontWeight: '700',
-        color: '#172525',
+        fontFamily: FONTS.semiBold,
+        fontSize: 20,
+        lineHeight: 25,
+        fontWeight: '600',
+        color: COLORS.primary,
         textAlign: 'center',
-
-        marginBottom: 8,
+        includeFontPadding: false,
     },
-
     subtitle: {
-        fontSize: 14,
-        color: '#718080',
+        fontFamily: FONTS.regular,
+        fontSize: FONT_SIZES.small,
+        lineHeight: 20,
+        color: COLORS.textSecondary,
         textAlign: 'center',
+        marginTop: 8,
+        includeFontPadding: false,
     },
-
     phone: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#172525',
+        fontFamily: FONTS.semiBold,
+        fontSize: FONT_SIZES.small,
+        lineHeight: 20,
+        color: COLORS.primary,
         textAlign: 'center',
-
-        marginTop: 6,
-        marginBottom: 22,
+        marginTop: 2,
+        includeFontPadding: false,
     },
-
-    otpInput: {
-        height: 58,
-
+    otpWrapper: {
+        position: 'relative',
+        width: '100%',
+        marginTop: 24,
+    },
+    otpBoxes: {
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    otpBox: {
+        width: 44,
+        height: 52,
         borderWidth: 1,
-        borderColor: '#DDE5E5',
-
-        borderRadius: 14,
-
-        backgroundColor: '#FAFCFC',
-
-        paddingHorizontal: 16,
-
-        fontSize: 24,
-        fontWeight: '700',
-
-        letterSpacing: 9,
-
-        textAlign: 'center',
-
-        color: '#172525',
+        borderColor: COLORS.border,
+        borderRadius: RADIUS.small,
+        backgroundColor: COLORS.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-
-    otpInputError: {
-        borderColor: '#E53935',
+    otpBoxActive: {
+        borderColor: COLORS.primary,
+        borderWidth: 1.5,
     },
-
+    otpBoxError: {
+        borderColor: COLORS.primary,
+    },
+    otpDigit: {
+        fontFamily: FONTS.semiBold,
+        fontSize: 22,
+        lineHeight: 26,
+        fontWeight: '600',
+        color: COLORS.primary,
+        includeFontPadding: false,
+    },
+    hiddenInput: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width: '100%',
+        height: '100%',
+        opacity: 0,
+        color: 'transparent',
+    },
     error: {
-        color: '#E53935',
-
-        fontSize: 13,
-
+        fontFamily: FONTS.regular,
+        fontSize: FONT_SIZES.small,
+        lineHeight: 18,
+        color: COLORS.primary,
         textAlign: 'center',
-
-        marginTop: 9,
+        marginTop: 10,
+        includeFontPadding: false,
     },
-
     verifyButton: {
         width: '100%',
-
-        minHeight: 52,
-
-        borderRadius: 13,
-
+        height: 50,
         marginTop: 20,
+        borderRadius: RADIUS.medium,
+        padding: 0,
+    },
+
+    verifyButtonContent: {
+        flex: 1,
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 
     buttonText: {
-        color: '#FFFFFF',
-
-        fontSize: 16,
-
-        fontWeight: '700',
-
+        fontFamily: FONTS.semiBold,
+        fontSize: FONT_SIZES.medium,
+        lineHeight: 20,
+        fontWeight: '600',
+        color: COLORS.background,
         textAlign: 'center',
+        includeFontPadding: false,
     },
-
     resendContainer: {
         flexDirection: 'row',
-
         justifyContent: 'center',
-
         alignItems: 'center',
-
-        marginTop: 20,
+        marginTop: 18,
     },
-
     resendText: {
-        color: '#718080',
-
-        fontSize: 13,
+        fontFamily: FONTS.regular,
+        fontSize: FONT_SIZES.small,
+        lineHeight: 19,
+        color: COLORS.textSecondary,
+        includeFontPadding: false,
     },
-
     resendLink: {
-        color: PRIMARY,
-
-        fontSize: 13,
-
-        fontWeight: '700',
+        fontFamily: FONTS.semiBold,
+        fontSize: FONT_SIZES.small,
+        lineHeight: 19,
+        fontWeight: '600',
+        color: COLORS.primary,
+        marginLeft: 5,
+        includeFontPadding: false,
     },
-
 });
+
+export default styles;

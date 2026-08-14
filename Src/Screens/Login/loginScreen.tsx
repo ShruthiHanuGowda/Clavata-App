@@ -234,7 +234,7 @@ export default function LoginScreen() {
 
           <View style={styles.content}>
             <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>Mobile number</Text>
+              {/* <Text style={styles.inputLabel}>Mobile number</Text> */}
 
               <DMobileInput
                 inputAccessoryViewID="sendOtp"
