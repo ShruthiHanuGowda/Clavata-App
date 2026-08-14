@@ -1115,16 +1115,16 @@ export default function HomeScreenPage() {
                   styles.sectionTitle
                 }
               >
-                Services
+                Choose Services
               </Text>
 
-              <Text
+              {/* <Text
                 style={
                   styles.sectionAction
                 }
               >
                 Explore
-              </Text>
+              </Text> */}
 
             </View>
 
@@ -1155,7 +1155,7 @@ export default function HomeScreenPage() {
               }
             >
 
-              <View
+              {/* <View
                 style={
                   styles.clavataMark
                 }
@@ -1169,7 +1169,7 @@ export default function HomeScreenPage() {
                   C
                 </Text>
 
-              </View>
+              </View> */}
 
 
               <View
@@ -1327,7 +1327,7 @@ export default function HomeScreenPage() {
               }
             >
 
-              <View
+              {/* <View
                 style={
                   styles.emptyCircle
                 }
@@ -1341,7 +1341,7 @@ export default function HomeScreenPage() {
                   —
                 </Text>
 
-              </View>
+              </View> */}
 
 
               <Text
@@ -1349,7 +1349,7 @@ export default function HomeScreenPage() {
                   styles.emptyTitle
                 }
               >
-                Nothing nearby
+                No salons near by
               </Text>
 
 
