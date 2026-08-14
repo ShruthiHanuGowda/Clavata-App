@@ -6,7 +6,6 @@ import {
     Text,
     TouchableOpacity,
     Image,
-    Switch,
     Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -17,11 +16,6 @@ import secureStorage from '../../../utils/secureStorage';
 export default function SalonProfileScreen() {
     const navigation = useNavigation();
     const { currentUser, setCurrentUser } = useUser();
-    /**
-     * ================================
-     * LOGOUT
-     * ================================
-     */
     const onLogout = () => {
         Alert.alert(
             'Logout',
@@ -38,58 +32,13 @@ export default function SalonProfileScreen() {
                         await secureStorage.removeItem(
                             'isInfoDone',
                         );
-
                         setCurrentUser(null);
-
-                        navigation.reset({
-                            index: 0,
-                            routes: [{ name: 'root' }],
-                        });
+                        navigation.navigate("LoginScreen")
                     },
                 },
             ],
         );
     };
-
-    /**
-     * ================================
-     * SWITCH CUSTOMER / SALON MODE
-     * ================================
-     */
-    const handleModeChange = (value: boolean) => {
-        if (!currentUser) {
-            return;
-        }
-
-        // Don't allow Salon Mode if salon is not approved
-        if (
-            value &&
-            currentUser.providerStatus !== 'APPROVED'
-        ) {
-            Alert.alert(
-                'Salon Not Approved',
-                'Your salon must be approved before you can switch to Salon Mode.',
-            );
-
-            return;
-        }
-
-        setCurrentUser({
-            ...currentUser,
-            activeRole: value ? 'SALON' : 'CUSTOMER',
-        });
-
-        navigation.reset({
-            index: 0,
-            routes: [{ name: 'appScreens' }],
-        });
-    };
-
-    /**
-     * ================================
-     * BUSINESS NAVIGATION
-     * ================================
-     */
     const handleBusinessNavigation = (
         screen: string,
     ) => {
@@ -99,7 +48,6 @@ export default function SalonProfileScreen() {
                     .getParent()
                     ?.navigate('SalonInformation');
                 break;
-
             case 'BusinessHours':
                 navigation
                     .getParent()
@@ -109,19 +57,16 @@ export default function SalonProfileScreen() {
             case 'StaffManagement':
                 navigation.getParent()?.navigate('StaffManagementScreen');
                 break;
-
             case 'ManageServices':
                 navigation
                     .getParent()
                     ?.navigate('ManageServices');
                 break;
-
             case 'PaymentSettings':
                 navigation
                     .getParent()
                     ?.navigate('PaymentSettings');
                 break;
-
             default:
                 console.log(
                     'Unknown business screen:',
@@ -131,11 +76,6 @@ export default function SalonProfileScreen() {
         }
     };
 
-    /**
-     * ================================
-     * ACCOUNT NAVIGATION
-     * ================================
-     */
     const handleAccountNavigation = (
         screen: string,
     ) => {
@@ -145,25 +85,21 @@ export default function SalonProfileScreen() {
                     .getParent()
                     ?.navigate('EditProfile');
                 break;
-
             case 'Notifications':
                 navigation
                     .getParent()
                     ?.navigate('Notifications');
                 break;
-
             case 'ChangePassword':
                 navigation
                     .getParent()
                     ?.navigate('ChangePassword');
                 break;
-
             case 'Language':
                 navigation
                     .getParent()
                     ?.navigate('Language');
                 break;
-
             default:
                 console.log(
                     'Unknown account screen:',
@@ -173,11 +109,6 @@ export default function SalonProfileScreen() {
         }
     };
 
-    /**
-     * ================================
-     * SUPPORT NAVIGATION
-     * ================================
-     */
     const handleSupportNavigation = (
         screen: string,
     ) => {
@@ -187,19 +118,16 @@ export default function SalonProfileScreen() {
                     .getParent()
                     ?.navigate('HelpCenter');
                 break;
-
             case 'PrivacyPolicy':
                 navigation
                     .getParent()
                     ?.navigate('PrivacyPolicy');
                 break;
-
             case 'TermsConditions':
                 navigation
                     .getParent()
                     ?.navigate('TermsConditions');
                 break;
-
             default:
                 console.log(
                     'Unknown support screen:',
@@ -214,10 +142,6 @@ export default function SalonProfileScreen() {
             <ScrollView
                 showsVerticalScrollIndicator={false}
             >
-                {/* =================================
-                    PROFILE HEADER
-                ================================= */}
-
                 <View style={styles.profileHeader}>
                     <Image
                         source={{
@@ -225,71 +149,14 @@ export default function SalonProfileScreen() {
                         }}
                         style={styles.avatar}
                     />
-
                     <Text style={styles.profileName}>
                         {currentUser?.fullName ||
                             'User'}
                     </Text>
-
                     <Text style={styles.profileRole}>
                         Owner • Glow Beauty Salon
                     </Text>
                 </View>
-
-                {/* =================================
-                    SWITCH MODE
-                ================================= */}
-
-                {/* <View style={styles.profileCard}> */}
-                    {/* <Text style={styles.sectionTitle}>
-                        Switch Mode
-                    </Text>
-                    <View style={styles.switchRow}>
-                        <Text style={styles.menuText}>
-                            Salon Mode
-                        </Text>
-                        <Switch
-                            value={
-                                currentUser?.activeRole ===
-                                'SALON'
-                            }
-                            onValueChange={
-                                handleModeChange
-                            }
-                            trackColor={{
-                                false: '#D1D5DB',
-                                true: '#009D94',
-                            }}
-                            thumbColor="#FFFFFF"
-                        />
-                    </View> */}
-                    {/* Show button when user is in Customer Mode */}
-{/* 
-                    {currentUser?.activeRole ===
-                        'CUSTOMER' && (
-                            <TouchableOpacity
-                                style={
-                                    styles.switchButton
-                                }
-                                onPress={() =>
-                                    handleModeChange(true)
-                                }
-                            >
-                                <Text
-                                    style={
-                                        styles.switchButtonText
-                                    }
-                                >
-                                    Switch to Salon Mode
-                                </Text>
-                            </TouchableOpacity>
-                        )} */}
-                {/* </View> */}
-
-                {/* =================================
-                    BUSINESS
-                ================================= */}
-
                 <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
                         Business
@@ -335,16 +202,10 @@ export default function SalonProfileScreen() {
                         }
                     />
                 </View>
-
-                {/* =================================
-                    ACCOUNT
-                ================================= */}
-
                 <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
                         Account
                     </Text>
-
                     <MenuItem
                         title="Edit Profile"
                         onPress={() =>
@@ -353,7 +214,6 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
-
                     <MenuItem
                         title="Notifications"
                         onPress={() =>
@@ -362,7 +222,6 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
-
                     <MenuItem
                         title="Change Password"
                         onPress={() =>
@@ -371,7 +230,6 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
-
                     <MenuItem
                         title="Language"
                         onPress={() =>
@@ -381,16 +239,10 @@ export default function SalonProfileScreen() {
                         }
                     />
                 </View>
-
-                {/* =================================
-                    SUPPORT
-                ================================= */}
-
                 <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
                         Support
                     </Text>
-
                     <MenuItem
                         title="Help Center"
                         onPress={() =>
@@ -399,7 +251,6 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
-
                     <MenuItem
                         title="Privacy Policy"
                         onPress={() =>
@@ -408,7 +259,6 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
-
                     <MenuItem
                         title="Terms & Conditions"
                         onPress={() =>
@@ -418,11 +268,6 @@ export default function SalonProfileScreen() {
                         }
                     />
                 </View>
-
-                {/* =================================
-                    LOGOUT
-                ================================= */}
-
                 <TouchableOpacity
                     style={styles.logoutButton}
                     onPress={onLogout}
@@ -431,18 +276,11 @@ export default function SalonProfileScreen() {
                         Logout
                     </Text>
                 </TouchableOpacity>
-
                 <View style={{ height: 30 }} />
             </ScrollView>
         </SafeAreaView>
     );
 }
-
-/**
- * ============================================
- * MENU ITEM
- * ============================================
- */
 
 function MenuItem({
     title,

@@ -14,37 +14,18 @@ import secureStorage from '../../../utils/secureStorage';
 const menuItems = [
   { title: 'My Bookings', icon: '📅', screen: 'ProfileBookings' },
   { title: 'Favourite Salons', icon: '❤️', screen: 'FavouriteSalons' },
-  // { title: 'Saved Addresses', icon: '📍', screen: 'SavedAddresses' },
   { title: 'Payments', icon: '💳', screen: 'Payments' },
   { title: 'Offers & Rewards', icon: '🎁', screen: 'OffersRewards' },
 ];
 const settingsItems = [
   { title: 'Settings', icon: '⚙️', screen: 'Settings' },
-  // { title: 'Notifications', icon: '🔔', screen: 'Notifications' },
   { title: 'Help & Support', icon: '❓', screen: 'HelpSupport' },
   { title: 'Privacy Policy', icon: '📄', screen: 'PrivacyPolicy' },
 ];
 export default function ProfileScreen() {
-  // Replace with actual value from API
-  // const isSalonOwner = true;
   const navigation = useNavigation<any>();
-  const isBusinessPartner = false;
   const { currentUser, setCurrentUser } = useUser();
   console.log('currentUser?.providerStatus', currentUser?.providerStatus);
-  const partnerTitle = (() => {
-    switch (currentUser?.providerStatus) {
-      case 'NOT_REGISTERED':
-        return 'Become a Salon Partner';
-      case 'PENDING':
-        return 'Salon Verification Pending';
-      case 'APPROVED':
-        return 'Switch to Salon Mode';
-      case 'REJECTED':
-        return 'Resubmit Salon Registration';
-      default:
-        return 'Become a Salon Partner';
-    }
-  })();
   const onLogout = () => {
     Alert.alert(
       'Logout',
@@ -60,15 +41,7 @@ export default function ProfileScreen() {
           onPress: async () => {
             await secureStorage.removeItem('isInfoDone');
             setCurrentUser(null);
-            //goes to root
-            // navigation.reset({
-            //   index: 0,
-            //   routes: [{ name: 'root' }],
-            // });
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'LoginScreen' }],
-            });
+            navigation.navigate("LoginScreen")
           },
         },
       ],
@@ -142,7 +115,6 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Profile Header */}
         <View style={styles.header}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>S</Text>
@@ -156,7 +128,6 @@ export default function ProfileScreen() {
             <Text style={styles.editButtonText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
-        {/* Customer Features */}
         <View style={styles.section}>
           {menuItems.map(item => (
             <TouchableOpacity key={item.title} style={styles.row} onPress={() => handleProfileNavigation(item)}>
@@ -166,22 +137,6 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           ))}
         </View>
-        {/* Salon */}
-        {/* <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.row}
-            onPress={onPartnerPress}>
-            <Text style={styles.leftIcon}>🏪</Text>
-            <Text style={styles.rowTitle}> */}
-        {/* {isBusinessPartner
-                ? 'Manage My Salon'
-                : 'Become a Salon Partner'} */}
-        {/* {partnerTitle}
-            </Text>
-            <Text style={styles.arrow}>›</Text>
-          </TouchableOpacity>
-        </View> */}
-        {/* Settings */}
         <View style={styles.section}>
           {settingsItems.map(item => (
             <TouchableOpacity key={item.title} style={styles.row} onPress={() => handleProfileNavigation(item)}>
@@ -191,7 +146,6 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           ))}
         </View>
-        {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
