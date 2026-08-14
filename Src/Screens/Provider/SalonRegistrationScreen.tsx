@@ -1,21 +1,13 @@
 import React, { useState } from 'react';
-import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  Alert,
-  ScrollView,
-} from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TextInput, Alert, ScrollView } from 'react-native';
 import { Header, DButton } from '../../components';
 import { useSalonRegistration } from '../../context/SalonRegistrationContext';
 import { useUser } from '../../context/UserContext';
+import { COLORS, FONTS, FONT_SIZES, SPACING, RADIUS } from '../../constants/constants';
 
 export default function SalonRegistrationScreen({ navigation }: any) {
   const { updateData } = useSalonRegistration();
   const { currentUser } = useUser();
-
   const [salonName, setSalonName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [email, setEmail] = useState('');
@@ -28,22 +20,29 @@ export default function SalonRegistrationScreen({ navigation }: any) {
       !email.trim() ||
       !businessType.trim()
     ) {
-      Alert.alert('Validation', 'Please fill all fields.');
+      Alert.alert(
+        'Missing Information',
+        'Please fill all fields.',
+      );
       return;
     }
 
-    if (!currentUser) {
-      Alert.alert('Error', 'User not found. Please login again.');
+    if (!currentUser?.userId) {
+      Alert.alert(
+        'Session Expired',
+        'Please sign in again.',
+      );
       return;
     }
 
     updateData({
       userId: currentUser.userId,
       phoneNumber: currentUser.phoneNumber,
-      salonName,
-      ownerName,
-      email,
-      businessType,
+
+      salonName: salonName.trim(),
+      ownerName: ownerName.trim(),
+      email: email.trim(),
+      businessType: businessType.trim(),
     });
 
     navigation.navigate('SalonAddress');
@@ -52,54 +51,59 @@ export default function SalonRegistrationScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <Header headerTitle="Salon Registration" />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Basic details</Text>
+          <Text style={styles.subtitle}>Tell us a little about your business.</Text>
+        </View>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled">
+        <View style={styles.card}>
+          <Text style={styles.label}>Salon name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter salon name"
+            placeholderTextColor={COLORS.textMuted}
+            value={salonName}
+            onChangeText={setSalonName}
+            autoCapitalize="words"
+          />
 
-        <Text style={styles.title}>Basic Salon Details</Text>
+          <Text style={styles.label}>Owner name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter owner name"
+            placeholderTextColor={COLORS.textMuted}
+            value={ownerName}
+            onChangeText={setOwnerName}
+            autoCapitalize="words"
+          />
 
-        <Text style={styles.label}>Salon Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter salon name"
-          value={salonName}
-          onChangeText={setSalonName}
-        />
+          <Text style={styles.label}>Business email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="example@email.com"
+            placeholderTextColor={COLORS.textMuted}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={email}
+            onChangeText={setEmail}
+          />
 
-        <Text style={styles.label}>Owner Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter owner name"
-          value={ownerName}
-          onChangeText={setOwnerName}
-        />
+          <Text style={styles.label}>Business type</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Salon, Spa, Barber..."
+            placeholderTextColor={COLORS.textMuted}
+            value={businessType}
+            onChangeText={setBusinessType}
+            autoCapitalize="words"
+          />
+        </View>
 
-        <Text style={styles.label}>Business Email</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="example@email.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
-
-        <Text style={styles.label}>Business Type</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Salon / Spa / Barber"
-          value={businessType}
-          onChangeText={setBusinessType}
-        />
-
-        <DButton
-          type="primary"
-          style={styles.button}
-          onPress={onNext}>
-          <Text style={styles.buttonText}>Next</Text>
+        <DButton type="primary" style={styles.button} onPress={onNext}>
+          <Text style={styles.buttonText}>Continue</Text>
         </DButton>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -108,46 +112,68 @@ export default function SalonRegistrationScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.background,
   },
-
   content: {
-    padding: 24,
-    paddingBottom: 40,
+    paddingHorizontal: SPACING.xxl,
+    paddingTop: SPACING.xxl,
+    paddingBottom: SPACING.xxxl,
   },
-
+  header: {
+    marginBottom: SPACING.xxl,
+  },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 25,
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.title,
+    lineHeight: FONT_SIZES.title + 5,
+    color: COLORS.text,
+    textAlign: 'center',
+    letterSpacing: -0.2,
   },
-
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#222',
+  subtitle: {
+    marginTop: SPACING.small,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    lineHeight: FONT_SIZES.small + 7,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
   },
-
-  input: {
+  card: {
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    height: 52,
-    marginBottom: 20,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.large,
+    padding: SPACING.xl,
   },
-
+  label: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+    marginBottom: SPACING.small,
+  },
+  input: {
+    height: 54,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: RADIUS.medium,
+    paddingHorizontal: SPACING.large,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.body,
+    color: COLORS.text,
+    backgroundColor: COLORS.surface,
+    marginBottom: SPACING.large,
+  },
   button: {
-    marginTop: 20,
     width: '100%',
+    height: 54,
+    borderRadius: RADIUS.medium,
+    marginTop: SPACING.xl,
     alignSelf: 'center',
   },
-
   buttonText: {
-    color: '#FFF',
+    color: COLORS.white,
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.body,
     textAlign: 'center',
-    fontWeight: '600',
-    fontSize: 16,
   },
 });

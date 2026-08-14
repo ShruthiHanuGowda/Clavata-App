@@ -6,13 +6,21 @@ import {
   StyleSheet,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { Header, DButton } from '../../components';
 import { useSalonRegistration } from '../../context/SalonRegistrationContext';
+import {
+  COLORS,
+  FONTS,
+  SPACING,
+  RADIUS,
+} from '../../constants/constants';
 
 export default function SalonAddressScreen({ navigation }: any) {
   const { updateData } = useSalonRegistration();
-
   const [addressLine, setAddressLine] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -25,15 +33,18 @@ export default function SalonAddressScreen({ navigation }: any) {
       !state.trim() ||
       !pincode.trim()
     ) {
-      Alert.alert('Validation', 'Please fill all address details.');
+      Alert.alert(
+        'Missing Information',
+        'Please fill all address details.',
+      );
       return;
     }
 
     updateData({
-      addressLine,
-      city,
-      state,
-      pincode,
+      addressLine: addressLine.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      pincode: pincode.trim(),
     });
 
     navigation.navigate('SalonBusinessHours');
@@ -42,54 +53,96 @@ export default function SalonAddressScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <Header headerTitle="Salon Address" />
-
-      <View style={styles.content}>
-        <Text style={styles.title}>Address</Text>
-
-        <Text style={styles.label}>Address</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Address"
-          value={addressLine}
-          onChangeText={setAddressLine}
-        />
-
-        <Text style={styles.label}>City</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="City"
-          value={city}
-          onChangeText={setCity}
-        />
-
-        <Text style={styles.label}>State</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="State"
-          value={state}
-          onChangeText={setState}
-        />
-
-        <Text style={styles.label}>Pincode</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Pincode"
-          keyboardType="number-pad"
-          value={pincode}
-          onChangeText={setPincode}
-        />
-      </View>
-
-      <DButton
-        type="primary"
-        style={styles.button}
-        onPress={onNext}>
-        <Text style={styles.buttonText}>Next</Text>
-      </DButton>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* SECTION HEADER */}
+          <View style={styles.headerSection}>
+            <Text style={styles.title}>
+              Where is your salon located?
+            </Text>
+            <Text style={styles.subtitle}>
+              Add your salon's address so customers can find you.
+            </Text>
+          </View>
+          {/* ADDRESS */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              Address
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter street address"
+              placeholderTextColor={COLORS.textMuted}
+              value={addressLine}
+              onChangeText={setAddressLine}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+          </View>
+          {/* CITY */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              City
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter city"
+              placeholderTextColor={COLORS.textMuted}
+              value={city}
+              onChangeText={setCity}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+          </View>
+          {/* STATE */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              State
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter state"
+              placeholderTextColor={COLORS.textMuted}
+              value={state}
+              onChangeText={setState}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+          </View>
+          {/* PINCODE */}
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              Pincode
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter pincode"
+              placeholderTextColor={COLORS.textMuted}
+              keyboardType="number-pad"
+              maxLength={6}
+              value={pincode}
+              onChangeText={setPincode}
+            />
+          </View>
+          {/* BUTTON */}
+          <DButton
+            type="primary"
+            style={styles.button}
+            onPress={onNext}
+          >
+            <Text style={styles.buttonText}>
+              Continue
+            </Text>
+          </DButton>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -97,45 +150,67 @@ export default function SalonAddressScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.background,
   },
-
-  content: {
+  flex: {
     flex: 1,
-    padding: 24,
   },
-
+  content: {
+    paddingHorizontal: SPACING.xxl,
+    paddingTop: SPACING.xxxl,
+    paddingBottom: SPACING.huge,
+  },
+  /* HEADER */
+  headerSection: {
+    marginBottom: SPACING.xxxl,
+  },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 25,
+    fontFamily: FONTS.bold,
+    fontSize: 21,
+    lineHeight: 27,
+    color: COLORS.text,
+    letterSpacing: -0.3,
+    marginBottom: SPACING.small,
   },
-
+  subtitle: {
+    fontFamily: FONTS.regular,
+    fontSize: 14,
+    lineHeight: 21,
+    color: COLORS.textSecondary,
+    maxWidth: 330,
+  },
+  /* FIELD */
+  field: {
+    marginBottom: SPACING.xl,
+  },
   label: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 8,
+    fontFamily: FONTS.semiBold,
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: SPACING.small,
   },
-
   input: {
+    height: 52,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    height: 50,
-    marginBottom: 20,
-  },
-
-  button: {
-    width: 220,
-    alignSelf: 'center',
-    marginBottom: 30,
-  },
-
-  buttonText: {
-    color: '#FFF',
-    alignSelf: 'center',
-    fontWeight: '600',
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.medium,
+    paddingHorizontal: SPACING.large,
+    fontFamily: FONTS.regular,
     fontSize: 16,
+    color: COLORS.text,
+  },
+  /* BUTTON */
+  button: {
+    width: '100%',
+    height: 54,
+    marginTop: SPACING.medium,
+    borderRadius: RADIUS.medium,
+  },
+  buttonText: {
+    color: COLORS.white,
+    fontFamily: FONTS.semiBold,
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

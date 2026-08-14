@@ -43,7 +43,20 @@ import {
     HARDCODED_LOCATION,
 } from '../../../services/locationConfig';
 
+
+// ============================================================
+// COLORS
+// ============================================================
+
 const PRIMARY = '#008060';
+const PRIMARY_LIGHT = '#EAF8F5';
+
+const TEXT_PRIMARY = '#111827';
+const TEXT_SECONDARY = '#6B7280';
+const TEXT_MUTED = '#9CA3AF';
+
+const BORDER = '#E5E7EB';
+const BACKGROUND = '#F8FAFC';
 
 
 // ============================================================
@@ -106,34 +119,36 @@ export default function LocationBottomSheet({
     // ==========================================================
 
     useEffect(() => {
-        if (visible) {
 
-            console.log('');
-            console.log(
-                '========================================',
-            );
-
-            console.log(
-                '📍 LOCATION BOTTOM SHEET OPENED',
-            );
-
-            console.log(
-                'Location Mode:',
-                USE_HARDCODED_LOCATION
-                    ? '🧪 HARDCODED TEST'
-                    : '🚀 PRODUCTION',
-            );
-
-            console.log(
-                '========================================',
-            );
-
-            loadLocations();
-
-            // Clear temporary state whenever sheet opens
-            setDetectedLocation(null);
-            setSearch('');
+        if (!visible) {
+            return;
         }
+
+        console.log('');
+        console.log(
+            '========================================',
+        );
+
+        console.log(
+            '📍 LOCATION BOTTOM SHEET OPENED',
+        );
+
+        console.log(
+            'Location Mode:',
+            USE_HARDCODED_LOCATION
+                ? '🧪 HARDCODED TEST'
+                : '🚀 PRODUCTION',
+        );
+
+        console.log(
+            '========================================',
+        );
+
+        loadLocations();
+
+        setDetectedLocation(null);
+        setSearch('');
+
     }, [visible]);
 
 
@@ -160,7 +175,7 @@ export default function LocationBottomSheet({
 
 
             // ======================================================
-            // SAVED LOCATIONS
+            // SAVED
             // ======================================================
 
             const saved =
@@ -173,7 +188,7 @@ export default function LocationBottomSheet({
 
 
             // ======================================================
-            // RECENT LOCATIONS
+            // RECENT
             // ======================================================
 
             const recent =
@@ -184,10 +199,6 @@ export default function LocationBottomSheet({
                 recent,
             );
 
-
-            // ======================================================
-            // UPDATE UI
-            // ======================================================
 
             setSavedLocations(
                 saved,
@@ -249,13 +260,14 @@ export default function LocationBottomSheet({
 
 
         // ========================================================
-        // PRODUCTION MODE
+        // PRODUCTION
         // ========================================================
 
         console.log('');
         console.log(
             '🚀 PRODUCTION MODE: Requesting GPS',
         );
+
 
         setLoadingLocation(
             true,
@@ -315,6 +327,7 @@ export default function LocationBottomSheet({
                         '❌ Location detection error:',
                         error,
                     );
+
 
                     Alert.alert(
                         'Location Error',
@@ -386,7 +399,7 @@ export default function LocationBottomSheet({
 
 
             // ======================================================
-            // PRODUCTION MODE
+            // PRODUCTION
             // ======================================================
 
             try {
@@ -410,10 +423,6 @@ export default function LocationBottomSheet({
                     status,
                 );
 
-
-                // ====================================================
-                // REQUEST PERMISSION
-                // ====================================================
 
                 if (
                     status !==
@@ -454,7 +463,7 @@ export default function LocationBottomSheet({
 
 
                     Alert.alert(
-                        'Permission Required',
+                        'Location Permission',
                         'Please allow location access to find salons near you.',
                     );
                 }
@@ -505,7 +514,7 @@ export default function LocationBottomSheet({
 
 
                 // ====================================================
-                // SAVE AS ACTIVE LOCATION
+                // SAVE ACTIVE LOCATION
                 // ====================================================
 
                 await saveLocation(
@@ -523,7 +532,7 @@ export default function LocationBottomSheet({
 
 
                 // ====================================================
-                // REFRESH RECENT LOCATIONS
+                // REFRESH RECENT
                 // ====================================================
 
                 const updatedRecent =
@@ -536,7 +545,7 @@ export default function LocationBottomSheet({
 
 
                 // ====================================================
-                // NOTIFY HOME SCREEN
+                // NOTIFY HOME
                 // ====================================================
 
                 onLocationSelected(
@@ -622,83 +631,104 @@ export default function LocationBottomSheet({
     return (
 
         <Modal
-            isVisible={
-                visible
-            }
+            isVisible={visible}
 
-            onBackdropPress={
-                onClose
-            }
+            onBackdropPress={onClose}
 
-            onBackButtonPress={
-                onClose
-            }
+            onBackButtonPress={onClose}
 
             swipeDirection="down"
 
-            onSwipeComplete={
-                onClose
-            }
+            onSwipeComplete={onClose}
 
-            style={
-                styles.modal
-            }
+            style={styles.modal}
+
+            animationIn="slideInUp"
+
+            animationOut="slideOutDown"
+
+            animationInTiming={300}
+
+            animationOutTiming={250}
+
+            backdropOpacity={0.35}
+
+            useNativeDriver
         >
 
-            <View
-                style={
-                    styles.sheet
-                }
-            >
+            <View style={styles.sheet}>
 
                 {/* ================================================== */}
                 {/* HANDLE */}
                 {/* ================================================== */}
 
-                <View
-                    style={
-                        styles.handle
-                    }
-                />
+                <View style={styles.handle} />
 
 
                 {/* ================================================== */}
-                {/* TITLE */}
+                {/* HEADER */}
                 {/* ================================================== */}
 
-                <Text
-                    style={
-                        styles.title
-                    }
-                >
-                    Choose your location
-                </Text>
+                <View style={styles.header}>
+
+                    <View>
+
+                        <Text style={styles.title}>
+                            Choose your location
+                        </Text>
+
+                        <Text style={styles.headerSubtitle}>
+                            Find salons and services near you
+                        </Text>
+
+                    </View>
+
+
+                    <TouchableOpacity
+                        style={styles.closeButton}
+                        onPress={onClose}
+                        activeOpacity={0.7}
+                    >
+
+                        <Text style={styles.closeText}>
+                            ×
+                        </Text>
+
+                    </TouchableOpacity>
+
+                </View>
 
 
                 {/* ================================================== */}
                 {/* SEARCH */}
                 {/* ================================================== */}
 
-                <TextInput
-                    placeholder="Search area, street or pincode"
-                    placeholderTextColor="#999"
+                <View style={styles.searchContainer}>
 
-                    value={
-                        search
-                    }
+                    <Text style={styles.searchIcon}>
+                        ⌕
+                    </Text>
 
-                    onChangeText={
-                        setSearch
-                    }
+                    <TextInput
+                        placeholder="Search area, street or pincode"
+                        placeholderTextColor="#9CA3AF"
 
-                    style={
-                        styles.search
-                    }
+                        value={search}
 
-                    autoCorrect={false}
+                        onChangeText={setSearch}
 
-                    returnKeyType="search"
-                />
+                        style={styles.search}
+
+                        autoCorrect={false}
+
+                        autoCapitalize="none"
+
+                        returnKeyType="search"
+
+                        clearButtonMode="while-editing"
+                    />
+
+                </View>
 
 
                 {/* ================================================== */}
@@ -706,35 +736,46 @@ export default function LocationBottomSheet({
                 {/* ================================================== */}
 
                 <TouchableOpacity
-                    style={
-                        styles.currentLocation
-                    }
-
-                    onPress={
-                        requestLocationPermission
-                    }
-
-                    activeOpacity={0.8}
+                    style={styles.currentLocation}
+                    onPress={requestLocationPermission}
+                    activeOpacity={0.85}
+                    disabled={loadingLocation}
                 >
 
-                    <Text
-                        style={
-                            styles.currentTitle
-                        }
-                    >
-                        📍 Use Current Location
-                    </Text>
+                    <View style={styles.currentIcon}>
+
+                        <Text style={styles.currentIconText}>
+                            ⌖
+                        </Text>
+
+                    </View>
 
 
-                    <Text
-                        style={
-                            styles.subtitle
-                        }
-                    >
-                        {USE_HARDCODED_LOCATION
-                            ? 'Using configured test location'
-                            : 'Find salons near your current location'}
-                    </Text>
+                    <View style={styles.currentContent}>
+
+                        <Text style={styles.currentTitle}>
+                            Use current location
+                        </Text>
+
+                        <Text
+                            style={styles.subtitle}
+                            numberOfLines={1}
+                        >
+                            {USE_HARDCODED_LOCATION
+                                ? 'Using configured test location'
+                                : 'Find salons near your current location'}
+                        </Text>
+
+                    </View>
+
+
+                    <View style={styles.currentArrow}>
+
+                        <Text style={styles.arrowText}>
+                            ›
+                        </Text>
+
+                    </View>
 
                 </TouchableOpacity>
 
@@ -745,13 +786,15 @@ export default function LocationBottomSheet({
 
                 {loadingLocation && (
 
-                    <Text
-                        style={
-                            styles.loadingText
-                        }
-                    >
-                        Detecting your location...
-                    </Text>
+                    <View style={styles.loadingContainer}>
+
+                        <View style={styles.loadingDot} />
+
+                        <Text style={styles.loadingText}>
+                            Detecting your location...
+                        </Text>
+
+                    </View>
 
                 )}
 
@@ -762,62 +805,52 @@ export default function LocationBottomSheet({
 
                 {detectedLocation && (
 
-                    <View
-                        style={
-                            styles.detectedContainer
-                        }
-                    >
+                    <View style={styles.detectedContainer}>
+
+                        <View style={styles.detectedHeader}>
+
+                            <View style={styles.detectedIcon}>
+
+                                <Text style={styles.detectedIconText}>
+                                    ✓
+                                </Text>
+
+                            </View>
+
+                            <View style={styles.detectedHeaderText}>
+
+                                <Text style={styles.detectedTitle}>
+                                    Location detected
+                                </Text>
+
+                                <Text style={styles.detectedSmall}>
+                                    Your current location
+                                </Text>
+
+                            </View>
+
+                        </View>
+
 
                         <Text
-                            style={
-                                styles.detectedTitle
-                            }
+                            style={styles.detectedAddress}
+                            numberOfLines={3}
                         >
-                            📍 Detected Location
-                        </Text>
-
-
-                        <Text
-                            style={
-                                styles.detectedAddress
-                            }
-                        >
-                            {
-                                detectedLocation.address
-                            }
-                        </Text>
-
-
-                        <Text
-                            style={
-                                styles.detectedCoordinates
-                            }
-                        >
-                            {detectedLocation.latitude.toFixed(6)}
-                            {', '}
-                            {detectedLocation.longitude.toFixed(6)}
+                            {detectedLocation.address}
                         </Text>
 
 
                         <TouchableOpacity
-                            style={
-                                styles.useButton
-                            }
-
+                            style={styles.useButton}
                             onPress={() =>
                                 handleSelectLocation(
                                     detectedLocation,
                                 )
                             }
-
-                            activeOpacity={0.8}
+                            activeOpacity={0.85}
                         >
 
-                            <Text
-                                style={
-                                    styles.useButtonText
-                                }
-                            >
+                            <Text style={styles.useButtonText}>
                                 Use this location
                             </Text>
 
@@ -829,251 +862,166 @@ export default function LocationBottomSheet({
 
 
                 {/* ================================================== */}
-                {/* SCROLL CONTENT */}
+                {/* CONTENT */}
                 {/* ================================================== */}
 
                 <ScrollView
-                    showsVerticalScrollIndicator={
-                        false
-                    }
-
+                    style={styles.scroll}
+                    showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
+                    contentContainerStyle={
+                        styles.scrollContent
+                    }
                 >
 
                     {/* ================================================= */}
-                    {/* SAVED LOCATIONS */}
+                    {/* RECENT */}
                     {/* ================================================= */}
 
-                    {/* <Text
-                        style={
-                            styles.section
-                        }
-                    >
-                        Saved Locations
-                    </Text> */}
+                    {filteredRecent.length > 0 && (
 
-                    {/* 
-                    {filteredSaved.length > 0 ? (
+                        <View>
 
-                        filteredSaved.map(
-                            item => (
+                            <View style={styles.sectionHeader}>
 
-                                <TouchableOpacity
-                                    key={
-                                        item.id
-                                    }
+                                <Text style={styles.section}>
+                                    Recent searches
+                                </Text>
 
-                                    style={
-                                        styles.row
-                                    }
+                                <Text style={styles.sectionCount}>
+                                    {filteredRecent.length}
+                                </Text>
 
-                                    onPress={() =>
-                                        handleSelectLocation(
-                                            item,
-                                        )
-                                    }
+                            </View>
 
-                                    activeOpacity={0.7}
-                                >
 
-                                    <View
-                                        style={
-                                            styles.iconCircle
+                            {filteredRecent.map(
+                                (
+                                    item,
+                                    index,
+                                ) => (
+
+                                    <TouchableOpacity
+                                        key={`${item.latitude}-${item.longitude}-${index}`}
+                                        style={styles.row}
+                                        onPress={() =>
+                                            handleSelectLocation(
+                                                item,
+                                            )
                                         }
+                                        activeOpacity={0.75}
                                     >
 
-                                        <Text>
+                                        <View style={styles.iconCircle}>
 
-                                            {item.title
-                                                .toLowerCase()
-                                                .includes(
-                                                    'office',
-                                                )
-                                                ? '🏢'
-                                                : '🏠'}
+                                            <Text style={styles.historyIcon}>
+                                                ◷
+                                            </Text>
 
+                                        </View>
+
+
+                                        <View style={styles.rowContent}>
+
+                                            <Text
+                                                style={styles.rowTitle}
+                                                numberOfLines={2}
+                                            >
+                                                {item.address}
+                                            </Text>
+
+
+                                            <Text style={styles.coordinates}>
+                                                {item.latitude.toFixed(5)}
+                                                {', '}
+                                                {item.longitude.toFixed(5)}
+                                            </Text>
+
+                                        </View>
+
+
+                                        <Text style={styles.rowArrow}>
+                                            ›
                                         </Text>
 
-                                    </View>
+                                    </TouchableOpacity>
 
-
-                                    <View
-                                        style={
-                                            styles.rowContent
-                                        }
-                                    >
-
-                                        <Text
-                                            style={
-                                                styles.rowTitle
-                                            }
-                                        >
-                                            {
-                                                item.title
-                                            }
-                                        </Text>
-
-
-                                        <Text
-                                            style={
-                                                styles.rowSub
-                                            }
-
-                                            numberOfLines={
-                                                2
-                                            }
-                                        >
-                                            {
-                                                item.address
-                                            }
-                                        </Text>
-
-                                    </View>
-
-                                </TouchableOpacity>
-
-                            ),
-                        )
-
-                    ) : (
-
-                        <View
-                            style={
-                                styles.emptySection
-                            }
-                        >
-
-                            <Text
-                                style={
-                                    styles.emptyText
-                                }
-                            >
-                                No saved locations
-                            </Text>
-
-                        </View>
-
-                    )} */}
-
-
-                    {/* ================================================= */}
-                    {/* RECENT SEARCHES */}
-                    {/* ================================================= */}
-
-                    <Text
-                        style={
-                            styles.section
-                        }
-                    >
-                        Recent Searches
-                    </Text>
-
-
-                    {filteredRecent.length > 0 ? (
-
-                        filteredRecent.map(
-                            (
-                                item,
-                                index,
-                            ) => (
-
-                                <TouchableOpacity
-                                    key={`${item.latitude}-${item.longitude}-${index}`}
-
-                                    style={
-                                        styles.row
-                                    }
-
-                                    onPress={() =>
-                                        handleSelectLocation(
-                                            item,
-                                        )
-                                    }
-
-                                    activeOpacity={0.7}
-                                >
-
-                                    <View
-                                        style={
-                                            styles.iconCircle
-                                        }
-                                    >
-
-                                        <Text>
-                                            🕘
-                                        </Text>
-
-                                    </View>
-
-
-                                    <View
-                                        style={
-                                            styles.rowContent
-                                        }
-                                    >
-
-                                        <Text
-                                            style={
-                                                styles.rowTitle
-                                            }
-
-                                            numberOfLines={
-                                                2
-                                            }
-                                        >
-                                            {
-                                                item.address
-                                            }
-                                        </Text>
-
-
-                                        <Text
-                                            style={
-                                                styles.coordinates
-                                            }
-                                        >
-                                            {
-                                                item.latitude
-                                            }
-                                            {', '}
-                                            {
-                                                item.longitude
-                                            }
-                                        </Text>
-
-                                    </View>
-
-                                </TouchableOpacity>
-
-                            ),
-                        )
-
-                    ) : (
-
-                        <View
-                            style={
-                                styles.emptySection
-                            }
-                        >
-
-                            <Text
-                                style={
-                                    styles.emptyText
-                                }
-                            >
-                                No recent searches
-                            </Text>
+                                ),
+                            )}
 
                         </View>
 
                     )}
 
 
-                    <View
-                        style={
-                            styles.bottomSpace
-                        }
-                    />
+                    {/* ================================================= */}
+                    {/* NO SEARCH RESULTS */}
+                    {/* ================================================= */}
+
+                    {cleanSearch &&
+                        filteredRecent.length === 0 &&
+                        filteredSaved.length === 0 && (
+
+                            <View style={styles.noResults}>
+
+                                <View style={styles.noResultsIcon}>
+
+                                    <Text style={styles.noResultsIconText}>
+                                        ⌕
+                                    </Text>
+
+                                </View>
+
+                                <Text style={styles.noResultsTitle}>
+                                    No locations found
+                                </Text>
+
+                                <Text style={styles.noResultsText}>
+                                    Try searching for another area,
+                                    street or pincode.
+                                </Text>
+
+                            </View>
+
+                        )}
+
+
+                    {/* ================================================= */}
+                    {/* EMPTY RECENT */}
+                    {/* ================================================= */}
+
+                    {!cleanSearch &&
+                        filteredRecent.length === 0 && (
+
+                            <View style={styles.emptySection}>
+
+                                <View style={styles.emptyIcon}>
+
+                                    <Text style={styles.emptyIconText}>
+                                        ◷
+                                    </Text>
+
+                                </View>
+
+                                <View>
+
+                                    <Text style={styles.emptyTitle}>
+                                        No recent searches
+                                    </Text>
+
+                                    <Text style={styles.emptyText}>
+                                        Your recently selected locations
+                                        will appear here.
+                                    </Text>
+
+                                </View>
+
+                            </View>
+
+                        )}
+
+
+                    <View style={styles.bottomSpace} />
 
                 </ScrollView>
 
@@ -1088,403 +1036,686 @@ export default function LocationBottomSheet({
 // STYLES
 // ============================================================
 
-const styles =
-    StyleSheet.create({
+const styles = StyleSheet.create({
 
-        // ========================================================
-        // MODAL
-        // ========================================================
+    // ==========================================================
+    // MODAL
+    // ==========================================================
 
-        modal: {
-            justifyContent:
-                'flex-end',
+    modal: {
+        justifyContent: 'flex-end',
+        margin: 0,
+    },
 
-            margin: 0,
+
+    // ==========================================================
+    // SHEET
+    // ==========================================================
+
+    sheet: {
+        backgroundColor: '#FFFFFF',
+
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+
+        paddingHorizontal: 18,
+        paddingTop: 10,
+
+        maxHeight: '88%',
+
+        overflow: 'hidden',
+
+        elevation: 20,
+
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: -4,
         },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+    },
 
 
-        // ========================================================
-        // SHEET
-        // ========================================================
+    // ==========================================================
+    // HANDLE
+    // ==========================================================
 
-        sheet: {
-            backgroundColor:
-                '#FFF',
+    handle: {
+        width: 42,
+        height: 4,
 
-            borderTopLeftRadius:
-                28,
+        backgroundColor: '#D1D5DB',
 
-            borderTopRightRadius:
-                28,
+        borderRadius: 10,
 
-            paddingHorizontal:
-                20,
+        alignSelf: 'center',
 
-            paddingTop:
-                12,
+        marginBottom: 16,
+    },
 
-            maxHeight:
-                '90%',
-        },
 
+    // ==========================================================
+    // HEADER
+    // ==========================================================
 
-        // ========================================================
-        // HANDLE
-        // ========================================================
+    header: {
+        flexDirection: 'row',
 
-        handle: {
-            width:
-                50,
+        alignItems: 'center',
 
-            height:
-                5,
+        justifyContent: 'space-between',
 
-            backgroundColor:
-                '#DDD',
+        marginBottom: 16,
+    },
 
-            borderRadius:
-                10,
 
-            alignSelf:
-                'center',
+    title: {
+        fontSize: 21,
 
-            marginBottom:
-                20,
-        },
+        fontWeight: '800',
 
+        color: TEXT_PRIMARY,
 
-        // ========================================================
-        // TITLE
-        // ========================================================
+        letterSpacing: -0.3,
+    },
 
-        title: {
-            fontSize:
-                24,
 
-            fontWeight:
-                '700',
+    headerSubtitle: {
+        marginTop: 4,
 
-            color:
-                '#111',
-        },
+        fontSize: 12,
 
+        color: TEXT_SECONDARY,
+    },
 
-        // ========================================================
-        // SEARCH
-        // ========================================================
 
-        search: {
-            marginTop:
-                20,
+    closeButton: {
+        width: 34,
+        height: 34,
 
-            backgroundColor:
-                '#F4F4F4',
+        borderRadius: 17,
 
-            borderRadius:
-                12,
+        backgroundColor: '#F3F4F6',
 
-            paddingHorizontal:
-                15,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 
-            height:
-                55,
 
-            color:
-                '#111',
-        },
+    closeText: {
+        fontSize: 25,
 
+        lineHeight: 27,
 
-        // ========================================================
-        // CURRENT LOCATION
-        // ========================================================
+        color: '#4B5563',
 
-        currentLocation: {
-            marginTop:
-                20,
+        fontWeight: '400',
+    },
 
-            backgroundColor:
-                '#F5FCF8',
 
-            padding:
-                18,
+    // ==========================================================
+    // SEARCH
+    // ==========================================================
 
-            borderRadius:
-                14,
-        },
+    searchContainer: {
+        height: 48,
 
+        flexDirection: 'row',
 
-        currentTitle: {
-            color:
-                PRIMARY,
+        alignItems: 'center',
 
-            fontWeight:
-                '700',
+        backgroundColor: '#F5F7F8',
 
-            fontSize:
-                16,
-        },
+        borderRadius: 13,
 
+        borderWidth: 1,
 
-        subtitle: {
-            color:
-                '#666',
+        borderColor: '#EEF0F1',
 
-            marginTop:
-                5,
-        },
+        paddingHorizontal: 13,
 
+        marginBottom: 12,
+    },
 
-        // ========================================================
-        // LOADING
-        // ========================================================
 
-        loadingText: {
-            marginTop:
-                15,
+    searchIcon: {
+        fontSize: 25,
 
-            textAlign:
-                'center',
+        color: '#6B7280',
 
-            color:
-                '#666',
-        },
+        marginRight: 7,
 
+        marginTop: -3,
+    },
 
-        // ========================================================
-        // DETECTED LOCATION
-        // ========================================================
 
-        detectedContainer: {
-            marginTop:
-                20,
+    search: {
+        flex: 1,
 
-            padding:
-                15,
+        height: 48,
 
-            borderRadius:
-                12,
+        paddingHorizontal: 0,
 
-            backgroundColor:
-                '#F5FCF8',
+        paddingVertical: 0,
 
-            borderWidth:
-                1,
+        fontSize: 14,
 
-            borderColor:
-                '#D8F3E5',
-        },
+        color: TEXT_PRIMARY,
+    },
 
 
-        detectedTitle: {
-            fontWeight:
-                '700',
+    // ==========================================================
+    // CURRENT LOCATION
+    // ==========================================================
 
-            fontSize:
-                16,
+    currentLocation: {
+        minHeight: 66,
 
-            color:
-                PRIMARY,
-        },
+        flexDirection: 'row',
 
+        alignItems: 'center',
 
-        detectedAddress: {
-            marginTop:
-                8,
+        backgroundColor: PRIMARY_LIGHT,
 
-            color:
-                '#444',
+        borderRadius: 15,
 
-            lineHeight:
-                22,
-        },
+        paddingHorizontal: 12,
 
+        paddingVertical: 10,
 
-        detectedCoordinates: {
-            marginTop:
-                5,
+        borderWidth: 1,
 
-            color:
-                '#888',
+        borderColor: '#D8F0EA',
+    },
 
-            fontSize:
-                11,
-        },
 
+    currentIcon: {
+        width: 40,
+        height: 40,
 
-        useButton: {
-            marginTop:
-                15,
+        borderRadius: 20,
 
-            backgroundColor:
-                PRIMARY,
+        backgroundColor: '#FFFFFF',
 
-            paddingVertical:
-                14,
+        alignItems: 'center',
+        justifyContent: 'center',
 
-            borderRadius:
-                12,
+        marginRight: 11,
+    },
 
-            alignItems:
-                'center',
-        },
 
+    currentIconText: {
+        fontSize: 22,
 
-        useButtonText: {
-            color:
-                '#FFF',
+        color: PRIMARY,
 
-            fontWeight:
-                '700',
+        fontWeight: '700',
+    },
 
-            fontSize:
-                16,
-        },
 
+    currentContent: {
+        flex: 1,
 
-        // ========================================================
-        // SECTION
-        // ========================================================
+        minWidth: 0,
+    },
 
-        section: {
-            marginTop:
-                25,
 
-            marginBottom:
-                10,
+    currentTitle: {
+        fontSize: 14,
 
-            fontWeight:
-                '700',
+        fontWeight: '800',
 
-            fontSize:
-                18,
+        color: PRIMARY,
 
-            color:
-                '#111',
-        },
+        textTransform: 'none',
+    },
 
 
-        // ========================================================
-        // ROW
-        // ========================================================
+    subtitle: {
+        marginTop: 3,
 
-        row: {
-            flexDirection:
-                'row',
+        fontSize: 11.5,
 
-            alignItems:
-                'center',
+        color: TEXT_SECONDARY,
+    },
 
-            paddingVertical:
-                14,
 
-            borderBottomWidth:
-                1,
+    currentArrow: {
+        width: 28,
+        height: 28,
 
-            borderColor:
-                '#EEE',
-        },
+        borderRadius: 14,
 
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 
-        // ========================================================
-        // ICON
-        // ========================================================
 
-        iconCircle: {
-            width:
-                42,
+    arrowText: {
+        fontSize: 25,
 
-            height:
-                42,
+        color: PRIMARY,
 
-            borderRadius:
-                21,
+        fontWeight: '300',
 
-            backgroundColor:
-                '#F5F5F5',
+        marginTop: -2,
+    },
 
-            alignItems:
-                'center',
 
-            justifyContent:
-                'center',
+    // ==========================================================
+    // LOADING
+    // ==========================================================
 
-            marginRight:
-                12,
-        },
+    loadingContainer: {
+        flexDirection: 'row',
 
+        alignItems: 'center',
 
-        // ========================================================
-        // CONTENT
-        // ========================================================
+        justifyContent: 'center',
 
-        rowContent: {
-            flex:
-                1,
-        },
+        paddingVertical: 10,
+    },
 
 
-        rowTitle: {
-            fontWeight:
-                '600',
+    loadingDot: {
+        width: 7,
+        height: 7,
 
-            fontSize:
-                16,
+        borderRadius: 4,
 
-            color:
-                '#111',
-        },
+        backgroundColor: PRIMARY,
 
+        marginRight: 7,
+    },
 
-        rowSub: {
-            color:
-                '#777',
 
-            marginTop:
-                4,
+    loadingText: {
+        fontSize: 12,
 
-            fontSize:
-                13,
-        },
+        color: TEXT_SECONDARY,
 
+        fontWeight: '600',
+    },
 
-        coordinates: {
-            color:
-                '#999',
 
-            marginTop:
-                4,
+    // ==========================================================
+    // DETECTED LOCATION
+    // ==========================================================
 
-            fontSize:
-                11,
-        },
+    detectedContainer: {
+        marginTop: 12,
 
+        padding: 13,
 
-        // ========================================================
-        // EMPTY
-        // ========================================================
+        backgroundColor: '#F7FCFA',
 
-        emptySection: {
-            paddingVertical:
-                12,
-        },
+        borderRadius: 15,
 
+        borderWidth: 1,
 
-        emptyText: {
-            color:
-                '#999',
+        borderColor: '#DCEFE8',
+    },
 
-            fontSize:
-                13,
-        },
 
+    detectedHeader: {
+        flexDirection: 'row',
 
-        // ========================================================
-        // BOTTOM SPACE
-        // ========================================================
+        alignItems: 'center',
+    },
 
-        bottomSpace: {
-            height:
-                30,
-        },
 
-    });
+    detectedIcon: {
+        width: 32,
+        height: 32,
+
+        borderRadius: 16,
+
+        backgroundColor: PRIMARY,
+
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        marginRight: 9,
+    },
+
+
+    detectedIconText: {
+        color: '#FFFFFF',
+
+        fontSize: 17,
+
+        fontWeight: '800',
+    },
+
+
+    detectedHeaderText: {
+        flex: 1,
+    },
+
+
+    detectedTitle: {
+        fontSize: 14,
+
+        fontWeight: '800',
+
+        color: TEXT_PRIMARY,
+    },
+
+
+    detectedSmall: {
+        marginTop: 1,
+
+        fontSize: 11,
+
+        color: TEXT_SECONDARY,
+    },
+
+
+    detectedAddress: {
+        marginTop: 10,
+
+        fontSize: 13,
+
+        lineHeight: 19,
+
+        color: '#374151',
+    },
+
+
+    useButton: {
+        marginTop: 11,
+
+        height: 40,
+
+        borderRadius: 11,
+
+        backgroundColor: PRIMARY,
+
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+
+    useButtonText: {
+        color: '#FFFFFF',
+
+        fontSize: 13,
+
+        fontWeight: '800',
+    },
+
+
+    // ==========================================================
+    // SCROLL
+    // ==========================================================
+
+    scroll: {
+        marginTop: 5,
+    },
+
+
+    scrollContent: {
+        paddingTop: 5,
+
+        paddingBottom: 10,
+    },
+
+
+    // ==========================================================
+    // SECTION
+    // ==========================================================
+
+    sectionHeader: {
+        flexDirection: 'row',
+
+        alignItems: 'center',
+
+        marginTop: 14,
+
+        marginBottom: 7,
+    },
+
+
+    section: {
+        fontSize: 14,
+
+        fontWeight: '800',
+
+        color: TEXT_PRIMARY,
+    },
+
+
+    sectionCount: {
+        marginLeft: 7,
+
+        minWidth: 20,
+
+        height: 20,
+
+        paddingHorizontal: 5,
+
+        borderRadius: 10,
+
+        backgroundColor: '#F0F2F3',
+
+        textAlign: 'center',
+
+        lineHeight: 20,
+
+        fontSize: 10,
+
+        color: TEXT_SECONDARY,
+
+        fontWeight: '700',
+    },
+
+
+    // ==========================================================
+    // LOCATION ROW
+    // ==========================================================
+
+    row: {
+        flexDirection: 'row',
+
+        alignItems: 'center',
+
+        minHeight: 67,
+
+        paddingVertical: 9,
+
+        borderBottomWidth: 1,
+
+        borderBottomColor: '#F0F1F2',
+    },
+
+
+    iconCircle: {
+        width: 40,
+        height: 40,
+
+        borderRadius: 20,
+
+        backgroundColor: '#F3F6F5',
+
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        marginRight: 11,
+    },
+
+
+    historyIcon: {
+        fontSize: 19,
+
+        color: PRIMARY,
+
+        fontWeight: '600',
+    },
+
+
+    rowContent: {
+        flex: 1,
+
+        minWidth: 0,
+
+        paddingRight: 8,
+    },
+
+
+    rowTitle: {
+        fontSize: 13,
+
+        lineHeight: 18,
+
+        fontWeight: '700',
+
+        color: TEXT_PRIMARY,
+    },
+
+
+    coordinates: {
+        marginTop: 3,
+
+        fontSize: 10,
+
+        color: TEXT_MUTED,
+    },
+
+
+    rowArrow: {
+        fontSize: 23,
+
+        color: '#B4B8BC',
+
+        fontWeight: '300',
+
+        paddingLeft: 5,
+    },
+
+
+    // ==========================================================
+    // EMPTY
+    // ==========================================================
+
+    emptySection: {
+        flexDirection: 'row',
+
+        alignItems: 'center',
+
+        paddingVertical: 20,
+
+        paddingHorizontal: 4,
+    },
+
+
+    emptyIcon: {
+        width: 42,
+        height: 42,
+
+        borderRadius: 21,
+
+        backgroundColor: '#F5F6F7',
+
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        marginRight: 11,
+    },
+
+
+    emptyIconText: {
+        fontSize: 20,
+
+        color: '#9CA3AF',
+    },
+
+
+    emptyTitle: {
+        fontSize: 13,
+
+        fontWeight: '700',
+
+        color: TEXT_SECONDARY,
+    },
+
+
+    emptyText: {
+        marginTop: 3,
+
+        fontSize: 11,
+
+        color: TEXT_MUTED,
+
+        maxWidth: 270,
+
+        lineHeight: 16,
+    },
+
+
+    // ==========================================================
+    // NO RESULTS
+    // ==========================================================
+
+    noResults: {
+        alignItems: 'center',
+
+        paddingTop: 30,
+
+        paddingHorizontal: 25,
+    },
+
+
+    noResultsIcon: {
+        width: 48,
+        height: 48,
+
+        borderRadius: 24,
+
+        backgroundColor: '#F4F6F6',
+
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        marginBottom: 10,
+    },
+
+
+    noResultsIconText: {
+        fontSize: 24,
+
+        color: '#9CA3AF',
+    },
+
+
+    noResultsTitle: {
+        fontSize: 14,
+
+        fontWeight: '800',
+
+        color: TEXT_PRIMARY,
+    },
+
+
+    noResultsText: {
+        marginTop: 4,
+
+        fontSize: 11.5,
+
+        color: TEXT_MUTED,
+
+        textAlign: 'center',
+
+        lineHeight: 17,
+    },
+
+
+    // ==========================================================
+    // BOTTOM SPACE
+    // ==========================================================
+
+    bottomSpace: {
+        height: 25,
+    },
+
+});

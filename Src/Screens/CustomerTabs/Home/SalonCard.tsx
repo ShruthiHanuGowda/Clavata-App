@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {
     View,
     Text,
@@ -6,9 +7,15 @@ import {
     TouchableOpacity,
     StyleSheet,
 } from 'react-native';
+
 import { useNavigation } from '@react-navigation/native';
+
 import { useUser } from '../../../context/UserContext';
-import { useMutation, useQuery } from '@apollo/client';
+
+import {
+    useMutation,
+    useQuery,
+} from '@apollo/client';
 
 import {
     ADD_FAVORITE_SALON,
@@ -16,7 +23,37 @@ import {
     IS_FAVORITE_SALON,
 } from '../../../graphql/queries';
 
+
+// ============================================================
+// COLORS
+// ============================================================
+
 const PRIMARY = '#008060';
+
+const COLORS = {
+    black: '#111111',
+    text: '#171717',
+    secondary: '#6B6B6B',
+    muted: '#969696',
+
+    white: '#FFFFFF',
+
+    border: '#EAEAEA',
+    background: '#F8F8F8',
+
+    greenLight: '#EAF7F2',
+    green: '#16845F',
+
+    redLight: '#FCEEEE',
+    red: '#C43D3D',
+
+    star: '#D99A22',
+};
+
+
+// ============================================================
+// TYPES
+// ============================================================
 
 type BusinessDay = {
     open: string;
@@ -37,10 +74,15 @@ type BusinessHours = {
 type Props = {
     salon: {
         id: string;
+
         salonId?: string;
+
         name: string;
+
         rating: number;
+
         reviews?: number;
+
         distance: string;
 
         address?: {
@@ -50,7 +92,10 @@ type Props = {
             pincode?: string;
         };
 
-        salonStatus?: 'OPEN' | 'CLOSED' | 'TEMPORARILY_CLOSED';
+        salonStatus?:
+        | 'OPEN'
+        | 'CLOSED'
+        | 'TEMPORARILY_CLOSED';
 
         businessHours?: BusinessHours;
 
@@ -60,16 +105,38 @@ type Props = {
     };
 };
 
+
+// ============================================================
+// GET CURRENT SALON STATUS
+// ============================================================
+
 const getSalonCurrentStatus = (
-    salonStatus?: 'OPEN' | 'CLOSED' | 'TEMPORARILY_CLOSED',
+    salonStatus?:
+        | 'OPEN'
+        | 'CLOSED'
+        | 'TEMPORARILY_CLOSED',
+
     businessHours?: BusinessHours,
 ) => {
-    if (salonStatus === 'TEMPORARILY_CLOSED') {
+
+    // ----------------------------------------------------------
+    // TEMPORARILY CLOSED
+    // ----------------------------------------------------------
+
+    if (
+        salonStatus ===
+        'TEMPORARILY_CLOSED'
+    ) {
         return {
             isOpen: false,
-            text: 'Temporarily Closed',
+            text: 'Temporarily closed',
         };
     }
+
+
+    // ----------------------------------------------------------
+    // NO BUSINESS HOURS
+    // ----------------------------------------------------------
 
     if (!businessHours) {
         return {
@@ -78,345 +145,545 @@ const getSalonCurrentStatus = (
         };
     }
 
+
+    // ----------------------------------------------------------
+    // CURRENT DAY
+    // ----------------------------------------------------------
+
     const now = new Date();
 
-    const days: Array<keyof BusinessHours> = [
-        'SUNDAY',
-        'MONDAY',
-        'TUESDAY',
-        'WEDNESDAY',
-        'THURSDAY',
-        'FRIDAY',
-        'SATURDAY',
-    ];
+    const days: Array<
+        keyof BusinessHours
+    > = [
+            'SUNDAY',
+            'MONDAY',
+            'TUESDAY',
+            'WEDNESDAY',
+            'THURSDAY',
+            'FRIDAY',
+            'SATURDAY',
+        ];
 
-    const today = days[now.getDay()];
+    const today =
+        days[now.getDay()];
 
-    const todayHours = businessHours[today];
+    const todayHours =
+        businessHours[today];
 
-    if (!todayHours?.isOpen) {
+
+    if (
+        !todayHours?.isOpen
+    ) {
         return {
             isOpen: false,
             text: 'Closed',
         };
     }
 
-    if (!todayHours.open || !todayHours.close) {
+
+    if (
+        !todayHours.open ||
+        !todayHours.close
+    ) {
         return {
             isOpen: false,
             text: 'Closed',
         };
     }
+
+
+    // ----------------------------------------------------------
+    // TIME
+    // ----------------------------------------------------------
 
     const currentMinutes =
-        now.getHours() * 60 + now.getMinutes();
+        now.getHours() * 60 +
+        now.getMinutes();
 
-    const [openHour, openMinute] =
-        todayHours.open.split(':').map(Number);
 
-    const [closeHour, closeMinute] =
-        todayHours.close.split(':').map(Number);
+    const [
+        openHour,
+        openMinute,
+    ] =
+        todayHours.open
+            .split(':')
+            .map(Number);
+
+
+    const [
+        closeHour,
+        closeMinute,
+    ] =
+        todayHours.close
+            .split(':')
+            .map(Number);
+
 
     const openMinutes =
-        openHour * 60 + openMinute;
+        openHour * 60 +
+        openMinute;
+
 
     const closeMinutes =
-        closeHour * 60 + closeMinute;
+        closeHour * 60 +
+        closeMinute;
+
 
     let isOpen = false;
 
-    if (closeMinutes > openMinutes) {
+
+    // Normal opening hours
+    if (
+        closeMinutes >
+        openMinutes
+    ) {
+
         isOpen =
-            currentMinutes >= openMinutes &&
-            currentMinutes < closeMinutes;
-    } else if (closeMinutes < openMinutes) {
-        isOpen =
-            currentMinutes >= openMinutes ||
-            currentMinutes < closeMinutes;
-    } else {
-        isOpen = false;
+            currentMinutes >=
+            openMinutes &&
+            currentMinutes <
+            closeMinutes;
+
     }
+
+    // Overnight hours
+    else if (
+        closeMinutes <
+        openMinutes
+    ) {
+
+        isOpen =
+            currentMinutes >=
+            openMinutes ||
+            currentMinutes <
+            closeMinutes;
+
+    }
+
 
     return {
         isOpen,
-        text: isOpen ? 'Open' : 'Closed',
+        text:
+            isOpen
+                ? 'Open'
+                : 'Closed',
     };
 };
 
-export default function SalonCard({ salon }: Props) {
-    const navigation = useNavigation<any>();
 
-    const { currentUser } = useUser();
+// ============================================================
+// COMPONENT
+// ============================================================
+
+export default function SalonCard({
+    salon,
+}: Props) {
+
+    const navigation =
+        useNavigation<any>();
+
+
+    const {
+        currentUser,
+    } = useUser();
+
+
+    // ========================================================
+    // SALON ID
+    // ========================================================
 
     const salonId =
-        salon.salonId ?? salon.id;
+        salon.salonId ??
+        salon.id;
 
-    /**
-     * Local favorite state
-     *
-     * This prevents the heart from visually resetting
-     * while Apollo is loading/refetching.
-     */
-    const [isFavorite, setIsFavorite] =
-        React.useState(false);
 
-    const [favoriteLoading, setFavoriteLoading] =
-        React.useState(false);
+    // ========================================================
+    // FAVORITE STATE
+    // ========================================================
 
-    /**
-     * Get favorite status from backend
-     */
+    const [
+        isFavorite,
+        setIsFavorite,
+    ] = React.useState(false);
+
+
+    const [
+        favoriteLoading,
+        setFavoriteLoading,
+    ] = React.useState(false);
+
+
+    // ========================================================
+    // FAVORITE STATUS
+    // ========================================================
+
     const {
         data: favoriteData,
-        loading: favoriteStatusLoading,
-        refetch: refetchFavoriteStatus,
-    } = useQuery(IS_FAVORITE_SALON, {
-        variables: {
-            userId: currentUser?.userId ?? '',
-            salonId,
+
+        loading:
+        favoriteStatusLoading,
+
+        refetch:
+        refetchFavoriteStatus,
+
+    } = useQuery(
+        IS_FAVORITE_SALON,
+        {
+            variables: {
+                userId:
+                    currentUser?.userId ??
+                    '',
+
+                salonId,
+            },
+
+            skip:
+                !currentUser?.userId ||
+                !salonId,
+
+            fetchPolicy:
+                'network-only',
+
+            notifyOnNetworkStatusChange:
+                true,
         },
+    );
 
-        skip:
-            !currentUser?.userId ||
-            !salonId,
 
-        fetchPolicy: 'network-only',
+    // ========================================================
+    // SYNC FAVORITE
+    // ========================================================
 
-        notifyOnNetworkStatusChange: true,
-    });
-
-    /**
-     * Sync backend status -> local state
-     */
     React.useEffect(() => {
+
         if (
             favoriteData &&
-            favoriteData.isFavoriteSalon !== undefined
+            favoriteData.isFavoriteSalon !==
+            undefined
         ) {
+
             setIsFavorite(
-                favoriteData.isFavoriteSalon === true,
+                favoriteData.isFavoriteSalon ===
+                true,
             );
+
         }
-    }, [favoriteData]);
 
-    /**
-     * Add favorite
-     */
-    const [addFavorite] =
-        useMutation(ADD_FAVORITE_SALON);
+    }, [
+        favoriteData,
+    ]);
 
-    /**
-     * Remove favorite
-     */
-    const [removeFavorite] =
-        useMutation(REMOVE_FAVORITE_SALON);
 
-    /**
-     * Address
-     */
-    const address = [
-        salon.address?.addressLine,
-        salon.address?.city,
-    ]
-        .filter(Boolean)
-        .join(', ');
+    // ========================================================
+    // MUTATIONS
+    // ========================================================
 
-    /**
-     * Navigate to salon
-     */
-    const handlePress = () => {
-        navigation.navigate(
-            'SalonDetails',
-            {
-                salonId,
-                salon,
-            },
+    const [
+        addFavorite,
+    ] =
+        useMutation(
+            ADD_FAVORITE_SALON,
         );
-    };
 
-    /**
-     * Current salon status
-     */
+
+    const [
+        removeFavorite,
+    ] =
+        useMutation(
+            REMOVE_FAVORITE_SALON,
+        );
+
+
+    // ========================================================
+    // ADDRESS
+    // ========================================================
+
+    const address =
+        [
+            salon.address?.addressLine,
+            salon.address?.city,
+        ]
+            .filter(Boolean)
+            .join(', ');
+
+
+    // ========================================================
+    // STATUS
+    // ========================================================
+
     const {
         isOpen,
         text: statusText,
-    } = getSalonCurrentStatus(
-        salon.salonStatus,
-        salon.businessHours,
-    );
+    } =
+        getSalonCurrentStatus(
+            salon.salonStatus,
+            salon.businessHours,
+        );
 
-    /**
-     * Categories
-     */
+
+    // ========================================================
+    // CATEGORIES
+    // ========================================================
+
     const categoryText =
         salon.categories &&
             salon.categories.length > 0
             ? salon.categories
-                .slice(0, 3)
-                .join(' • ')
+                .slice(0, 2)
+                .join('  •  ')
             : '';
 
-    /**
-     * Toggle favorite
-     */
-    const handleFavorite = async () => {
-        if (!currentUser?.userId) {
-            console.log(
-                'User is not logged in',
+
+    // ========================================================
+    // OPEN SALON
+    // ========================================================
+
+    const handlePress =
+        () => {
+
+            navigation.navigate(
+                'SalonDetails',
+                {
+                    salonId,
+                    salon,
+                },
             );
-            return;
-        }
 
-        if (!salonId) {
-            console.log(
-                'Salon ID is missing',
-            );
-            return;
-        }
+        };
 
-        if (favoriteLoading) {
-            return;
-        }
 
-        try {
-            setFavoriteLoading(true);
+    // ========================================================
+    // FAVORITE
+    // ========================================================
 
-            /**
-             * Save previous state.
-             */
-            const previousState = isFavorite;
+    const handleFavorite =
+        async () => {
 
-            /**
-             * Optimistic UI
-             *
-             * Immediately change heart.
-             */
-            setIsFavorite(!previousState);
-
-            if (previousState) {
-                /**
-                 * REMOVE
-                 */
-                const { data } =
-                    await removeFavorite({
-                        variables: {
-                            input: {
-                                userId:
-                                    currentUser.userId,
-                                salonId,
-                            },
-                        },
-                    });
+            if (
+                !currentUser?.userId
+            ) {
 
                 console.log(
-                    'Remove favorite response:',
-                    data?.removeFavoriteSalon,
+                    'User is not logged in',
                 );
 
-                /**
-                 * Backend failed
-                 */
-                if (
-                    !data?.removeFavoriteSalon?.success
-                ) {
-                    setIsFavorite(
-                        previousState,
-                    );
-
-                    console.log(
-                        'Remove favorite failed:',
-                        data?.removeFavoriteSalon
-                            ?.message,
-                    );
-                }
-            } else {
-                /**
-                 * ADD
-                 */
-                const { data } =
-                    await addFavorite({
-                        variables: {
-                            input: {
-                                userId:
-                                    currentUser.userId,
-                                salonId,
-                            },
-                        },
-                    });
-
-                console.log(
-                    'Add favorite response:',
-                    data?.addFavoriteSalon,
-                );
-
-                /**
-                 * Backend failed
-                 */
-                if (
-                    !data?.addFavoriteSalon?.success
-                ) {
-                    setIsFavorite(
-                        previousState,
-                    );
-
-                    console.log(
-                        'Add favorite failed:',
-                        data?.addFavoriteSalon
-                            ?.message,
-                    );
-                }
+                return;
             }
 
-            /**
-             * Refresh backend state.
-             *
-             * This ensures the local state and
-             * DynamoDB eventually agree.
-             */
-            await refetchFavoriteStatus();
-        } catch (error) {
-            console.error(
-                'Favorite salon error:',
-                error,
-            );
 
-            /**
-             * Rollback UI if request failed.
-             */
-            setIsFavorite(
-                !isFavorite,
-            );
-        } finally {
-            setFavoriteLoading(false);
-        }
-    };
+            if (!salonId) {
+
+                console.log(
+                    'Salon ID is missing',
+                );
+
+                return;
+            }
+
+
+            if (
+                favoriteLoading
+            ) {
+                return;
+            }
+
+
+            try {
+
+                setFavoriteLoading(
+                    true,
+                );
+
+
+                const previousState =
+                    isFavorite;
+
+
+                // ------------------------------------------------
+                // OPTIMISTIC UI
+                // ------------------------------------------------
+
+                setIsFavorite(
+                    !previousState,
+                );
+
+
+                // ------------------------------------------------
+                // REMOVE
+                // ------------------------------------------------
+
+                if (
+                    previousState
+                ) {
+
+                    const {
+                        data,
+                    } =
+                        await removeFavorite({
+                            variables: {
+                                input: {
+                                    userId:
+                                        currentUser.userId,
+
+                                    salonId,
+                                },
+                            },
+                        });
+
+
+                    if (
+                        !data
+                            ?.removeFavoriteSalon
+                            ?.success
+                    ) {
+
+                        setIsFavorite(
+                            previousState,
+                        );
+
+                        console.log(
+                            'Remove favorite failed:',
+                            data
+                                ?.removeFavoriteSalon
+                                ?.message,
+                        );
+                    }
+
+                }
+
+                // ------------------------------------------------
+                // ADD
+                // ------------------------------------------------
+
+                else {
+
+                    const {
+                        data,
+                    } =
+                        await addFavorite({
+                            variables: {
+                                input: {
+                                    userId:
+                                        currentUser.userId,
+
+                                    salonId,
+                                },
+                            },
+                        });
+
+
+                    if (
+                        !data
+                            ?.addFavoriteSalon
+                            ?.success
+                    ) {
+
+                        setIsFavorite(
+                            previousState,
+                        );
+
+                        console.log(
+                            'Add favorite failed:',
+                            data
+                                ?.addFavoriteSalon
+                                ?.message,
+                        );
+                    }
+
+                }
+
+
+                // ------------------------------------------------
+                // SYNC BACKEND
+                // ------------------------------------------------
+
+                await refetchFavoriteStatus();
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    'Favorite salon error:',
+                    error,
+                );
+
+                setIsFavorite(
+                    previousStateFallback(
+                        isFavorite,
+                    ),
+                );
+
+            }
+
+            finally {
+
+                setFavoriteLoading(
+                    false,
+                );
+
+            }
+
+        };
+
 
     return (
+
         <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.92}
-            onPress={handlePress}
+            style={
+                styles.card
+            }
+            activeOpacity={
+                0.94
+            }
+            onPress={
+                handlePress
+            }
         >
-            <View style={styles.imageContainer}>
+
+            {/* ==================================================
+                IMAGE
+            ================================================== */}
+
+            <View
+                style={
+                    styles.imageContainer
+                }
+            >
+
                 <Image
                     source={{
                         uri:
                             salon.image ||
                             'https://picsum.photos/300/300',
                     }}
-                    style={styles.image}
+                    style={
+                        styles.image
+                    }
+                    resizeMode="cover"
                 />
 
-                {/* FAVORITE */}
+
+                {/* ==================================================
+                    FAVORITE
+                ================================================== */}
+
                 <TouchableOpacity
-                    style={styles.favorite}
-                    activeOpacity={0.8}
+                    style={
+                        styles.favoriteButton
+                    }
+                    activeOpacity={
+                        0.8
+                    }
                     disabled={
                         favoriteLoading ||
                         favoriteStatusLoading
                     }
-                    onPress={handleFavorite}
+                    onPress={
+                        handleFavorite
+                    }
                 >
+
                     <Text
                         style={[
                             styles.heart,
@@ -428,32 +695,59 @@ export default function SalonCard({ salon }: Props) {
                             ? '♥'
                             : '♡'}
                     </Text>
+
                 </TouchableOpacity>
+
             </View>
 
-            <View style={styles.content}>
-                <View style={styles.nameRow}>
+
+            {/* ==================================================
+                CONTENT
+            ================================================== */}
+
+            <View
+                style={
+                    styles.content
+                }
+            >
+
+                {/* ==================================================
+                    NAME + STATUS
+                ================================================== */}
+
+                <View
+                    style={
+                        styles.nameRow
+                    }
+                >
+
                     <Text
-                        style={styles.name}
-                        numberOfLines={1}
+                        style={
+                            styles.name
+                        }
+                        numberOfLines={
+                            1
+                        }
                     >
                         {salon.name}
                     </Text>
 
+
                     <View
                         style={[
-                            styles.statusBadge,
+                            styles.status,
                             isOpen
-                                ? styles.openBadge
-                                : styles.closedBadge,
+                                ? styles.statusOpen
+                                : styles.statusClosed,
                         ]}
                     >
+
                         <View
                             style={[
                                 styles.statusDot,
                                 isOpen
-                                    ? styles.openDot
-                                    : styles.closedDot,
+                                    ? styles.dotOpen
+                                    : styles.dotClosed,
                             ]}
                         />
 
@@ -461,281 +755,687 @@ export default function SalonCard({ salon }: Props) {
                             style={[
                                 styles.statusText,
                                 isOpen
-                                    ? styles.openText
-                                    : styles.closedText,
+                                    ? styles.statusTextOpen
+                                    : styles.statusTextClosed,
                             ]}
                         >
                             {statusText}
                         </Text>
+
                     </View>
+
                 </View>
 
-                <View style={styles.infoRow}>
-                    <View style={styles.ratingBox}>
-                        <Text style={styles.star}>
+
+                {/* ==================================================
+                    RATING + DISTANCE
+                ================================================== */}
+
+                <View
+                    style={
+                        styles.metaRow
+                    }
+                >
+
+                    <View
+                        style={
+                            styles.ratingContainer
+                        }
+                    >
+
+                        <Text
+                            style={
+                                styles.star
+                            }
+                        >
                             ★
                         </Text>
 
-                        <Text style={styles.rating}>
-                            {(salon.rating ?? 0).toFixed(
-                                1,
-                            )}
+                        <Text
+                            style={
+                                styles.rating
+                            }
+                        >
+                            {(
+                                salon.rating ??
+                                0
+                            ).toFixed(1)}
                         </Text>
 
-                        {salon.reviews != null && (
-                            <Text
-                                style={
-                                    styles.reviews
-                                }
-                            >
-                                ({salon.reviews})
-                            </Text>
-                        )}
+
+                        {salon.reviews !=
+                            null && (
+                                <Text
+                                    style={
+                                        styles.reviews
+                                    }
+                                >
+                                    {salon.reviews}
+                                    {' '}
+                                    reviews
+                                </Text>
+                            )}
+
                     </View>
 
-                    <View style={styles.dot} />
+
+                    <View
+                        style={
+                            styles.separator
+                        }
+                    />
+
 
                     <Text
-                        style={styles.distance}
-                        numberOfLines={1}
+                        style={
+                            styles.distance
+                        }
                     >
                         {salon.distance}
                     </Text>
+
                 </View>
 
+
+                {/* ==================================================
+                    ADDRESS
+                ================================================== */}
+
                 {!!address && (
+
                     <Text
-                        style={styles.address}
-                        numberOfLines={1}
+                        style={
+                            styles.address
+                        }
+                        numberOfLines={
+                            1
+                        }
                     >
                         📍 {address}
                     </Text>
+
                 )}
 
+
+                {/* ==================================================
+                    CATEGORIES
+                ================================================== */}
+
                 {!!categoryText && (
+
                     <Text
-                        style={styles.categories}
-                        numberOfLines={1}
+                        style={
+                            styles.categories
+                        }
+                        numberOfLines={
+                            1
+                        }
                     >
                         {categoryText}
                     </Text>
+
                 )}
 
-                <TouchableOpacity
-                    style={styles.button}
-                    activeOpacity={0.85}
-                    onPress={handlePress}
+
+                {/* ==================================================
+                    FOOTER
+                ================================================== */}
+
+                <View
+                    style={
+                        styles.footer
+                    }
                 >
+
                     <Text
-                        style={styles.buttonText}
+                        style={
+                            styles.viewText
+                        }
                     >
-                        View Salon
+                        View salon
                     </Text>
 
-                    <Text style={styles.arrow}>
+                    <Text
+                        style={
+                            styles.arrow
+                        }
+                    >
                         →
                     </Text>
-                </TouchableOpacity>
+
+                </View>
+
             </View>
+
         </TouchableOpacity>
     );
 }
 
-const styles = StyleSheet.create({
-    card: {
-        marginHorizontal: 16,
-        marginBottom: 12,
-        padding: 10,
-        flexDirection: 'row',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
+
+// ============================================================
+// SAFE FAVORITE FALLBACK
+// ============================================================
+
+function previousStateFallback(
+    current: boolean,
+) {
+    return !current;
+}
+
+
+// ============================================================
+// STYLES
+// ============================================================
+
+const styles =
+    StyleSheet.create({
+
+        // ======================================================
+        // CARD
+        // ======================================================
+
+        card: {
+
+            marginHorizontal:
+                20,
+
+            marginBottom:
+                14,
+
+            padding:
+                10,
+
+            backgroundColor:
+                COLORS.white,
+
+            borderRadius:
+                18,
+
+            flexDirection:
+                'row',
+
+            borderWidth:
+                1,
+
+            borderColor:
+                COLORS.border,
+
+            shadowColor:
+                '#000',
+
+            shadowOffset: {
+                width: 0,
+                height: 3,
+            },
+
+            shadowOpacity:
+                0.045,
+
+            shadowRadius:
+                8,
+
+            elevation:
+                2,
         },
-        shadowOpacity: 0.08,
-        shadowRadius: 5,
-    },
 
-    imageContainer: {
-        width: 105,
-        height: 120,
-        position: 'relative',
-    },
 
-    image: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 13,
-        backgroundColor: '#F0F0F0',
-    },
+        // ======================================================
+        // IMAGE
+        // ======================================================
 
-    favorite: {
-        position: 'absolute',
-        top: 7,
-        right: 7,
-        width: 25,
-        height: 25,
-        borderRadius: 15,
-        backgroundColor:
-            'rgba(255,255,255,0.95)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
+        imageContainer: {
 
-    heart: {
-        fontSize: 14,
-        color: '#333',
-        lineHeight: 23,
-    },
+            width:
+                104,
 
-    heartActive: {
-        color: '#E53935',
-    },
+            height:
+                128,
 
-    content: {
-        flex: 1,
-        marginLeft: 12,
-        paddingVertical: 2,
-        minWidth: 0,
-    },
+            position:
+                'relative',
 
-    nameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
+            flexShrink:
+                0,
+        },
 
-    name: {
-        flex: 1,
-        fontSize: 17,
-        fontWeight: '700',
-        color: '#111111',
-        marginRight: 6,
-    },
 
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 7,
-        paddingVertical: 4,
-        borderRadius: 10,
-    },
+        image: {
 
-    openBadge: {
-        backgroundColor: '#E8F7EF',
-    },
+            width:
+                '100%',
 
-    closedBadge: {
-        backgroundColor: '#FDECEC',
-    },
+            height:
+                '100%',
 
-    statusDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        marginRight: 4,
-    },
+            borderRadius:
+                13,
 
-    openDot: {
-        backgroundColor: '#16A34A',
-    },
+            backgroundColor:
+                COLORS.background,
+        },
 
-    closedDot: {
-        backgroundColor: '#DC2626',
-    },
 
-    statusText: {
-        fontSize: 10,
-        fontWeight: '700',
-    },
+        // ======================================================
+        // FAVORITE
+        // ======================================================
 
-    openText: {
-        color: '#15803D',
-    },
+        favoriteButton: {
 
-    closedText: {
-        color: '#B91C1C',
-    },
+            position:
+                'absolute',
 
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 7,
-    },
+            top:
+                7,
 
-    ratingBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
+            right:
+                7,
 
-    star: {
-        fontSize: 14,
-        color: '#F5A623',
-        marginRight: 3,
-    },
+            width:
+                30,
 
-    rating: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#333333',
-    },
+            height:
+                30,
 
-    reviews: {
-        marginLeft: 3,
-        fontSize: 12,
-        color: '#888888',
-    },
+            borderRadius:
+                15,
 
-    dot: {
-        width: 3,
-        height: 3,
-        borderRadius: 2,
-        backgroundColor: '#AAAAAA',
-        marginHorizontal: 8,
-    },
+            backgroundColor:
+                'rgba(255,255,255,0.96)',
 
-    distance: {
-        fontSize: 12,
-        color: PRIMARY,
-        fontWeight: '600',
-    },
+            alignItems:
+                'center',
 
-    address: {
-        marginTop: 6,
-        fontSize: 12,
-        color: '#777777',
-    },
+            justifyContent:
+                'center',
 
-    categories: {
-        marginTop: 6,
-        fontSize: 12,
-        color: '#555555',
-        fontWeight: '600',
-    },
+            shadowColor:
+                '#000',
 
-    button: {
-        alignSelf: 'flex-start',
-        marginTop: 9,
-        paddingHorizontal: 13,
-        paddingVertical: 6,
-        borderRadius: 15,
-        backgroundColor: '#E8F6F3',
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
+            shadowOffset: {
+                width: 0,
+                height: 1,
+            },
 
-    buttonText: {
-        color: PRIMARY,
-        fontSize: 12,
-        fontWeight: '700',
-    },
+            shadowOpacity:
+                0.10,
 
-    arrow: {
-        marginLeft: 5,
-        color: PRIMARY,
-        fontSize: 14,
-        fontWeight: '700',
-    },
-});
+            shadowRadius:
+                3,
+
+            elevation:
+                2,
+        },
+
+
+        heart: {
+
+            fontSize:
+                17,
+
+            color:
+                '#333',
+
+            lineHeight:
+                20,
+
+            fontWeight:
+                '400',
+        },
+
+
+        heartActive: {
+
+            color:
+                '#D83A3A',
+
+            fontWeight:
+                '600',
+        },
+
+
+        // ======================================================
+        // CONTENT
+        // ======================================================
+
+        content: {
+
+            flex:
+                1,
+
+            marginLeft:
+                13,
+
+            paddingVertical:
+                2,
+
+            minWidth:
+                0,
+        },
+
+
+        // ======================================================
+        // NAME
+        // ======================================================
+
+        nameRow: {
+
+            flexDirection:
+                'row',
+
+            alignItems:
+                'center',
+
+            width:
+                '100%',
+        },
+
+
+        name: {
+
+            flex:
+                1,
+
+            fontSize:
+                16,
+
+            lineHeight:
+                20,
+
+            fontWeight:
+                '700',
+
+            color:
+                COLORS.text,
+
+            marginRight:
+                7,
+        },
+
+
+        // ======================================================
+        // STATUS
+        // ======================================================
+
+        status: {
+
+            flexDirection:
+                'row',
+
+            alignItems:
+                'center',
+
+            paddingHorizontal:
+                7,
+
+            paddingVertical:
+                4,
+
+            borderRadius:
+                8,
+
+            flexShrink:
+                0,
+        },
+
+
+        statusOpen: {
+
+            backgroundColor:
+                COLORS.greenLight,
+        },
+
+
+        statusClosed: {
+
+            backgroundColor:
+                COLORS.redLight,
+        },
+
+
+        statusDot: {
+
+            width:
+                5,
+
+            height:
+                5,
+
+            borderRadius:
+                3,
+
+            marginRight:
+                4,
+        },
+
+
+        dotOpen: {
+
+            backgroundColor:
+                COLORS.green,
+        },
+
+
+        dotClosed: {
+
+            backgroundColor:
+                COLORS.red,
+        },
+
+
+        statusText: {
+
+            fontSize:
+                9,
+
+            lineHeight:
+                11,
+
+            fontWeight:
+                '600',
+        },
+
+
+        statusTextOpen: {
+
+            color:
+                COLORS.green,
+        },
+
+
+        statusTextClosed: {
+
+            color:
+                COLORS.red,
+        },
+
+
+        // ======================================================
+        // META
+        // ======================================================
+
+        metaRow: {
+
+            flexDirection:
+                'row',
+
+            alignItems:
+                'center',
+
+            marginTop:
+                8,
+        },
+
+
+        ratingContainer: {
+
+            flexDirection:
+                'row',
+
+            alignItems:
+                'center',
+        },
+
+
+        star: {
+
+            fontSize:
+                12,
+
+            color:
+                COLORS.star,
+
+            marginRight:
+                3,
+        },
+
+
+        rating: {
+
+            fontSize:
+                12,
+
+            fontWeight:
+                '600',
+
+            color:
+                COLORS.text,
+        },
+
+
+        reviews: {
+
+            marginLeft:
+                4,
+
+            fontSize:
+                11,
+
+            color:
+                COLORS.muted,
+        },
+
+
+        separator: {
+
+            width:
+                3,
+
+            height:
+                3,
+
+            borderRadius:
+                2,
+
+            backgroundColor:
+                '#BDBDBD',
+
+            marginHorizontal:
+                9,
+        },
+
+
+        distance: {
+
+            fontSize:
+                11,
+
+            color:
+                PRIMARY,
+
+            fontWeight:
+                '600',
+        },
+
+
+        // ======================================================
+        // ADDRESS
+        // ======================================================
+
+        address: {
+
+            marginTop:
+                7,
+
+            fontSize:
+                11,
+
+            lineHeight:
+                15,
+
+            color:
+                COLORS.secondary,
+        },
+
+
+        // ======================================================
+        // CATEGORIES
+        // ======================================================
+
+        categories: {
+
+            marginTop:
+                5,
+
+            fontSize:
+                10,
+
+            lineHeight:
+                14,
+
+            color:
+                COLORS.muted,
+
+            fontWeight:
+                '500',
+        },
+
+
+        // ======================================================
+        // FOOTER
+        // ======================================================
+
+        footer: {
+
+            flexDirection:
+                'row',
+
+            alignItems:
+                'center',
+
+            marginTop:
+                9,
+        },
+
+
+        viewText: {
+
+            fontSize:
+                12,
+
+            color:
+                PRIMARY,
+
+            fontWeight:
+                '600',
+        },
+
+
+        arrow: {
+
+            marginLeft:
+                5,
+
+            fontSize:
+                15,
+
+            lineHeight:
+                16,
+
+            color:
+                PRIMARY,
+
+            fontWeight:
+                '500',
+        },
+
+    });

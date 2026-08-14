@@ -1,247 +1,313 @@
 import React from 'react';
 import {
-    View,
-    TouchableOpacity,
-    Text,
-    StyleSheet,
-    ScrollView,
-    Image,
+  View,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  Image,
 } from 'react-native';
 
+import {
+  COLORS,
+  SPACING,
+} from '../../../constants/constants';
+
 // ============================================================
-// SERVICE IMAGES
+// SERVICES
 // ============================================================
 
 const services = [
-    {
-        name: 'Hair',
-        image: require('../../../assets/3d/hair.png'),
-    },
-    {
-        name: 'Face',
-        image: require('../../../assets/3d/face.png'),
-    },
-    {
-        name: 'Skin',
-        image: require('../../../assets/3d/skin.png'),
-    },
-    {
-        name: 'Nails',
-        image: require('../../../assets/3d/nails.png'),
-    },
-    {
-        name: 'Makeup',
-        image: require('../../../assets/3d/makeup.png'),
-    },
-    {
-        name: 'Beard',
-        image: require('../../../assets/3d/beard.png'),
-    },
-    {
-        name: 'Spa',
-        image: require('../../../assets/3d/spa.png'),
-    },
-    {
-        name: 'Massage',
-        image: require('../../../assets/3d/massage.png'),
-    },
-    {
-        name: 'Waxing',
-        image: require('../../../assets/3d/waxing.png'),
-    },
-    {
-        name: 'Threading',
-        image: require('../../../assets/3d/threading.png'),
-    },
-    {
-        name: 'Bridal',
-        image: require('../../../assets/3d/bridal.png'),
-    },
-    {
-        name: "Men's Grooming",
-        image: require('../../../assets/3d/mens_grooming.png'),
-    },
+  {
+    name: 'Hair',
+    image: require('../../../assets/3d/hair.png'),
+  },
+  {
+    name: 'Face',
+    image: require('../../../assets/3d/face.png'),
+  },
+  {
+    name: 'Skin',
+    image: require('../../../assets/3d/skin.png'),
+  },
+  {
+    name: 'Nails',
+    image: require('../../../assets/3d/nails.png'),
+  },
+  {
+    name: 'Makeup',
+    image: require('../../../assets/3d/makeup.png'),
+  },
+  {
+    name: 'Beard',
+    image: require('../../../assets/3d/beard.png'),
+  },
+  {
+    name: 'Spa',
+    image: require('../../../assets/3d/spa.png'),
+  },
+  {
+    name: 'Massage',
+    image: require('../../../assets/3d/massage.png'),
+  },
+  {
+    name: 'Waxing',
+    image: require('../../../assets/3d/waxing.png'),
+  },
+  {
+    name: 'Threading',
+    image: require('../../../assets/3d/threading.png'),
+  },
+  {
+    name: 'Bridal',
+    image: require('../../../assets/3d/bridal.png'),
+  },
+  {
+    name: "Men's Grooming",
+    image: require('../../../assets/3d/mens_grooming.png'),
+  },
 ];
 
+// ============================================================
+// TYPES
+// ============================================================
+
 type Props = {
-    onSelect: (category: string) => void;
-    selectedCategory?: string;
+  onSelect: (category: string) => void;
+  selectedCategory?: string;
 };
 
+// ============================================================
+// COMPONENT
+// ============================================================
+
 export default function ServiceChips({
-    onSelect,
-    selectedCategory = '',
+  onSelect,
+  selectedCategory = '',
 }: Props) {
-    return (
-        <View style={styles.wrapper}>
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.container}
+  return (
+    <View style={styles.wrapper}>
+
+      <View style={styles.grid}>
+
+        {services.map((item) => {
+
+          const isSelected =
+            selectedCategory === item.name;
+
+          return (
+            <TouchableOpacity
+              key={item.name}
+              activeOpacity={0.85}
+              onPress={() => onSelect(item.name)}
+              style={[
+                styles.card,
+                isSelected && styles.cardSelected,
+              ]}
             >
-                {services.map((item) => {
-                    const isSelected =
-                        selectedCategory === item.name;
 
-                    return (
-                        <TouchableOpacity
-                            key={item.name}
-                            activeOpacity={0.8}
-                            style={[
-                                styles.chip,
-                                isSelected && styles.selectedChip,
-                            ]}
-                            onPress={() => {
-                                console.log(
-                                    'Category chip pressed:',
-                                    item.name,
-                                );
+              {/* IMAGE */}
 
-                                onSelect(item.name);
-                            }}
-                        >
-                            {/* ==================================================
-                  REALISTIC TRANSPARENT IMAGE
-                 ================================================== */}
+              <View
+                style={[
+                  styles.imageContainer,
+                  isSelected &&
+                    styles.imageContainerSelected,
+                ]}
+              >
+                <Image
+                  source={item.image}
+                  style={styles.image}
+                  resizeMode="contain"
+                />
+              </View>
 
-                            <View
-                                style={[
-                                    styles.imageContainer,
-                                    isSelected &&
-                                    styles.selectedImageContainer,
-                                ]}
-                            >
-                                <Image
-                                    source={item.image}
-                                    style={styles.serviceImage}
-                                    resizeMode="contain"
-                                />
-                            </View>
+              {/* NAME */}
 
-                            {/* ==================================================
-                  CATEGORY NAME
-                 ================================================== */}
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[
+                  styles.name,
+                  isSelected && styles.nameSelected,
+                ]}
+              >
+                {item.name}
+              </Text>
 
-                            <Text
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
-                                style={[
-                                    styles.text,
-                                    isSelected &&
-                                    styles.selectedText,
-                                ]}
-                            >
-                                {item.name}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </ScrollView>
-        </View>
-    );
+              {/* CHECK */}
+
+              {isSelected && (
+                <View style={styles.checkContainer}>
+                  <Text style={styles.check}>
+                    ✓
+                  </Text>
+                </View>
+              )}
+
+            </TouchableOpacity>
+          );
+        })}
+
+      </View>
+
+    </View>
+  );
 }
 
+// ============================================================
+// STYLES
+// ============================================================
+
 const styles = StyleSheet.create({
-    wrapper: {
-        marginBottom: 18,
+
+  // ============================================================
+  // WRAPPER
+  // ============================================================
+
+  wrapper: {
+    paddingHorizontal: SPACING.xl,
+    marginBottom: SPACING.medium,
+  },
+
+  // ============================================================
+  // GRID
+  // ============================================================
+
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+
+    justifyContent: 'space-between',
+
+    rowGap: 7,
+  },
+
+  // ============================================================
+  // CARD
+  // ============================================================
+
+  card: {
+    width: '23.5%',
+    height: 68,
+
+    borderRadius: 12,
+
+    backgroundColor: COLORS.white,
+
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    position: 'relative',
+
+    shadowColor: COLORS.black,
+    shadowOffset: {
+      width: 0,
+      height: 1,
     },
+    shadowOpacity: 0.025,
+    shadowRadius: 3,
 
-    container: {
-        paddingHorizontal: 20,
-        paddingVertical: 6,
-    },
+    elevation: 1,
+  },
 
-    // ============================================================
-    // CARD
-    // ============================================================
+  // ============================================================
+  // SELECTED
+  // ============================================================
 
-    chip: {
-        width: 80,
-        height: 80,
+  cardSelected: {
+    backgroundColor: COLORS.black,
+    borderColor: COLORS.black,
 
-        backgroundColor: '#FFFFFF',
+    shadowOpacity: 0.10,
+    elevation: 2,
+  },
 
-        borderRadius: 18,
+  // ============================================================
+  // IMAGE
+  // ============================================================
 
-        borderWidth: 1,
-        borderColor: '#E8E8E8',
+  imageContainer: {
+    width: 36,
+    height: 36,
 
-        alignItems: 'center',
-        justifyContent: 'center',
+    borderRadius: 10,
 
-        marginRight: 12,
+    backgroundColor: '#F7F7F7',
 
-        paddingHorizontal: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
 
-        // subtle elevation
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 5,
+    marginBottom: 2,
+  },
 
-        elevation: 2,
-    },
+  imageContainerSelected: {
+    backgroundColor: COLORS.white,
+  },
 
-    // ============================================================
-    // SELECTED CARD
-    // ============================================================
+  image: {
+    width: 34,
+    height: 34,
+  },
 
-    selectedChip: {
-        borderColor: '#009D94',
-        borderWidth: 1.5,
+  // ============================================================
+  // NAME
+  // ============================================================
 
-        backgroundColor: '#F0FAF9',
+  name: {
+    width: '90%',
 
-        shadowOpacity: 0.08,
-    },
+    fontSize: 9.5,
 
-    // ============================================================
-    // IMAGE AREA
-    // ============================================================
+    lineHeight: 11,
 
-    imageContainer: {
-        width: 50,
-        height: 50,
+    color: '#222222',
 
-        alignItems: 'center',
-        justifyContent: 'center',
+    fontWeight: '600',
 
-        marginBottom: 5,
-    },
+    textAlign: 'center',
 
-    selectedImageContainer: {
-        transform: [
-            {
-                scale: 1.05,
-            },
-        ],
-    },
+    letterSpacing: -0.1,
+  },
 
-    serviceImage: {
-        width: 50,
-        height: 50,
-    },
+  nameSelected: {
+    color: COLORS.white,
+    fontWeight: '700',
+  },
 
-    // ============================================================
-    // TEXT
-    // ============================================================
+  // ============================================================
+  // CHECK
+  // ============================================================
 
-    text: {
-        fontSize: 12,
-        fontWeight: '600',
+  checkContainer: {
+    position: 'absolute',
 
-        color: '#303030',
+    top: 4,
+    right: 4,
 
-        textAlign: 'center',
+    width: 14,
+    height: 14,
 
-        maxWidth: 82,
-    },
+    borderRadius: 7,
 
-    selectedText: {
-        color: '#009D94',
-        fontWeight: '700',
-    },
+    backgroundColor: COLORS.black,
+
+    borderWidth: 1,
+    borderColor: COLORS.white,
+
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  check: {
+    color: COLORS.white,
+
+    fontSize: 8,
+
+    lineHeight: 9,
+
+    fontWeight: '900',
+  },
 });

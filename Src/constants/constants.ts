@@ -3,9 +3,9 @@
 import Config from 'react-native-config';
 
 export const COLORS = {
-  background: '#FFFFFF',
+  background: '#F8F8FA',
   surface: '#FFFFFF',
-  badgeColor: '#fee8e8',
+  badgeColor: '#f9ecec',
   primary: '#111111',
   text: '#111111',
   textSecondary: '#6B6B6B',

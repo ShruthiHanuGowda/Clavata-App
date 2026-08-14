@@ -12,47 +12,23 @@ import {
     TouchableOpacity,
     TextInput,
     StatusBar,
-    Dimensions,
 } from 'react-native';
 
 import {
     useNavigation,
 } from '@react-navigation/native';
 
-
-const { width } =
-    Dimensions.get('window');
-
-
-/*
- * ==========================================================
- * CLAVATA COLORS
- * ==========================================================
- */
-
-const PRIMARY = '#5B21F4';
-const PRIMARY_LIGHT = '#F3EEFF';
-
-const TEXT = '#111827';
-const SECONDARY = '#6B7280';
-const MUTED = '#9CA3AF';
-
-const BORDER = '#E5E7EB';
-const BACKGROUND = '#F8F9FC';
-const WHITE = '#FFFFFF';
-
-const SUCCESS = '#059669';
-const SUCCESS_LIGHT = '#ECFDF5';
-
-const ORANGE = '#EA580C';
-const ORANGE_LIGHT = '#FFF7ED';
+import {
+    COLORS,
+    FONT_SIZES,
+    SPACING,
+    RADIUS,
+} from '../../../constants/constants';
 
 
-/*
- * ==========================================================
- * TYPES
- * ==========================================================
- */
+// ============================================================
+// TYPES
+// ============================================================
 
 type Offer = {
     id: string;
@@ -67,13 +43,11 @@ type Offer = {
 };
 
 
-/*
- * ==========================================================
- * SAMPLE OFFERS
- * ==========================================================
- *
- * Replace this later with your GraphQL GET_OFFERS query.
- */
+// ============================================================
+// SAMPLE OFFERS
+// ============================================================
+// Replace this later with your GraphQL GET_OFFERS query.
+// ============================================================
 
 const OFFERS: Offer[] = [
 
@@ -142,11 +116,9 @@ const OFFERS: Offer[] = [
 ];
 
 
-/*
- * ==========================================================
- * CATEGORIES
- * ==========================================================
- */
+// ============================================================
+// CATEGORIES
+// ============================================================
 
 const CATEGORIES = [
     'All',
@@ -158,11 +130,9 @@ const CATEGORIES = [
 ];
 
 
-/*
- * ==========================================================
- * OFFERS SCREEN
- * ==========================================================
- */
+// ============================================================
+// OFFERS SCREEN
+// ============================================================
 
 export default function OffersScreen() {
 
@@ -182,11 +152,9 @@ export default function OffersScreen() {
     ] = useState('All');
 
 
-    /*
-     * ========================================================
-     * FILTER
-     * ========================================================
-     */
+    // ========================================================
+    // FILTER OFFERS
+    // ========================================================
 
     const filteredOffers =
         useMemo(() => {
@@ -201,10 +169,8 @@ export default function OffersScreen() {
                 offer => {
 
                     const matchesCategory =
-                        selectedCategory ===
-                        'All' ||
-                        offer.category ===
-                        selectedCategory;
+                        selectedCategory === 'All' ||
+                        offer.category === selectedCategory;
 
 
                     const matchesSearch =
@@ -217,6 +183,12 @@ export default function OffersScreen() {
                             .includes(query) ||
                         offer.category
                             .toLowerCase()
+                            .includes(query) ||
+                        offer.discount
+                            .toLowerCase()
+                            .includes(query) ||
+                        offer.code
+                            ?.toLowerCase()
                             .includes(query);
 
 
@@ -234,93 +206,91 @@ export default function OffersScreen() {
         ]);
 
 
-    /*
-     * ========================================================
-     * OFFER CLICK
-     * ========================================================
-     */
+    // ========================================================
+    // OFFER CLICK
+    // ========================================================
 
     const handleOfferPress =
         (offer: Offer) => {
 
-            /*
-             * Later you can navigate to:
-             *
-             * OfferDetails
-             *
-             * and pass:
-             *
-             * offerId
-             */
-
             navigation.navigate(
                 'OfferDetails',
                 {
-                    offerId:
-                        offer.id,
+                    offerId: offer.id,
+                    offer,
                 },
             );
 
         };
 
 
-    /*
-     * ========================================================
-     * RENDER
-     * ========================================================
-     */
+    // ========================================================
+    // FEATURED OFFERS
+    // ========================================================
+
+    const featuredOffers =
+        filteredOffers.filter(
+            offer => offer.featured,
+        );
+
+
+    // ========================================================
+    // OTHER OFFERS
+    // ========================================================
+
+    const otherOffers =
+        filteredOffers.filter(
+            offer => !offer.featured,
+        );
+
+
+    // ========================================================
+    // RENDER
+    // ========================================================
 
     return (
 
         <SafeAreaView
-            style={
-                styles.safeArea
-            }
+            style={styles.safeArea}
         >
 
             <StatusBar
                 barStyle="dark-content"
                 backgroundColor={
-                    BACKGROUND
+                    COLORS.background
                 }
             />
 
 
             <ScrollView
-                showsVerticalScrollIndicator={
-                    false
-                }
+                showsVerticalScrollIndicator={false}
                 contentContainerStyle={
                     styles.scrollContent
                 }
+                keyboardShouldPersistTaps="handled"
             >
-
 
                 {/* ================================================= */}
                 {/* HEADER */}
                 {/* ================================================= */}
 
                 <View
-                    style={
-                        styles.header
-                    }
+                    style={styles.header}
                 >
 
-                    <View>
+                    <View
+                        style={styles.headerTextContainer}
+                    >
 
                         <Text
-                            style={
-                                styles.headerTitle
-                            }
+                            style={styles.headerTitle}
                         >
                             Offers
                         </Text>
 
 
                         <Text
-                            style={
-                                styles.headerSubtitle
-                            }
+                            style={styles.headerSubtitle}
                         >
                             Exclusive beauty deals near you
                         </Text>
@@ -329,15 +299,11 @@ export default function OffersScreen() {
 
 
                     <View
-                        style={
-                            styles.offerIcon
-                        }
+                        style={styles.offerIcon}
                     >
 
                         <Text
-                            style={
-                                styles.offerIconText
-                            }
+                            style={styles.offerIconText}
                         >
                             %
                         </Text>
@@ -352,38 +318,52 @@ export default function OffersScreen() {
                 {/* ================================================= */}
 
                 <View
-                    style={
-                        styles.searchContainer
-                    }
+                    style={styles.searchContainer}
                 >
 
                     <Text
-                        style={
-                            styles.searchIcon
-                        }
+                        style={styles.searchIcon}
                     >
                         ⌕
                     </Text>
 
 
                     <TextInput
-                        value={
-                            search
-                        }
-                        onChangeText={
-                            setSearch
-                        }
+                        value={search}
+                        onChangeText={setSearch}
                         placeholder="Search offers"
                         placeholderTextColor={
-                            MUTED
+                            COLORS.textMuted
                         }
-                        style={
-                            styles.searchInput
-                        }
-                        autoCorrect={
-                            false
-                        }
+                        style={styles.searchInput}
+                        autoCorrect={false}
+                        autoCapitalize="none"
+                        returnKeyType="search"
                     />
+
+                    {search.length > 0 && (
+
+                        <TouchableOpacity
+                            onPress={() =>
+                                setSearch('')
+                            }
+                            activeOpacity={0.7}
+                            style={
+                                styles.clearButton
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.clearText
+                                }
+                            >
+                                ×
+                            </Text>
+
+                        </TouchableOpacity>
+
+                    )}
 
                 </View>
 
@@ -394,9 +374,7 @@ export default function OffersScreen() {
 
                 <ScrollView
                     horizontal
-                    showsHorizontalScrollIndicator={
-                        false
-                    }
+                    showsHorizontalScrollIndicator={false}
                     contentContainerStyle={
                         styles.categories
                     }
@@ -413,12 +391,8 @@ export default function OffersScreen() {
                             return (
 
                                 <TouchableOpacity
-                                    key={
-                                        category
-                                    }
-                                    activeOpacity={
-                                        0.8
-                                    }
+                                    key={category}
+                                    activeOpacity={0.8}
                                     onPress={() =>
                                         setSelectedCategory(
                                             category,
@@ -454,130 +428,158 @@ export default function OffersScreen() {
 
 
                 {/* ================================================= */}
-                {/* FEATURED */}
+                {/* POPULAR */}
                 {/* ================================================= */}
 
-                <SectionHeader
-                    title="Popular near you"
-                    action="View all"
-                    onPress={() => { }}
-                />
+                {featuredOffers.length > 0 && (
+
+                    <>
+
+                        <SectionHeader
+                            title="Popular near you"
+                            action="View all"
+                            onPress={() => {
+                                setSelectedCategory('All');
+                            }}
+                        />
 
 
-                {filteredOffers
-                    .filter(
-                        offer =>
-                            offer.featured,
-                    )
-                    .map(
-                        offer => (
+                        {featuredOffers.map(
+                            offer => (
 
-                            <OfferCard
-                                key={
-                                    offer.id
-                                }
-                                offer={
-                                    offer
-                                }
-                                onPress={() =>
-                                    handleOfferPress(
-                                        offer,
-                                    )
-                                }
-                            />
+                                <OfferCard
+                                    key={offer.id}
+                                    offer={offer}
+                                    onPress={() =>
+                                        handleOfferPress(
+                                            offer,
+                                        )
+                                    }
+                                />
 
-                        ),
-                    )}
+                            ),
+                        )}
+
+                    </>
+
+                )}
 
 
                 {/* ================================================= */}
                 {/* FOR YOU */}
                 {/* ================================================= */}
 
-                <SectionHeader
-                    title="For you"
-                    action=""
-                    onPress={() => { }}
-                />
+                {otherOffers.length > 0 && (
+
+                    <>
+
+                        <SectionHeader
+                            title="For you"
+                            action=""
+                            onPress={() => { }}
+                        />
 
 
-                {filteredOffers
-                    .filter(
-                        offer =>
-                            !offer.featured,
-                    )
-                    .map(
-                        offer => (
+                        {otherOffers.map(
+                            offer => (
 
-                            <OfferCard
-                                key={
-                                    offer.id
-                                }
-                                offer={
-                                    offer
-                                }
-                                onPress={() =>
-                                    handleOfferPress(
-                                        offer,
-                                    )
-                                }
-                            />
+                                <OfferCard
+                                    key={offer.id}
+                                    offer={offer}
+                                    onPress={() =>
+                                        handleOfferPress(
+                                            offer,
+                                        )
+                                    }
+                                />
 
-                        ),
-                    )}
+                            ),
+                        )}
+
+                    </>
+
+                )}
 
 
                 {/* ================================================= */}
                 {/* EMPTY */}
                 {/* ================================================= */}
 
-                {filteredOffers.length ===
-                    0 && (
+                {filteredOffers.length === 0 && (
+
+                    <View
+                        style={
+                            styles.emptyContainer
+                        }
+                    >
 
                         <View
                             style={
-                                styles.emptyContainer
+                                styles.emptyIcon
                             }
                         >
 
-                            <View
-                                style={
-                                    styles.emptyIcon
-                                }
-                            >
-
-                                <Text
-                                    style={
-                                        styles.emptyIconText
-                                    }
-                                >
-                                    %
-                                </Text>
-
-                            </View>
-
-
                             <Text
                                 style={
-                                    styles.emptyTitle
+                                    styles.emptyIconText
                                 }
                             >
-                                No offers found
-                            </Text>
-
-
-                            <Text
-                                style={
-                                    styles.emptyText
-                                }
-                            >
-                                Try another category or search
-                                for a different offer.
+                                %
                             </Text>
 
                         </View>
 
-                    )}
+
+                        <Text
+                            style={
+                                styles.emptyTitle
+                            }
+                        >
+                            No offers found
+                        </Text>
+
+
+                        <Text
+                            style={
+                                styles.emptyText
+                            }
+                        >
+                            Try another category or search
+                            for a different offer.
+                        </Text>
+
+
+                        {(search.length > 0 ||
+                            selectedCategory !== 'All') && (
+
+                                <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    onPress={() => {
+                                        setSearch('');
+                                        setSelectedCategory(
+                                            'All',
+                                        );
+                                    }}
+                                    style={
+                                        styles.resetButton
+                                    }
+                                >
+
+                                    <Text
+                                        style={
+                                            styles.resetButtonText
+                                        }
+                                    >
+                                        Clear filters
+                                    </Text>
+
+                                </TouchableOpacity>
+
+                            )}
+
+                    </View>
+
+                )}
 
 
                 {/* ================================================= */}
@@ -585,9 +587,7 @@ export default function OffersScreen() {
                 {/* ================================================= */}
 
                 <Text
-                    style={
-                        styles.footer
-                    }
+                    style={styles.footer}
                 >
                     New offers are added regularly.
                     Check back soon for more savings.
@@ -602,11 +602,9 @@ export default function OffersScreen() {
 }
 
 
-/*
- * ==========================================================
- * SECTION HEADER
- * ==========================================================
- */
+// ============================================================
+// SECTION HEADER
+// ============================================================
 
 type SectionHeaderProps = {
     title: string;
@@ -642,9 +640,8 @@ const SectionHeader =
                 {action ? (
 
                     <TouchableOpacity
-                        onPress={
-                            onPress
-                        }
+                        activeOpacity={0.7}
+                        onPress={onPress}
                     >
 
                         <Text
@@ -666,11 +663,9 @@ const SectionHeader =
     };
 
 
-/*
- * ==========================================================
- * OFFER CARD
- * ==========================================================
- */
+// ============================================================
+// OFFER CARD
+// ============================================================
 
 type OfferCardProps = {
     offer: Offer;
@@ -687,18 +682,16 @@ const OfferCard =
         return (
 
             <TouchableOpacity
-                activeOpacity={
-                    0.92
-                }
-                onPress={
-                    onPress
-                }
+                activeOpacity={0.92}
+                onPress={onPress}
                 style={
                     styles.offerCard
                 }
             >
 
-                {/* LEFT OFFER */}
+                {/* ================================================= */}
+                {/* DISCOUNT BADGE */}
+                {/* ================================================= */}
 
                 <View
                     style={
@@ -726,7 +719,9 @@ const OfferCard =
                 </View>
 
 
-                {/* CENTER */}
+                {/* ================================================= */}
+                {/* CONTENT */}
+                {/* ================================================= */}
 
                 <View
                     style={
@@ -744,6 +739,7 @@ const OfferCard =
                             style={
                                 styles.offerTitle
                             }
+                            numberOfLines={1}
                         >
                             {offer.title}
                         </Text>
@@ -772,10 +768,15 @@ const OfferCard =
                         style={
                             styles.offerDescription
                         }
+                        numberOfLines={2}
                     >
                         {offer.description}
                     </Text>
 
+
+                    {/* ================================================= */}
+                    {/* CODE */}
+                    {/* ================================================= */}
 
                     {offer.code ? (
 
@@ -815,35 +816,55 @@ const OfferCard =
                     ) : null}
 
 
+                    {/* ================================================= */}
+                    {/* BOTTOM */}
+                    {/* ================================================= */}
+
                     <View
                         style={
                             styles.offerBottom
                         }
                     >
 
-                        <Text
-                            style={
-                                styles.minimum
-                            }
-                        >
-                            {offer.minimum}
-                        </Text>
+                        {offer.minimum ? (
+
+                            <Text
+                                style={
+                                    styles.minimum
+                                }
+                                numberOfLines={1}
+                            >
+                                {offer.minimum}
+                            </Text>
+
+                        ) : (
+
+                            <View />
+
+                        )}
 
 
-                        <Text
-                            style={
-                                styles.expires
-                            }
-                        >
-                            {offer.expires}
-                        </Text>
+                        {offer.expires ? (
+
+                            <Text
+                                style={
+                                    styles.expires
+                                }
+                                numberOfLines={1}
+                            >
+                                {offer.expires}
+                            </Text>
+
+                        ) : null}
 
                     </View>
 
                 </View>
 
 
+                {/* ================================================= */}
                 {/* ARROW */}
+                {/* ================================================= */}
 
                 <View
                     style={
@@ -868,35 +889,38 @@ const OfferCard =
     };
 
 
-/*
- * ==========================================================
- * STYLES
- * ==========================================================
- */
+// ============================================================
+// STYLES
+// ============================================================
 
 const styles =
     StyleSheet.create({
 
+        // ========================================================
+        // SCREEN
+        // ========================================================
+
         safeArea: {
             flex: 1,
-
             backgroundColor:
-                BACKGROUND,
+                COLORS.background,
         },
-
 
         scrollContent: {
-            paddingHorizontal: 18,
+            paddingHorizontal:
+                SPACING.xl,
 
-            paddingTop: 18,
+            paddingTop:
+                SPACING.large,
 
-            paddingBottom: 40,
+            paddingBottom:
+                SPACING.huge,
         },
 
 
-        /*
-         * HEADER
-         */
+        // ========================================================
+        // HEADER
+        // ========================================================
 
         header: {
             flexDirection: 'row',
@@ -906,83 +930,103 @@ const styles =
             justifyContent:
                 'space-between',
 
-            marginBottom: 20,
+            marginBottom:
+                SPACING.xl,
+        },
+
+        headerTextContainer: {
+            flex: 1,
+            minWidth: 0,
         },
 
         headerTitle: {
-            fontSize: 28,
+            fontSize:
+                FONT_SIZES.heading,
 
             fontWeight: '800',
 
-            color: TEXT,
+            color:
+                COLORS.text,
 
             letterSpacing: -0.5,
         },
 
         headerSubtitle: {
-            marginTop: 4,
+            marginTop:
+                SPACING.xs,
 
-            fontSize: 14,
+            fontSize:
+                FONT_SIZES.small,
 
-            color: SECONDARY,
+            color:
+                COLORS.textSecondary,
         },
-
 
         offerIcon: {
             width: 46,
+
             height: 46,
 
             borderRadius: 23,
 
             backgroundColor:
-                PRIMARY_LIGHT,
+                COLORS.badgeColor,
 
             alignItems: 'center',
 
             justifyContent: 'center',
+
+            marginLeft:
+                SPACING.medium,
         },
 
         offerIconText: {
-            fontSize: 22,
+            fontSize: 21,
 
             fontWeight: '800',
 
-            color: PRIMARY,
+            color:
+                COLORS.primary,
         },
 
 
-        /*
-         * SEARCH
-         */
+        // ========================================================
+        // SEARCH
+        // ========================================================
 
         searchContainer: {
             height: 50,
 
             backgroundColor:
-                WHITE,
+                COLORS.surface,
 
-            borderRadius: 14,
+            borderRadius:
+                RADIUS.medium,
 
             borderWidth: 1,
 
             borderColor:
-                BORDER,
+                COLORS.border,
 
             flexDirection: 'row',
 
             alignItems: 'center',
 
-            paddingHorizontal: 14,
+            paddingHorizontal:
+                SPACING.medium,
 
-            marginBottom: 16,
+            marginBottom:
+                SPACING.medium,
         },
 
         searchIcon: {
-            fontSize: 24,
+            fontSize: 23,
 
-            color: MUTED,
+            color:
+                COLORS.textMuted,
 
-            marginRight: 8,
+            marginRight:
+                SPACING.small,
         },
 
         searchInput: {
@@ -990,36 +1034,64 @@ const styles =
 
             height: '100%',
 
-            fontSize: 15,
+            fontSize:
+                FONT_SIZES.small,
 
-            color: TEXT,
+            color:
+                COLORS.text,
+
+            paddingVertical: 0,
+        },
+
+        clearButton: {
+            width: 28,
+
+            height: 28,
+
+            alignItems: 'center',
+
+            justifyContent: 'center',
+        },
+
+        clearText: {
+            fontSize: 23,
+
+            lineHeight: 25,
+
+            color:
+                COLORS.textMuted,
+
+            fontWeight: '400',
         },
 
 
-        /*
-         * CATEGORIES
-         */
+        // ========================================================
+        // CATEGORIES
+        // ========================================================
 
         categories: {
-            paddingBottom: 8,
+            paddingBottom:
+                SPACING.small,
 
-            gap: 8,
+            gap:
+                SPACING.small,
         },
 
         categoryChip: {
-            paddingHorizontal: 17,
+            paddingHorizontal: 16,
 
-            height: 38,
+            height: 36,
 
-            borderRadius: 20,
+            borderRadius:
+                RADIUS.round,
 
             backgroundColor:
-                WHITE,
+                COLORS.surface,
 
             borderWidth: 1,
 
             borderColor:
-                BORDER,
+                COLORS.border,
 
             alignItems: 'center',
 
@@ -1028,28 +1100,31 @@ const styles =
 
         categoryChipSelected: {
             backgroundColor:
-                PRIMARY,
+                COLORS.primary,
 
             borderColor:
-                PRIMARY,
+                COLORS.primary,
         },
 
         categoryText: {
-            fontSize: 13,
+            fontSize:
+                FONT_SIZES.xs,
 
             fontWeight: '600',
 
-            color: SECONDARY,
+            color:
+                COLORS.textSecondary,
         },
 
         categoryTextSelected: {
-            color: WHITE,
+            color:
+                COLORS.white,
         },
 
 
-        /*
-         * SECTION
-         */
+        // ========================================================
+        // SECTION
+        // ========================================================
 
         sectionHeader: {
             flexDirection: 'row',
@@ -1059,41 +1134,50 @@ const styles =
             justifyContent:
                 'space-between',
 
-            marginTop: 25,
+            marginTop:
+                SPACING.xl,
 
-            marginBottom: 12,
+            marginBottom:
+                SPACING.medium,
         },
 
         sectionTitle: {
-            fontSize: 18,
+            fontSize:
+                FONT_SIZES.title,
 
             fontWeight: '700',
 
-            color: TEXT,
+            color:
+                COLORS.text,
         },
 
         sectionAction: {
-            fontSize: 13,
+            fontSize:
+                FONT_SIZES.xs,
 
             fontWeight: '600',
 
-            color: PRIMARY,
+            color:
+                COLORS.primary,
         },
 
 
-        /*
-         * OFFER CARD
-         */
+        // ========================================================
+        // OFFER CARD
+        // ========================================================
 
         offerCard: {
             backgroundColor:
-                WHITE,
+                COLORS.surface,
 
-            borderRadius: 18,
+            borderRadius:
+                RADIUS.large,
 
-            padding: 15,
+            padding:
+                SPACING.medium,
 
-            marginBottom: 12,
+            marginBottom:
+                SPACING.medium,
 
             flexDirection: 'row',
 
@@ -1102,7 +1186,7 @@ const styles =
             borderWidth: 1,
 
             borderColor:
-                '#ECEEF2',
+                COLORS.border,
 
             shadowColor: '#000',
 
@@ -1111,61 +1195,65 @@ const styles =
                 height: 2,
             },
 
-            shadowOpacity: 0.035,
+            shadowOpacity: 0.04,
 
-            shadowRadius: 8,
+            shadowRadius: 7,
 
             elevation: 2,
         },
 
 
-        /*
-         * OFFER BADGE
-         */
+        // ========================================================
+        // DISCOUNT BADGE
+        // ========================================================
 
         offerBadgeContainer: {
-            width: 76,
+            width: 72,
 
-            height: 76,
+            height: 72,
 
-            borderRadius: 16,
+            borderRadius:
+                RADIUS.medium,
 
             backgroundColor:
-                PRIMARY_LIGHT,
+                COLORS.badgeColor,
 
             alignItems: 'center',
 
             justifyContent: 'center',
 
-            marginRight: 13,
+            marginRight:
+                SPACING.medium,
         },
 
         offerBadgeText: {
-            fontSize: 16,
+            fontSize: 15,
 
             fontWeight: '900',
 
-            color: PRIMARY,
+            color:
+                COLORS.primary,
 
             textAlign: 'center',
         },
 
         offerBadgeSmall: {
-            fontSize: 9,
+            fontSize: 8,
 
             fontWeight: '800',
 
             letterSpacing: 1,
 
-            color: PRIMARY,
+            color:
+                COLORS.textSecondary,
 
             marginTop: 3,
         },
 
 
-        /*
-         * OFFER CONTENT
-         */
+        // ========================================================
+        // OFFER CONTENT
+        // ========================================================
 
         offerContent: {
             flex: 1,
@@ -1181,17 +1269,20 @@ const styles =
             justifyContent:
                 'space-between',
 
-            gap: 6,
+            gap:
+                SPACING.small,
         },
 
         offerTitle: {
             flex: 1,
 
-            fontSize: 15,
+            fontSize:
+                FONT_SIZES.small,
 
             fontWeight: '700',
 
-            color: TEXT,
+            color:
+                COLORS.text,
         },
 
         categoryBadge: {
@@ -1199,10 +1290,11 @@ const styles =
 
             paddingVertical: 3,
 
-            borderRadius: 6,
+            borderRadius:
+                RADIUS.small,
 
             backgroundColor:
-                SUCCESS_LIGHT,
+                COLORS.badgeColor,
         },
 
         categoryBadgeText: {
@@ -1210,25 +1302,29 @@ const styles =
 
             fontWeight: '700',
 
-            color: SUCCESS,
+            color:
+                COLORS.primary,
         },
 
         offerDescription: {
-            fontSize: 12,
+            fontSize:
+                FONT_SIZES.xs,
 
             lineHeight: 17,
 
-            color: SECONDARY,
+            color:
+                COLORS.textSecondary,
 
-            marginTop: 4,
+            marginTop:
+                SPACING.xs,
 
             marginBottom: 7,
         },
 
 
-        /*
-         * CODE
-         */
+        // ========================================================
+        // CODE
+        // ========================================================
 
         codeRow: {
             flexDirection: 'row',
@@ -1241,7 +1337,8 @@ const styles =
         codeLabel: {
             fontSize: 10,
 
-            color: MUTED,
+            color:
+                COLORS.textMuted,
 
             marginRight: 6,
         },
@@ -1258,10 +1355,10 @@ const styles =
             borderStyle: 'dashed',
 
             borderColor:
-                '#C4B5FD',
+                COLORS.borderStrong,
 
             backgroundColor:
-                '#FAF8FF',
+                COLORS.background,
         },
 
         codeText: {
@@ -1269,15 +1366,16 @@ const styles =
 
             fontWeight: '800',
 
-            color: PRIMARY,
+            color:
+                COLORS.primary,
 
             letterSpacing: 0.4,
         },
 
 
-        /*
-         * BOTTOM
-         */
+        // ========================================================
+        // OFFER BOTTOM
+        // ========================================================
 
         offerBottom: {
             flexDirection: 'row',
@@ -1286,26 +1384,34 @@ const styles =
 
             justifyContent:
                 'space-between',
+
+            gap: SPACING.small,
         },
 
         minimum: {
+            flex: 1,
+
             fontSize: 10,
 
-            color: MUTED,
+            color:
+                COLORS.textMuted,
         },
 
         expires: {
             fontSize: 10,
 
-            color: ORANGE,
+            color:
+                COLORS.textSecondary,
 
             fontWeight: '600',
+
+            maxWidth: '45%',
         },
 
 
-        /*
-         * ARROW
-         */
+        // ========================================================
+        // ARROW
+        // ========================================================
 
         arrowContainer: {
             width: 25,
@@ -1314,21 +1420,23 @@ const styles =
 
             justifyContent: 'center',
 
-            marginLeft: 4,
+            marginLeft:
+                SPACING.xs,
         },
 
         arrow: {
-            fontSize: 26,
+            fontSize: 25,
 
             fontWeight: '300',
 
-            color: '#CBD5E1',
+            color:
+                COLORS.textMuted,
         },
 
 
-        /*
-         * EMPTY
-         */
+        // ========================================================
+        // EMPTY
+        // ========================================================
 
         emptyContainer: {
             alignItems: 'center',
@@ -1340,18 +1448,20 @@ const styles =
 
         emptyIcon: {
             width: 60,
+
             height: 60,
 
             borderRadius: 30,
 
             backgroundColor:
-                PRIMARY_LIGHT,
+                COLORS.badgeColor,
 
             alignItems: 'center',
 
             justifyContent: 'center',
 
-            marginBottom: 15,
+            marginBottom:
+                SPACING.medium,
         },
 
         emptyIconText: {
@@ -1359,46 +1469,83 @@ const styles =
 
             fontWeight: '800',
 
-            color: PRIMARY,
+            color:
+                COLORS.primary,
         },
 
         emptyTitle: {
-            fontSize: 17,
+            fontSize:
+                FONT_SIZES.medium,
 
             fontWeight: '700',
 
-            color: TEXT,
+            color:
+                COLORS.text,
         },
 
         emptyText: {
-            marginTop: 6,
+            marginTop:
+                SPACING.xs,
 
-            fontSize: 13,
+            fontSize:
+                FONT_SIZES.xs,
 
-            color: SECONDARY,
+            color:
+                COLORS.textSecondary,
 
             textAlign: 'center',
 
             maxWidth: 280,
         },
 
+        resetButton: {
+            marginTop:
+                SPACING.large,
 
-        /*
-         * FOOTER
-         */
+            paddingHorizontal:
+                SPACING.xl,
+
+            paddingVertical:
+                SPACING.small,
+
+            borderRadius:
+                RADIUS.round,
+
+            backgroundColor:
+                COLORS.primary,
+        },
+
+        resetButtonText: {
+            color:
+                COLORS.white,
+
+            fontSize:
+                FONT_SIZES.xs,
+
+            fontWeight: '700',
+        },
+
+
+        // ========================================================
+        // FOOTER
+        // ========================================================
 
         footer: {
-            marginTop: 28,
+            marginTop:
+                SPACING.xl,
 
             textAlign: 'center',
 
-            fontSize: 12,
+            fontSize:
+                FONT_SIZES.xs,
 
             lineHeight: 18,
 
-            color: MUTED,
+            color:
+                COLORS.textMuted,
 
-            paddingHorizontal: 20,
+            paddingHorizontal:
+                SPACING.xl,
         },
 
     });

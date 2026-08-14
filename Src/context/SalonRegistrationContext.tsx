@@ -4,9 +4,8 @@ import React, {
     useState,
 } from 'react';
 
-
 // =====================================================
-// BUSINESS HOURS TYPES
+// BUSINESS HOURS
 // =====================================================
 
 export type DayKey =
@@ -18,19 +17,13 @@ export type DayKey =
     | 'SATURDAY'
     | 'SUNDAY';
 
-
 export type BusinessDay = {
     open: string;
     close: string;
     isOpen: boolean;
 };
 
-
-export type BusinessHours = Record<
-    DayKey,
-    BusinessDay
->;
-
+export type BusinessHours = Record<DayKey, BusinessDay>;
 
 // =====================================================
 // DEFAULT BUSINESS HOURS
@@ -80,81 +73,53 @@ export const DEFAULT_BUSINESS_HOURS: BusinessHours = {
     },
 };
 
+// =====================================================
+// CREATE DEFAULT HOURS
+// =====================================================
+
+const createDefaultBusinessHours = (): BusinessHours => ({
+    MONDAY: { ...DEFAULT_BUSINESS_HOURS.MONDAY },
+    TUESDAY: { ...DEFAULT_BUSINESS_HOURS.TUESDAY },
+    WEDNESDAY: { ...DEFAULT_BUSINESS_HOURS.WEDNESDAY },
+    THURSDAY: { ...DEFAULT_BUSINESS_HOURS.THURSDAY },
+    FRIDAY: { ...DEFAULT_BUSINESS_HOURS.FRIDAY },
+    SATURDAY: { ...DEFAULT_BUSINESS_HOURS.SATURDAY },
+    SUNDAY: { ...DEFAULT_BUSINESS_HOURS.SUNDAY },
+});
 
 // =====================================================
-// SALON REGISTRATION DATA
+// REGISTRATION DATA
 // =====================================================
 
 export type SalonRegistrationData = {
     userId: string;
     phoneNumber: string;
 
-    // Basic information
     salonName: string;
     ownerName: string;
     email: string;
     businessType: string;
 
-    // Address
     addressLine: string;
     city: string;
     state: string;
     pincode: string;
 
-    // KYC
     gstNumber: string;
     panNumber: string;
     aadhaarNumber: string;
 
-    // Bank
     bankAccount: string;
     ifsc: string;
 
-    // Business Hours
     businessHours: BusinessHours;
 };
 
-
 // =====================================================
-// CREATE DEFAULT BUSINESS HOURS
-// =====================================================
-
-const createDefaultBusinessHours = (): BusinessHours => ({
-    MONDAY: {
-        ...DEFAULT_BUSINESS_HOURS.MONDAY,
-    },
-
-    TUESDAY: {
-        ...DEFAULT_BUSINESS_HOURS.TUESDAY,
-    },
-
-    WEDNESDAY: {
-        ...DEFAULT_BUSINESS_HOURS.WEDNESDAY,
-    },
-
-    THURSDAY: {
-        ...DEFAULT_BUSINESS_HOURS.THURSDAY,
-    },
-
-    FRIDAY: {
-        ...DEFAULT_BUSINESS_HOURS.FRIDAY,
-    },
-
-    SATURDAY: {
-        ...DEFAULT_BUSINESS_HOURS.SATURDAY,
-    },
-
-    SUNDAY: {
-        ...DEFAULT_BUSINESS_HOURS.SUNDAY,
-    },
-});
-
-
-// =====================================================
-// INITIAL DATA
+// EMPTY DATA
 // =====================================================
 
-const initialData: SalonRegistrationData = {
+const createInitialData = (): SalonRegistrationData => ({
     userId: '',
     phoneNumber: '',
 
@@ -176,33 +141,24 @@ const initialData: SalonRegistrationData = {
     ifsc: '',
 
     businessHours: createDefaultBusinessHours(),
-};
-
+});
 
 // =====================================================
-// CONTEXT TYPE
+// CONTEXT
 // =====================================================
 
 type SalonRegistrationContextType = {
     data: SalonRegistrationData;
 
     updateData: (
-        values: Partial<SalonRegistrationData>
+        values: Partial<SalonRegistrationData>,
     ) => void;
 
     reset: () => void;
 };
 
-
-// =====================================================
-// CREATE CONTEXT
-// =====================================================
-
 const SalonRegistrationContext =
-    createContext<SalonRegistrationContextType | null>(
-        null
-    );
-
+    createContext<SalonRegistrationContextType | null>(null);
 
 // =====================================================
 // PROVIDER
@@ -213,24 +169,17 @@ export const SalonRegistrationProvider = ({
 }: {
     children: React.ReactNode;
 }) => {
-
     const [data, setData] =
         useState<SalonRegistrationData>(
-            initialData
+            createInitialData(),
         );
 
-
-    // =================================================
-    // UPDATE REGISTRATION DATA
-    // =================================================
-
     const updateData = (
-        values: Partial<SalonRegistrationData>
+        values: Partial<SalonRegistrationData>,
     ) => {
-
         console.log(
-            'SalonRegistration updateData:',
-            values
+            'SALON REGISTRATION UPDATE:',
+            values,
         );
 
         setData(prev => ({
@@ -239,43 +188,13 @@ export const SalonRegistrationProvider = ({
         }));
     };
 
-
-    // =================================================
-    // RESET REGISTRATION
-    // =================================================
-
     const reset = () => {
+        console.log(
+            'SALON REGISTRATION RESET',
+        );
 
-        setData({
-            userId: '',
-            phoneNumber: '',
-
-            salonName: '',
-            ownerName: '',
-            email: '',
-            businessType: '',
-
-            addressLine: '',
-            city: '',
-            state: '',
-            pincode: '',
-
-            gstNumber: '',
-            panNumber: '',
-            aadhaarNumber: '',
-
-            bankAccount: '',
-            ifsc: '',
-
-            businessHours:
-                createDefaultBusinessHours(),
-        });
+        setData(createInitialData());
     };
-
-
-    // =================================================
-    // PROVIDER
-    // =================================================
 
     return (
         <SalonRegistrationContext.Provider
@@ -290,23 +209,19 @@ export const SalonRegistrationProvider = ({
     );
 };
 
-
 // =====================================================
 // HOOK
 // =====================================================
 
 export const useSalonRegistration = () => {
-
     const context =
         useContext(SalonRegistrationContext);
 
-
     if (!context) {
         throw new Error(
-            'useSalonRegistration must be used inside SalonRegistrationProvider'
+            'useSalonRegistration must be used inside SalonRegistrationProvider',
         );
     }
-
 
     return context;
 };

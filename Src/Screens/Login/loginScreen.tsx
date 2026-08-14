@@ -68,21 +68,45 @@ export default function LoginScreen() {
 
   const openExistingAccount = (user: any) => {
     setCurrentUser(user);
+
     const existingRole = getExistingRole(user);
-    if (existingRole === 'PROVIDER' && user?.providerStatus === 'NOT_REGISTERED') {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'SalonRegistration' }],
-      });
+
+    console.log('========== EXISTING ACCOUNT ==========');
+    console.log('ROLE:', existingRole);
+    console.log('PROVIDER STATUS:', user?.providerStatus);
+    console.log('USER:', JSON.stringify(user, null, 2));
+    console.log('======================================');
+
+    if (existingRole === 'PROVIDER') {
+      const providerStatus = String(user?.providerStatus || '')
+        .trim()
+        .toUpperCase();
+
+      // Provider is not approved
+      if (providerStatus !== 'APPROVED') {
+        navigation.navigate('BecomePartner', {
+          screen: 'SalonPendingVerification',
+        });
+
+        return;
+      }
+
+      // Provider is approved
+      navigation.navigate('appScreens');
+
       return;
     }
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'appScreens' }],
-    });
-  };
 
+    // Customer
+    navigation.navigate('appScreens');
+  };
   const handleOTPVerified = (result: any) => {
+    console.log('========== OTP LOGIN RESULT ==========');
+    console.log('SUCCESS:', result?.success);
+    console.log('EXISTING:', result?.isExistingUser);
+    console.log('USER:', JSON.stringify(result?.user, null, 2));
+    console.log('MODE:', mode);
+    console.log('======================================');
     setShowOTP(false);
 
     if (result?.success !== true) {
