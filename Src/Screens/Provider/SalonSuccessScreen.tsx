@@ -107,7 +107,11 @@ export default function SalonSuccessScreen({
                 style={styles.button}
                 type="primary"
                 onPress={() => {
-                    navigation.navigate('LoginScreen');
+                    navigation.replace('LoginScreen', {
+                        mode: 'SIGN_IN',
+                        phoneNumber: '',
+                        hideBackButton: true,
+                    });
                 }}
             >
                 <Text

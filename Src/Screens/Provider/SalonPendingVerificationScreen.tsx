@@ -111,7 +111,11 @@ export default function SalonPendingVerificationScreen() {
           style={styles.backToHomeButton}
           activeOpacity={0.8}
           onPress={() => {
-            navigation.navigate('LoginScreen');
+            navigation.replace('LoginScreen', {
+              mode: 'SIGN_IN',
+              phoneNumber: '',
+              hideBackButton: true,
+            });
           }}
         >
           <Text style={styles.backToHomeText}>
