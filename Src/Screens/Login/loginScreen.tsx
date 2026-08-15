@@ -242,7 +242,7 @@ export default function LoginScreen() {
             )}
 
             <Image
-              source={require('../../assets/logo_badge.png')}
+              source={require('../../assets/logo-blue.png')}
               style={styles.heroLogo}
               resizeMode="contain"
             />

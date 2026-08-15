@@ -2,15 +2,37 @@ import { gql } from '@apollo/client';
 
 export const SEND_OTP = gql`
   mutation SendOTP($phoneNumber: String!) {
-  sendOTP(phoneNumber: $phoneNumber) {
-    success
-    message
+    sendOTP(phoneNumber: $phoneNumber) {
+      success
+      message
+    }
   }
-}
 `;
 
+
+// ============================================================
+// RESEND OTP
+// ============================================================
+
+export const RESEND_OTP = gql`
+  mutation ResendOTP($phoneNumber: String!) {
+    resendOTP(phoneNumber: $phoneNumber) {
+      success
+      message
+    }
+  }
+`;
+
+
+// ============================================================
+// VERIFY OTP
+// ============================================================
+
 export const VERIFY_OTP = gql`
-  mutation VerifyOTP($phoneNumber: String!, $otp: String!) {
+  mutation VerifyOTP(
+    $phoneNumber: String!
+    $otp: String!
+  ) {
     verifyOTP(
       phoneNumber: $phoneNumber
       otp: $otp
@@ -23,15 +45,15 @@ export const VERIFY_OTP = gql`
         userId
         phoneNumber
         fullName
-        
-        activeRole
-        providerStatus
-        salonId
 
         roles {
           customer
           businessPartner
         }
+
+        activeRole
+        providerStatus
+        salonId
 
         createdAt
         updatedAt

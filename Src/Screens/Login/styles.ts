@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
   },
   heroContainer: {
     width: '100%',
-    minHeight: height * 0.25,
+    minHeight: height * 0.10,
     backgroundColor: COLORS.badgeColor,
     // borderBottomWidth: 1,
     // borderBottomColor: COLORS.border,
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   heroLogo: {
-    width: 500,
+    width: 250,
     height: 200,
     marginBottom: SPACING.medium,
   },

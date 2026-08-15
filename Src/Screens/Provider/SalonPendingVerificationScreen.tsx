@@ -110,10 +110,12 @@ export default function SalonPendingVerificationScreen() {
         <TouchableOpacity
           style={styles.backToHomeButton}
           activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            navigation.navigate('LoginScreen');
+          }}
         >
           <Text style={styles.backToHomeText}>
-            Go Back
+            Back to Login
           </Text>
         </TouchableOpacity>
       </View>

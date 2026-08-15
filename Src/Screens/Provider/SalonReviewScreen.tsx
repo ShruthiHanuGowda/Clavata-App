@@ -83,10 +83,10 @@ export default function SalonReviewScreen({
     // REGISTRATION DATA CHECK
     // -------------------------------------------------
 
-    if (!data.userId) {
+    if (!currentUser?.userId) {
       Alert.alert(
-        'Registration Error',
-        'User information is missing. Please restart registration.',
+        'Session Expired',
+        'Please sign in again.',
       );
 
       return;
@@ -328,46 +328,17 @@ export default function SalonReviewScreen({
       );
 
       // -------------------------------------------------
-      // SAVE USER
+      // SUCCESS
       // -------------------------------------------------
-
-      setCurrentUser(
-        updatedUser,
-      );
-
-      // -------------------------------------------------
-      // IMPORTANT:
-      //
-      // Do NOT reset before setCurrentUser.
-      // -------------------------------------------------
+      const successSalonName = data.salonName;
+      setCurrentUser(updatedUser);
 
       reset();
 
-      // -------------------------------------------------
-      // GO TO APP
-      // -------------------------------------------------
-
-      Alert.alert(
-        'Registration Submitted',
-        'Your salon registration has been submitted for verification.',
-        [
-          {
-            text: 'Continue',
-            onPress: () => {
-              navigation.reset({
-                index: 0,
-
-                routes: [
-                  {
-                    name:
-                      'appScreens',
-                  },
-                ],
-              });
-            },
-          },
-        ],
-      );
+      navigation.navigate('SalonSuccess', {
+        salonId,
+        salonName: successSalonName,
+      });
     } catch (error: any) {
       console.error(
         '==========================================',
