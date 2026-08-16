@@ -6,9 +6,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
-import Header from '../../components/Header';
-
 import {
   COLORS,
   FONTS,
@@ -16,51 +13,21 @@ import {
   SPACING,
   RADIUS,
 } from '../../constants/constants';
-
 const BecomePartnerScreen = ({ navigation }: any) => {
-  // ============================================================
-  // BACK TO LOGIN
-  // ============================================================
-  //
-  // BecomePartnerScreen is inside PartnerStack.
-  //
-  // Navigation hierarchy:
-  //
-  // RootScreenStack
-  //   └── BecomePartner
-  //         └── PartnerStack
-  //               └── BecomePartnerScreen
-  //
-  // LoginScreen is in RootScreenStack.
-  //
-  // Therefore we go up through the parent navigators and then
-  // navigate to LoginScreen.
-  //
-  // This is the FIRST-TIME provider registration flow.
-  // Pressing Back must return to LoginScreen.
-  //
-  // ============================================================
 
   const handleBack = () => {
-    const partnerNavigator =
-      navigation.getParent();
-
-    const rootNavigator =
-      partnerNavigator?.getParent();
-
-    if (rootNavigator) {
-      rootNavigator.navigate('LoginScreen', {
-        mode: 'PROVIDER',
-        hideBackButton: false,
-      });
-
-      return;
-    }
-
-    // Fallback in case navigator hierarchy changes.
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    }
+    navigation.reset({
+      index: 0,
+      routes: [
+        {
+          name: 'LoginScreen',
+          params: {
+            mode: 'PROVIDER',
+            hideBackButton: false,
+          },
+        },
+      ],
+    });
   };
 
   // ============================================================
