@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 
+import { gql, useMutation } from '@apollo/client';
+
 import { Header, DButton } from '../../components';
 
 import { useSalonRegistration } from '../../context/SalonRegistrationContext';
@@ -20,6 +22,67 @@ import {
   SPACING,
   RADIUS,
 } from '../../constants/constants';
+
+// ============================================================
+// GRAPHQL MUTATION
+// ============================================================
+
+const REGISTER_SALON_PARTNER = gql`
+  mutation RegisterSalonPartner(
+    $input: RegisterSalonPartnerInput!
+  ) {
+    registerSalonPartner(input: $input) {
+      success
+      message
+      salonId
+    }
+  }
+`;
+
+// ============================================================
+// TYPES
+// ============================================================
+
+type RegisterSalonPartnerResponse = {
+  registerSalonPartner: {
+    success: boolean;
+    message: string;
+    salonId: string;
+  };
+};
+
+type RegisterSalonPartnerVariables = {
+  input: {
+    userId: string;
+    phoneNumber: string;
+    salonName: string;
+    ownerName: string;
+    email: string;
+    businessType: string;
+
+    address: {
+      addressLine: string;
+      city: string;
+      state: string;
+      pincode: string;
+    };
+
+    businessHours: Record<
+      string,
+      {
+        isOpen: boolean;
+        open?: string;
+        close?: string;
+      }
+    >;
+
+    gstNumber?: string;
+    panNumber?: string;
+    aadhaarNumber?: string;
+    bankAccount?: string;
+    ifsc?: string;
+  };
+};
 
 // ============================================================
 // SCREEN
@@ -34,15 +97,42 @@ export default function SalonReviewScreen({
     useState(false);
 
   // ==========================================================
+  // GRAPHQL
+  // ==========================================================
+
+  const [
+    registerSalonPartner,
+  ] = useMutation<
+    RegisterSalonPartnerResponse,
+    RegisterSalonPartnerVariables
+  >(REGISTER_SALON_PARTNER);
+
+  // ==========================================================
   // SUBMIT REGISTRATION
   // ==========================================================
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(() => {
     // --------------------------------------------------------
     // BASIC VALIDATION
     // --------------------------------------------------------
 
-    if (!data.salonName.trim()) {
+    if (!data.userId?.trim()) {
+      Alert.alert(
+        'Registration Error',
+        'User information is missing. Please sign in again.',
+      );
+      return;
+    }
+
+    if (!data.phoneNumber?.trim()) {
+      Alert.alert(
+        'Registration Error',
+        'Phone number is missing.',
+      );
+      return;
+    }
+
+    if (!data.salonName?.trim()) {
       Alert.alert(
         'Missing Information',
         'Salon name is missing.',
@@ -50,7 +140,7 @@ export default function SalonReviewScreen({
       return;
     }
 
-    if (!data.ownerName.trim()) {
+    if (!data.ownerName?.trim()) {
       Alert.alert(
         'Missing Information',
         'Owner name is missing.',
@@ -58,7 +148,7 @@ export default function SalonReviewScreen({
       return;
     }
 
-    if (!data.email.trim()) {
+    if (!data.email?.trim()) {
       Alert.alert(
         'Missing Information',
         'Email address is missing.',
@@ -66,7 +156,7 @@ export default function SalonReviewScreen({
       return;
     }
 
-    if (!data.addressLine.trim()) {
+    if (!data.addressLine?.trim()) {
       Alert.alert(
         'Missing Information',
         'Salon address is missing.',
@@ -74,7 +164,7 @@ export default function SalonReviewScreen({
       return;
     }
 
-    if (!data.city.trim()) {
+    if (!data.city?.trim()) {
       Alert.alert(
         'Missing Information',
         'City is missing.',
@@ -82,7 +172,7 @@ export default function SalonReviewScreen({
       return;
     }
 
-    if (!data.state.trim()) {
+    if (!data.state?.trim()) {
       Alert.alert(
         'Missing Information',
         'State is missing.',
@@ -90,7 +180,7 @@ export default function SalonReviewScreen({
       return;
     }
 
-    if (!/^\d{6}$/.test(data.pincode.trim())) {
+    if (!/^\d{6}$/.test(data.pincode?.trim() || '')) {
       Alert.alert(
         'Invalid Pincode',
         'Please provide a valid 6-digit pincode.',
@@ -99,8 +189,8 @@ export default function SalonReviewScreen({
     }
 
     if (
-      data.latitude === undefined ||
-      data.longitude === undefined
+      data.latitude == null ||
+      data.longitude == null
     ) {
       Alert.alert(
         'Location Missing',
@@ -109,10 +199,21 @@ export default function SalonReviewScreen({
       return;
     }
 
-    if (!data.businessType.trim()) {
+    if (!data.businessType?.trim()) {
       Alert.alert(
         'Missing Information',
         'Business type is missing.',
+      );
+      return;
+    }
+
+    if (
+      !data.businessHours ||
+      Object.keys(data.businessHours).length === 0
+    ) {
+      Alert.alert(
+        'Missing Information',
+        'Business hours are missing.',
       );
       return;
     }
@@ -142,38 +243,73 @@ export default function SalonReviewScreen({
   // ==========================================================
 
   const submitRegistration = useCallback(async () => {
+    if (submitting) {
+      return;
+    }
+
     try {
       setSubmitting(true);
 
       // ======================================================
-      // IMPORTANT
+      // BUILD GRAPHQL INPUT
       // ======================================================
-      //
-      // THIS IS WHERE YOUR GRAPHQL MUTATION WILL GO.
-      //
-      // Example:
-      //
-      // await registerSalonPartner({
-      //   userId: data.userId,
-      //   phoneNumber: data.phoneNumber,
-      //   salonName: data.salonName,
-      //   ownerName: data.ownerName,
-      //   email: data.email,
-      //   businessType: data.businessType,
-      //   addressLine: data.addressLine,
-      //   city: data.city,
-      //   state: data.state,
-      //   pincode: data.pincode,
-      //   latitude: data.latitude,
-      //   longitude: data.longitude,
-      //   gstNumber: data.gstNumber,
-      //   panNumber: data.panNumber,
-      //   aadhaarNumber: data.aadhaarNumber,
-      //   bankAccount: data.bankAccount,
-      //   ifsc: data.ifsc,
-      //   businessHours: data.businessHours,
-      // });
-      //
+
+      const input = {
+        userId:
+          data.userId.trim(),
+
+        phoneNumber:
+          data.phoneNumber.trim(),
+
+        salonName:
+          data.salonName.trim(),
+
+        ownerName:
+          data.ownerName.trim(),
+
+        email:
+          data.email.trim(),
+
+        businessType:
+          data.businessType.trim(),
+
+        // IMPORTANT:
+        // Your Lambda expects an `address` object.
+        address: {
+          addressLine:
+            data.addressLine.trim(),
+
+          city:
+            data.city.trim(),
+
+          state:
+            data.state.trim(),
+
+          pincode:
+            data.pincode.trim(),
+        },
+
+        businessHours:
+          data.businessHours,
+
+        gstNumber:
+          data.gstNumber?.trim() || '',
+
+        panNumber:
+          data.panNumber?.trim() || '',
+
+        aadhaarNumber:
+          data.aadhaarNumber?.trim() || '',
+
+        bankAccount:
+          data.bankAccount?.trim() || '',
+
+        ifsc:
+          data.ifsc?.trim() || '',
+      };
+
+      // ======================================================
+      // DEBUG
       // ======================================================
 
       console.log(
@@ -189,92 +325,208 @@ export default function SalonReviewScreen({
       );
 
       console.log(
+        'USER ID:',
+        input.userId,
+      );
+
+      console.log(
+        'PHONE:',
+        input.phoneNumber,
+      );
+
+      console.log(
         'SALON:',
-        data.salonName,
+        input.salonName,
       );
 
       console.log(
         'OWNER:',
-        data.ownerName,
+        input.ownerName,
       );
 
       console.log(
         'EMAIL:',
-        data.email,
+        input.email,
       );
 
       console.log(
         'BUSINESS TYPE:',
-        data.businessType,
+        input.businessType,
       );
 
       console.log(
         'ADDRESS:',
-        data.addressLine,
-      );
-
-      console.log(
-        'CITY:',
-        data.city,
-      );
-
-      console.log(
-        'STATE:',
-        data.state,
-      );
-
-      console.log(
-        'PINCODE:',
-        data.pincode,
-      );
-
-      console.log(
-        'LATITUDE:',
-        data.latitude,
-      );
-
-      console.log(
-        'LONGITUDE:',
-        data.longitude,
+        JSON.stringify(
+          input.address,
+          null,
+          2,
+        ),
       );
 
       console.log(
         'BUSINESS HOURS:',
-        data.businessHours,
+        JSON.stringify(
+          input.businessHours,
+          null,
+          2,
+        ),
       );
 
       console.log(
         '==========================================',
       );
 
-      // ------------------------------------------------------
-      // TEMPORARY DEVELOPMENT DELAY
-      // ------------------------------------------------------
-      //
-      // Remove this once your GraphQL registration mutation
-      // is connected.
-      //
+      // ======================================================
+      // GRAPHQL MUTATION
+      // ======================================================
 
-      await new Promise(resolve =>
-        setTimeout(resolve, 1000),
+      const response =
+        await registerSalonPartner({
+          variables: {
+            input,
+          },
+        });
+
+      // ======================================================
+      // GRAPHQL RESPONSE
+      // ======================================================
+
+      const result =
+        response.data
+          ?.registerSalonPartner;
+
+      console.log(
+        'REGISTER SALON RESPONSE:',
+        JSON.stringify(
+          result,
+          null,
+          2,
+        ),
       );
 
-      // ------------------------------------------------------
+      // ======================================================
+      // NO RESPONSE
+      // ======================================================
+
+      if (!result) {
+        throw new Error(
+          'No response received from the server.',
+        );
+      }
+
+      // ======================================================
+      // FAILED
+      // ======================================================
+
+      if (
+        result.success !== true
+      ) {
+        Alert.alert(
+          'Registration Failed',
+          result.message ||
+          'Unable to submit salon registration.',
+        );
+
+        return;
+      }
+
+      // ======================================================
       // SUCCESS
-      // ------------------------------------------------------
+      // ======================================================
+
+      console.log(
+        '==========================================',
+      );
+
+      console.log(
+        'SALON REGISTRATION SUCCESSFUL',
+      );
+
+      console.log(
+        'SALON ID:',
+        result.salonId,
+      );
+
+      console.log(
+        'MESSAGE:',
+        result.message,
+      );
+
+      console.log(
+        '==========================================',
+      );
+
+      // ======================================================
+      // NAVIGATE TO SUCCESS
+      // ======================================================
 
       navigation.replace(
         'SalonSuccess',
+        {
+          salonId:
+            result.salonId,
+          message:
+            result.message,
+        },
       );
-    } catch (error: unknown) {
+    } catch (error: any) {
+      console.error(
+        '==========================================',
+      );
+
       console.error(
         'SALON REGISTRATION ERROR:',
+      );
+
+      console.error(
         error,
       );
 
+      console.error(
+        '==========================================',
+      );
+
+      let message =
+        'We could not submit your salon registration. Please try again.';
+
+      // ------------------------------------------------------
+      // APOLLO ERROR
+      // ------------------------------------------------------
+
+      if (
+        error?.graphQLErrors?.length
+      ) {
+        message =
+          error.graphQLErrors[0]
+            ?.message ||
+          message;
+      }
+
+      // ------------------------------------------------------
+      // NETWORK ERROR
+      // ------------------------------------------------------
+
+      else if (
+        error?.networkError
+      ) {
+        message =
+          'Unable to connect to the server. Please check your internet connection and try again.';
+      }
+
+      // ------------------------------------------------------
+      // NORMAL ERROR
+      // ------------------------------------------------------
+
+      else if (
+        error?.message
+      ) {
+        message =
+          error.message;
+      }
+
       Alert.alert(
         'Registration Failed',
-        'We could not submit your salon registration. Please try again.',
+        message,
       );
     } finally {
       setSubmitting(false);
@@ -282,6 +534,8 @@ export default function SalonReviewScreen({
   }, [
     data,
     navigation,
+    registerSalonPartner,
+    submitting,
   ]);
 
   // ==========================================================
@@ -310,7 +564,10 @@ export default function SalonReviewScreen({
   // BUSINESS HOURS
   // ==========================================================
 
-  const dayLabels: Record<string, string> = {
+  const dayLabels: Record<
+    string,
+    string
+  > = {
     MONDAY: 'Monday',
     TUESDAY: 'Tuesday',
     WEDNESDAY: 'Wednesday',
@@ -422,7 +679,11 @@ export default function SalonReviewScreen({
           <View
             style={styles.sectionHeader}
           >
-            <View style={styles.sectionHeaderText}>
+            <View
+              style={
+                styles.sectionHeaderText
+              }
+            >
               <Text
                 style={styles.sectionTitle}
               >
@@ -437,7 +698,9 @@ export default function SalonReviewScreen({
             </View>
 
             <TouchableOpacity
-              onPress={handleEditAddress}
+              onPress={
+                handleEditAddress
+              }
               activeOpacity={0.7}
             >
               <Text
@@ -468,27 +731,41 @@ export default function SalonReviewScreen({
             value={data.pincode}
           />
 
-          {data.latitude !== undefined &&
-            data.longitude !== undefined && (
+          {data.latitude != null &&
+            data.longitude != null && (
               <View
-                style={styles.locationCard}
+                style={
+                  styles.locationCard
+                }
               >
                 <Text
-                  style={styles.locationTitle}
+                  style={
+                    styles.locationTitle
+                  }
                 >
                   ✓ Location confirmed
                 </Text>
 
                 <Text
-                  style={styles.locationText}
+                  style={
+                    styles.locationText
+                  }
                 >
-                  Latitude: {data.latitude.toFixed(6)}
+                  Latitude:{' '}
+                  {Number(
+                    data.latitude,
+                  ).toFixed(6)}
                 </Text>
 
                 <Text
-                  style={styles.locationText}
+                  style={
+                    styles.locationText
+                  }
                 >
-                  Longitude: {data.longitude.toFixed(6)}
+                  Longitude:{' '}
+                  {Number(
+                    data.longitude,
+                  ).toFixed(6)}
                 </Text>
               </View>
             )}
@@ -504,7 +781,11 @@ export default function SalonReviewScreen({
           <View
             style={styles.sectionHeader}
           >
-            <View style={styles.sectionHeaderText}>
+            <View
+              style={
+                styles.sectionHeaderText
+              }
+            >
               <Text
                 style={styles.sectionTitle}
               >
@@ -519,7 +800,9 @@ export default function SalonReviewScreen({
             </View>
 
             <TouchableOpacity
-              onPress={handleEditBusinessHours}
+              onPress={
+                handleEditBusinessHours
+              }
               activeOpacity={0.7}
             >
               <Text
@@ -531,11 +814,11 @@ export default function SalonReviewScreen({
           </View>
 
           {Object.entries(
-            data.businessHours,
+            data.businessHours || {},
           ).map(
-            ([
-              day,
-              hours,
+            ([day, hours]: [
+              string,
+              any,
             ]) => (
               <View
                 key={day}
@@ -548,20 +831,18 @@ export default function SalonReviewScreen({
                     styles.businessDay
                   }
                 >
-                  {
-                    dayLabels[
-                    day
-                    ]
-                  }
+                  {dayLabels[day] ||
+                    day}
                 </Text>
 
-                {hours.isOpen ? (
+                {hours?.isOpen ? (
                   <Text
                     style={
                       styles.businessTime
                     }
                   >
-                    {hours.open} - {hours.close}
+                    {hours.open} -{' '}
+                    {hours.close}
                   </Text>
                 ) : (
                   <Text
@@ -587,7 +868,11 @@ export default function SalonReviewScreen({
           <View
             style={styles.sectionHeader}
           >
-            <View style={styles.sectionHeaderText}>
+            <View
+              style={
+                styles.sectionHeaderText
+              }
+            >
               <Text
                 style={styles.sectionTitle}
               >
@@ -602,7 +887,9 @@ export default function SalonReviewScreen({
             </View>
 
             <TouchableOpacity
-              onPress={handleEditKYC}
+              onPress={
+                handleEditKYC
+              }
               activeOpacity={0.7}
             >
               <Text
@@ -620,7 +907,9 @@ export default function SalonReviewScreen({
 
           <KYCRow
             label="Aadhaar"
-            value={data.aadhaarNumber}
+            value={
+              data.aadhaarNumber
+            }
           />
 
           <KYCRow
@@ -656,13 +945,17 @@ export default function SalonReviewScreen({
             style={styles.kycNotice}
           >
             <Text
-              style={styles.kycNoticeTitle}
+              style={
+                styles.kycNoticeTitle
+              }
             >
               KYC verification
             </Text>
 
             <Text
-              style={styles.kycNoticeText}
+              style={
+                styles.kycNoticeText
+              }
             >
               Your KYC information will be verified
               before your salon can become active.
@@ -675,10 +968,14 @@ export default function SalonReviewScreen({
         ================================================== */}
 
         <View
-          style={styles.verificationCard}
+          style={
+            styles.verificationCard
+          }
         >
           <Text
-            style={styles.verificationTitle}
+            style={
+              styles.verificationTitle
+            }
           >
             What happens next?
           </Text>
@@ -881,7 +1178,9 @@ function Step({
 }) {
   return (
     <View
-      style={styles.stepContainer}
+      style={
+        styles.stepContainer
+      }
     >
       <View
         style={styles.stepLeft}
@@ -890,7 +1189,9 @@ function Step({
           style={styles.stepCircle}
         >
           <Text
-            style={styles.stepNumber}
+            style={
+              styles.stepNumber
+            }
           >
             {number}
           </Text>
@@ -913,7 +1214,9 @@ function Step({
         </Text>
 
         <Text
-          style={styles.stepDescription}
+          style={
+            styles.stepDescription
+          }
         >
           {description}
         </Text>
@@ -1217,7 +1520,8 @@ const styles = StyleSheet.create({
     color:
       COLORS.text,
 
-    maxWidth: '60%',
+    maxWidth:
+      '60%',
 
     textAlign:
       'right',

@@ -66,117 +66,119 @@ export default function LoginScreen() {
     return null;
   };
 
-const openExistingAccount = (user: any) => {
-  setCurrentUser(user);
+  const openExistingAccount = (user: any) => {
+    setCurrentUser(user);
 
-  const existingRole = getExistingRole(user);
+    const existingRole = getExistingRole(user);
 
-  console.log('========== EXISTING ACCOUNT ==========');
-  console.log('ROLE:', existingRole);
-  console.log('PROVIDER STATUS:', user?.providerStatus);
-  console.log('USER:', JSON.stringify(user, null, 2));
-  console.log('======================================');
+    console.log('========== EXISTING ACCOUNT ==========');
+    console.log('ROLE:', existingRole);
+    console.log('PROVIDER STATUS:', user?.providerStatus);
+    console.log('USER:', JSON.stringify(user, null, 2));
+    console.log('======================================');
 
-  // ============================================================
-  // PROVIDER ACCOUNT
-  // ============================================================
+    // ============================================================
+    // PROVIDER ACCOUNT
+    // ============================================================
 
-  if (existingRole === 'PROVIDER') {
-    const providerStatus = String(
-      user?.providerStatus || 'NOT_REGISTERED'
-    )
-      .trim()
-      .toUpperCase();
+    if (existingRole === 'PROVIDER') {
+      const providerStatus = String(
+        user?.providerStatus || 'NOT_REGISTERED'
+      )
+        .trim()
+        .toUpperCase();
 
-    console.log('NORMALIZED PROVIDER STATUS:', providerStatus);
+      console.log('NORMALIZED PROVIDER STATUS:', providerStatus);
 
-    // ==========================================================
-    // NOT REGISTERED
-    // ==========================================================
-    // User is a provider account but has NOT submitted
-    // salon registration yet.
-    //
-    // DO NOT show SalonPendingVerification.
-    // Send them to BecomePartner / registration flow.
-    // ==========================================================
+      // ==========================================================
+      // NOT REGISTERED
+      // ==========================================================
+      // User is a provider account but has NOT submitted
+      // salon registration yet.
+      //
+      // DO NOT show SalonPendingVerification.
+      // Send them to BecomePartner / registration flow.
+      // ==========================================================
 
-    if (providerStatus === 'NOT_REGISTERED') {
+      if (providerStatus === 'NOT_REGISTERED') {
+        navigation.navigate('BecomePartner');
+        return;
+      }
+
+      // ==========================================================
+      // PENDING
+      // ==========================================================
+      // Salon registration was submitted and is waiting for
+      // admin/KYC verification.
+      // ==========================================================
+
+      if (providerStatus === 'PENDING') {
+        navigation.replace('BecomePartner', {
+          screen: 'SalonPendingVerification',
+        });
+        return;
+      }
+
+      // ==========================================================
+      // APPROVED
+      // ==========================================================
+      // Provider can access the provider application.
+      // ==========================================================
+
+      if (providerStatus === 'APPROVED') {
+        navigation.navigate('appScreens');
+        return;
+      }
+
+      // ==========================================================
+      // REJECTED
+      // ==========================================================
+      // Registration was rejected.
+      // You can send them back to BecomePartner so they can
+      // review/resubmit their registration.
+      // ==========================================================
+
+      if (providerStatus === 'REJECTED') {
+        navigation.navigate('BecomePartner');
+        return;
+      }
+
+      // ==========================================================
+      // UNKNOWN STATUS
+      // ==========================================================
+
+      console.warn(
+        'UNKNOWN PROVIDER STATUS:',
+        providerStatus
+      );
+
       navigation.navigate('BecomePartner');
       return;
     }
 
-    // ==========================================================
-    // PENDING
-    // ==========================================================
-    // Salon registration was submitted and is waiting for
-    // admin/KYC verification.
-    // ==========================================================
+    // ============================================================
+    // CUSTOMER ACCOUNT
+    // ============================================================
 
-    if (providerStatus === 'PENDING') {
-      navigation.navigate('SalonPendingVerification');
-      return;
-    }
-
-    // ==========================================================
-    // APPROVED
-    // ==========================================================
-    // Provider can access the provider application.
-    // ==========================================================
-
-    if (providerStatus === 'APPROVED') {
+    if (existingRole === 'CUSTOMER') {
       navigation.navigate('appScreens');
       return;
     }
 
-    // ==========================================================
-    // REJECTED
-    // ==========================================================
-    // Registration was rejected.
-    // You can send them back to BecomePartner so they can
-    // review/resubmit their registration.
-    // ==========================================================
+    // ============================================================
+    // INVALID / UNKNOWN ACCOUNT
+    // ============================================================
 
-    if (providerStatus === 'REJECTED') {
-      navigation.navigate('BecomePartner');
-      return;
-    }
-
-    // ==========================================================
-    // UNKNOWN STATUS
-    // ==========================================================
-
-    console.warn(
-      'UNKNOWN PROVIDER STATUS:',
-      providerStatus
+    console.error(
+      'UNKNOWN ACCOUNT ROLE:',
+      JSON.stringify(user, null, 2)
     );
 
-    navigation.navigate('BecomePartner');
-    return;
-  }
-
-  // ============================================================
-  // CUSTOMER ACCOUNT
-  // ============================================================
-
-  if (existingRole === 'CUSTOMER') {
-    navigation.navigate('appScreens');
-    return;
-  }
-
-  // ============================================================
-  // INVALID / UNKNOWN ACCOUNT
-  // ============================================================
-
-  console.error(
-    'UNKNOWN ACCOUNT ROLE:',
-    JSON.stringify(user, null, 2)
-  );
-
-  Alert.alert(
-    'Account error',
-    'We could not determine your account type. Please contact support.'
-  );
-};
+    Alert.alert(
+      'Account error',
+      'We could not determine your account type. Please contact support.'
+    );
+  };
   const handleOTPVerified = (result: any) => {
     console.log('========== OTP LOGIN RESULT ==========');
     console.log('SUCCESS:', result?.success);
