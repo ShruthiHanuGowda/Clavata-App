@@ -90,7 +90,7 @@ export default function SalonRegistrationScreen({ navigation }: any) {
             onChangeText={setEmail}
           />
 
-          <Text style={styles.label}>Business type</Text>
+          {/* <Text style={styles.label}>Business type</Text>
           <TextInput
             style={styles.input}
             placeholder="Salon, Spa, Barber..."
@@ -98,7 +98,7 @@ export default function SalonRegistrationScreen({ navigation }: any) {
             value={businessType}
             onChangeText={setBusinessType}
             autoCapitalize="words"
-          />
+          /> */}
         </View>
 
         <DButton type="primary" style={styles.button} onPress={onNext}>

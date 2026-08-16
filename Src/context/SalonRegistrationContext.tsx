@@ -113,6 +113,9 @@ export type SalonRegistrationData = {
     ifsc: string;
 
     businessHours: BusinessHours;
+
+    latitude?: number;
+    longitude?: number;
 };
 
 // =====================================================
