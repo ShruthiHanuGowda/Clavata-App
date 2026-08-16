@@ -1,116 +1,181 @@
-import React from 'react';
-
+import React, { useCallback, useState } from 'react';
 import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  Alert,
-  ScrollView,
   ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-import {
-  useMutation,
-} from '@apollo/client';
+import { Header, DButton } from '../../components';
 
-import {
-  Header,
-  DButton,
-} from '../../components';
-
-import {
-  REGISTER_SALON_PARTNER,
-} from '../../graphql/queries';
-
-import {
-  useSalonRegistration,
-} from '../../context/SalonRegistrationContext';
-
-import {
-  useUser,
-} from '../../context/UserContext';
+import { useSalonRegistration } from '../../context/SalonRegistrationContext';
 
 import {
   COLORS,
   FONTS,
-  FONT_SIZES,
   SPACING,
   RADIUS,
 } from '../../constants/constants';
 
+// ============================================================
+// SCREEN
+// ============================================================
+
 export default function SalonReviewScreen({
   navigation,
 }: any) {
-  const {
-    data,
-    reset,
-  } = useSalonRegistration();
+  const { data } = useSalonRegistration();
 
-  const {
-    currentUser,
-    setCurrentUser,
-  } = useUser();
+  const [submitting, setSubmitting] =
+    useState(false);
 
-  const [
-    registerSalonPartner,
-    {
-      loading,
-    },
-  ] = useMutation(
-    REGISTER_SALON_PARTNER,
-  );
+  // ==========================================================
+  // SUBMIT REGISTRATION
+  // ==========================================================
 
-  // ===================================================
-  // SUBMIT
-  // ===================================================
+  const handleSubmit = useCallback(async () => {
+    // --------------------------------------------------------
+    // BASIC VALIDATION
+    // --------------------------------------------------------
 
-  const onSubmit = async () => {
-    // -------------------------------------------------
-    // USER CHECK
-    // -------------------------------------------------
-
-    if (!currentUser?.userId) {
+    if (!data.salonName.trim()) {
       Alert.alert(
-        'Session Expired',
-        'Please sign in again.',
-      );
-
-      return;
-    }
-
-    // -------------------------------------------------
-    // REGISTRATION DATA CHECK
-    // -------------------------------------------------
-
-    if (!currentUser?.userId) {
-      Alert.alert(
-        'Session Expired',
-        'Please sign in again.',
-      );
-
-      return;
-    }
-
-    if (!data.salonName) {
-      Alert.alert(
-        'Registration Error',
+        'Missing Information',
         'Salon name is missing.',
       );
-
       return;
     }
 
-    if (!data.addressLine) {
+    if (!data.ownerName.trim()) {
       Alert.alert(
-        'Registration Error',
+        'Missing Information',
+        'Owner name is missing.',
+      );
+      return;
+    }
+
+    if (!data.email.trim()) {
+      Alert.alert(
+        'Missing Information',
+        'Email address is missing.',
+      );
+      return;
+    }
+
+    if (!data.addressLine.trim()) {
+      Alert.alert(
+        'Missing Information',
         'Salon address is missing.',
       );
-
       return;
     }
 
+    if (!data.city.trim()) {
+      Alert.alert(
+        'Missing Information',
+        'City is missing.',
+      );
+      return;
+    }
+
+    if (!data.state.trim()) {
+      Alert.alert(
+        'Missing Information',
+        'State is missing.',
+      );
+      return;
+    }
+
+    if (!/^\d{6}$/.test(data.pincode.trim())) {
+      Alert.alert(
+        'Invalid Pincode',
+        'Please provide a valid 6-digit pincode.',
+      );
+      return;
+    }
+
+    if (
+      data.latitude === undefined ||
+      data.longitude === undefined
+    ) {
+      Alert.alert(
+        'Location Missing',
+        'Please go back and confirm your salon location.',
+      );
+      return;
+    }
+
+    if (!data.businessType.trim()) {
+      Alert.alert(
+        'Missing Information',
+        'Business type is missing.',
+      );
+      return;
+    }
+
+    // --------------------------------------------------------
+    // CONFIRMATION
+    // --------------------------------------------------------
+
+    Alert.alert(
+      'Submit Registration?',
+      'Your salon registration will be submitted for verification. You will not be able to access the salon dashboard until your application is approved.',
+      [
+        {
+          text: 'Go Back',
+          style: 'cancel',
+        },
+        {
+          text: 'Submit',
+          onPress: submitRegistration,
+        },
+      ],
+    );
+  }, [data]);
+
+  // ==========================================================
+  // ACTUAL SUBMISSION
+  // ==========================================================
+
+  const submitRegistration = useCallback(async () => {
     try {
+      setSubmitting(true);
+
+      // ======================================================
+      // IMPORTANT
+      // ======================================================
+      //
+      // THIS IS WHERE YOUR GRAPHQL MUTATION WILL GO.
+      //
+      // Example:
+      //
+      // await registerSalonPartner({
+      //   userId: data.userId,
+      //   phoneNumber: data.phoneNumber,
+      //   salonName: data.salonName,
+      //   ownerName: data.ownerName,
+      //   email: data.email,
+      //   businessType: data.businessType,
+      //   addressLine: data.addressLine,
+      //   city: data.city,
+      //   state: data.state,
+      //   pincode: data.pincode,
+      //   latitude: data.latitude,
+      //   longitude: data.longitude,
+      //   gstNumber: data.gstNumber,
+      //   panNumber: data.panNumber,
+      //   aadhaarNumber: data.aadhaarNumber,
+      //   bankAccount: data.bankAccount,
+      //   ifsc: data.ifsc,
+      //   businessHours: data.businessHours,
+      // });
+      //
+      // ======================================================
+
       console.log(
         '==========================================',
       );
@@ -120,491 +185,750 @@ export default function SalonReviewScreen({
       );
 
       console.log(
-        'USER ID:',
-        data.userId,
+        '==========================================',
       );
 
       console.log(
-        'CURRENT USER ID:',
-        currentUser.userId,
-      );
-
-      console.log(
-        'CURRENT SALON ID:',
-        currentUser.salonId,
-      );
-
-      console.log(
-        'SALON NAME:',
+        'SALON:',
         data.salonName,
       );
 
       console.log(
+        'OWNER:',
+        data.ownerName,
+      );
+
+      console.log(
+        'EMAIL:',
+        data.email,
+      );
+
+      console.log(
+        'BUSINESS TYPE:',
+        data.businessType,
+      );
+
+      console.log(
+        'ADDRESS:',
+        data.addressLine,
+      );
+
+      console.log(
+        'CITY:',
+        data.city,
+      );
+
+      console.log(
+        'STATE:',
+        data.state,
+      );
+
+      console.log(
+        'PINCODE:',
+        data.pincode,
+      );
+
+      console.log(
+        'LATITUDE:',
+        data.latitude,
+      );
+
+      console.log(
+        'LONGITUDE:',
+        data.longitude,
+      );
+
+      console.log(
+        'BUSINESS HOURS:',
+        data.businessHours,
+      );
+
+      console.log(
         '==========================================',
       );
 
-      // -------------------------------------------------
-      // IMPORTANT:
+      // ------------------------------------------------------
+      // TEMPORARY DEVELOPMENT DELAY
+      // ------------------------------------------------------
       //
-      // DO NOT SEND salonId.
+      // Remove this once your GraphQL registration mutation
+      // is connected.
       //
-      // The backend must CREATE the salon and return
-      // the newly generated salonId.
-      // -------------------------------------------------
 
-      const response =
-        await registerSalonPartner({
-          variables: {
-            input: {
-              userId:
-                currentUser.userId,
-
-              phoneNumber:
-                currentUser.phoneNumber ||
-                data.phoneNumber,
-
-              salonName:
-                data.salonName,
-
-              ownerName:
-                data.ownerName,
-
-              email:
-                data.email,
-
-              businessType:
-                data.businessType,
-
-              address: {
-                addressLine:
-                  data.addressLine,
-
-                city:
-                  data.city,
-
-                state:
-                  data.state,
-
-                pincode:
-                  data.pincode,
-              },
-
-              businessHours:
-                data.businessHours,
-
-              gstNumber:
-                data.gstNumber || '',
-
-              panNumber:
-                data.panNumber,
-
-              aadhaarNumber:
-                data.aadhaarNumber,
-
-              bankAccount:
-                data.bankAccount,
-
-              ifsc:
-                data.ifsc,
-            },
-          },
-        });
-
-      console.log(
-        '==========================================',
+      await new Promise(resolve =>
+        setTimeout(resolve, 1000),
       );
 
-      console.log(
-        'REGISTER SALON RESPONSE:',
-      );
-
-      console.log(
-        JSON.stringify(
-          response.data,
-          null,
-          2,
-        ),
-      );
-
-      console.log(
-        '==========================================',
-      );
-
-      const result =
-        response.data
-          ?.registerSalonPartner;
-
-      // -------------------------------------------------
-      // BACKEND FAILURE
-      // -------------------------------------------------
-
-      if (!result?.success) {
-        Alert.alert(
-          'Registration Failed',
-          result?.message ||
-          'Unable to register your salon.',
-        );
-
-        return;
-      }
-
-      // -------------------------------------------------
-      // GET CREATED SALON ID
-      // -------------------------------------------------
-
-      const salonId =
-        result?.salonId;
-
-      console.log(
-        'NEW SALON ID:',
-        salonId,
-      );
-
-      // -------------------------------------------------
-      // THIS IS CRITICAL
-      // -------------------------------------------------
-
-      if (!salonId) {
-        console.error(
-          'REGISTER_SALON_PARTNER succeeded but salonId is missing.',
-        );
-
-        Alert.alert(
-          'Registration Error',
-          'Salon was created, but the salon ID was not returned by the server. Please check the backend response.',
-        );
-
-        return;
-      }
-
-      // -------------------------------------------------
-      // UPDATE USER
-      // -------------------------------------------------
-
-      const existingRoles =
-        currentUser.roles || {
-          customer: false,
-          businessPartner: false,
-        };
-
-      const updatedUser = {
-        ...currentUser,
-
-        activeRole:
-          'PROVIDER',
-
-        providerStatus:
-          'PENDING',
-
-        salonId:
-          salonId,
-
-        roles: {
-          ...existingRoles,
-
-          businessPartner:
-            true,
-        },
-      };
-
-      console.log(
-        '==========================================',
-      );
-
-      console.log(
-        'UPDATED USER:',
-      );
-
-      console.log(
-        JSON.stringify(
-          updatedUser,
-          null,
-          2,
-        ),
-      );
-
-      console.log(
-        '==========================================',
-      );
-
-      // -------------------------------------------------
+      // ------------------------------------------------------
       // SUCCESS
-      // -------------------------------------------------
-      const successSalonName = data.salonName;
-      setCurrentUser(updatedUser);
+      // ------------------------------------------------------
 
-      reset();
-
-      navigation.navigate('SalonSuccess', {
-        salonId,
-        salonName: successSalonName,
-      });
-    } catch (error: any) {
-      console.error(
-        '==========================================',
+      navigation.replace(
+        'SalonSuccess',
       );
-
+    } catch (error: unknown) {
       console.error(
-        'REGISTER SALON ERROR',
-      );
-
-      console.error(
+        'SALON REGISTRATION ERROR:',
         error,
-      );
-
-      console.error(
-        'MESSAGE:',
-        error?.message,
-      );
-
-      console.error(
-        'GRAPHQL ERRORS:',
-        error?.graphQLErrors,
-      );
-
-      console.error(
-        'NETWORK ERROR:',
-        error?.networkError,
-      );
-
-      console.error(
-        '==========================================',
       );
 
       Alert.alert(
         'Registration Failed',
-        error?.message ||
-        'Something went wrong while registering the salon.',
+        'We could not submit your salon registration. Please try again.',
       );
+    } finally {
+      setSubmitting(false);
     }
+  }, [
+    data,
+    navigation,
+  ]);
+
+  // ==========================================================
+  // EDIT SECTION
+  // ==========================================================
+
+  const handleEditAddress = () => {
+    navigation.navigate(
+      'SalonAddress',
+    );
   };
 
-  // ===================================================
-  // UI
-  // ===================================================
+  const handleEditBusinessHours = () => {
+    navigation.navigate(
+      'SalonBusinessHours',
+    );
+  };
+
+  const handleEditKYC = () => {
+    navigation.navigate(
+      'SalonKYC',
+    );
+  };
+
+  // ==========================================================
+  // BUSINESS HOURS
+  // ==========================================================
+
+  const dayLabels: Record<string, string> = {
+    MONDAY: 'Monday',
+    TUESDAY: 'Tuesday',
+    WEDNESDAY: 'Wednesday',
+    THURSDAY: 'Thursday',
+    FRIDAY: 'Friday',
+    SATURDAY: 'Saturday',
+    SUNDAY: 'Sunday',
+  };
+
+  // ==========================================================
+  // RENDER
+  // ==========================================================
 
   return (
     <SafeAreaView
       style={styles.container}
     >
       <Header
-        headerTitle="Review Details"
+        headerTitle="Review Registration"
       />
 
       <ScrollView
         contentContainerStyle={
           styles.content
         }
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={
+          false
+        }
       >
+        {/* ==================================================
+            HEADER
+        ================================================== */}
+
         <View
-          style={styles.header}
+          style={styles.headerSection}
         >
           <Text
             style={styles.title}
           >
-            Review your details
+            Review your application
           </Text>
 
           <Text
             style={styles.subtitle}
           >
-            Please check everything before submitting your salon registration.
+            Please check all your information carefully
+            before submitting your salon for verification.
           </Text>
         </View>
 
+        {/* ==================================================
+            BASIC INFORMATION
+        ================================================== */}
+
         <View
-          style={styles.card}
+          style={styles.section}
         >
-          <DetailRow
-            label="Salon"
-            value={
-              data.salonName
-            }
+          <View
+            style={styles.sectionHeader}
+          >
+            <View>
+              <Text
+                style={styles.sectionTitle}
+              >
+                Salon information
+              </Text>
+
+              <Text
+                style={styles.sectionSubtitle}
+              >
+                Your business details
+              </Text>
+            </View>
+          </View>
+
+          <InfoRow
+            label="Salon name"
+            value={data.salonName}
           />
 
-          <DetailRow
-            label="Owner"
-            value={
-              data.ownerName
-            }
+          <InfoRow
+            label="Owner name"
+            value={data.ownerName}
           />
 
-          <DetailRow
+          <InfoRow
             label="Email"
-            value={
-              data.email
-            }
+            value={data.email}
           />
 
-          <DetailRow
+          <InfoRow
+            label="Phone"
+            value={data.phoneNumber}
+          />
+
+          <InfoRow
             label="Business type"
-            value={
-              data.businessType
-            }
+            value={data.businessType}
           />
+        </View>
 
-          <DetailRow
+        {/* ==================================================
+            ADDRESS
+        ================================================== */}
+
+        <View
+          style={styles.section}
+        >
+          <View
+            style={styles.sectionHeader}
+          >
+            <View style={styles.sectionHeaderText}>
+              <Text
+                style={styles.sectionTitle}
+              >
+                Salon address
+              </Text>
+
+              <Text
+                style={styles.sectionSubtitle}
+              >
+                Registered salon location
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleEditAddress}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={styles.editText}
+              >
+                Edit
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <InfoRow
             label="Address"
-            value={`${data.addressLine}, ${data.city}, ${data.state} - ${data.pincode}`}
+            value={data.addressLine}
           />
 
-          <DetailRow
+          <InfoRow
+            label="City"
+            value={data.city}
+          />
+
+          <InfoRow
+            label="State"
+            value={data.state}
+          />
+
+          <InfoRow
+            label="Pincode"
+            value={data.pincode}
+          />
+
+          {data.latitude !== undefined &&
+            data.longitude !== undefined && (
+              <View
+                style={styles.locationCard}
+              >
+                <Text
+                  style={styles.locationTitle}
+                >
+                  ✓ Location confirmed
+                </Text>
+
+                <Text
+                  style={styles.locationText}
+                >
+                  Latitude: {data.latitude.toFixed(6)}
+                </Text>
+
+                <Text
+                  style={styles.locationText}
+                >
+                  Longitude: {data.longitude.toFixed(6)}
+                </Text>
+              </View>
+            )}
+        </View>
+
+        {/* ==================================================
+            BUSINESS HOURS
+        ================================================== */}
+
+        <View
+          style={styles.section}
+        >
+          <View
+            style={styles.sectionHeader}
+          >
+            <View style={styles.sectionHeaderText}>
+              <Text
+                style={styles.sectionTitle}
+              >
+                Business hours
+              </Text>
+
+              <Text
+                style={styles.sectionSubtitle}
+              >
+                Your salon operating hours
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleEditBusinessHours}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={styles.editText}
+              >
+                Edit
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {Object.entries(
+            data.businessHours,
+          ).map(
+            ([
+              day,
+              hours,
+            ]) => (
+              <View
+                key={day}
+                style={
+                  styles.businessHourRow
+                }
+              >
+                <Text
+                  style={
+                    styles.businessDay
+                  }
+                >
+                  {
+                    dayLabels[
+                    day
+                    ]
+                  }
+                </Text>
+
+                {hours.isOpen ? (
+                  <Text
+                    style={
+                      styles.businessTime
+                    }
+                  >
+                    {hours.open} - {hours.close}
+                  </Text>
+                ) : (
+                  <Text
+                    style={
+                      styles.closedText
+                    }
+                  >
+                    Closed
+                  </Text>
+                )}
+              </View>
+            ),
+          )}
+        </View>
+
+        {/* ==================================================
+            KYC
+        ================================================== */}
+
+        <View
+          style={styles.section}
+        >
+          <View
+            style={styles.sectionHeader}
+          >
+            <View style={styles.sectionHeaderText}>
+              <Text
+                style={styles.sectionTitle}
+              >
+                KYC information
+              </Text>
+
+              <Text
+                style={styles.sectionSubtitle}
+              >
+                Verification information
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleEditKYC}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={styles.editText}
+              >
+                Edit
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <KYCRow
+            label="PAN"
+            value={data.panNumber}
+          />
+
+          <KYCRow
+            label="Aadhaar"
+            value={data.aadhaarNumber}
+          />
+
+          <KYCRow
             label="GST"
             value={
-              data.gstNumber ||
-              'Not provided'
+              data.gstNumber
+                ? data.gstNumber
+                : 'Not provided'
             }
           />
 
-          <DetailRow
-            label="PAN"
-            value={
-              data.panNumber ||
-              '-'
-            }
-          />
-
-          <DetailRow
-            label="Aadhaar"
-            value={
-              data.aadhaarNumber ||
-              '-'
-            }
-          />
-
-          <DetailRow
+          <KYCRow
             label="Bank account"
             value={
-              data.bankAccount ||
-              '-'
+              data.bankAccount
+                ? maskAccount(
+                  data.bankAccount,
+                )
+                : 'Not provided'
             }
           />
 
-          <DetailRow
+          <KYCRow
             label="IFSC"
             value={
-              data.ifsc ||
-              '-'
+              data.ifsc
+                ? data.ifsc
+                : 'Not provided'
             }
+          />
+
+          <View
+            style={styles.kycNotice}
+          >
+            <Text
+              style={styles.kycNoticeTitle}
+            >
+              KYC verification
+            </Text>
+
+            <Text
+              style={styles.kycNoticeText}
+            >
+              Your KYC information will be verified
+              before your salon can become active.
+            </Text>
+          </View>
+        </View>
+
+        {/* ==================================================
+            VERIFICATION PROCESS
+        ================================================== */}
+
+        <View
+          style={styles.verificationCard}
+        >
+          <Text
+            style={styles.verificationTitle}
+          >
+            What happens next?
+          </Text>
+
+          <Step
+            number="1"
+            title="Submit application"
+            description="Your salon information will be securely submitted."
+          />
+
+          <Step
+            number="2"
+            title="KYC verification"
+            description="Your submitted KYC details and documents will be verified."
+          />
+
+          <Step
+            number="3"
+            title="Salon verification"
+            description="Our verification process will review your salon registration."
+          />
+
+          <Step
+            number="4"
+            title="Dashboard access"
+            description="Once approved, your salon dashboard will become available."
             last
           />
         </View>
 
+        {/* ==================================================
+            IMPORTANT NOTICE
+        ================================================== */}
+
         <View
-          style={styles.notice}
+          style={styles.warningCard}
         >
           <Text
-            style={styles.noticeTitle}
+            style={styles.warningTitle}
           >
-            Verification
+            Before you submit
           </Text>
 
           <Text
-            style={styles.noticeText}
+            style={styles.warningText}
           >
-            After submission, your salon will be reviewed before provider access is fully activated.
+            Make sure your salon name, address, business
+            details and KYC information are correct. Incorrect
+            information may delay verification.
           </Text>
         </View>
 
+        {/* ==================================================
+            SUBMIT
+        ================================================== */}
+
         <DButton
           type="primary"
-          style={[
-            styles.button,
-            loading &&
-            styles.buttonDisabled,
-          ]}
-          onPress={
-            onSubmit
-          }
-          disabled={
-            loading
-          }
+          style={styles.submitButton}
+          onPress={handleSubmit}
+          disabled={submitting}
         >
-          {loading ? (
-            <View
-              style={
-                styles.loadingContent
-              }
-            >
-              <ActivityIndicator
-                size="small"
-                color={
-                  COLORS.white
-                }
-              />
-
-              <Text
-                style={
-                  styles.buttonText
-                }
-              >
-                Submitting...
-              </Text>
-            </View>
+          {submitting ? (
+            <ActivityIndicator
+              color={COLORS.white}
+            />
           ) : (
             <Text
-              style={
-                styles.buttonText
-              }
+              style={styles.submitText}
             >
-              Submit Registration
+              Submit for Verification
             </Text>
           )}
         </DButton>
+
+        <Text
+          style={styles.bottomText}
+        >
+          By submitting, you confirm that the information
+          provided is accurate.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// =====================================================
-// DETAIL ROW
-// =====================================================
+// ============================================================
+// INFO ROW
+// ============================================================
 
-function DetailRow({
+function InfoRow({
   label,
   value,
-  last = false,
 }: {
   label: string;
-  value: string;
-  last?: boolean;
+  value?: string;
 }) {
   return (
     <View
-      style={[
-        styles.detailRow,
-        !last &&
-        styles.detailBorder,
-      ]}
+      style={styles.infoRow}
     >
       <Text
-        style={
-          styles.detailLabel
-        }
+        style={styles.infoLabel}
       >
         {label}
       </Text>
 
       <Text
-        style={
-          styles.detailValue
-        }
+        style={[
+          styles.infoValue,
+          !value &&
+          styles.missingValue,
+        ]}
       >
-        {value || '-'}
+        {value?.trim()
+          ? value
+          : 'Not provided'}
       </Text>
     </View>
   );
 }
 
-// =====================================================
+// ============================================================
+// KYC ROW
+// ============================================================
+
+function KYCRow({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string;
+}) {
+  const safeValue =
+    value?.trim()
+      ? value
+      : 'Not provided';
+
+  return (
+    <View
+      style={styles.kycRow}
+    >
+      <Text
+        style={styles.kycLabel}
+      >
+        {label}
+      </Text>
+
+      <Text
+        style={[
+          styles.kycValue,
+          safeValue ===
+          'Not provided' &&
+          styles.missingValue,
+        ]}
+      >
+        {safeValue}
+      </Text>
+    </View>
+  );
+}
+
+// ============================================================
+// MASK BANK ACCOUNT
+// ============================================================
+
+function maskAccount(
+  account: string,
+): string {
+  const clean =
+    account.replace(
+      /\s/g,
+      '',
+    );
+
+  if (clean.length <= 4) {
+    return clean;
+  }
+
+  return (
+    '•••• •••• ' +
+    clean.slice(-4)
+  );
+}
+
+// ============================================================
+// VERIFICATION STEP
+// ============================================================
+
+function Step({
+  number,
+  title,
+  description,
+  last = false,
+}: {
+  number: string;
+  title: string;
+  description: string;
+  last?: boolean;
+}) {
+  return (
+    <View
+      style={styles.stepContainer}
+    >
+      <View
+        style={styles.stepLeft}
+      >
+        <View
+          style={styles.stepCircle}
+        >
+          <Text
+            style={styles.stepNumber}
+          >
+            {number}
+          </Text>
+        </View>
+
+        {!last && (
+          <View
+            style={styles.stepLine}
+          />
+        )}
+      </View>
+
+      <View
+        style={styles.stepContent}
+      >
+        <Text
+          style={styles.stepTitle}
+        >
+          {title}
+        </Text>
+
+        <Text
+          style={styles.stepDescription}
+        >
+          {description}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ============================================================
 // STYLES
-// =====================================================
+// ============================================================
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-
     backgroundColor:
       COLORS.background,
   },
@@ -614,58 +938,45 @@ const styles = StyleSheet.create({
       SPACING.xxl,
 
     paddingTop:
-      SPACING.xxl,
+      SPACING.xxxl,
 
     paddingBottom:
-      SPACING.xxxl,
+      SPACING.huge,
   },
 
-  header: {
+  headerSection: {
     marginBottom:
       SPACING.xxl,
   },
 
   title: {
     fontFamily:
-      FONTS.semiBold,
+      FONTS.bold,
 
-    fontSize:
-      FONT_SIZES.title,
+    fontSize: 22,
 
-    lineHeight:
-      FONT_SIZES.title + 5,
+    lineHeight: 28,
 
     color:
       COLORS.text,
 
-    textAlign:
-      'center',
-
-    letterSpacing:
-      -0.2,
+    marginBottom:
+      SPACING.small,
   },
 
   subtitle: {
-    marginTop:
-      SPACING.small,
-
     fontFamily:
       FONTS.regular,
 
-    fontSize:
-      FONT_SIZES.small,
+    fontSize: 14,
 
-    lineHeight:
-      FONT_SIZES.small + 7,
+    lineHeight: 21,
 
     color:
       COLORS.textSecondary,
-
-    textAlign:
-      'center',
   },
 
-  card: {
+  section: {
     backgroundColor:
       COLORS.surface,
 
@@ -677,128 +988,149 @@ const styles = StyleSheet.create({
     borderRadius:
       RADIUS.large,
 
-    paddingHorizontal:
-      SPACING.xl,
-  },
-
-  detailRow: {
-    paddingVertical:
+    padding:
       SPACING.large,
+
+    marginBottom:
+      SPACING.medium,
   },
 
-  detailBorder: {
+  sectionHeader: {
+    flexDirection:
+      'row',
+
+    alignItems:
+      'flex-start',
+
+    justifyContent:
+      'space-between',
+
+    marginBottom:
+      SPACING.medium,
+  },
+
+  sectionHeaderText: {
+    flex: 1,
+  },
+
+  sectionTitle: {
+    fontFamily:
+      FONTS.semiBold,
+
+    fontSize: 17,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 3,
+  },
+
+  sectionSubtitle: {
+    fontFamily:
+      FONTS.regular,
+
+    fontSize: 12,
+
+    color:
+      COLORS.textSecondary,
+  },
+
+  editText: {
+    fontFamily:
+      FONTS.semiBold,
+
+    fontSize: 13,
+
+    color:
+      COLORS.primary,
+
+    paddingLeft:
+      SPACING.medium,
+  },
+
+  infoRow: {
+    paddingVertical:
+      SPACING.small,
+
     borderBottomWidth: 1,
 
     borderBottomColor:
       COLORS.border,
   },
 
-  detailLabel: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize:
-      FONT_SIZES.small,
-
-    color:
-      COLORS.textSecondary,
-
-    marginBottom:
-      SPACING.xs,
-  },
-
-  detailValue: {
+  infoLabel: {
     fontFamily:
       FONTS.regular,
 
-    fontSize:
-      FONT_SIZES.body,
+    fontSize: 11,
 
-    lineHeight:
-      FONT_SIZES.body + 6,
+    color:
+      COLORS.textMuted,
+
+    marginBottom: 3,
+  },
+
+  infoValue: {
+    fontFamily:
+      FONTS.semiBold,
+
+    fontSize: 14,
+
+    lineHeight: 20,
 
     color:
       COLORS.text,
   },
 
-  notice: {
+  missingValue: {
+    color:
+      COLORS.textMuted,
+  },
+
+  locationCard: {
     marginTop:
-      SPACING.xl,
+      SPACING.medium,
 
     padding:
-      SPACING.large,
+      SPACING.medium,
 
     borderRadius:
       RADIUS.medium,
 
     backgroundColor:
-      '#F0FAF8',
+      COLORS.background,
 
     borderWidth: 1,
 
     borderColor:
-      '#D5EFEB',
+      COLORS.border,
   },
 
-  noticeTitle: {
+  locationTitle: {
     fontFamily:
       FONTS.semiBold,
 
-    fontSize:
-      FONT_SIZES.small,
+    fontSize: 13,
 
     color:
       COLORS.primary,
+
+    marginBottom: 5,
   },
 
-  noticeText: {
-    marginTop:
-      SPACING.xs,
-
+  locationText: {
     fontFamily:
       FONTS.regular,
 
-    fontSize:
-      FONT_SIZES.small,
-
-    lineHeight:
-      FONT_SIZES.small + 7,
+    fontSize: 12,
 
     color:
       COLORS.textSecondary,
+
+    marginTop: 2,
   },
 
-  button: {
-    width: '100%',
-
-    height: 54,
-
-    borderRadius:
-      RADIUS.medium,
-
-    marginTop:
-      SPACING.xl,
-  },
-
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-
-  buttonText: {
-    color:
-      COLORS.white,
-
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize:
-      FONT_SIZES.body,
-
-    textAlign:
-      'center',
-  },
-
-  loadingContent: {
+  businessHourRow: {
     flexDirection:
       'row',
 
@@ -806,8 +1138,340 @@ const styles = StyleSheet.create({
       'center',
 
     justifyContent:
+      'space-between',
+
+    paddingVertical:
+      SPACING.small,
+
+    borderBottomWidth: 1,
+
+    borderBottomColor:
+      COLORS.border,
+  },
+
+  businessDay: {
+    fontFamily:
+      FONTS.semiBold,
+
+    fontSize: 13,
+
+    color:
+      COLORS.text,
+  },
+
+  businessTime: {
+    fontFamily:
+      FONTS.regular,
+
+    fontSize: 13,
+
+    color:
+      COLORS.textSecondary,
+  },
+
+  closedText: {
+    fontFamily:
+      FONTS.semiBold,
+
+    fontSize: 12,
+
+    color:
+      COLORS.textMuted,
+  },
+
+  kycRow: {
+    flexDirection:
+      'row',
+
+    alignItems:
       'center',
 
-    gap: 10,
+    justifyContent:
+      'space-between',
+
+    paddingVertical:
+      SPACING.small,
+
+    borderBottomWidth: 1,
+
+    borderBottomColor:
+      COLORS.border,
+  },
+
+  kycLabel: {
+    fontFamily:
+      FONTS.regular,
+
+    fontSize: 13,
+
+    color:
+      COLORS.textSecondary,
+  },
+
+  kycValue: {
+    fontFamily:
+      FONTS.semiBold,
+
+    fontSize: 13,
+
+    color:
+      COLORS.text,
+
+    maxWidth: '60%',
+
+    textAlign:
+      'right',
+  },
+
+  kycNotice: {
+    marginTop:
+      SPACING.medium,
+
+    padding:
+      SPACING.medium,
+
+    borderRadius:
+      RADIUS.medium,
+
+    backgroundColor:
+      COLORS.background,
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.border,
+  },
+
+  kycNoticeTitle: {
+    fontFamily:
+      FONTS.semiBold,
+
+    fontSize: 13,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 4,
+  },
+
+  kycNoticeText: {
+    fontFamily:
+      FONTS.regular,
+
+    fontSize: 12,
+
+    lineHeight: 18,
+
+    color:
+      COLORS.textSecondary,
+  },
+
+  verificationCard: {
+    backgroundColor:
+      COLORS.surface,
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.border,
+
+    borderRadius:
+      RADIUS.large,
+
+    padding:
+      SPACING.large,
+
+    marginBottom:
+      SPACING.medium,
+  },
+
+  verificationTitle: {
+    fontFamily:
+      FONTS.semiBold,
+
+    fontSize: 17,
+
+    color:
+      COLORS.text,
+
+    marginBottom:
+      SPACING.large,
+  },
+
+  stepContainer: {
+    flexDirection:
+      'row',
+
+    minHeight: 70,
+  },
+
+  stepLeft: {
+    width: 34,
+
+    alignItems:
+      'center',
+  },
+
+  stepCircle: {
+    width: 28,
+
+    height: 28,
+
+    borderRadius:
+      RADIUS.round,
+
+    backgroundColor:
+      COLORS.black,
+
+    alignItems:
+      'center',
+
+    justifyContent:
+      'center',
+
+    zIndex: 2,
+  },
+
+  stepNumber: {
+    color:
+      COLORS.white,
+
+    fontFamily:
+      FONTS.bold,
+
+    fontSize: 12,
+  },
+
+  stepLine: {
+    width: 1,
+
+    flex: 1,
+
+    backgroundColor:
+      COLORS.border,
+
+    marginTop: -1,
+  },
+
+  stepContent: {
+    flex: 1,
+
+    paddingLeft:
+      SPACING.small,
+
+    paddingBottom:
+      SPACING.medium,
+  },
+
+  stepTitle: {
+    fontFamily:
+      FONTS.semiBold,
+
+    fontSize: 14,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 3,
+  },
+
+  stepDescription: {
+    fontFamily:
+      FONTS.regular,
+
+    fontSize: 12,
+
+    lineHeight: 17,
+
+    color:
+      COLORS.textSecondary,
+  },
+
+  warningCard: {
+    padding:
+      SPACING.large,
+
+    borderRadius:
+      RADIUS.large,
+
+    backgroundColor:
+      COLORS.surface,
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.border,
+
+    marginBottom:
+      SPACING.large,
+  },
+
+  warningTitle: {
+    fontFamily:
+      FONTS.semiBold,
+
+    fontSize: 14,
+
+    color:
+      COLORS.text,
+
+    marginBottom:
+      SPACING.small,
+  },
+
+  warningText: {
+    fontFamily:
+      FONTS.regular,
+
+    fontSize: 12,
+
+    lineHeight: 18,
+
+    color:
+      COLORS.textSecondary,
+  },
+
+  submitButton: {
+    width:
+      '100%',
+
+    height: 54,
+
+    borderRadius:
+      RADIUS.medium,
+
+    marginTop:
+      SPACING.small,
+  },
+
+  submitText: {
+    color:
+      COLORS.white,
+
+    fontFamily:
+      FONTS.semiBold,
+
+    fontSize: 15,
+
+    textAlign:
+      'center',
+  },
+
+  bottomText: {
+    fontFamily:
+      FONTS.regular,
+
+    fontSize: 11,
+
+    lineHeight: 17,
+
+    color:
+      COLORS.textMuted,
+
+    textAlign:
+      'center',
+
+    marginTop:
+      SPACING.medium,
   },
 });

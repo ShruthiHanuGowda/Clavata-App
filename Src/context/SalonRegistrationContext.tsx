@@ -23,7 +23,10 @@ export type BusinessDay = {
     isOpen: boolean;
 };
 
-export type BusinessHours = Record<DayKey, BusinessDay>;
+export type BusinessHours = Record<
+    DayKey,
+    BusinessDay
+>;
 
 // =====================================================
 // DEFAULT BUSINESS HOURS
@@ -77,77 +80,250 @@ export const DEFAULT_BUSINESS_HOURS: BusinessHours = {
 // CREATE DEFAULT HOURS
 // =====================================================
 
-const createDefaultBusinessHours = (): BusinessHours => ({
-    MONDAY: { ...DEFAULT_BUSINESS_HOURS.MONDAY },
-    TUESDAY: { ...DEFAULT_BUSINESS_HOURS.TUESDAY },
-    WEDNESDAY: { ...DEFAULT_BUSINESS_HOURS.WEDNESDAY },
-    THURSDAY: { ...DEFAULT_BUSINESS_HOURS.THURSDAY },
-    FRIDAY: { ...DEFAULT_BUSINESS_HOURS.FRIDAY },
-    SATURDAY: { ...DEFAULT_BUSINESS_HOURS.SATURDAY },
-    SUNDAY: { ...DEFAULT_BUSINESS_HOURS.SUNDAY },
-});
+const createDefaultBusinessHours =
+    (): BusinessHours => ({
+        MONDAY: {
+            ...DEFAULT_BUSINESS_HOURS.MONDAY,
+        },
+
+        TUESDAY: {
+            ...DEFAULT_BUSINESS_HOURS.TUESDAY,
+        },
+
+        WEDNESDAY: {
+            ...DEFAULT_BUSINESS_HOURS.WEDNESDAY,
+        },
+
+        THURSDAY: {
+            ...DEFAULT_BUSINESS_HOURS.THURSDAY,
+        },
+
+        FRIDAY: {
+            ...DEFAULT_BUSINESS_HOURS.FRIDAY,
+        },
+
+        SATURDAY: {
+            ...DEFAULT_BUSINESS_HOURS.SATURDAY,
+        },
+
+        SUNDAY: {
+            ...DEFAULT_BUSINESS_HOURS.SUNDAY,
+        },
+    });
+
+// =====================================================
+// KYC STATUS
+// =====================================================
+
+export type KYCStatus =
+    | 'NOT_STARTED'
+    | 'PENDING'
+    | 'UNDER_REVIEW'
+    | 'APPROVED'
+    | 'REJECTED';
+
+// =====================================================
+// BUSINESS DOCUMENT
+// =====================================================
+
+export type BusinessDocument = {
+    type:
+    | 'GST_CERTIFICATE'
+    | 'SHOP_ESTABLISHMENT'
+    | 'UDYAM'
+    | 'PARTNERSHIP_DEED'
+    | 'INCORPORATION_CERTIFICATE'
+    | 'RENTAL_AGREEMENT'
+    | 'UTILITY_BILL'
+    | 'OTHER';
+
+    uri: string;
+
+    fileName: string;
+
+    uploadedAt: string;
+};
 
 // =====================================================
 // REGISTRATION DATA
 // =====================================================
 
 export type SalonRegistrationData = {
+    // ===================================================
+    // USER
+    // ===================================================
+
     userId: string;
+
     phoneNumber: string;
 
+    // ===================================================
+    // BUSINESS
+    // ===================================================
+
     salonName: string;
+
     ownerName: string;
+
     email: string;
+
     businessType: string;
 
+    // ===================================================
+    // ADDRESS
+    // ===================================================
+
     addressLine: string;
+
     city: string;
+
     state: string;
+
     pincode: string;
 
-    gstNumber: string;
+    latitude?: number;
+
+    longitude?: number;
+
+    // ===================================================
+    // KYC - OWNER
+    // ===================================================
+
     panNumber: string;
+
     aadhaarNumber: string;
 
+    // ===================================================
+    // KYB - BUSINESS
+    // ===================================================
+
+    gstNumber: string;
+
+    shopEstablishmentNumber: string;
+
+    udyamNumber: string;
+
+    cinNumber: string;
+
+    llpinNumber: string;
+
+    // ===================================================
+    // BANK
+    // ===================================================
+
     bankAccount: string;
+
     ifsc: string;
 
-    businessHours: BusinessHours;
+    accountHolderName: string;
 
-    latitude?: number;
-    longitude?: number;
+    // ===================================================
+    // DOCUMENTS
+    // ===================================================
+
+    businessDocuments: BusinessDocument[];
+
+    // ===================================================
+    // VERIFICATION
+    // ===================================================
+
+    kycStatus: KYCStatus;
+
+    kycReferenceId: string;
+
+    kycSubmittedAt: string;
+
+    kycReviewedAt: string;
+
+    kycRejectionReason: string;
+
+    // ==========================================
+    // PROVIDER STATUS
+    // ==========================================
+
+    providerStatus:
+    | 'NOT_REGISTERED'
+    | 'PENDING'
+    | 'APPROVED'
+    | 'REJECTED';
+
+    // ===================================================
+    // BUSINESS HOURS
+    // ===================================================
+
+    businessHours: BusinessHours;
 };
 
 // =====================================================
-// EMPTY DATA
+// INITIAL DATA
 // =====================================================
 
-const createInitialData = (): SalonRegistrationData => ({
-    userId: '',
-    phoneNumber: '',
+const createInitialData =
+    (): SalonRegistrationData => ({
+        userId: '',
 
-    salonName: '',
-    ownerName: '',
-    email: '',
-    businessType: '',
+        phoneNumber: '',
 
-    addressLine: '',
-    city: '',
-    state: '',
-    pincode: '',
+        salonName: '',
 
-    gstNumber: '',
-    panNumber: '',
-    aadhaarNumber: '',
+        ownerName: '',
 
-    bankAccount: '',
-    ifsc: '',
+        email: '',
 
-    businessHours: createDefaultBusinessHours(),
-});
+        businessType: '',
+
+        addressLine: '',
+
+        city: '',
+
+        state: '',
+
+        pincode: '',
+
+        latitude: undefined,
+
+        longitude: undefined,
+
+        panNumber: '',
+
+        aadhaarNumber: '',
+
+        gstNumber: '',
+
+        shopEstablishmentNumber: '',
+
+        udyamNumber: '',
+
+        cinNumber: '',
+
+        llpinNumber: '',
+
+        bankAccount: '',
+
+        ifsc: '',
+
+        accountHolderName: '',
+
+        businessDocuments: [],
+
+        kycStatus: 'NOT_STARTED',
+
+        kycReferenceId: '',
+
+        kycSubmittedAt: '',
+
+        kycReviewedAt: '',
+
+        kycRejectionReason: '',
+
+        providerStatus: 'NOT_REGISTERED',
+
+        businessHours:
+            createDefaultBusinessHours(),
+    });
 
 // =====================================================
-// CONTEXT
+// CONTEXT TYPE
 // =====================================================
 
 type SalonRegistrationContextType = {
@@ -160,8 +336,14 @@ type SalonRegistrationContextType = {
     reset: () => void;
 };
 
+// =====================================================
+// CONTEXT
+// =====================================================
+
 const SalonRegistrationContext =
-    createContext<SalonRegistrationContextType | null>(null);
+    createContext<SalonRegistrationContextType | null>(
+        null,
+    );
 
 // =====================================================
 // PROVIDER
@@ -181,8 +363,17 @@ export const SalonRegistrationProvider = ({
         values: Partial<SalonRegistrationData>,
     ) => {
         console.log(
-            'SALON REGISTRATION UPDATE:',
-            values,
+            '======================================',
+        );
+
+        console.log(
+            'SALON REGISTRATION UPDATE',
+        );
+
+        console.log(values);
+
+        console.log(
+            '======================================',
         );
 
         setData(prev => ({
@@ -218,7 +409,9 @@ export const SalonRegistrationProvider = ({
 
 export const useSalonRegistration = () => {
     const context =
-        useContext(SalonRegistrationContext);
+        useContext(
+            SalonRegistrationContext,
+        );
 
     if (!context) {
         throw new Error(
