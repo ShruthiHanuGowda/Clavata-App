@@ -160,8 +160,34 @@ export default function LoginScreen() {
     // CUSTOMER ACCOUNT
     // ============================================================
 
+    // if (existingRole === 'CUSTOMER') {
+    //   navigation.navigate('appScreens');
+    //   return;
+    // }
+
+    // if (existingRole === 'CUSTOMER') {
+    //   navigation.replace('appScreens', {
+    //     screen: 'CustomerLocation',
+    //   });
+    //   return;
+    // }
+    // ============================================================
+    // CUSTOMER ACCOUNT
+    // ============================================================
+
     if (existingRole === 'CUSTOMER') {
-      navigation.navigate('appScreens');
+      console.log('======================================');
+      console.log('CUSTOMER ACCOUNT DETECTED');
+      console.log('NAVIGATING TO CUSTOMER LOCATION');
+      console.log('======================================');
+
+      navigation.replace('appScreens', {
+        screen: 'Home',
+        params: {
+          screen: 'CustomerLocation',
+        },
+      });
+
       return;
     }
 

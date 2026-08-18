@@ -385,7 +385,7 @@ export default function LocationBottomSheet({
             // ======================================================
             // TEST MODE
             // ======================================================
-
+            console.log("location request", USE_HARDCODED_LOCATION)
             if (USE_HARDCODED_LOCATION) {
 
                 console.log(
@@ -411,18 +411,15 @@ export default function LocationBottomSheet({
                         : PERMISSIONS.IOS
                             .LOCATION_WHEN_IN_USE;
 
-
+                console.log("location permission", permission)
                 let status =
                     await check(
                         permission,
                     );
-
-
                 console.log(
                     '📍 Location permission:',
                     status,
                 );
-
 
                 if (
                     status !==
@@ -434,7 +431,6 @@ export default function LocationBottomSheet({
                             permission,
                         );
                 }
-
 
                 // ====================================================
                 // GRANTED
@@ -448,7 +444,6 @@ export default function LocationBottomSheet({
                     getCurrentLocation();
 
                 }
-
 
                 // ====================================================
                 // DENIED
@@ -653,7 +648,7 @@ export default function LocationBottomSheet({
 
             backdropOpacity={0.35}
 
-            useNativeDriver
+            useNativeDriver={false}
         >
 
             <View style={styles.sheet}>

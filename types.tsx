@@ -97,6 +97,7 @@ export type RootTabParamList = {
 export type HomeStackParamList = {
   'Clavata': undefined;
   HomeScreen: undefined;
+  CustomerLocation: undefined,
   SalonDetails: {
     salonId: string;
   };

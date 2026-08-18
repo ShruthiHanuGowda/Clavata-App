@@ -21,7 +21,7 @@
 //
 // ============================================================
 
-export const USE_HARDCODED_LOCATION = true;
+export const USE_HARDCODED_LOCATION = false;
 
 // ============================================================
 // HARD-CODED TEST LOCATION
