@@ -10,6 +10,7 @@ import { DButton } from '../../components';
 import { DMobileInput } from '../../components/Dinputs';
 import { SEND_OTP } from '../../graphql/queries';
 import { useUser } from '../../context/UserContext';
+import { getSavedLocation } from '../../services/locationStorage';
 
 type LoginMode = 'CUSTOMER' | 'PROVIDER' | 'SIGN_IN';
 
@@ -66,7 +67,7 @@ export default function LoginScreen() {
     return null;
   };
 
-  const openExistingAccount = (user: any) => {
+  const openExistingAccount = async (user: any) => {
     setCurrentUser(user);
 
     const existingRole = getExistingRole(user);
@@ -177,20 +178,68 @@ export default function LoginScreen() {
 
     if (existingRole === 'CUSTOMER') {
       console.log('======================================');
-      console.log('CUSTOMER ACCOUNT DETECTED');
-      console.log('NAVIGATING TO CUSTOMER LOCATION');
+      console.log('👤 CUSTOMER ACCOUNT DETECTED');
+      console.log('📍 CHECKING SAVED LOCATION');
       console.log('======================================');
 
-      navigation.replace('appScreens', {
-        screen: 'Home',
-        params: {
-          screen: 'CustomerLocation',
-        },
-      });
+      try {
+        const savedLocation = await getSavedLocation();
 
-      return;
+        console.log(
+          '📍 SAVED LOCATION:',
+          JSON.stringify(savedLocation, null, 2),
+        );
+
+        // ==========================================================
+        // LOCATION ALREADY CONFIRMED
+        // ==========================================================
+
+        if (savedLocation) {
+          console.log('✅ SAVED LOCATION FOUND');
+          console.log('🏠 GOING DIRECTLY TO HOME');
+
+          navigation.replace('appScreens', {
+            screen: 'Home',
+          });
+
+          return;
+        }
+
+        // ==========================================================
+        // NO LOCATION SAVED
+        // ==========================================================
+
+        console.log('❌ NO SAVED LOCATION');
+        console.log('📍 OPENING CUSTOMER LOCATION SCREEN');
+
+        navigation.replace('appScreens', {
+          screen: 'Home',
+          params: {
+            screen: 'CustomerLocation',
+          },
+        });
+
+        return;
+
+      } catch (error) {
+        console.error(
+          '❌ CHECK SAVED LOCATION ERROR:',
+          error,
+        );
+
+        // If storage check fails, safely send
+        // the customer through location setup.
+
+        navigation.replace('appScreens', {
+          screen: 'Home',
+          params: {
+            screen: 'CustomerLocation',
+          },
+        });
+
+        return;
+      }
     }
-
     // ============================================================
     // INVALID / UNKNOWN ACCOUNT
     // ============================================================
