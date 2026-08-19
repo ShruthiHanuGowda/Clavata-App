@@ -177,68 +177,11 @@ export default function LoginScreen() {
     // ============================================================
 
     if (existingRole === 'CUSTOMER') {
-      console.log('======================================');
-      console.log('👤 CUSTOMER ACCOUNT DETECTED');
-      console.log('📍 CHECKING SAVED LOCATION');
-      console.log('======================================');
+      navigation.replace('appScreens', {
+        screen: 'HomeScreen',
+      });
 
-      try {
-        const savedLocation = await getSavedLocation();
-
-        console.log(
-          '📍 SAVED LOCATION:',
-          JSON.stringify(savedLocation, null, 2),
-        );
-
-        // ==========================================================
-        // LOCATION ALREADY CONFIRMED
-        // ==========================================================
-
-        if (savedLocation) {
-          console.log('✅ SAVED LOCATION FOUND');
-          console.log('🏠 GOING DIRECTLY TO HOME');
-
-          navigation.replace('appScreens', {
-            screen: 'Home',
-          });
-
-          return;
-        }
-
-        // ==========================================================
-        // NO LOCATION SAVED
-        // ==========================================================
-
-        console.log('❌ NO SAVED LOCATION');
-        console.log('📍 OPENING CUSTOMER LOCATION SCREEN');
-
-        navigation.replace('appScreens', {
-          screen: 'Home',
-          params: {
-            screen: 'CustomerLocation',
-          },
-        });
-
-        return;
-
-      } catch (error) {
-        console.error(
-          '❌ CHECK SAVED LOCATION ERROR:',
-          error,
-        );
-
-        // If storage check fails, safely send
-        // the customer through location setup.
-
-        navigation.replace('appScreens', {
-          screen: 'Home',
-          params: {
-            screen: 'CustomerLocation',
-          },
-        });
-
-        return;
-      }
+      return;
     }
     // ============================================================
     // INVALID / UNKNOWN ACCOUNT

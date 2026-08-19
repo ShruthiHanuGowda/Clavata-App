@@ -14,7 +14,7 @@ import {
     ScrollView,
 } from 'react-native';
 
-import Geolocation from 'react-native-geolocation-service';
+// import Geolocation from '@react-native-community/geolocation';
 
 import Modal from 'react-native-modal';
 
@@ -27,21 +27,24 @@ import {
 
 import {
     reverseGeocode,
+    searchAddress
 } from '../../../services/locationService';
 
 import {
-    saveLocation,
+    getCurrentLocation,
     getSavedLocations,
     getRecentLocations,
+    saveLocation,
     addRecentLocation,
     SavedLocation,
     LocationData,
 } from '../../../services/locationStorage';
+import { USE_HARDCODED_LOCATION } from '../../../services/locationConfig';
 
-import {
-    USE_HARDCODED_LOCATION,
-    HARDCODED_LOCATION,
-} from '../../../services/locationConfig';
+// import {
+//     USE_HARDCODED_LOCATION,
+//     HARDCODED_LOCATION,
+// } from '../../../services/locationConfig';
 
 
 // ============================================================
@@ -102,6 +105,15 @@ export default function LocationBottomSheet({
         search,
         setSearch,
     ] = useState('');
+    const [
+        searchResults,
+        setSearchResults,
+    ] = useState<any[]>([]);
+
+    const [
+        searchingAddress,
+        setSearchingAddress,
+    ] = useState(false);
 
     const [
         detectedLocation,
@@ -222,181 +234,118 @@ export default function LocationBottomSheet({
         }
     };
 
-
     // ==========================================================
-    // CURRENT LOCATION
+    // LOCATION PERMISSION
     // ==========================================================
-
-    const getCurrentLocation = () => {
-
-        // ========================================================
-        // TEST MODE
-        // ========================================================
-
-        if (USE_HARDCODED_LOCATION) {
-
+    const detectCurrentLocation = async () => {
+        try {
             console.log('');
             console.log(
-                '🧪 TEST MODE: Using HARDCODED_LOCATION',
+                '========================================',
             );
 
             console.log(
-                '📍 Test location:',
-                HARDCODED_LOCATION,
+                '📍 DETECTING CURRENT LOCATION',
             );
 
+            console.log(
+                '========================================',
+            );
 
-            const location: LocationData = {
-                ...HARDCODED_LOCATION,
-            };
+            setLoadingLocation(true);
 
+            const location =
+                await getCurrentLocation();
+
+            if (!location) {
+                Alert.alert(
+                    'Location Error',
+                    'Unable to determine your current location.',
+                );
+
+                return;
+            }
+
+            console.log(
+                '📍 Current location:',
+                location,
+            );
+
+            // ======================================================
+            // REVERSE GEOCODE
+            // ======================================================
+
+            if (!USE_HARDCODED_LOCATION) {
+                try {
+                    const result =
+                        await reverseGeocode(
+                            location.latitude,
+                            location.longitude,
+                        );
+
+                    location.address =
+                        result?.display_name ||
+                        'Current Location';
+                } catch (error) {
+                    console.log(
+                        '⚠️ Reverse geocoding failed:',
+                        error,
+                    );
+
+                    location.address =
+                        'Current Location';
+                }
+            }
+
+            console.log(
+                '📍 Final detected location:',
+                location,
+            );
 
             setDetectedLocation(
                 location,
             );
 
-            return;
+        } catch (error) {
+
+            console.log(
+                '❌ Location detection error:',
+                error,
+            );
+
+            Alert.alert(
+                'Location Error',
+                'Unable to determine your location.',
+            );
+
+        } finally {
+
+            setLoadingLocation(false);
         }
-
-
-        // ========================================================
-        // PRODUCTION
-        // ========================================================
-
-        console.log('');
-        console.log(
-            '🚀 PRODUCTION MODE: Requesting GPS',
-        );
-
-
-        setLoadingLocation(
-            true,
-        );
-
-
-        Geolocation.getCurrentPosition(
-
-            async position => {
-
-                try {
-
-                    console.log(
-                        '📍 GPS coordinates:',
-                        position.coords,
-                    );
-
-
-                    // ==================================================
-                    // REVERSE GEOCODE
-                    // ==================================================
-
-                    const result =
-                        await reverseGeocode(
-                            position.coords.latitude,
-                            position.coords.longitude,
-                        );
-
-
-                    const location: LocationData = {
-
-                        latitude:
-                            position.coords.latitude,
-
-                        longitude:
-                            position.coords.longitude,
-
-                        address:
-                            result?.display_name ||
-                            'Current Location',
-                    };
-
-
-                    console.log(
-                        '📍 Detected Location:',
-                        location,
-                    );
-
-
-                    setDetectedLocation(
-                        location,
-                    );
-
-                } catch (error) {
-
-                    console.log(
-                        '❌ Location detection error:',
-                        error,
-                    );
-
-
-                    Alert.alert(
-                        'Location Error',
-                        'Unable to determine your location.',
-                    );
-
-                } finally {
-
-                    setLoadingLocation(
-                        false,
-                    );
-                }
-            },
-
-
-            error => {
-
-                setLoadingLocation(
-                    false,
-                );
-
-
-                console.log(
-                    '❌ GPS Error:',
-                    error,
-                );
-
-
-                Alert.alert(
-                    'Location Error',
-                    error.message ||
-                    'Unable to detect your location.',
-                );
-            },
-
-
-            {
-                enableHighAccuracy: true,
-
-                timeout: 15000,
-
-                maximumAge: 10000,
-            },
-        );
     };
-
-
-    // ==========================================================
-    // LOCATION PERMISSION
-    // ==========================================================
 
     const requestLocationPermission =
         async () => {
 
+            console.log(
+                '📍 Location request:',
+                USE_HARDCODED_LOCATION,
+            );
+
             // ======================================================
-            // TEST MODE
+            // HARDCODED TEST MODE
             // ======================================================
-            console.log("location request", USE_HARDCODED_LOCATION)
+
             if (USE_HARDCODED_LOCATION) {
 
                 console.log(
                     '🧪 TEST MODE: GPS permission not required',
                 );
 
-                getCurrentLocation();
+                await detectCurrentLocation();
 
                 return;
             }
-
 
             // ======================================================
             // PRODUCTION
@@ -411,51 +360,43 @@ export default function LocationBottomSheet({
                         : PERMISSIONS.IOS
                             .LOCATION_WHEN_IN_USE;
 
-                console.log("location permission", permission)
-                let status =
-                    await check(
-                        permission,
-                    );
                 console.log(
-                    '📍 Location permission:',
+                    '📍 Checking permission:',
+                    permission,
+                );
+
+                let status =
+                    await check(permission);
+
+                console.log(
+                    '📍 Current permission:',
                     status,
                 );
 
                 if (
-                    status !==
-                    RESULTS.GRANTED
+                    status !== RESULTS.GRANTED
                 ) {
-
                     status =
-                        await request(
-                            permission,
-                        );
-                }
+                        await request(permission);
 
-                // ====================================================
-                // GRANTED
-                // ====================================================
+                    console.log(
+                        '📍 Permission after request:',
+                        status,
+                    );
+                }
 
                 if (
-                    status ===
-                    RESULTS.GRANTED
+                    status === RESULTS.GRANTED
                 ) {
 
-                    getCurrentLocation();
+                    await detectCurrentLocation();
 
-                }
-
-                // ====================================================
-                // DENIED
-                // ====================================================
-
-                else {
+                } else {
 
                     console.log(
                         '❌ Location permission denied:',
                         status,
                     );
-
 
                     Alert.alert(
                         'Location Permission',
@@ -470,14 +411,12 @@ export default function LocationBottomSheet({
                     error,
                 );
 
-
                 Alert.alert(
                     'Location Error',
                     'Unable to request location permission.',
                 );
             }
         };
-
 
     // ==========================================================
     // SELECT LOCATION
@@ -569,6 +508,45 @@ export default function LocationBottomSheet({
             }
         };
 
+    const handleAddressSearch = async () => {
+        const query = search.trim();
+
+        if (!query) {
+            setSearchResults([]);
+            return;
+        }
+
+        try {
+            setSearchingAddress(true);
+
+            console.log(
+                '🔎 Searching address:',
+                query,
+            );
+
+            const results =
+                await searchAddress(query);
+
+            console.log(
+                '🔎 Search results:',
+                results,
+            );
+
+            setSearchResults(results);
+
+        } catch (error) {
+
+            console.log(
+                '❌ ADDRESS SEARCH ERROR:',
+                error,
+            );
+
+            setSearchResults([]);
+
+        } finally {
+            setSearchingAddress(false);
+        }
+    };
 
     // ==========================================================
     // SEARCH
@@ -698,7 +676,7 @@ export default function LocationBottomSheet({
                 {/* SEARCH */}
                 {/* ================================================== */}
 
-                <View style={styles.searchContainer}>
+                {/* <View style={styles.searchContainer}>
 
                     <Text style={styles.searchIcon}>
                         ⌕
@@ -710,7 +688,15 @@ export default function LocationBottomSheet({
 
                         value={search}
 
-                        onChangeText={setSearch}
+                        onChangeText={(text) => {
+                            setSearch(text);
+
+                            if (!text.trim()) {
+                                setSearchResults([]);
+                            }
+                        }}
+
+                        onSubmitEditing={handleAddressSearch}
 
                         style={styles.search}
 
@@ -723,8 +709,57 @@ export default function LocationBottomSheet({
                         clearButtonMode="while-editing"
                     />
 
-                </View>
+                </View> */}
+                <View style={styles.searchContainer}>
 
+                    <Text style={styles.searchIcon}>
+                        ⌕
+                    </Text>
+
+                    <TextInput
+                        placeholder="Search area, street or pincode"
+                        placeholderTextColor="#9CA3AF"
+
+                        value={search}
+
+                        onChangeText={(text) => {
+                            setSearch(text);
+
+                            if (!text.trim()) {
+                                setSearchResults([]);
+                            }
+                        }}
+
+                        onSubmitEditing={handleAddressSearch}
+
+                        style={styles.search}
+
+                        autoCorrect={false}
+
+                        autoCapitalize="none"
+
+                        returnKeyType="search"
+
+                        clearButtonMode="while-editing"
+                    />
+
+                    <TouchableOpacity
+                        style={styles.searchButton}
+                        onPress={handleAddressSearch}
+                        disabled={
+                            searchingAddress ||
+                            !search.trim()
+                        }
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.searchButtonText}>
+                            {searchingAddress
+                                ? '...'
+                                : 'Search'}
+                        </Text>
+                    </TouchableOpacity>
+
+                </View>
 
                 {/* ================================================== */}
                 {/* CURRENT LOCATION */}
@@ -868,7 +903,91 @@ export default function LocationBottomSheet({
                         styles.scrollContent
                     }
                 >
+                    {searchResults.length > 0 && (
 
+                        <View>
+
+                            <View style={styles.sectionHeader}>
+
+                                <Text style={styles.section}>
+                                    Search results
+                                </Text>
+
+                                <Text style={styles.sectionCount}>
+                                    {searchResults.length}
+                                </Text>
+
+                            </View>
+
+                            {searchResults.map(
+                                (
+                                    item,
+                                    index,
+                                ) => {
+
+                                    const latitude =
+                                        Number(item.lat);
+
+                                    const longitude =
+                                        Number(item.lon);
+
+                                    const location: LocationData = {
+                                        latitude,
+                                        longitude,
+                                        address:
+                                            item.display_name ||
+                                            'Selected location',
+                                    };
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={`${item.place_id}-${index}`}
+                                            style={styles.row}
+                                            onPress={() =>
+                                                handleSelectLocation(
+                                                    location,
+                                                )
+                                            }
+                                            activeOpacity={0.75}
+                                        >
+
+                                            <View style={styles.iconCircle}>
+
+                                                <Text style={styles.historyIcon}>
+                                                    ⌖
+                                                </Text>
+
+                                            </View>
+
+                                            <View style={styles.rowContent}>
+
+                                                <Text
+                                                    style={styles.rowTitle}
+                                                    numberOfLines={3}
+                                                >
+                                                    {item.display_name}
+                                                </Text>
+
+                                                <Text style={styles.coordinates}>
+                                                    {latitude.toFixed(5)}
+                                                    {', '}
+                                                    {longitude.toFixed(5)}
+                                                </Text>
+
+                                            </View>
+
+                                            <Text style={styles.rowArrow}>
+                                                ›
+                                            </Text>
+
+                                        </TouchableOpacity>
+                                    );
+                                },
+                            )}
+
+                        </View>
+
+                    )}
                     {/* ================================================= */}
                     {/* RECENT */}
                     {/* ================================================= */}
@@ -954,6 +1073,8 @@ export default function LocationBottomSheet({
                     {/* ================================================= */}
 
                     {cleanSearch &&
+                        !searchingAddress &&
+                        searchResults.length === 0 &&
                         filteredRecent.length === 0 &&
                         filteredSaved.length === 0 && (
 
@@ -977,7 +1098,6 @@ export default function LocationBottomSheet({
                                 </Text>
 
                             </View>
-
                         )}
 
 
@@ -1359,7 +1479,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
+    searchButton: {
+        height: 36,
 
+        paddingHorizontal: 12,
+
+        borderRadius: 9,
+
+        backgroundColor: PRIMARY,
+
+        alignItems: 'center',
+
+        justifyContent: 'center',
+    },
+
+    searchButtonText: {
+        color: '#FFFFFF',
+
+        fontSize: 12,
+
+        fontWeight: '800',
+    },
     detectedIcon: {
         width: 32,
         height: 32,

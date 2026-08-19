@@ -37,7 +37,7 @@ import BusinessHoursScreen from '../Screens/SalonTabs/Profile/BusinessHoursScree
 import BookingDetails from '../Screens/CustomerTabs/Profile/BookingDetails';
 import EditProfile from '../Screens/CustomerTabs/Profile/EditProfile';
 import WelcomeChoiceScreen from '../Screens/Login/WelcomeChoiceScreen';
-import CustomerLocationScreen from '../Screens/CustomerTabs/Home/CustomerLocationScreen';
+// import CustomerLocationScreen from '../Screens/CustomerTabs/Home/CustomerLocationScreen';
 
 function RootScreenStack() {
   const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -79,13 +79,13 @@ export function HomeScreenStack() {
     <HomeStack.Navigator
       initialRouteName="HomeScreen"
       screenOptions={{ headerShown: false }}>
-      <HomeStack.Screen
+      {/* <HomeStack.Screens
         name="CustomerLocation"
         component={CustomerLocationScreen}
         options={{
           headerShown: false,
         }}
-      />
+      /> */}
       <HomeStack.Screen name="HomeScreen" component={HomeScreenPage} />
       <HomeStack.Screen
         name="SalonDetails"

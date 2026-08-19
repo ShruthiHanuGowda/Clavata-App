@@ -34,6 +34,7 @@ import HomeAdCarousel from './HomeAdCarousel';
 
 import {
   getActiveLocation,
+  getCurrentLocation,
   LocationData,
 } from '../../../services/locationStorage';
 
@@ -265,55 +266,113 @@ export default function HomeScreenPage() {
   // LOCATION
   // ==========================================================
 
-  const loadLocation =
-    async () => {
+  const loadLocation = async () => {
+    try {
+      // ========================================================
+      // 1. CHECK SAVED LOCATION
+      // ========================================================
 
-      try {
+      const savedLocation =
+        await getActiveLocation();
 
-        const location =
-          await getActiveLocation();
-
-        if (!location) {
-
-          setSelectedLocation(
-            'Choose location',
-          );
-
-          setLocationCoordinates(
-            null,
-          );
-
-          setSalons([]);
-
-          return;
-        }
+      if (savedLocation) {
+        console.log(
+          '📍 Using saved location:',
+          savedLocation,
+        );
 
         setSelectedLocation(
-          location.address,
+          savedLocation.address,
         );
 
         setLocationCoordinates(
-          location,
+          savedLocation,
         );
 
         await fetchNearbySalons(
-          location.latitude,
-          location.longitude,
+          savedLocation.latitude,
+          savedLocation.longitude,
           '',
           '',
           selectedDistance,
         );
 
-      } catch (error) {
-
-        console.log(
-          'Location loading error:',
-          error,
-        );
-
+        return;
       }
 
-    };
+      // ========================================================
+      // 2. NO LOCATION
+      //    REQUEST PERMISSION + GET GPS
+      // ========================================================
+
+      console.log(
+        '📍 No saved location. Requesting device location...',
+      );
+
+      const currentLocation =
+        await getCurrentLocation();
+
+      // ========================================================
+      // 3. USER DENIED PERMISSION / GPS FAILED
+      // ========================================================
+
+      if (!currentLocation) {
+        console.log(
+          '⚠️ Location unavailable',
+        );
+
+        setSelectedLocation(
+          'Choose location',
+        );
+
+        setLocationCoordinates(null);
+        setSalons([]);
+
+        return;
+      }
+
+      // ========================================================
+      // 4. LOCATION SUCCESS
+      // ========================================================
+
+      console.log(
+        '✅ Device location:',
+        currentLocation,
+      );
+
+      setSelectedLocation(
+        currentLocation.address,
+      );
+
+      setLocationCoordinates(
+        currentLocation,
+      );
+
+      // ========================================================
+      // 5. LOAD NEARBY SALONS
+      // ========================================================
+
+      await fetchNearbySalons(
+        currentLocation.latitude,
+        currentLocation.longitude,
+        '',
+        '',
+        selectedDistance,
+      );
+    } catch (error) {
+      console.log(
+        '❌ Load location error:',
+        error,
+      );
+
+      setSelectedLocation(
+        'Choose location',
+      );
+
+      setLocationCoordinates(null);
+      setSalons([]);
+    }
+  };
 
 
   // ==========================================================

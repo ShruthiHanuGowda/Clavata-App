@@ -9,13 +9,17 @@ import {
     Alert,
     Linking,
     Platform,
-    SafeAreaView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
+
+import {
+    SafeAreaView,
+    useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 import MapView, {
     Marker,
@@ -32,10 +36,6 @@ import {
     PERMISSIONS,
     RESULTS,
 } from 'react-native-permissions';
-
-import {
-    reverseGeocode,
-} from '../../../services/locationService';
 
 import {
     saveLocation,
@@ -96,11 +96,20 @@ export default function CustomerLocationScreen({
 }: any) {
 
     // ==========================================================
+    // SAFE AREA
+    // ==========================================================
+
+    const insets = useSafeAreaInsets();
+
+
+    // ==========================================================
     // LOCATION
     // ==========================================================
+
     console.log('======================================');
     console.log('📍 CUSTOMER LOCATION SCREEN MOUNTED');
     console.log('======================================');
+
     const [
         coordinates,
         setCoordinates,
@@ -200,9 +209,6 @@ export default function CustomerLocationScreen({
 
     // ==========================================================
     // REVERSE GEOCODE
-    //
-    // We use the same Nominatim approach as your
-    // SalonAddressScreen.
     // ==========================================================
 
     const reverseGeocodeLocation =
@@ -267,6 +273,7 @@ export default function CustomerLocationScreen({
                 } finally {
 
                     setReverseGeocoding(false);
+
                 }
 
             },
@@ -330,6 +337,7 @@ export default function CustomerLocationScreen({
                     setSearchText(
                         '',
                     );
+
                 }
 
             },
@@ -388,245 +396,378 @@ export default function CustomerLocationScreen({
     // CURRENT GPS LOCATION
     // ==========================================================
 
-    // ==========================================================
-    // CURRENT GPS LOCATION
-    // ==========================================================
+    const getCurrentLocation =
+        useCallback(
+            async () => {
 
-    const getCurrentLocation = useCallback(async () => {
-        console.log('========================================');
-        console.log('📍 getCurrentLocation() STARTED');
-        console.log('========================================');
+                console.log(
+                    '========================================',
+                );
 
-        setGettingLocation(true);
+                console.log(
+                    '📍 getCurrentLocation() STARTED',
+                );
 
-        try {
-            console.log(
-                '📍 Calling Geolocation.getCurrentPosition...',
-            );
+                console.log(
+                    '========================================',
+                );
 
-            Geolocation.getCurrentPosition(
-                async position => {
-                    console.log('========================================');
-                    console.log('✅ GPS LOCATION RECEIVED');
+                setGettingLocation(true);
 
-                    const latitude =
-                        position.coords.latitude;
-
-                    const longitude =
-                        position.coords.longitude;
+                try {
 
                     console.log(
-                        '📍 latitude:',
-                        latitude,
+                        '📍 Calling Geolocation.getCurrentPosition...',
                     );
 
-                    console.log(
-                        '📍 longitude:',
-                        longitude,
+                    Geolocation.getCurrentPosition(
+
+                        async position => {
+
+                            console.log(
+                                '========================================',
+                            );
+
+                            console.log(
+                                '✅ GPS LOCATION RECEIVED',
+                            );
+
+                            const latitude =
+                                position.coords.latitude;
+
+                            const longitude =
+                                position.coords.longitude;
+
+                            console.log(
+                                '📍 latitude:',
+                                latitude,
+                            );
+
+                            console.log(
+                                '📍 longitude:',
+                                longitude,
+                            );
+
+                            console.log(
+                                '📍 FULL LOCATION:',
+                                JSON.stringify(
+                                    position,
+                                ),
+                            );
+
+                            console.log(
+                                '========================================',
+                            );
+
+                            const location: Coordinates = {
+                                latitude,
+                                longitude,
+                            };
+
+                            await applyCoordinates(
+                                location,
+                            );
+
+                            setGettingLocation(false);
+
+                        },
+
+                        error => {
+
+                            console.log(
+                                '========================================',
+                            );
+
+                            console.error(
+                                '❌ GET CURRENT LOCATION ERROR',
+                            );
+
+                            console.error(
+                                'Code:',
+                                error.code,
+                            );
+
+                            console.error(
+                                'Message:',
+                                error.message,
+                            );
+
+                            console.log(
+                                '========================================',
+                            );
+
+                            setGettingLocation(false);
+
+                            Alert.alert(
+                                'Unable to get location',
+                                'We could not determine your current location. Please try again.',
+                            );
+
+                        },
+
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 15000,
+                            maximumAge: 10000,
+                        },
                     );
 
+                } catch (error) {
+
                     console.log(
-                        '📍 FULL LOCATION:',
-                        JSON.stringify(position),
+                        '========================================',
+                    );
+
+                    console.error(
+                        '❌ GET CURRENT LOCATION ERROR',
+                        error,
                     );
 
                     console.log(
                         '========================================',
                     );
 
-                    const location: Coordinates = {
-                        latitude,
-                        longitude,
-                    };
-
-                    await applyCoordinates(
-                        location,
-                    );
-
-                    setGettingLocation(false);
-                },
-
-                error => {
-                    console.log('========================================');
-                    console.error(
-                        '❌ GET CURRENT LOCATION ERROR',
-                    );
-                    console.error(
-                        'Code:',
-                        error.code,
-                    );
-                    console.error(
-                        'Message:',
-                        error.message,
-                    );
-                    console.log('========================================');
-
                     setGettingLocation(false);
 
                     Alert.alert(
-                        'Unable to get location',
-                        'We could not determine your current location. Please try again.',
+                        'Location Error',
+                        'Unable to get your current location.',
                     );
-                },
 
-                {
-                    enableHighAccuracy: true,
-                    timeout: 15000,
-                    maximumAge: 10000,
-                },
-            );
-        } catch (error) {
-            console.log('========================================');
-            console.error(
-                '❌ GET CURRENT LOCATION ERROR',
-                error,
-            );
-            console.log('========================================');
+                }
 
-            setGettingLocation(false);
-
-            Alert.alert(
-                'Location Error',
-                'Unable to get your current location.',
-            );
-        }
-    }, [
-        applyCoordinates,
-    ]);
+            },
+            [
+                applyCoordinates,
+            ],
+        );
 
 
     // ==========================================================
     // REQUEST LOCATION PERMISSION
     // ==========================================================
-    const requestLocationPermission = useCallback(
-        async () => {
-            console.log("i am called")
-            // ------------------------------------------------------
-            // DEVELOPMENT MODE
-            // ------------------------------------------------------
 
-            if (USE_HARDCODED_LOCATION) {
-                setPermissionChecked(true);
-                setPermissionDenied(false);
-                await useHardcodedLocation();
-                return;
-            }
-
-            // ------------------------------------------------------
-            // PRODUCTION
-            // ------------------------------------------------------
-
-            try {
-                const permission = getLocationPermission();
-
-                let status = await check(permission);
-
-                console.log('📍 Location permission:', status);
-
-                // ----------------------------------------------------
-                // Already granted
-                // ----------------------------------------------------
-
-                if (status === RESULTS.GRANTED) {
-                    console.log('✅ Location permission already granted');
-
-                    setPermissionChecked(true);
-                    setPermissionDenied(false);
-
-                    console.log('🚀 PRODUCTION MODE: Requesting GPS');
-
-                    await getCurrentLocation();
-
-                    return;
-                }
-
-                // ----------------------------------------------------
-                // Request permission
-                // ----------------------------------------------------
-
-                if (status === RESULTS.DENIED) {
-                    console.log('📍 Requesting location permission...');
-
-                    status = await request(permission);
-
-                    console.log(
-                        '📍 Location permission after request:',
-                        status,
-                    );
-                }
-
-                // ----------------------------------------------------
-                // Granted after request
-                // ----------------------------------------------------
-
-                if (status === RESULTS.GRANTED) {
-                    console.log('✅ Location permission granted');
-
-                    setPermissionChecked(true);
-                    setPermissionDenied(false);
-
-                    console.log('🚀 PRODUCTION MODE: Requesting GPS');
-
-                    await getCurrentLocation();
-
-                    return;
-                }
-
-                // ----------------------------------------------------
-                // Blocked
-                // ----------------------------------------------------
-
-                if (status === RESULTS.BLOCKED) {
-                    console.log('❌ Location permission blocked');
-
-                    setPermissionChecked(true);
-                    setPermissionDenied(true);
-
-                    return;
-                }
-
-                // ----------------------------------------------------
-                // Other denied state
-                // ----------------------------------------------------
+    const requestLocationPermission =
+        useCallback(
+            async () => {
 
                 console.log(
-                    '❌ Location permission denied:',
-                    status,
+                    '📍 requestLocationPermission()',
                 );
 
-                setPermissionChecked(true);
-                setPermissionDenied(true);
+                // ------------------------------------------------
+                // DEVELOPMENT MODE
+                // ------------------------------------------------
 
-            } catch (error) {
-                console.error(
-                    'LOCATION PERMISSION ERROR:',
-                    error,
-                );
+                if (USE_HARDCODED_LOCATION) {
 
-                setPermissionChecked(true);
-                setPermissionDenied(true);
+                    setPermissionChecked(
+                        true,
+                    );
 
-                Alert.alert(
-                    'Location Error',
-                    'Unable to request location permission.',
-                );
-            }
-        },
-        [
-            getLocationPermission,
-            getCurrentLocation,
-            useHardcodedLocation,
-        ],
-    );
+                    setPermissionDenied(
+                        false,
+                    );
+
+                    await useHardcodedLocation();
+
+                    return;
+                }
+
+
+                // ------------------------------------------------
+                // PRODUCTION
+                // ------------------------------------------------
+
+                try {
+
+                    const permission =
+                        getLocationPermission();
+
+                    let status =
+                        await check(
+                            permission,
+                        );
+
+                    console.log(
+                        '📍 Location permission:',
+                        status,
+                    );
+
+
+                    // --------------------------------------------
+                    // ALREADY GRANTED
+                    // --------------------------------------------
+
+                    if (
+                        status ===
+                        RESULTS.GRANTED
+                    ) {
+
+                        console.log(
+                            '✅ Location permission already granted',
+                        );
+
+                        setPermissionChecked(
+                            true,
+                        );
+
+                        setPermissionDenied(
+                            false,
+                        );
+
+                        console.log(
+                            '🚀 PRODUCTION MODE: Requesting GPS',
+                        );
+
+                        await getCurrentLocation();
+
+                        return;
+                    }
+
+
+                    // --------------------------------------------
+                    // REQUEST PERMISSION
+                    // --------------------------------------------
+
+                    if (
+                        status ===
+                        RESULTS.DENIED
+                    ) {
+
+                        console.log(
+                            '📍 Requesting location permission...',
+                        );
+
+                        status =
+                            await request(
+                                permission,
+                            );
+
+                        console.log(
+                            '📍 Location permission after request:',
+                            status,
+                        );
+
+                    }
+
+
+                    // --------------------------------------------
+                    // GRANTED AFTER REQUEST
+                    // --------------------------------------------
+
+                    if (
+                        status ===
+                        RESULTS.GRANTED
+                    ) {
+
+                        console.log(
+                            '✅ Location permission granted',
+                        );
+
+                        setPermissionChecked(
+                            true,
+                        );
+
+                        setPermissionDenied(
+                            false,
+                        );
+
+                        console.log(
+                            '🚀 PRODUCTION MODE: Requesting GPS',
+                        );
+
+                        await getCurrentLocation();
+
+                        return;
+                    }
+
+
+                    // --------------------------------------------
+                    // BLOCKED
+                    // --------------------------------------------
+
+                    if (
+                        status ===
+                        RESULTS.BLOCKED
+                    ) {
+
+                        console.log(
+                            '❌ Location permission blocked',
+                        );
+
+                        setPermissionChecked(
+                            true,
+                        );
+
+                        setPermissionDenied(
+                            true,
+                        );
+
+                        return;
+                    }
+
+
+                    // --------------------------------------------
+                    // OTHER DENIED STATE
+                    // --------------------------------------------
+
+                    console.log(
+                        '❌ Location permission denied:',
+                        status,
+                    );
+
+                    setPermissionChecked(
+                        true,
+                    );
+
+                    setPermissionDenied(
+                        true,
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        'LOCATION PERMISSION ERROR:',
+                        error,
+                    );
+
+                    setPermissionChecked(
+                        true,
+                    );
+
+                    setPermissionDenied(
+                        true,
+                    );
+
+                    Alert.alert(
+                        'Location Error',
+                        'Unable to request location permission.',
+                    );
+
+                }
+
+            },
+            [
+                getLocationPermission,
+                getCurrentLocation,
+                useHardcodedLocation,
+            ],
+        );
 
 
     // ==========================================================
-    // AUTOMATICALLY REQUEST LOCATION AFTER LOGIN
+    // AUTOMATICALLY REQUEST LOCATION
     // ==========================================================
 
     useEffect(() => {
-        console.log('📍 CUSTOMER LOCATION: REQUESTING PERMISSION');
+
+        console.log(
+            '📍 CUSTOMER LOCATION: REQUESTING PERMISSION',
+        );
+
         requestLocationPermission();
+
     }, [
         requestLocationPermission,
     ]);
@@ -675,9 +816,11 @@ export default function CustomerLocationScreen({
                         );
 
                     if (!response.ok) {
+
                         throw new Error(
                             `Geocoding failed: ${response.status}`,
                         );
+
                     }
 
                     const data =
@@ -691,17 +834,23 @@ export default function CustomerLocationScreen({
                         !Array.isArray(data) ||
                         data.length === 0
                     ) {
+
                         return null;
+
                     }
 
                     const result =
                         data[0];
 
                     const latitude =
-                        Number(result.lat);
+                        Number(
+                            result.lat,
+                        );
 
                     const longitude =
-                        Number(result.lon);
+                        Number(
+                            result.lon,
+                        );
 
                     if (
                         !Number.isFinite(
@@ -711,15 +860,21 @@ export default function CustomerLocationScreen({
                             longitude,
                         )
                     ) {
+
                         return null;
+
                     }
 
                     return {
+
                         latitude,
+
                         longitude,
+
                         displayName:
                             result.display_name ||
                             '',
+
                     };
 
                 } catch (error) {
@@ -730,6 +885,7 @@ export default function CustomerLocationScreen({
                     );
 
                     return null;
+
                 }
 
             },
@@ -780,11 +936,13 @@ export default function CustomerLocationScreen({
                     }
 
                     const location: Coordinates = {
+
                         latitude:
                             result.latitude,
 
                         longitude:
                             result.longitude,
+
                     };
 
                     await applyCoordinates(
@@ -808,6 +966,7 @@ export default function CustomerLocationScreen({
                     setSearchingAddress(
                         false,
                     );
+
                 }
 
             },
@@ -836,13 +995,17 @@ export default function CustomerLocationScreen({
                     event.nativeEvent.coordinate;
 
                 const location: Coordinates = {
+
                     latitude,
+
                     longitude,
+
                 };
 
                 await applyCoordinates(
                     location,
                 );
+
             },
             [
                 applyCoordinates,
@@ -867,13 +1030,17 @@ export default function CustomerLocationScreen({
                     event.nativeEvent.coordinate;
 
                 const location: Coordinates = {
+
                     latitude,
+
                     longitude,
+
                 };
 
                 await applyCoordinates(
                     location,
                 );
+
             },
             [
                 applyCoordinates,
@@ -894,6 +1061,7 @@ export default function CustomerLocationScreen({
                 setMapRegion(
                     region,
                 );
+
             },
             [],
         );
@@ -903,120 +1071,157 @@ export default function CustomerLocationScreen({
     // CONFIRM LOCATION
     // ==========================================================
 
-    const handleConfirmLocation = useCallback(
-        async () => {
-            if (!coordinates) {
-                Alert.alert(
-                    'Select a location',
-                    'Please allow location access or search for your location first.',
-                );
+    const handleConfirmLocation =
+        useCallback(
+            async () => {
 
-                return;
-            }
+                if (!coordinates) {
 
-            if (reverseGeocoding) {
-                return;
-            }
+                    Alert.alert(
+                        'Select a location',
+                        'Please allow location access or search for your location first.',
+                    );
 
-            try {
-                setSavingLocation(true);
+                    return;
+                }
 
-                const location: LocationData = {
-                    latitude: coordinates.latitude,
-                    longitude: coordinates.longitude,
-                    address:
-                        address.trim() || 'Selected Location',
-                };
+                if (reverseGeocoding) {
+                    return;
+                }
 
-                console.log('');
-                console.log(
-                    '========================================',
-                );
+                try {
 
-                console.log(
-                    '📍 CUSTOMER LOCATION CONFIRMED',
-                );
+                    setSavingLocation(
+                        true,
+                    );
 
-                console.log(
-                    'ADDRESS:',
-                    location.address,
-                );
+                    const location: LocationData = {
 
-                console.log(
-                    'LATITUDE:',
-                    location.latitude,
-                );
+                        latitude:
+                            coordinates.latitude,
 
-                console.log(
-                    'LONGITUDE:',
-                    location.longitude,
-                );
+                        longitude:
+                            coordinates.longitude,
 
-                console.log(
-                    '========================================',
-                );
+                        address:
+                            address.trim() ||
+                            'Selected Location',
 
-                // ----------------------------------------------------
-                // SAVE ACTIVE LOCATION
-                // ----------------------------------------------------
+                    };
 
-                await saveLocation(location);
+                    console.log('');
+                    console.log(
+                        '========================================',
+                    );
 
-                // ----------------------------------------------------
-                // ADD TO RECENT LOCATIONS
-                // ----------------------------------------------------
+                    console.log(
+                        '📍 CUSTOMER LOCATION CONFIRMED',
+                    );
 
-                await addRecentLocation(location);
+                    console.log(
+                        'ADDRESS:',
+                        location.address,
+                    );
 
-                setLocationConfirmed(true);
+                    console.log(
+                        'LATITUDE:',
+                        location.latitude,
+                    );
 
-                console.log(
-                    '✅ Customer location saved',
-                );
+                    console.log(
+                        'LONGITUDE:',
+                        location.longitude,
+                    );
 
-                // ----------------------------------------------------
-                // GO HOME
-                // ----------------------------------------------------
+                    console.log(
+                        '========================================'
+                    );
 
-                navigation.replace('HomeScreen', {
-                    latitude: location.latitude,
-                    longitude: location.longitude,
-                });
 
-            } catch (error) {
-                console.error(
-                    'SAVE LOCATION ERROR:',
-                    error,
-                );
+                    // --------------------------------------------
+                    // SAVE ACTIVE LOCATION
+                    // --------------------------------------------
 
-                Alert.alert(
-                    'Location Error',
-                    'Unable to save your location. Please try again.',
-                );
-            } finally {
-                setSavingLocation(false);
-            }
-        },
-        [
-            coordinates,
-            address,
-            reverseGeocoding,
-            saveLocation,
-            addRecentLocation,
-            navigation,
-        ],
-    );
+                    await saveLocation(
+                        location,
+                    );
+
+
+                    // --------------------------------------------
+                    // ADD TO RECENT LOCATIONS
+                    // --------------------------------------------
+
+                    await addRecentLocation(
+                        location,
+                    );
+
+                    setLocationConfirmed(
+                        true,
+                    );
+
+                    console.log(
+                        '✅ Customer location saved',
+                    );
+
+
+                    // --------------------------------------------
+                    // GO HOME
+                    // --------------------------------------------
+
+                    navigation.replace(
+                        'HomeScreen',
+                        {
+                            latitude:
+                                location.latitude,
+
+                            longitude:
+                                location.longitude,
+                        },
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        'SAVE LOCATION ERROR:',
+                        error,
+                    );
+
+                    Alert.alert(
+                        'Location Error',
+                        'Unable to save your location. Please try again.',
+                    );
+
+                } finally {
+
+                    setSavingLocation(
+                        false,
+                    );
+
+                }
+
+            },
+            [
+                coordinates,
+                address,
+                reverseGeocoding,
+                navigation,
+            ],
+        );
+
 
     // ==========================================================
     // OPEN SETTINGS
     // ==========================================================
 
     const handleOpenSettings =
-        useCallback(() => {
+        useCallback(
+            () => {
 
-            Linking.openSettings();
+                Linking.openSettings();
 
-        }, []);
+            },
+            [],
+        );
 
 
     // ==========================================================
@@ -1024,13 +1229,19 @@ export default function CustomerLocationScreen({
     // ==========================================================
 
     return (
+
         <SafeAreaView
             style={styles.container}
+            edges={[
+                'top',
+                'left',
+                'right',
+            ]}
         >
 
-            {/* ======================================================
-          HEADER
-      ====================================================== */}
+            {/* ==================================================
+                HEADER
+            ================================================== */}
 
             <View
                 style={styles.header}
@@ -1051,9 +1262,9 @@ export default function CustomerLocationScreen({
             </View>
 
 
-            {/* ======================================================
-          PERMISSION DENIED
-      ====================================================== */}
+            {/* ==================================================
+                PERMISSION DENIED
+            ================================================== */}
 
             {permissionDenied &&
                 !coordinates && (
@@ -1069,6 +1280,7 @@ export default function CustomerLocationScreen({
                                 styles.permissionIcon
                             }
                         >
+
                             <Text
                                 style={
                                     styles.permissionIconText
@@ -1076,7 +1288,9 @@ export default function CustomerLocationScreen({
                             >
                                 📍
                             </Text>
+
                         </View>
+
 
                         <Text
                             style={
@@ -1086,6 +1300,7 @@ export default function CustomerLocationScreen({
                             Location access is needed
                         </Text>
 
+
                         <Text
                             style={
                                 styles.permissionText
@@ -1094,6 +1309,7 @@ export default function CustomerLocationScreen({
                             Clavata uses your location to find
                             salons and services near you.
                         </Text>
+
 
                         <TouchableOpacity
                             style={
@@ -1116,12 +1332,13 @@ export default function CustomerLocationScreen({
                         </TouchableOpacity>
 
                     </View>
+
                 )}
 
 
-            {/* ======================================================
-          SEARCH
-      ====================================================== */}
+            {/* ==================================================
+                SEARCH
+            ================================================== */}
 
             <View
                 style={styles.searchSection}
@@ -1144,6 +1361,7 @@ export default function CustomerLocationScreen({
                         }
                         onChangeText={
                             text => {
+
                                 setSearchText(
                                     text,
                                 );
@@ -1151,6 +1369,7 @@ export default function CustomerLocationScreen({
                                 setLocationConfirmed(
                                     false,
                                 );
+
                             }
                         }
                         autoCapitalize="words"
@@ -1160,6 +1379,7 @@ export default function CustomerLocationScreen({
                             handleSearchAddress
                         }
                     />
+
 
                     <TouchableOpacity
                         style={
@@ -1200,9 +1420,9 @@ export default function CustomerLocationScreen({
                 </View>
 
 
-                {/* ====================================================
-            CURRENT LOCATION
-        ==================================================== */}
+                {/* ==============================================
+                    CURRENT LOCATION
+                ============================================== */}
 
                 <TouchableOpacity
                     style={
@@ -1229,6 +1449,7 @@ export default function CustomerLocationScreen({
                     ) : (
 
                         <>
+
                             <Text
                                 style={
                                     styles.currentLocationIcon
@@ -1244,6 +1465,7 @@ export default function CustomerLocationScreen({
                             >
                                 Use my current location
                             </Text>
+
                         </>
 
                     )}
@@ -1253,9 +1475,9 @@ export default function CustomerLocationScreen({
             </View>
 
 
-            {/* ======================================================
-          MAP
-      ====================================================== */}
+            {/* ==================================================
+                MAP
+            ================================================== */}
 
             <View
                 style={styles.mapContainer}
@@ -1302,11 +1524,12 @@ export default function CustomerLocationScreen({
                 </MapView>
 
 
-                {/* ====================================================
-            EMPTY MAP
-        ==================================================== */}
+                {/* ==============================================
+                    EMPTY MAP
+                ============================================== */}
 
                 {!coordinates && (
+
                     <View
                         pointerEvents="none"
                         style={
@@ -1340,12 +1563,13 @@ export default function CustomerLocationScreen({
                         </View>
 
                     </View>
+
                 )}
 
 
-                {/* ====================================================
-            REVERSE GEOCODING LOADER
-        ==================================================== */}
+                {/* ==============================================
+                    REVERSE GEOCODING LOADER
+                ============================================== */}
 
                 {reverseGeocoding && (
 
@@ -1359,7 +1583,7 @@ export default function CustomerLocationScreen({
                             style={
                                 styles.mapLoadingCard
                             }
-                        >
+                    >
 
                             <ActivityIndicator
                                 color={
@@ -1378,14 +1602,15 @@ export default function CustomerLocationScreen({
                         </View>
 
                     </View>
+
                 )}
 
             </View>
 
 
-            {/* ======================================================
-          SELECTED LOCATION
-      ====================================================== */}
+            {/* ==================================================
+                SELECTED LOCATION
+            ================================================== */}
 
             {coordinates && (
 
@@ -1426,44 +1651,66 @@ export default function CustomerLocationScreen({
                             Your location
                         </Text>
 
+
                         <Text
                             style={
                                 styles.locationAddress
                             }
                             numberOfLines={3}
                         >
-                            {address ||
-                                'Selected location'}
+                            {
+                                address ||
+                                'Selected location'
+                            }
                         </Text>
+
 
                         <Text
                             style={
                                 styles.coordinatesText
                             }
                         >
-                            {coordinates.latitude.toFixed(
-                                6,
-                            )}
+
+                            {
+                                coordinates.latitude.toFixed(
+                                    6,
+                                )
+                            }
+
                             {'  •  '}
-                            {coordinates.longitude.toFixed(
-                                6,
-                            )}
+
+                            {
+                                coordinates.longitude.toFixed(
+                                    6,
+                                )
+                            }
+
                         </Text>
 
                     </View>
 
                 </View>
+
             )}
 
 
-            {/* ======================================================
-          CONFIRM
-      ====================================================== */}
+            {/* ==================================================
+                CONFIRM LOCATION
+                IMPORTANT:
+                Bottom safe-area inset is added here.
+            ================================================== */}
 
             <View
-                style={
-                    styles.bottomContainer
-                }
+                style={[
+                    styles.bottomContainer,
+                    {
+                        paddingBottom:
+                            Math.max(
+                                insets.bottom,
+                                SPACING.large,
+                            ),
+                    },
+                ]}
             >
 
                 <TouchableOpacity
@@ -1502,9 +1749,11 @@ export default function CustomerLocationScreen({
                                 styles.confirmButtonText
                             }
                         >
-                            {locationConfirmed
-                                ? '✓ Location Confirmed'
-                                : 'Confirm Location'}
+                            {
+                                locationConfirmed
+                                    ? '✓ Location Confirmed'
+                                    : 'Confirm Location'
+                            }
                         </Text>
 
                     )}
@@ -1514,6 +1763,7 @@ export default function CustomerLocationScreen({
             </View>
 
         </SafeAreaView>
+
     );
 }
 
@@ -2094,9 +2344,6 @@ const styles = StyleSheet.create({
         paddingTop:
             SPACING.medium,
 
-        paddingBottom:
-            SPACING.large,
-
         backgroundColor:
             COLORS.background,
     },
@@ -2134,4 +2381,5 @@ const styles = StyleSheet.create({
         color:
             COLORS.white,
     },
+
 });

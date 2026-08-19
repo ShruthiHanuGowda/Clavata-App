@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Geolocation from '@react-native-community/geolocation';
 
 import {
   USE_HARDCODED_LOCATION,
@@ -31,17 +32,9 @@ const SAVED_LOCATIONS_KEY = 'saved_locations';
 const RECENT_LOCATIONS_KEY = 'recent_locations';
 
 // ============================================================
-// SELECTED / ACTIVE LOCATION
+// SAVE SELECTED LOCATION
 // ============================================================
 
-/**
- * Save the user's selected location.
- *
- * NOTE:
- * In hardcoded test mode this can still be called,
- * but getActiveLocation() will always return
- * HARDCODED_LOCATION from locationConfig.ts.
- */
 export const saveLocation = async (
   location: LocationData,
 ): Promise<void> => {
@@ -74,11 +67,6 @@ export const getSavedLocation =
         await AsyncStorage.getItem(
           LOCATION_KEY,
         );
-
-      console.log(
-        '🔎 selected_location raw:',
-        value,
-      );
 
       if (!value) {
         console.log(
@@ -133,32 +121,19 @@ export const clearSavedLocation =
 // GET ACTIVE LOCATION
 // ============================================================
 //
-// THIS IS THE IMPORTANT PART.
+// Production:
+//   selected_location from AsyncStorage
 //
-// USE_HARDCODED_LOCATION controls the source.
-//
-// true:
-//     HARDCODED_LOCATION from locationConfig.ts
-//
-// false:
-//     selected_location from AsyncStorage
+// Test:
+//   HARDCODED_LOCATION
 //
 // ============================================================
 
 export const getActiveLocation =
   async (): Promise<LocationData | null> => {
-    // --------------------------------------------------------
-    // TEST MODE
-    // --------------------------------------------------------
-
     if (USE_HARDCODED_LOCATION) {
       console.log(
-        '🧪 TEST MODE: Using HARDCODED_LOCATION from locationConfig.ts',
-      );
-
-      console.log(
-        '📍 Test Location:',
-        HARDCODED_LOCATION,
+        '🧪 TEST MODE: Using HARDCODED_LOCATION',
       );
 
       return {
@@ -166,29 +141,109 @@ export const getActiveLocation =
       };
     }
 
-    // --------------------------------------------------------
-    // PRODUCTION MODE
-    // --------------------------------------------------------
-
-    console.log(
-      '🚀 PRODUCTION MODE: Loading selected location',
-    );
-
     const savedLocation =
       await getSavedLocation();
 
     if (savedLocation) {
       console.log(
-        '📍 Production active location:',
+        '📍 Active location:',
         savedLocation,
       );
     } else {
       console.log(
-        'ℹ️ No production location selected',
+        'ℹ️ No active location selected',
       );
     }
 
     return savedLocation;
+  };
+
+// ============================================================
+// GET CURRENT DEVICE LOCATION
+// ============================================================
+//
+// IMPORTANT:
+//
+// This function gets the device's GPS location.
+//
+// It does NOT save the location.
+//
+// It does NOT replace selected_location.
+//
+// The caller decides whether to save it.
+//
+// ============================================================
+
+export const getCurrentLocation =
+  async (): Promise<LocationData | null> => {
+    try {
+      // ========================================================
+      // HARDCODED TEST MODE
+      // ========================================================
+
+      if (USE_HARDCODED_LOCATION) {
+        console.log(
+          '🧪 TEST MODE: Using HARDCODED_LOCATION',
+        );
+
+        return {
+          ...HARDCODED_LOCATION,
+        };
+      }
+
+      // ========================================================
+      // GET GPS LOCATION
+      // ========================================================
+
+      return await new Promise<LocationData | null>(
+        resolve => {
+          Geolocation.getCurrentPosition(
+            position => {
+              const {
+                latitude,
+                longitude,
+              } = position.coords;
+
+              console.log(
+                '📍 GPS coordinates:',
+                latitude,
+                longitude,
+              );
+
+              const location: LocationData = {
+                latitude,
+                longitude,
+                address: 'Current location',
+              };
+
+              resolve(location);
+            },
+
+            error => {
+              console.log(
+                '❌ GPS location error:',
+                error,
+              );
+
+              resolve(null);
+            },
+
+            {
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 10000,
+            },
+          );
+        },
+      );
+    } catch (error) {
+      console.log(
+        '❌ Get Current Location Error:',
+        error,
+      );
+
+      return null;
+    }
   };
 
 // ============================================================
@@ -203,16 +258,7 @@ export const getSavedLocations =
           SAVED_LOCATIONS_KEY,
         );
 
-      console.log(
-        '🔎 saved_locations raw:',
-        value,
-      );
-
       if (!value) {
-        console.log(
-          'ℹ️ No saved locations found',
-        );
-
         return [];
       }
 
@@ -220,17 +266,8 @@ export const getSavedLocations =
         JSON.parse(value);
 
       if (!Array.isArray(locations)) {
-        console.log(
-          '⚠️ saved_locations is not an array',
-        );
-
         return [];
       }
-
-      console.log(
-        '✅ Saved locations loaded:',
-        locations,
-      );
 
       return locations as SavedLocation[];
     } catch (error) {
@@ -252,11 +289,6 @@ export const addSavedLocation =
     location: SavedLocation,
   ): Promise<void> => {
     try {
-      console.log(
-        '💾 Adding saved location:',
-        location,
-      );
-
       const existing =
         await getSavedLocations();
 
@@ -264,9 +296,9 @@ export const addSavedLocation =
         existing.some(
           item =>
             item.latitude ===
-              location.latitude &&
+            location.latitude &&
             item.longitude ===
-              location.longitude,
+            location.longitude,
         );
 
       if (alreadyExists) {
@@ -289,7 +321,7 @@ export const addSavedLocation =
 
       console.log(
         '✅ Saved location added:',
-        updated,
+        location,
       );
     } catch (error) {
       console.log(
@@ -345,16 +377,7 @@ export const getRecentLocations =
           RECENT_LOCATIONS_KEY,
         );
 
-      console.log(
-        '🔎 recent_locations raw:',
-        value,
-      );
-
       if (!value) {
-        console.log(
-          'ℹ️ No recent locations found',
-        );
-
         return [];
       }
 
@@ -362,17 +385,8 @@ export const getRecentLocations =
         JSON.parse(value);
 
       if (!Array.isArray(locations)) {
-        console.log(
-          '⚠️ recent_locations is not an array',
-        );
-
         return [];
       }
-
-      console.log(
-        '✅ Recent locations loaded:',
-        locations,
-      );
 
       return locations as LocationData[];
     } catch (error) {
@@ -394,11 +408,6 @@ export const addRecentLocation =
     location: LocationData,
   ): Promise<void> => {
     try {
-      console.log(
-        '🕘 Adding recent location:',
-        location,
-      );
-
       const existing =
         await getRecentLocations();
 
@@ -407,9 +416,9 @@ export const addRecentLocation =
           item =>
             !(
               item.latitude ===
-                location.latitude &&
+              location.latitude &&
               item.longitude ===
-                location.longitude
+              location.longitude
             ),
         );
 
@@ -424,8 +433,8 @@ export const addRecentLocation =
       );
 
       console.log(
-        '✅ Recent location added:',
-        updated,
+        '🕘 Recent location added:',
+        location,
       );
     } catch (error) {
       console.log(
@@ -475,7 +484,7 @@ export const clearAllLocationStorage =
       );
     } catch (error) {
       console.log(
-        '❌ Clear all location storage error:',
+        '❌ Clear All Location Storage Error:',
         error,
       );
     }

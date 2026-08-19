@@ -1,8 +1,14 @@
-import React, { useCallback, useState } from 'react';
+import React, {
+  useCallback,
+  useState,
+} from 'react';
+
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Linking,
+  PermissionsAndroid,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -11,8 +17,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
+
+import Geolocation from '@react-native-community/geolocation';
 
 import MapView, {
   Marker,
@@ -21,11 +28,18 @@ import MapView, {
   MarkerDragStartEndEvent,
 } from 'react-native-maps';
 
-import Geolocation from '@react-native-community/geolocation';
+import {
+  reverseGeocode,
+} from '../../services/locationService';
 
-import { Header, DButton } from '../../components';
+import {
+  Header,
+  DButton,
+} from '../../components';
 
-import { useSalonRegistration } from '../../context/SalonRegistrationContext';
+import {
+  useSalonRegistration,
+} from '../../context/SalonRegistrationContext';
 
 import {
   COLORS,
@@ -46,14 +60,6 @@ type Coordinates = {
 type GeocodeResult = {
   latitude: number;
   longitude: number;
-  displayName: string;
-};
-
-type ReverseGeocodeResult = {
-  addressLine: string;
-  city: string;
-  state: string;
-  pincode: string;
   displayName: string;
 };
 
@@ -78,251 +84,184 @@ const DEFAULT_DELTA = {
 export default function SalonAddressScreen({
   navigation,
 }: any) {
-  const { updateData } = useSalonRegistration();
+  const {
+    updateData,
+  } = useSalonRegistration();
 
   // ==========================================================
   // ADDRESS
   // ==========================================================
 
-  const [addressLine, setAddressLine] = useState<string>('');
-  const [city, setCity] = useState<string>('');
-  const [state, setState] = useState<string>('');
-  const [pincode, setPincode] = useState<string>('');
+  const [
+    addressLine,
+    setAddressLine,
+  ] = useState<string>('');
+
+  const [
+    city,
+    setCity,
+  ] = useState<string>('');
+
+  const [
+    state,
+    setState,
+  ] = useState<string>('');
+
+  const [
+    pincode,
+    setPincode,
+  ] = useState<string>('');
 
   // ==========================================================
   // LOCATION
   // ==========================================================
 
-  const [coordinates, setCoordinates] =
-    useState<Coordinates | null>(null);
+  const [
+    coordinates,
+    setCoordinates,
+  ] = useState<Coordinates | null>(null);
 
-  const [locationConfirmed, setLocationConfirmed] =
-    useState<boolean>(false);
+  const [
+    locationConfirmed,
+    setLocationConfirmed,
+  ] = useState<boolean>(false);
 
   // ==========================================================
   // LOADING
   // ==========================================================
 
-  const [searchingAddress, setSearchingAddress] =
-    useState<boolean>(false);
+  const [
+    searchingAddress,
+    setSearchingAddress,
+  ] = useState<boolean>(false);
 
-  const [gettingLocation, setGettingLocation] =
-    useState<boolean>(false);
+  const [
+    gettingLocation,
+    setGettingLocation,
+  ] = useState<boolean>(false);
 
-  const [reverseGeocoding, setReverseGeocoding] =
-    useState<boolean>(false);
+  const [
+    reverseGeocoding,
+    setReverseGeocoding,
+  ] = useState<boolean>(false);
 
   // ==========================================================
   // SEARCH
   // ==========================================================
 
-  const [searchText, setSearchText] =
-    useState<string>('');
+  const [
+    searchText,
+    setSearchText,
+  ] = useState<string>('');
 
   // ==========================================================
   // MAP
   // ==========================================================
 
-  const [mapRegion, setMapRegion] =
-    useState<Region>({
-      ...DEFAULT_COORDINATES,
-      ...DEFAULT_DELTA,
-    });
+  const [
+    mapRegion,
+    setMapRegion,
+  ] = useState<Region>({
+    ...DEFAULT_COORDINATES,
+    ...DEFAULT_DELTA,
+  });
 
   // ==========================================================
   // GEOCODE ADDRESS
   // ==========================================================
 
-  const geocodeAddress = useCallback(
-    async (
-      query: string,
-    ): Promise<GeocodeResult | null> => {
-      try {
-        const trimmedQuery =
-          query.trim();
+  const geocodeAddress =
+    useCallback(
+      async (
+        query: string,
+      ): Promise<GeocodeResult | null> => {
+        try {
+          const trimmedQuery =
+            query.trim();
 
-        if (!trimmedQuery) {
-          return null;
-        }
+          if (!trimmedQuery) {
+            return null;
+          }
 
-        const url =
-          `https://nominatim.openstreetmap.org/search?` +
-          `q=${encodeURIComponent(trimmedQuery)}` +
-          `&format=jsonv2` +
-          `&limit=1` +
-          `&countrycodes=in`;
+          const url =
+            `https://nominatim.openstreetmap.org/search?` +
+            `q=${encodeURIComponent(
+              trimmedQuery,
+            )}` +
+            `&format=jsonv2` +
+            `&limit=1` +
+            `&countrycodes=in`;
 
-        const response =
-          await fetch(url, {
-            method: 'GET',
-            headers: {
-              Accept:
-                'application/json',
-              'User-Agent':
-                'ClavataSalonApp/1.0',
-            },
-          });
+          const response =
+            await fetch(url, {
+              method: 'GET',
 
-        if (!response.ok) {
-          throw new Error(
-            `Geocoding failed: ${response.status}`,
-          );
-        }
+              headers: {
+                Accept:
+                  'application/json',
 
-        const data: unknown =
-          await response.json();
+                'User-Agent':
+                  'ClavataSalonApp/1.0',
+              },
+            });
 
-        if (
-          !Array.isArray(data) ||
-          data.length === 0
-        ) {
-          return null;
-        }
+          if (!response.ok) {
+            throw new Error(
+              `Geocoding failed: ${response.status}`,
+            );
+          }
 
-        const result =
-          data[0] as {
-            lat?: string;
-            lon?: string;
-            display_name?: string;
+          const data: unknown =
+            await response.json();
+
+          if (
+            !Array.isArray(data) ||
+            data.length === 0
+          ) {
+            return null;
+          }
+
+          const result =
+            data[0] as {
+              lat?: string;
+              lon?: string;
+              display_name?: string;
+            };
+
+          const latitude =
+            Number(result.lat);
+
+          const longitude =
+            Number(result.lon);
+
+          if (
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude)
+          ) {
+            return null;
+          }
+
+          return {
+            latitude,
+            longitude,
+
+            displayName:
+              result.display_name || '',
           };
+        } catch (error) {
+          console.error(
+            'GEOCODE ERROR:',
+            error,
+          );
 
-        const latitude =
-          Number(result.lat);
-
-        const longitude =
-          Number(result.lon);
-
-        if (
-          !Number.isFinite(latitude) ||
-          !Number.isFinite(longitude)
-        ) {
           return null;
         }
-
-        return {
-          latitude,
-          longitude,
-          displayName:
-            result.display_name || '',
-        };
-      } catch (error: unknown) {
-        console.error(
-          'GEOCODE ERROR:',
-          error,
-        );
-
-        return null;
-      }
-    },
-    [],
-  );
+      },
+      [],
+    );
 
   // ==========================================================
   // REVERSE GEOCODE
-  // ==========================================================
-
-  const reverseGeocode = useCallback(
-    async (
-      location: Coordinates,
-    ): Promise<ReverseGeocodeResult | null> => {
-      try {
-        const url =
-          `https://nominatim.openstreetmap.org/reverse?` +
-          `lat=${location.latitude}` +
-          `&lon=${location.longitude}` +
-          `&format=jsonv2`;
-
-        const response =
-          await fetch(url, {
-            method: 'GET',
-            headers: {
-              Accept:
-                'application/json',
-              'User-Agent':
-                'ClavataSalonApp/1.0',
-            },
-          });
-
-        if (!response.ok) {
-          return null;
-        }
-
-        const data =
-          (await response.json()) as {
-            address?: {
-              house_number?: string;
-              road?: string;
-              neighbourhood?: string;
-              suburb?: string;
-              city?: string;
-              town?: string;
-              village?: string;
-              municipality?: string;
-              state?: string;
-              postcode?: string;
-            };
-
-            display_name?: string;
-          };
-
-        const address =
-          data?.address || {};
-
-        // ======================================================
-        // BUILD ADDRESS LINE
-        // ======================================================
-
-        const addressLineParts = [
-          address.house_number,
-          address.road,
-          address.neighbourhood,
-          address.suburb,
-        ].filter(Boolean);
-
-        const city =
-          address.city ||
-          address.town ||
-          address.village ||
-          address.municipality ||
-          '';
-
-        const state =
-          address.state || '';
-
-        const pincode =
-          address.postcode || '';
-
-        return {
-          addressLine:
-            addressLineParts.join(', '),
-
-          city,
-
-          state,
-
-          pincode,
-
-          displayName:
-            data?.display_name || '',
-        };
-      } catch (error: unknown) {
-        console.error(
-          'REVERSE GEOCODE ERROR:',
-          error,
-        );
-
-        return null;
-      }
-    },
-    [],
-  );
-
-  // ==========================================================
-  // APPLY REVERSE GEOCODE RESULT
-  //
-  // IMPORTANT:
-  // Never overwrite an existing user value with an empty
-  // reverse-geocoded value.
   // ==========================================================
 
   const applyReverseGeocode =
@@ -333,60 +272,109 @@ export default function SalonAddressScreen({
         try {
           setReverseGeocoding(true);
 
-          const result =
+          const data =
             await reverseGeocode(
-              location,
+              location.latitude,
+              location.longitude,
             );
 
-          if (!result) {
+          if (!data) {
             return;
           }
 
+          const address =
+            data.address || {};
+
           // ----------------------------------------------------
-          // Only update a field if reverse geocoding actually
-          // returned a value.
+          // ADDRESS LINE
+          // ----------------------------------------------------
+
+          const addressLineParts = [
+            address.house_number,
+            address.road,
+            address.neighbourhood,
+            address.suburb,
+          ].filter(Boolean);
+
+          const newAddressLine =
+            addressLineParts.join(', ');
+
+          // ----------------------------------------------------
+          // CITY
+          // ----------------------------------------------------
+
+          const newCity =
+            address.city ||
+            address.town ||
+            address.village ||
+            address.municipality ||
+            '';
+
+          // ----------------------------------------------------
+          // STATE
+          // ----------------------------------------------------
+
+          const newState =
+            address.state || '';
+
+          // ----------------------------------------------------
+          // PINCODE
+          // ----------------------------------------------------
+
+          const newPincode =
+            address.postcode || '';
+
+          // ----------------------------------------------------
+          // DISPLAY NAME
+          // ----------------------------------------------------
+
+          const displayName =
+            data.display_name || '';
+
+          // ----------------------------------------------------
+          // ONLY UPDATE IF VALUE EXISTS
           // ----------------------------------------------------
 
           if (
-            result.addressLine?.trim()
+            newAddressLine.trim()
           ) {
             setAddressLine(
-              result.addressLine.trim(),
+              newAddressLine.trim(),
             );
           }
 
           if (
-            result.city?.trim()
+            newCity.trim()
           ) {
             setCity(
-              result.city.trim(),
+              newCity.trim(),
             );
           }
 
           if (
-            result.state?.trim()
+            newState.trim()
           ) {
             setState(
-              result.state.trim(),
+              newState.trim(),
             );
           }
 
           if (
-            result.pincode?.trim()
+            newPincode.trim()
           ) {
             setPincode(
-              result.pincode.trim(),
+              newPincode.trim(),
             );
           }
 
           if (
-            result.displayName?.trim()
+            displayName.trim()
           ) {
             setSearchText(
-              result.displayName.trim(),
+              displayName.trim(),
             );
           }
-        } catch (error: unknown) {
+        } catch (error) {
           console.error(
             'APPLY REVERSE GEOCODE ERROR:',
             error,
@@ -397,7 +385,7 @@ export default function SalonAddressScreen({
           );
         }
       },
-      [reverseGeocode],
+      [],
     );
 
   // ==========================================================
@@ -440,22 +428,22 @@ export default function SalonAddressScreen({
             result.longitude,
         };
 
-        // ----------------------------------------------------
-        // Set coordinates
-        // ----------------------------------------------------
+        // ------------------------------------------------------
+        // SET COORDINATES
+        // ------------------------------------------------------
 
         setCoordinates(
           newCoordinates,
         );
 
-        // A new location must be confirmed again.
+        // New location needs confirmation.
         setLocationConfirmed(
           false,
         );
 
-        // ----------------------------------------------------
-        // Move map
-        // ----------------------------------------------------
+        // ------------------------------------------------------
+        // MOVE MAP
+        // ------------------------------------------------------
 
         setMapRegion({
           latitude:
@@ -464,19 +452,21 @@ export default function SalonAddressScreen({
           longitude:
             newCoordinates.longitude,
 
-          latitudeDelta: 0.005,
+          latitudeDelta:
+            0.005,
 
-          longitudeDelta: 0.005,
+          longitudeDelta:
+            0.005,
         });
 
-        // ----------------------------------------------------
-        // Synchronize address fields
-        // ----------------------------------------------------
+        // ------------------------------------------------------
+        // REVERSE GEOCODE
+        // ------------------------------------------------------
 
         await applyReverseGeocode(
           newCoordinates,
         );
-      } catch (error: unknown) {
+      } catch (error) {
         console.error(
           'SEARCH ADDRESS ERROR:',
           error,
@@ -498,27 +488,11 @@ export default function SalonAddressScreen({
     ]);
 
   // ==========================================================
-  // REQUEST LOCATION PERMISSION
-  // ==========================================================
-
-  const requestLocationPermission =
-    useCallback((): void => {
-      try {
-        Geolocation.requestAuthorization();
-      } catch (error: unknown) {
-        console.error(
-          'LOCATION PERMISSION ERROR:',
-          error,
-        );
-      }
-    }, []);
-
-  // ==========================================================
-  // CURRENT LOCATION
+  // CURRENT DEVICE LOCATION
   // ==========================================================
 
   const handleUseCurrentLocation =
-    useCallback(() => {
+    useCallback(async () => {
       if (gettingLocation) {
         return;
       }
@@ -528,149 +502,195 @@ export default function SalonAddressScreen({
           true,
         );
 
-        requestLocationPermission();
-
-        Geolocation.getCurrentPosition(
-          async position => {
-            try {
-              const newCoordinates: Coordinates = {
-                latitude:
-                  position.coords.latitude,
-
-                longitude:
-                  position.coords.longitude,
-              };
-
-              // ------------------------------------------------
-              // Set coordinates
-              // ------------------------------------------------
-
-              setCoordinates(
-                newCoordinates,
-              );
-
-              // New location needs confirmation.
-              setLocationConfirmed(
-                false,
-              );
-
-              // ------------------------------------------------
-              // Move map
-              // ------------------------------------------------
-
-              setMapRegion({
-                latitude:
-                  newCoordinates.latitude,
-
-                longitude:
-                  newCoordinates.longitude,
-
-                latitudeDelta: 0.005,
-
-                longitudeDelta: 0.005,
-              });
-
-              // ------------------------------------------------
-              // Reverse geocode
-              // ------------------------------------------------
-
-              await applyReverseGeocode(
-                newCoordinates,
-              );
-            } catch (error: unknown) {
-              console.error(
-                'CURRENT LOCATION PROCESSING ERROR:',
-                error,
-              );
-
-              Alert.alert(
-                'Location unavailable',
-                'We found your location, but could not retrieve the address details.',
-              );
-            } finally {
-              setGettingLocation(
-                false,
-              );
-            }
-          },
-
-          error => {
-            console.error(
-              'GET CURRENT LOCATION ERROR:',
-              error,
-            );
-
-            setGettingLocation(
-              false,
-            );
-
-            let message =
-              'Unable to get your current location. Please try again.';
-
-            if (
-              error.code === 1
-            ) {
-              message =
-                'Location permission was denied. Please allow location access in Settings.';
-            } else if (
-              error.code === 2
-            ) {
-              message =
-                'Your location is currently unavailable. Please check GPS/location services.';
-            } else if (
-              error.code === 3
-            ) {
-              message =
-                'Location request timed out. Please try again.';
-            }
-
-            Alert.alert(
-              'Location unavailable',
-              message,
-              error.code === 1
-                ? [
-                  {
-                    text: 'Cancel',
-                    style: 'cancel',
-                  },
-                  {
-                    text: 'Settings',
-                    onPress: () => {
-                      Linking.openSettings();
-                    },
-                  },
-                ]
-                : undefined,
-            );
-          },
-
-          {
-            enableHighAccuracy:
-              true,
-
-            timeout: 15000,
-
-            maximumAge: 5000,
-          },
+        console.log(
+          '📍 Requesting current device location...',
         );
-      } catch (error: unknown) {
+
+        // ======================================================
+        // ANDROID PERMISSION
+        // ======================================================
+
+        if (Platform.OS === 'android') {
+          const permission =
+            await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+              {
+                title:
+                  'Location Permission',
+
+                message:
+                  'Clavata needs your location to find your salon location.',
+
+                buttonPositive:
+                  'Allow',
+
+                buttonNegative:
+                  'Cancel',
+              },
+            );
+
+          if (
+            permission !==
+            PermissionsAndroid.RESULTS.GRANTED
+          ) {
+            Alert.alert(
+              'Location Permission Required',
+              'Please allow location permission to use your current location.',
+              [
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+                {
+                  text: 'Settings',
+                  onPress: () => {
+                    Linking.openSettings();
+                  },
+                },
+              ],
+            );
+
+            return;
+          }
+        }
+
+        // ======================================================
+        // GET GPS LOCATION
+        // ======================================================
+
+        const location =
+          await new Promise<{
+            latitude: number;
+            longitude: number;
+          } | null>((resolve) => {
+            Geolocation.getCurrentPosition(
+              position => {
+                const {
+                  latitude,
+                  longitude,
+                } = position.coords;
+
+                console.log(
+                  '📍 GPS coordinates:',
+                  latitude,
+                  longitude,
+                );
+
+                resolve({
+                  latitude,
+                  longitude,
+                });
+              },
+
+              error => {
+                console.log(
+                  '❌ GPS location error:',
+                  error,
+                );
+
+                resolve(null);
+              },
+
+              {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 10000,
+              },
+            );
+          });
+
+        // ======================================================
+        // GPS FAILED
+        // ======================================================
+
+        if (!location) {
+          Alert.alert(
+            'Location unavailable',
+            'We could not determine your current location. Please make sure your device location is turned on and try again.',
+            [
+              {
+                text: 'Cancel',
+                style: 'cancel',
+              },
+              {
+                text: 'Settings',
+                onPress: () => {
+                  Linking.openSettings();
+                },
+              },
+            ],
+          );
+
+          return;
+        }
+
+        // ======================================================
+        // SET COORDINATES
+        // ======================================================
+
+        const newCoordinates: Coordinates = {
+          latitude:
+            location.latitude,
+
+          longitude:
+            location.longitude,
+        };
+
+        console.log(
+          '📍 Current location:',
+          newCoordinates,
+        );
+
+        setCoordinates(
+          newCoordinates,
+        );
+
+        setLocationConfirmed(
+          false,
+        );
+
+        // ======================================================
+        // MOVE MAP
+        // ======================================================
+
+        setMapRegion({
+          latitude:
+            newCoordinates.latitude,
+
+          longitude:
+            newCoordinates.longitude,
+
+          latitudeDelta:
+            0.005,
+
+          longitudeDelta:
+            0.005,
+        });
+
+        // ======================================================
+        // REVERSE GEOCODE
+        // ======================================================
+
+        await applyReverseGeocode(
+          newCoordinates,
+        );
+      } catch (error) {
         console.error(
           'CURRENT LOCATION ERROR:',
           error,
         );
 
-        setGettingLocation(
-          false,
-        );
-
         Alert.alert(
           'Location unavailable',
-          'We could not determine your current location.',
+          'Unable to get your current location. Please try again.',
+        );
+      } finally {
+        setGettingLocation(
+          false,
         );
       }
     }, [
       gettingLocation,
-      requestLocationPermission,
       applyReverseGeocode,
     ]);
 
@@ -712,10 +732,20 @@ export default function SalonAddressScreen({
           newCoordinates,
         );
 
-        // New position must be confirmed.
         setLocationConfirmed(
           false,
         );
+
+        setMapRegion({
+          latitude,
+          longitude,
+
+          latitudeDelta:
+            0.005,
+
+          longitudeDelta:
+            0.005,
+        });
 
         await applyReverseGeocode(
           newCoordinates,
@@ -748,19 +778,19 @@ export default function SalonAddressScreen({
           newCoordinates,
         );
 
-        // New marker position must be confirmed.
         setLocationConfirmed(
           false,
         );
 
         setMapRegion({
           latitude,
-
           longitude,
 
-          latitudeDelta: 0.005,
+          latitudeDelta:
+            0.005,
 
-          longitudeDelta: 0.005,
+          longitudeDelta:
+            0.005,
         });
 
         await applyReverseGeocode(
@@ -772,18 +802,6 @@ export default function SalonAddressScreen({
 
   // ==========================================================
   // CONFIRM LOCATION
-  //
-  // IMPORTANT:
-  // We DO NOT reverse-geocode here again.
-  //
-  // The address has already been synchronized when:
-  // - searching
-  // - using GPS
-  // - tapping the map
-  // - dragging the marker
-  //
-  // This prevents reverse geocoding from accidentally replacing
-  // the address with an empty string.
   // ==========================================================
 
   const handleConfirmLocation =
@@ -797,9 +815,9 @@ export default function SalonAddressScreen({
         return;
       }
 
-      // --------------------------------------------------------
-      // Validate address before confirmation
-      // --------------------------------------------------------
+      // ------------------------------------------------------
+      // ADDRESS VALIDATION
+      // ------------------------------------------------------
 
       if (!addressLine.trim()) {
         Alert.alert(
@@ -841,11 +859,6 @@ export default function SalonAddressScreen({
         return;
       }
 
-      // --------------------------------------------------------
-      // Location is valid and selected.
-      // Just mark it confirmed.
-      // --------------------------------------------------------
-
       setLocationConfirmed(
         true,
       );
@@ -868,9 +881,9 @@ export default function SalonAddressScreen({
 
   const onNext =
     useCallback(() => {
-      // --------------------------------------------------------
+      // ------------------------------------------------------
       // ADDRESS VALIDATION
-      // --------------------------------------------------------
+      // ------------------------------------------------------
 
       if (
         !addressLine.trim() ||
@@ -886,9 +899,9 @@ export default function SalonAddressScreen({
         return;
       }
 
-      // --------------------------------------------------------
-      // PINCODE VALIDATION
-      // --------------------------------------------------------
+      // ------------------------------------------------------
+      // PINCODE
+      // ------------------------------------------------------
 
       if (
         !/^\d{6}$/.test(
@@ -903,22 +916,22 @@ export default function SalonAddressScreen({
         return;
       }
 
-      // --------------------------------------------------------
+      // ------------------------------------------------------
       // COORDINATES
-      // --------------------------------------------------------
+      // ------------------------------------------------------
 
       if (!coordinates) {
         Alert.alert(
           'Location required',
-          'Please search for your salon location or use your current location, then confirm it on the map.',
+          'Please search for your salon location or use your current location.',
         );
 
         return;
       }
 
-      // --------------------------------------------------------
-      // LOCATION CONFIRMATION
-      // --------------------------------------------------------
+      // ------------------------------------------------------
+      // CONFIRMATION
+      // ------------------------------------------------------
 
       if (!locationConfirmed) {
         Alert.alert(
@@ -929,16 +942,9 @@ export default function SalonAddressScreen({
         return;
       }
 
-      // --------------------------------------------------------
-      // FINAL COORDINATES
-      // --------------------------------------------------------
-
-      const finalCoordinates =
-        coordinates;
-
-      // --------------------------------------------------------
+      // ------------------------------------------------------
       // SAVE REGISTRATION DATA
-      // --------------------------------------------------------
+      // ------------------------------------------------------
 
       updateData({
         addressLine:
@@ -954,15 +960,11 @@ export default function SalonAddressScreen({
           pincode.trim(),
 
         latitude:
-          finalCoordinates.latitude,
+          coordinates.latitude,
 
         longitude:
-          finalCoordinates.longitude,
+          coordinates.longitude,
       });
-
-      // --------------------------------------------------------
-      // DEBUG
-      // --------------------------------------------------------
 
       console.log(
         '======================================',
@@ -994,21 +996,17 @@ export default function SalonAddressScreen({
 
       console.log(
         'LATITUDE:',
-        finalCoordinates.latitude,
+        coordinates.latitude,
       );
 
       console.log(
         'LONGITUDE:',
-        finalCoordinates.longitude,
+        coordinates.longitude,
       );
 
       console.log(
         '======================================',
       );
-
-      // --------------------------------------------------------
-      // NEXT SCREEN
-      // --------------------------------------------------------
 
       navigation.navigate(
         'SalonBusinessHours',
@@ -1077,7 +1075,7 @@ export default function SalonAddressScreen({
           </View>
 
           {/* ==================================================
-              OPTION A
+              OPTION A - SEARCH
           ================================================== */}
 
           <View
@@ -1185,7 +1183,7 @@ export default function SalonAddressScreen({
           </View>
 
           {/* ==================================================
-              OPTION B
+              OPTION B - CURRENT LOCATION
           ================================================== */}
 
           <View
@@ -1330,8 +1328,6 @@ export default function SalonAddressScreen({
                     text,
                   );
 
-                  // User changed the address.
-                  // Location must be confirmed again.
                   setLocationConfirmed(
                     false,
                   );
@@ -1479,7 +1475,8 @@ export default function SalonAddressScreen({
                     styles.mapSubtitle
                   }
                 >
-                  Move the map or tap a location to adjust the marker.
+                  Move the map or drag the marker to adjust the
+                  exact salon location.
                 </Text>
               </View>
 
@@ -1560,7 +1557,8 @@ export default function SalonAddressScreen({
                       styles.mapEmptyText
                     }
                   >
-                    Search your address or use your current location.
+                    Search your address or use your current
+                    location.
                   </Text>
                 </View>
               )}
