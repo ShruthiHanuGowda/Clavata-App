@@ -82,11 +82,11 @@ export default function SalonSuccessScreen({
                 </Text>
 
                 {/* SALON NAME */}
-                <Text
+                {/* <Text
                     style={styles.salonName}
                 >
                     {salonName || 'Your salon'}
-                </Text>
+                </Text> */}
 
                 {/* MESSAGE */}
                 <Text
