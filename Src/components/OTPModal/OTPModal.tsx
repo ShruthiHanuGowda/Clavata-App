@@ -15,7 +15,7 @@ import {
   Pressable,
 } from 'react-native';
 
-import { BlurView } from '@react-native-community/blur';
+import BlurBackground from './BlurBackground';
 
 import { useMutation } from '@apollo/client';
 
@@ -373,12 +373,7 @@ export default function OTPModal({
       onRequestClose={onClose}
     >
 
-      <BlurView
-        style={styles.blur}
-        blurType="light"
-        blurAmount={16}
-        reducedTransparencyFallbackColor="rgba(255,255,255,0.94)"
-      />
+      <BlurBackground />
 
       <View style={styles.overlay}>
 

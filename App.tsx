@@ -8,10 +8,10 @@ import {
   Text,
 } from 'react-native';
 import JailMonkey from 'jail-monkey'; // ✅ Import jailbreak detection
-
+import { checkDeviceSecurity } from './Src/utils/deviceSecurity';
 import NavigationWrapper from './Src/Navigation';
 import { AppProvider } from './Src/providers';
-import GlobalKycBottomSheet from './Src/hooks/GlobalKycBottomSheet';
+import GlobalKycBottomSheet from './Src/hooks/GlobalKycBottomSheet.native';
 import GlobalWalletConnectModals from './Src/components/GlobalWalletConnectModals';
 import { fontsFamily } from './Src/Theme';
 import colors from './Src/Theme/Colors';
@@ -21,19 +21,28 @@ export default function App() {
 
   const [isSecureDevice, setIsSecureDevice] = useState<Boolean>(true);
 
+  // useEffect(() => {
+  //   const checkDeviceSecurity = async () => {
+  //     const jailBroken = JailMonkey.isJailBroken();
+  //     const canMockLocation = JailMonkey.canMockLocation();
+
+  //     if (jailBroken || canMockLocation) {
+  //       setIsSecureDevice(false);
+  //     } else {
+  //       setIsSecureDevice(true);
+  //     }
+  //   };  
+
+  //   // checkDeviceSecurity();
+  // }, []);
+
   useEffect(() => {
-    const checkDeviceSecurity = async () => {
-      const jailBroken = JailMonkey.isJailBroken();
-      const canMockLocation = JailMonkey.canMockLocation();
+    const checkSecurity = async () => {
+      const secure = await checkDeviceSecurity();
+      setIsSecureDevice(secure);
+    };
 
-      if (jailBroken || canMockLocation) {
-        setIsSecureDevice(false);
-      } else {
-        setIsSecureDevice(true);
-      }
-    };  
-
-    // checkDeviceSecurity();
+    // checkSecurity();
   }, []);
 
   if (isSecureDevice === null) {

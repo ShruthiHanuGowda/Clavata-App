@@ -38,9 +38,17 @@ const WelcomeChoiceScreen = () => {
     };
 
     const handleSignIn = () => {
-        navigation.navigate('LoginScreen', {
-            mode: 'SIGN_IN',
-        });
+        console.log('SIGN IN CLICKED');
+
+        try {
+            navigation.navigate('LoginScreen', {
+                mode: 'SIGN_IN',
+            });
+
+            console.log('NAVIGATION CALLED');
+        } catch (error) {
+            console.error('NAVIGATION ERROR:', error);
+        }
     };
 
     return (
@@ -85,7 +93,7 @@ const WelcomeChoiceScreen = () => {
                         </View>
                         <View style={styles.optionContent}>
                             <Text style={styles.optionTitle}>
-                               Service Partner
+                                Service Partner
                             </Text>
                             <Text style={styles.optionDescription}>
                                 Get discovered. Receive bookings

@@ -17,6 +17,11 @@ type LoginMode = 'CUSTOMER' | 'PROVIDER' | 'SIGN_IN';
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+
+  console.log(
+    'LOGIN SCREEN RENDERED',
+    route.params
+  );
   const { setCurrentUser } = useUser();
   const mode: LoginMode = route.params?.mode || 'SIGN_IN';
   const hideBackButton = route.params?.hideBackButton === true;
@@ -314,7 +319,10 @@ export default function LoginScreen() {
       'We could not determine your account status. Please try again.',
     );
   };
-
+  console.log('LOGIN MODE:', mode);
+  console.log('PHONE:', phoneNumber);
+  console.log('VALID:', isValid);
+  console.log('LOADING:', loading);
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView

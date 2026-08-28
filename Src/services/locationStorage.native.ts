@@ -6,20 +6,10 @@ import {
   HARDCODED_LOCATION,
 } from './locationConfig';
 
-// ============================================================
-// TYPES
-// ============================================================
-
-export type LocationData = {
-  latitude: number;
-  longitude: number;
-  address: string;
-};
-
-export type SavedLocation = LocationData & {
-  id: string;
-  title: string;
-};
+import type {
+  LocationData,
+  SavedLocation,
+} from './locationTypes';
 
 // ============================================================
 // STORAGE KEYS
@@ -57,7 +47,7 @@ export const saveLocation = async (
 };
 
 // ============================================================
-// GET SAVED / SELECTED LOCATION
+// GET SELECTED LOCATION
 // ============================================================
 
 export const getSavedLocation =
@@ -120,18 +110,12 @@ export const clearSavedLocation =
 // ============================================================
 // GET ACTIVE LOCATION
 // ============================================================
-//
-// Production:
-//   selected_location from AsyncStorage
-//
-// Test:
-//   HARDCODED_LOCATION
-//
-// ============================================================
 
 export const getActiveLocation =
   async (): Promise<LocationData | null> => {
+
     if (USE_HARDCODED_LOCATION) {
+
       console.log(
         '🧪 TEST MODE: Using HARDCODED_LOCATION',
       );
@@ -145,11 +129,14 @@ export const getActiveLocation =
       await getSavedLocation();
 
     if (savedLocation) {
+
       console.log(
         '📍 Active location:',
         savedLocation,
       );
+
     } else {
+
       console.log(
         'ℹ️ No active location selected',
       );
@@ -161,27 +148,18 @@ export const getActiveLocation =
 // ============================================================
 // GET CURRENT DEVICE LOCATION
 // ============================================================
-//
-// IMPORTANT:
-//
-// This function gets the device's GPS location.
-//
-// It does NOT save the location.
-//
-// It does NOT replace selected_location.
-//
-// The caller decides whether to save it.
-//
-// ============================================================
 
 export const getCurrentLocation =
   async (): Promise<LocationData | null> => {
+
     try {
-      // ========================================================
+
+      // ==================================================
       // HARDCODED TEST MODE
-      // ========================================================
+      // ==================================================
 
       if (USE_HARDCODED_LOCATION) {
+
         console.log(
           '🧪 TEST MODE: Using HARDCODED_LOCATION',
         );
@@ -191,14 +169,17 @@ export const getCurrentLocation =
         };
       }
 
-      // ========================================================
-      // GET GPS LOCATION
-      // ========================================================
+      // ==================================================
+      // GPS
+      // ==================================================
 
       return await new Promise<LocationData | null>(
         resolve => {
+
           Geolocation.getCurrentPosition(
+
             position => {
+
               const {
                 latitude,
                 longitude,
@@ -213,13 +194,15 @@ export const getCurrentLocation =
               const location: LocationData = {
                 latitude,
                 longitude,
-                address: 'Current location',
+                address:
+                  'Current location',
               };
 
               resolve(location);
             },
 
             error => {
+
               console.log(
                 '❌ GPS location error:',
                 error,
@@ -236,7 +219,9 @@ export const getCurrentLocation =
           );
         },
       );
+
     } catch (error) {
+
       console.log(
         '❌ Get Current Location Error:',
         error,
@@ -247,12 +232,14 @@ export const getCurrentLocation =
   };
 
 // ============================================================
-// SAVED LOCATIONS
+// GET SAVED LOCATIONS
 // ============================================================
 
 export const getSavedLocations =
   async (): Promise<SavedLocation[]> => {
+
     try {
+
       const value =
         await AsyncStorage.getItem(
           SAVED_LOCATIONS_KEY,
@@ -270,7 +257,9 @@ export const getSavedLocations =
       }
 
       return locations as SavedLocation[];
+
     } catch (error) {
+
       console.log(
         '❌ Get Saved Locations Error:',
         error,
@@ -288,7 +277,9 @@ export const addSavedLocation =
   async (
     location: SavedLocation,
   ): Promise<void> => {
+
     try {
+
       const existing =
         await getSavedLocations();
 
@@ -302,6 +293,7 @@ export const addSavedLocation =
         );
 
       if (alreadyExists) {
+
         console.log(
           'ℹ️ Location already saved',
         );
@@ -323,7 +315,9 @@ export const addSavedLocation =
         '✅ Saved location added:',
         location,
       );
+
     } catch (error) {
+
       console.log(
         '❌ Add Saved Location Error:',
         error,
@@ -339,7 +333,9 @@ export const removeSavedLocation =
   async (
     id: string,
   ): Promise<void> => {
+
     try {
+
       const existing =
         await getSavedLocations();
 
@@ -357,7 +353,9 @@ export const removeSavedLocation =
         '✅ Saved location removed:',
         id,
       );
+
     } catch (error) {
+
       console.log(
         '❌ Remove Saved Location Error:',
         error,
@@ -366,12 +364,14 @@ export const removeSavedLocation =
   };
 
 // ============================================================
-// RECENT LOCATIONS
+// GET RECENT LOCATIONS
 // ============================================================
 
 export const getRecentLocations =
   async (): Promise<LocationData[]> => {
+
     try {
+
       const value =
         await AsyncStorage.getItem(
           RECENT_LOCATIONS_KEY,
@@ -389,7 +389,9 @@ export const getRecentLocations =
       }
 
       return locations as LocationData[];
+
     } catch (error) {
+
       console.log(
         '❌ Get Recent Locations Error:',
         error,
@@ -407,7 +409,9 @@ export const addRecentLocation =
   async (
     location: LocationData,
   ): Promise<void> => {
+
     try {
+
       const existing =
         await getRecentLocations();
 
@@ -436,7 +440,9 @@ export const addRecentLocation =
         '🕘 Recent location added:',
         location,
       );
+
     } catch (error) {
+
       console.log(
         '❌ Add Recent Location Error:',
         error,
@@ -450,7 +456,9 @@ export const addRecentLocation =
 
 export const clearRecentLocations =
   async (): Promise<void> => {
+
     try {
+
       await AsyncStorage.removeItem(
         RECENT_LOCATIONS_KEY,
       );
@@ -458,7 +466,9 @@ export const clearRecentLocations =
       console.log(
         '✅ Recent locations cleared',
       );
+
     } catch (error) {
+
       console.log(
         '❌ Clear Recent Locations Error:',
         error,
@@ -472,7 +482,9 @@ export const clearRecentLocations =
 
 export const clearAllLocationStorage =
   async (): Promise<void> => {
+
     try {
+
       await AsyncStorage.multiRemove([
         LOCATION_KEY,
         SAVED_LOCATIONS_KEY,
@@ -482,7 +494,9 @@ export const clearAllLocationStorage =
       console.log(
         '🧹 ALL LOCATION STORAGE CLEARED',
       );
+
     } catch (error) {
+
       console.log(
         '❌ Clear All Location Storage Error:',
         error,

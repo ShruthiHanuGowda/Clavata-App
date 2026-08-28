@@ -8,7 +8,7 @@ import {
     ScrollView,
     StyleSheet,
 } from 'react-native';
-import { Calendar } from 'react-native-calendars';
+import Calendar from './Calendar';
 const PRIMARY = '#008060';
 
 type DateItem = {

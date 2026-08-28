@@ -3,7 +3,10 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-
+import type {
+    SavedLocation,
+    LocationData,
+} from '../../../services/locationTypes';
 import {
     ActivityIndicator,
     Alert,
@@ -40,7 +43,6 @@ import {
 import {
     saveLocation,
     addRecentLocation,
-    LocationData,
 } from '../../../services/locationStorage';
 
 import {

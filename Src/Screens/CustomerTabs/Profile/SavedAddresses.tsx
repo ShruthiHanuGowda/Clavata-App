@@ -9,11 +9,13 @@ import {
     ActivityIndicator,
     Alert,
 } from 'react-native';
-
+import type {
+    SavedLocation,
+} from '../../../services/locationTypes';
 import {
     getSavedLocations,
-    SavedLocation,
 } from '../../../services/locationStorage';
+
 
 const PRIMARY = '#009D94';
 

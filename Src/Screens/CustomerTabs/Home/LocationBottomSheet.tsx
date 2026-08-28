@@ -2,7 +2,10 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-
+import type {
+    SavedLocation,
+    LocationData,
+} from '../../../services/locationTypes';
 import {
     View,
     Text,
@@ -15,8 +18,7 @@ import {
 } from 'react-native';
 
 // import Geolocation from '@react-native-community/geolocation';
-
-import Modal from 'react-native-modal';
+import Modal from './AppModal';
 
 import {
     check,
@@ -36,8 +38,6 @@ import {
     getRecentLocations,
     saveLocation,
     addRecentLocation,
-    SavedLocation,
-    LocationData,
 } from '../../../services/locationStorage';
 import { USE_HARDCODED_LOCATION } from '../../../services/locationConfig';
 

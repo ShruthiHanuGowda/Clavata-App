@@ -3,7 +3,10 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-
+import type {
+  SavedLocation,
+  LocationData,
+} from '../../../services/locationTypes';
 import {
   SafeAreaView,
   FlatList,
@@ -35,7 +38,6 @@ import HomeAdCarousel from './HomeAdCarousel';
 import {
   getActiveLocation,
   getCurrentLocation,
-  LocationData,
 } from '../../../services/locationStorage';
 
 import {

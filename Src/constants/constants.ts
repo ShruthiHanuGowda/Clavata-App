@@ -1,6 +1,6 @@
 // network
 
-import Config from 'react-native-config';
+import Config from './config';
 
 export const COLORS = {
   background: '#F8F8FA',
