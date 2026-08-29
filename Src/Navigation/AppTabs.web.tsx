@@ -1,46 +1,21 @@
-// import React from 'react';
-
-// import { useUser } from '../context/UserContext';
-
-// import CustomerTabs from './CustomerTabs.web';
-// import SalonTabs from './SalonTabs.web';
-
-// export default function AppTabs() {
-//   const { currentUser } = useUser();
-
-//   console.log(
-//     'WEB APP TABS CURRENT USER:',
-//     JSON.stringify(currentUser, null, 2),
-//   );
-
-//   console.log(
-//     'WEB ACTIVE ROLE:',
-//     currentUser?.activeRole,
-//   );
-
-//   if (currentUser?.activeRole === 'PROVIDER') {
-//     return <SalonTabs />;
-//   }
-
-//   return <CustomerTabs />;
-// }
-
-import React from 'react';
+import React, {
+  useState,
+} from 'react';
 
 import {
-    View,
-    Text,
-    Pressable,
-    StyleSheet,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
 } from 'react-native';
 
 import {
-    createNativeStackNavigator,
+  createNativeStackNavigator,
 } from '@react-navigation/native-stack';
 
 import {
-    useNavigation,
-    useRoute,
+  useNavigation,
+  useRoute,
 } from '@react-navigation/native';
 
 import HomeStackWeb from './HomeStack.web';
@@ -59,73 +34,73 @@ const Stack = createNativeStackNavigator();
 
 function ClavataScreen() {
 
-    return (
-        <View style={styles.placeholderScreen}>
+  return (
+    <View style={styles.placeholderScreen}>
 
-            <Text style={styles.placeholderTitle}>
-                Clavata
-            </Text>
+      <Text style={styles.placeholderTitle}>
+        Clavata
+      </Text>
 
-            <Text style={styles.placeholderSubtitle}>
-                Let Clavata find the perfect match for you.
-            </Text>
+      <Text style={styles.placeholderSubtitle}>
+        Let Clavata find the perfect match for you.
+      </Text>
 
-        </View>
-    );
+    </View>
+  );
 }
 
 
 function BookingsScreen() {
 
-    return (
-        <View style={styles.placeholderScreen}>
+  return (
+    <View style={styles.placeholderScreen}>
 
-            <Text style={styles.placeholderTitle}>
-                Bookings
-            </Text>
+      <Text style={styles.placeholderTitle}>
+        Bookings
+      </Text>
 
-            <Text style={styles.placeholderSubtitle}>
-                Your bookings will appear here.
-            </Text>
+      <Text style={styles.placeholderSubtitle}>
+        Your bookings will appear here.
+      </Text>
 
-        </View>
-    );
+    </View>
+  );
 }
 
 
 function OffersScreen() {
 
-    return (
-        <View style={styles.placeholderScreen}>
+  return (
+    <View style={styles.placeholderScreen}>
 
-            <Text style={styles.placeholderTitle}>
-                Offers
-            </Text>
+      <Text style={styles.placeholderTitle}>
+        Offers
+      </Text>
 
-            <Text style={styles.placeholderSubtitle}>
-                Discover exclusive salon offers.
-            </Text>
+      <Text style={styles.placeholderSubtitle}>
+        Discover exclusive salon offers.
+      </Text>
 
-        </View>
-    );
+    </View>
+  );
 }
 
 
 function ProfileScreen() {
 
-    return (
-        <View style={styles.placeholderScreen}>
+  return (
+    <View style={styles.placeholderScreen}>
 
-            <Text style={styles.placeholderTitle}>
-                Profile
-            </Text>
+      <Text style={styles.placeholderTitle}>
+        Profile
+      </Text>
 
-            <Text style={styles.placeholderSubtitle}>
-                Manage your account and preferences.
-            </Text>
+      <Text style={styles.placeholderSubtitle}>
+        Manage your account and preferences.
+      </Text>
 
-        </View>
-    );
+    </View>
+  );
 }
 
 
@@ -134,68 +109,78 @@ function ProfileScreen() {
 // ============================================================
 
 interface SidebarItemProps {
-    icon: string;
-    label: string;
-    active: boolean;
-    onPress: () => void;
+  icon: string;
+  label: string;
+  active: boolean;
+  collapsed: boolean;
+  onPress: () => void;
 }
 
 
 function SidebarItem({
-    icon,
-    label,
-    active,
-    onPress,
+  icon,
+  label,
+  active,
+  collapsed,
+  onPress,
 }: SidebarItemProps) {
 
-    return (
-        <Pressable
-            onPress={onPress}
-            style={({ hovered }: any) => [
-                styles.sidebarItem,
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityLabel={label}
+      style={({ hovered }: any) => [
+        styles.sidebarItem,
 
-                active &&
-                styles.sidebarItemActive,
+        collapsed &&
+        styles.sidebarItemCollapsed,
 
-                hovered &&
-                !active &&
-                styles.sidebarItemHover,
-            ]}
+        active &&
+        styles.sidebarItemActive,
+
+        hovered &&
+        !active &&
+        styles.sidebarItemHover,
+      ]}
+    >
+
+      <View
+        style={[
+          styles.sidebarIcon,
+          active &&
+          styles.sidebarIconActive,
+        ]}
+      >
+
+        <Text
+          style={[
+            styles.sidebarIconText,
+            active &&
+            styles.sidebarIconTextActive,
+          ]}
         >
+          {icon}
+        </Text>
 
-            <View
-                style={[
-                    styles.sidebarIcon,
-                    active &&
-                    styles.sidebarIconActive,
-                ]}
-            >
-
-                <Text
-                    style={[
-                        styles.sidebarIconText,
-                        active &&
-                        styles.sidebarIconTextActive,
-                    ]}
-                >
-                    {icon}
-                </Text>
-
-            </View>
+      </View>
 
 
-            <Text
-                style={[
-                    styles.sidebarLabel,
-                    active &&
-                    styles.sidebarLabelActive,
-                ]}
-            >
-                {label}
-            </Text>
+      {!collapsed && (
 
-        </Pressable>
-    );
+        <Text
+          style={[
+            styles.sidebarLabel,
+            active &&
+            styles.sidebarLabelActive,
+          ]}
+        >
+          {label}
+        </Text>
+
+      )}
+
+    </Pressable>
+  );
 }
 
 
@@ -203,209 +188,357 @@ function SidebarItem({
 // SIDEBAR
 // ============================================================
 
-function WebSidebar() {
-
-    const navigation =
-        useNavigation<any>();
-
-    const route =
-        useRoute<any>();
+interface WebSidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
 
 
-    const currentRoute =
-        route.name;
+function WebSidebar({
+  collapsed,
+  onToggle,
+}: WebSidebarProps) {
+
+  const navigation =
+    useNavigation<any>();
+
+  const route =
+    useRoute<any>();
 
 
-    const navigateTo = (
-        screen: string,
-    ) => {
-
-        navigation.navigate(
-            screen,
-        );
-    };
+  const currentRoute =
+    route.name;
 
 
-    return (
-        <View style={styles.sidebar}>
+  const navigateTo = (
+    screen: string,
+  ) => {
 
-            {/* ==================================================
-                BRAND
+    navigation.navigate(
+      screen,
+    );
+  };
+
+
+  return (
+
+    <View
+      style={[
+        styles.sidebar,
+
+        collapsed &&
+        styles.sidebarCollapsed,
+      ]}
+    >
+
+      {/* ==================================================
+                BRAND HEADER
             ================================================== */}
 
-            <View style={styles.brandContainer}>
+      <View
+        style={[
+          styles.brandHeader,
 
-                <View style={styles.logoMark}>
+          collapsed &&
+          styles.brandHeaderCollapsed,
+        ]}
+      >
 
-                    <Text style={styles.logoMarkText}>
-                        C
-                    </Text>
+        <View
+          style={[
+            styles.brandContainer,
 
-                </View>
+            collapsed &&
+            styles.brandContainerCollapsed,
+          ]}
+        >
 
+          <View style={styles.logoMark}>
 
-                <View style={styles.brandTextContainer}>
+            <Text style={styles.logoMarkText}>
+              C
+            </Text>
 
-                    <Text style={styles.brandName}>
-                        Clavata
-                    </Text>
-
-                    <Text style={styles.brandTagline}>
-                        Beauty, simplified.
-                    </Text>
-
-                </View>
-
-            </View>
-
-
-            {/* ==================================================
-                MAIN NAVIGATION
-            ================================================== */}
-
-            <View style={styles.navigationSection}>
-
-                <Text style={styles.navigationLabel}>
-                    DISCOVER
-                </Text>
+          </View>
 
 
-                <SidebarItem
-                    icon="⌂"
-                    label="Home"
-                    active={
-                        currentRoute === 'Home'
-                    }
-                    onPress={() =>
-                        navigateTo('Home')
-                    }
-                />
+          {!collapsed && (
 
-
-                <SidebarItem
-                    icon="✦"
-                    label="Clavata"
-                    active={
-                        currentRoute === 'Clavata'
-                    }
-                    onPress={() =>
-                        navigateTo('Clavata')
-                    }
-                />
-
-
-                <SidebarItem
-                    icon="□"
-                    label="Bookings"
-                    active={
-                        currentRoute === 'Bookings'
-                    }
-                    onPress={() =>
-                        navigateTo('Bookings')
-                    }
-                />
-
-
-                <SidebarItem
-                    icon="◇"
-                    label="Offers"
-                    active={
-                        currentRoute === 'Offers'
-                    }
-                    onPress={() =>
-                        navigateTo('Offers')
-                    }
-                />
-
-
-                <SidebarItem
-                    icon="○"
-                    label="Profile"
-                    active={
-                        currentRoute === 'Profile'
-                    }
-                    onPress={() =>
-                        navigateTo('Profile')
-                    }
-                />
-
-            </View>
-
-
-            {/* ==================================================
-                SPACER
-            ================================================== */}
-
-            <View style={styles.sidebarSpacer} />
-
-
-            {/* ==================================================
-                BECOME PARTNER
-            ================================================== */}
-
-            <Pressable
-                onPress={() =>
-                    navigateTo(
-                        'BecomePartner',
-                    )
-                }
-                style={({ hovered }: any) => [
-                    styles.partnerCard,
-
-                    hovered &&
-                    styles.partnerCardHover,
-                ]}
+            <View
+              style={
+                styles.brandTextContainer
+              }
             >
 
-                <View style={styles.partnerIcon}>
+              <Text
+                style={styles.brandName}
+              >
+                Clavata
+              </Text>
 
-                    <Text style={styles.partnerIconText}>
-                        +
-                    </Text>
+              <Text
+                style={styles.brandTagline}
+              >
+                Beauty, simplified.
+              </Text>
 
-                </View>
+            </View>
 
+          )}
 
-                <View style={styles.partnerTextContainer}>
-
-                    <Text style={styles.partnerTitle}>
-                        Become a partner
-                    </Text>
-
-                    <Text style={styles.partnerSubtitle}>
-                        Grow your beauty business
-                    </Text>
-
-                </View>
-
-            </Pressable>
+        </View>
 
 
-            {/* ==================================================
+        {/* TOGGLE */}
+
+        <Pressable
+          onPress={onToggle}
+          accessibilityLabel={
+            collapsed
+              ? 'Expand sidebar'
+              : 'Collapse sidebar'
+          }
+          style={({ hovered }: any) => [
+            styles.toggleButton,
+
+            hovered &&
+            styles.toggleButtonHover,
+
+            collapsed &&
+            styles.toggleButtonCollapsed,
+          ]}
+        >
+
+          <Text
+            style={
+              styles.toggleIcon
+            }
+          >
+            {collapsed
+              ? '›'
+              : '‹'}
+          </Text>
+
+        </Pressable>
+
+      </View>
+
+
+      {/* ==================================================
                 DIVIDER
             ================================================== */}
 
-            <View style={styles.divider} />
+      <View
+        style={styles.sidebarDivider}
+      />
 
 
-            {/* ==================================================
+      {/* ==================================================
+                MAIN NAVIGATION
+            ================================================== */}
+
+      <View
+        style={[
+          styles.navigationSection,
+
+          collapsed &&
+          styles.navigationSectionCollapsed,
+        ]}
+      >
+
+        {!collapsed && (
+
+          <Text
+            style={
+              styles.navigationLabel
+            }
+          >
+            DISCOVER
+          </Text>
+
+        )}
+
+
+        <SidebarItem
+          icon="⌂"
+          label="Home"
+          active={
+            currentRoute === 'Home'
+          }
+          collapsed={collapsed}
+          onPress={() =>
+            navigateTo('Home')
+          }
+        />
+
+
+        {/* <SidebarItem
+          icon="✦"
+          label="Clavata"
+          active={
+            currentRoute === 'Clavata'
+          }
+          collapsed={collapsed}
+          onPress={() =>
+            navigateTo('Clavata')
+          }
+        /> */}
+
+
+        <SidebarItem
+          icon="□"
+          label="Bookings"
+          active={
+            currentRoute === 'Bookings'
+          }
+          collapsed={collapsed}
+          onPress={() =>
+            navigateTo('Bookings')
+          }
+        />
+
+
+        <SidebarItem
+          icon="◇"
+          label="Offers"
+          active={
+            currentRoute === 'Offers'
+          }
+          collapsed={collapsed}
+          onPress={() =>
+            navigateTo('Offers')
+          }
+        />
+
+
+        <SidebarItem
+          icon="○"
+          label="Profile"
+          active={
+            currentRoute === 'Profile'
+          }
+          collapsed={collapsed}
+          onPress={() =>
+            navigateTo('Profile')
+          }
+        />
+
+      </View>
+
+
+      {/* ==================================================
+                SPACER
+            ================================================== */}
+
+      <View
+        style={styles.sidebarSpacer}
+      />
+
+
+      {/* ==================================================
+                BECOME PARTNER
+            ================================================== */}
+
+      <Pressable
+        onPress={() =>
+          navigateTo(
+            'BecomePartner',
+          )
+        }
+        accessibilityLabel="Become a partner"
+        style={({ hovered }: any) => [
+          styles.partnerCard,
+
+          collapsed &&
+          styles.partnerCardCollapsed,
+
+          hovered &&
+          styles.partnerCardHover,
+        ]}
+      >
+
+        <View style={styles.partnerIcon}>
+
+          <Text
+            style={
+              styles.partnerIconText
+            }
+          >
+            +
+          </Text>
+
+        </View>
+
+
+        {!collapsed && (
+
+          <View
+            style={
+              styles.partnerTextContainer
+            }
+          >
+
+            <Text
+              style={styles.partnerTitle}
+            >
+              Become a partner
+            </Text>
+
+            <Text
+              style={styles.partnerSubtitle}
+            >
+              Grow your beauty business
+            </Text>
+
+          </View>
+
+        )}
+
+      </Pressable>
+
+
+      {/* ==================================================
+                DIVIDER
+            ================================================== */}
+
+      <View
+        style={styles.divider}
+      />
+
+
+      {/* ==================================================
                 FOOTER
             ================================================== */}
 
-            <View style={styles.sidebarFooter}>
+      <View
+        style={[
+          styles.sidebarFooter,
 
-                <Text style={styles.footerText}>
-                    Clavata
-                </Text>
+          collapsed &&
+          styles.sidebarFooterCollapsed,
+        ]}
+      >
 
-                <Text style={styles.footerVersion}>
-                    © 2026
-                </Text>
+        {!collapsed && (
 
-            </View>
+          <Text
+            style={styles.footerText}
+          >
+            Clavata
+          </Text>
 
-        </View>
-    );
+        )}
+
+        <Text
+          style={styles.footerVersion}
+        >
+          © 2026
+        </Text>
+
+      </View>
+
+    </View>
+  );
 }
 
 
@@ -415,88 +548,113 @@ function WebSidebar() {
 
 function WebAppShell() {
 
-    return (
-        <View style={styles.appContainer}>
+  const [
+    sidebarCollapsed,
+    setSidebarCollapsed,
+  ] = useState(false);
 
-            {/* ==================================================
+
+  const toggleSidebar = () => {
+
+    setSidebarCollapsed(
+      previous =>
+        !previous,
+    );
+  };
+
+
+  return (
+
+    <View style={styles.appContainer}>
+
+      {/* ==================================================
                 SIDEBAR
             ================================================== */}
 
-            <WebSidebar />
+      <WebSidebar
+        collapsed={
+          sidebarCollapsed
+        }
+        onToggle={
+          toggleSidebar
+        }
+      />
 
 
-            {/* ==================================================
+      {/* ==================================================
                 CONTENT
             ================================================== */}
 
-            <View style={styles.contentContainer}>
+      <View
+        style={styles.contentContainer}
+      >
 
-                <Stack.Navigator
-                    initialRouteName="Home"
-                    screenOptions={{
-                        headerShown: false,
-                        contentStyle: {
-                            backgroundColor:
-                                '#F7F7F5',
-                        },
-                    }}
-                >
+        <Stack.Navigator
+          initialRouteName="Home"
+          screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor:
+                '#F7F7F5',
+            },
+          }}
+        >
 
-                    {/* ==================================================
+          {/* ==================================================
                         HOME
                     ================================================== */}
 
-                    <Stack.Screen
-                        name="Home"
-                        component={HomeStackWeb}
-                    />
+          <Stack.Screen
+            name="Home"
+            component={HomeStackWeb}
+          />
 
 
-                    {/* ==================================================
+          {/* ==================================================
                         CLAVATA
                     ================================================== */}
 
-                    <Stack.Screen
-                        name="Clavata"
-                        component={ClavataScreen}
-                    />
+          <Stack.Screen
+            name="Clavata"
+            component={ClavataScreen}
+          />
 
 
-                    {/* ==================================================
+          {/* ==================================================
                         BOOKINGS
                     ================================================== */}
 
-                    <Stack.Screen
-                        name="Bookings"
-                        component={BookingsScreen}
-                    />
+          <Stack.Screen
+            name="Bookings"
+            component={BookingsScreen}
+          />
 
 
-                    {/* ==================================================
+          {/* ==================================================
                         OFFERS
                     ================================================== */}
 
-                    <Stack.Screen
-                        name="Offers"
-                        component={OffersScreen}
-                    />
+          <Stack.Screen
+            name="Offers"
+            component={OffersScreen}
+          />
 
 
-                    {/* ==================================================
+          {/* ==================================================
                         PROFILE
                     ================================================== */}
 
-                    <Stack.Screen
-                        name="Profile"
-                        component={ProfileScreen}
-                    />
+          <Stack.Screen
+            name="Profile"
+            component={ProfileScreen}
+          />
 
-                </Stack.Navigator>
+        </Stack.Navigator>
 
-            </View>
+      </View>
 
-        </View>
-    );
+    </View>
+  );
 }
 
 
@@ -506,13 +664,13 @@ function WebAppShell() {
 
 export default function AppTabs() {
 
-    console.log(
-        '🔥🔥🔥 WEB APP TABS RENDERED',
-    );
+  console.log(
+    '🔥🔥🔥 WEB APP TABS RENDERED',
+  );
 
-    return (
-        <WebAppShell />
-    );
+  return (
+    <WebAppShell />
+  );
 }
 
 
@@ -521,343 +679,563 @@ export default function AppTabs() {
 // ============================================================
 
 const styles =
-    StyleSheet.create({
+  StyleSheet.create({
 
-        // ========================================================
-        // APP
-        // ========================================================
+    // ========================================================
+    // APP
+    // ========================================================
 
-        appContainer: {
-            flex: 1,
-            flexDirection: 'row',
-            width: '100%',
-            height: '100%',
-            minHeight: 700,
-            backgroundColor: '#F7F7F5',
-        },
+    appContainer: {
+      flex: 1,
 
+      flexDirection: 'row',
 
-        // ========================================================
-        // SIDEBAR
-        // ========================================================
+      width: '100%',
+      height: '100%',
 
-        sidebar: {
-            width: 250,
-            flexShrink: 0,
+      minHeight: 700,
 
-            height: '100%',
+      backgroundColor: '#F7F7F5',
+    },
 
-            backgroundColor: '#FFFFFF',
 
-            borderRightWidth: 1,
-            borderRightColor: '#E7E7E4',
+    // ========================================================
+    // SIDEBAR
+    // ========================================================
 
-            paddingTop: 28,
-            paddingHorizontal: 16,
-            paddingBottom: 20,
+    sidebar: {
+      width: 250,
 
-            display: 'flex',
-        },
+      flexShrink: 0,
 
+      height: '100%',
 
-        // ========================================================
-        // BRAND
-        // ========================================================
+      backgroundColor: '#FFFFFF',
 
-        brandContainer: {
-            flexDirection: 'row',
-            alignItems: 'center',
+      borderRightWidth: 1,
+      borderRightColor: '#E7E7E4',
 
-            paddingHorizontal: 10,
-            marginBottom: 40,
-        },
+      paddingTop: 20,
+      paddingHorizontal: 16,
+      paddingBottom: 20,
 
-        logoMark: {
-            width: 42,
-            height: 42,
+      display: 'flex',
 
-            borderRadius: 13,
+      transitionProperty: 'width',
+      transitionDuration: '220ms',
+      transitionTimingFunction: 'ease',
+    } as any,
 
-            backgroundColor: '#111111',
 
-            alignItems: 'center',
-            justifyContent: 'center',
+    sidebarCollapsed: {
+      width: 76,
 
-            marginRight: 11,
-        },
+      paddingHorizontal: 10,
+    } as any,
 
-        logoMarkText: {
-            color: '#FFFFFF',
-            fontSize: 21,
-            fontWeight: '800',
-        },
 
-        brandTextContainer: {
-            flex: 1,
-        },
+    // ========================================================
+    // BRAND HEADER
+    // ========================================================
 
-        brandName: {
-            fontSize: 21,
-            fontWeight: '800',
-            color: '#111111',
-            letterSpacing: -0.7,
-        },
+    brandHeader: {
+      width: '100%',
 
-        brandTagline: {
-            marginTop: 2,
-            fontSize: 10,
-            color: '#999999',
-        },
+      minHeight: 54,
 
+      flexDirection: 'row',
 
-        // ========================================================
-        // NAVIGATION
-        // ========================================================
+      alignItems: 'center',
 
-        navigationSection: {
-            width: '100%',
-        },
+      justifyContent: 'space-between',
+    },
 
-        navigationLabel: {
-            marginLeft: 12,
-            marginBottom: 10,
 
-            fontSize: 9,
-            fontWeight: '800',
+    brandHeaderCollapsed: {
+      flexDirection: 'column',
 
-            letterSpacing: 1.2,
+      justifyContent: 'center',
 
-            color: '#AAAAAA',
-        },
+      gap: 10,
+    },
 
 
-        // ========================================================
-        // SIDEBAR ITEM
-        // ========================================================
+    // ========================================================
+    // BRAND
+    // ========================================================
 
-        sidebarItem: {
-            width: '100%',
-            height: 50,
+    brandContainer: {
+      flexDirection: 'row',
 
-            flexDirection: 'row',
-            alignItems: 'center',
+      alignItems: 'center',
 
-            paddingHorizontal: 10,
+      paddingHorizontal: 4,
 
-            borderRadius: 12,
+      flex: 1,
 
-            marginBottom: 5,
+      minWidth: 0,
+    },
 
-            cursor: 'pointer',
-        },
 
-        sidebarItemActive: {
-            backgroundColor: '#111111',
-        },
+    brandContainerCollapsed: {
+      flex: 0,
 
-        sidebarItemHover: {
-            backgroundColor: '#F4F4F2',
-        },
+      paddingHorizontal: 0,
 
+      justifyContent: 'center',
+    },
 
-        // ========================================================
-        // ICON
-        // ========================================================
 
-        sidebarIcon: {
-            width: 34,
-            height: 34,
+    logoMark: {
+      width: 42,
+      height: 42,
 
-            borderRadius: 10,
+      borderRadius: 13,
 
-            alignItems: 'center',
-            justifyContent: 'center',
+      backgroundColor: '#111111',
 
-            marginRight: 11,
-        },
+      alignItems: 'center',
+      justifyContent: 'center',
 
-        sidebarIconActive: {
-            backgroundColor: '#FFFFFF',
-        },
+      marginRight: 11,
 
-        sidebarIconText: {
-            fontSize: 20,
-            color: '#777777',
-        },
+      flexShrink: 0,
+    },
 
-        sidebarIconTextActive: {
-            color: '#111111',
-        },
 
+    logoMarkText: {
+      color: '#FFFFFF',
 
-        // ========================================================
-        // LABEL
-        // ========================================================
+      fontSize: 21,
 
-        sidebarLabel: {
-            fontSize: 13,
-            fontWeight: '600',
-            color: '#555555',
-        },
+      fontWeight: '800',
+    },
 
-        sidebarLabelActive: {
-            color: '#FFFFFF',
-            fontWeight: '700',
-        },
 
+    brandTextContainer: {
+      flex: 1,
 
-        // ========================================================
-        // SPACER
-        // ========================================================
+      minWidth: 0,
+    },
 
-        sidebarSpacer: {
-            flex: 1,
-        },
 
+    brandName: {
+      fontSize: 21,
 
-        // ========================================================
-        // PARTNER CARD
-        // ========================================================
+      fontWeight: '800',
 
-        partnerCard: {
-            width: '100%',
+      color: '#111111',
 
-            minHeight: 70,
+      letterSpacing: -0.7,
+    },
 
-            flexDirection: 'row',
-            alignItems: 'center',
 
-            paddingHorizontal: 11,
-            paddingVertical: 10,
+    brandTagline: {
+      marginTop: 2,
 
-            borderRadius: 14,
+      fontSize: 10,
 
-            backgroundColor: '#F6F6F4',
+      color: '#999999',
+    },
 
-            cursor: 'pointer',
-        },
 
-        partnerCardHover: {
-            backgroundColor: '#EEEEEB',
-        },
+    // ========================================================
+    // TOGGLE
+    // ========================================================
 
-        partnerIcon: {
-            width: 34,
-            height: 34,
+    toggleButton: {
+      width: 30,
+      height: 30,
 
-            borderRadius: 10,
+      borderRadius: 9,
 
-            backgroundColor: '#111111',
+      backgroundColor: '#F4F4F2',
 
-            alignItems: 'center',
-            justifyContent: 'center',
+      alignItems: 'center',
+      justifyContent: 'center',
 
-            marginRight: 10,
-        },
+      flexShrink: 0,
 
-        partnerIconText: {
-            color: '#FFFFFF',
-            fontSize: 20,
-            fontWeight: '400',
-        },
+      cursor: 'pointer',
 
-        partnerTextContainer: {
-            flex: 1,
-        },
+      borderWidth: 1,
+      borderColor: '#E7E7E4',
+    },
 
-        partnerTitle: {
-            fontSize: 11,
-            fontWeight: '700',
-            color: '#111111',
-        },
 
-        partnerSubtitle: {
-            marginTop: 3,
-            fontSize: 9,
-            color: '#999999',
-            lineHeight: 13,
-        },
+    toggleButtonCollapsed: {
+      width: 30,
+      height: 30,
+    },
 
 
-        // ========================================================
-        // DIVIDER
-        // ========================================================
+    toggleButtonHover: {
+      backgroundColor: '#EAEAE7',
 
-        divider: {
-            height: 1,
-            width: '100%',
+      borderColor: '#DCDCD9',
+    },
 
-            backgroundColor: '#EEEEEC',
 
-            marginTop: 18,
-            marginBottom: 15,
-        },
+    toggleIcon: {
+      fontSize: 22,
 
+      lineHeight: 24,
 
-        // ========================================================
-        // FOOTER
-        // ========================================================
+      color: '#333333',
 
-        sidebarFooter: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+      fontWeight: '300',
 
-            paddingHorizontal: 10,
-        },
+      marginTop: -2,
+    },
 
-        footerText: {
-            fontSize: 10,
-            fontWeight: '700',
-            color: '#999999',
-        },
 
-        footerVersion: {
-            fontSize: 9,
-            color: '#BBBBBB',
-        },
+    // ========================================================
+    // DIVIDER
+    // ========================================================
 
+    sidebarDivider: {
+      height: 1,
 
-        // ========================================================
-        // CONTENT
-        // ========================================================
+      width: '100%',
 
-        contentContainer: {
-            flex: 1,
+      backgroundColor: '#EEEEEC',
 
-            minWidth: 0,
-            minHeight: 0,
+      marginTop: 18,
 
-            backgroundColor: '#F7F7F5',
+      marginBottom: 20,
+    },
 
-            overflow: 'hidden',
-        },
 
+    // ========================================================
+    // NAVIGATION
+    // ========================================================
 
-        // ========================================================
-        // PLACEHOLDER
-        // ========================================================
+    navigationSection: {
+      width: '100%',
+    },
 
-        placeholderScreen: {
-            flex: 1,
 
-            minHeight: 700,
+    navigationSectionCollapsed: {
+      alignItems: 'center',
+    },
 
-            padding: 50,
 
-            backgroundColor: '#F7F7F5',
-        },
+    navigationLabel: {
+      marginLeft: 12,
 
-        placeholderTitle: {
-            fontSize: 34,
-            fontWeight: '800',
-            color: '#111111',
-        },
+      marginBottom: 10,
 
-        placeholderSubtitle: {
-            marginTop: 10,
-            fontSize: 14,
-            color: '#777777',
-        },
+      fontSize: 9,
 
-    });
+      fontWeight: '800',
+
+      letterSpacing: 1.2,
+
+      color: '#AAAAAA',
+    },
+
+
+    // ========================================================
+    // SIDEBAR ITEM
+    // ========================================================
+
+    sidebarItem: {
+      width: '100%',
+
+      height: 50,
+
+      flexDirection: 'row',
+
+      alignItems: 'center',
+
+      paddingHorizontal: 10,
+
+      borderRadius: 12,
+
+      marginBottom: 5,
+
+      cursor: 'pointer',
+    },
+
+
+    sidebarItemCollapsed: {
+      width: 52,
+
+      paddingHorizontal: 0,
+
+      justifyContent: 'center',
+    },
+
+
+    sidebarItemActive: {
+      backgroundColor: '#111111',
+    },
+
+
+    sidebarItemHover: {
+      backgroundColor: '#F4F4F2',
+    },
+
+
+    // ========================================================
+    // ICON
+    // ========================================================
+
+    sidebarIcon: {
+      width: 34,
+      height: 34,
+
+      borderRadius: 10,
+
+      alignItems: 'center',
+      justifyContent: 'center',
+
+      marginRight: 11,
+    },
+
+
+    sidebarIconActive: {
+      backgroundColor: '#FFFFFF',
+    },
+
+
+    sidebarIconText: {
+      fontSize: 20,
+
+      color: '#777777',
+    },
+
+
+    sidebarIconTextActive: {
+      color: '#111111',
+    },
+
+
+    // ========================================================
+    // LABEL
+    // ========================================================
+
+    sidebarLabel: {
+      fontSize: 13,
+
+      fontWeight: '600',
+
+      color: '#555555',
+    },
+
+
+    sidebarLabelActive: {
+      color: '#FFFFFF',
+
+      fontWeight: '700',
+    },
+
+
+    // ========================================================
+    // SPACER
+    // ========================================================
+
+    sidebarSpacer: {
+      flex: 1,
+    },
+
+
+    // ========================================================
+    // PARTNER CARD
+    // ========================================================
+
+    partnerCard: {
+      width: '100%',
+
+      minHeight: 70,
+
+      flexDirection: 'row',
+
+      alignItems: 'center',
+
+      paddingHorizontal: 11,
+
+      paddingVertical: 10,
+
+      borderRadius: 14,
+
+      backgroundColor: '#F6F6F4',
+
+      cursor: 'pointer',
+    },
+
+
+    partnerCardCollapsed: {
+      width: 52,
+
+      minHeight: 52,
+
+      paddingHorizontal: 0,
+
+      paddingVertical: 0,
+
+      justifyContent: 'center',
+
+      alignSelf: 'center',
+    },
+
+
+    partnerCardHover: {
+      backgroundColor: '#EEEEEB',
+    },
+
+
+    partnerIcon: {
+      width: 34,
+      height: 34,
+
+      borderRadius: 10,
+
+      backgroundColor: '#111111',
+
+      alignItems: 'center',
+      justifyContent: 'center',
+
+      marginRight: 10,
+    },
+
+
+    partnerIconText: {
+      color: '#FFFFFF',
+
+      fontSize: 20,
+
+      fontWeight: '400',
+    },
+
+
+    partnerTextContainer: {
+      flex: 1,
+    },
+
+
+    partnerTitle: {
+      fontSize: 11,
+
+      fontWeight: '700',
+
+      color: '#111111',
+    },
+
+
+    partnerSubtitle: {
+      marginTop: 3,
+
+      fontSize: 9,
+
+      color: '#999999',
+
+      lineHeight: 13,
+    },
+
+
+    // ========================================================
+    // DIVIDER
+    // ========================================================
+
+    divider: {
+      height: 1,
+
+      width: '100%',
+
+      backgroundColor: '#EEEEEC',
+
+      marginTop: 18,
+
+      marginBottom: 15,
+    },
+
+
+    // ========================================================
+    // FOOTER
+    // ========================================================
+
+    sidebarFooter: {
+      flexDirection: 'row',
+
+      justifyContent: 'space-between',
+
+      alignItems: 'center',
+
+      paddingHorizontal: 10,
+    },
+
+
+    sidebarFooterCollapsed: {
+      justifyContent: 'center',
+
+      paddingHorizontal: 0,
+    },
+
+
+    footerText: {
+      fontSize: 10,
+
+      fontWeight: '700',
+
+      color: '#999999',
+    },
+
+
+    footerVersion: {
+      fontSize: 9,
+
+      color: '#BBBBBB',
+    },
+
+
+    // ========================================================
+    // CONTENT
+    // ========================================================
+
+    contentContainer: {
+      flex: 1,
+
+      minWidth: 0,
+
+      minHeight: 0,
+
+      backgroundColor: '#F7F7F5',
+
+      overflow: 'hidden',
+    },
+
+
+    // ========================================================
+    // PLACEHOLDER
+    // ========================================================
+
+    placeholderScreen: {
+      flex: 1,
+
+      minHeight: 700,
+
+      padding: 50,
+
+      backgroundColor: '#F7F7F5',
+    },
+
+
+    placeholderTitle: {
+      fontSize: 34,
+
+      fontWeight: '800',
+
+      color: '#111111',
+    },
+
+
+    placeholderSubtitle: {
+      marginTop: 10,
+
+      fontSize: 14,
+
+      color: '#777777',
+    },
+
+  });

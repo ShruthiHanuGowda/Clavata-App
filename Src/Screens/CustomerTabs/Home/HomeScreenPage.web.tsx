@@ -3,7 +3,6 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-
 import {
   SafeAreaView,
   FlatList,
@@ -16,17 +15,15 @@ import {
   ActivityIndicator,
   Pressable,
 } from 'react-native';
-
 import {
   useApolloClient,
 } from '@apollo/client';
-
 import {
   useNavigation,
 } from '@react-navigation/native';
-
-import SalonCard from './SalonCard';
+import HomeHeader from './HomeHeader';
 import ServiceChips from './ServiceChips';
+import SalonCard from './SalonCard';
 import LocationBottomSheet from './LocationBottomSheet';
 import ReviewPopup from './ReviewPopup';
 
@@ -566,6 +563,7 @@ export default function HomeScreenPage() {
               categories:
                 item.categories ||
                 [],
+
             }),
           );
 
@@ -912,7 +910,9 @@ export default function HomeScreenPage() {
     >
 
       {/* ======================================================
-          MAIN AREA
+          MAIN CONTENT
+          Sidebar is intentionally NOT rendered here.
+          Your existing web layout/sidebar controls this screen.
       ====================================================== */}
 
       <View
@@ -927,7 +927,9 @@ export default function HomeScreenPage() {
           style={styles.topHeader}
         >
 
-          <View>
+          <View
+            style={styles.welcomeArea}
+          >
 
             <Text
               style={styles.welcomeText}
@@ -944,7 +946,9 @@ export default function HomeScreenPage() {
           </View>
 
 
-          {/* LOCATION */}
+          {/* ==================================================
+              LOCATION
+          ================================================== */}
 
           <TouchableOpacity
             style={styles.locationButton}
@@ -1067,11 +1071,8 @@ export default function HomeScreenPage() {
 
                     <TouchableOpacity
                       onPress={() => {
-
                         setSearch('');
-
                         handleSearchSubmit();
-
                       }}
                     >
 
@@ -1932,13 +1933,25 @@ const styles =
     },
 
 
+    // ========================================================
+    // TOP HEADER
+    // ========================================================
+
     topHeader: {
-      height: 92,
+      minHeight: 92,
       paddingHorizontal: 42,
+      paddingVertical: 16,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       backgroundColor: '#F6F6F3',
+    },
+
+
+    welcomeArea: {
+      flex: 1,
+      minWidth: 0,
+      paddingRight: 25,
     },
 
 
@@ -1962,7 +1975,7 @@ const styles =
     // ========================================================
 
     locationButton: {
-      minWidth: 225,
+      width: 225,
       height: 53,
       backgroundColor: '#FFFFFF',
       borderWidth: 1,
@@ -1993,6 +2006,7 @@ const styles =
 
     locationTextWrap: {
       flex: 1,
+      minWidth: 0,
     },
 
 
@@ -2248,6 +2262,7 @@ const styles =
 
     clavataBody: {
       flex: 1,
+      minWidth: 0,
     },
 
 
@@ -2569,6 +2584,7 @@ const styles =
 
     filterFieldContent: {
       flex: 1,
+      minWidth: 0,
     },
 
 
@@ -2599,6 +2615,7 @@ const styles =
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
+      minWidth: 0,
     },
 
 
