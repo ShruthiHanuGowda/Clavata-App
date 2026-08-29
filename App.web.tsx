@@ -6,10 +6,13 @@ import {
   StyleSheet,
   ActivityIndicator,
   Text,
+  Platform,
 } from 'react-native';
-import JailMonkey from 'jail-monkey'; // ✅ Import jailbreak detection
 
-import NavigationWrapper from './Src/Navigation';
+import JailMonkey from 'jail-monkey';
+
+import Navigation from './Src/Navigation/index.web';
+
 import { AppProvider } from './Src/providers';
 import GlobalKycBottomSheet from './Src/hooks/GlobalKycBottomSheet';
 import GlobalWalletConnectModals from './Src/components/GlobalWalletConnectModals';
@@ -17,9 +20,11 @@ import { fontsFamily } from './Src/Theme';
 import colors from './Src/Theme/Colors';
 
 export default function App() {
-  Appearance.setColorScheme('light');
+  if (Platform.OS !== 'web') {
+    Appearance.setColorScheme('light');
+  }
 
-  const [isSecureDevice, setIsSecureDevice] = useState<Boolean>(true);
+  const [isSecureDevice, setIsSecureDevice] = useState(true);
 
   useEffect(() => {
     const checkDeviceSecurity = async () => {
@@ -31,25 +36,16 @@ export default function App() {
       } else {
         setIsSecureDevice(true);
       }
-    };  
+    };
 
+    // Disabled for web
     // checkDeviceSecurity();
   }, []);
 
-  if (isSecureDevice === null) {
-    // Still checking
-    return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
   if (!isSecureDevice) {
-    // Device is insecure, block usage
     return (
       <View style={[styles.container, styles.center]}>
-        <Text style={styles?.ErrorText}>
+        <Text style={styles.ErrorText}>
           This device is not allowed to use the app.
         </Text>
       </View>
@@ -60,8 +56,10 @@ export default function App() {
     <View style={styles.container}>
       <GestureHandlerRootView style={styles.container}>
         <AppProvider>
-          <NavigationWrapper />
+          <Navigation />
+
           <GlobalKycBottomSheet />
+
           <GlobalWalletConnectModals />
         </AppProvider>
       </GestureHandlerRootView>
@@ -73,10 +71,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+
   center: {
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   ErrorText: {
     fontFamily: fontsFamily.MulishBold,
     color: colors.error,

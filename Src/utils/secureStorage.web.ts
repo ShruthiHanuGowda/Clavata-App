@@ -1,8 +1,6 @@
 // secureStorage.web.ts
 //
 // Web implementation of secureStorage.
-// This file is automatically used by the web build instead of
-// secureStorage.ts.
 //
 // Android/iOS:
 //   secureStorage.ts -> react-native-keychain
@@ -10,8 +8,7 @@
 // Web:
 //   secureStorage.web.ts -> localStorage
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {errorService, ErrorCode} from '../services/errorService';
+import { errorService, ErrorCode } from '../services/errorService';
 
 const DEFAULT_SERVICE = 'app_secure_storage';
 const INIT_FLAG = 'app_already_initialized';
@@ -23,9 +20,6 @@ const getStorageKey = (key: string): string => {
 const secureStorage = {
   /**
    * Stores a key-value pair.
-   *
-   * Web uses localStorage because react-native-keychain
-   * is a native-only module.
    */
   async setItem(key: string, value: string): Promise<boolean> {
     try {
@@ -124,18 +118,19 @@ const secureStorage = {
 /**
  * Initializes application storage.
  *
- * Same logic as the native implementation.
+ * Web version uses localStorage instead of AsyncStorage.
  */
 export const initializeAppStorage = async (): Promise<void> => {
   try {
-    const alreadyInitialized =
-      await AsyncStorage.getItem(INIT_FLAG);
+    const alreadyInitialized = localStorage.getItem(
+      getStorageKey(INIT_FLAG),
+    );
 
     if (!alreadyInitialized) {
       await secureStorage.clearAll();
 
-      await AsyncStorage.setItem(
-        INIT_FLAG,
+      localStorage.setItem(
+        getStorageKey(INIT_FLAG),
         'true',
       );
     }
@@ -152,4 +147,3 @@ export const initializeAppStorage = async (): Promise<void> => {
 };
 
 export default secureStorage;
-
