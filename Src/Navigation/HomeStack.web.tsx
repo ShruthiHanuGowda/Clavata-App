@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {
     createNativeStackNavigator,
 } from '@react-navigation/native-stack';
@@ -14,13 +15,18 @@ const Stack = createNativeStackNavigator();
 
 export default function HomeStackWeb() {
 
-    console.log('🔥🔥🔥 HomeStackWeb COMPONENT RENDERED');
+    console.log(
+        '🔥🔥🔥 HomeStackWeb COMPONENT RENDERED',
+    );
 
     return (
         <Stack.Navigator
             initialRouteName="HomeScreen"
             screenOptions={{
                 headerShown: false,
+                contentStyle: {
+                    backgroundColor: '#F7F7F5',
+                },
             }}
         >
 
