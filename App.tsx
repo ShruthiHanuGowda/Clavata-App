@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Text,
+  Platform
 } from 'react-native';
 import JailMonkey from 'jail-monkey'; // ✅ Import jailbreak detection
 
@@ -17,7 +18,11 @@ import { fontsFamily } from './Src/Theme';
 import colors from './Src/Theme/Colors';
 
 export default function App() {
-  Appearance.setColorScheme('light');
+  // Only use React Native's native color-scheme API
+  // on Android/iOS.
+  if (Platform.OS !== 'web') {
+    Appearance.setColorScheme('light');
+  }
 
   const [isSecureDevice, setIsSecureDevice] = useState<Boolean>(true);
 
@@ -31,7 +36,7 @@ export default function App() {
       } else {
         setIsSecureDevice(true);
       }
-    };  
+    };
 
     // checkDeviceSecurity();
   }, []);

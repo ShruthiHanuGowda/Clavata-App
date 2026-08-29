@@ -1,23 +1,24 @@
-
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+const appDirectory = __dirname;
 
 module.exports = {
     mode: 'development',
 
     entry: path.resolve(
-        __dirname,
+        appDirectory,
         'index.web.js',
     ),
 
     output: {
         path: path.resolve(
-            __dirname,
+            appDirectory,
             'dist',
         ),
 
-        filename:
-            'bundle.[contenthash].js',
+        filename: 'bundle.js',
 
         clean: true,
 
@@ -28,44 +29,205 @@ module.exports = {
         extensions: [
             '.web.tsx',
             '.web.ts',
+            '.web.jsx',
             '.web.js',
             '.tsx',
             '.ts',
-            '.js',
             '.jsx',
+            '.js',
         ],
 
         alias: {
-            'react-native$':
-                'react-native-web',
+            /*
+             * React Native -> React Native Web
+             */
+            'react-native$': 'react-native-web',
+
+            /*
+             * Web replacement for DatePicker
+             */
+            'react-native-date-picker$': path.resolve(
+                appDirectory,
+                'Src/web/react-native-date-picker.tsx',
+            ),
+
+            '@gorhom/bottom-sheet': path.resolve(
+                __dirname,
+                'Src/web/gorhom-bottom-sheet.tsx',
+            ),
+
+            'react-native/Libraries/Utilities/Platform': path.resolve(
+                __dirname,
+                'node_modules/react-native-web/dist/exports/Platform.js',
+            ),
+
+            /*
+             * Web replacement for react-native-config
+             */
+            'react-native-config$': path.resolve(
+                appDirectory,
+                'Src/web/react-native-config.ts',
+            ),
+
+            /*
+             * Web replacement for Razorpay native SDK
+             */
+            'react-native-razorpay$': path.resolve(
+                appDirectory,
+                'Src/web/react-native-razorpay.ts',
+            ),
+
+            /*
+             * Web replacement for react-native-maps
+             */
+            'react-native-maps$': path.resolve(
+                appDirectory,
+                'Src/web/react-native-maps.tsx',
+            ),
         },
+
+        /*
+         * Allows extensionless imports.
+         */
+        fullySpecified: false,
     },
 
     module: {
         rules: [
+            /*
+             * --------------------------------------------------
+             * YOUR APPLICATION
+             * --------------------------------------------------
+             */
             {
                 test: /\.[jt]sx?$/,
-                exclude:
-                    /node_modules/,
+
+                include: [
+                    path.resolve(
+                        appDirectory,
+                        'src',
+                    ),
+
+                    path.resolve(
+                        appDirectory,
+                        'Src',
+                    ),
+
+                    path.resolve(
+                        appDirectory,
+                        'components',
+                    ),
+
+                    path.resolve(
+                        appDirectory,
+                        'screens',
+                    ),
+
+                    path.resolve(
+                        appDirectory,
+                        'App.tsx',
+                    ),
+
+                    path.resolve(
+                        appDirectory,
+                        'App.jsx',
+                    ),
+
+                    path.resolve(
+                        appDirectory,
+                        'App.js',
+                    ),
+
+                    path.resolve(
+                        appDirectory,
+                        'index.web.js',
+                    ),
+                ],
 
                 use: {
                     loader: 'babel-loader',
                 },
             },
 
+            /*
+             * --------------------------------------------------
+             * SELECTED REACT NATIVE PACKAGES
+             * --------------------------------------------------
+             *
+             * Only compile packages that actually need Babel.
+             *
+             * DO NOT compile all node_modules.
+             */
             {
-                test:
-                    /\.(png|jpe?g|gif|svg|webp)$/i,
+                test: /\.[jt]sx?$/,
+
+                include: [
+                    path.resolve(
+                        appDirectory,
+                        'node_modules/react-native-calendars',
+                    ),
+
+                    path.resolve(
+                        appDirectory,
+                        'node_modules/react-native-reanimated',
+                    ),
+
+                    path.resolve(
+                        appDirectory,
+                        'node_modules/react-native-animatable',
+                    ),
+
+                    path.resolve(
+                        appDirectory,
+                        'node_modules/react-native-swipe-gestures',
+                    ),
+
+                    path.resolve(
+                        appDirectory,
+                        'node_modules/react-native-vector-icons',
+                    ),
+                ],
+
+                use: {
+                    loader: 'babel-loader',
+                },
+            },
+
+            /*
+             * --------------------------------------------------
+             * IMAGES
+             * --------------------------------------------------
+             */
+            {
+                test: /\.(png|jpe?g|gif|svg|webp)$/i,
 
                 type: 'asset/resource',
+            },
+
+            /*
+             * --------------------------------------------------
+             * ESM JavaScript
+             * --------------------------------------------------
+             */
+            {
+                test: /\.m?js$/,
+
+                resolve: {
+                    fullySpecified: false,
+                },
             },
         ],
     },
 
     plugins: [
+        new webpack.DefinePlugin({
+            __DEV__: JSON.stringify(true),
+        }),
         new HtmlWebpackPlugin({
-            template:
-                './public/index.html',
+            template: path.resolve(
+                appDirectory,
+                'public/index.html',
+            ),
         }),
     ],
 
@@ -79,15 +241,13 @@ module.exports = {
         open: true,
 
         static: {
-            directory:
-                path.join(
-                    __dirname,
-                    'public',
-                ),
+            directory: path.resolve(
+                appDirectory,
+                'public',
+            ),
         },
     },
 
-    devtool:
-        'eval-source-map',
+    devtool: 'eval-source-map',
 };
 

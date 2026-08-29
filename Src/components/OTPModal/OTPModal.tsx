@@ -14,8 +14,8 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
-
-import { BlurView } from '@react-native-community/blur';
+import BlurView from '../BlurView';
+// import { BlurView } from '@react-native-community/blur';
 
 import { useMutation } from '@apollo/client';
 
