@@ -1,6 +1,9 @@
 import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import HomeScreenPage from '../Screens/CustomerTabs/Home/HomeScreenPage';
+import {
+    createNativeStackNavigator,
+} from '@react-navigation/native-stack';
+
+import HomeScreenPage from '../Screens/CustomerTabs/Home/HomeScreenPage.web';
 import SalonDetailsScreen from '../Screens/CustomerTabs/Home/SalonDetailsScreen';
 import BookingDateTimeScreen from '../Screens/CustomerTabs/Home/BookingDateTimeScreen';
 import BookingSummaryScreen from '../Screens/CustomerTabs/Home/BookingSummaryScreen';
@@ -10,6 +13,9 @@ import BookingRequestSent from '../Screens/CustomerTabs/Home/BookingRequestSent'
 const Stack = createNativeStackNavigator();
 
 export default function HomeStackWeb() {
+
+    console.log('🔥🔥🔥 HomeStackWeb COMPONENT RENDERED');
+
     return (
         <Stack.Navigator
             initialRouteName="HomeScreen"
@@ -17,6 +23,7 @@ export default function HomeStackWeb() {
                 headerShown: false,
             }}
         >
+
             <Stack.Screen
                 name="HomeScreen"
                 component={HomeScreenPage}
@@ -46,6 +53,7 @@ export default function HomeStackWeb() {
                 name="BookingRequestSent"
                 component={BookingRequestSent}
             />
+
         </Stack.Navigator>
     );
 }
