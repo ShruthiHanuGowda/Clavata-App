@@ -163,17 +163,3 @@ export const getCountryFlag = (countryName: string): string => {
 
   return countryFlags[countryName] || '🌍';
 };
-
-export const getEnergyTypeIcon = (type: string): string => {
-  const typeIcons: Record<string, string> = {
-    Solar: Images.energySolarIcon || '☀️',
-    Wind: Images.energyWindIcon || '💨',
-    'Hydro-Electric': Images.energyHydroIcon || '💧',
-    Geothermal: Images.energyGeothermalIcon || '🌋',
-    Biomass: Images.energyGeothermalIcon || '🌱',
-    Nuclear: Images.energynuclearIcon || '☢️',
-    Unknown: '❓',
-  };
-
-  return typeIcons[type] || '🔋';
-};

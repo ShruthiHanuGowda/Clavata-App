@@ -1,5 +1,3 @@
-// 
-
 import React, {
   createContext,
   ReactNode,
@@ -15,9 +13,6 @@ import {
   NormalizedCacheObject,
   HttpLink,
 } from '@apollo/client';
-
-import { MERGED_API_URL } from '../constants/constants';
-
 const APPSYNC_API_KEY = 'da2-u4e6ychzkrbsfmfqpc33ujdbvy';
 
 const httpLink = new HttpLink({
@@ -28,7 +23,6 @@ const httpLink = new HttpLink({
 });
 
 const createApolloClient = (): ApolloClient<NormalizedCacheObject> => {
-  // console.log('🔗 Apollo URL:', MERGED_API_URL);
   console.log('🔑 Using API Key Authentication', APPSYNC_API_KEY);
 
   return new ApolloClient({

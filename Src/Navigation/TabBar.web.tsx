@@ -23,7 +23,7 @@ type TabIconKeys =
 
 const tabIconsActive: Record<TabIconKeys, any> = {
     Clavata: images?.homeActive,
-    Home: images?.walletActive,
+    Home: images?.shopActive,
     Bookings: images?.shopActive,
     Offers: images?.categoryActive,
     Profile: images?.stakeActive,

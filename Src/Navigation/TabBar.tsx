@@ -23,7 +23,7 @@ const tabIconsActive: {
   Profile: {};
 } = {
   'Clavata': images?.homeActive,
-  Home: images?.walletActive,
+  Home: images?.shopActive,
   Bookings: images?.shopActive,
   Offers: images?.categoryActive,
   Profile: images?.stakeActive,

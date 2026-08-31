@@ -37,6 +37,7 @@ import BusinessHoursScreen from '../Screens/SalonTabs/Profile/BusinessHoursScree
 import BookingDetails from '../Screens/CustomerTabs/Profile/BookingDetails';
 import EditProfile from '../Screens/CustomerTabs/Profile/EditProfile';
 import WelcomeChoiceScreen from '../Screens/Login/WelcomeChoiceScreen';
+import ManageServices from '../Screens/SalonTabs/Profile/service/ManageServices';
 // import CustomerLocationScreen from '../Screens/CustomerTabs/Home/CustomerLocationScreen';
 
 function RootScreenStack() {
@@ -240,6 +241,10 @@ export function SalonProfileStack() {
       <SalonProfilePlaceStack.Screen
         name="EditStaff"
         component={EditStaff}
+      />
+       <SalonProfilePlaceStack.Screen
+        name="ManageServices"
+        component={ManageServices}
       />
     </SalonProfilePlaceStack.Navigator>
   );
