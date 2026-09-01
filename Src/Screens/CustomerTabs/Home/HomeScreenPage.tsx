@@ -1,3 +1,4 @@
+
 import React, {
   useCallback,
   useEffect,
@@ -61,6 +62,7 @@ import {
 // ============================================================
 // TYPES
 // ============================================================
+
 type SalonStatus =
   | 'OPEN'
   | 'CLOSED'
@@ -82,6 +84,13 @@ type BudgetOption = {
   max: number;
 };
 
+export type NearbySalonService = {
+  serviceId: string;
+  name: string;
+  category: string;
+  price: number;
+};
+
 type Salon = {
   id: string;
   salonId: string;
@@ -91,10 +100,25 @@ type Salon = {
   distance: string;
   distanceValue: number;
   address: any;
-  price: number;
+
+  /*
+   * IMPORTANT:
+   *
+   * price is now optional.
+   *
+   * We must NOT use 0 when the backend has not
+   * returned a price because 0 would incorrectly
+   * pass the budget filter.
+   */
+  price?: number;
+
   image: string;
   salonStatus?: SalonStatus;
   businessHours?: any;
+
+  minServicePrice?: number;
+
+  matchingServices?: NearbySalonService[];
 };
 
 
@@ -106,12 +130,12 @@ const BUDGET_OPTIONS: BudgetOption[] = [
   {
     label: 'Any',
     min: 0,
-    max: 100000,
+    max: Infinity,
   },
   {
     label: 'Under ₹500',
     min: 0,
-    max: 500,
+    max: 499.99,
   },
   {
     label: '₹500 – ₹1K',
@@ -120,13 +144,13 @@ const BUDGET_OPTIONS: BudgetOption[] = [
   },
   {
     label: '₹1K – ₹2K',
-    min: 1000,
+    min: 1000.01,
     max: 2000,
   },
   {
     label: '₹2K+',
-    min: 2000,
-    max: 100000,
+    min: 2000.01,
+    max: Infinity,
   },
 ];
 
@@ -266,7 +290,7 @@ export default function HomeScreenPage() {
 
 
   // ==========================================================
-  // GET CURRENT ACTIVE COORDINATES
+  // GET ACTIVE COORDINATES
   // ==========================================================
 
   const getActiveCoordinates =
@@ -337,6 +361,11 @@ export default function HomeScreenPage() {
         );
 
         console.log(
+          '💰 CURRENT BUDGET:',
+          selectedBudget.label,
+        );
+
+        console.log(
           '⚙️ USE_HARDCODED_LOCATION:',
           USE_HARDCODED_LOCATION,
         );
@@ -356,17 +385,6 @@ export default function HomeScreenPage() {
         // ======================================================
         // LOCATION
         // ======================================================
-
-        /*
-         * IMPORTANT:
-         *
-         * Always prefer the coordinates explicitly passed into
-         * this function.
-         *
-         * This is important when the user changes location.
-         *
-         * USE_HARDCODED_LOCATION is only used as a fallback.
-         */
 
         if (
           latitude != null &&
@@ -410,7 +428,6 @@ export default function HomeScreenPage() {
               Number(
                 activeLocation.longitude,
               );
-
           }
 
         } else {
@@ -431,9 +448,7 @@ export default function HomeScreenPage() {
               Number(
                 activeLocation.longitude,
               );
-
           }
-
         }
 
 
@@ -466,7 +481,6 @@ export default function HomeScreenPage() {
           setSalons([]);
 
           return;
-
         }
 
 
@@ -484,24 +498,6 @@ export default function HomeScreenPage() {
             category ?? '',
           ).trim();
 
-
-        /*
-         * SEARCH AND CATEGORY ARE MUTUALLY EXCLUSIVE.
-         *
-         * Example:
-         *
-         * Salon search:
-         * search   = "Lakme"
-         * category = null
-         *
-         * Service:
-         * search   = null
-         * category = "Hair"
-         *
-         * Normal nearby:
-         * search   = null
-         * category = null
-         */
 
         const finalSearch =
           cleanSearch.length > 0
@@ -532,25 +528,39 @@ export default function HomeScreenPage() {
         // GRAPHQL VARIABLES
         // ======================================================
 
+        // const variables = {
+
+        //   latitude:
+        //     finalLatitude,
+
+        //   longitude:
+        //     finalLongitude,
+
+        //   radius:
+        //     finalRadius,
+
+        //   search:
+        //     finalSearch,
+
+        //   category:
+        //     finalCategory,
+        // };
         const variables = {
-
-          latitude:
-            finalLatitude,
-
-          longitude:
-            finalLongitude,
-
-          radius:
-            finalRadius,
-
-          search:
-            finalSearch,
-
-          category:
-            finalCategory,
-
+          latitude: finalLatitude,
+          longitude: finalLongitude,
+          radius: finalRadius,
+          search: finalSearch,
+          category: finalCategory,
+          minPrice:
+            selectedBudget.label === 'Any'
+              ? null
+              : selectedBudget.min,
+          maxPrice:
+            selectedBudget.label === 'Any' ||
+              selectedBudget.max === Infinity
+              ? null
+              : selectedBudget.max,
         };
-
 
         console.log(
           '🚀 GET_NEARBY_SALONS VARIABLES:',
@@ -605,8 +615,11 @@ export default function HomeScreenPage() {
           );
 
 
-          const formatted:
-            Salon[] =
+          // ====================================================
+          // FORMAT SALONS
+          // ====================================================
+
+          const formatted: Salon[] =
             nearbySalons.map(
               (item: any) => {
 
@@ -616,13 +629,204 @@ export default function HomeScreenPage() {
                   );
 
 
+                // ==================================================
+                // SERVICES / PRICES
+                // ==================================================
+
+                const matchingServices:
+                  NearbySalonService[] =
+                  Array.isArray(
+                    item?.matchingServices,
+                  )
+                    ? item.matchingServices
+                      .map(
+                        (
+                          service: any,
+                        ) => ({
+
+                          serviceId:
+                            String(
+                              service?.serviceId ??
+                              '',
+                            ),
+
+                          name:
+                            service?.name ??
+                            '',
+
+                          category:
+                            service?.category ??
+                            '',
+
+                          price:
+                            Number(
+                              service?.price,
+                            ),
+
+                        }),
+                      )
+                      .filter(
+                        (
+                          service:
+                            NearbySalonService,
+                        ) =>
+                          service.serviceId &&
+                          Number.isFinite(
+                            service.price,
+                          ) &&
+                          service.price >= 0,
+                      )
+                    : [];
+
+
+                // ==================================================
+                // SERVICE PRICES
+                // ==================================================
+
+                const servicePrices =
+                  matchingServices
+                    .map(
+                      service =>
+                        Number(
+                          service.price,
+                        ),
+                    )
+                    .filter(
+                      price =>
+                        Number.isFinite(
+                          price,
+                        ) &&
+                        price >= 0,
+                    );
+
+
+                // ==================================================
+                // BACKEND PRICE CANDIDATES
+                // ==================================================
+
+                const backendPriceCandidates = [
+
+                  item?.minServicePrice,
+
+                  item?.price,
+
+                  item?.servicePrice,
+
+                  item?.startingPrice,
+
+                  item?.minimumPrice,
+
+                ];
+
+
+                const validBackendPrices =
+                  backendPriceCandidates
+                    .map(
+                      value =>
+                        Number(value),
+                    )
+                    .filter(
+                      value =>
+                        Number.isFinite(
+                          value,
+                        ) &&
+                        value >= 0,
+                    );
+
+
+                // ==================================================
+                // FINAL MINIMUM PRICE
+                // ==================================================
+
+                let minServicePrice:
+                  number | undefined;
+
+
+                /*
+                 * Priority:
+                 *
+                 * 1. matchingServices
+                 * 2. backend price fields
+                 *
+                 * IMPORTANT:
+                 *
+                 * If no price exists, keep it undefined.
+                 *
+                 * NEVER convert missing price to 0.
+                 */
+
+                if (
+                  servicePrices.length > 0
+                ) {
+
+                  minServicePrice =
+                    Math.min(
+                      ...servicePrices,
+                    );
+
+                } else if (
+                  validBackendPrices.length > 0
+                ) {
+
+                  minServicePrice =
+                    Math.min(
+                      ...validBackendPrices,
+                    );
+
+                } else {
+
+                  minServicePrice =
+                    undefined;
+                }
+
+
+                console.log(
+                  '💰 SALON PRICE DATA:',
+                  {
+                    salon:
+                      item?.salonName,
+
+                    matchingServices,
+
+                    backendMinServicePrice:
+                      item?.minServicePrice,
+
+                    backendPrice:
+                      item?.price,
+
+                    backendServicePrice:
+                      item?.servicePrice,
+
+                    backendStartingPrice:
+                      item?.startingPrice,
+
+                    backendMinimumPrice:
+                      item?.minimumPrice,
+
+                    calculatedMinServicePrice:
+                      minServicePrice,
+
+                    budget:
+                      selectedBudget.label,
+                  },
+                );
+
+
+                // ==================================================
+                // RETURN SALON
+                // ==================================================
+
                 return {
 
                   id:
-                    item?.salonId,
+                    String(
+                      item?.salonId ?? '',
+                    ),
 
                   salonId:
-                    item?.salonId,
+                    String(
+                      item?.salonId ?? '',
+                    ),
 
                   name:
                     item?.salonName ??
@@ -657,8 +861,25 @@ export default function HomeScreenPage() {
                   address:
                     item?.address ?? {},
 
+                  /*
+                   * IMPORTANT:
+                   *
+                   * Do NOT use:
+                   *
+                   * price: minServicePrice ?? 0
+                   *
+                   * because 0 means free service and
+                   * would break budget filtering.
+                   */
+
                   price:
-                    0,
+                    minServicePrice,
+
+                  minServicePrice:
+                    minServicePrice,
+
+                  matchingServices:
+                    matchingServices,
 
                   image:
                     item?.logoUrl ||
@@ -671,9 +892,40 @@ export default function HomeScreenPage() {
                     item?.businessHours,
 
                 };
-
               },
             );
+
+
+          // ====================================================
+          // DEBUG PRICE SUMMARY
+          // ====================================================
+
+          console.log(
+            '💰 ALL SALON PRICES:',
+            formatted.map(
+              salon => ({
+                name:
+                  salon.name,
+
+                minServicePrice:
+                  salon.minServicePrice,
+
+                price:
+                  salon.price,
+
+                matchingServices:
+                  salon.matchingServices?.map(
+                    service => ({
+                      name:
+                        service.name,
+
+                      price:
+                        service.price,
+                    }),
+                  ),
+              }),
+            ),
+          );
 
 
           setSalons(
@@ -700,7 +952,6 @@ export default function HomeScreenPage() {
             error?.graphQLErrors,
           );
 
-
           setSalons([]);
 
         } finally {
@@ -708,7 +959,6 @@ export default function HomeScreenPage() {
           setLoadingSalons(
             false,
           );
-
         }
 
       },
@@ -716,6 +966,7 @@ export default function HomeScreenPage() {
         client,
         getActiveCoordinates,
         selectedDistance,
+        selectedBudget.label,
       ],
     );
 
@@ -735,13 +986,13 @@ export default function HomeScreenPage() {
           );
 
 
-          // ====================================================
-          // SAVED LOCATION
-          // ====================================================
-
           const savedLocation =
             await getActiveLocation();
 
+
+          // ====================================================
+          // SAVED LOCATION
+          // ====================================================
 
           if (
             savedLocation &&
@@ -786,7 +1037,6 @@ export default function HomeScreenPage() {
 
 
             return;
-
           }
 
 
@@ -823,7 +1073,6 @@ export default function HomeScreenPage() {
             setSalons([]);
 
             return;
-
           }
 
 
@@ -882,7 +1131,6 @@ export default function HomeScreenPage() {
           );
 
           setSalons([]);
-
         }
 
       },
@@ -962,12 +1210,6 @@ export default function HomeScreenPage() {
       );
 
 
-      /*
-       * Immediately search using the NEW coordinates.
-       *
-       * Do not wait for React state to update.
-       */
-
       await fetchNearbySalons(
 
         Number(
@@ -1000,11 +1242,6 @@ export default function HomeScreenPage() {
 
       setSearch(text);
 
-
-      /*
-       * If user starts salon/service text search,
-       * clear category selection.
-       */
 
       if (
         text.trim().length > 0
@@ -1052,19 +1289,12 @@ export default function HomeScreenPage() {
         );
 
         return;
-
       }
 
 
       if (
         !cleanSearch
       ) {
-
-        /*
-         * Empty search means:
-         *
-         * nearby salons
-         */
 
         setSearch('');
         setSelectedCategory('');
@@ -1090,7 +1320,6 @@ export default function HomeScreenPage() {
 
 
         return;
-
       }
 
 
@@ -1122,76 +1351,141 @@ export default function HomeScreenPage() {
   // CATEGORY
   // ==========================================================
 
-  const handleCategorySelect = async (category: string) => {
-    console.log('========================================');
-    console.log('🏷️ CATEGORY TOGGLE');
-    console.log('🏷️ Category:', category);
-    console.log('🏷️ Current selected category:', selectedCategory);
-    console.log('========================================');
+  const handleCategorySelect =
+    async (
+      category: string,
+    ) => {
 
-    const location = getActiveCoordinates();
-
-    // Location is required for nearby salon results
-    if (
-      !location ||
-      location.latitude == null ||
-      location.longitude == null
-    ) {
       console.log(
-        '❌ Cannot search category: location unavailable',
+        '========================================',
       );
 
-      setShowLocationModal(true);
-      return;
-    }
-
-    const isAlreadySelected =
-      selectedCategory.trim().toLowerCase() ===
-      category.trim().toLowerCase();
-
-    // ==========================================================
-    // TOGGLE OFF
-    // ==========================================================
-
-    if (isAlreadySelected) {
       console.log(
-        '🔄 Service already selected → UNSELECTING',
+        '🏷️ CATEGORY TOGGLE',
       );
 
-      setSelectedCategory('');
+      console.log(
+        '🏷️ Category:',
+        category,
+      );
+
+      console.log(
+        '🏷️ Current selected category:',
+        selectedCategory,
+      );
+
+      console.log(
+        '========================================',
+      );
+
+
+      const location =
+        getActiveCoordinates();
+
+
+      if (
+        !location ||
+        location.latitude == null ||
+        location.longitude == null
+      ) {
+
+        console.log(
+          '❌ Cannot search category: location unavailable',
+        );
+
+
+        setShowLocationModal(
+          true,
+        );
+
+        return;
+      }
+
+
+      const isAlreadySelected =
+        selectedCategory
+          .trim()
+          .toLowerCase() ===
+        category
+          .trim()
+          .toLowerCase();
+
+
+      // ========================================================
+      // TOGGLE OFF
+      // ========================================================
+
+      if (
+        isAlreadySelected
+      ) {
+
+        console.log(
+          '🔄 Service already selected → UNSELECTING',
+        );
+
+
+        setSelectedCategory('');
+        setSearch('');
+
+
+        await fetchNearbySalons(
+
+          Number(
+            location.latitude,
+          ),
+
+          Number(
+            location.longitude,
+          ),
+
+          '',
+
+          '',
+
+          selectedDistance,
+
+        );
+
+
+        return;
+      }
+
+
+      // ========================================================
+      // SELECT NEW SERVICE
+      // ========================================================
+
+      console.log(
+        '✅ Selecting service:',
+        category,
+      );
+
+
+      setSelectedCategory(
+        category,
+      );
+
       setSearch('');
 
+
       await fetchNearbySalons(
-        Number(location.latitude),
-        Number(location.longitude),
+
+        Number(
+          location.latitude,
+        ),
+
+        Number(
+          location.longitude,
+        ),
+
         '',
-        '',
+
+        category,
+
         selectedDistance,
+
       );
-
-      return;
-    }
-
-    // ==========================================================
-    // SELECT NEW SERVICE
-    // ==========================================================
-
-    console.log(
-      '✅ Selecting service:',
-      category,
-    );
-
-    setSelectedCategory(category);
-    setSearch('');
-
-    await fetchNearbySalons(
-      Number(location.latitude),
-      Number(location.longitude),
-      '',
-      category,
-      selectedDistance,
-    );
-  };
+    };
 
 
   // ==========================================================
@@ -1211,6 +1505,29 @@ export default function HomeScreenPage() {
   const applyFilters =
     async () => {
 
+      console.log(
+        '========================================',
+      );
+
+      console.log(
+        '🔧 APPLY FILTERS',
+      );
+
+      console.log(
+        '💰 Budget:',
+        selectedBudget.label,
+      );
+
+      console.log(
+        '📏 Distance:',
+        selectedDistance,
+      );
+
+      console.log(
+        '========================================',
+      );
+
+
       setShowFilterModal(
         false,
       );
@@ -1229,15 +1546,15 @@ export default function HomeScreenPage() {
         );
 
         return;
-
       }
 
 
       /*
-       * The API currently receives radius.
+       * Distance is sent to the backend.
        *
-       * Budget is applied locally below because
-       * GET_NEARBY_SALONS currently has no budget variable.
+       * Budget is filtered locally because
+       * GET_NEARBY_SALONS does not currently
+       * have a budget argument.
        */
 
       await fetchNearbySalons(
@@ -1380,31 +1697,277 @@ export default function HomeScreenPage() {
 
 
   // ==========================================================
-  // LOCAL BUDGET FILTER
+  // GET SALON PRICE FOR BUDGET
   // ==========================================================
 
-  /*
-   * NOTE:
-   *
-   * Your current nearbySalons GraphQL response does not return
-   * service price.
-   *
-   * Therefore we DO NOT fake a budget filter here.
-   *
-   * Once backend returns minimum/service price, this can become
-   * a real dynamic budget filter.
-   */
+  const getSalonBudgetPrice =
+    useCallback(
+      (
+        salon: Salon,
+      ): number | undefined => {
+
+        // ======================================================
+        // 1. matchingServices
+        // ======================================================
+
+        const servicePrices =
+          Array.isArray(
+            salon.matchingServices,
+          )
+            ? salon.matchingServices
+              .map(
+                service =>
+                  Number(
+                    service?.price,
+                  ),
+              )
+              .filter(
+                price =>
+                  Number.isFinite(
+                    price,
+                  ) &&
+                  price >= 0,
+              )
+            : [];
+
+
+        if (
+          servicePrices.length > 0
+        ) {
+
+          return Math.min(
+            ...servicePrices,
+          );
+        }
+
+
+        // ======================================================
+        // 2. minServicePrice
+        // ======================================================
+
+        const minServicePrice =
+          Number(
+            salon.minServicePrice,
+          );
+
+
+        if (
+          Number.isFinite(
+            minServicePrice,
+          ) &&
+          minServicePrice >= 0
+        ) {
+
+          return minServicePrice;
+        }
+
+
+        // ======================================================
+        // 3. price
+        // ======================================================
+
+        const price =
+          Number(
+            salon.price,
+          );
+
+
+        if (
+          Number.isFinite(
+            price,
+          ) &&
+          price >= 0
+        ) {
+
+          return price;
+        }
+
+
+        // ======================================================
+        // 4. NO PRICE
+        // ======================================================
+
+        return undefined;
+
+      },
+      [],
+    );
+
+
+  // ==========================================================
+  // LOCAL BUDGET FILTER
+  // ==========================================================
 
   const displayedSalons =
     useMemo(
       () => {
 
-        return salons;
+        // ======================================================
+        // ANY BUDGET
+        // ======================================================
+
+        if (
+          selectedBudget.label ===
+          'Any'
+        ) {
+
+          console.log(
+            '💰 BUDGET = ANY → showing all salons:',
+            salons.length,
+          );
+
+          return salons;
+        }
+
+
+        console.log(
+          '========================================',
+        );
+
+        console.log(
+          '💰 APPLYING BUDGET FILTER',
+        );
+
+        console.log(
+          '💰 Selected budget:',
+          selectedBudget.label,
+        );
+
+        console.log(
+          '💰 Min:',
+          selectedBudget.min,
+        );
+
+        console.log(
+          '💰 Max:',
+          selectedBudget.max,
+        );
+
+        console.log(
+          '💰 Salons before:',
+          salons.length,
+        );
+
+        console.log(
+          '========================================',
+        );
+
+
+        const filtered =
+          salons.filter(
+            salon => {
+
+              const price =
+                getSalonBudgetPrice(
+                  salon,
+                );
+
+
+              // ==================================================
+              // NO PRICE
+              // ==================================================
+
+              if (
+                price === undefined
+              ) {
+
+                console.log(
+                  '⚠️ BUDGET SKIP - NO PRICE:',
+                  salon.name,
+                );
+
+                return false;
+              }
+
+
+              // ==================================================
+              // BUDGET MATCH
+              // ==================================================
+
+              const matches =
+                price >=
+                selectedBudget.min &&
+                price <=
+                selectedBudget.max;
+
+
+              console.log(
+                '💰 BUDGET CHECK:',
+                {
+                  salon:
+                    salon.name,
+
+                  price,
+
+                  budget:
+                    selectedBudget.label,
+
+                  min:
+                    selectedBudget.min,
+
+                  max:
+                    selectedBudget.max,
+
+                  matches,
+                },
+              );
+
+
+              return matches;
+            },
+          );
+
+
+        console.log(
+          '========================================',
+        );
+
+        console.log(
+          '💰 FINAL BUDGET RESULTS',
+        );
+
+        console.log(
+          '💰 Budget:',
+          selectedBudget.label,
+        );
+
+        console.log(
+          '💰 Before:',
+          salons.length,
+        );
+
+        console.log(
+          '💰 After:',
+          filtered.length,
+        );
+
+        console.log(
+          '💰 Results:',
+          filtered.map(
+            salon => ({
+              name:
+                salon.name,
+
+              price:
+                getSalonBudgetPrice(
+                  salon,
+                ),
+            }),
+          ),
+        );
+
+        console.log(
+          '========================================',
+        );
+
+
+        return filtered;
 
       },
       [
         salons,
         selectedBudget,
+        getSalonBudgetPrice,
       ],
     );
 
@@ -1426,7 +1989,6 @@ export default function HomeScreenPage() {
         ) {
 
           count++;
-
         }
 
 
@@ -1436,7 +1998,6 @@ export default function HomeScreenPage() {
         ) {
 
           count++;
-
         }
 
 
@@ -1463,7 +2024,6 @@ export default function HomeScreenPage() {
         ) {
 
           return 'Search results';
-
         }
 
 
@@ -1472,7 +2032,6 @@ export default function HomeScreenPage() {
         ) {
 
           return selectedCategory;
-
         }
 
 
@@ -2363,16 +2922,26 @@ export default function HomeScreenPage() {
                       }
 
                       style={[
+
                         styles.budgetOption,
+
                         isSelected &&
                         styles.budgetOptionSelected,
+
                       ]}
 
-                      onPress={() =>
+                      onPress={() => {
+
+                        console.log(
+                          '💰 BUDGET SELECTED:',
+                          option.label,
+                        );
+
                         setSelectedBudget(
                           option,
-                        )
-                      }
+                        );
+
+                      }}
 
                       activeOpacity={
                         0.8
@@ -2382,9 +2951,12 @@ export default function HomeScreenPage() {
 
                       <Text
                         style={[
+
                           styles.budgetOptionText,
+
                           isSelected &&
                           styles.budgetOptionTextSelected,
+
                         ]}
                       >
                         {option.label}
@@ -2450,9 +3022,12 @@ export default function HomeScreenPage() {
                       }
 
                       style={[
+
                         styles.distanceOption,
+
                         isSelected &&
                         styles.distanceOptionSelected,
+
                       ]}
 
                       onPress={() =>
@@ -2469,9 +3044,12 @@ export default function HomeScreenPage() {
 
                       <Text
                         style={[
+
                           styles.distanceNumber,
+
                           isSelected &&
                           styles.distanceNumberSelected,
+
                         ]}
                       >
                         {distance}
@@ -2479,9 +3057,12 @@ export default function HomeScreenPage() {
 
                       <Text
                         style={[
+
                           styles.distanceUnit,
+
                           isSelected &&
                           styles.distanceUnitSelected,
+
                         ]}
                       >
                         km
@@ -3270,3 +3851,4 @@ const styles =
     },
 
   });
+

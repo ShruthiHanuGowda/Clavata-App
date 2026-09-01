@@ -230,6 +230,84 @@ export const GET_BOOKING = gql`
 
 
 
+// export const GET_NEARBY_SALONS = gql`
+//   query NearbySalons(
+//     $latitude: Float!
+//     $longitude: Float!
+//     $radius: Float!
+//     $search: String
+//     $category: String
+//   ) {
+//     nearbySalons(
+//       latitude: $latitude
+//       longitude: $longitude
+//       radius: $radius
+//       search: $search
+//       category: $category
+//     ) {
+//       salonId
+//       salonName
+//       averageRating
+//       totalReviews
+//       logoUrl
+//       distance
+//       salonStatus
+//       minServicePrice
+
+//       matchingServices {
+//         serviceId
+//         name
+//         category
+//         price
+//       }
+
+//       businessHours {
+//         MONDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         TUESDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         WEDNESDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         THURSDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         FRIDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         SATURDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         SUNDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//       }
+
+//       address {
+//         addressLine
+//         city
+//         state
+//         pincode
+//       }
+//     }
+//   }
+// `;
 export const GET_NEARBY_SALONS = gql`
   query NearbySalons(
     $latitude: Float!
@@ -237,6 +315,8 @@ export const GET_NEARBY_SALONS = gql`
     $radius: Float!
     $search: String
     $category: String
+    $minPrice: Float
+    $maxPrice: Float
   ) {
     nearbySalons(
       latitude: $latitude
@@ -244,6 +324,8 @@ export const GET_NEARBY_SALONS = gql`
       radius: $radius
       search: $search
       category: $category
+      minPrice: $minPrice
+      maxPrice: $maxPrice
     ) {
       salonId
       salonName
@@ -252,6 +334,14 @@ export const GET_NEARBY_SALONS = gql`
       logoUrl
       distance
       salonStatus
+      minServicePrice
+
+      matchingServices {
+        serviceId
+        name
+        category
+        price
+      }
 
       businessHours {
         MONDAY {
