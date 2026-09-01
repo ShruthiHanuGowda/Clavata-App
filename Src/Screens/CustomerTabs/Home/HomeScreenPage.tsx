@@ -1,4 +1,5 @@
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -30,7 +31,6 @@ import ServiceChips from './ServiceChips';
 import SalonCard from './SalonCard';
 import LocationBottomSheet from './LocationBottomSheet';
 import ReviewPopup from './ReviewPopup';
-import HomeAdCarousel from './HomeAdCarousel';
 
 import {
   getActiveLocation,
@@ -54,15 +54,17 @@ import {
 
 import {
   COLORS,
-  FONT_SIZES,
   SPACING,
-  RADIUS,
 } from '../../../constants/constants';
 
 
 // ============================================================
 // TYPES
 // ============================================================
+type SalonStatus =
+  | 'OPEN'
+  | 'CLOSED'
+  | 'TEMPORARILY_CLOSED';
 
 type Booking = {
   bookingId: string;
@@ -80,9 +82,24 @@ type BudgetOption = {
   max: number;
 };
 
+type Salon = {
+  id: string;
+  salonId: string;
+  name: string;
+  rating: number;
+  reviews: number;
+  distance: string;
+  distanceValue: number;
+  address: any;
+  price: number;
+  image: string;
+  salonStatus?: SalonStatus;
+  businessHours?: any;
+};
+
 
 // ============================================================
-// OPTIONS
+// BUDGET
 // ============================================================
 
 const BUDGET_OPTIONS: BudgetOption[] = [
@@ -112,6 +129,11 @@ const BUDGET_OPTIONS: BudgetOption[] = [
     max: 100000,
   },
 ];
+
+
+// ============================================================
+// DISTANCE
+// ============================================================
 
 const DISTANCE_OPTIONS = [
   2,
@@ -145,12 +167,12 @@ export default function HomeScreenPage() {
   const [
     salons,
     setSalons,
-  ] = useState<any[]>([]);
+  ] = useState<Salon[]>([]);
 
   const [
     bookings,
     setBookings,
-  ] = useState<any[]>([]);
+  ] = useState<Booking[]>([]);
 
 
   // ==========================================================
@@ -212,7 +234,7 @@ export default function HomeScreenPage() {
     selectedDistance,
     setSelectedDistance,
   ] = useState(
-    10,
+    DEFAULT_LOCATION_RADIUS || 10,
   );
 
 
@@ -244,152 +266,27 @@ export default function HomeScreenPage() {
 
 
   // ==========================================================
-  // INITIAL LOAD
-  // ==========================================================
-
-  useEffect(() => {
-
-    loadLocation();
-
-    if (
-      currentUser?.userId
-    ) {
-      loadCustomerBookings();
-    }
-
-  }, [
-    currentUser?.userId,
-  ]);
-
-
-  // ==========================================================
-  // LOCATION
-  // ==========================================================
-
-  const loadLocation = async () => {
-    try {
-      // ========================================================
-      // 1. CHECK SAVED LOCATION
-      // ========================================================
-
-      const savedLocation =
-        await getActiveLocation();
-
-      if (savedLocation) {
-        console.log(
-          '📍 Using saved location:',
-          savedLocation,
-        );
-
-        setSelectedLocation(
-          savedLocation.address,
-        );
-
-        setLocationCoordinates(
-          savedLocation,
-        );
-
-        await fetchNearbySalons(
-          savedLocation.latitude,
-          savedLocation.longitude,
-          '',
-          '',
-          selectedDistance,
-        );
-
-        return;
-      }
-
-      // ========================================================
-      // 2. NO LOCATION
-      //    REQUEST PERMISSION + GET GPS
-      // ========================================================
-
-      console.log(
-        '📍 No saved location. Requesting device location...',
-      );
-
-      const currentLocation =
-        await getCurrentLocation();
-
-      // ========================================================
-      // 3. USER DENIED PERMISSION / GPS FAILED
-      // ========================================================
-
-      if (!currentLocation) {
-        console.log(
-          '⚠️ Location unavailable',
-        );
-
-        setSelectedLocation(
-          'Choose location',
-        );
-
-        setLocationCoordinates(null);
-        setSalons([]);
-
-        return;
-      }
-
-      // ========================================================
-      // 4. LOCATION SUCCESS
-      // ========================================================
-
-      console.log(
-        '✅ Device location:',
-        currentLocation,
-      );
-
-      setSelectedLocation(
-        currentLocation.address,
-      );
-
-      setLocationCoordinates(
-        currentLocation,
-      );
-
-      // ========================================================
-      // 5. LOAD NEARBY SALONS
-      // ========================================================
-
-      await fetchNearbySalons(
-        currentLocation.latitude,
-        currentLocation.longitude,
-        '',
-        '',
-        selectedDistance,
-      );
-    } catch (error) {
-      console.log(
-        '❌ Load location error:',
-        error,
-      );
-
-      setSelectedLocation(
-        'Choose location',
-      );
-
-      setLocationCoordinates(null);
-      setSalons([]);
-    }
-  };
-
-
-  // ==========================================================
-  // ACTIVE LOCATION
+  // GET CURRENT ACTIVE COORDINATES
   // ==========================================================
 
   const getActiveCoordinates =
-    (): LocationData | null => {
+    useCallback(
+      (): LocationData | null => {
 
-      if (
-        locationCoordinates
-      ) {
-        return locationCoordinates;
-      }
+        if (
+          locationCoordinates &&
+          locationCoordinates.latitude != null &&
+          locationCoordinates.longitude != null
+        ) {
+          return locationCoordinates;
+        }
 
-      return null;
-    };
+        return null;
+      },
+      [
+        locationCoordinates,
+      ],
+    );
 
 
   // ==========================================================
@@ -397,238 +294,263 @@ export default function HomeScreenPage() {
   // ==========================================================
 
   const fetchNearbySalons =
-    async (
-      latitude?: number,
-      longitude?: number,
-      searchText = '',
-      category = '',
-      radiusOverride?: number,
-    ) => {
-      console.log(
-        '================================================',
-      );
-
-      console.log(
-        '🔍 fetchNearbySalons() CALLED',
-      );
-
-      console.log(
-        '📍 Input latitude:',
-        latitude,
-      );
-
-      console.log(
-        '📍 Input longitude:',
-        longitude,
-      );
-
-      console.log(
-        '🔎 Input search:',
-        searchText,
-      );
-
-      console.log(
-        '🏷️ Input category:',
-        category,
-      );
-
-      console.log(
-        '📏 Input radius:',
-        radiusOverride,
-      );
-
-      console.log(
-        '⚙️ USE_HARDCODED_LOCATION:',
-        USE_HARDCODED_LOCATION,
-      );
-
-      console.log(
-        '📏 DEFAULT_LOCATION_RADIUS:',
-        DEFAULT_LOCATION_RADIUS,
-      );
-
-      console.log(
-        '================================================',
-      );
-      let finalLatitude:
-        number | null = null;
-
-      let finalLongitude:
-        number | null = null;
-
-
-      // --------------------------------------------------------
-      // LOCATION MODE
-      // --------------------------------------------------------
-
-      if (
-        USE_HARDCODED_LOCATION
-      ) {
-        console.log(
-          '⚙️ HARD CODED LOCATION MODE = TRUE',
-        );
-
-        const activeLocation =
-          await getActiveLocation();
+    useCallback(
+      async (
+        latitude?: number,
+        longitude?: number,
+        searchText = '',
+        category = '',
+        radiusOverride?: number,
+      ) => {
 
         console.log(
-          '📦 getActiveLocation() returned:',
-          activeLocation,
+          '========================================',
         );
+
+        console.log(
+          '🔍 FETCH NEARBY SALONS',
+        );
+
+        console.log(
+          '📍 Input latitude:',
+          latitude,
+        );
+
+        console.log(
+          '📍 Input longitude:',
+          longitude,
+        );
+
+        console.log(
+          '🔎 Input search:',
+          searchText,
+        );
+
+        console.log(
+          '🏷️ Input category:',
+          category,
+        );
+
+        console.log(
+          '📏 Input radius:',
+          radiusOverride,
+        );
+
+        console.log(
+          '⚙️ USE_HARDCODED_LOCATION:',
+          USE_HARDCODED_LOCATION,
+        );
+
+        console.log(
+          '========================================',
+        );
+
+
+        let finalLatitude:
+          number | null = null;
+
+        let finalLongitude:
+          number | null = null;
+
+
+        // ======================================================
+        // LOCATION
+        // ======================================================
+
+        /*
+         * IMPORTANT:
+         *
+         * Always prefer the coordinates explicitly passed into
+         * this function.
+         *
+         * This is important when the user changes location.
+         *
+         * USE_HARDCODED_LOCATION is only used as a fallback.
+         */
 
         if (
-          activeLocation
+          latitude != null &&
+          longitude != null
         ) {
 
           finalLatitude =
-            activeLocation.latitude;
+            Number(latitude);
 
           finalLongitude =
-            activeLocation.longitude;
-          console.log(
-            '📍 Using active location latitude:',
-            finalLatitude,
-          );
+            Number(longitude);
 
           console.log(
-            '📍 Using active location longitude:',
-            finalLongitude,
+            '📍 Using PASSED coordinates',
           );
-        } else {
+
+        } else if (
+          USE_HARDCODED_LOCATION
+        ) {
+
+          const activeLocation =
+            await getActiveLocation();
+
           console.log(
-            '❌ NO ACTIVE LOCATION FOUND',
+            '📦 Active location:',
+            activeLocation,
           );
+
+          if (
+            activeLocation &&
+            activeLocation.latitude != null &&
+            activeLocation.longitude != null
+          ) {
+
+            finalLatitude =
+              Number(
+                activeLocation.latitude,
+              );
+
+            finalLongitude =
+              Number(
+                activeLocation.longitude,
+              );
+
+          }
+
+        } else {
+
+          const activeLocation =
+            getActiveCoordinates();
+
+          if (
+            activeLocation
+          ) {
+
+            finalLatitude =
+              Number(
+                activeLocation.latitude,
+              );
+
+            finalLongitude =
+              Number(
+                activeLocation.longitude,
+              );
+
+          }
 
         }
 
-      } else {
+
         console.log(
-          '📍 HARD CODED LOCATION MODE = FALSE',
-        );
-
-        const activeLocation =
-          getActiveCoordinates();
-        console.log(
-          '📦 getActiveCoordinates() returned:',
-          activeLocation,
-        );
-        finalLatitude =
-          latitude ??
-          activeLocation?.latitude ??
-          null;
-
-        finalLongitude =
-          longitude ??
-          activeLocation?.longitude ??
-          null;
-      }
-
-      console.log(
-        '📍 Calculated final latitude:',
-        finalLatitude,
-      );
-
-      console.log(
-        '📍 Calculated final longitude:',
-        finalLongitude,
-      );
-      // --------------------------------------------------------
-      // NO LOCATION
-      // --------------------------------------------------------
-      console.log(
-        '🔴 FINAL COORDINATES BEFORE GRAPHQL:',
-      );
-
-      console.log(
-        '➡️ finalLatitude:',
-        finalLatitude,
-      );
-
-      console.log(
-        '➡️ finalLongitude:',
-        finalLongitude,
-      );
-
-      console.log(
-        '➡️ radius:',
-        radiusOverride ??
-        selectedDistance ??
-        DEFAULT_LOCATION_RADIUS,
-      );
-      if (
-        finalLatitude === null ||
-        finalLongitude === null
-      ) {
-
-        setSalons([]);
-
-        return;
-      }
-
-
-      const cleanSearch =
-        searchText.trim();
-
-      const cleanCategory =
-        category.trim();
-
-
-      let finalSearch:
-        string | null = null;
-
-      let finalCategory:
-        string | null = null;
-
-
-      if (
-        cleanCategory
-      ) {
-
-        finalCategory =
-          cleanCategory;
-
-      } else if (
-        cleanSearch
-      ) {
-
-        finalSearch =
-          cleanSearch;
-      }
-
-
-      // --------------------------------------------------------
-      // GRAPHQL
-      // --------------------------------------------------------
-
-      const variables = {
-
-        latitude:
+          '📍 FINAL LATITUDE:',
           finalLatitude,
-
-        longitude:
-          finalLongitude,
-
-        radius:
-          radiusOverride ??
-          selectedDistance ??
-          DEFAULT_LOCATION_RADIUS,
-
-        search:
-          finalSearch,
-
-        category:
-          finalCategory,
-      };
-
-
-      try {
-
-        setLoadingSalons(
-          true,
         );
+
         console.log(
-          '🚀 ABOUT TO CALL GET_NEARBY_SALONS',
+          '📍 FINAL LONGITUDE:',
+          finalLongitude,
         );
+
+
+        // ======================================================
+        // LOCATION VALIDATION
+        // ======================================================
+
+        if (
+          finalLatitude == null ||
+          finalLongitude == null ||
+          !Number.isFinite(finalLatitude) ||
+          !Number.isFinite(finalLongitude)
+        ) {
+
+          console.log(
+            '❌ LOCATION NOT AVAILABLE',
+          );
+
+          setSalons([]);
+
+          return;
+
+        }
+
+
+        // ======================================================
+        // SEARCH / CATEGORY
+        // ======================================================
+
+        const cleanSearch =
+          String(
+            searchText ?? '',
+          ).trim();
+
+        const cleanCategory =
+          String(
+            category ?? '',
+          ).trim();
+
+
+        /*
+         * SEARCH AND CATEGORY ARE MUTUALLY EXCLUSIVE.
+         *
+         * Example:
+         *
+         * Salon search:
+         * search   = "Lakme"
+         * category = null
+         *
+         * Service:
+         * search   = null
+         * category = "Hair"
+         *
+         * Normal nearby:
+         * search   = null
+         * category = null
+         */
+
+        const finalSearch =
+          cleanSearch.length > 0
+            ? cleanSearch
+            : null;
+
+        const finalCategory =
+          cleanSearch.length === 0 &&
+            cleanCategory.length > 0
+            ? cleanCategory
+            : null;
+
+
+        // ======================================================
+        // RADIUS
+        // ======================================================
+
+        const finalRadius =
+          Number(
+            radiusOverride ??
+            selectedDistance ??
+            DEFAULT_LOCATION_RADIUS ??
+            10,
+          );
+
+
+        // ======================================================
+        // GRAPHQL VARIABLES
+        // ======================================================
+
+        const variables = {
+
+          latitude:
+            finalLatitude,
+
+          longitude:
+            finalLongitude,
+
+          radius:
+            finalRadius,
+
+          search:
+            finalSearch,
+
+          category:
+            finalCategory,
+
+        };
+
 
         console.log(
           '🚀 GET_NEARBY_SALONS VARIABLES:',
@@ -638,99 +560,375 @@ export default function HomeScreenPage() {
             2,
           ),
         );
-        const {
-          data,
-        } =
-          await client.query({
 
-            query:
-              GET_NEARBY_SALONS,
 
-            variables,
+        try {
 
-            fetchPolicy:
-              'network-only',
-
-          });
-
-        console.log("📦 GET_NEARBY_SALONS RESPONSE:", data);
-        const formatted =
-          (
-            data?.nearbySalons ||
-            []
-          ).map(
-            (item: any) => ({
-
-              id:
-                item.salonId,
-
-              salonId:
-                item.salonId,
-
-              name:
-                item.salonName,
-
-              rating:
-                item.averageRating,
-
-              reviews:
-                item.totalReviews,
-
-              distance:
-                item.distance < 1
-                  ? `${Math.round(
-                    item.distance *
-                    1000,
-                  )} m`
-                  : `${item.distance.toFixed(
-                    1,
-                  )} km`,
-
-              address:
-                item.address,
-
-              price:
-                0,
-
-              image:
-                item.logoUrl ||
-                'https://picsum.photos/300/300',
-
-              salonStatus:
-                item.salonStatus,
-
-              businessHours:
-                item.businessHours,
-
-              categories:
-                item.categories ||
-                [],
-            }),
+          setLoadingSalons(
+            true,
           );
 
 
-        setSalons(
-          formatted,
-        );
+          const {
+            data,
+          } =
+            await client.query({
 
-      } catch (error) {
+              query:
+                GET_NEARBY_SALONS,
 
-        console.log(
-          'Nearby salons error:',
-          error,
-        );
+              variables,
 
-        setSalons([]);
+              fetchPolicy:
+                'network-only',
 
-      } finally {
+            });
 
-        setLoadingSalons(
-          false,
-        );
+
+          console.log(
+            '📦 GET_NEARBY_SALONS RESPONSE:',
+            JSON.stringify(
+              data,
+              null,
+              2,
+            ),
+          );
+
+
+          const nearbySalons =
+            data?.nearbySalons ?? [];
+
+
+          console.log(
+            '🏪 MATCHING SALONS:',
+            nearbySalons.length,
+          );
+
+
+          const formatted:
+            Salon[] =
+            nearbySalons.map(
+              (item: any) => {
+
+                const numericDistance =
+                  Number(
+                    item?.distance ?? 0,
+                  );
+
+
+                return {
+
+                  id:
+                    item?.salonId,
+
+                  salonId:
+                    item?.salonId,
+
+                  name:
+                    item?.salonName ??
+                    'Salon',
+
+                  rating:
+                    Number(
+                      item?.averageRating ?? 0,
+                    ),
+
+                  reviews:
+                    Number(
+                      item?.totalReviews ?? 0,
+                    ),
+
+                  distance:
+                    Number.isFinite(
+                      numericDistance,
+                    )
+                      ? numericDistance < 1
+                        ? `${Math.round(
+                          numericDistance * 1000,
+                        )} m`
+                        : `${numericDistance.toFixed(
+                          1,
+                        )} km`
+                      : '',
+
+                  distanceValue:
+                    numericDistance,
+
+                  address:
+                    item?.address ?? {},
+
+                  price:
+                    0,
+
+                  image:
+                    item?.logoUrl ||
+                    'https://picsum.photos/300/300',
+
+                  salonStatus:
+                    item?.salonStatus,
+
+                  businessHours:
+                    item?.businessHours,
+
+                };
+
+              },
+            );
+
+
+          setSalons(
+            formatted,
+          );
+
+
+        } catch (
+        error: any
+        ) {
+
+          console.log(
+            '❌ NEARBY SALONS ERROR:',
+            error,
+          );
+
+          console.log(
+            '❌ ERROR MESSAGE:',
+            error?.message,
+          );
+
+          console.log(
+            '❌ GRAPHQL ERRORS:',
+            error?.graphQLErrors,
+          );
+
+
+          setSalons([]);
+
+        } finally {
+
+          setLoadingSalons(
+            false,
+          );
+
+        }
+
+      },
+      [
+        client,
+        getActiveCoordinates,
+        selectedDistance,
+      ],
+    );
+
+
+  // ==========================================================
+  // INITIAL LOCATION
+  // ==========================================================
+
+  const loadLocation =
+    useCallback(
+      async () => {
+
+        try {
+
+          console.log(
+            '📍 Loading active location...',
+          );
+
+
+          // ====================================================
+          // SAVED LOCATION
+          // ====================================================
+
+          const savedLocation =
+            await getActiveLocation();
+
+
+          if (
+            savedLocation &&
+            savedLocation.latitude != null &&
+            savedLocation.longitude != null
+          ) {
+
+            console.log(
+              '📍 Using saved location:',
+              savedLocation,
+            );
+
+
+            setSelectedLocation(
+              savedLocation.address ||
+              'Selected location',
+            );
+
+
+            setLocationCoordinates(
+              savedLocation,
+            );
+
+
+            await fetchNearbySalons(
+
+              Number(
+                savedLocation.latitude,
+              ),
+
+              Number(
+                savedLocation.longitude,
+              ),
+
+              search,
+
+              selectedCategory,
+
+              selectedDistance,
+
+            );
+
+
+            return;
+
+          }
+
+
+          // ====================================================
+          // DEVICE LOCATION
+          // ====================================================
+
+          console.log(
+            '📍 No saved location. Getting device location...',
+          );
+
+
+          const currentLocation =
+            await getCurrentLocation();
+
+
+          if (
+            !currentLocation
+          ) {
+
+            console.log(
+              '⚠️ Location unavailable',
+            );
+
+
+            setSelectedLocation(
+              'Choose location',
+            );
+
+            setLocationCoordinates(
+              null,
+            );
+
+            setSalons([]);
+
+            return;
+
+          }
+
+
+          console.log(
+            '✅ Device location:',
+            currentLocation,
+          );
+
+
+          setSelectedLocation(
+            currentLocation.address ||
+            'Current location',
+          );
+
+
+          setLocationCoordinates(
+            currentLocation,
+          );
+
+
+          await fetchNearbySalons(
+
+            Number(
+              currentLocation.latitude,
+            ),
+
+            Number(
+              currentLocation.longitude,
+            ),
+
+            search,
+
+            selectedCategory,
+
+            selectedDistance,
+
+          );
+
+
+        } catch (
+        error
+        ) {
+
+          console.log(
+            '❌ LOAD LOCATION ERROR:',
+            error,
+          );
+
+
+          setSelectedLocation(
+            'Choose location',
+          );
+
+          setLocationCoordinates(
+            null,
+          );
+
+          setSalons([]);
+
+        }
+
+      },
+      [
+        fetchNearbySalons,
+        search,
+        selectedCategory,
+        selectedDistance,
+      ],
+    );
+
+
+  // ==========================================================
+  // INITIAL LOAD
+  // ==========================================================
+
+  useEffect(
+    () => {
+
+      loadLocation();
+
+    },
+    [],
+  );
+
+
+  // ==========================================================
+  // BOOKINGS
+  // ==========================================================
+
+  useEffect(
+    () => {
+
+      if (
+        currentUser?.userId
+      ) {
+
+        loadCustomerBookings();
 
       }
 
-    };
+    },
+    [
+      currentUser?.userId,
+    ],
+  );
 
 
   // ==========================================================
@@ -742,82 +940,179 @@ export default function HomeScreenPage() {
       location: LocationData,
     ) => {
 
-      setSelectedLocation(
-        location.address,
+      console.log(
+        '📍 NEW LOCATION SELECTED:',
+        location,
       );
+
+
+      setSelectedLocation(
+        location.address ||
+        'Selected location',
+      );
+
 
       setLocationCoordinates(
         location,
       );
 
-      await fetchNearbySalons(
-        location.latitude,
-        location.longitude,
-        search,
-        selectedCategory,
-        selectedDistance,
-      );
 
       setShowLocationModal(
         false,
+      );
+
+
+      /*
+       * Immediately search using the NEW coordinates.
+       *
+       * Do not wait for React state to update.
+       */
+
+      await fetchNearbySalons(
+
+        Number(
+          location.latitude,
+        ),
+
+        Number(
+          location.longitude,
+        ),
+
+        search,
+
+        selectedCategory,
+
+        selectedDistance,
+
       );
 
     };
 
 
   // ==========================================================
-  // SEARCH
+  // SEARCH CHANGE
   // ==========================================================
 
   const handleSearchChange =
-    (text: string) => {
+    (
+      text: string,
+    ) => {
 
       setSearch(text);
 
+
+      /*
+       * If user starts salon/service text search,
+       * clear category selection.
+       */
+
       if (
-        text.trim()
+        text.trim().length > 0
       ) {
 
-        setSelectedCategory(
-          '',
-        );
+        setSelectedCategory('');
 
       }
 
     };
 
 
+  // ==========================================================
+  // SEARCH SUBMIT
+  // ==========================================================
+
   const handleSearchSubmit =
-    () => {
+    async () => {
+
+      const cleanSearch =
+        search.trim();
+
+
+      console.log(
+        '🔎 SEARCH SUBMITTED:',
+        cleanSearch,
+      );
+
 
       const location =
         getActiveCoordinates();
 
-      if (!location) {
+
+      if (
+        !location
+      ) {
+
+        console.log(
+          '❌ SEARCH CANNOT RUN: NO LOCATION',
+        );
+
 
         setShowLocationModal(
           true,
         );
 
         return;
+
       }
 
 
-      const cleanSearch =
-        search.trim();
+      if (
+        !cleanSearch
+      ) {
+
+        /*
+         * Empty search means:
+         *
+         * nearby salons
+         */
+
+        setSearch('');
+        setSelectedCategory('');
 
 
-      setSelectedCategory(
-        '',
-      );
+        await fetchNearbySalons(
+
+          Number(
+            location.latitude,
+          ),
+
+          Number(
+            location.longitude,
+          ),
+
+          '',
+
+          '',
+
+          selectedDistance,
+
+        );
 
 
-      fetchNearbySalons(
-        location.latitude,
-        location.longitude,
+        return;
+
+      }
+
+
+      setSelectedCategory('');
+
+
+      await fetchNearbySalons(
+
+        Number(
+          location.latitude,
+        ),
+
+        Number(
+          location.longitude,
+        ),
+
         cleanSearch,
+
         '',
+
         selectedDistance,
+
       );
 
     };
@@ -827,38 +1122,76 @@ export default function HomeScreenPage() {
   // CATEGORY
   // ==========================================================
 
-  const handleCategorySelect =
-    (category: string) => {
+  const handleCategorySelect = async (category: string) => {
+    console.log('========================================');
+    console.log('🏷️ CATEGORY TOGGLE');
+    console.log('🏷️ Category:', category);
+    console.log('🏷️ Current selected category:', selectedCategory);
+    console.log('========================================');
 
-      setSelectedCategory(
-        category,
+    const location = getActiveCoordinates();
+
+    // Location is required for nearby salon results
+    if (
+      !location ||
+      location.latitude == null ||
+      location.longitude == null
+    ) {
+      console.log(
+        '❌ Cannot search category: location unavailable',
       );
 
+      setShowLocationModal(true);
+      return;
+    }
+
+    const isAlreadySelected =
+      selectedCategory.trim().toLowerCase() ===
+      category.trim().toLowerCase();
+
+    // ==========================================================
+    // TOGGLE OFF
+    // ==========================================================
+
+    if (isAlreadySelected) {
+      console.log(
+        '🔄 Service already selected → UNSELECTING',
+      );
+
+      setSelectedCategory('');
       setSearch('');
 
-      const location =
-        getActiveCoordinates();
-
-
-      if (!location) {
-
-        setShowLocationModal(
-          true,
-        );
-
-        return;
-      }
-
-
-      fetchNearbySalons(
-        location.latitude,
-        location.longitude,
+      await fetchNearbySalons(
+        Number(location.latitude),
+        Number(location.longitude),
         '',
-        category,
+        '',
         selectedDistance,
       );
 
-    };
+      return;
+    }
+
+    // ==========================================================
+    // SELECT NEW SERVICE
+    // ==========================================================
+
+    console.log(
+      '✅ Selecting service:',
+      category,
+    );
+
+    setSelectedCategory(category);
+    setSearch('');
+
+    await fetchNearbySalons(
+      Number(location.latitude),
+      Number(location.longitude),
+      '',
+      category,
+      selectedDistance,
+    );
+  };
 
 
   // ==========================================================
@@ -887,22 +1220,42 @@ export default function HomeScreenPage() {
         getActiveCoordinates();
 
 
-      if (!location) {
+      if (
+        !location
+      ) {
 
         setShowLocationModal(
           true,
         );
 
         return;
+
       }
 
 
+      /*
+       * The API currently receives radius.
+       *
+       * Budget is applied locally below because
+       * GET_NEARBY_SALONS currently has no budget variable.
+       */
+
       await fetchNearbySalons(
-        location.latitude,
-        location.longitude,
+
+        Number(
+          location.latitude,
+        ),
+
+        Number(
+          location.longitude,
+        ),
+
         search,
+
         selectedCategory,
+
         selectedDistance,
+
       );
 
     };
@@ -976,15 +1329,21 @@ export default function HomeScreenPage() {
           });
 
 
-        setBookings(
+        const customerBookings =
           data?.customerBookings ||
-          [],
+          [];
+
+
+        setBookings(
+          customerBookings,
         );
 
 
         const booking =
-          data?.customerBookings?.find(
-            (item: Booking) =>
+          customerBookings.find(
+            (
+              item: Booking,
+            ) =>
               item.bookingStatus ===
               'COMPLETED' &&
               item.reviewSubmitted ===
@@ -992,7 +1351,9 @@ export default function HomeScreenPage() {
           );
 
 
-        if (booking) {
+        if (
+          booking
+        ) {
 
           setPendingBooking(
             booking,
@@ -1004,10 +1365,12 @@ export default function HomeScreenPage() {
 
         }
 
-      } catch (error) {
+      } catch (
+      error
+      ) {
 
         console.log(
-          'Booking loading error:',
+          '❌ BOOKING LOADING ERROR:',
           error,
         );
 
@@ -1017,56 +1380,110 @@ export default function HomeScreenPage() {
 
 
   // ==========================================================
-  // FILTER SUMMARY
+  // LOCAL BUDGET FILTER
+  // ==========================================================
+
+  /*
+   * NOTE:
+   *
+   * Your current nearbySalons GraphQL response does not return
+   * service price.
+   *
+   * Therefore we DO NOT fake a budget filter here.
+   *
+   * Once backend returns minimum/service price, this can become
+   * a real dynamic budget filter.
+   */
+
+  const displayedSalons =
+    useMemo(
+      () => {
+
+        return salons;
+
+      },
+      [
+        salons,
+        selectedBudget,
+      ],
+    );
+
+
+  // ==========================================================
+  // FILTER COUNT
   // ==========================================================
 
   const filterCount =
-    useMemo(() => {
+    useMemo(
+      () => {
 
-      let count = 0;
+        let count = 0;
 
-      if (
-        selectedBudget.label !==
-        'Any'
-      ) {
-        count++;
-      }
 
-      if (
-        selectedDistance !== 10
-      ) {
-        count++;
-      }
+        if (
+          selectedBudget.label !==
+          'Any'
+        ) {
 
-      return count;
+          count++;
 
-    }, [
-      selectedBudget,
-      selectedDistance,
-    ]);
+        }
 
+
+        if (
+          selectedDistance !==
+          10
+        ) {
+
+          count++;
+
+        }
+
+
+        return count;
+
+      },
+      [
+        selectedBudget,
+        selectedDistance,
+      ],
+    );
+
+
+  // ==========================================================
+  // RESULT TITLE
+  // ==========================================================
 
   const resultTitle =
-    useMemo(() => {
+    useMemo(
+      () => {
 
-      if (
-        search.trim()
-      ) {
-        return 'Search results';
-      }
+        if (
+          search.trim()
+        ) {
 
-      if (
-        selectedCategory
-      ) {
-        return selectedCategory;
-      }
+          return 'Search results';
 
-      return 'Salons near you';
+        }
 
-    }, [
-      search,
-      selectedCategory,
-    ]);
+
+        if (
+          selectedCategory
+        ) {
+
+          return selectedCategory;
+
+        }
+
+
+        return 'Salons near you';
+
+      },
+      [
+        search,
+        selectedCategory,
+      ],
+    );
 
 
   // ==========================================================
@@ -1084,12 +1501,14 @@ export default function HomeScreenPage() {
       <FlatList
 
         data={
-          salons
+          displayedSalons
         }
 
         keyExtractor={
           item =>
-            item.id
+            String(
+              item.id,
+            )
         }
 
         renderItem={({
@@ -1112,14 +1531,17 @@ export default function HomeScreenPage() {
             ================================================== */}
 
             <HomeHeader
+
               location={
                 selectedLocation
               }
+
               onPressLocation={() =>
                 setShowLocationModal(
                   true,
                 )
               }
+
             />
 
 
@@ -1149,38 +1571,66 @@ export default function HomeScreenPage() {
 
 
                 <TextInput
+
                   value={
                     search
                   }
+
                   onChangeText={
                     handleSearchChange
                   }
+
                   onSubmitEditing={
                     handleSearchSubmit
                   }
-                  placeholder="Search salons or services"
+
+                  placeholder={
+                    'Search salons or services'
+                  }
+
                   placeholderTextColor={
                     COLORS.textMuted
                   }
+
                   style={
                     styles.searchInput
                   }
-                  returnKeyType="search"
+
+                  returnKeyType={
+                    'search'
+                  }
+
+                  enterKeyHint={
+                    'search'
+                  }
+
+                  autoCorrect={
+                    false
+                  }
+
+                  autoCapitalize={
+                    'none'
+                  }
+
                 />
 
               </View>
 
 
               <TouchableOpacity
+
                 style={
                   styles.filterButton
                 }
+
                 onPress={
                   openFilter
                 }
+
                 activeOpacity={
                   0.8
                 }
+
               >
 
                 <Text
@@ -1218,7 +1668,7 @@ export default function HomeScreenPage() {
 
 
             {/* ==================================================
-                QUICK FILTER SUMMARY
+                QUICK FILTERS
             ================================================== */}
 
             <View
@@ -1287,24 +1737,19 @@ export default function HomeScreenPage() {
                 Choose Services
               </Text>
 
-              {/* <Text
-                style={
-                  styles.sectionAction
-                }
-              >
-                Explore
-              </Text> */}
-
             </View>
 
 
             <ServiceChips
+
               selectedCategory={
                 selectedCategory
               }
+
               onSelect={
                 handleCategorySelect
               }
+
             />
 
 
@@ -1313,33 +1758,20 @@ export default function HomeScreenPage() {
             ================================================== */}
 
             <TouchableOpacity
+
               style={
                 styles.clavataCard
               }
+
               onPress={
                 askClavata
               }
+
               activeOpacity={
                 0.9
               }
+
             >
-
-              {/* <View
-                style={
-                  styles.clavataMark
-                }
-              >
-
-                <Text
-                  style={
-                    styles.clavataMarkText
-                  }
-                >
-                  C
-                </Text>
-
-              </View> */}
-
 
               <View
                 style={
@@ -1386,22 +1818,6 @@ export default function HomeScreenPage() {
 
 
             {/* ==================================================
-                AD
-            ================================================== */}
-
-            {/* <HomeAdCarousel
-              onAdPress={
-                ad => {
-                  console.log(
-                    'Advertisement clicked:',
-                    ad,
-                  );
-                }
-              }
-            /> */}
-
-
-            {/* ==================================================
                 RESULTS
             ================================================== */}
 
@@ -1425,24 +1841,28 @@ export default function HomeScreenPage() {
                   {resultTitle}
                 </Text>
 
+
                 <Text
                   style={
                     styles.resultsSubtitle
                   }
                 >
-                  {salons.length} places
+                  {displayedSalons.length} places
                 </Text>
 
               </View>
 
 
               <TouchableOpacity
+
                 style={
                   styles.sortButton
                 }
+
                 onPress={
                   openFilter
                 }
+
               >
 
                 <Text
@@ -1472,10 +1892,13 @@ export default function HomeScreenPage() {
             >
 
               <ActivityIndicator
+
                 size="small"
+
                 color={
                   COLORS.black
                 }
+
               />
 
               <Text
@@ -1496,23 +1919,6 @@ export default function HomeScreenPage() {
               }
             >
 
-              {/* <View
-                style={
-                  styles.emptyCircle
-                }
-              >
-
-                <Text
-                  style={
-                    styles.emptyCircleText
-                  }
-                >
-                  —
-                </Text>
-
-              </View> */}
-
-
               <Text
                 style={
                   styles.emptyTitle
@@ -1532,12 +1938,15 @@ export default function HomeScreenPage() {
 
 
               <TouchableOpacity
+
                 style={
                   styles.emptyButton
                 }
+
                 onPress={
                   openFilter
                 }
+
               >
 
                 <Text
@@ -1613,13 +2022,17 @@ export default function HomeScreenPage() {
           navigation.navigate(
             'Bookings',
             {
+
               screen:
                 'RateReview',
 
               params: {
+
                 booking:
                   pendingBooking,
+
               },
+
             },
           );
 
@@ -1641,16 +2054,23 @@ export default function HomeScreenPage() {
       ====================================================== */}
 
       <Modal
+
         visible={
           showFilterModal
         }
+
         transparent
-        animationType="slide"
+
+        animationType={
+          'slide'
+        }
+
         onRequestClose={() =>
           setShowFilterModal(
             false,
           )
         }
+
       >
 
         <View
@@ -1660,14 +2080,17 @@ export default function HomeScreenPage() {
         >
 
           <Pressable
+
             style={
               styles.modalDismiss
             }
+
             onPress={() =>
               setShowFilterModal(
                 false,
               )
             }
+
           />
 
 
@@ -1714,14 +2137,17 @@ export default function HomeScreenPage() {
 
 
               <TouchableOpacity
+
                 style={
                   styles.closeButton
                 }
+
                 onPress={() =>
                   setShowFilterModal(
                     false,
                   )
                 }
+
               >
 
                 <Text
@@ -1749,9 +2175,11 @@ export default function HomeScreenPage() {
 
 
             <TouchableOpacity
+
               style={
                 styles.filterField
               }
+
               onPress={() => {
 
                 setShowFilterModal(
@@ -1759,6 +2187,7 @@ export default function HomeScreenPage() {
                 );
 
               }}
+
             >
 
               <View>
@@ -1771,9 +2200,11 @@ export default function HomeScreenPage() {
                     1
                   }
                 >
-                  {selectedCategory ||
+                  {
+                    selectedCategory ||
                     search ||
-                    'Any service'}
+                    'Any service'
+                  }
                 </Text>
 
                 <Text
@@ -1810,9 +2241,11 @@ export default function HomeScreenPage() {
 
 
             <TouchableOpacity
+
               style={
                 styles.filterField
               }
+
               onPress={() => {
 
                 setShowFilterModal(
@@ -1824,6 +2257,7 @@ export default function HomeScreenPage() {
                 );
 
               }}
+
             >
 
               <View
@@ -1919,25 +2353,31 @@ export default function HomeScreenPage() {
                     selectedBudget.label ===
                     option.label;
 
+
                   return (
 
                     <TouchableOpacity
+
                       key={
                         option.label
                       }
+
                       style={[
                         styles.budgetOption,
                         isSelected &&
                         styles.budgetOptionSelected,
                       ]}
+
                       onPress={() =>
                         setSelectedBudget(
                           option,
                         )
                       }
+
                       activeOpacity={
                         0.8
                       }
+
                     >
 
                       <Text
@@ -2000,25 +2440,31 @@ export default function HomeScreenPage() {
                     selectedDistance ===
                     distance;
 
+
                   return (
 
                     <TouchableOpacity
+
                       key={
                         distance
                       }
+
                       style={[
                         styles.distanceOption,
                         isSelected &&
                         styles.distanceOptionSelected,
                       ]}
+
                       onPress={() =>
                         setSelectedDistance(
                           distance,
                         )
                       }
+
                       activeOpacity={
                         0.8
                       }
+
                     >
 
                       <Text
@@ -2054,15 +2500,19 @@ export default function HomeScreenPage() {
             {/* ACTION */}
 
             <TouchableOpacity
+
               style={
                 styles.findButton
               }
+
               onPress={
                 applyFilters
               }
+
               activeOpacity={
                 0.85
               }
+
             >
 
               <Text
@@ -2087,15 +2537,19 @@ export default function HomeScreenPage() {
             {/* CLAVATA */}
 
             <TouchableOpacity
+
               style={
                 styles.clavataLink
               }
+
               onPress={
                 askClavata
               }
+
               activeOpacity={
                 0.8
               }
+
             >
 
               <Text
@@ -2126,10 +2580,6 @@ export default function HomeScreenPage() {
 const styles =
   StyleSheet.create({
 
-    // ========================================================
-    // BASE
-    // ========================================================
-
     container: {
       flex: 1,
       backgroundColor:
@@ -2141,105 +2591,66 @@ const styles =
         40,
     },
 
-
-    // ========================================================
-    // SEARCH
-    // ========================================================
-
     searchRow: {
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       marginHorizontal:
         SPACING.xl,
-
       marginTop:
         8,
-
       marginBottom:
         12,
-
       gap:
         10,
     },
 
     searchBox: {
       flex: 1,
-
       height: 54,
-
       backgroundColor:
         COLORS.white,
-
-      borderRadius:
-        14,
-
-      borderWidth:
-        1,
-
+      borderRadius: 14,
+      borderWidth: 1,
       borderColor:
         '#E3E3E3',
-
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       paddingHorizontal:
         15,
     },
 
     searchSymbol: {
-      fontSize:
-        25,
-
+      fontSize: 25,
       color:
         COLORS.black,
-
       fontWeight:
         '300',
-
-      marginRight:
-        8,
+      marginRight: 8,
     },
 
     searchInput: {
       flex: 1,
-
-      height:
-        '100%',
-
-      fontSize:
-        15,
-
+      height: '100%',
+      fontSize: 15,
       color:
         COLORS.black,
-
-      paddingVertical:
-        0,
+      paddingVertical: 0,
     },
 
     filterButton: {
       width: 54,
-
       height: 54,
-
-      borderRadius:
-        14,
-
+      borderRadius: 14,
       backgroundColor:
         COLORS.black,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
-
       position:
         'relative',
     },
@@ -2247,10 +2658,7 @@ const styles =
     filterSymbol: {
       color:
         COLORS.white,
-
-      fontSize:
-        22,
-
+      fontSize: 22,
       fontWeight:
         '400',
     },
@@ -2258,218 +2666,104 @@ const styles =
     filterBadge: {
       position:
         'absolute',
-
-      right:
-        -2,
-
-      top:
-        -4,
-
-      minWidth:
-        18,
-
-      height:
-        18,
-
-      paddingHorizontal:
-        4,
-
-      borderRadius:
-        9,
-
+      right: -2,
+      top: -4,
+      minWidth: 18,
+      height: 18,
+      paddingHorizontal: 4,
+      borderRadius: 9,
       backgroundColor:
         COLORS.white,
-
-      borderWidth:
-        2,
-
+      borderWidth: 2,
       borderColor:
         COLORS.black,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
 
     filterBadgeText: {
-      fontSize:
-        9,
-
+      fontSize: 9,
       color:
         COLORS.black,
-
       fontWeight:
         '800',
     },
 
-
-    // ========================================================
-    // QUICK FILTERS
-    // ========================================================
-
     quickFilters: {
       flexDirection:
         'row',
-
       marginHorizontal:
         SPACING.xl,
-
       marginBottom:
         22,
-
-      gap:
-        8,
+      gap: 8,
     },
 
     quickChip: {
-      height:
-        34,
-
-      paddingHorizontal:
-        13,
-
-      borderRadius:
-        17,
-
+      height: 34,
+      paddingHorizontal: 13,
+      borderRadius: 17,
       backgroundColor:
         COLORS.white,
-
-      borderWidth:
-        1,
-
+      borderWidth: 1,
       borderColor:
         '#E4E4E4',
-
       justifyContent:
         'center',
     },
 
     quickChipText: {
-      fontSize:
-        12,
-
+      fontSize: 12,
       color:
         '#333333',
-
       fontWeight:
         '600',
     },
 
-
-    // ========================================================
-    // SECTION
-    // ========================================================
-
     sectionHeader: {
       marginHorizontal:
         SPACING.xl,
-
       marginBottom:
         12,
-
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       justifyContent:
         'space-between',
     },
 
     sectionTitle: {
-      fontSize:
-        21,
-
+      fontSize: 21,
       color:
         COLORS.black,
-
       fontWeight:
         '700',
-
       letterSpacing:
         -0.4,
     },
 
-    sectionAction: {
-      fontSize:
-        12,
-
-      color:
-        COLORS.textSecondary,
-
-      fontWeight:
-        '600',
-    },
-
-
-    // ========================================================
-    // CLAVATA
-    // ========================================================
-
     clavataCard: {
       marginHorizontal:
         SPACING.xl,
-
       marginTop:
         20,
-
       marginBottom:
         20,
-
       minHeight:
         72,
-
       borderRadius:
         18,
-
       backgroundColor:
         COLORS.black,
-
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       paddingHorizontal:
         14,
-    },
-
-    clavataMark: {
-      width:
-        44,
-
-      height:
-        44,
-
-      borderRadius:
-        14,
-
-      backgroundColor:
-        COLORS.white,
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
-      marginRight:
-        12,
-    },
-
-    clavataMarkText: {
-      fontSize:
-        19,
-
-      fontWeight:
-        '800',
-
-      color:
-        COLORS.black,
     },
 
     clavataBody: {
@@ -2477,76 +2771,48 @@ const styles =
     },
 
     clavataTitle: {
-      fontSize:
-        15,
-
+      fontSize: 15,
       color:
         COLORS.white,
-
       fontWeight:
         '700',
     },
 
     clavataText: {
-      marginTop:
-        3,
-
-      fontSize:
-        12,
-
+      marginTop: 3,
+      fontSize: 12,
       color:
         '#BEBEBE',
-
       fontWeight:
         '400',
     },
 
     clavataArrow: {
-      width:
-        36,
-
-      height:
-        36,
-
+      width: 36,
+      height: 36,
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
 
     clavataArrowText: {
-      fontSize:
-        21,
-
+      fontSize: 21,
       color:
         COLORS.white,
-
       fontWeight:
         '300',
     },
 
-
-    // ========================================================
-    // RESULTS
-    // ========================================================
-
     resultsHeader: {
       marginHorizontal:
         SPACING.xl,
-
-      marginTop:
-        24,
-
-      marginBottom:
-        14,
-
+      marginTop: 24,
+      marginBottom: 14,
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       justifyContent:
         'space-between',
     },
@@ -2556,191 +2822,94 @@ const styles =
     },
 
     resultsTitle: {
-      fontSize:
-        21,
-
+      fontSize: 21,
       color:
         COLORS.black,
-
       fontWeight:
         '700',
-
       letterSpacing:
         -0.3,
     },
 
     resultsSubtitle: {
-      marginTop:
-        3,
-
-      fontSize:
-        12,
-
+      marginTop: 3,
+      fontSize: 12,
       color:
         COLORS.textMuted,
-
       fontWeight:
         '500',
     },
 
     sortButton: {
-      height:
-        34,
-
-      paddingHorizontal:
-        13,
-
-      borderRadius:
-        17,
-
-      borderWidth:
-        1,
-
+      height: 34,
+      paddingHorizontal: 13,
+      borderRadius: 17,
+      borderWidth: 1,
       borderColor:
         '#DDDDDD',
-
       backgroundColor:
         COLORS.white,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
 
     sortText: {
-      fontSize:
-        12,
-
+      fontSize: 12,
       color:
         COLORS.black,
-
       fontWeight:
         '600',
     },
 
-
-    // ========================================================
-    // LOADING
-    // ========================================================
-
     loadingContainer: {
-      marginTop:
-        45,
-
+      marginTop: 45,
       alignItems:
         'center',
     },
 
     loadingText: {
-      marginTop:
-        12,
-
-      fontSize:
-        13,
-
+      marginTop: 12,
+      fontSize: 13,
       color:
         COLORS.textSecondary,
-
       fontWeight:
         '500',
     },
 
-
-    // ========================================================
-    // EMPTY
-    // ========================================================
-
     emptyContainer: {
-      marginTop:
-        45,
-
-      marginHorizontal:
-        30,
-
+      marginTop: 45,
+      marginHorizontal: 30,
       alignItems:
         'center',
-    },
-
-    emptyCircle: {
-      width:
-        58,
-
-      height:
-        58,
-
-      borderRadius:
-        29,
-
-      backgroundColor:
-        COLORS.white,
-
-      borderWidth:
-        1,
-
-      borderColor:
-        '#E2E2E2',
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-    },
-
-    emptyCircleText: {
-      fontSize:
-        24,
-
-      color:
-        COLORS.textMuted,
     },
 
     emptyTitle: {
-      marginTop:
-        16,
-
-      fontSize:
-        18,
-
+      marginTop: 16,
+      fontSize: 18,
       color:
         COLORS.black,
-
       fontWeight:
         '700',
     },
 
     emptyText: {
-      marginTop:
-        5,
-
-      fontSize:
-        13,
-
+      marginTop: 5,
+      fontSize: 13,
       color:
         COLORS.textSecondary,
     },
 
     emptyButton: {
-      marginTop:
-        18,
-
-      height:
-        44,
-
-      paddingHorizontal:
-        20,
-
-      borderRadius:
-        12,
-
+      marginTop: 18,
+      height: 44,
+      paddingHorizontal: 20,
+      borderRadius: 12,
       backgroundColor:
         COLORS.black,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
@@ -2748,25 +2917,15 @@ const styles =
     emptyButtonText: {
       color:
         COLORS.white,
-
-      fontSize:
-        13,
-
+      fontSize: 13,
       fontWeight:
         '600',
     },
 
-
-    // ========================================================
-    // MODAL
-    // ========================================================
-
     modalOverlay: {
       flex: 1,
-
       backgroundColor:
         'rgba(0,0,0,0.48)',
-
       justifyContent:
         'flex-end',
     },
@@ -2778,42 +2937,28 @@ const styles =
     filterSheet: {
       backgroundColor:
         COLORS.white,
-
       borderTopLeftRadius:
         28,
-
       borderTopRightRadius:
         28,
-
       paddingHorizontal:
         22,
-
       paddingTop:
         10,
-
       paddingBottom:
         22,
-
       maxHeight:
         '88%',
     },
 
     sheetHandle: {
-      width:
-        38,
-
-      height:
-        4,
-
-      borderRadius:
-        4,
-
+      width: 38,
+      height: 4,
+      borderRadius: 4,
       backgroundColor:
         '#D4D4D4',
-
       alignSelf:
         'center',
-
       marginBottom:
         18,
     },
@@ -2821,129 +2966,79 @@ const styles =
     sheetHeader: {
       flexDirection:
         'row',
-
       alignItems:
         'flex-start',
-
       justifyContent:
         'space-between',
-
       marginBottom:
         12,
     },
 
     sheetTitle: {
-      fontSize:
-        27,
-
+      fontSize: 27,
       color:
         COLORS.black,
-
       fontWeight:
         '700',
-
       letterSpacing:
         -0.7,
     },
 
     sheetSubtitle: {
-      marginTop:
-        4,
-
-      fontSize:
-        13,
-
+      marginTop: 4,
+      fontSize: 13,
       color:
         COLORS.textSecondary,
-
       fontWeight:
         '400',
     },
 
     closeButton: {
-      width:
-        36,
-
-      height:
-        36,
-
-      borderRadius:
-        18,
-
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       backgroundColor:
         '#F4F4F4',
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
 
     closeButtonText: {
-      fontSize:
-        24,
-
+      fontSize: 24,
       color:
         COLORS.black,
-
       fontWeight:
         '300',
-
-      marginTop:
-        -2,
+      marginTop: -2,
     },
 
-
-    // ========================================================
-    // FILTER FIELDS
-    // ========================================================
-
     filterLabel: {
-      fontSize:
-        10,
-
+      fontSize: 10,
       color:
         '#8A8A8A',
-
       fontWeight:
         '700',
-
       letterSpacing:
         1.1,
-
-      marginTop:
-        14,
-
-      marginBottom:
-        7,
+      marginTop: 14,
+      marginBottom: 7,
     },
 
     filterField: {
-      minHeight:
-        56,
-
-      borderRadius:
-        13,
-
-      borderWidth:
-        1,
-
+      minHeight: 56,
+      borderRadius: 13,
+      borderWidth: 1,
       borderColor:
         '#E5E5E5',
-
       backgroundColor:
         '#FAFAFA',
-
-      paddingHorizontal:
-        14,
-
+      paddingHorizontal: 14,
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       justifyContent:
         'space-between',
     },
@@ -2951,38 +3046,26 @@ const styles =
     filterFieldValue: {
       maxWidth:
         '90%',
-
-      fontSize:
-        14,
-
+      fontSize: 14,
       color:
         COLORS.black,
-
       fontWeight:
         '600',
     },
 
     filterFieldHint: {
-      marginTop:
-        2,
-
-      fontSize:
-        10,
-
+      marginTop: 2,
+      fontSize: 10,
       color:
         COLORS.textMuted,
-
       fontWeight:
         '400',
     },
 
     fieldArrow: {
-      fontSize:
-        20,
-
+      fontSize: 20,
       color:
         COLORS.black,
-
       fontWeight:
         '300',
     },
@@ -2990,105 +3073,63 @@ const styles =
     locationField: {
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
-      flex:
-        1,
+      flex: 1,
     },
 
     locationDot: {
-      width:
-        10,
-
-      height:
-        10,
-
-      borderRadius:
-        5,
-
+      width: 10,
+      height: 10,
+      borderRadius: 5,
       backgroundColor:
         COLORS.black,
-
-      marginRight:
-        12,
+      marginRight: 12,
     },
 
     locationValueWrap: {
-      flex:
-        1,
+      flex: 1,
     },
 
-
-    // ========================================================
-    // BUDGET
-    // ========================================================
-
     labelRow: {
-      marginTop:
-        13,
-
+      marginTop: 13,
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       justifyContent:
         'space-between',
     },
 
     selectedValue: {
-      fontSize:
-        12,
-
+      fontSize: 12,
       color:
         COLORS.black,
-
       fontWeight:
         '600',
-
-      marginTop:
-        14,
+      marginTop: 14,
     },
 
     budgetGrid: {
       flexDirection:
         'row',
-
       flexWrap:
         'wrap',
-
-      gap:
-        7,
-
-      marginTop:
-        1,
+      gap: 7,
+      marginTop: 1,
     },
 
     budgetOption: {
-      paddingHorizontal:
-        13,
-
-      height:
-        39,
-
-      borderRadius:
-        20,
-
-      borderWidth:
-        1,
-
+      paddingHorizontal: 13,
+      height: 39,
+      borderRadius: 20,
+      borderWidth: 1,
       borderColor:
         '#E2E2E2',
-
       backgroundColor:
         COLORS.white,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
@@ -3096,18 +3137,14 @@ const styles =
     budgetOptionSelected: {
       backgroundColor:
         COLORS.black,
-
       borderColor:
         COLORS.black,
     },
 
     budgetOptionText: {
-      fontSize:
-        11,
-
+      fontSize: 11,
       color:
         '#333333',
-
       fontWeight:
         '600',
     },
@@ -3117,21 +3154,12 @@ const styles =
         COLORS.white,
     },
 
-
-    // ========================================================
-    // DISTANCE
-    // ========================================================
-
     labelRowDistance: {
-      marginTop:
-        10,
-
+      marginTop: 10,
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       justifyContent:
         'space-between',
     },
@@ -3139,36 +3167,22 @@ const styles =
     distanceRow: {
       flexDirection:
         'row',
-
       justifyContent:
         'space-between',
-
-      marginTop:
-        2,
+      marginTop: 2,
     },
 
     distanceOption: {
-      width:
-        52,
-
-      height:
-        46,
-
-      borderRadius:
-        12,
-
-      borderWidth:
-        1,
-
+      width: 52,
+      height: 46,
+      borderRadius: 12,
+      borderWidth: 1,
       borderColor:
         '#E2E2E2',
-
       backgroundColor:
         COLORS.white,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
@@ -3176,23 +3190,17 @@ const styles =
     distanceOptionSelected: {
       backgroundColor:
         COLORS.black,
-
       borderColor:
         COLORS.black,
     },
 
     distanceNumber: {
-      fontSize:
-        14,
-
+      fontSize: 14,
       color:
         COLORS.black,
-
       fontWeight:
         '700',
-
-      lineHeight:
-        16,
+      lineHeight: 16,
     },
 
     distanceNumberSelected: {
@@ -3201,12 +3209,9 @@ const styles =
     },
 
     distanceUnit: {
-      fontSize:
-        9,
-
+      fontSize: 9,
       color:
         COLORS.textMuted,
-
       fontWeight:
         '500',
     },
@@ -3216,30 +3221,16 @@ const styles =
         '#CFCFCF',
     },
 
-
-    // ========================================================
-    // ACTION
-    // ========================================================
-
     findButton: {
-      height:
-        54,
-
-      borderRadius:
-        14,
-
+      height: 54,
+      borderRadius: 14,
       backgroundColor:
         COLORS.black,
-
-      marginTop:
-        18,
-
+      marginTop: 18,
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
@@ -3247,10 +3238,7 @@ const styles =
     findButtonText: {
       color:
         COLORS.white,
-
-      fontSize:
-        14,
-
+      fontSize: 14,
       fontWeight:
         '700',
     },
@@ -3258,38 +3246,25 @@ const styles =
     findButtonArrow: {
       color:
         COLORS.white,
-
-      fontSize:
-        20,
-
-      marginLeft:
-        8,
-
+      fontSize: 20,
+      marginLeft: 8,
       fontWeight:
         '300',
     },
 
     clavataLink: {
-      height:
-        40,
-
+      height: 40,
       alignItems:
         'center',
-
       justifyContent:
         'center',
-
-      marginTop:
-        3,
+      marginTop: 3,
     },
 
     clavataLinkText: {
       color:
         COLORS.black,
-
-      fontSize:
-        12,
-
+      fontSize: 12,
       fontWeight:
         '600',
     },
