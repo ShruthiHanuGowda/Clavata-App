@@ -404,7 +404,52 @@ export default function HomeScreenPage() {
       category = '',
       radiusOverride?: number,
     ) => {
+      console.log(
+        '================================================',
+      );
 
+      console.log(
+        '🔍 fetchNearbySalons() CALLED',
+      );
+
+      console.log(
+        '📍 Input latitude:',
+        latitude,
+      );
+
+      console.log(
+        '📍 Input longitude:',
+        longitude,
+      );
+
+      console.log(
+        '🔎 Input search:',
+        searchText,
+      );
+
+      console.log(
+        '🏷️ Input category:',
+        category,
+      );
+
+      console.log(
+        '📏 Input radius:',
+        radiusOverride,
+      );
+
+      console.log(
+        '⚙️ USE_HARDCODED_LOCATION:',
+        USE_HARDCODED_LOCATION,
+      );
+
+      console.log(
+        '📏 DEFAULT_LOCATION_RADIUS:',
+        DEFAULT_LOCATION_RADIUS,
+      );
+
+      console.log(
+        '================================================',
+      );
       let finalLatitude:
         number | null = null;
 
@@ -419,9 +464,17 @@ export default function HomeScreenPage() {
       if (
         USE_HARDCODED_LOCATION
       ) {
+        console.log(
+          '⚙️ HARD CODED LOCATION MODE = TRUE',
+        );
 
         const activeLocation =
           await getActiveLocation();
+
+        console.log(
+          '📦 getActiveLocation() returned:',
+          activeLocation,
+        );
 
         if (
           activeLocation
@@ -432,14 +485,33 @@ export default function HomeScreenPage() {
 
           finalLongitude =
             activeLocation.longitude;
+          console.log(
+            '📍 Using active location latitude:',
+            finalLatitude,
+          );
+
+          console.log(
+            '📍 Using active location longitude:',
+            finalLongitude,
+          );
+        } else {
+          console.log(
+            '❌ NO ACTIVE LOCATION FOUND',
+          );
 
         }
 
       } else {
+        console.log(
+          '📍 HARD CODED LOCATION MODE = FALSE',
+        );
 
         const activeLocation =
           getActiveCoordinates();
-
+        console.log(
+          '📦 getActiveCoordinates() returned:',
+          activeLocation,
+        );
         finalLatitude =
           latitude ??
           activeLocation?.latitude ??
@@ -451,11 +523,38 @@ export default function HomeScreenPage() {
           null;
       }
 
+      console.log(
+        '📍 Calculated final latitude:',
+        finalLatitude,
+      );
 
+      console.log(
+        '📍 Calculated final longitude:',
+        finalLongitude,
+      );
       // --------------------------------------------------------
       // NO LOCATION
       // --------------------------------------------------------
+      console.log(
+        '🔴 FINAL COORDINATES BEFORE GRAPHQL:',
+      );
 
+      console.log(
+        '➡️ finalLatitude:',
+        finalLatitude,
+      );
+
+      console.log(
+        '➡️ finalLongitude:',
+        finalLongitude,
+      );
+
+      console.log(
+        '➡️ radius:',
+        radiusOverride ??
+        selectedDistance ??
+        DEFAULT_LOCATION_RADIUS,
+      );
       if (
         finalLatitude === null ||
         finalLongitude === null
@@ -527,7 +626,18 @@ export default function HomeScreenPage() {
         setLoadingSalons(
           true,
         );
+        console.log(
+          '🚀 ABOUT TO CALL GET_NEARBY_SALONS',
+        );
 
+        console.log(
+          '🚀 GET_NEARBY_SALONS VARIABLES:',
+          JSON.stringify(
+            variables,
+            null,
+            2,
+          ),
+        );
         const {
           data,
         } =
@@ -543,7 +653,7 @@ export default function HomeScreenPage() {
 
           });
 
-
+        console.log("📦 GET_NEARBY_SALONS RESPONSE:", data);
         const formatted =
           (
             data?.nearbySalons ||
