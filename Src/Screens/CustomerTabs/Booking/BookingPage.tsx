@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-
+import {
+    NativeStackNavigationProp,
+} from '@react-navigation/native-stack';
 import {
     SafeAreaView,
     ScrollView,
@@ -21,8 +23,13 @@ import {
 } from '../../../graphql/queries';
 
 import { useNavigation } from '@react-navigation/native';
+import { WalletStackParamList } from '../../../../types';
 
-
+type BookingNavigationProp =
+    NativeStackNavigationProp<
+        WalletStackParamList,
+        'explore'
+    >;
 // ============================================================
 // DESIGN SYSTEM
 // ============================================================
@@ -55,7 +62,8 @@ const COLORS = {
 
 export default function BookingPage() {
 
-    const navigation = useNavigation<any>();
+    const navigation =
+        useNavigation<BookingNavigationProp>();
 
     const [tab, setTab] =
         useState<'Upcoming' | 'Completed' | 'Cancelled'>(
@@ -389,32 +397,22 @@ export default function BookingPage() {
     // VIEW BOOKING
     // ============================================================
 
-    const viewBooking =
-        (booking: any) => {
+    const viewBooking = (booking: any) => {
+        console.log(
+            'VIEW BOOKING:',
+            booking.bookingId,
+        );
 
-            console.log(
-                'View booking:',
-                booking.bookingId,
-            );
+        navigation.navigate(
+            'BookingDetails',
+            {
+                bookingId:
+                    booking.bookingId,
 
-            /*
-             * Add your booking details
-             * navigation here later.
-             *
-             * Example:
-             *
-             * navigation.navigate(
-             *     'BookingDetails',
-             *     {
-             *         bookingId:
-             *             booking.bookingId,
-             *     },
-             * );
-             */
-
-        };
-
-
+                booking,
+            },
+        );
+    };
     // ============================================================
     // LOADING
     // ============================================================

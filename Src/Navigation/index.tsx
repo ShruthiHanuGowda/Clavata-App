@@ -148,6 +148,11 @@ export function BookingStack() {
         component={BookingPayment}
       />
       <BookingplaceStack.Screen
+        name="BookingDetails"
+        component={BookingDetails}
+      />
+
+      <BookingplaceStack.Screen
         name="RateReview"
         component={RateReviewScreen}
       />
@@ -242,7 +247,7 @@ export function SalonProfileStack() {
         name="EditStaff"
         component={EditStaff}
       />
-       <SalonProfilePlaceStack.Screen
+      <SalonProfilePlaceStack.Screen
         name="ManageServices"
         component={ManageServices}
       />

@@ -116,10 +116,16 @@ export type WalletStackParamList = {
   wallet: undefined;
   coinWalletStack: undefined;
   Booking: undefined;
-  BookingPayment: undefined;
+  BookingPayment: {
+    booking: any;
+  }
   RateReview: undefined;
   SalonDetails: undefined;
   Offers: undefined;
+  BookingDetails: {
+    bookingId: string;
+    booking: any;
+  };
 };
 
 export type CoinWalletStackParamList = {

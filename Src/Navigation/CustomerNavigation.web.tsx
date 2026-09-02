@@ -31,6 +31,22 @@ import Notifications from '../Screens/CustomerTabs/Profile/Notifications';
 import HelpSupport from '../Screens/CustomerTabs/Profile/HelpSupport';
 import PrivacyPolicy from '../Screens/CustomerTabs/Profile/PrivacyPolicy';
 
+type BookingStackWebParamList = {
+  explore: undefined;
+
+  BookingPayment: {
+    booking: any;
+  };
+
+  BookingDetails: {
+    bookingId: string;
+    booking: any;
+  };
+
+  RateReview: {
+    booking?: any;
+  };
+};
 
 // ============================================================
 // HOME
@@ -112,7 +128,7 @@ export function ExploreStackWeb() {
 // BOOKINGS
 // ============================================================
 
-const BookingStackNavigator = createNativeStackNavigator();
+const BookingStackNavigator = createNativeStackNavigator<BookingStackWebParamList>();
 
 export function BookingStackWeb() {
   return (
@@ -131,7 +147,10 @@ export function BookingStackWeb() {
         name="BookingPayment"
         component={BookingPayment}
       />
-
+      <BookingStackNavigator.Screen
+        name="BookingDetails"
+        component={BookingDetails}
+      />
       <BookingStackNavigator.Screen
         name="RateReview"
         component={RateReviewScreen}

@@ -1031,3 +1031,42 @@ mutation VerifyRazorpayPayment(
   }
 }
 `;
+
+
+export const PAYMENT_TRANSACTIONS = gql`
+  query PaymentTransactions(
+    $bookingId: ID!
+  ) {
+    paymentTransactions(
+      bookingId: $bookingId
+    ) {
+      success
+      message
+      totalCount
+
+      transactions {
+        paymentTransactionId
+        bookingId
+        customerUserId
+        salonId
+
+        razorpayOrderId
+        razorpayPaymentId
+
+        amount
+        currency
+
+        paymentType
+        paymentMethod
+
+        status
+        failureReason
+
+        createdAt
+        updatedAt
+        paidAt
+      }
+    }
+  }
+`;
+
