@@ -20,10 +20,10 @@ export default function BookingStackWeb() {
         component={BookingPage}
       />
 
-      <Stack.Screen
+      {/* <Stack.Screen
         name="BookingPayment"
         component={BookingPayment}
-      />
+      /> */}
 
       <Stack.Screen
         name="RateReview"

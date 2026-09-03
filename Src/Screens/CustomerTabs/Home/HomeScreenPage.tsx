@@ -2732,24 +2732,17 @@ export default function HomeScreenPage() {
               SERVICE
             </Text>
 
-
-            <TouchableOpacity
-
+            <View
               style={
                 styles.filterField
               }
-
-              onPress={() => {
-
-                setShowFilterModal(
-                  false,
-                );
-
-              }}
-
             >
 
-              <View>
+              <View
+                style={
+                  styles.locationValueWrap
+                }
+              >
 
                 <Text
                   style={
@@ -2771,21 +2764,21 @@ export default function HomeScreenPage() {
                     styles.filterFieldHint
                   }
                 >
-                  Search or choose a service above
+                  Select a service below
                 </Text>
 
               </View>
 
+            </View>
 
-              <Text
-                style={
-                  styles.fieldArrow
-                }
-              >
-                →
-              </Text>
-
-            </TouchableOpacity>
+            <ServiceChips
+              selectedCategory={
+                selectedCategory
+              }
+              onSelect={
+                handleCategorySelect
+              }
+            />
 
 
             {/* LOCATION */}
