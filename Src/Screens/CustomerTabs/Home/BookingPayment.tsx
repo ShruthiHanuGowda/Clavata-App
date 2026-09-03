@@ -22,12 +22,16 @@ interface Booking {
     bookingDate?: string;
     bookingFee: number;
     remainingAmount?: number;
+
     customerPhone?: string;
     customerName?: string;
     customerEmail?: string;
 
-    // Preferred Razorpay payment instrument
-    preferredPaymentMethod?: 'UPI' | 'CARD' | 'NETBANKING';
+    preferredPaymentMethod?:
+    | 'UPI'
+    | 'CARD'
+    | 'NETBANKING'
+    | null;
 }
 
 interface BookingPaymentProps {
@@ -66,9 +70,8 @@ export default function BookingPayment({
     route,
     navigation,
 }: BookingPaymentProps) {
-
     const { booking } = route.params;
-
+    console.log('BookingPayment received booking:', booking);
     const [loading, setLoading] = useState(false);
 
     const [createRazorpayOrder] =
@@ -82,7 +85,6 @@ export default function BookingPayment({
         );
 
     const startPayment = async () => {
-
         if (loading) {
             return;
         }
@@ -111,17 +113,14 @@ export default function BookingPayment({
         }
 
         try {
-
             setLoading(true);
 
             console.log(
                 '========================================'
             );
-
             console.log(
                 'STARTING RAZORPAY TEST PAYMENT'
             );
-
             console.log(
                 '========================================'
             );
@@ -137,7 +136,16 @@ export default function BookingPayment({
             );
 
             console.log(
-                'Preferred Payment Method:',
+                'FULL BOOKING OBJECT:',
+                JSON.stringify(
+                    booking,
+                    null,
+                    2
+                )
+            );
+
+            console.log(
+                'BOOKING PREFERRED PAYMENT:',
                 booking.preferredPaymentMethod ||
                 'NOT SET'
             );
@@ -175,14 +183,12 @@ export default function BookingPayment({
                     ?.createRazorpayOrder;
 
             if (!createOrder) {
-
                 throw new Error(
                     'No response received from the server.'
                 );
             }
 
             if (!createOrder.success) {
-
                 throw new Error(
                     createOrder.message ||
                     'Failed to create Razorpay order.'
@@ -190,7 +196,6 @@ export default function BookingPayment({
             }
 
             if (!createOrder.order) {
-
                 throw new Error(
                     'Razorpay order was not returned.'
                 );
@@ -200,21 +205,18 @@ export default function BookingPayment({
                 createOrder.order;
 
             if (!order.orderId) {
-
                 throw new Error(
                     'Razorpay Order ID is missing.'
                 );
             }
 
             if (!order.keyId) {
-
                 throw new Error(
                     'Razorpay Key ID is missing.'
                 );
             }
 
             if (!order.amount) {
-
                 throw new Error(
                     'Razorpay amount is missing.'
                 );
@@ -254,7 +256,7 @@ export default function BookingPayment({
 
             // ============================================
             // STEP 2
-            // PREPARE PREFERRED PAYMENT METHOD
+            // PREFERRED PAYMENT METHOD
             // ============================================
 
             const preferredPaymentMethod =
@@ -270,23 +272,16 @@ export default function BookingPayment({
                 preferredPaymentMethod ===
                 'UPI'
             ) {
-
-                razorpayPaymentMethod =
-                    'upi';
-
+                razorpayPaymentMethod = 'upi';
             } else if (
                 preferredPaymentMethod ===
                 'CARD'
             ) {
-
-                razorpayPaymentMethod =
-                    'card';
-
+                razorpayPaymentMethod = 'card';
             } else if (
                 preferredPaymentMethod ===
                 'NETBANKING'
             ) {
-
                 razorpayPaymentMethod =
                     'netbanking';
             }
@@ -296,7 +291,7 @@ export default function BookingPayment({
             );
 
             console.log(
-                'RAZORPAY PREFERRED METHOD'
+                'PREFERRED PAYMENT METHOD'
             );
 
             console.log(
@@ -317,11 +312,10 @@ export default function BookingPayment({
 
             // ============================================
             // STEP 3
-            // OPEN RAZORPAY CHECKOUT
+            // RAZORPAY CHECKOUT OPTIONS
             // ============================================
 
             const razorpayOptions = {
-
                 description:
                     'Salon booking advance payment',
 
@@ -342,7 +336,6 @@ export default function BookingPayment({
                     'Salon Booking',
 
                 prefill: {
-
                     name:
                         booking.customerName ||
                         '',
@@ -351,30 +344,47 @@ export default function BookingPayment({
                         booking.customerEmail ||
                         'customer@example.com',
 
-                    contact:
-                        booking.customerPhone ||
-                        '',
-
-                    ...(razorpayPaymentMethod
-                        ? {
-                            method:
-                                razorpayPaymentMethod,
-                        }
-                        : {}),
+                    // contact:
+                    //     booking.customerPhone ||
+                    //     '',
+                    contact:'919964462582',
                 },
+
+                ...(razorpayPaymentMethod
+                    ? {
+                        method:
+                            razorpayPaymentMethod,
+                    }
+                    : {}),
 
                 theme: {
                     color: '#009D94',
                 },
             };
+            console.log(
+                '========================================'
+            );
 
             console.log(
-                'RAZORPAY CHECKOUT OPTIONS:',
+                'FINAL RAZORPAY CHECKOUT OPTIONS:'
+            );
+
+            console.log(
                 JSON.stringify(
                     razorpayOptions,
                     null,
                     2
                 )
+            );
+
+            console.log(
+                'FINAL PAYMENT METHOD:',
+                razorpayOptions.method ||
+                'NOT PROVIDED'
+            );
+
+            console.log(
+                '========================================'
             );
 
             console.log(
@@ -417,7 +427,6 @@ export default function BookingPayment({
                 !payment?.razorpay_payment_id ||
                 !payment?.razorpay_signature
             ) {
-
                 throw new Error(
                     'Razorpay returned an incomplete payment response.'
                 );
@@ -425,7 +434,7 @@ export default function BookingPayment({
 
             // ============================================
             // STEP 5
-            // VERIFY PAYMENT ON BACKEND
+            // VERIFY PAYMENT
             // ============================================
 
             console.log(
@@ -435,9 +444,7 @@ export default function BookingPayment({
             const verifyResponse =
                 await verifyRazorpayPayment({
                     variables: {
-
                         input: {
-
                             bookingId:
                                 booking.bookingId,
 
@@ -467,7 +474,6 @@ export default function BookingPayment({
                     ?.verifyRazorpayPayment;
 
             if (!verification) {
-
                 throw new Error(
                     'No response received from payment verification.'
                 );
@@ -479,7 +485,6 @@ export default function BookingPayment({
             // ============================================
 
             if (verification.success) {
-
                 console.log(
                     '========================================'
                 );
@@ -504,9 +509,7 @@ export default function BookingPayment({
                         },
                     ]
                 );
-
             } else {
-
                 console.error(
                     'Payment verification failed:',
                     verification.message
@@ -518,9 +521,7 @@ export default function BookingPayment({
                     'Payment could not be verified.'
                 );
             }
-
         } catch (error: any) {
-
             console.error(
                 '========================================'
             );
@@ -553,15 +554,10 @@ export default function BookingPayment({
                 error?.message
             );
 
-            // ============================================
-            // USER CANCELLED PAYMENT
-            // ============================================
-
             if (
                 error?.code === 0 ||
                 error?.code === '0'
             ) {
-
                 Alert.alert(
                     'Payment Cancelled',
                     'You cancelled the payment.'
@@ -570,19 +566,13 @@ export default function BookingPayment({
                 return;
             }
 
-            // ============================================
-            // PAYMENT FAILED
-            // ============================================
-
             Alert.alert(
                 'Payment Failed',
                 error?.description ||
                 error?.message ||
                 'Something went wrong while processing the payment.'
             );
-
         } finally {
-
             setLoading(false);
 
             console.log(
@@ -593,9 +583,7 @@ export default function BookingPayment({
 
     return (
         <SafeAreaView style={styles.container}>
-
             <View style={styles.card}>
-
                 <Text style={styles.title}>
                     Confirm Payment
                 </Text>
@@ -627,7 +615,6 @@ export default function BookingPayment({
 
                 {booking.remainingAmount !==
                     undefined && (
-
                         <Text style={styles.note}>
                             Remaining ₹
                             {Number(
@@ -648,13 +635,11 @@ export default function BookingPayment({
                     onPress={startPayment}
                     activeOpacity={0.8}
                 >
-
                     <Text style={styles.buttonText}>
                         {loading
                             ? 'Processing...'
                             : 'Pay Now'}
                     </Text>
-
                 </TouchableOpacity>
 
                 <Text style={styles.testMode}>
@@ -665,9 +650,7 @@ export default function BookingPayment({
                     This is a test payment.
                     No real money will be charged.
                 </Text>
-
             </View>
-
         </SafeAreaView>
     );
 }
@@ -675,7 +658,6 @@ export default function BookingPayment({
 function bookingFeeDisplay(
     amount: number
 ): string {
-
     const value = Number(amount);
 
     if (!Number.isFinite(value)) {
@@ -686,7 +668,6 @@ function bookingFeeDisplay(
 }
 
 const styles = StyleSheet.create({
-
     container: {
         flex: 1,
         justifyContent: 'center',
@@ -774,5 +755,5 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#6B7280',
     },
-
 });
+

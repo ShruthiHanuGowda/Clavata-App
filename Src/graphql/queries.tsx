@@ -202,7 +202,7 @@ export const GET_BOOKING = gql`
 
             paymentMethod
             paymentStatus
-
+            preferredPaymentMethod
             bookingStatus
 
             notes
@@ -420,6 +420,7 @@ query CustomerBookings($customerUserId: ID!) {
     bookingStatus
     paymentMethod
     paymentStatus
+    preferredPaymentMethod
     bookingFee
     bookingFeeStatus
     bookingFeePaidAt

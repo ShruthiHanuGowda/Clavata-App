@@ -900,15 +900,24 @@ export default function BookingPage() {
                                     )
                                 }
 
-                                onPay={() =>
+                                onPay={() => {
+                                    console.log(
+                                        'PAYMENT BOOKING:',
+                                        JSON.stringify(item, null, 2),
+                                    );
+
+                                    console.log(
+                                        'PAYMENT PREFERRED METHOD:',
+                                        item?.preferredPaymentMethod || 'NOT SET',
+                                    );
+
                                     navigation.navigate(
                                         'BookingPayment',
                                         {
-                                            booking:
-                                                item,
+                                            booking: item,
                                         },
-                                    )
-                                }
+                                    );
+                                }}
                                 onBookAgain={() =>
                                     bookAgain(item)
                                 }

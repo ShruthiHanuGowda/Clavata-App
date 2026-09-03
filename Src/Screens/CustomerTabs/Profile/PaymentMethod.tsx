@@ -129,7 +129,10 @@ export default function PaymentMethod() {
                         },
                     },
                 });
-
+            console.log(
+                'UPDATE PREFERRED PAYMENT RESPONSE:',
+                JSON.stringify(data, null, 2),
+            );
             const response =
                 data?.updatePreferredPaymentMethod;
 
@@ -137,7 +140,7 @@ export default function PaymentMethod() {
                 Alert.alert(
                     'Unable to save',
                     response?.message ||
-                        'Unable to save your preferred payment method.',
+                    'Unable to save your preferred payment method.',
                 );
 
                 return;
@@ -158,7 +161,7 @@ export default function PaymentMethod() {
             Alert.alert(
                 'Something went wrong',
                 error?.message ||
-                    'Unable to save your payment preference.',
+                'Unable to save your payment preference.',
             );
         }
     };
@@ -247,9 +250,9 @@ export default function PaymentMethod() {
                                     style={[
                                         styles.methodRow,
                                         index !==
-                                            PAYMENT_METHODS.length -
-                                                1 &&
-                                            styles.methodBorder,
+                                        PAYMENT_METHODS.length -
+                                        1 &&
+                                        styles.methodBorder,
                                     ]}
                                 >
                                     {/* ICON */}
@@ -258,7 +261,7 @@ export default function PaymentMethod() {
                                         style={[
                                             styles.methodIcon,
                                             selected &&
-                                                styles.methodIconSelected,
+                                            styles.methodIconSelected,
                                         ]}
                                     >
                                         <Text
@@ -302,7 +305,7 @@ export default function PaymentMethod() {
                                         style={[
                                             styles.radio,
                                             selected &&
-                                                styles.radioSelected,
+                                            styles.radioSelected,
                                         ]}
                                     >
                                         {selected && (
@@ -406,7 +409,7 @@ export default function PaymentMethod() {
                     style={[
                         styles.saveButton,
                         loading &&
-                            styles.saveButtonDisabled,
+                        styles.saveButtonDisabled,
                     ]}
                 >
                     {loading ? (
