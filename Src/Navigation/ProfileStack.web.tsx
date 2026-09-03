@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import ProfileScreen from '../Screens/CustomerTabs/Profile/ProfileScreen';
 import Payments from '../Screens/CustomerTabs/Profile/Payments';
+import PaymentMethod from '../Screens/CustomerTabs/Profile/PaymentMethod';
 import ProfileBookings from '../Screens/CustomerTabs/Profile/ProfileBookings';
 import BookingDetails from '../Screens/CustomerTabs/Profile/BookingDetails';
 import EditProfile from '../Screens/CustomerTabs/Profile/EditProfile';
@@ -35,10 +36,10 @@ export default function ProfileStackWeb() {
         component={Payments}
       />
 
-      <Stack.Screen
-        name="ProfileBookings"
-        component={ProfileBookings}
-      />
+      {/* <Stack.Screen
+        name="PaymentMethod"
+        component={PaymentMethod}
+      /> */}
 
       <Stack.Screen
         name="BookingDetails"

@@ -1070,3 +1070,17 @@ export const PAYMENT_TRANSACTIONS = gql`
   }
 `;
 
+export const UPDATE_PREFERRED_PAYMENT_METHOD = gql`
+    mutation UpdatePreferredPaymentMethod(
+        $input: UpdatePreferredPaymentMethodInput!
+    ) {
+        updatePreferredPaymentMethod(input: $input) {
+            success
+            message
+            user {
+                userId
+                preferredPaymentMethod
+            }
+        }
+    }
+`;

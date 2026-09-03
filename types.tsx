@@ -141,6 +141,9 @@ export type StakeStackParamList = {
   stake: undefined;
   profile: undefined;
   Payments: undefined;
+  PaymentMethod: {
+    userId: string;
+  };
   ProfileBookings: undefined;
   FavouriteSalons: undefined;
   SavedAddresses: undefined;

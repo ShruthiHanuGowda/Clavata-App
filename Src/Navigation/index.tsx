@@ -20,6 +20,7 @@ import BookingSuccessScreen from '../Screens/CustomerTabs/Home/BookingSuccessScr
 import BookingRequestSent from '../Screens/CustomerTabs/Home/BookingRequestSent';
 import BookingPayment from '../Screens/CustomerTabs/Home/BookingPayment';
 import Payments from '../Screens/CustomerTabs/Profile/Payments';
+import PaymentMethod from '../Screens/CustomerTabs/Profile/PaymentMethod';
 import ProfileBookings from '../Screens/CustomerTabs/Profile/ProfileBookings';
 import FavouriteSalons from '../Screens/CustomerTabs/Profile/FavouriteSalons';
 import SavedAddresses from '../Screens/CustomerTabs/Profile/SavedAddresses';
@@ -172,6 +173,10 @@ export function ProfileStack() {
       <ProfilePlaceStack.Screen
         name="Payments"
         component={Payments}
+      />
+       <ProfilePlaceStack.Screen
+        name="PaymentMethod"
+        component={PaymentMethod}
       />
       <ProfilePlaceStack.Screen
         name="ProfileBookings"

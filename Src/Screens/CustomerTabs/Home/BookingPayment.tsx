@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
     SafeAreaView,
@@ -26,6 +25,9 @@ interface Booking {
     customerPhone?: string;
     customerName?: string;
     customerEmail?: string;
+
+    // Preferred Razorpay payment instrument
+    preferredPaymentMethod?: 'UPI' | 'CARD' | 'NETBANKING';
 }
 
 interface BookingPaymentProps {
@@ -132,6 +134,12 @@ export default function BookingPayment({
             console.log(
                 'Booking Fee:',
                 bookingFee
+            );
+
+            console.log(
+                'Preferred Payment Method:',
+                booking.preferredPaymentMethod ||
+                'NOT SET'
             );
 
             // ============================================
@@ -246,6 +254,69 @@ export default function BookingPayment({
 
             // ============================================
             // STEP 2
+            // PREPARE PREFERRED PAYMENT METHOD
+            // ============================================
+
+            const preferredPaymentMethod =
+                booking.preferredPaymentMethod;
+
+            let razorpayPaymentMethod:
+                | 'upi'
+                | 'card'
+                | 'netbanking'
+                | undefined;
+
+            if (
+                preferredPaymentMethod ===
+                'UPI'
+            ) {
+
+                razorpayPaymentMethod =
+                    'upi';
+
+            } else if (
+                preferredPaymentMethod ===
+                'CARD'
+            ) {
+
+                razorpayPaymentMethod =
+                    'card';
+
+            } else if (
+                preferredPaymentMethod ===
+                'NETBANKING'
+            ) {
+
+                razorpayPaymentMethod =
+                    'netbanking';
+            }
+
+            console.log(
+                '========================================'
+            );
+
+            console.log(
+                'RAZORPAY PREFERRED METHOD'
+            );
+
+            console.log(
+                'App Preference:',
+                preferredPaymentMethod ||
+                'NOT SET'
+            );
+
+            console.log(
+                'Razorpay Method:',
+                razorpayPaymentMethod ||
+                'DEFAULT'
+            );
+
+            console.log(
+                '========================================'
+            );
+
+            // ============================================
+            // STEP 3
             // OPEN RAZORPAY CHECKOUT
             // ============================================
 
@@ -283,12 +354,28 @@ export default function BookingPayment({
                     contact:
                         booking.customerPhone ||
                         '',
+
+                    ...(razorpayPaymentMethod
+                        ? {
+                            method:
+                                razorpayPaymentMethod,
+                        }
+                        : {}),
                 },
 
                 theme: {
                     color: '#009D94',
                 },
             };
+
+            console.log(
+                'RAZORPAY CHECKOUT OPTIONS:',
+                JSON.stringify(
+                    razorpayOptions,
+                    null,
+                    2
+                )
+            );
 
             console.log(
                 'Opening Razorpay Checkout...'
@@ -300,7 +387,7 @@ export default function BookingPayment({
                 );
 
             // ============================================
-            // STEP 3
+            // STEP 4
             // RAZORPAY SUCCESS
             // ============================================
 
@@ -337,7 +424,7 @@ export default function BookingPayment({
             }
 
             // ============================================
-            // STEP 4
+            // STEP 5
             // VERIFY PAYMENT ON BACKEND
             // ============================================
 
@@ -387,7 +474,7 @@ export default function BookingPayment({
             }
 
             // ============================================
-            // STEP 5
+            // STEP 6
             // PAYMENT VERIFIED
             // ============================================
 
@@ -689,4 +776,3 @@ const styles = StyleSheet.create({
     },
 
 });
-

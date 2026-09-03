@@ -41,9 +41,14 @@ const menuItems = [
     screen: 'FavouriteSalons',
   },
   {
-    title: 'Payments',
+    title: 'Payment History',
     icon: '💳',
     screen: 'Payments',
+  },
+  {
+    title: 'Payment Method',
+    icon: '💳',
+    screen: 'PaymentMethod',
   },
   {
     title: 'Offers & Rewards',
@@ -225,6 +230,16 @@ export default function ProfileScreen() {
 
           break;
 
+        case 'PaymentMethod':
+
+          navigation.navigate(
+            'PaymentMethod',
+            {
+              userId: currentUser?.userId,
+            },
+          );
+
+          break;
 
         case 'OffersRewards':
 
