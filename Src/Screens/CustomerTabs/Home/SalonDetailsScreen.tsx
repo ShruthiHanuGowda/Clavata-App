@@ -878,9 +878,9 @@ export default function SalonDetailsScreen({
      * ----------------------------------------------------
      */
     const address = [
-        salon.address
+        salon?.address
             ?.addressLine,
-        salon.address?.city,
+        salon?.address?.city,
     ]
         .filter(Boolean)
         .join(', ');

@@ -136,7 +136,7 @@ export default function BookingSummaryScreen({
                             </Text>
 
                             <Text style={styles.address}>
-                                📍  {salon.address.addressLine}, {salon.address.city}
+                                📍  {salon?.address?.addressLine}, {salon?.address?.city}
                             </Text>
                         </View>
 

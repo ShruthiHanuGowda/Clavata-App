@@ -392,7 +392,91 @@ export default function BookingPage() {
             );
         };
 
+    const bookAgain = (booking: any) => {
+        console.log('BOOK AGAIN:', {
+            bookingId: booking?.bookingId,
+            salonId: booking?.salonId,
+            services: booking?.services,
+        });
 
+        if (!booking?.salonId) {
+            Alert.alert(
+                'Unable to book again',
+                'Salon information is missing from this booking.',
+            );
+            return;
+        }
+
+        if (
+            !Array.isArray(booking?.services) ||
+            booking.services.length === 0
+        ) {
+            Alert.alert(
+                'Unable to book again',
+                'Service information is missing from this booking.',
+            );
+            return;
+        }
+
+        if (!currentUser?.userId) {
+            Alert.alert(
+                'Unable to book again',
+                'Customer information is missing. Please login again.',
+            );
+            return;
+        }
+
+        const services = booking.services
+            .map((service: any) => ({
+                serviceId: String(service?.serviceId ?? ''),
+                name: service?.name ?? '',
+                category: service?.category ?? '',
+                price: Number(service?.price ?? 0),
+                duration: Number(service?.duration ?? 0),
+            }))
+            .filter(
+                (service: {
+                    serviceId: string;
+                    name: string;
+                    category: string;
+                    price: number;
+                    duration: number;
+                }) => Boolean(service.serviceId),
+            );
+
+        if (services.length === 0) {
+            Alert.alert(
+                'Unable to book again',
+                'No valid services were found in the previous booking.',
+            );
+            return;
+        }
+
+        console.log('BOOK AGAIN NAVIGATION:', {
+            salonId: booking.salonId,
+            customerUserId: currentUser.userId,
+            services,
+        });
+
+        const parentNavigation = navigation.getParent<any>();
+
+        if (!parentNavigation) {
+            Alert.alert(
+                'Unable to continue',
+                'Navigation is not available.',
+            );
+            return;
+        }
+
+        parentNavigation.navigate('Home', {
+            screen: 'BookingDateTime',
+            params: {
+                salonId: booking.salonId,
+                customerUserId: currentUser.userId,
+                services,
+            },
+        });
+    };
     // ============================================================
     // VIEW BOOKING
     // ============================================================
@@ -825,7 +909,9 @@ export default function BookingPage() {
                                         },
                                     )
                                 }
-
+                                onBookAgain={() =>
+                                    bookAgain(item)
+                                }
                             />
 
                         ),
@@ -885,6 +971,8 @@ type BookingCardProps = {
     onView: () => void;
 
     onPay: () => void;
+
+    onBookAgain: () => void;
 };
 
 
@@ -895,6 +983,7 @@ function BookingCard({
     onCancel,
     onView,
     onPay,
+    onBookAgain,
 }: BookingCardProps) {
 
     const services =
@@ -1419,6 +1508,9 @@ function BookingCard({
                     }
                     activeOpacity={
                         0.8
+                    }
+                    onPress={
+                        onBookAgain
                     }
                 >
 

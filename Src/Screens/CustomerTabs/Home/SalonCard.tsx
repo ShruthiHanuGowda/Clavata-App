@@ -400,8 +400,8 @@ export default function SalonCard({
 
     const address =
         [
-            salon.address?.addressLine,
-            salon.address?.city,
+            salon?.address?.addressLine,
+            salon?.address?.city,
         ]
             .filter(Boolean)
             .join(', ');

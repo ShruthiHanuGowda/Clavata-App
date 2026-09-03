@@ -161,8 +161,8 @@ export default function FavouriteSalons() {
                         style={styles.location}
                         numberOfLines={1}
                     >
-                        {salon.address?.city ||
-                            salon.address?.addressLine ||
+                        {salon?.address?.city ||
+                            salon?.address?.addressLine ||
                             ''}
                     </Text>
 
