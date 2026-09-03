@@ -301,7 +301,10 @@ export default function ProfileBookings() {
     );
 
     const bookings = data?.customerBookings || [];
-
+    console.log(
+        'CUSTOMER BOOKINGS:',
+        JSON.stringify(bookings, null, 2),
+    );
     /* =====================================================
        BOOKINGS GROUPED BY DATE
     ===================================================== */
@@ -437,7 +440,7 @@ export default function ProfileBookings() {
         navigation.navigate(
             'BookingDetails',
             {
-                bookingId:booking.bookingId,
+                bookingId: booking.bookingId,
                 // booking,
             },
         );

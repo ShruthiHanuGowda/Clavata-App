@@ -38,6 +38,8 @@ export default function BookingDetails() {
 
     const booking = data?.GetBooking;
 
+    console.log('BookingDetails data:', data);
+
     const formatDate = (dateString: string) => {
         if (!dateString) {
             return '';
@@ -79,24 +81,22 @@ export default function BookingDetails() {
             hours = 12;
         }
 
-        return `${
-    String(hours).padStart(
-        2,
-        '0'
-    )
-}:${ minutes } ${ period } `;
+        return `${String(hours).padStart(
+            2,
+            '0'
+        )
+            }:${minutes} ${period} `;
     };
 
     const formatCurrency = (amount: number) => {
-        return `₹${
-    Number(amount || 0).toLocaleString(
-        'en-IN',
-        {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }
-    )
-} `;
+        return `₹${Number(amount || 0).toLocaleString(
+            'en-IN',
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }
+        )
+            } `;
     };
 
     const getStatusStyle = (status: string) => {
@@ -414,10 +414,10 @@ export default function BookingDetails() {
                                 style={[
                                     styles.serviceRow,
                                     index !==
-                                        booking.services
-                                            .length -
-                                            1 &&
-                                        styles.serviceBorder,
+                                    booking.services
+                                        .length -
+                                    1 &&
+                                    styles.serviceBorder,
                                 ]}
                             >
                                 <View
@@ -584,7 +584,7 @@ export default function BookingDetails() {
 
                     {/* BOOKING FEE */}
 
-                    {booking.bookingFee > 0 ? (
+                    {/* {booking.bookingFee > 0 ? (
                         <>
                             <View
                                 style={
@@ -640,8 +640,39 @@ export default function BookingDetails() {
                                 </Text>
                             </View>
                         </>
-                    ) : null}
+                    ) : null} */}
+                    {booking.bookingFee > 0 ? (
+                        <>
+                            <View style={styles.divider} />
 
+                            <View style={styles.priceRow}>
+                                <Text style={styles.priceLabel}>
+                                    Booking Fee
+                                </Text>
+
+                                <Text style={styles.priceValue}>
+                                    {formatCurrency(
+                                        booking.bookingFee
+                                    )}
+                                </Text>
+                            </View>
+
+                            {booking.bookingStatus !== 'COMPLETED' &&
+                                Number(booking.remainingAmount || 0) > 0 ? (
+                                <View style={styles.priceRow}>
+                                    <Text style={styles.priceLabel}>
+                                        Remaining Amount
+                                    </Text>
+
+                                    <Text style={styles.remainingAmount}>
+                                        {formatCurrency(
+                                            booking.remainingAmount
+                                        )}
+                                    </Text>
+                                </View>
+                            ) : null}
+                        </>
+                    ) : null}
                     <View
                         style={
                             styles.paymentStatusContainer
@@ -661,7 +692,7 @@ export default function BookingDetails() {
                             }
                         >
                             {booking.paymentMethod ===
-                            'PAY_AT_SALON'
+                                'PAY_AT_SALON'
                                 ? 'Pay at Salon'
                                 : 'Online'}
                         </Text>
@@ -736,7 +767,7 @@ export default function BookingDetails() {
 
                 {booking.bookingStatus ===
                     'COMPLETED' &&
-                !booking.reviewSubmitted ? (
+                    !booking.reviewSubmitted ? (
                     <TouchableOpacity
                         style={styles.reviewButton}
                         onPress={() =>
@@ -766,7 +797,7 @@ export default function BookingDetails() {
                 {/* EXISTING REVIEW */}
 
                 {booking.reviewSubmitted &&
-                booking.review ? (
+                    booking.review ? (
                     <View style={styles.card}>
                         <Text
                             style={styles.sectionTitle}
