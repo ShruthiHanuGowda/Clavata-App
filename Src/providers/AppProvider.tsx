@@ -3,6 +3,7 @@ import { GraphQLProvider } from './GraphQLProvider';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SalonRegistrationProvider } from '../context/SalonRegistrationContext';
 import { UserProvider } from '../context/UserContext';
+import FCMRegistration from '../components/FCMRegistration';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -13,6 +14,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     <SafeAreaProvider>
       <GraphQLProvider>
         <UserProvider>
+          <FCMRegistration />
           <SalonRegistrationProvider>
             {children}
           </SalonRegistrationProvider>

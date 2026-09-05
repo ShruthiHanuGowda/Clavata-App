@@ -1085,3 +1085,32 @@ export const UPDATE_PREFERRED_PAYMENT_METHOD = gql`
         }
     }
 `;
+
+export const REGISTER_DEVICE_TOKEN = gql`
+  mutation RegisterDeviceToken(
+    $userId: ID!
+    $token: String!
+    $platform: String
+  ) {
+    registerDeviceToken(
+      userId: $userId
+      token: $token
+      platform: $platform
+    ) {
+      success
+      message
+    }
+  }
+`;
+
+export const REMOVE_DEVICE_TOKEN = gql`
+  mutation RemoveDeviceToken($userId: ID!, $token: String!) {
+    removeDeviceToken(
+      userId: $userId
+      token: $token
+    ) {
+      success
+      message
+    }
+  }
+`;

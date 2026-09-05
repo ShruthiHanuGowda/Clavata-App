@@ -15,6 +15,7 @@ import GlobalKycBottomSheet from './Src/hooks/GlobalKycBottomSheet';
 import GlobalWalletConnectModals from './Src/components/GlobalWalletConnectModals';
 import { fontsFamily } from './Src/Theme';
 import colors from './Src/Theme/Colors';
+// import { getFCMToken } from './Src/services/notificationService';
 
 export default function App() {
   Appearance.setColorScheme('light');
@@ -31,9 +32,31 @@ export default function App() {
       } else {
         setIsSecureDevice(true);
       }
-    };  
+    };
 
     // checkDeviceSecurity();
+    // const testFCM = async () => {
+    //   console.log('====================================');
+    //   console.log('🔥 STARTING FCM TOKEN TEST');
+    //   console.log('====================================');
+
+    //   const token = await getFCMToken();
+
+    //   if (token) {
+    //     console.log('====================================');
+    //     console.log('✅ FCM TOKEN SUCCESS');
+    //     console.log(token);
+    //     console.log('====================================');
+    //   } else {
+    //     console.log('====================================');
+    //     console.log('❌ FCM TOKEN FAILED');
+    //     console.log('====================================');
+    //   }
+    // };
+
+    // checkDeviceSecurity();
+
+    // testFCM();
   }, []);
 
   if (isSecureDevice === null) {
