@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "414200640186",
+    "project_id": "clavata",
+    "storage_bucket": "clavata.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:414200640186:android:494b7cdc118121ba300883",
+        "android_client_info": {
+          "package_name": "com.denergy.dwallets"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxXje-Vr3BBYzqzdVsUgxExJ5vvfD582o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
