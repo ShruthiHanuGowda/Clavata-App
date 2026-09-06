@@ -1114,3 +1114,39 @@ export const REMOVE_DEVICE_TOKEN = gql`
     }
   }
 `;
+
+export const REQUEST_REFUND = gql`
+  mutation RequestRefund($input: RequestRefundInput!) {
+    requestRefund(input: $input) {
+      success
+      message
+
+      refund {
+        refundId
+        bookingId
+        paymentTransactionId
+        customerUserId
+        customerName
+        customerPhone
+        salonId
+        salonName
+
+        originalAmount
+        refundAmount
+        clavataAmount
+        salonAmount
+
+        reason
+        status
+        paymentMethod
+        razorpayPaymentId
+        razorpayRefundId
+
+        requestedAt
+        processedAt
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;

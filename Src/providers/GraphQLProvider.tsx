@@ -16,14 +16,32 @@ import {
 const APPSYNC_API_KEY = 'da2-u4e6ychzkrbsfmfqpc33ujdbvy';
 
 const httpLink = new HttpLink({
-  uri: "https://3ncgvnrobfe33fepo7cyia3kte.appsync-api.ap-south-2.amazonaws.com/graphql",
+  uri: 'https://3ncgvnrobfe33fepo7cyia3kte.appsync-api.ap-south-2.amazonaws.com/graphql',
   headers: {
     'x-api-key': APPSYNC_API_KEY,
+  },
+  fetch: async (uri, options) => {
+    console.log('🌐 GraphQL request:', uri);
+
+    try {
+      const response = await fetch(uri, options);
+
+      console.log(
+        '🌐 GraphQL response:',
+        response.status,
+        response.statusText,
+      );
+
+      return response;
+    } catch (error) {
+      console.log('❌ GraphQL fetch failed:', error);
+      throw error;
+    }
   },
 });
 
 const createApolloClient = (): ApolloClient<NormalizedCacheObject> => {
-  console.log('🔑 Using API Key Authentication', APPSYNC_API_KEY);
+  console.log('🔑 Using API Key Authentication');
 
   return new ApolloClient({
     link: httpLink,

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+
 import {
     SafeAreaView,
     ScrollView,
@@ -7,27 +8,67 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
+    Alert,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { useQuery } from '@apollo/client';
 
-import { GET_BOOKING } from '../../../graphql/queries';
+import {
+    useNavigation,
+    useRoute,
+} from '@react-navigation/native';
+
+import {
+    useMutation,
+    useQuery,
+} from '@apollo/client';
+
+import {
+    GET_BOOKING,
+    CANCEL_BOOKING,
+    REQUEST_REFUND,
+} from '../../../graphql/queries';
+
 
 type BookingDetailsRouteParams = {
     bookingId: string;
 };
 
+
+type CancellationPolicy = {
+    percentage: number;
+    refundAmount: number;
+    clavataAmount: number;
+    salonAmount: number;
+    title: string;
+    description: string;
+};
+
+
+const PRIMARY = '#009D94';
+
+
 export default function BookingDetails() {
+
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
 
-    const { bookingId } =
-        route.params as BookingDetailsRouteParams;
+    const {
+        bookingId,
+    } = route.params as BookingDetailsRouteParams;
+
+
+    const [isCancelling, setIsCancelling] =
+        useState(false);
+
+
+    // ==========================================================
+    // GET BOOKING
+    // ==========================================================
 
     const {
         data,
         loading,
         error,
+        refetch,
     } = useQuery(GET_BOOKING, {
         variables: {
             bookingId,
@@ -36,11 +77,38 @@ export default function BookingDetails() {
         fetchPolicy: 'network-only',
     });
 
+
     const booking = data?.GetBooking;
 
-    console.log('BookingDetails data:', data);
 
-    const formatDate = (dateString: string) => {
+    // ==========================================================
+    // MUTATIONS
+    // ==========================================================
+
+    const [
+        cancelBookingMutation,
+    ] = useMutation(CANCEL_BOOKING);
+
+
+    const [
+        requestRefundMutation,
+    ] = useMutation(REQUEST_REFUND);
+
+
+    console.log(
+        'BookingDetails data:',
+        data,
+    );
+
+
+    // ==========================================================
+    // HELPERS
+    // ==========================================================
+
+    const formatDate = (
+        dateString: string,
+    ) => {
+
         if (!dateString) {
             return '';
         }
@@ -51,56 +119,87 @@ export default function BookingDetails() {
             return dateString;
         }
 
-        return date.toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-        });
+        return date.toLocaleDateString(
+            'en-IN',
+            {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+            },
+        );
     };
 
-    const formatTime = (time: string) => {
+
+    const formatTime = (
+        time: string,
+    ) => {
+
         if (!time) {
             return '';
         }
 
-        const [hoursString, minutesString] =
-            time.split(':');
+        const [
+            hoursString,
+            minutesString,
+        ] = time.split(':');
 
-        let hours = Number(hoursString);
-        const minutes = minutesString || '00';
+        let hours = Number(
+            hoursString,
+        );
+
+        const minutes =
+            minutesString || '00';
+
 
         if (Number.isNaN(hours)) {
             return time;
         }
 
-        const period = hours >= 12 ? 'PM' : 'AM';
 
-        hours = hours % 12;
+        const period =
+            hours >= 12
+                ? 'PM'
+                : 'AM';
+
+
+        hours =
+            hours % 12;
+
 
         if (hours === 0) {
             hours = 12;
         }
 
+
         return `${String(hours).padStart(
             2,
-            '0'
-        )
-            }:${minutes} ${period} `;
+            '0',
+        )}:${minutes} ${period}`;
     };
 
-    const formatCurrency = (amount: number) => {
-        return `₹${Number(amount || 0).toLocaleString(
+
+    const formatCurrency = (
+        amount: number,
+    ) => {
+
+        return `₹${Number(
+            amount || 0,
+        ).toLocaleString(
             'en-IN',
             {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
-            }
-        )
-            } `;
+            },
+        )}`;
     };
 
-    const getStatusStyle = (status: string) => {
+
+    const getStatusStyle = (
+        status: string,
+    ) => {
+
         switch (status) {
+
             case 'CONFIRMED':
                 return {
                     backgroundColor: '#DCFCE7',
@@ -139,114 +238,875 @@ export default function BookingDetails() {
         }
     };
 
-    if (loading) {
-        return (
-            <SafeAreaView style={styles.loadingScreen}>
-                <ActivityIndicator
-                    size="large"
-                    color="#009D94"
-                />
 
-                <Text style={styles.loadingText}>
-                    Loading booking...
-                </Text>
-            </SafeAreaView>
+    // ==========================================================
+    // APPOINTMENT START DATE/TIME
+    // ==========================================================
+
+    const getAppointmentStart = (
+        bookingData: any,
+    ): Date | null => {
+
+        if (
+            !bookingData?.bookingDate ||
+            !bookingData?.startTime
+        ) {
+            return null;
+        }
+
+
+        try {
+
+            let year: number;
+            let month: number;
+            let day: number;
+
+
+            const bookingDate =
+                String(
+                    bookingData.bookingDate,
+                );
+
+
+            // --------------------------------------------------
+            // Extract YYYY-MM-DD
+            // --------------------------------------------------
+
+            const dateMatch =
+                bookingDate.match(
+                    /^(\d{4})-(\d{2})-(\d{2})/,
+                );
+
+
+            if (dateMatch) {
+
+                year =
+                    Number(dateMatch[1]);
+
+                month =
+                    Number(dateMatch[2]);
+
+                day =
+                    Number(dateMatch[3]);
+
+            } else {
+
+                const parsedDate =
+                    new Date(
+                        bookingDate,
+                    );
+
+
+                if (
+                    Number.isNaN(
+                        parsedDate.getTime(),
+                    )
+                ) {
+                    return null;
+                }
+
+
+                year =
+                    parsedDate.getFullYear();
+
+                month =
+                    parsedDate.getMonth() + 1;
+
+                day =
+                    parsedDate.getDate();
+            }
+
+
+            // --------------------------------------------------
+            // Extract HH:mm:ss
+            // --------------------------------------------------
+
+            const timeParts =
+                String(
+                    bookingData.startTime,
+                ).split(':');
+
+
+            const hours =
+                Number(
+                    timeParts[0] || 0,
+                );
+
+
+            const minutes =
+                Number(
+                    timeParts[1] || 0,
+                );
+
+
+            const seconds =
+                Number(
+                    timeParts[2] || 0,
+                );
+
+
+            return new Date(
+                year,
+                month - 1,
+                day,
+                hours,
+                minutes,
+                seconds,
+                0,
+            );
+
+        } catch {
+
+            return null;
+        }
+    };
+
+
+    // ==========================================================
+    // CANCELLATION POLICY
+    // ==========================================================
+
+    const getCancellationPolicy = (
+        bookingData: any,
+    ): CancellationPolicy => {
+
+        const bookingFee =
+            Number(
+                bookingData?.bookingFee || 0,
+            );
+
+
+        const appointmentStart =
+            getAppointmentStart(
+                bookingData,
+            );
+
+
+        let hoursUntilAppointment =
+            0;
+
+
+        if (appointmentStart) {
+
+            const difference =
+                appointmentStart.getTime() -
+                Date.now();
+
+
+            hoursUntilAppointment =
+                difference /
+                (
+                    1000 *
+                    60 *
+                    60
+                );
+        }
+
+
+        let percentage = 0;
+        let title = '';
+        let description = '';
+
+
+        // ------------------------------------------------------
+        // MORE THAN 2 HOURS
+        // ------------------------------------------------------
+
+        if (
+            hoursUntilAppointment > 2
+        ) {
+
+            percentage = 100;
+
+            title =
+                '100% Refund';
+
+            description =
+                'You are cancelling more than 2 hours before your appointment.';
+
+
+        // ------------------------------------------------------
+        // 1 TO 2 HOURS
+        // ------------------------------------------------------
+
+        } else if (
+            hoursUntilAppointment >= 1
+        ) {
+
+            percentage = 50;
+
+            title =
+                '50% Refund';
+
+            description =
+                'You are cancelling between 1 and 2 hours before your appointment.';
+
+
+        // ------------------------------------------------------
+        // LESS THAN 1 HOUR
+        // ------------------------------------------------------
+
+        } else {
+
+            percentage = 0;
+
+            title =
+                'No Refund';
+
+            description =
+                'Cancellations less than 1 hour before the appointment are not eligible for a refund.';
+        }
+
+
+        const refundAmount =
+            Number(
+                (
+                    bookingFee *
+                    percentage /
+                    100
+                ).toFixed(2),
+            );
+
+
+        const halfAmount =
+            Number(
+                (
+                    bookingFee *
+                    50 /
+                    100
+                ).toFixed(2),
+            );
+
+
+        let clavataAmount = 0;
+        let salonAmount = 0;
+
+
+        // ------------------------------------------------------
+        // >2 HOURS
+        // Clavata: 0
+        // Salon: 0
+        // Customer: 100%
+        // ------------------------------------------------------
+
+        if (
+            percentage === 100
+        ) {
+
+            clavataAmount = 0;
+            salonAmount = 0;
+
+
+        // ------------------------------------------------------
+        // 1-2 HOURS
+        // Clavata: 50%
+        // Salon: 0
+        // Customer: 50%
+        // ------------------------------------------------------
+
+        } else if (
+            percentage === 50
+        ) {
+
+            clavataAmount = halfAmount;
+            salonAmount = 0;
+
+
+        // ------------------------------------------------------
+        // <1 HOUR
+        // Clavata: 50%
+        // Salon: 50%
+        // Customer: 0%
+        // ------------------------------------------------------
+
+        } else {
+
+            clavataAmount = halfAmount;
+            salonAmount = halfAmount;
+        }
+
+
+        return {
+            percentage,
+            refundAmount,
+            clavataAmount,
+            salonAmount,
+            title,
+            description,
+        };
+    };
+
+
+    // ==========================================================
+    // CANCELLATION POLICY
+    // ==========================================================
+
+    const cancellationPolicy =
+        useMemo(
+            () => {
+
+                if (!booking) {
+
+                    return {
+                        percentage: 0,
+                        refundAmount: 0,
+                        clavataAmount: 0,
+                        salonAmount: 0,
+                        title: 'No Refund',
+                        description: '',
+                    };
+                }
+
+
+                return getCancellationPolicy(
+                    booking,
+                );
+
+            },
+            [
+                booking,
+            ],
         );
-    }
 
-    if (error || !booking) {
+
+    // ==========================================================
+    // CAN CANCEL?
+    // ==========================================================
+
+    const canCancel =
+        booking &&
+        (
+            booking.bookingStatus === 'CONFIRMED' ||
+            booking.bookingStatus === 'PENDING'
+        );
+
+
+    // ==========================================================
+    // IS ONLINE BOOKING FEE PAID?
+    // ==========================================================
+
+    const bookingFeePaid =
+        booking?.bookingFeeStatus === 'PAID';
+
+
+    const isOnlinePayment =
+        booking?.paymentMethod === 'ONLINE';
+
+
+    const refundApplicable =
+        bookingFeePaid &&
+        isOnlinePayment;
+
+
+    // ==========================================================
+    // CANCEL BOOKING
+    // ==========================================================
+
+    const handleCancelBooking = () => {
+
+        if (!booking) {
+            return;
+        }
+
+
+        if (!canCancel) {
+
+            Alert.alert(
+                'Cannot Cancel',
+                'This booking can no longer be cancelled.',
+            );
+
+            return;
+        }
+
+
+        const policy =
+            getCancellationPolicy(
+                booking,
+            );
+
+
+        // ------------------------------------------------------
+        // ONLINE PAID BOOKING
+        // ------------------------------------------------------
+
+        if (refundApplicable) {
+
+            Alert.alert(
+                'Cancellation & Refund Policy',
+
+                `${policy.description}\n\n` +
+
+                `Booking fee: ${formatCurrency(
+                    Number(
+                        booking.bookingFee || 0,
+                    ),
+                )}\n` +
+
+                `Your refund: ${formatCurrency(
+                    policy.refundAmount,
+                )}\n\n` +
+
+                `Clavata: ${formatCurrency(
+                    policy.clavataAmount,
+                )}\n` +
+
+                `Salon: ${formatCurrency(
+                    policy.salonAmount,
+                )}\n\n` +
+
+                'Do you want to continue with cancellation?',
+
+                [
+                    {
+                        text: 'Keep Booking',
+                        style: 'cancel',
+                    },
+
+                    {
+                        text: 'Cancel Booking',
+                        style: 'destructive',
+
+                        onPress:
+                            () => {
+                                performCancellation();
+                            },
+                    },
+                ],
+            );
+
+            return;
+        }
+
+
+        // ------------------------------------------------------
+        // PAY AT SALON / NO PAID BOOKING FEE
+        // ------------------------------------------------------
+
+        Alert.alert(
+            'Cancel Booking',
+
+            'You have not made an online booking-fee payment for this booking.\n\n' +
+            'Are you sure you want to cancel your appointment?',
+
+            [
+                {
+                    text: 'Keep Booking',
+                    style: 'cancel',
+                },
+
+                {
+                    text: 'Cancel Booking',
+                    style: 'destructive',
+
+                    onPress:
+                        () => {
+                            performCancellation();
+                        },
+                },
+            ],
+        );
+    };
+
+
+    // ==========================================================
+    // PERFORM CANCELLATION
+    // ==========================================================
+
+    const performCancellation = async () => {
+
+        if (!booking) {
+            return;
+        }
+
+
+        setIsCancelling(true);
+
+
+        try {
+
+            // ==================================================
+            // RECALCULATE POLICY
+            // ==================================================
+
+            const policy =
+                getCancellationPolicy(
+                    booking,
+                );
+
+
+            // ==================================================
+            // STEP 1: CANCEL BOOKING
+            // ==================================================
+
+            const cancelResult =
+                await cancelBookingMutation({
+
+                    variables: {
+                        bookingId:
+                            booking.bookingId,
+                    },
+                });
+
+
+            const cancelResponse =
+                cancelResult?.data
+                    ?.updateBookingStatus;
+
+
+            if (
+                !cancelResponse?.success
+            ) {
+
+                throw new Error(
+                    cancelResponse?.message ||
+                    'Unable to cancel the booking.',
+                );
+            }
+
+
+            // ==================================================
+            // STEP 2: REQUEST REFUND
+            // ==================================================
+
+            let refundResponse:
+                any = null;
+
+
+            if (
+                bookingFeePaid &&
+                isOnlinePayment
+            ) {
+
+                const refundResult =
+                    await requestRefundMutation({
+
+                        variables: {
+
+                            input: {
+
+                                bookingId:
+                                    booking.bookingId,
+
+                                reason:
+                                    'CUSTOMER_CANCELLED',
+                            },
+                        },
+                    });
+
+
+                refundResponse =
+                    refundResult?.data
+                        ?.requestRefund;
+
+
+                if (
+                    !refundResponse?.success
+                ) {
+
+                    // ------------------------------------------
+                    // IMPORTANT:
+                    // Booking is already cancelled.
+                    // Do NOT tell customer cancellation failed.
+                    // ------------------------------------------
+
+                    await refetch();
+
+
+                    Alert.alert(
+                        'Booking Cancelled',
+
+                        'Your booking was cancelled successfully, but we could not create the refund request automatically.\n\n' +
+                        'Please contact Clavata support for assistance with your booking-fee refund.',
+
+                        [
+                            {
+                                text: 'OK',
+                            },
+                        ],
+                    );
+
+                    return;
+                }
+            }
+
+
+            // ==================================================
+            // REFRESH BOOKING
+            // ==================================================
+
+            await refetch();
+
+
+            // ==================================================
+            // SUCCESS MESSAGE
+            // ==================================================
+
+            if (
+                refundResponse?.success &&
+                refundResponse?.refund
+            ) {
+
+                const refund =
+                    refundResponse.refund;
+
+
+                const refundAmount =
+                    Number(
+                        refund.refundAmount ??
+                        policy.refundAmount ??
+                        0,
+                    );
+
+
+                const refundStatus =
+                    refund.status ||
+                    'REQUESTED';
+
+
+                Alert.alert(
+
+                    'Booking Cancelled',
+
+                    'Your booking has been cancelled successfully.\n\n' +
+
+                    `Refund amount: ${formatCurrency(
+                        refundAmount,
+                    )}\n` +
+
+                    `Refund status: ${refundStatus}`,
+
+                    [
+                        {
+                            text: 'OK',
+                        },
+                    ],
+                );
+
+            } else {
+
+                Alert.alert(
+
+                    'Booking Cancelled',
+
+                    'Your booking has been cancelled successfully.\n\n' +
+                    'No online refund is applicable to this booking.',
+
+                    [
+                        {
+                            text: 'OK',
+                        },
+                    ],
+                );
+            }
+
+
+        } catch (e: any) {
+
+            console.error(
+                'Cancellation error:',
+                e,
+            );
+
+
+            Alert.alert(
+
+                'Unable to Cancel',
+
+                e?.message ||
+                'Something went wrong while cancelling your booking.',
+
+                [
+                    {
+                        text: 'OK',
+                    },
+                ],
+            );
+
+        } finally {
+
+            setIsCancelling(false);
+        }
+    };
+
+
+    // ==========================================================
+    // LOADING
+    // ==========================================================
+
+    if (loading) {
+
         return (
-            <SafeAreaView style={styles.loadingScreen}>
-                <Text style={styles.errorTitle}>
-                    Unable to load booking
-                </Text>
+            <SafeAreaView
+                style={styles.safeArea}
+            >
 
-                <Text style={styles.errorText}>
-                    {error?.message ||
-                        'Booking details could not be found.'}
-                </Text>
-
-                <TouchableOpacity
-                    style={styles.backButtonLarge}
-                    onPress={() => navigation.goBack()}
+                <View
+                    style={styles.centerContainer}
                 >
+
+                    <ActivityIndicator
+                        size="large"
+                        color={PRIMARY}
+                    />
+
                     <Text
                         style={
-                            styles.backButtonLargeText
+                            styles.loadingText
                         }
                     >
-                        Go Back
+                        Loading booking...
                     </Text>
-                </TouchableOpacity>
+
+                </View>
+
             </SafeAreaView>
         );
     }
 
-    const statusStyle = getStatusStyle(
-        booking.bookingStatus
-    );
+
+    // ==========================================================
+    // ERROR
+    // ==========================================================
+
+    if (error || !booking) {
+
+        return (
+            <SafeAreaView
+                style={styles.safeArea}
+            >
+
+                <View
+                    style={styles.centerContainer}
+                >
+
+                    <Text
+                        style={
+                            styles.errorTitle
+                        }
+                    >
+                        Unable to load booking
+                    </Text>
+
+                    <Text
+                        style={
+                            styles.errorText
+                        }
+                    >
+                        {error?.message ||
+                            'Booking not found.'}
+                    </Text>
+
+                    <TouchableOpacity
+                        style={
+                            styles.primaryButton
+                        }
+                        onPress={() =>
+                            navigation.goBack()
+                        }
+                    >
+
+                        <Text
+                            style={
+                                styles.primaryButtonText
+                            }
+                        >
+                            Go Back
+                        </Text>
+
+                    </TouchableOpacity>
+
+                </View>
+
+            </SafeAreaView>
+        );
+    }
+
+
+    // ==========================================================
+    // STATUS
+    // ==========================================================
+
+    const statusStyle =
+        getStatusStyle(
+            booking.bookingStatus,
+        );
+
+
+    // ==========================================================
+    // RENDER
+    // ==========================================================
 
     return (
-        <SafeAreaView style={styles.container}>
+
+        <SafeAreaView
+            style={styles.safeArea}
+        >
+
             <ScrollView
-                showsVerticalScrollIndicator={false}
                 contentContainerStyle={
-                    styles.content
+                    styles.scrollContent
+                }
+                showsVerticalScrollIndicator={
+                    false
                 }
             >
-                {/* HEADER */}
 
-                <View style={styles.header}>
+                {/* ==================================================
+                    HEADER
+                ================================================== */}
+
+                <View
+                    style={styles.header}
+                >
+
                     <TouchableOpacity
                         onPress={() =>
                             navigation.goBack()
                         }
-                        style={styles.backButton}
+                        style={
+                            styles.backButton
+                        }
                     >
-                        <Text style={styles.back}>
+
+                        <Text
+                            style={
+                                styles.backButtonText
+                            }
+                        >
                             ‹
                         </Text>
+
                     </TouchableOpacity>
 
-                    <Text style={styles.headerTitle}>
+
+                    <Text
+                        style={
+                            styles.headerTitle
+                        }
+                    >
                         Booking Details
                     </Text>
 
-                    <View style={styles.headerSpacer} />
+                    <View
+                        style={
+                            styles.headerSpacer
+                        }
+                    />
+
                 </View>
 
-                {/* BOOKING STATUS */}
 
-                <View style={styles.statusCard}>
+                {/* ==================================================
+                    STATUS CARD
+                ================================================== */}
+
+                <View
+                    style={styles.statusCard}
+                >
+
                     <View>
-                        <Text style={styles.statusLabel}>
-                            Booking Status
-                        </Text>
 
-                        <View
-                            style={[
-                                styles.statusBadge,
-                                {
-                                    backgroundColor:
-                                        statusStyle.backgroundColor,
-                                },
-                            ]}
-                        >
-                            <Text
-                                style={[
-                                    styles.statusText,
-                                    {
-                                        color:
-                                            statusStyle.color,
-                                    },
-                                ]}
-                            >
-                                {booking.bookingStatus}
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.bookingIdContainer}>
                         <Text
                             style={
                                 styles.bookingIdLabel
@@ -259,172 +1119,213 @@ export default function BookingDetails() {
                             style={
                                 styles.bookingId
                             }
-                            numberOfLines={1}
                         >
-                            #{booking.bookingId.slice(
-                                0,
-                                8
-                            )}
+                            {booking.bookingId}
                         </Text>
+
                     </View>
+
+
+                    <View
+                        style={[
+                            styles.statusBadge,
+                            {
+                                backgroundColor:
+                                    statusStyle.backgroundColor,
+                            },
+                        ]}
+                    >
+
+                        <Text
+                            style={[
+                                styles.statusText,
+                                {
+                                    color:
+                                        statusStyle.color,
+                                },
+                            ]}
+                        >
+                            {booking.bookingStatus}
+                        </Text>
+
+                    </View>
+
                 </View>
 
-                {/* SALON */}
 
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>
+                {/* ==================================================
+                    SALON
+                ================================================== */}
+
+                <View
+                    style={styles.card}
+                >
+
+                    <Text
+                        style={
+                            styles.sectionTitle
+                        }
+                    >
                         Salon
                     </Text>
 
-                    <View style={styles.salonRow}>
-                        <View style={styles.salonIcon}>
-                            <Text style={styles.salonIconText}>
-                                ✂
-                            </Text>
-                        </View>
+                    <Text
+                        style={
+                            styles.salonName
+                        }
+                    >
+                        {booking.salonName ||
+                            'Salon'}
+                    </Text>
 
-                        <View style={styles.salonInfo}>
-                            <Text
-                                style={
-                                    styles.salonName
-                                }
-                            >
-                                {booking.salonName}
-                            </Text>
-
-                            <Text
-                                style={
-                                    styles.salonPhone
-                                }
-                            >
-                                {booking.customerPhone
-                                    ? 'Your booking'
-                                    : ''}
-                            </Text>
-                        </View>
-                    </View>
                 </View>
 
-                {/* DATE & TIME */}
 
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>
+                {/* ==================================================
+                    APPOINTMENT
+                ================================================== */}
+
+                <View
+                    style={styles.card}
+                >
+
+                    <Text
+                        style={
+                            styles.sectionTitle
+                        }
+                    >
                         Appointment
                     </Text>
 
-                    <View style={styles.appointmentRow}>
-                        <View
+
+                    <View
+                        style={
+                            styles.infoRow
+                        }
+                    >
+
+                        <Text
                             style={
-                                styles.appointmentItem
+                                styles.infoLabel
                             }
                         >
-                            <Text
-                                style={
-                                    styles.appointmentIcon
-                                }
-                            >
-                                📅
-                            </Text>
+                            Date
+                        </Text>
 
-                            <View>
-                                <Text
-                                    style={
-                                        styles.smallLabel
-                                    }
-                                >
-                                    Date
-                                </Text>
-
-                                <Text
-                                    style={
-                                        styles.appointmentValue
-                                    }
-                                >
-                                    {formatDate(
-                                        booking.bookingDate
-                                    )}
-                                </Text>
-                            </View>
-                        </View>
-
-                        <View
+                        <Text
                             style={
-                                styles.appointmentItem
+                                styles.infoValue
                             }
                         >
-                            <Text
-                                style={
-                                    styles.appointmentIcon
-                                }
-                            >
-                                🕐
-                            </Text>
+                            {formatDate(
+                                booking.bookingDate,
+                            )}
+                        </Text>
 
-                            <View>
-                                <Text
-                                    style={
-                                        styles.smallLabel
-                                    }
-                                >
-                                    Time
-                                </Text>
-
-                                <Text
-                                    style={
-                                        styles.appointmentValue
-                                    }
-                                >
-                                    {formatTime(
-                                        booking.startTime
-                                    )}
-                                </Text>
-
-                                <Text
-                                    style={
-                                        styles.endTime
-                                    }
-                                >
-                                    Until{' '}
-                                    {formatTime(
-                                        booking.endTime
-                                    )}
-                                </Text>
-                            </View>
-                        </View>
                     </View>
+
+
+                    <View
+                        style={
+                            styles.infoRow
+                        }
+                    >
+
+                        <Text
+                            style={
+                                styles.infoLabel
+                            }
+                        >
+                            Time
+                        </Text>
+
+                        <Text
+                            style={
+                                styles.infoValue
+                            }
+                        >
+                            {formatTime(
+                                booking.startTime,
+                            )}
+                            {' - '}
+                            {formatTime(
+                                booking.endTime,
+                            )}
+                        </Text>
+
+                    </View>
+
+
+                    {booking.staffName ? (
+
+                        <View
+                            style={
+                                styles.infoRow
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.infoLabel
+                                }
+                            >
+                                Staff
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.infoValue
+                                }
+                            >
+                                {booking.staffName}
+                            </Text>
+
+                        </View>
+
+                    ) : null}
+
                 </View>
 
-                {/* SERVICES */}
 
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>
+                {/* ==================================================
+                    SERVICES
+                ================================================== */}
+
+                <View
+                    style={styles.card}
+                >
+
+                    <Text
+                        style={
+                            styles.sectionTitle
+                        }
+                    >
                         Services
                     </Text>
+
 
                     {booking.services?.map(
                         (
                             service: any,
-                            index: number
+                            index: number,
                         ) => (
+
                             <View
                                 key={
                                     service.serviceId ||
                                     index
                                 }
-                                style={[
-                                    styles.serviceRow,
-                                    index !==
-                                    booking.services
-                                        .length -
-                                    1 &&
-                                    styles.serviceBorder,
-                                ]}
+                                style={
+                                    styles.serviceRow
+                                }
                             >
+
                                 <View
                                     style={
                                         styles.serviceInfo
                                     }
                                 >
+
                                     <Text
                                         style={
                                             styles.serviceName
@@ -433,21 +1334,21 @@ export default function BookingDetails() {
                                         {service.name}
                                     </Text>
 
-                                    <Text
-                                        style={
-                                            styles.serviceMeta
-                                        }
-                                    >
-                                        {
-                                            service.category
-                                        }{' '}
-                                        •{' '}
-                                        {
-                                            service.duration
-                                        }{' '}
-                                        min
-                                    </Text>
+                                    {service.duration ? (
+
+                                        <Text
+                                            style={
+                                                styles.serviceDuration
+                                            }
+                                        >
+                                            {service.duration}{' '}
+                                            min
+                                        </Text>
+
+                                    ) : null}
+
                                 </View>
+
 
                                 <Text
                                     style={
@@ -455,232 +1356,207 @@ export default function BookingDetails() {
                                     }
                                 >
                                     {formatCurrency(
-                                        service.price
+                                        Number(
+                                            service.price ||
+                                            0,
+                                        ),
                                     )}
                                 </Text>
+
                             </View>
-                        )
+
+                        ),
                     )}
 
-                    <View
-                        style={
-                            styles.totalDurationRow
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.totalDurationLabel
-                            }
-                        >
-                            Total duration
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.totalDurationValue
-                            }
-                        >
-                            {booking.totalDuration} min
-                        </Text>
-                    </View>
                 </View>
 
-                {/* STAFF */}
 
-                {booking.staffName ? (
-                    <View style={styles.card}>
-                        <Text
-                            style={styles.sectionTitle}
-                        >
-                            Staff
-                        </Text>
+                {/* ==================================================
+                    PAYMENT
+                ================================================== */}
 
-                        <View style={styles.staffRow}>
-                            <View
-                                style={
-                                    styles.staffAvatar
-                                }
-                            >
-                                <Text
-                                    style={
-                                        styles.staffAvatarText
-                                    }
-                                >
-                                    {booking.staffName
-                                        .charAt(0)
-                                        .toUpperCase()}
-                                </Text>
-                            </View>
+                <View
+                    style={styles.card}
+                >
 
-                            <Text
-                                style={
-                                    styles.staffName
-                                }
-                            >
-                                {booking.staffName}
-                            </Text>
-                        </View>
-                    </View>
-                ) : null}
-
-                {/* PRICE DETAILS */}
-
-                <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>
+                    <Text
+                        style={
+                            styles.sectionTitle
+                        }
+                    >
                         Payment Details
                     </Text>
 
-                    <View style={styles.priceRow}>
-                        <Text style={styles.priceLabel}>
+
+                    <View
+                        style={
+                            styles.infoRow
+                        }
+                    >
+
+                        <Text
+                            style={
+                                styles.infoLabel
+                            }
+                        >
                             Subtotal
                         </Text>
 
-                        <Text style={styles.priceValue}>
+                        <Text
+                            style={
+                                styles.infoValue
+                            }
+                        >
                             {formatCurrency(
-                                booking.subtotal
+                                Number(
+                                    booking.subtotal ||
+                                    0,
+                                ),
                             )}
                         </Text>
+
                     </View>
 
-                    <View style={styles.priceRow}>
-                        <Text style={styles.priceLabel}>
+
+                    <View
+                        style={
+                            styles.infoRow
+                        }
+                    >
+
+                        <Text
+                            style={
+                                styles.infoLabel
+                            }
+                        >
                             Discount
                         </Text>
 
                         <Text
-                            style={[
-                                styles.priceValue,
-                                styles.discountText,
-                            ]}
-                        >
-                            -
-                            {formatCurrency(
-                                booking.discount
-                            )}
-                        </Text>
-                    </View>
-
-                    <View style={styles.divider} />
-
-                    <View style={styles.priceRow}>
-                        <Text
                             style={
-                                styles.grandTotalLabel
+                                styles.infoValue
                             }
                         >
-                            Total Amount
+                            -{formatCurrency(
+                                Number(
+                                    booking.discount ||
+                                    0,
+                                ),
+                            )}
+                        </Text>
+
+                    </View>
+
+
+                    <View
+                        style={[
+                            styles.infoRow,
+                            styles.totalRow,
+                        ]}
+                    >
+
+                        <Text
+                            style={
+                                styles.totalLabel
+                            }
+                        >
+                            Total
                         </Text>
 
                         <Text
                             style={
-                                styles.grandTotalValue
+                                styles.totalValue
                             }
                         >
                             {formatCurrency(
-                                booking.totalAmount
+                                Number(
+                                    booking.totalAmount ||
+                                    0,
+                                ),
                             )}
                         </Text>
+
                     </View>
 
-                    {/* BOOKING FEE */}
 
-                    {/* {booking.bookingFee > 0 ? (
-                        <>
-                            <View
-                                style={
-                                    styles.divider
-                                }
-                            />
-
-                            <View
-                                style={
-                                    styles.priceRow
-                                }
-                            >
-                                <Text
-                                    style={
-                                        styles.priceLabel
-                                    }
-                                >
-                                    Booking Fee
-                                </Text>
-
-                                <Text
-                                    style={
-                                        styles.priceValue
-                                    }
-                                >
-                                    {formatCurrency(
-                                        booking.bookingFee
-                                    )}
-                                </Text>
-                            </View>
-
-                            <View
-                                style={
-                                    styles.priceRow
-                                }
-                            >
-                                <Text
-                                    style={
-                                        styles.priceLabel
-                                    }
-                                >
-                                    Remaining Amount
-                                </Text>
-
-                                <Text
-                                    style={
-                                        styles.remainingAmount
-                                    }
-                                >
-                                    {formatCurrency(
-                                        booking.remainingAmount
-                                    )}
-                                </Text>
-                            </View>
-                        </>
-                    ) : null} */}
-                    {booking.bookingFee > 0 ? (
-                        <>
-                            <View style={styles.divider} />
-
-                            <View style={styles.priceRow}>
-                                <Text style={styles.priceLabel}>
-                                    Booking Fee
-                                </Text>
-
-                                <Text style={styles.priceValue}>
-                                    {formatCurrency(
-                                        booking.bookingFee
-                                    )}
-                                </Text>
-                            </View>
-
-                            {booking.bookingStatus !== 'COMPLETED' &&
-                                Number(booking.remainingAmount || 0) > 0 ? (
-                                <View style={styles.priceRow}>
-                                    <Text style={styles.priceLabel}>
-                                        Remaining Amount
-                                    </Text>
-
-                                    <Text style={styles.remainingAmount}>
-                                        {formatCurrency(
-                                            booking.remainingAmount
-                                        )}
-                                    </Text>
-                                </View>
-                            ) : null}
-                        </>
-                    ) : null}
                     <View
                         style={
-                            styles.paymentStatusContainer
+                            styles.infoRow
                         }
                     >
+
                         <Text
                             style={
-                                styles.paymentMethodLabel
+                                styles.infoLabel
+                            }
+                        >
+                            Booking Fee
+                        </Text>
+
+                        <Text
+                            style={
+                                styles.infoValue
+                            }
+                        >
+                            {formatCurrency(
+                                Number(
+                                    booking.bookingFee ||
+                                    0,
+                                ),
+                            )}
+                        </Text>
+
+                    </View>
+
+
+                    {booking.bookingStatus !==
+                        'COMPLETED' &&
+                    Number(
+                        booking.remainingAmount ||
+                        0,
+                    ) > 0 ? (
+
+                        <View
+                            style={
+                                styles.infoRow
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.infoLabel
+                                }
+                            >
+                                Pay at Salon
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.infoValue
+                                }
+                            >
+                                {formatCurrency(
+                                    Number(
+                                        booking.remainingAmount ||
+                                        0,
+                                    ),
+                                )}
+                            </Text>
+
+                        </View>
+
+                    ) : null}
+
+
+                    <View
+                        style={
+                            styles.infoRow
+                        }
+                    >
+
+                        <Text
+                            style={
+                                styles.infoLabel
                             }
                         >
                             Payment Method
@@ -688,552 +1564,771 @@ export default function BookingDetails() {
 
                         <Text
                             style={
-                                styles.paymentMethodValue
+                                styles.infoValue
                             }
                         >
-                            {booking.paymentMethod ===
-                                'PAY_AT_SALON'
-                                ? 'Pay at Salon'
-                                : 'Online'}
+                            {booking.paymentMethod ||
+                                '-'}
                         </Text>
+
                     </View>
+
 
                     <View
                         style={
-                            styles.paymentStatusContainer
+                            styles.infoRow
                         }
                     >
+
                         <Text
                             style={
-                                styles.paymentMethodLabel
+                                styles.infoLabel
                             }
                         >
                             Payment Status
                         </Text>
 
-                        <View
+                        <Text
                             style={
-                                styles.paymentStatusBadge
+                                styles.infoValue
                             }
                         >
-                            <Text
-                                style={
-                                    styles.paymentStatusText
-                                }
-                            >
-                                {booking.paymentStatus}
-                            </Text>
-                        </View>
+                            {booking.paymentStatus ||
+                                '-'}
+                        </Text>
+
                     </View>
+
                 </View>
 
-                {/* CUSTOMER NOTE */}
+
+                {/* ==================================================
+                    CANCELLATION / REFUND POLICY
+                ================================================== */}
+
+                {canCancel ? (
+
+                    <View
+                        style={
+                            styles.refundCard
+                        }
+                    >
+
+                        <Text
+                            style={
+                                styles.sectionTitle
+                            }
+                        >
+                            Cancellation & Refund
+                        </Text>
+
+
+                        {refundApplicable ? (
+
+                            <>
+
+                                <View
+                                    style={
+                                        styles.refundHighlight
+                                    }
+                                >
+
+                                    <Text
+                                        style={
+                                            styles.refundTitle
+                                        }
+                                    >
+                                        {cancellationPolicy.title}
+                                    </Text>
+
+                                    <Text
+                                        style={
+                                            styles.refundAmount
+                                        }
+                                    >
+                                        {formatCurrency(
+                                            cancellationPolicy.refundAmount,
+                                        )}
+                                    </Text>
+
+                                </View>
+
+
+                                <Text
+                                    style={
+                                        styles.refundDescription
+                                    }
+                                >
+                                    {cancellationPolicy.description}
+                                </Text>
+
+
+                                <View
+                                    style={
+                                        styles.policyRow
+                                    }
+                                >
+
+                                    <Text
+                                        style={
+                                            styles.policyLabel
+                                        }
+                                    >
+                                        Booking fee
+                                    </Text>
+
+                                    <Text
+                                        style={
+                                            styles.policyValue
+                                        }
+                                    >
+                                        {formatCurrency(
+                                            Number(
+                                                booking.bookingFee ||
+                                                0,
+                                            ),
+                                        )}
+                                    </Text>
+
+                                </View>
+
+
+                                <View
+                                    style={
+                                        styles.policyRow
+                                    }
+                                >
+
+                                    <Text
+                                        style={
+                                            styles.policyLabel
+                                        }
+                                    >
+                                        You receive
+                                    </Text>
+
+                                    <Text
+                                        style={
+                                            styles.policyRefundValue
+                                        }
+                                    >
+                                        {formatCurrency(
+                                            cancellationPolicy.refundAmount,
+                                        )}
+                                    </Text>
+
+                                </View>
+
+
+                                <Text
+                                    style={
+                                        styles.policyNote
+                                    }
+                                >
+                                    Refunds are processed according to
+                                    the cancellation policy after your
+                                    cancellation request is submitted.
+                                </Text>
+
+                            </>
+
+                        ) : (
+
+                            <Text
+                                style={
+                                    styles.refundDescription
+                                }
+                            >
+                                This booking has no online booking-fee
+                                payment, so no online refund is applicable.
+                            </Text>
+
+                        )}
+
+                    </View>
+
+                ) : null}
+
+
+                {/* ==================================================
+                    NOTES
+                ================================================== */}
 
                 {booking.notes ? (
-                    <View style={styles.card}>
+
+                    <View
+                        style={styles.card}
+                    >
+
                         <Text
-                            style={styles.sectionTitle}
+                            style={
+                                styles.sectionTitle
+                            }
                         >
-                            Your Note
+                            Notes
                         </Text>
 
                         <Text
-                            style={styles.noteText}
+                            style={
+                                styles.notesText
+                            }
                         >
                             {booking.notes}
                         </Text>
+
                     </View>
+
                 ) : null}
 
-                {/* SALON NOTE */}
+
+                {/* ==================================================
+                    SALON NOTE
+                ================================================== */}
 
                 {booking.salonNote ? (
-                    <View style={styles.card}>
+
+                    <View
+                        style={styles.card}
+                    >
+
                         <Text
-                            style={styles.sectionTitle}
+                            style={
+                                styles.sectionTitle
+                            }
                         >
                             Salon Note
                         </Text>
 
                         <Text
-                            style={styles.noteText}
+                            style={
+                                styles.notesText
+                            }
                         >
                             {booking.salonNote}
                         </Text>
+
                     </View>
+
                 ) : null}
 
-                {/* REVIEW */}
+
+                {/* ==================================================
+                    CANCEL BUTTON
+                ================================================== */}
+
+                {canCancel ? (
+
+                    <TouchableOpacity
+                        style={[
+                            styles.cancelButton,
+                            isCancelling &&
+                                styles.disabledButton,
+                        ]}
+                        disabled={
+                            isCancelling
+                        }
+                        onPress={
+                            handleCancelBooking
+                        }
+                    >
+
+                        {isCancelling ? (
+
+                            <ActivityIndicator
+                                color="#FFFFFF"
+                            />
+
+                        ) : (
+
+                            <Text
+                                style={
+                                    styles.cancelButtonText
+                                }
+                            >
+                                Cancel Booking
+                            </Text>
+
+                        )}
+
+                    </TouchableOpacity>
+
+                ) : null}
+
+
+                {/* ==================================================
+                    REVIEW BUTTON
+                ================================================== */}
 
                 {booking.bookingStatus ===
                     'COMPLETED' &&
-                    !booking.reviewSubmitted ? (
+                !booking.reviewSubmitted ? (
+
                     <TouchableOpacity
-                        style={styles.reviewButton}
-                        onPress={() =>
+                        style={
+                            styles.reviewButton
+                        }
+                        onPress={() => {
+
                             navigation.navigate(
-                                'WriteReview',
+                                'ReviewBooking',
                                 {
                                     bookingId:
                                         booking.bookingId,
-                                    salonId:
-                                        booking.salonId,
-                                    salonName:
-                                        booking.salonName,
-                                }
-                            )
-                        }
+                                    booking,
+                                },
+                            );
+
+                        }}
                     >
+
                         <Text
                             style={
                                 styles.reviewButtonText
                             }
                         >
-                            ⭐ Write a Review
+                            Write a Review
                         </Text>
+
                     </TouchableOpacity>
+
                 ) : null}
 
-                {/* EXISTING REVIEW */}
 
-                {booking.reviewSubmitted &&
-                    booking.review ? (
-                    <View style={styles.card}>
+                {/* ==================================================
+                    EXISTING REVIEW
+                ================================================== */}
+
+                {booking.reviewSubmitted ? (
+
+                    <View
+                        style={styles.card}
+                    >
+
                         <Text
-                            style={styles.sectionTitle}
+                            style={
+                                styles.sectionTitle
+                            }
                         >
                             Your Review
                         </Text>
 
-                        <Text
-                            style={
-                                styles.ratingText
-                            }
-                        >
-                            {'★'.repeat(
-                                booking.rating || 0
-                            )}
-                        </Text>
 
-                        <Text
-                            style={styles.reviewText}
-                        >
-                            {booking.review}
-                        </Text>
+                        {booking.rating ? (
+
+                            <Text
+                                style={
+                                    styles.ratingText
+                                }
+                            >
+                                {'★'.repeat(
+                                    Number(
+                                        booking.rating,
+                                    ),
+                                )}
+                            </Text>
+
+                        ) : null}
+
+
+                        {booking.review ? (
+
+                            <Text
+                                style={
+                                    styles.reviewText
+                                }
+                            >
+                                {booking.review}
+                            </Text>
+
+                        ) : null}
+
                     </View>
+
                 ) : null}
 
-                <View style={{ height: 30 }} />
+
+                <View
+                    style={{
+                        height: 30,
+                    }}
+                />
+
             </ScrollView>
+
         </SafeAreaView>
     );
 }
 
-const PRIMARY = '#009D94';
+
+// ================================================================
+// STYLES
+// ================================================================
 
 const styles = StyleSheet.create({
-    container: {
+
+    safeArea: {
         flex: 1,
-        backgroundColor: '#F7F8FA',
+        backgroundColor: '#F8FAFC',
     },
 
-    content: {
+
+    scrollContent: {
         padding: 16,
     },
 
-    loadingScreen: {
+
+    centerContainer: {
         flex: 1,
-        backgroundColor: '#F7F8FA',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 30,
+        padding: 24,
     },
+
 
     loadingText: {
         marginTop: 12,
-        color: '#6B7280',
         fontSize: 14,
+        color: '#64748B',
     },
+
 
     errorTitle: {
         fontSize: 20,
         fontWeight: '700',
         color: '#111827',
-        textAlign: 'center',
+        marginBottom: 8,
     },
+
 
     errorText: {
-        marginTop: 8,
-        color: '#6B7280',
+        fontSize: 14,
+        color: '#64748B',
         textAlign: 'center',
-        lineHeight: 20,
+        marginBottom: 20,
     },
 
-    backButtonLarge: {
-        marginTop: 20,
-        backgroundColor: PRIMARY,
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 10,
-    },
-
-    backButtonLargeText: {
-        color: '#fff',
-        fontWeight: '700',
-    },
 
     header: {
+        height: 52,
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 18,
+        justifyContent: 'space-between',
+        marginBottom: 12,
     },
+
 
     backButton: {
         width: 42,
         height: 42,
+        borderRadius: 21,
+        backgroundColor: '#FFFFFF',
         alignItems: 'center',
         justifyContent: 'center',
     },
 
-    back: {
-        fontSize: 38,
+
+    backButtonText: {
+        fontSize: 34,
+        lineHeight: 38,
         color: '#111827',
-        lineHeight: 40,
+        marginTop: -3,
     },
 
+
     headerTitle: {
-        flex: 1,
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: '700',
         color: '#111827',
-        textAlign: 'center',
     },
+
 
     headerSpacer: {
         width: 42,
     },
 
+
     statusCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
-        padding: 18,
-        marginBottom: 14,
+        padding: 16,
+        marginBottom: 12,
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 5,
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
+        justifyContent: 'space-between',
     },
 
-    statusLabel: {
-        color: '#6B7280',
+
+    bookingIdLabel: {
         fontSize: 12,
-        marginBottom: 7,
+        color: '#94A3B8',
+        marginBottom: 4,
     },
+
+
+    bookingId: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#334155',
+    },
+
 
     statusBadge: {
+        borderRadius: 20,
         paddingHorizontal: 12,
         paddingVertical: 7,
-        borderRadius: 20,
-        alignSelf: 'flex-start',
     },
+
 
     statusText: {
         fontSize: 12,
         fontWeight: '700',
     },
 
-    bookingIdContainer: {
-        alignItems: 'flex-end',
-        maxWidth: 120,
-    },
-
-    bookingIdLabel: {
-        color: '#9CA3AF',
-        fontSize: 11,
-        marginBottom: 4,
-    },
-
-    bookingId: {
-        color: '#374151',
-        fontSize: 13,
-        fontWeight: '600',
-    },
 
     card: {
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
-        padding: 18,
-        marginBottom: 14,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowRadius: 5,
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
+        padding: 16,
+        marginBottom: 12,
     },
+
 
     sectionTitle: {
-        fontSize: 17,
+        fontSize: 16,
         fontWeight: '700',
         color: '#111827',
-        marginBottom: 15,
+        marginBottom: 14,
     },
 
-    salonRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-
-    salonIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#E8F8F6',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-
-    salonIconText: {
-        fontSize: 22,
-        color: PRIMARY,
-    },
-
-    salonInfo: {
-        marginLeft: 12,
-        flex: 1,
-    },
 
     salonName: {
         fontSize: 17,
-        fontWeight: '700',
-        color: '#111827',
+        fontWeight: '600',
+        color: '#1E293B',
     },
 
-    salonPhone: {
-        marginTop: 4,
-        fontSize: 13,
-        color: '#6B7280',
-    },
 
-    appointmentRow: {
+    infoRow: {
         flexDirection: 'row',
-        gap: 18,
-    },
-
-    appointmentItem: {
-        flex: 1,
-        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
+        paddingVertical: 7,
     },
 
-    appointmentIcon: {
-        fontSize: 20,
-        marginRight: 10,
-    },
 
-    smallLabel: {
-        color: '#9CA3AF',
-        fontSize: 11,
-        marginBottom: 3,
-    },
-
-    appointmentValue: {
-        color: '#111827',
+    infoLabel: {
         fontSize: 14,
-        fontWeight: '700',
+        color: '#64748B',
+        flex: 1,
     },
 
-    endTime: {
-        color: '#6B7280',
-        fontSize: 11,
-        marginTop: 2,
+
+    infoValue: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#1E293B',
+        textAlign: 'right',
+        flex: 1,
     },
+
+
+    totalRow: {
+        borderTopWidth: 1,
+        borderTopColor: '#E2E8F0',
+        marginTop: 6,
+        paddingTop: 12,
+    },
+
+
+    totalLabel: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#111827',
+    },
+
+
+    totalValue: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: PRIMARY,
+    },
+
 
     serviceRow: {
         flexDirection: 'row',
-        alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 12,
+        alignItems: 'center',
+        paddingVertical: 9,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
     },
 
-    serviceBorder: {
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
 
     serviceInfo: {
         flex: 1,
-        paddingRight: 10,
     },
+
 
     serviceName: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '600',
-        color: '#111827',
+        color: '#1E293B',
     },
 
-    serviceMeta: {
-        marginTop: 4,
-        color: '#6B7280',
+
+    serviceDuration: {
         fontSize: 12,
+        color: '#94A3B8',
+        marginTop: 3,
     },
+
 
     servicePrice: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#111827',
-    },
-
-    totalDurationRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 10,
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: '#EEEEEE',
-    },
-
-    totalDurationLabel: {
-        color: '#6B7280',
-        fontSize: 13,
-    },
-
-    totalDurationValue: {
-        color: '#111827',
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '600',
+        color: '#1E293B',
     },
 
-    staffRow: {
+
+    // ============================================================
+    // REFUND CARD
+    // ============================================================
+
+    refundCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#DDEFEF',
+    },
+
+
+    refundHighlight: {
+        backgroundColor: '#F0FDFA',
+        borderRadius: 12,
+        padding: 14,
         flexDirection: 'row',
         alignItems: 'center',
-    },
-
-    staffAvatar: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#E8F8F6',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-
-    staffAvatarText: {
-        color: PRIMARY,
-        fontSize: 18,
-        fontWeight: '700',
-    },
-
-    staffName: {
-        marginLeft: 12,
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#111827',
-    },
-
-    priceRow: {
-        flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: 12,
     },
 
-    priceLabel: {
-        color: '#6B7280',
+
+    refundTitle: {
         fontSize: 14,
-    },
-
-    priceValue: {
-        color: '#111827',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-
-    discountText: {
-        color: '#16A34A',
-    },
-
-    divider: {
-        height: 1,
-        backgroundColor: '#EEEEEE',
-        marginVertical: 5,
-        marginBottom: 15,
-    },
-
-    grandTotalLabel: {
-        fontSize: 16,
         fontWeight: '700',
-        color: '#111827',
+        color: '#0F766E',
     },
 
-    grandTotalValue: {
-        fontSize: 17,
+
+    refundAmount: {
+        fontSize: 20,
         fontWeight: '800',
         color: PRIMARY,
     },
 
-    remainingAmount: {
-        color: '#DC2626',
-        fontSize: 14,
-        fontWeight: '700',
+
+    refundDescription: {
+        fontSize: 13,
+        lineHeight: 20,
+        color: '#64748B',
+        marginBottom: 12,
     },
 
-    paymentStatusContainer: {
-        marginTop: 14,
-        paddingTop: 14,
-        borderTopWidth: 1,
-        borderTopColor: '#EEEEEE',
+
+    policyRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        paddingVertical: 6,
     },
 
-    paymentMethodLabel: {
-        color: '#6B7280',
+
+    policyLabel: {
         fontSize: 13,
+        color: '#64748B',
     },
 
-    paymentMethodValue: {
-        color: '#111827',
+
+    policyValue: {
         fontSize: 13,
         fontWeight: '600',
+        color: '#334155',
     },
 
-    paymentStatusBadge: {
-        backgroundColor: '#E8F8F6',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 15,
-    },
 
-    paymentStatusText: {
+    policyRefundValue: {
+        fontSize: 13,
+        fontWeight: '700',
         color: PRIMARY,
+    },
+
+
+    policyNote: {
         fontSize: 11,
+        lineHeight: 17,
+        color: '#94A3B8',
+        marginTop: 8,
+    },
+
+
+    notesText: {
+        fontSize: 14,
+        lineHeight: 21,
+        color: '#475569',
+    },
+
+
+    // ============================================================
+    // BUTTONS
+    // ============================================================
+
+    primaryButton: {
+        backgroundColor: PRIMARY,
+        borderRadius: 12,
+        paddingHorizontal: 24,
+        paddingVertical: 13,
+    },
+
+
+    primaryButtonText: {
+        color: '#FFFFFF',
+        fontSize: 14,
         fontWeight: '700',
     },
 
-    noteText: {
-        color: '#4B5563',
-        fontSize: 14,
-        lineHeight: 21,
+
+    cancelButton: {
+        backgroundColor: '#DC2626',
+        borderRadius: 14,
+        height: 52,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
     },
+
+
+    cancelButtonText: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontWeight: '700',
+    },
+
+
+    disabledButton: {
+        opacity: 0.6,
+    },
+
 
     reviewButton: {
         backgroundColor: PRIMARY,
-        height: 52,
         borderRadius: 14,
+        height: 52,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 14,
+        marginBottom: 12,
     },
+
 
     reviewButtonText: {
         color: '#FFFFFF',
@@ -1241,17 +2336,18 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
 
+
     ratingText: {
+        fontSize: 22,
         color: '#F59E0B',
-        fontSize: 20,
-        letterSpacing: 2,
         marginBottom: 8,
     },
 
+
     reviewText: {
-        color: '#4B5563',
         fontSize: 14,
         lineHeight: 21,
+        color: '#475569',
     },
-});
 
+});
