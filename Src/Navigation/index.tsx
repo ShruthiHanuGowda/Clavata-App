@@ -39,6 +39,7 @@ import BookingDetails from '../Screens/CustomerTabs/Profile/BookingDetails';
 import EditProfile from '../Screens/CustomerTabs/Profile/EditProfile';
 import WelcomeChoiceScreen from '../Screens/Login/WelcomeChoiceScreen';
 import ManageServices from '../Screens/SalonTabs/Profile/service/ManageServices';
+import ClavataMatch from '../Screens/CustomerTabs/Home/ClavataMatch';
 // import CustomerLocationScreen from '../Screens/CustomerTabs/Home/CustomerLocationScreen';
 
 function RootScreenStack() {
@@ -88,6 +89,10 @@ export function HomeScreenStack() {
           headerShown: false,
         }}
       /> */}
+      <HomeStack.Screen
+        name="ClavataMatch"
+        component={ClavataMatch}
+      />
       <HomeStack.Screen name="HomeScreen" component={HomeScreenPage} />
       <HomeStack.Screen
         name="SalonDetails"
@@ -174,7 +179,7 @@ export function ProfileStack() {
         name="Payments"
         component={Payments}
       />
-       <ProfilePlaceStack.Screen
+      <ProfilePlaceStack.Screen
         name="PaymentMethod"
         component={PaymentMethod}
       />

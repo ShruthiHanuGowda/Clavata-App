@@ -5,6 +5,7 @@
 
 import { NavigatorScreenParams } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { LocationData } from './Src/services/locationStorage';
 
 declare global {
   namespace ReactNavigation {
@@ -85,7 +86,9 @@ export type RootTabParamList = {
   'Clavata': undefined;
   Home: undefined;
   Offers: undefined;
-  Bookings: undefined;
+  // Bookings: undefined;
+  Bookings:
+  NavigatorScreenParams<WalletStackParamList>;
   Profile: undefined;
   dApps: undefined;
   Stake: undefined;
@@ -109,6 +112,13 @@ export type HomeStackParamList = {
   BookingRequestSent: undefined;
   BookingPayment: undefined;
   RateReview: undefined;
+  ClavataMatch: {
+    service?: string;
+    location?: LocationData | null;
+    minBudget?: number;
+    maxBudget?: number;
+    distance?: number;
+  };
 };
 
 export type WalletStackParamList = {
@@ -119,7 +129,10 @@ export type WalletStackParamList = {
   BookingPayment: {
     booking: any;
   }
-  RateReview: undefined;
+  RateReview: {
+    booking: any;
+  };
+
   SalonDetails: undefined;
   Offers: undefined;
   BookingDetails: {

@@ -5,7 +5,12 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-
+import {
+  useNavigation,
+  useRoute,
+  NavigationProp,
+  RouteProp,
+} from '@react-navigation/native';
 import {
   SafeAreaView,
   FlatList,
@@ -22,10 +27,6 @@ import {
 import {
   useApolloClient,
 } from '@apollo/client';
-
-import {
-  useNavigation,
-} from '@react-navigation/native';
 
 import HomeHeader from './HomeHeader';
 import ServiceChips from './ServiceChips';
@@ -57,6 +58,7 @@ import {
   COLORS,
   SPACING,
 } from '../../../constants/constants';
+import { HomeStackParamList, RootTabParamList } from '../../../../types';
 
 
 // ============================================================
@@ -177,8 +179,13 @@ export default function HomeScreenPage() {
   const client = useApolloClient();
 
   const navigation =
-    useNavigation<any>();
-
+    useNavigation<
+      NavigationProp<
+        HomeStackParamList & RootTabParamList
+      >
+    >();
+  const route =
+    useRoute<RouteProp<HomeStackParamList, 'ClavataMatch'>>();
   const {
     currentUser,
   } = useUser();
@@ -1582,38 +1589,118 @@ export default function HomeScreenPage() {
   // CLAVATA
   // ==========================================================
 
-  const askClavata =
-    () => {
+  const askClavata = useCallback(() => {
 
-      setShowFilterModal(
-        false,
+    setShowFilterModal(false);
+
+    // ----------------------------------------------------------
+    // LOCATION REQUIRED
+    // ----------------------------------------------------------
+
+    if (
+      !locationCoordinates ||
+      locationCoordinates.latitude == null ||
+      locationCoordinates.longitude == null
+    ) {
+
+      console.log(
+        '✦ CLAVATA: location unavailable',
       );
 
+      setShowLocationModal(true);
 
-      navigation.navigate(
-        'ClavataMatch',
-        {
+      return;
+    }
 
-          service:
-            selectedCategory ||
-            search.trim(),
 
-          location:
-            locationCoordinates,
+    // ----------------------------------------------------------
+    // SERVICE
+    // ----------------------------------------------------------
 
-          minBudget:
-            selectedBudget.min,
+    const service =
+      selectedCategory.trim() ||
+      search.trim();
 
-          maxBudget:
-            selectedBudget.max,
 
-          distance:
-            selectedDistance,
+    // ----------------------------------------------------------
+    // NAVIGATE
+    // ----------------------------------------------------------
 
-        },
-      );
+    console.log(
+      '========================================',
+    );
 
-    };
+    console.log(
+      '✦ OPENING CLAVATA',
+    );
+
+    console.log(
+      'Service:',
+      service || 'Any',
+    );
+
+    console.log(
+      'Location:',
+      locationCoordinates,
+    );
+
+    console.log(
+      'Budget:',
+      selectedBudget.min,
+      '-',
+      selectedBudget.max,
+    );
+
+    console.log(
+      'Distance:',
+      selectedDistance,
+    );
+
+    console.log(
+      '========================================',
+    );
+
+
+    navigation.navigate(
+      'ClavataMatch',
+      {
+
+        service:
+          service || undefined,
+
+        location:
+          locationCoordinates,
+
+        minBudget:
+          selectedBudget.label ===
+            'Any'
+            ? 0
+            : selectedBudget.min,
+
+        maxBudget:
+          selectedBudget.label ===
+            'Any'
+            ? Infinity
+            : selectedBudget.max,
+
+        distance:
+          selectedDistance ||
+          DEFAULT_LOCATION_RADIUS ||
+          10,
+
+      },
+    );
+
+  }, [
+    locationCoordinates,
+    selectedCategory,
+    search,
+    selectedBudget,
+    selectedDistance,
+    navigation,
+  ]);
+
+
 
 
   // ==========================================================
@@ -2573,28 +2660,18 @@ export default function HomeScreenPage() {
         }
 
         onRate={() => {
+          if (!pendingBooking) {
+            return;
+          }
 
-          setShowReviewPopup(
-            false,
-          );
+          setShowReviewPopup(false);
 
-          navigation.navigate(
-            'Bookings',
-            {
-
-              screen:
-                'RateReview',
-
-              params: {
-
-                booking:
-                  pendingBooking,
-
-              },
-
+          navigation.navigate('Bookings', {
+            screen: 'RateReview',
+            params: {
+              booking: pendingBooking,
             },
-          );
-
+          });
         }}
 
         onLater={() => {
