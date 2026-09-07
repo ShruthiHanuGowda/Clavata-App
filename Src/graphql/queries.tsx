@@ -1150,3 +1150,246 @@ export const REQUEST_REFUND = gql`
     }
   }
 `;
+
+// export const SALON_OFFERS = gql`
+//   query SalonOffers($salonId: ID, $status: OfferStatus) {
+//     salonOffers(salonId: $salonId, status: $status) {
+//       success
+//       message
+//       offers {
+//         offerId
+//         salonId
+//         title
+//         description
+//         discountType
+//         discountValue
+//         couponCode
+//         minimumBookingAmount
+//         category
+//         serviceIds
+//         startDate
+//         endDate
+//         usageLimit
+//         usageCount
+//         customerLimit
+//         status
+//         rejectionReason
+//         approvedBy
+//         approvedAt
+//         createdAt
+//         updatedAt
+//       }
+//       totalCount
+//     }
+//   }
+// `;
+
+// export const DELETE_OFFER = gql`
+//   mutation DeleteOffer($input: DeleteOfferInput!) {
+//     deleteOffer(input: $input) {
+//       success
+//       message
+//       offer {
+//         offerId
+//         salonId
+//         title
+//         status
+//       }
+//     }
+//   }
+// `;
+
+// export const CREATE_OFFER = gql`
+//   mutation CreateOffer(
+//     $input: CreateOfferInput!
+//   ) {
+//     createOffer(input: $input) {
+//       success
+//       message
+//       offer {
+//         offerId
+//         salonId
+//         title
+//         description
+//         discountType
+//         discountValue
+//         couponCode
+//         minimumBookingAmount
+//         category
+//         serviceIds
+//         startDate
+//         endDate
+//         usageLimit
+//         usageCount
+//         customerLimit
+//         status
+//         rejectionReason
+//         approvedBy
+//         approvedAt
+//         createdAt
+//         updatedAt
+//       }
+//     }
+//   }
+// `;
+
+
+// export const UPDATE_OFFER = gql`
+//   mutation UpdateOffer(
+//     $input: UpdateOfferInput!
+//   ) {
+//     updateOffer(input: $input) {
+//       success
+//       message
+//       offer {
+//         offerId
+//         salonId
+//         title
+//         description
+//         discountType
+//         discountValue
+//         couponCode
+//         minimumBookingAmount
+//         category
+//         serviceIds
+//         startDate
+//         endDate
+//         usageLimit
+//         usageCount
+//         customerLimit
+//         status
+//         rejectionReason
+//         approvedBy
+//         approvedAt
+//         createdAt
+//         updatedAt
+//       }
+//     }
+//   }
+// `;
+
+
+
+
+export const SALON_OFFERS = gql`
+  query SalonOffers($salonId: ID, $status: OfferStatus) {
+    salonOffers(salonId: $salonId, status: $status) {
+      success
+      message
+      offers {
+        offerId
+        salonId
+        title
+        description
+        discountType
+        discountValue
+        couponCode
+        minimumBookingAmount
+        category
+        serviceIds
+        startDate
+        endDate
+        usageLimit
+        usageCount
+        customerLimit
+        status
+        rejectionReason
+        approvedBy
+        approvedAt
+        rejectedBy
+        rejectedAt
+        createdAt
+        updatedAt
+      }
+      totalCount
+    }
+  }
+`;
+
+export const CREATE_OFFER = gql`
+  mutation CreateOffer($input: CreateOfferInput!) {
+    createOffer(input: $input) {
+      success
+      message
+      offer {
+        offerId
+        salonId
+        title
+        description
+        discountType
+        discountValue
+        couponCode
+        minimumBookingAmount
+        category
+        serviceIds
+        startDate
+        endDate
+        usageLimit
+        usageCount
+        customerLimit
+        status
+        rejectionReason
+        approvedBy
+        approvedAt
+        rejectedBy
+        rejectedAt
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const UPDATE_OFFER = gql`
+  mutation UpdateOffer($input: UpdateOfferInput!) {
+    updateOffer(input: $input) {
+      success
+      message
+      offer {
+        offerId
+        salonId
+        title
+        description
+        discountType
+        discountValue
+        couponCode
+        minimumBookingAmount
+        category
+        serviceIds
+        startDate
+        endDate
+        usageLimit
+        usageCount
+        customerLimit
+        status
+        rejectionReason
+        approvedBy
+        approvedAt
+        rejectedBy
+        rejectedAt
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const DELETE_OFFER = gql`
+  mutation DeleteOffer($input: DeleteOfferInput!) {
+    deleteOffer(input: $input) {
+      success
+      message
+      offer {
+        offerId
+        salonId
+        title
+        description
+        discountType
+        discountValue
+        status
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;

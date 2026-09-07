@@ -40,6 +40,8 @@ import EditProfile from '../Screens/CustomerTabs/Profile/EditProfile';
 import WelcomeChoiceScreen from '../Screens/Login/WelcomeChoiceScreen';
 import ManageServices from '../Screens/SalonTabs/Profile/service/ManageServices';
 import ClavataMatch from '../Screens/CustomerTabs/Home/ClavataMatch';
+import SalonOffersScreen from '../Screens/SalonTabs/Profile/SalonOffersScreen';
+import CreateOfferScreen from '../Screens/SalonTabs/Profile/CreateOfferScreen';
 // import CustomerLocationScreen from '../Screens/CustomerTabs/Home/CustomerLocationScreen';
 
 function RootScreenStack() {
@@ -260,6 +262,14 @@ export function SalonProfileStack() {
       <SalonProfilePlaceStack.Screen
         name="ManageServices"
         component={ManageServices}
+      />
+      <SalonProfilePlaceStack.Screen
+        name="Offers"
+        component={SalonOffersScreen}
+      />
+      <SalonProfilePlaceStack.Screen
+        name="CreateOffer"
+        component={CreateOfferScreen}
       />
     </SalonProfilePlaceStack.Navigator>
   );

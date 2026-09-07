@@ -177,6 +177,12 @@ export type SalonProfileStackParamList = {
   EditStaff: undefined;
   BusinessHoursScreen: undefined;
   ManageServices: undefined;
+  Offers: undefined;
+  CreateOffer: {
+    offerId?: string;
+    offer?: any;
+    mode?: 'EDIT';
+  } | undefined;
 };
 
 export type MarketplaceStackParamList = {

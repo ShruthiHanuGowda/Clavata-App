@@ -102,6 +102,11 @@ export default function SalonProfileScreen() {
                     .getParent()
                     ?.navigate('ManageServices');
                 break;
+            case 'Offers':
+                navigation
+                    .getParent()
+                    ?.navigate('Offers');
+                break;
             case 'PaymentSettings':
                 navigation
                     .getParent()
@@ -230,6 +235,14 @@ export default function SalonProfileScreen() {
                         onPress={() =>
                             handleBusinessNavigation(
                                 'ManageServices',
+                            )
+                        }
+                    />
+                    <MenuItem
+                        title="Offers"
+                        onPress={() =>
+                            handleBusinessNavigation(
+                                'Offers',
                             )
                         }
                     />
