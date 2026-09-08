@@ -19,6 +19,7 @@ import {
 } from '@react-navigation/native';
 
 import HomeStackWeb from './HomeStack.web';
+import OfferDetailsScreen from '../Screens/CustomerTabs/Offer/OfferDetailsScreen';
 
 
 // ============================================================
@@ -639,6 +640,10 @@ function WebAppShell() {
             component={OffersScreen}
           />
 
+          <Stack.Screen
+            name="OfferDetails"
+            component={OfferDetailsScreen}
+          />
 
           {/* ==================================================
                         PROFILE

@@ -42,7 +42,7 @@ const menuItems = [
   },
   {
     title: 'Payment History',
-    icon: '💳',
+    icon: '🏦',
     screen: 'Payments',
   },
   {

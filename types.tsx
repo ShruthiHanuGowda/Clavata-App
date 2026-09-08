@@ -139,6 +139,10 @@ export type WalletStackParamList = {
     bookingId: string;
     booking: any;
   };
+  OfferDetails: {
+    offerId: string;
+    offer: any;
+  };
 };
 
 export type CoinWalletStackParamList = {

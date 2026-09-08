@@ -592,7 +592,6 @@ export default function OffersScreen() {
                     {
                         offerId:
                             offer.id,
-
                         offer,
                     },
                 );

@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import OfferPage from '../Screens/CustomerTabs/Offer/OfferPage';
 import SalonDetailsScreen from '../Screens/CustomerTabs/Home/SalonDetailsScreen';
+import OfferDetailsScreen from '../Screens/CustomerTabs/Offer/OfferDetailsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,7 +19,6 @@ export default function ExploreStackWeb() {
                 name="Offers"
                 component={OfferPage}
             />
-
             <Stack.Screen
                 name="SalonDetails"
                 component={SalonDetailsScreen}
