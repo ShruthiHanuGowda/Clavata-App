@@ -1031,10 +1031,10 @@ const styles =
                 7,
 
             width:
-                30,
+                20,
 
             height:
-                30,
+                20,
 
             borderRadius:
                 15,
@@ -1070,7 +1070,7 @@ const styles =
         heart: {
 
             fontSize:
-                17,
+                12,
 
             color:
                 '#333',
