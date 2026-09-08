@@ -1393,3 +1393,38 @@ export const DELETE_OFFER = gql`
     }
   }
 `;
+
+export const ACTIVE_OFFERS = gql`
+  query ActiveOffers($category: String) {
+  activeOffers(category: $category) {
+    success
+    message
+    totalCount
+    offers {
+      offerId
+      salonId
+      title
+      description
+      discountType
+      discountValue
+      couponCode
+      minimumBookingAmount
+      category
+      serviceIds
+      startDate
+      endDate
+      usageLimit
+      usageCount
+      customerLimit
+      status
+      rejectionReason
+      approvedBy
+      approvedAt
+      rejectedBy
+      rejectedAt
+      createdAt
+      updatedAt
+    }
+  }
+}
+`;

@@ -1,6 +1,7 @@
 import React, {
     useMemo,
     useState,
+    useCallback,
 } from 'react';
 
 import {
@@ -12,11 +13,17 @@ import {
     TouchableOpacity,
     TextInput,
     StatusBar,
+    ActivityIndicator,
+    RefreshControl,
 } from 'react-native';
 
 import {
     useNavigation,
 } from '@react-navigation/native';
+
+import {
+    useQuery,
+} from '@apollo/client';
 
 import {
     COLORS,
@@ -25,109 +32,336 @@ import {
     RADIUS,
 } from '../../../constants/constants';
 
+import {
+    ACTIVE_OFFERS,
+} from '../../../graphql/queries';
+
 
 // ============================================================
 // TYPES
 // ============================================================
 
-type Offer = {
-    id: string;
-    discount: string;
+type BackendOffer = {
+    offerId: string;
+    salonId: string;
+
     title: string;
     description: string;
-    code?: string;
-    minimum?: string;
-    category: string;
-    expires?: string;
-    featured?: boolean;
+
+    discountType:
+        | 'PERCENTAGE'
+        | 'FIXED';
+
+    discountValue: number;
+
+    couponCode?: string | null;
+
+    minimumBookingAmount?: number | null;
+
+    category?: string | null;
+
+    serviceIds: string[];
+
+    startDate: string;
+    endDate: string;
+
+    usageLimit?: number | null;
+    usageCount: number;
+
+    customerLimit?: number | null;
+
+    status:
+        | 'DRAFT'
+        | 'PENDING_APPROVAL'
+        | 'ACTIVE'
+        | 'PAUSED'
+        | 'EXPIRED'
+        | 'REJECTED';
+
+    rejectionReason?: string | null;
+
+    approvedBy?: string | null;
+    approvedAt?: string | null;
+
+    rejectedBy?: string | null;
+    rejectedAt?: string | null;
+
+    createdAt: string;
+    updatedAt: string;
+};
+
+
+type ActiveOffersResponse = {
+    activeOffers: {
+        success: boolean;
+        message: string;
+        totalCount: number;
+        offers: BackendOffer[];
+    };
 };
 
 
 // ============================================================
-// SAMPLE OFFERS
-// ============================================================
-// Replace this later with your GraphQL GET_OFFERS query.
+// UI OFFER TYPE
 // ============================================================
 
-const OFFERS: Offer[] = [
+type Offer = {
+    id: string;
 
-    {
-        id: '1',
-        discount: '20% OFF',
-        title: 'Hair & Beauty',
-        description:
-            'Save on selected hair and beauty services.',
-        code: 'CLAVATA20',
-        minimum: 'Min. booking ₹999',
-        category: 'Hair',
-        expires: 'Ends Sunday',
-        featured: true,
-    },
+    discount: string;
 
-    {
-        id: '2',
-        discount: '₹200 OFF',
-        title: 'Your Next Glow',
-        description:
-            'Get ₹200 off your next beauty booking.',
-        code: 'GLOW200',
-        minimum: 'Min. booking ₹799',
-        category: 'Skin',
-        expires: 'Limited time',
-        featured: true,
-    },
+    title: string;
 
-    {
-        id: '3',
-        discount: '15% OFF',
-        title: 'Nail Care',
-        description:
-            'Special savings on manicure and pedicure.',
-        code: 'NAIL15',
-        minimum: 'Min. booking ₹599',
-        category: 'Nails',
-        expires: 'Ends Friday',
-    },
+    description: string;
 
-    {
-        id: '4',
-        discount: '₹300 OFF',
-        title: 'Relax & Unwind',
-        description:
-            'Save on selected spa services near you.',
-        code: 'RELAX300',
-        minimum: 'Min. booking ₹1,299',
-        category: 'Spa',
-        expires: 'Limited time',
-    },
+    code?: string;
 
-    {
-        id: '5',
-        discount: '10% OFF',
-        title: 'Makeup Services',
-        description:
-            'Enjoy exclusive savings on makeup services.',
-        code: 'MAKEUP10',
-        minimum: 'Min. booking ₹999',
-        category: 'Makeup',
-        expires: 'Ends soon',
-    },
+    minimum?: string;
 
-];
+    category: string;
+
+    expires?: string;
+
+    featured?: boolean;
+
+    startDate: string;
+
+    endDate: string;
+
+    salonId: string;
+
+    discountType:
+        | 'PERCENTAGE'
+        | 'FIXED';
+
+    discountValue: number;
+
+    usageCount: number;
+
+    usageLimit?: number | null;
+};
 
 
 // ============================================================
-// CATEGORIES
+// HELPERS
 // ============================================================
 
-const CATEGORIES = [
-    'All',
-    'Hair',
-    'Skin',
-    'Nails',
-    'Spa',
-    'Makeup',
-];
+const formatDiscount = (
+    discountType:
+        | 'PERCENTAGE'
+        | 'FIXED',
+    discountValue: number,
+): string => {
+
+    if (discountType === 'PERCENTAGE') {
+
+        return `${discountValue}% OFF`;
+
+    }
+
+    return `₹${Number(
+        discountValue,
+    ).toLocaleString('en-IN')} OFF`;
+};
+
+
+// ============================================================
+// FORMAT DATE
+// ============================================================
+
+const formatExpiryDate = (
+    dateString: string,
+): string => {
+
+    if (!dateString) {
+        return '';
+    }
+
+    const date =
+        new Date(dateString);
+
+    if (
+        Number.isNaN(
+            date.getTime(),
+        )
+    ) {
+        return '';
+    }
+
+    return date.toLocaleDateString(
+        'en-IN',
+        {
+            day: 'numeric',
+            month: 'short',
+        },
+    );
+};
+
+
+// ============================================================
+// EXPIRY TEXT
+// ============================================================
+
+const getExpiryText = (
+    endDate: string,
+): string => {
+
+    if (!endDate) {
+        return '';
+    }
+
+    const end =
+        new Date(endDate);
+
+    if (
+        Number.isNaN(
+            end.getTime(),
+        )
+    ) {
+        return '';
+    }
+
+    const now =
+        new Date();
+
+    const difference =
+        end.getTime() -
+        now.getTime();
+
+    const days =
+        Math.ceil(
+            difference /
+            (1000 * 60 * 60 * 24),
+        );
+
+    if (days < 0) {
+        return 'Expired';
+    }
+
+    if (days === 0) {
+        return 'Ends today';
+    }
+
+    if (days === 1) {
+        return 'Ends tomorrow';
+    }
+
+    if (days <= 7) {
+        return `Ends in ${days} days`;
+    }
+
+    return `Ends ${formatExpiryDate(
+        endDate,
+    )}`;
+};
+
+
+// ============================================================
+// FORMAT MINIMUM BOOKING
+// ============================================================
+
+const formatMinimumBooking = (
+    minimumBookingAmount?:
+        number | null,
+): string | undefined => {
+
+    if (
+        minimumBookingAmount ===
+            null ||
+        minimumBookingAmount ===
+            undefined
+    ) {
+        return undefined;
+    }
+
+    if (
+        minimumBookingAmount <= 0
+    ) {
+        return undefined;
+    }
+
+    return `Min. booking ₹${Number(
+        minimumBookingAmount,
+    ).toLocaleString('en-IN')}`;
+};
+
+
+// ============================================================
+// MAP BACKEND OFFER
+// ============================================================
+
+const mapBackendOffer = (
+    offer: BackendOffer,
+): Offer => {
+
+    return {
+
+        id:
+            offer.offerId,
+
+        discount:
+            formatDiscount(
+                offer.discountType,
+                offer.discountValue,
+            ),
+
+        title:
+            offer.title,
+
+        description:
+            offer.description,
+
+        code:
+            offer.couponCode ||
+            undefined,
+
+        minimum:
+            formatMinimumBooking(
+                offer.minimumBookingAmount,
+            ),
+
+        category:
+            offer.category ||
+            'Other',
+
+        expires:
+            getExpiryText(
+                offer.endDate,
+            ),
+
+        /*
+         * There is no `featured` field in your
+         * GraphQL Offer type.
+         *
+         * We therefore determine popular offers
+         * using usageCount.
+         */
+        featured:
+            offer.usageCount > 0,
+
+        startDate:
+            offer.startDate,
+
+        endDate:
+            offer.endDate,
+
+        salonId:
+            offer.salonId,
+
+        discountType:
+            offer.discountType,
+
+        discountValue:
+            offer.discountValue,
+
+        usageCount:
+            offer.usageCount,
+
+        usageLimit:
+            offer.usageLimit,
+
+    };
+};
 
 
 // ============================================================
@@ -135,21 +369,121 @@ const CATEGORIES = [
 // ============================================================
 
 export default function OffersScreen() {
-
     const navigation =
         useNavigation<any>();
-
+    // ========================================================
+    // STATE
+    // ========================================================
 
     const [
         search,
         setSearch,
     ] = useState('');
 
-
     const [
         selectedCategory,
         setSelectedCategory,
     ] = useState('All');
+
+
+    const [
+        refreshing,
+        setRefreshing,
+    ] = useState(false);
+
+
+    // ========================================================
+    // GRAPHQL
+    // ========================================================
+
+    const {
+        data,
+        loading,
+        error,
+        refetch,
+    } =
+        useQuery<ActiveOffersResponse>(
+            ACTIVE_OFFERS,
+            {
+                variables: {
+                    category:
+                        undefined,
+                },
+
+                fetchPolicy:
+                    'cache-and-network',
+
+                notifyOnNetworkStatusChange:
+                    true,
+            },
+        );
+
+
+    // ========================================================
+    // BACKEND OFFERS
+    // ========================================================
+
+    const backendOffers =
+        data?.activeOffers?.offers ||
+        [];
+
+
+    // ========================================================
+    // MAP OFFERS
+    // ========================================================
+
+    const offers =
+        useMemo(() => {
+
+            return backendOffers
+
+                .filter(
+                    offer =>
+                        offer.status ===
+                        'ACTIVE',
+                )
+
+                .map(
+                    mapBackendOffer,
+                );
+
+        }, [
+            backendOffers,
+        ]);
+
+
+    // ========================================================
+    // DYNAMIC CATEGORIES
+    // ========================================================
+
+    const categories =
+        useMemo(() => {
+
+            const uniqueCategories =
+                Array.from(
+                    new Set(
+                        offers
+                            .map(
+                                offer =>
+                                    offer.category,
+                            )
+                            .filter(
+                                category =>
+                                    category &&
+                                    category.trim()
+                                        .length > 0,
+                            ),
+                    ),
+                );
+
+            return [
+                'All',
+                ...uniqueCategories,
+            ];
+
+        }, [
+            offers,
+        ]);
 
 
     // ========================================================
@@ -165,31 +499,47 @@ export default function OffersScreen() {
                     .toLowerCase();
 
 
-            return OFFERS.filter(
+            return offers.filter(
                 offer => {
 
                     const matchesCategory =
-                        selectedCategory === 'All' ||
-                        offer.category === selectedCategory;
+                        selectedCategory ===
+                            'All' ||
+                        offer.category ===
+                            selectedCategory;
 
 
                     const matchesSearch =
                         !query ||
                         offer.title
                             .toLowerCase()
-                            .includes(query) ||
+                            .includes(
+                                query,
+                            ) ||
+
                         offer.description
                             .toLowerCase()
-                            .includes(query) ||
+                            .includes(
+                                query,
+                            ) ||
+
                         offer.category
                             .toLowerCase()
-                            .includes(query) ||
+                            .includes(
+                                query,
+                            ) ||
+
                         offer.discount
                             .toLowerCase()
-                            .includes(query) ||
+                            .includes(
+                                query,
+                            ) ||
+
                         offer.code
                             ?.toLowerCase()
-                            .includes(query);
+                            .includes(
+                                query,
+                            );
 
 
                     return (
@@ -201,36 +551,20 @@ export default function OffersScreen() {
             );
 
         }, [
+            offers,
             search,
             selectedCategory,
         ]);
 
 
     // ========================================================
-    // OFFER CLICK
-    // ========================================================
-
-    const handleOfferPress =
-        (offer: Offer) => {
-
-            navigation.navigate(
-                'OfferDetails',
-                {
-                    offerId: offer.id,
-                    offer,
-                },
-            );
-
-        };
-
-
-    // ========================================================
-    // FEATURED OFFERS
+    // FEATURED / POPULAR
     // ========================================================
 
     const featuredOffers =
         filteredOffers.filter(
-            offer => offer.featured,
+            offer =>
+                offer.featured,
         );
 
 
@@ -240,8 +574,231 @@ export default function OffersScreen() {
 
     const otherOffers =
         filteredOffers.filter(
-            offer => !offer.featured,
+            offer =>
+                !offer.featured,
         );
+
+
+    // ========================================================
+    // OFFER CLICK
+    // ========================================================
+
+    const handleOfferPress =
+        useCallback(
+            (offer: Offer) => {
+
+                navigation.navigate(
+                    'OfferDetails',
+                    {
+                        offerId:
+                            offer.id,
+
+                        offer,
+                    },
+                );
+
+            },
+            [
+                navigation,
+            ],
+        );
+
+
+    // ========================================================
+    // REFRESH
+    // ========================================================
+
+    const handleRefresh =
+        useCallback(
+            async () => {
+
+                try {
+
+                    setRefreshing(
+                        true,
+                    );
+
+                    await refetch();
+
+                } finally {
+
+                    setRefreshing(
+                        false,
+                    );
+
+                }
+
+            },
+            [
+                refetch,
+            ],
+        );
+
+
+    // ========================================================
+    // RESET FILTERS
+    // ========================================================
+
+    const clearFilters =
+        () => {
+
+            setSearch('');
+
+            setSelectedCategory(
+                'All',
+            );
+
+        };
+
+
+    // ========================================================
+    // LOADING
+    // ========================================================
+
+    if (
+        loading &&
+        !data
+    ) {
+
+        return (
+
+            <SafeAreaView
+                style={
+                    styles.safeArea
+                }
+            >
+
+                <StatusBar
+                    barStyle="dark-content"
+                    backgroundColor={
+                        COLORS.background
+                    }
+                />
+
+                <View
+                    style={
+                        styles.loadingContainer
+                    }
+                >
+
+                    <ActivityIndicator
+                        size="large"
+                        color={
+                            COLORS.primary
+                        }
+                    />
+
+                    <Text
+                        style={
+                            styles.loadingText
+                        }
+                    >
+                        Finding the best offers
+                        for you...
+                    </Text>
+
+                </View>
+
+            </SafeAreaView>
+
+        );
+
+    }
+
+
+    // ========================================================
+    // ERROR
+    // ========================================================
+
+    if (
+        error &&
+        !data
+    ) {
+
+        return (
+
+            <SafeAreaView
+                style={
+                    styles.safeArea
+                }
+            >
+
+                <StatusBar
+                    barStyle="dark-content"
+                    backgroundColor={
+                        COLORS.background
+                    }
+                />
+
+                <View
+                    style={
+                        styles.errorContainer
+                    }
+                >
+
+                    <View
+                        style={
+                            styles.emptyIcon
+                        }
+                    >
+
+                        <Text
+                            style={
+                                styles.emptyIconText
+                            }
+                        >
+                            %
+                        </Text>
+
+                    </View>
+
+
+                    <Text
+                        style={
+                            styles.emptyTitle
+                        }
+                    >
+                        Unable to load offers
+                    </Text>
+
+
+                    <Text
+                        style={
+                            styles.emptyText
+                        }
+                    >
+                        We couldn't load the latest
+                        offers. Please try again.
+                    </Text>
+
+
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() =>
+                            refetch()
+                        }
+                        style={
+                            styles.resetButton
+                        }
+                    >
+
+                        <Text
+                            style={
+                                styles.resetButtonText
+                            }
+                        >
+                            Try again
+                        </Text>
+
+                    </TouchableOpacity>
+
+                </View>
+
+            </SafeAreaView>
+
+        );
+
+    }
 
 
     // ========================================================
@@ -251,7 +808,9 @@ export default function OffersScreen() {
     return (
 
         <SafeAreaView
-            style={styles.safeArea}
+            style={
+                styles.safeArea
+            }
         >
 
             <StatusBar
@@ -263,11 +822,29 @@ export default function OffersScreen() {
 
 
             <ScrollView
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={
+                    false
+                }
+
                 contentContainerStyle={
                     styles.scrollContent
                 }
+
                 keyboardShouldPersistTaps="handled"
+
+                refreshControl={
+                    <RefreshControl
+                        refreshing={
+                            refreshing
+                        }
+                        onRefresh={
+                            handleRefresh
+                        }
+                        tintColor={
+                            COLORS.primary
+                        }
+                    />
+                }
             >
 
                 {/* ================================================= */}
@@ -275,22 +852,30 @@ export default function OffersScreen() {
                 {/* ================================================= */}
 
                 <View
-                    style={styles.header}
+                    style={
+                        styles.header
+                    }
                 >
 
                     <View
-                        style={styles.headerTextContainer}
+                        style={
+                            styles.headerTextContainer
+                        }
                     >
 
                         <Text
-                            style={styles.headerTitle}
+                            style={
+                                styles.headerTitle
+                            }
                         >
                             Offers
                         </Text>
 
 
                         <Text
-                            style={styles.headerSubtitle}
+                            style={
+                                styles.headerSubtitle
+                            }
                         >
                             Exclusive beauty deals near you
                         </Text>
@@ -299,11 +884,15 @@ export default function OffersScreen() {
 
 
                     <View
-                        style={styles.offerIcon}
+                        style={
+                            styles.offerIcon
+                        }
                     >
 
                         <Text
-                            style={styles.offerIconText}
+                            style={
+                                styles.offerIconText
+                            }
                         >
                             %
                         </Text>
@@ -318,28 +907,48 @@ export default function OffersScreen() {
                 {/* ================================================= */}
 
                 <View
-                    style={styles.searchContainer}
+                    style={
+                        styles.searchContainer
+                    }
                 >
 
                     <Text
-                        style={styles.searchIcon}
+                        style={
+                            styles.searchIcon
+                        }
                     >
                         ⌕
                     </Text>
 
 
                     <TextInput
-                        value={search}
-                        onChangeText={setSearch}
+                        value={
+                            search
+                        }
+
+                        onChangeText={
+                            setSearch
+                        }
+
                         placeholder="Search offers"
+
                         placeholderTextColor={
                             COLORS.textMuted
                         }
-                        style={styles.searchInput}
-                        autoCorrect={false}
+
+                        style={
+                            styles.searchInput
+                        }
+
+                        autoCorrect={
+                            false
+                        }
+
                         autoCapitalize="none"
+
                         returnKeyType="search"
                     />
+
 
                     {search.length > 0 && (
 
@@ -347,7 +956,11 @@ export default function OffersScreen() {
                             onPress={() =>
                                 setSearch('')
                             }
-                            activeOpacity={0.7}
+
+                            activeOpacity={
+                                0.7
+                            }
+
                             style={
                                 styles.clearButton
                             }
@@ -372,59 +985,76 @@ export default function OffersScreen() {
                 {/* CATEGORIES */}
                 {/* ================================================= */}
 
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={
-                        styles.categories
-                    }
-                >
+                {categories.length > 1 && (
 
-                    {CATEGORIES.map(
-                        category => {
+                    <ScrollView
+                        horizontal
 
-                            const selected =
-                                selectedCategory ===
-                                category;
+                        showsHorizontalScrollIndicator={
+                            false
+                        }
+
+                        contentContainerStyle={
+                            styles.categories
+                        }
+                    >
+
+                        {categories.map(
+                            category => {
+
+                                const selected =
+                                    selectedCategory ===
+                                    category;
 
 
-                            return (
+                                return (
 
-                                <TouchableOpacity
-                                    key={category}
-                                    activeOpacity={0.8}
-                                    onPress={() =>
-                                        setSelectedCategory(
-                                            category,
-                                        )
-                                    }
-                                    style={[
-                                        styles.categoryChip,
+                                    <TouchableOpacity
+                                        key={
+                                            category
+                                        }
 
-                                        selected &&
-                                        styles.categoryChipSelected,
-                                    ]}
-                                >
+                                        activeOpacity={
+                                            0.8
+                                        }
 
-                                    <Text
+                                        onPress={() =>
+                                            setSelectedCategory(
+                                                category,
+                                            )
+                                        }
+
                                         style={[
-                                            styles.categoryText,
+                                            styles.categoryChip,
 
                                             selected &&
-                                            styles.categoryTextSelected,
+                                            styles.categoryChipSelected,
                                         ]}
                                     >
-                                        {category}
-                                    </Text>
 
-                                </TouchableOpacity>
+                                        <Text
+                                            style={[
+                                                styles.categoryText,
 
-                            );
+                                                selected &&
+                                                styles.categoryTextSelected,
+                                            ]}
+                                        >
+                                            {
+                                                category
+                                            }
+                                        </Text>
 
-                        },
-                    )}
+                                    </TouchableOpacity>
 
-                </ScrollView>
+                                );
+
+                            },
+                        )}
+
+                    </ScrollView>
+
+                )}
 
 
                 {/* ================================================= */}
@@ -439,7 +1069,11 @@ export default function OffersScreen() {
                             title="Popular near you"
                             action="View all"
                             onPress={() => {
-                                setSelectedCategory('All');
+                                setSelectedCategory(
+                                    'All',
+                                );
+
+                                setSearch('');
                             }}
                         />
 
@@ -448,8 +1082,14 @@ export default function OffersScreen() {
                             offer => (
 
                                 <OfferCard
-                                    key={offer.id}
-                                    offer={offer}
+                                    key={
+                                        offer.id
+                                    }
+
+                                    offer={
+                                        offer
+                                    }
+
                                     onPress={() =>
                                         handleOfferPress(
                                             offer,
@@ -484,8 +1124,14 @@ export default function OffersScreen() {
                             offer => (
 
                                 <OfferCard
-                                    key={offer.id}
-                                    offer={offer}
+                                    key={
+                                        offer.id
+                                    }
+
+                                    offer={
+                                        offer
+                                    }
+
                                     onPress={() =>
                                         handleOfferPress(
                                             offer,
@@ -544,38 +1190,41 @@ export default function OffersScreen() {
                                 styles.emptyText
                             }
                         >
-                            Try another category or search
-                            for a different offer.
+                            {offers.length === 0
+                                ? 'There are no active offers available right now.'
+                                : 'Try another category or search for a different offer.'}
                         </Text>
 
 
                         {(search.length > 0 ||
-                            selectedCategory !== 'All') && (
+                            selectedCategory !==
+                                'All') && (
 
-                                <TouchableOpacity
-                                    activeOpacity={0.8}
-                                    onPress={() => {
-                                        setSearch('');
-                                        setSelectedCategory(
-                                            'All',
-                                        );
-                                    }}
+                            <TouchableOpacity
+                                activeOpacity={
+                                    0.8
+                                }
+
+                                onPress={
+                                    clearFilters
+                                }
+
+                                style={
+                                    styles.resetButton
+                                }
+                            >
+
+                                <Text
                                     style={
-                                        styles.resetButton
+                                        styles.resetButtonText
                                     }
                                 >
+                                    Clear filters
+                                </Text>
 
-                                    <Text
-                                        style={
-                                            styles.resetButtonText
-                                        }
-                                    >
-                                        Clear filters
-                                    </Text>
+                            </TouchableOpacity>
 
-                                </TouchableOpacity>
-
-                            )}
+                        )}
 
                     </View>
 
@@ -586,13 +1235,18 @@ export default function OffersScreen() {
                 {/* FOOTER */}
                 {/* ================================================= */}
 
-                <Text
-                    style={styles.footer}
-                >
-                    New offers are added regularly.
-                    Check back soon for more savings.
-                </Text>
+                {offers.length > 0 && (
 
+                    <Text
+                        style={
+                            styles.footer
+                        }
+                    >
+                        New offers are added regularly.
+                        Check back soon for more savings.
+                    </Text>
+
+                )}
 
             </ScrollView>
 
@@ -640,8 +1294,13 @@ const SectionHeader =
                 {action ? (
 
                     <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={onPress}
+                        activeOpacity={
+                            0.7
+                        }
+
+                        onPress={
+                            onPress
+                        }
                     >
 
                         <Text
@@ -682,8 +1341,14 @@ const OfferCard =
         return (
 
             <TouchableOpacity
-                activeOpacity={0.92}
-                onPress={onPress}
+                activeOpacity={
+                    0.92
+                }
+
+                onPress={
+                    onPress
+                }
+
                 style={
                     styles.offerCard
                 }
@@ -704,7 +1369,9 @@ const OfferCard =
                             styles.offerBadgeText
                         }
                     >
-                        {offer.discount}
+                        {
+                            offer.discount
+                        }
                     </Text>
 
 
@@ -739,9 +1406,14 @@ const OfferCard =
                             style={
                                 styles.offerTitle
                             }
-                            numberOfLines={1}
+
+                            numberOfLines={
+                                1
+                            }
                         >
-                            {offer.title}
+                            {
+                                offer.title
+                            }
                         </Text>
 
 
@@ -756,7 +1428,9 @@ const OfferCard =
                                     styles.categoryBadgeText
                                 }
                             >
-                                {offer.category}
+                                {
+                                    offer.category
+                                }
                             </Text>
 
                         </View>
@@ -768,9 +1442,14 @@ const OfferCard =
                         style={
                             styles.offerDescription
                         }
-                        numberOfLines={2}
+
+                        numberOfLines={
+                            2
+                        }
                     >
-                        {offer.description}
+                        {
+                            offer.description
+                        }
                     </Text>
 
 
@@ -806,7 +1485,9 @@ const OfferCard =
                                         styles.codeText
                                     }
                                 >
-                                    {offer.code}
+                                    {
+                                        offer.code
+                                    }
                                 </Text>
 
                             </View>
@@ -832,9 +1513,14 @@ const OfferCard =
                                 style={
                                     styles.minimum
                                 }
-                                numberOfLines={1}
+
+                                numberOfLines={
+                                    1
+                                }
                             >
-                                {offer.minimum}
+                                {
+                                    offer.minimum
+                                }
                             </Text>
 
                         ) : (
@@ -850,9 +1536,14 @@ const OfferCard =
                                 style={
                                     styles.expires
                                 }
-                                numberOfLines={1}
+
+                                numberOfLines={
+                                    1
+                                }
                             >
-                                {offer.expires}
+                                {
+                                    offer.expires
+                                }
                             </Text>
 
                         ) : null}
@@ -902,6 +1593,7 @@ const styles =
 
         safeArea: {
             flex: 1,
+
             backgroundColor:
                 COLORS.background,
         },
@@ -919,13 +1611,65 @@ const styles =
 
 
         // ========================================================
+        // LOADING
+        // ========================================================
+
+        loadingContainer: {
+            flex: 1,
+
+            alignItems:
+                'center',
+
+            justifyContent:
+                'center',
+
+            paddingHorizontal:
+                SPACING.xl,
+        },
+
+        loadingText: {
+            marginTop:
+                SPACING.medium,
+
+            fontSize:
+                FONT_SIZES.small,
+
+            color:
+                COLORS.textSecondary,
+
+            textAlign:
+                'center',
+        },
+
+
+        // ========================================================
+        // ERROR
+        // ========================================================
+
+        errorContainer: {
+            flex: 1,
+
+            alignItems:
+                'center',
+
+            justifyContent:
+                'center',
+
+            paddingHorizontal:
+                SPACING.xl,
+        },
+
+
+        // ========================================================
         // HEADER
         // ========================================================
 
         header: {
-            flexDirection: 'row',
+            flexDirection:
+                'row',
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
             justifyContent:
                 'space-between',
@@ -936,6 +1680,7 @@ const styles =
 
         headerTextContainer: {
             flex: 1,
+
             minWidth: 0,
         },
 
@@ -943,12 +1688,14 @@ const styles =
             fontSize:
                 FONT_SIZES.heading,
 
-            fontWeight: '800',
+            fontWeight:
+                '800',
 
             color:
                 COLORS.text,
 
-            letterSpacing: -0.5,
+            letterSpacing:
+                -0.5,
         },
 
         headerSubtitle: {
@@ -972,9 +1719,11 @@ const styles =
             backgroundColor:
                 COLORS.badgeColor,
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
-            justifyContent: 'center',
+            justifyContent:
+                'center',
 
             marginLeft:
                 SPACING.medium,
@@ -983,7 +1732,8 @@ const styles =
         offerIconText: {
             fontSize: 21,
 
-            fontWeight: '800',
+            fontWeight:
+                '800',
 
             color:
                 COLORS.primary,
@@ -1008,9 +1758,11 @@ const styles =
             borderColor:
                 COLORS.border,
 
-            flexDirection: 'row',
+            flexDirection:
+                'row',
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
             paddingHorizontal:
                 SPACING.medium,
@@ -1040,7 +1792,8 @@ const styles =
             color:
                 COLORS.text,
 
-            paddingVertical: 0,
+            paddingVertical:
+                0,
         },
 
         clearButton: {
@@ -1048,9 +1801,11 @@ const styles =
 
             height: 28,
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
-            justifyContent: 'center',
+            justifyContent:
+                'center',
         },
 
         clearText: {
@@ -1061,7 +1816,8 @@ const styles =
             color:
                 COLORS.textMuted,
 
-            fontWeight: '400',
+            fontWeight:
+                '400',
         },
 
 
@@ -1078,7 +1834,8 @@ const styles =
         },
 
         categoryChip: {
-            paddingHorizontal: 16,
+            paddingHorizontal:
+                16,
 
             height: 36,
 
@@ -1093,9 +1850,11 @@ const styles =
             borderColor:
                 COLORS.border,
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
-            justifyContent: 'center',
+            justifyContent:
+                'center',
         },
 
         categoryChipSelected: {
@@ -1110,7 +1869,8 @@ const styles =
             fontSize:
                 FONT_SIZES.xs,
 
-            fontWeight: '600',
+            fontWeight:
+                '600',
 
             color:
                 COLORS.textSecondary,
@@ -1127,9 +1887,11 @@ const styles =
         // ========================================================
 
         sectionHeader: {
-            flexDirection: 'row',
+            flexDirection:
+                'row',
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
             justifyContent:
                 'space-between',
@@ -1145,7 +1907,8 @@ const styles =
             fontSize:
                 FONT_SIZES.title,
 
-            fontWeight: '700',
+            fontWeight:
+                '700',
 
             color:
                 COLORS.text,
@@ -1155,7 +1918,8 @@ const styles =
             fontSize:
                 FONT_SIZES.xs,
 
-            fontWeight: '600',
+            fontWeight:
+                '600',
 
             color:
                 COLORS.primary,
@@ -1179,27 +1943,33 @@ const styles =
             marginBottom:
                 SPACING.medium,
 
-            flexDirection: 'row',
+            flexDirection:
+                'row',
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
             borderWidth: 1,
 
             borderColor:
                 COLORS.border,
 
-            shadowColor: '#000',
+            shadowColor:
+                '#000',
 
             shadowOffset: {
                 width: 0,
                 height: 2,
             },
 
-            shadowOpacity: 0.04,
+            shadowOpacity:
+                0.04,
 
-            shadowRadius: 7,
+            shadowRadius:
+                7,
 
-            elevation: 2,
+            elevation:
+                2,
         },
 
 
@@ -1218,9 +1988,11 @@ const styles =
             backgroundColor:
                 COLORS.badgeColor,
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
-            justifyContent: 'center',
+            justifyContent:
+                'center',
 
             marginRight:
                 SPACING.medium,
@@ -1229,25 +2001,30 @@ const styles =
         offerBadgeText: {
             fontSize: 15,
 
-            fontWeight: '900',
+            fontWeight:
+                '900',
 
             color:
                 COLORS.primary,
 
-            textAlign: 'center',
+            textAlign:
+                'center',
         },
 
         offerBadgeSmall: {
             fontSize: 8,
 
-            fontWeight: '800',
+            fontWeight:
+                '800',
 
-            letterSpacing: 1,
+            letterSpacing:
+                1,
 
             color:
                 COLORS.textSecondary,
 
-            marginTop: 3,
+            marginTop:
+                3,
         },
 
 
@@ -1262,9 +2039,11 @@ const styles =
         },
 
         offerTopRow: {
-            flexDirection: 'row',
+            flexDirection:
+                'row',
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
             justifyContent:
                 'space-between',
@@ -1279,16 +2058,19 @@ const styles =
             fontSize:
                 FONT_SIZES.small,
 
-            fontWeight: '700',
+            fontWeight:
+                '700',
 
             color:
                 COLORS.text,
         },
 
         categoryBadge: {
-            paddingHorizontal: 7,
+            paddingHorizontal:
+                7,
 
-            paddingVertical: 3,
+            paddingVertical:
+                3,
 
             borderRadius:
                 RADIUS.small,
@@ -1300,7 +2082,8 @@ const styles =
         categoryBadgeText: {
             fontSize: 9,
 
-            fontWeight: '700',
+            fontWeight:
+                '700',
 
             color:
                 COLORS.primary,
@@ -1310,7 +2093,8 @@ const styles =
             fontSize:
                 FONT_SIZES.xs,
 
-            lineHeight: 17,
+            lineHeight:
+                17,
 
             color:
                 COLORS.textSecondary,
@@ -1318,7 +2102,8 @@ const styles =
             marginTop:
                 SPACING.xs,
 
-            marginBottom: 7,
+            marginBottom:
+                7,
         },
 
 
@@ -1327,11 +2112,14 @@ const styles =
         // ========================================================
 
         codeRow: {
-            flexDirection: 'row',
+            flexDirection:
+                'row',
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
-            marginBottom: 7,
+            marginBottom:
+                7,
         },
 
         codeLabel: {
@@ -1344,15 +2132,18 @@ const styles =
         },
 
         codeBadge: {
-            paddingHorizontal: 7,
+            paddingHorizontal:
+                7,
 
-            paddingVertical: 3,
+            paddingVertical:
+                3,
 
             borderRadius: 5,
 
             borderWidth: 1,
 
-            borderStyle: 'dashed',
+            borderStyle:
+                'dashed',
 
             borderColor:
                 COLORS.borderStrong,
@@ -1364,12 +2155,14 @@ const styles =
         codeText: {
             fontSize: 10,
 
-            fontWeight: '800',
+            fontWeight:
+                '800',
 
             color:
                 COLORS.primary,
 
-            letterSpacing: 0.4,
+            letterSpacing:
+                0.4,
         },
 
 
@@ -1378,14 +2171,17 @@ const styles =
         // ========================================================
 
         offerBottom: {
-            flexDirection: 'row',
+            flexDirection:
+                'row',
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
             justifyContent:
                 'space-between',
 
-            gap: SPACING.small,
+            gap:
+                SPACING.small,
         },
 
         minimum: {
@@ -1403,9 +2199,11 @@ const styles =
             color:
                 COLORS.textSecondary,
 
-            fontWeight: '600',
+            fontWeight:
+                '600',
 
-            maxWidth: '45%',
+            maxWidth:
+                '45%',
         },
 
 
@@ -1416,9 +2214,11 @@ const styles =
         arrowContainer: {
             width: 25,
 
-            alignItems: 'flex-end',
+            alignItems:
+                'flex-end',
 
-            justifyContent: 'center',
+            justifyContent:
+                'center',
 
             marginLeft:
                 SPACING.xs,
@@ -1427,7 +2227,8 @@ const styles =
         arrow: {
             fontSize: 25,
 
-            fontWeight: '300',
+            fontWeight:
+                '300',
 
             color:
                 COLORS.textMuted,
@@ -1439,11 +2240,14 @@ const styles =
         // ========================================================
 
         emptyContainer: {
-            alignItems: 'center',
+            alignItems:
+                'center',
 
-            justifyContent: 'center',
+            justifyContent:
+                'center',
 
-            paddingVertical: 60,
+            paddingVertical:
+                60,
         },
 
         emptyIcon: {
@@ -1456,9 +2260,11 @@ const styles =
             backgroundColor:
                 COLORS.badgeColor,
 
-            alignItems: 'center',
+            alignItems:
+                'center',
 
-            justifyContent: 'center',
+            justifyContent:
+                'center',
 
             marginBottom:
                 SPACING.medium,
@@ -1467,7 +2273,8 @@ const styles =
         emptyIconText: {
             fontSize: 25,
 
-            fontWeight: '800',
+            fontWeight:
+                '800',
 
             color:
                 COLORS.primary,
@@ -1477,7 +2284,8 @@ const styles =
             fontSize:
                 FONT_SIZES.medium,
 
-            fontWeight: '700',
+            fontWeight:
+                '700',
 
             color:
                 COLORS.text,
@@ -1493,9 +2301,11 @@ const styles =
             color:
                 COLORS.textSecondary,
 
-            textAlign: 'center',
+            textAlign:
+                'center',
 
-            maxWidth: 280,
+            maxWidth:
+                280,
         },
 
         resetButton: {
@@ -1522,7 +2332,8 @@ const styles =
             fontSize:
                 FONT_SIZES.xs,
 
-            fontWeight: '700',
+            fontWeight:
+                '700',
         },
 
 
@@ -1534,12 +2345,14 @@ const styles =
             marginTop:
                 SPACING.xl,
 
-            textAlign: 'center',
+            textAlign:
+                'center',
 
             fontSize:
                 FONT_SIZES.xs,
 
-            lineHeight: 18,
+            lineHeight:
+                18,
 
             color:
                 COLORS.textMuted,
