@@ -7,6 +7,7 @@ export const COLORS = {
   surface: '#FFFFFF',
   badgeColor: '#8fceba',
   primary: '#111111',
+  highlight: '#3F71BB',
   text: '#111111',
   textSecondary: '#6B6B6B',
   textMuted: '#8A8A8A',

@@ -1,144 +1,213 @@
-import { StyleSheet, Dimensions } from 'react-native';
-import { COLORS, FONTS, FONT_SIZES, SPACING, RADIUS } from '../../constants/constants';
+import { StyleSheet } from 'react-native';
 
-const { height } = Dimensions.get('window');
+import {
+  COLORS,
+  FONTS,
+  FONT_SIZES,
+  SPACING,
+  RADIUS,
+} from '../../constants/constants';
 
 const styles = StyleSheet.create({
+  // ============================================================
+  // SCREEN
+  // ============================================================
+
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
+
   flex: {
     flex: 1,
   },
+
   scrollContent: {
     flexGrow: 1,
     paddingBottom: SPACING.large,
   },
-  heroContainer: {
+
+  // ============================================================
+  // LOGO HEADER
+  // ============================================================
+
+  header: {
     width: '100%',
-    minHeight: height * 0.10,
-    backgroundColor: COLORS.badgeColor,
-    // borderBottomWidth: 1,
-    // borderBottomColor: COLORS.border,
-    paddingHorizontal: SPACING.xxl,
-    paddingTop: SPACING.xxl,
-    paddingBottom: SPACING.xxl,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+
+    // Space above logo
+    paddingTop: 100,
+
+    // Small space below logo
+    paddingBottom: 10,
+
+    paddingHorizontal: SPACING.xxl,
   },
+
+  // ============================================================
+  // BACK BUTTON
+  // ============================================================
+
   backButton: {
     position: 'absolute',
+
     left: SPACING.large,
-    top: SPACING.large,
-    width: 38,
-    height: 38,
+    top: 20,
+
+    width: 40,
+    height: 40,
+
     alignItems: 'center',
     justifyContent: 'center',
+
     zIndex: 2,
   },
+
   back: {
     fontFamily: FONTS.regular,
     fontSize: 32,
     lineHeight: 34,
     color: COLORS.primary,
+
     includeFontPadding: false,
   },
+
+  // ============================================================
+  // LOGO
+  // ============================================================
+
   heroLogo: {
-    width: 250,
-    height: 200,
-    marginBottom: SPACING.medium,
+    width: 150,
+    height: 55,
+
+    // No large margin here.
+    // This keeps credentials close to the logo.
+    marginBottom: 30,
   },
-  heroTitle: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.heading,
-    lineHeight: FONT_SIZES.heading + 5,
-    color: COLORS.primary,
-    textAlign: 'center',
-    includeFontPadding: false,
-    letterSpacing: -0.3,
-  },
-  heroSubtitle: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.small,
-    lineHeight: FONT_SIZES.small + 5,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: SPACING.small,
-    includeFontPadding: false,
-  },
+
+  // ============================================================
+  // LOGIN CONTENT
+  // ============================================================
+
   content: {
     width: '100%',
+
     paddingHorizontal: SPACING.xxl,
-    paddingTop: SPACING.xxxl,
+
+    // Small gap between logo and mobile input
+    paddingTop: 10,
   },
+
   inputSection: {
     width: '100%',
   },
+
   inputLabel: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.small,
     lineHeight: FONT_SIZES.small + 5,
+
     color: COLORS.primary,
+
     marginBottom: SPACING.small,
+
     includeFontPadding: false,
   },
+
+  // ============================================================
+  // CONTINUE BUTTON
+  // ============================================================
+
   buttonContainer: {
     width: '100%',
+
     alignItems: 'center',
+
     marginTop: SPACING.xl,
   },
+
   loginBtnStyle: {
     width: '100%',
     maxWidth: 420,
+
     height: 52,
+
     borderRadius: RADIUS.medium,
+
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   loginText: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.medium,
     lineHeight: FONT_SIZES.medium + 4,
+
     color: COLORS.background,
+
     includeFontPadding: false,
   },
+
+  // ============================================================
+  // LEGAL FOOTER
+  // ============================================================
+
   bottomContainer: {
     width: '100%',
+
     alignItems: 'center',
+
     marginTop: 'auto',
+
     paddingHorizontal: SPACING.xxl,
+
     paddingTop: SPACING.xxxl,
+
     paddingBottom: SPACING.large,
   },
+
   bottomText: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.small,
     lineHeight: FONT_SIZES.small + 5,
-    color: COLORS.textSecondary,
+
+    color: COLORS.primary,
+
     textAlign: 'center',
+
     includeFontPadding: false,
   },
+
   legalRow: {
     flexDirection: 'row',
+
     alignItems: 'center',
     justifyContent: 'center',
+
     marginTop: SPACING.small,
   },
+
   legalLink: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.small,
     lineHeight: FONT_SIZES.small + 5,
+
     color: COLORS.primary,
+
     includeFontPadding: false,
   },
+
   separator: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.small,
     lineHeight: FONT_SIZES.small + 5,
+
     color: COLORS.textMuted,
+
     marginHorizontal: SPACING.small,
+
     includeFontPadding: false,
   },
 });
