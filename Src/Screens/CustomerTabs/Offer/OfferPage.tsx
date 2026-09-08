@@ -49,8 +49,8 @@ type BackendOffer = {
     description: string;
 
     discountType:
-        | 'PERCENTAGE'
-        | 'FIXED';
+    | 'PERCENTAGE'
+    | 'FIXED';
 
     discountValue: number;
 
@@ -71,12 +71,12 @@ type BackendOffer = {
     customerLimit?: number | null;
 
     status:
-        | 'DRAFT'
-        | 'PENDING_APPROVAL'
-        | 'ACTIVE'
-        | 'PAUSED'
-        | 'EXPIRED'
-        | 'REJECTED';
+    | 'DRAFT'
+    | 'PENDING_APPROVAL'
+    | 'ACTIVE'
+    | 'PAUSED'
+    | 'EXPIRED'
+    | 'REJECTED';
 
     rejectionReason?: string | null;
 
@@ -131,8 +131,8 @@ type Offer = {
     salonId: string;
 
     discountType:
-        | 'PERCENTAGE'
-        | 'FIXED';
+    | 'PERCENTAGE'
+    | 'FIXED';
 
     discountValue: number;
 
@@ -267,9 +267,9 @@ const formatMinimumBooking = (
 
     if (
         minimumBookingAmount ===
-            null ||
+        null ||
         minimumBookingAmount ===
-            undefined
+        undefined
     ) {
         return undefined;
     }
@@ -504,9 +504,9 @@ export default function OffersScreen() {
 
                     const matchesCategory =
                         selectedCategory ===
-                            'All' ||
+                        'All' ||
                         offer.category ===
-                            selectedCategory;
+                        selectedCategory;
 
 
                     const matchesSearch =
@@ -1198,33 +1198,33 @@ export default function OffersScreen() {
 
                         {(search.length > 0 ||
                             selectedCategory !==
-                                'All') && (
+                            'All') && (
 
-                            <TouchableOpacity
-                                activeOpacity={
-                                    0.8
-                                }
+                                <TouchableOpacity
+                                    activeOpacity={
+                                        0.8
+                                    }
 
-                                onPress={
-                                    clearFilters
-                                }
+                                    onPress={
+                                        clearFilters
+                                    }
 
-                                style={
-                                    styles.resetButton
-                                }
-                            >
-
-                                <Text
                                     style={
-                                        styles.resetButtonText
+                                        styles.resetButton
                                     }
                                 >
-                                    Clear filters
-                                </Text>
 
-                            </TouchableOpacity>
+                                    <Text
+                                        style={
+                                            styles.resetButtonText
+                                        }
+                                    >
+                                        Clear filters
+                                    </Text>
 
-                        )}
+                                </TouchableOpacity>
+
+                            )}
 
                     </View>
 
@@ -1685,11 +1685,13 @@ const styles =
         },
 
         headerTitle: {
+            marginTop:
+                SPACING.small,
             fontSize:
-                FONT_SIZES.heading,
+                FONT_SIZES.title,
 
             fontWeight:
-                '800',
+                '600',
 
             color:
                 COLORS.text,

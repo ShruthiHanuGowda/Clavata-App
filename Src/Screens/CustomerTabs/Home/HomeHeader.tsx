@@ -63,9 +63,9 @@ export default function HomeHeader({
 
       <View style={styles.greetingSection}>
 
-        <Text style={styles.eyebrow}>
+        {/* <Text style={styles.eyebrow}>
           WELCOME BACK
-        </Text>
+        </Text> */}
 
         <Text
           style={styles.title}

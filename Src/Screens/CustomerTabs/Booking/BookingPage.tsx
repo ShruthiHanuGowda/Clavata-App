@@ -1593,8 +1593,8 @@ const styles =
         },
 
         title: {
-            fontSize: 29,
-            fontWeight: '800',
+            fontSize: 18,
+            fontWeight: '600',
             color: COLORS.text,
             letterSpacing: -0.5,
         },
