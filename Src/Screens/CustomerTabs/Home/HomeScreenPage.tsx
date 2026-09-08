@@ -3387,11 +3387,11 @@ const styles =
     },
 
     sectionTitle: {
-      fontSize: 21,
+      fontSize: 16,
       color:
         COLORS.black,
       fontWeight:
-        '700',
+        '600',
       letterSpacing:
         -0.4,
     },
@@ -3458,7 +3458,7 @@ const styles =
     resultsHeader: {
       marginHorizontal:
         SPACING.xl,
-      marginTop: 24,
+      marginTop: 4,
       marginBottom: 14,
       flexDirection:
         'row',
@@ -3473,11 +3473,11 @@ const styles =
     },
 
     resultsTitle: {
-      fontSize: 21,
+      fontSize: 16,
       color:
         COLORS.black,
       fontWeight:
-        '700',
+        '600',
       letterSpacing:
         -0.3,
     },

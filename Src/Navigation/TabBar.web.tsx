@@ -25,16 +25,16 @@ const tabIconsActive: Record<TabIconKeys, any> = {
     Clavata: images?.homeActive,
     Home: images?.homeActive,
     Bookings: images?.homeActive,
-    Offers: images?.categoryActive,
-    Profile: images?.stakeActive,
+    Offers: images?.offerActive,
+    Profile: images?.profileActive,
 };
 
 const tabIcons: Record<TabIconKeys, any> = {
     Clavata: images?.home,
     Home: images?.wallet,
-    Bookings: images?.shop,
-    Offers: images?.category,
-    Profile: images?.homeActive,
+    Bookings: images?.booking,
+    Offers: images?.offer,
+    Profile: images?.profile,
 };
 
 // ============================================================

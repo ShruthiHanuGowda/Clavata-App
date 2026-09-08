@@ -196,22 +196,16 @@ const styles = StyleSheet.create({
 
 
   title: {
-
     fontSize:
       18,
-
     lineHeight:
       32,
-
     fontWeight:
       '600',
-
     color:
       COLORS.black,
-
     letterSpacing:
       -0.6,
-
   },
 
 
