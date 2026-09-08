@@ -23,8 +23,8 @@ type TabIconKeys =
 
 const tabIconsActive: Record<TabIconKeys, any> = {
     Clavata: images?.homeActive,
-    Home: images?.shopActive,
-    Bookings: images?.shopActive,
+    Home: images?.homeActive,
+    Bookings: images?.homeActive,
     Offers: images?.categoryActive,
     Profile: images?.stakeActive,
 };
@@ -34,7 +34,7 @@ const tabIcons: Record<TabIconKeys, any> = {
     Home: images?.wallet,
     Bookings: images?.shop,
     Offers: images?.category,
-    Profile: images?.stake,
+    Profile: images?.homeActive,
 };
 
 // ============================================================

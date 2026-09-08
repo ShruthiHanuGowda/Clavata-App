@@ -23,10 +23,10 @@ const tabIconsActive: {
   Profile: {};
 } = {
   'Clavata': images?.homeActive,
-  Home: images?.shopActive,
-  Bookings: images?.shopActive,
-  Offers: images?.categoryActive,
-  Profile: images?.stakeActive,
+  Home: images?.homeActive,
+  Bookings: images?.bookingActive,
+  Offers: images?.offerActive,
+  Profile: images?.profileActive,
 };
 
 const tabIcons: {
@@ -37,10 +37,10 @@ const tabIcons: {
   Profile: {};
 } = {
   'Clavata': images?.home,
-  Home: images?.wallet,
-  Bookings: images?.shop,
-  Offers: images?.category,
-  Profile: images?.stake,
+  Home: images?.home,
+  Bookings: images?.booking,
+  Offers: images?.offer,
+  Profile: images?.profile,
 };
 
 interface NavigationIconProps {
@@ -49,7 +49,8 @@ interface NavigationIconProps {
 }
 
 const NavigationIcon: React.FC<NavigationIconProps> = ({ isFocused, route }) => {
-  return <Image source={isFocused ? tabIconsActive[route] : tabIcons[route]} />;
+  return <Image source={isFocused ? tabIconsActive[route] : tabIcons[route]} style={styles.icon}
+    resizeMode="contain" />;
 };
 
 interface TabBarComponentProps {
@@ -94,14 +95,19 @@ const TabBarComponent: React.FC<TabBarComponentProps> = ({
       />
       <View style={[styles.iconContainer, active ? styles.iconContainerActive : styles.iconContainerInactive]}>
         <NavigationIcon route={name} isFocused={active} />
-        {active && (
+        {/* {active && (
           <>
             <Text style={styles.text}>
               {options.tabBarLabel || name}
             </Text>
             <View style={styles.dot} />
           </>
-        )}
+        )} */}
+        <Text style={[styles.text, !active && styles.textInactive]}>
+          {options.tabBarLabel || name}
+        </Text>
+
+        {active && <View style={styles.dot} />}
       </View>
     </Pressable>
   );
@@ -236,6 +242,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-evenly',
   },
+  textInactive: {
+    color: '#000',
+  },
   component: {
     height: 60,
     width: 60,
@@ -256,8 +265,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   icon: {
-    height: 36,
-    width: 36,
+    height: 26,
+    width: 26
   },
   dot: {
     backgroundColor: '#008060',
@@ -284,7 +293,7 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   iconContainerInactive: {
-    opacity: 0.5,
+    opacity: 1,
   },
   tabBarIOS: {
     paddingBottom: 10,
