@@ -9,7 +9,7 @@ export default {
   profileActive: require('../assets/images/user-active.png'),
 
   backHeaderArrow: require('../assets/images/Arrowback.png'),
-  logoBlueNew: require('../assets/images/logo-blue_new.png'),
+  // logoBlueNew: require('../assets/images/logo-blue_new.png'),
   email: require('../assets/images/email.png'),
   wallet: require('../assets/images/wallet.png'),
   stakeActive: require('../assets/images/stake-active.png'),
