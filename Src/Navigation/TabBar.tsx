@@ -1,4 +1,5 @@
-import React, { useEffect, useReducer, useRef } from 'react';
+
+import React, { useReducer } from 'react';
 import {
   Image,
   LayoutChangeEvent,
@@ -19,10 +20,10 @@ const tabIconsActive: {
   Bookings: {};
   Home: {};
   Offers: {};
-  'Clavata': {};
+  Clavata: {};
   Profile: {};
 } = {
-  'Clavata': images?.homeActive,
+  Clavata: images?.homeActive,
   Home: images?.homeActive,
   Bookings: images?.bookingActive,
   Offers: images?.offerActive,
@@ -33,10 +34,10 @@ const tabIcons: {
   Bookings: {};
   Home: {};
   Offers: {};
-  'Clavata': {};
+  Clavata: {};
   Profile: {};
 } = {
-  'Clavata': images?.home,
+  Clavata: images?.home,
   Home: images?.home,
   Bookings: images?.booking,
   Offers: images?.offer,
@@ -48,9 +49,17 @@ interface NavigationIconProps {
   route: TabIconKeys;
 }
 
-const NavigationIcon: React.FC<NavigationIconProps> = ({ isFocused, route }) => {
-  return <Image source={isFocused ? tabIconsActive[route] : tabIcons[route]} style={styles.icon}
-    resizeMode="contain" />;
+const NavigationIcon: React.FC<NavigationIconProps> = ({
+  isFocused,
+  route,
+}) => {
+  return (
+    <Image
+      source={isFocused ? tabIconsActive[route] : tabIcons[route]}
+      style={styles.icon}
+      resizeMode="contain"
+    />
+  );
 };
 
 interface TabBarComponentProps {
@@ -80,34 +89,45 @@ const TabBarComponent: React.FC<TabBarComponentProps> = ({
   onLayout,
   onPress,
 }) => {
-  const ref = useRef<{ play: () => void } | null>(null);
-
-  useEffect(() => {
-    if (active && ref?.current) {
-      ref.current.play();
-    }
-  }, [active]);
-
   return (
-    <Pressable onPress={onPress} onLayout={onLayout} style={styles.component}>
+    <Pressable
+      onPress={onPress}
+      onLayout={onLayout}
+      style={styles.component}>
+      
       <View
-        style={[styles.componentCircle, active ? styles.componentCircleActive : styles.componentCircleInactive]}
+        style={[
+          styles.componentCircle,
+          active
+            ? styles.componentCircleActive
+            : styles.componentCircleInactive,
+        ]}
       />
-      <View style={[styles.iconContainer, active ? styles.iconContainerActive : styles.iconContainerInactive]}>
-        <NavigationIcon route={name} isFocused={active} />
-        {/* {active && (
-          <>
-            <Text style={styles.text}>
-              {options.tabBarLabel || name}
-            </Text>
-            <View style={styles.dot} />
-          </>
-        )} */}
-        <Text style={[styles.text, !active && styles.textInactive]}>
+
+      <View
+        style={[
+          styles.iconContainer,
+          active
+            ? styles.iconContainerActive
+            : styles.iconContainerInactive,
+        ]}>
+        
+        <NavigationIcon
+          route={name}
+          isFocused={active}
+        />
+
+        {/* Tab label */}
+        <Text
+          style={[
+            styles.text,
+            active
+              ? styles.textActive
+              : styles.textInactive,
+          ]}>
           {options.tabBarLabel || name}
         </Text>
 
-        {active && <View style={styles.dot} />}
       </View>
     </Pressable>
   );
@@ -146,17 +166,33 @@ const TabBar: React.FC<TabBarProps> = ({
     state: LayoutState[],
     action: LayoutAction,
   ): LayoutState[] => {
-    return [...state, { x: action.x, index: action.index }];
+    return [
+      ...state,
+      {
+        x: action.x,
+        index: action.index,
+      },
+    ];
   };
 
   const [layout, dispatch] = useReducer(reducer, []);
 
-  const handleLayout = (event: LayoutChangeEvent, index: number) => {
-    dispatch({ x: event?.nativeEvent?.layout?.x, index });
+  const handleLayout = (
+    event: LayoutChangeEvent,
+    index: number,
+  ) => {
+    dispatch({
+      x: event?.nativeEvent?.layout?.x,
+      index,
+    });
   };
 
   let xOffset = 0;
-  const item = [...layout].find(({ index }) => index === activeIndex);
+
+  const item = [...layout].find(
+    ({ index }) => index === activeIndex,
+  );
+
   if (!item) {
     xOffset = -25;
   } else {
@@ -165,17 +201,29 @@ const TabBar: React.FC<TabBarProps> = ({
 
   const width = 100;
   const height = 100;
-  const size = width < height ? width - 32 : height - 16;
+
+  const size =
+    width < height
+      ? width - 32
+      : height - 16;
+
   const strokeWidth = 25;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
+
+  const radius =
+    (size - strokeWidth) / 2;
+
+  const circumference =
+    radius * 2 * Math.PI;
 
   return (
     <View
       style={[
         styles.tabBar,
-        Platform.OS === 'android' ? { paddingBottom: bottom } : styles.tabBarIOS,
+        Platform.OS === 'android'
+          ? { paddingBottom: bottom }
+          : styles.tabBarIOS,
       ]}>
+
       <Svg
         width={110}
         height={70}
@@ -183,8 +231,18 @@ const TabBar: React.FC<TabBarProps> = ({
         style={[
           styles.activeBackground,
           styles.svgPositioning,
-          { transform: [{ translateX: typeof xOffset === 'number' ? xOffset : 1 }] },
+          {
+            transform: [
+              {
+                translateX:
+                  typeof xOffset === 'number'
+                    ? xOffset
+                    : 1,
+              },
+            ],
+          },
         ]}>
+
         <Circle
           translateY={-12}
           translateX={-3}
@@ -196,13 +254,21 @@ const TabBar: React.FC<TabBarProps> = ({
           strokeDasharray={`${circumference} ${circumference}`}
           strokeWidth={0.5}
         />
-        <Path fill="#FFF" d="M4 24H6080V110H4z" />
+
+        <Path
+          fill="#FFF"
+          d="M4 24H6080V110H4z"
+        />
+
       </Svg>
 
       <View style={styles.tabBarContainer}>
         {routes.map((route, index) => {
-          const active = index === activeIndex;
-          const { options } = descriptors[route.key];
+          const active =
+            index === activeIndex;
+
+          const { options } =
+            descriptors[route.key];
 
           return (
             <TabBarComponent
@@ -210,8 +276,12 @@ const TabBar: React.FC<TabBarProps> = ({
               name={route.name}
               active={active}
               options={options}
-              onLayout={e => handleLayout(e, index)}
-              onPress={() => navigation.navigate(route.name)}
+              onLayout={e =>
+                handleLayout(e, index)
+              }
+              onPress={() =>
+                navigation.navigate(route.name)
+              }
             />
           );
         })}
@@ -225,6 +295,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopColor: '#C4C4C4',
     borderTopWidth: 0.35,
+
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -232,72 +303,84 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
+
     elevation: 2,
-    // height: 53,
   },
+
   activeBackground: {
     position: 'absolute',
   },
+
   tabBarContainer: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',
   },
-  textInactive: {
-    color: '#000',
-  },
+
   component: {
     height: 60,
     width: 60,
     marginTop: -5,
   },
+
   componentCircle: {
     flex: 1,
     borderRadius: 30,
     backgroundColor: 'white',
   },
+
+  componentCircleActive: {
+    transform: [{ scale: 1 }],
+  },
+
+  componentCircleInactive: {
+    transform: [{ scale: 0 }],
+  },
+
   iconContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  iconContainerActive: {
+    opacity: 1,
+  },
+
+  iconContainerInactive: {
+    opacity: 1,
+  },
+
   icon: {
     height: 26,
-    width: 26
+    width: 26,
   },
-  dot: {
-    backgroundColor: '#008060',
-    height: 5,
-    width: 5,
-    borderRadius: 3,
-    marginTop: 3,
-    marginBottom: 31,
-  },
+
   text: {
-    color: '#008060',
     fontSize: 12,
     width: 80,
     textAlign: 'center',
     fontFamily: fontsFamily.MulishSemiBold,
   },
-  componentCircleActive: {
-    transform: [{ scale: 1 }],
+
+  // ACTIVE TAB TEXT
+  textActive: {
+    color: '#000000',
   },
-  componentCircleInactive: {
-    transform: [{ scale: 0 }],
+
+  // INACTIVE TAB TEXT
+  textInactive: {
+    color: '#000000',
   },
-  iconContainerActive: {
-    opacity: 1,
-  },
-  iconContainerInactive: {
-    opacity: 1,
-  },
+
   tabBarIOS: {
     paddingBottom: 10,
   },
+
   svgPositioning: {
     top: -24,
     left: 16,
