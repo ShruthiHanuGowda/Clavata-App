@@ -1,8 +1,8 @@
-
 import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -58,7 +58,11 @@ import {
   COLORS,
   SPACING,
 } from '../../../constants/constants';
-import { HomeStackParamList, RootTabParamList } from '../../../../types';
+
+import {
+  HomeStackParamList,
+  RootTabParamList,
+} from '../../../../types';
 
 
 // ============================================================
@@ -106,7 +110,7 @@ type Salon = {
   /*
    * IMPORTANT:
    *
-   * price is now optional.
+   * price is optional.
    *
    * We must NOT use 0 when the backend has not
    * returned a price because 0 would incorrectly
@@ -171,6 +175,13 @@ const DISTANCE_OPTIONS = [
 
 
 // ============================================================
+// SEARCH DEBOUNCE
+// ============================================================
+
+const SEARCH_DEBOUNCE_MS = 300;
+
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
@@ -184,8 +195,10 @@ export default function HomeScreenPage() {
         HomeStackParamList & RootTabParamList
       >
     >();
+
   const route =
     useRoute<RouteProp<HomeStackParamList, 'ClavataMatch'>>();
+
   const {
     currentUser,
   } = useUser();
@@ -219,6 +232,34 @@ export default function HomeScreenPage() {
     selectedCategory,
     setSelectedCategory,
   ] = useState('');
+
+
+  // ==========================================================
+  // SEARCH CONTROL
+  // ==========================================================
+
+  /*
+   * Keeps the debounce timer between renders.
+   */
+  const searchTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /*
+   * Every request gets a sequence number.
+   *
+   * If the user types:
+   *
+   * L
+   * La
+   * Lak
+   * Lakm
+   * Lakme
+   *
+   * an older network response must never overwrite
+   * the newest response.
+   */
+  const searchRequestIdRef =
+    useRef(0);
 
 
   // ==========================================================
@@ -297,6 +338,37 @@ export default function HomeScreenPage() {
 
 
   // ==========================================================
+  // CLEANUP SEARCH TIMER
+  // ==========================================================
+
+  useEffect(() => {
+
+    return () => {
+
+      if (
+        searchTimeoutRef.current
+      ) {
+
+        clearTimeout(
+          searchTimeoutRef.current,
+        );
+
+        searchTimeoutRef.current =
+          null;
+      }
+
+      /*
+       * Invalidate any request that is still
+       * resolving after the screen unmounts.
+       */
+      searchRequestIdRef.current += 1;
+
+    };
+
+  }, []);
+
+
+  // ==========================================================
   // GET ACTIVE COORDINATES
   // ==========================================================
 
@@ -309,6 +381,7 @@ export default function HomeScreenPage() {
           locationCoordinates.latitude != null &&
           locationCoordinates.longitude != null
         ) {
+
           return locationCoordinates;
         }
 
@@ -334,12 +407,27 @@ export default function HomeScreenPage() {
         radiusOverride?: number,
       ) => {
 
+        /*
+         * Generate a unique request ID.
+         *
+         * This protects the UI from stale network
+         * responses when live search is being used.
+         */
+        const requestId =
+          ++searchRequestIdRef.current;
+
+
         console.log(
           '========================================',
         );
 
         console.log(
           '🔍 FETCH NEARBY SALONS',
+        );
+
+        console.log(
+          '🆔 REQUEST ID:',
+          requestId,
         );
 
         console.log(
@@ -485,7 +573,18 @@ export default function HomeScreenPage() {
             '❌ LOCATION NOT AVAILABLE',
           );
 
-          setSalons([]);
+          /*
+           * Only the latest request is allowed
+           * to change the UI.
+           */
+          if (
+            requestId ===
+            searchRequestIdRef.current
+          ) {
+
+            setSalons([]);
+
+          }
 
           return;
         }
@@ -506,6 +605,21 @@ export default function HomeScreenPage() {
           ).trim();
 
 
+        /*
+         * Search takes priority over category.
+         *
+         * Example:
+         *
+         * Search = Lakme
+         * Category = Hair
+         *
+         * We send:
+         *
+         * search = Lakme
+         * category = null
+         *
+         * because typing in search clears the category.
+         */
         const finalSearch =
           cleanSearch.length > 0
             ? cleanSearch
@@ -535,39 +649,36 @@ export default function HomeScreenPage() {
         // GRAPHQL VARIABLES
         // ======================================================
 
-        // const variables = {
-
-        //   latitude:
-        //     finalLatitude,
-
-        //   longitude:
-        //     finalLongitude,
-
-        //   radius:
-        //     finalRadius,
-
-        //   search:
-        //     finalSearch,
-
-        //   category:
-        //     finalCategory,
-        // };
         const variables = {
-          latitude: finalLatitude,
-          longitude: finalLongitude,
-          radius: finalRadius,
-          search: finalSearch,
-          category: finalCategory,
+
+          latitude:
+            finalLatitude,
+
+          longitude:
+            finalLongitude,
+
+          radius:
+            finalRadius,
+
+          search:
+            finalSearch,
+
+          category:
+            finalCategory,
+
           minPrice:
             selectedBudget.label === 'Any'
               ? null
               : selectedBudget.min,
+
           maxPrice:
             selectedBudget.label === 'Any' ||
-              selectedBudget.max === Infinity
+            selectedBudget.max === Infinity
               ? null
               : selectedBudget.max,
+
         };
+
 
         console.log(
           '🚀 GET_NEARBY_SALONS VARIABLES:',
@@ -600,6 +711,26 @@ export default function HomeScreenPage() {
                 'network-only',
 
             });
+
+
+          /*
+           * IMPORTANT:
+           *
+           * If another request started after this one,
+           * ignore this response.
+           */
+          if (
+            requestId !==
+            searchRequestIdRef.current
+          ) {
+
+            console.log(
+              '⚠️ IGNORING STALE SALON RESPONSE:',
+              requestId,
+            );
+
+            return;
+          }
 
 
           console.log(
@@ -790,6 +921,7 @@ export default function HomeScreenPage() {
                 console.log(
                   '💰 SALON PRICE DATA:',
                   {
+
                     salon:
                       item?.salonName,
 
@@ -815,6 +947,7 @@ export default function HomeScreenPage() {
 
                     budget:
                       selectedBudget.label,
+
                   },
                 );
 
@@ -911,6 +1044,7 @@ export default function HomeScreenPage() {
             '💰 ALL SALON PRICES:',
             formatted.map(
               salon => ({
+
                 name:
                   salon.name,
 
@@ -923,26 +1057,57 @@ export default function HomeScreenPage() {
                 matchingServices:
                   salon.matchingServices?.map(
                     service => ({
+
                       name:
                         service.name,
 
                       price:
                         service.price,
+
                     }),
                   ),
+
               }),
             ),
           );
 
 
-          setSalons(
-            formatted,
-          );
+          /*
+           * Only the latest request is allowed
+           * to update the salon list.
+           */
+          if (
+            requestId ===
+            searchRequestIdRef.current
+          ) {
+
+            setSalons(
+              formatted,
+            );
+
+          }
 
 
         } catch (
-        error: any
+          error: any
         ) {
+
+          /*
+           * Ignore errors from stale requests.
+           */
+          if (
+            requestId !==
+            searchRequestIdRef.current
+          ) {
+
+            console.log(
+              '⚠️ IGNORING STALE SALON ERROR:',
+              requestId,
+            );
+
+            return;
+          }
+
 
           console.log(
             '❌ NEARBY SALONS ERROR:',
@@ -961,11 +1126,24 @@ export default function HomeScreenPage() {
 
           setSalons([]);
 
+
         } finally {
 
-          setLoadingSalons(
-            false,
-          );
+          /*
+           * Do not let an older request turn off
+           * the loading indicator of a newer request.
+           */
+          if (
+            requestId ===
+            searchRequestIdRef.current
+          ) {
+
+            setLoadingSalons(
+              false,
+            );
+
+          }
+
         }
 
       },
@@ -974,6 +1152,8 @@ export default function HomeScreenPage() {
         getActiveCoordinates,
         selectedDistance,
         selectedBudget.label,
+        selectedBudget.min,
+        selectedBudget.max,
       ],
     );
 
@@ -1120,7 +1300,7 @@ export default function HomeScreenPage() {
 
 
         } catch (
-        error
+          error
         ) {
 
           console.log(
@@ -1138,6 +1318,7 @@ export default function HomeScreenPage() {
           );
 
           setSalons([]);
+
         }
 
       },
@@ -1239,7 +1420,7 @@ export default function HomeScreenPage() {
 
 
   // ==========================================================
-  // SEARCH CHANGE
+  // SEARCH CHANGE - LIVE SEARCH
   // ==========================================================
 
   const handleSearchChange =
@@ -1247,9 +1428,16 @@ export default function HomeScreenPage() {
       text: string,
     ) => {
 
+      /*
+       * Update the input immediately.
+       */
       setSearch(text);
 
 
+      /*
+       * If a category was selected, typing a search
+       * removes the category filter.
+       */
       if (
         text.trim().length > 0
       ) {
@@ -1257,6 +1445,126 @@ export default function HomeScreenPage() {
         setSelectedCategory('');
 
       }
+
+
+      /*
+       * Cancel the previous debounce timer.
+       */
+      if (
+        searchTimeoutRef.current
+      ) {
+
+        clearTimeout(
+          searchTimeoutRef.current,
+        );
+
+        searchTimeoutRef.current =
+          null;
+      }
+
+
+      /*
+       * Capture the exact text that caused this timer.
+       */
+      const searchText =
+        text.trim();
+
+
+      /*
+       * Start a new debounce timer.
+       *
+       * This means:
+       *
+       * User types "Lakme"
+       *
+       * L      -> timer
+       * La     -> reset timer
+       * Lak    -> reset timer
+       * Lakm   -> reset timer
+       * Lakme  -> reset timer
+       *
+       * After 300ms of no typing:
+       *
+       * GET_NEARBY_SALONS(search: "Lakme")
+       */
+      searchTimeoutRef.current =
+        setTimeout(
+          async () => {
+
+            searchTimeoutRef.current =
+              null;
+
+
+            console.log(
+              '🔎 LIVE SEARCH:',
+              searchText,
+            );
+
+
+            const location =
+              getActiveCoordinates();
+
+
+            /*
+             * If location is not available,
+             * open the location modal.
+             */
+            if (
+              !location ||
+              location.latitude == null ||
+              location.longitude == null
+            ) {
+
+              console.log(
+                '❌ LIVE SEARCH: NO LOCATION',
+              );
+
+              setShowLocationModal(
+                true,
+              );
+
+              return;
+            }
+
+
+            /*
+             * Search is active, therefore category
+             * must remain empty.
+             */
+            setSelectedCategory('');
+
+
+            /*
+             * IMPORTANT:
+             *
+             * If searchText is empty, this sends:
+             *
+             * search = ""
+             * category = ""
+             *
+             * which restores the original nearby salons.
+             */
+            await fetchNearbySalons(
+
+              Number(
+                location.latitude,
+              ),
+
+              Number(
+                location.longitude,
+              ),
+
+              searchText,
+
+              '',
+
+              selectedDistance,
+
+            );
+
+          },
+          SEARCH_DEBOUNCE_MS,
+        );
 
     };
 
@@ -1267,6 +1575,25 @@ export default function HomeScreenPage() {
 
   const handleSearchSubmit =
     async () => {
+
+      /*
+       * Cancel any pending live-search timer.
+       *
+       * This prevents a duplicate request after
+       * the user presses the search key.
+       */
+      if (
+        searchTimeoutRef.current
+      ) {
+
+        clearTimeout(
+          searchTimeoutRef.current,
+        );
+
+        searchTimeoutRef.current =
+          null;
+      }
+
 
       const cleanSearch =
         search.trim();
@@ -1294,6 +1621,7 @@ export default function HomeScreenPage() {
         setShowLocationModal(
           true,
         );
+
 
         return;
       }
@@ -1386,6 +1714,26 @@ export default function HomeScreenPage() {
       );
 
 
+      /*
+       * Cancel any pending live search.
+       *
+       * Otherwise a search typed just before selecting
+       * the category could execute after the category
+       * request.
+       */
+      if (
+        searchTimeoutRef.current
+      ) {
+
+        clearTimeout(
+          searchTimeoutRef.current,
+        );
+
+        searchTimeoutRef.current =
+          null;
+      }
+
+
       const location =
         getActiveCoordinates();
 
@@ -1404,6 +1752,7 @@ export default function HomeScreenPage() {
         setShowLocationModal(
           true,
         );
+
 
         return;
       }
@@ -1492,6 +1841,7 @@ export default function HomeScreenPage() {
         selectedDistance,
 
       );
+
     };
 
 
@@ -1540,6 +1890,23 @@ export default function HomeScreenPage() {
       );
 
 
+      /*
+       * Cancel pending live search so the filter
+       * request remains the latest intended request.
+       */
+      if (
+        searchTimeoutRef.current
+      ) {
+
+        clearTimeout(
+          searchTimeoutRef.current,
+        );
+
+        searchTimeoutRef.current =
+          null;
+      }
+
+
       const location =
         getActiveCoordinates();
 
@@ -1552,16 +1919,16 @@ export default function HomeScreenPage() {
           true,
         );
 
+
         return;
       }
 
 
       /*
-       * Distance is sent to the backend.
+       * Distance and budget are sent to the backend.
        *
-       * Budget is filtered locally because
-       * GET_NEARBY_SALONS does not currently
-       * have a budget argument.
+       * Budget is also checked locally below as an
+       * additional safety layer.
        */
 
       await fetchNearbySalons(
@@ -1589,118 +1956,127 @@ export default function HomeScreenPage() {
   // CLAVATA
   // ==========================================================
 
-  const askClavata = useCallback(() => {
+  const askClavata =
+    useCallback(
+      () => {
 
-    setShowFilterModal(false);
-
-    // ----------------------------------------------------------
-    // LOCATION REQUIRED
-    // ----------------------------------------------------------
-
-    if (
-      !locationCoordinates ||
-      locationCoordinates.latitude == null ||
-      locationCoordinates.longitude == null
-    ) {
-
-      console.log(
-        '✦ CLAVATA: location unavailable',
-      );
-
-      setShowLocationModal(true);
-
-      return;
-    }
+        setShowFilterModal(
+          false,
+        );
 
 
-    // ----------------------------------------------------------
-    // SERVICE
-    // ----------------------------------------------------------
+        // ------------------------------------------------------
+        // LOCATION REQUIRED
+        // ------------------------------------------------------
 
-    const service =
-      selectedCategory.trim() ||
-      search.trim();
+        if (
+          !locationCoordinates ||
+          locationCoordinates.latitude == null ||
+          locationCoordinates.longitude == null
+        ) {
 
-
-    // ----------------------------------------------------------
-    // NAVIGATE
-    // ----------------------------------------------------------
-
-    console.log(
-      '========================================',
-    );
-
-    console.log(
-      '✦ OPENING CLAVATA',
-    );
-
-    console.log(
-      'Service:',
-      service || 'Any',
-    );
-
-    console.log(
-      'Location:',
-      locationCoordinates,
-    );
-
-    console.log(
-      'Budget:',
-      selectedBudget.min,
-      '-',
-      selectedBudget.max,
-    );
-
-    console.log(
-      'Distance:',
-      selectedDistance,
-    );
-
-    console.log(
-      '========================================',
-    );
+          console.log(
+            '✦ CLAVATA: location unavailable',
+          );
 
 
-    navigation.navigate(
-      'ClavataMatch',
-      {
+          setShowLocationModal(
+            true,
+          );
 
-        service:
-          service || undefined,
 
-        location:
+          return;
+        }
+
+
+        // ------------------------------------------------------
+        // SERVICE
+        // ------------------------------------------------------
+
+        const service =
+          selectedCategory.trim() ||
+          search.trim();
+
+
+        // ------------------------------------------------------
+        // NAVIGATE
+        // ------------------------------------------------------
+
+        console.log(
+          '========================================',
+        );
+
+        console.log(
+          '✦ OPENING CLAVATA',
+        );
+
+        console.log(
+          'Service:',
+          service || 'Any',
+        );
+
+        console.log(
+          'Location:',
           locationCoordinates,
+        );
 
-        minBudget:
-          selectedBudget.label ===
-            'Any'
-            ? 0
-            : selectedBudget.min,
+        console.log(
+          'Budget:',
+          selectedBudget.min,
+          '-',
+          selectedBudget.max,
+        );
 
-        maxBudget:
-          selectedBudget.label ===
-            'Any'
-            ? Infinity
-            : selectedBudget.max,
+        console.log(
+          'Distance:',
+          selectedDistance,
+        );
 
-        distance:
-          selectedDistance ||
-          DEFAULT_LOCATION_RADIUS ||
-          10,
+        console.log(
+          '========================================',
+        );
+
+
+        navigation.navigate(
+          'ClavataMatch',
+          {
+
+            service:
+              service || undefined,
+
+            location:
+              locationCoordinates,
+
+            minBudget:
+              selectedBudget.label ===
+                'Any'
+                ? 0
+                : selectedBudget.min,
+
+            maxBudget:
+              selectedBudget.label ===
+                'Any'
+                ? Infinity
+                : selectedBudget.max,
+
+            distance:
+              selectedDistance ||
+              DEFAULT_LOCATION_RADIUS ||
+              10,
+
+          },
+        );
 
       },
+      [
+        locationCoordinates,
+        selectedCategory,
+        search,
+        selectedBudget,
+        selectedDistance,
+        navigation,
+      ],
     );
-
-  }, [
-    locationCoordinates,
-    selectedCategory,
-    search,
-    selectedBudget,
-    selectedDistance,
-    navigation,
-  ]);
-
-
 
 
   // ==========================================================
@@ -1770,7 +2146,7 @@ export default function HomeScreenPage() {
         }
 
       } catch (
-      error
+        error
       ) {
 
         console.log(
@@ -1825,6 +2201,7 @@ export default function HomeScreenPage() {
           return Math.min(
             ...servicePrices,
           );
+
         }
 
 
@@ -1846,6 +2223,7 @@ export default function HomeScreenPage() {
         ) {
 
           return minServicePrice;
+
         }
 
 
@@ -1867,6 +2245,7 @@ export default function HomeScreenPage() {
         ) {
 
           return price;
+
         }
 
 
@@ -1902,6 +2281,7 @@ export default function HomeScreenPage() {
             '💰 BUDGET = ANY → showing all salons:',
             salons.length,
           );
+
 
           return salons;
         }
@@ -1963,6 +2343,7 @@ export default function HomeScreenPage() {
                   salon.name,
                 );
 
+
                 return false;
               }
 
@@ -1981,6 +2362,7 @@ export default function HomeScreenPage() {
               console.log(
                 '💰 BUDGET CHECK:',
                 {
+
                   salon:
                     salon.name,
 
@@ -1996,11 +2378,13 @@ export default function HomeScreenPage() {
                     selectedBudget.max,
 
                   matches,
+
                 },
               );
 
 
               return matches;
+
             },
           );
 
@@ -2032,6 +2416,7 @@ export default function HomeScreenPage() {
           '💰 Results:',
           filtered.map(
             salon => ({
+
               name:
                 salon.name,
 
@@ -2039,6 +2424,7 @@ export default function HomeScreenPage() {
                 getSalonBudgetPrice(
                   salon,
                 ),
+
             }),
           ),
         );
@@ -2076,6 +2462,7 @@ export default function HomeScreenPage() {
         ) {
 
           count++;
+
         }
 
 
@@ -2085,6 +2472,7 @@ export default function HomeScreenPage() {
         ) {
 
           count++;
+
         }
 
 
@@ -2111,6 +2499,7 @@ export default function HomeScreenPage() {
         ) {
 
           return 'Search results';
+
         }
 
 
@@ -2119,6 +2508,7 @@ export default function HomeScreenPage() {
         ) {
 
           return selectedCategory;
+
         }
 
 
@@ -2660,18 +3050,34 @@ export default function HomeScreenPage() {
         }
 
         onRate={() => {
+
           if (!pendingBooking) {
             return;
           }
 
-          setShowReviewPopup(false);
 
-          navigation.navigate('Bookings', {
-            screen: 'RateReview',
-            params: {
-              booking: pendingBooking,
+          setShowReviewPopup(
+            false,
+          );
+
+
+          navigation.navigate(
+            'Bookings',
+            {
+
+              screen:
+                'RateReview',
+
+              params: {
+
+                booking:
+                  pendingBooking,
+
+              },
+
             },
-          });
+          );
+
         }}
 
         onLater={() => {
@@ -2809,6 +3215,7 @@ export default function HomeScreenPage() {
               SERVICE
             </Text>
 
+
             <View
               style={
                 styles.filterField
@@ -2836,6 +3243,7 @@ export default function HomeScreenPage() {
                   }
                 </Text>
 
+
                 <Text
                   style={
                     styles.filterFieldHint
@@ -2848,13 +3256,17 @@ export default function HomeScreenPage() {
 
             </View>
 
+
             <ServiceChips
+
               selectedCategory={
                 selectedCategory
               }
+
               onSelect={
                 handleCategorySelect
               }
+
             />
 
 
@@ -2901,6 +3313,7 @@ export default function HomeScreenPage() {
                   }
                 />
 
+
                 <View
                   style={
                     styles.locationValueWrap
@@ -2917,6 +3330,7 @@ export default function HomeScreenPage() {
                   >
                     {selectedLocation}
                   </Text>
+
 
                   <Text
                     style={
@@ -2957,6 +3371,7 @@ export default function HomeScreenPage() {
               >
                 BUDGET
               </Text>
+
 
               <Text
                 style={
@@ -3006,6 +3421,7 @@ export default function HomeScreenPage() {
                           '💰 BUDGET SELECTED:',
                           option.label,
                         );
+
 
                         setSelectedBudget(
                           option,
@@ -3057,6 +3473,7 @@ export default function HomeScreenPage() {
               >
                 DISTANCE
               </Text>
+
 
               <Text
                 style={
@@ -3125,6 +3542,7 @@ export default function HomeScreenPage() {
                         {distance}
                       </Text>
 
+
                       <Text
                         style={[
 
@@ -3173,6 +3591,7 @@ export default function HomeScreenPage() {
               >
                 Show salons
               </Text>
+
 
               <Text
                 style={
@@ -3921,4 +4340,3 @@ const styles =
     },
 
   });
-
