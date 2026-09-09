@@ -14,6 +14,36 @@ import { CREATE_BOOKING } from '../../../graphql/queries';
 
 const PRIMARY = '#008060';
 
+type Service = {
+    serviceId: string;
+    salonId?: string;
+    name: string;
+    category?: string;
+    description?: string;
+    duration: number;
+    price: number;
+    gender?: string;
+    popular?: boolean;
+    active?: boolean;
+};
+
+type Offer = {
+    offerId: string;
+    salonId: string;
+    salonName?: string;
+    title: string;
+    description?: string;
+    discountType: 'PERCENTAGE' | 'FIXED' | string;
+    discountValue: number;
+    couponCode?: string | null;
+    minimumBookingAmount?: number | null;
+    category?: string | null;
+    serviceIds: string[];
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+};
+
 export default function BookingSummaryScreen({
     navigation,
     route,
@@ -22,21 +52,30 @@ export default function BookingSummaryScreen({
         salonId,
         salon,
         customerUserId,
-        services,
+        services = [],
         date,
         time,
-
-        // Optional offer.
-        // Normal bookings will have this as undefined.
         offer,
-    } = route.params;
+
+        /*
+        These are passed from BookingDateTimeScreen.
+
+        We still calculate everything again here rather
+        than blindly trusting the values passed by the
+        previous screen.
+        */
+        offerId: routeOfferId,
+    } = route.params || {};
 
     console.log(
         'BookingSummaryScreen params:',
-        route.params,
+        route?.params,
     );
 
-    console.log('date', date);
+    console.log(
+        'date',
+        date,
+    );
 
     console.log(
         'Applied offer:',
@@ -47,7 +86,9 @@ export default function BookingSummaryScreen({
         useMutation(CREATE_BOOKING);
 
     const [paymentMethod, setPaymentMethod] =
-        useState<'SALON' | 'ONLINE'>('SALON');
+        useState<'SALON' | 'ONLINE'>(
+            'SALON',
+        );
 
     const [couponCode, setCouponCode] =
         useState(
@@ -56,21 +97,374 @@ export default function BookingSummaryScreen({
             '',
         );
 
+    /*
+    ================================================================
+    NORMALIZE OFFER
+    ================================================================
+    */
+
+    const normalizedOffer: Offer | null =
+        useMemo(() => {
+            if (!offer) {
+                return null;
+            }
+
+            return {
+                ...offer,
+
+                discountValue: Number(
+                    offer.discountValue || 0,
+                ),
+
+                minimumBookingAmount:
+                    offer.minimumBookingAmount !==
+                        null &&
+                    offer.minimumBookingAmount !==
+                        undefined
+                        ? Number(
+                            offer.minimumBookingAmount,
+                        )
+                        : null,
+
+                serviceIds:
+                    Array.isArray(
+                        offer.serviceIds,
+                    )
+                        ? offer.serviceIds
+                        : [],
+            };
+        }, [offer]);
+
+    /*
+    ================================================================
+    OFFER VALIDATION FOR DISPLAY
+    ================================================================
+    */
+
+    const isOfferValid = useMemo(() => {
+        if (!normalizedOffer) {
+            return false;
+        }
+
+        /*
+        If status exists, it must be ACTIVE.
+        */
+        if (
+            normalizedOffer.status &&
+            normalizedOffer.status !==
+                'ACTIVE'
+        ) {
+            return false;
+        }
+
+        const now = new Date();
+
+        /*
+        Start date
+        */
+        if (
+            normalizedOffer.startDate
+        ) {
+            const startDate =
+                new Date(
+                    normalizedOffer.startDate,
+                );
+
+            if (
+                !Number.isNaN(
+                    startDate.getTime(),
+                ) &&
+                now < startDate
+            ) {
+                return false;
+            }
+        }
+
+        /*
+        End date
+        */
+        if (
+            normalizedOffer.endDate
+        ) {
+            const endDate =
+                new Date(
+                    normalizedOffer.endDate,
+                );
+
+            if (
+                !Number.isNaN(
+                    endDate.getTime(),
+                ) &&
+                now > endDate
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }, [normalizedOffer]);
+
+    /*
+    ================================================================
+    SERVICE ELIGIBILITY
+    ================================================================
+    */
+
+    const isServiceEligibleForOffer = (
+        service: Service,
+    ) => {
+        if (
+            !normalizedOffer ||
+            !isOfferValid
+        ) {
+            return false;
+        }
+
+        const serviceIds =
+            normalizedOffer.serviceIds ||
+            [];
+
+        /*
+        If specific service IDs exist,
+        only those services are eligible.
+        */
+        if (
+            serviceIds.length > 0
+        ) {
+            return serviceIds.includes(
+                service.serviceId,
+            );
+        }
+
+        /*
+        Otherwise use category if supplied.
+        */
+        if (
+            normalizedOffer.category &&
+            normalizedOffer.category.trim()
+        ) {
+            return (
+                String(
+                    service.category || '',
+                )
+                    .trim()
+                    .toLowerCase() ===
+                String(
+                    normalizedOffer.category,
+                )
+                    .trim()
+                    .toLowerCase()
+            );
+        }
+
+        /*
+        No service IDs and no category:
+        offer applies to all selected services.
+        */
+        return true;
+    };
+
+    /*
+    ================================================================
+    SUBTOTAL
+    ================================================================
+    */
+
     const subtotal = useMemo(() => {
         return services.reduce(
-            (sum: number, item: any) =>
-                sum + Number(item.price || 0),
+            (
+                sum: number,
+                item: Service,
+            ) =>
+                sum +
+                Number(
+                    item.price || 0,
+                ),
             0,
         );
     }, [services]);
 
+    /*
+    ================================================================
+    ELIGIBLE SUBTOTAL
+    ================================================================
+    */
+
+    const eligibleSubtotal =
+        useMemo(() => {
+            return services.reduce(
+                (
+                    sum: number,
+                    item: Service,
+                ) => {
+                    if (
+                        !isServiceEligibleForOffer(
+                            item,
+                        )
+                    ) {
+                        return sum;
+                    }
+
+                    return (
+                        sum +
+                        Number(
+                            item.price || 0,
+                        )
+                    );
+                },
+                0,
+            );
+        }, [
+            services,
+            normalizedOffer,
+            isOfferValid,
+        ]);
+
+    /*
+    ================================================================
+    MINIMUM BOOKING AMOUNT
+    ================================================================
+    */
+
+    const minimumBookingAmountMet =
+        useMemo(() => {
+            if (
+                !normalizedOffer ||
+                normalizedOffer.minimumBookingAmount ===
+                    null ||
+                normalizedOffer.minimumBookingAmount ===
+                    undefined
+            ) {
+                return true;
+            }
+
+            return (
+                subtotal >=
+                Number(
+                    normalizedOffer.minimumBookingAmount,
+                )
+            );
+        }, [
+            normalizedOffer,
+            subtotal,
+        ]);
+
+    /*
+    ================================================================
+    DISCOUNT
+    ================================================================
+    */
+
+    const discountAmount =
+        useMemo(() => {
+            if (
+                !normalizedOffer ||
+                !isOfferValid ||
+                !minimumBookingAmountMet ||
+                eligibleSubtotal <= 0
+            ) {
+                return 0;
+            }
+
+            const discountValue =
+                Number(
+                    normalizedOffer.discountValue ||
+                        0,
+                );
+
+            if (
+                discountValue <= 0
+            ) {
+                return 0;
+            }
+
+            /*
+            PERCENTAGE
+            */
+            if (
+                String(
+                    normalizedOffer.discountType,
+                ).toUpperCase() ===
+                'PERCENTAGE'
+            ) {
+                return Math.min(
+                    eligibleSubtotal,
+                    (
+                        eligibleSubtotal *
+                        discountValue
+                    ) / 100,
+                );
+            }
+
+            /*
+            FIXED
+
+            Fixed discount is applied once
+            to the eligible subtotal.
+            */
+            if (
+                String(
+                    normalizedOffer.discountType,
+                ).toUpperCase() ===
+                'FIXED'
+            ) {
+                return Math.min(
+                    eligibleSubtotal,
+                    discountValue,
+                );
+            }
+
+            return 0;
+        }, [
+            normalizedOffer,
+            isOfferValid,
+            minimumBookingAmountMet,
+            eligibleSubtotal,
+        ]);
+
+    /*
+    ================================================================
+    FINAL SERVICE TOTAL
+    ================================================================
+    */
+
+    const discountedServicesTotal =
+        useMemo(() => {
+            return Math.max(
+                0,
+                subtotal -
+                    discountAmount,
+            );
+        }, [
+            subtotal,
+            discountAmount,
+        ]);
+
+    /*
+    ================================================================
+    DURATION
+    ================================================================
+    */
+
     const duration = useMemo(() => {
         return services.reduce(
-            (sum: number, item: any) =>
-                sum + Number(item.duration || 0),
+            (
+                sum: number,
+                item: Service,
+            ) =>
+                sum +
+                Number(
+                    item.duration || 0,
+                ),
             0,
         );
     }, [services]);
+
+    /*
+    ================================================================
+    PLATFORM FEE + GST
+    ================================================================
+    */
 
     const platformFee = 20;
 
@@ -79,34 +473,223 @@ export default function BookingSummaryScreen({
     );
 
     /*
-     * IMPORTANT:
-     *
-     * We do NOT calculate the offer discount here.
-     *
-     * The backend will:
-     * - fetch the offer
-     * - validate the offer
-     * - validate salon
-     * - validate services
-     * - validate dates
-     * - validate minimum booking amount
-     * - validate usage limits
-     * - calculate the actual discount
-     * - calculate final booking total
-     *
-     * This prevents the customer from manipulating the
-     * discounted amount on the mobile app.
-     *
-     * For display purposes we continue showing the normal
-     * subtotal here.
-     */
+    ================================================================
+    FINAL DISPLAY TOTAL
+    ================================================================
 
-    const total =
-        subtotal +
-        platformFee +
-        gst;
+    Normal booking:
+        services total
+        + platform fee
+        + GST
 
-    const formatTime = (time: string) => {
+    Offer booking:
+        discounted services total
+        + platform fee
+        + GST
+    */
+
+    const total = useMemo(() => {
+        return (
+            discountedServicesTotal +
+            platformFee +
+            gst
+        );
+    }, [
+        discountedServicesTotal,
+        platformFee,
+        gst,
+    ]);
+
+    const offerApplied =
+        Boolean(
+            normalizedOffer &&
+            isOfferValid &&
+            minimumBookingAmountMet &&
+            discountAmount > 0,
+        );
+
+    /*
+    ================================================================
+    INDIVIDUAL SERVICE DISPLAY PRICE
+    ================================================================
+    */
+
+    const getServiceDisplayPrice = (
+        service: Service,
+    ) => {
+        const originalPrice =
+            Number(
+                service.price || 0,
+            );
+
+        if (
+            !offerApplied ||
+            !isServiceEligibleForOffer(
+                service,
+            )
+        ) {
+            return originalPrice;
+        }
+
+        const discountType =
+            String(
+                normalizedOffer?.discountType ||
+                    '',
+            ).toUpperCase();
+
+        /*
+        Percentage offer
+        */
+        if (
+            discountType ===
+            'PERCENTAGE'
+        ) {
+            const percentage =
+                Number(
+                    normalizedOffer
+                        ?.discountValue ||
+                        0,
+                );
+
+            const serviceDiscount =
+                (
+                    originalPrice *
+                    percentage
+                ) / 100;
+
+            return Math.max(
+                0,
+                originalPrice -
+                    serviceDiscount,
+            );
+        }
+
+        /*
+        Fixed offer
+
+        The fixed amount is applied once
+        to the eligible subtotal.
+
+        For display, distribute the
+        discount proportionally.
+        */
+        if (
+            discountType === 'FIXED' &&
+            eligibleSubtotal > 0
+        ) {
+            const serviceShare =
+                originalPrice /
+                eligibleSubtotal;
+
+            const allocatedDiscount =
+                discountAmount *
+                serviceShare;
+
+            return Math.max(
+                0,
+                originalPrice -
+                    allocatedDiscount,
+            );
+        }
+
+        return originalPrice;
+    };
+
+    /*
+    ================================================================
+    OFFER TEXT
+    ================================================================
+    */
+
+    const getOfferDiscountText =
+        () => {
+            if (!normalizedOffer) {
+                return null;
+            }
+
+            if (
+                String(
+                    normalizedOffer.discountType,
+                ).toUpperCase() ===
+                'PERCENTAGE'
+            ) {
+                return `${normalizedOffer.discountValue}% OFF`;
+            }
+
+            if (
+                String(
+                    normalizedOffer.discountType,
+                ).toUpperCase() ===
+                'FIXED'
+            ) {
+                return `₹${normalizedOffer.discountValue} OFF`;
+            }
+
+            return 'Offer Applied';
+        };
+
+    /*
+    ================================================================
+    OFFER MESSAGE
+    ================================================================
+    */
+
+    const offerMessage =
+        useMemo(() => {
+            if (!normalizedOffer) {
+                return null;
+            }
+
+            if (!isOfferValid) {
+                return 'This offer is no longer active.';
+            }
+
+            if (
+                !minimumBookingAmountMet &&
+                normalizedOffer.minimumBookingAmount !==
+                    null &&
+                normalizedOffer.minimumBookingAmount !==
+                    undefined
+            ) {
+                const remaining =
+                    Math.max(
+                        0,
+                        Number(
+                            normalizedOffer.minimumBookingAmount,
+                        ) -
+                            subtotal,
+                    );
+
+                return `Add ₹${remaining.toFixed(
+                    0,
+                )} more to use this offer.`;
+            }
+
+            if (offerApplied) {
+                return `You save ₹${discountAmount.toFixed(
+                    0,
+                )} with this offer.`;
+            }
+
+            return null;
+        }, [
+            normalizedOffer,
+            isOfferValid,
+            minimumBookingAmountMet,
+            subtotal,
+            offerApplied,
+            discountAmount,
+        ]);
+
+    /*
+    ================================================================
+    TIME FORMAT
+    ================================================================
+    */
+
+    const formatTime = (
+        time: string,
+    ) => {
         const [clock, period] =
             time.split(' ');
 
@@ -138,140 +721,145 @@ export default function BookingSummaryScreen({
         )}:${minute}`;
     };
 
-    const getOfferDiscountText = () => {
-        if (!offer) {
-            return null;
-        }
+    /*
+    ================================================================
+    CREATE BOOKING
+    ================================================================
+    */
 
-        if (
-            offer.discountType ===
-            'PERCENTAGE'
-        ) {
-            return `${offer.discountValue}% OFF`;
-        }
+    const confirmBooking =
+        async () => {
+            try {
+                /*
+                IMPORTANT:
 
-        if (
-            offer.discountType ===
-            'FIXED'
-        ) {
-            return `₹${offer.discountValue} OFF`;
-        }
+                We only send offerId.
 
-        return 'Offer Applied';
-    };
+                The backend should:
+                - fetch offer
+                - validate offer
+                - validate salon
+                - validate services
+                - validate dates
+                - validate minimum amount
+                - validate usage limits
+                - calculate discount
+                - calculate final total
+                */
 
-    const confirmBooking = async () => {
-        try {
-            /*
-             * The offer is optional.
-             *
-             * Normal booking:
-             * offerId = undefined
-             *
-             * Offer booking:
-             * offerId = selected offer ID
-             */
+                const finalOfferId =
+                    normalizedOffer
+                        ?.offerId ||
+                    routeOfferId ||
+                    offer?.id;
 
-            const response =
-                await createBooking({
-                    variables: {
-                        input: {
-                            salonId,
+                const response =
+                    await createBooking({
+                        variables: {
+                            input: {
+                                salonId,
 
-                            customerUserId,
+                                customerUserId,
 
-                            bookingDate:
-                                date.date
-                                    .toISOString()
-                                    .split('T')[0],
+                                bookingDate:
+                                    date.date
+                                        .toISOString()
+                                        .split(
+                                            'T',
+                                        )[0],
 
-                            startTime:
-                                formatTime(time),
+                                startTime:
+                                    formatTime(
+                                        time,
+                                    ),
 
-                            paymentMethod:
-                                paymentMethod ===
-                                'ONLINE'
-                                    ? 'ONLINE'
-                                    : 'PAY_AT_SALON',
+                                paymentMethod:
+                                    paymentMethod ===
+                                    'ONLINE'
+                                        ? 'ONLINE'
+                                        : 'PAY_AT_SALON',
 
-                            services:
-                                services.map(
-                                    (
-                                        service: any,
-                                    ) => ({
-                                        serviceId:
-                                            service.serviceId,
-                                    }),
-                                ),
+                                services:
+                                    services.map(
+                                        (
+                                            service: Service,
+                                        ) => ({
+                                            serviceId:
+                                                service.serviceId,
+                                        }),
+                                    ),
 
-                            notes: '',
+                                notes: '',
 
-                            // =========================================
-                            // OFFER
-                            // =========================================
-                            //
-                            // This is the only new value being sent.
-                            //
-                            // Backend will validate and calculate
-                            // the actual discount.
-                            //
-                            ...(offer?.offerId ||
-                                offer?.id
-                                ? {
-                                    offerId:
-                                        offer.offerId ||
-                                        offer.id,
-                                }
-                                : {}),
+                                /*
+                                OFFER
+
+                                Normal booking:
+                                    no offerId
+
+                                Offer booking:
+                                    offerId is sent
+                                */
+                                ...(finalOfferId
+                                    ? {
+                                        offerId:
+                                            finalOfferId,
+                                    }
+                                    : {}),
+                            },
                         },
-                    },
-                });
+                    });
 
-            console.log(
-                'createBooking response:',
-                response.data,
-            );
-
-            if (
-                response.data
-                    ?.createBooking
-                    ?.success
-            ) {
-                navigation.replace(
-                    'BookingRequestSent',
-                    {
-                        booking:
-                            response.data
-                                .createBooking
-                                .booking,
-                    },
+                console.log(
+                    'createBooking response:',
+                    response.data,
                 );
-            } else {
-                Alert.alert(
+
+                if (
                     response.data
                         ?.createBooking
-                        ?.message ||
-                    'Unable to create booking.',
+                        ?.success
+                ) {
+                    navigation.replace(
+                        'BookingRequestSent',
+                        {
+                            booking:
+                                response.data
+                                    .createBooking
+                                    .booking,
+                        },
+                    );
+                } else {
+                    Alert.alert(
+                        response.data
+                            ?.createBooking
+                            ?.message ||
+                            'Unable to create booking.',
+                    );
+                }
+            } catch (err: any) {
+                console.error(
+                    'Create booking error:',
+                    err,
+                );
+
+                Alert.alert(
+                    err?.message ||
+                        'Something went wrong while creating the booking.',
                 );
             }
-        } catch (err: any) {
-            console.error(
-                'Create booking error:',
-                err,
-            );
+        };
 
-            Alert.alert(
-                err?.message ||
-                'Something went wrong while creating the booking.',
-            );
-        }
-    };
+    /*
+    ================================================================
+    RENDER
+    ================================================================
+    */
 
     return (
         <SafeAreaView
             style={styles.container}
         >
-
             {/* ===================================================== */}
             {/* BACK */}
             {/* ===================================================== */}
@@ -281,7 +869,9 @@ export default function BookingSummaryScreen({
                     navigation.goBack()
                 }
             >
-                <Text style={styles.back}>
+                <Text
+                    style={styles.back}
+                >
                     ←
                 </Text>
             </TouchableOpacity>
@@ -339,6 +929,7 @@ export default function BookingSummaryScreen({
                                 {salon
                                     ?.address
                                     ?.addressLine}
+
                                 {salon
                                     ?.address
                                     ?.city
@@ -382,6 +973,58 @@ export default function BookingSummaryScreen({
                         </View>
 
                         {/* ========================================= */}
+                        {/* OFFER SUMMARY */}
+                        {/* ========================================= */}
+
+                        {offer && (
+                            <View
+                                style={
+                                    styles.offerTopCard
+                                }
+                            >
+                                <View
+                                    style={{
+                                        flex: 1,
+                                    }}
+                                >
+                                    <Text
+                                        style={
+                                            styles.offerTopTitle
+                                        }
+                                    >
+                                        {offer.title ||
+                                            'Special Offer'}
+                                    </Text>
+
+                                    {offerMessage && (
+                                        <Text
+                                            style={
+                                                styles.offerTopMessage
+                                            }
+                                        >
+                                            {
+                                                offerMessage
+                                            }
+                                        </Text>
+                                    )}
+                                </View>
+
+                                {offerApplied && (
+                                    <Text
+                                        style={
+                                            styles.offerTopDiscount
+                                        }
+                                    >
+                                        -₹
+                                        {discountAmount.toFixed(
+                                            0,
+                                        )}
+                                    </Text>
+                                )}
+                            </View>
+                        )}
+
+                        {/* ========================================= */}
                         {/* SELECTED SERVICES */}
                         {/* ========================================= */}
 
@@ -407,40 +1050,103 @@ export default function BookingSummaryScreen({
 
                 renderItem={({
                     item,
-                }) => (
-                    <View
-                        style={
-                            styles.serviceRow
-                        }
-                    >
-                        <View>
-                            <Text
-                                style={
-                                    styles.service
-                                }
-                            >
-                                {item.name}
-                            </Text>
+                }) => {
+                    const originalPrice =
+                        Number(
+                            item.price ||
+                                0,
+                        );
 
-                            <Text
-                                style={
-                                    styles.duration
-                                }
-                            >
-                                {item.duration}{' '}
-                                mins
-                            </Text>
-                        </View>
+                    const displayPrice =
+                        getServiceDisplayPrice(
+                            item,
+                        );
 
-                        <Text
+                    const hasDiscount =
+                        displayPrice <
+                        originalPrice;
+
+                    const eligible =
+                        isServiceEligibleForOffer(
+                            item,
+                        );
+
+                    return (
+                        <View
                             style={
-                                styles.price
+                                styles.serviceRow
                             }
                         >
-                            ₹{item.price}
-                        </Text>
-                    </View>
-                )}
+                            <View
+                                style={
+                                    styles.serviceInfo
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.service
+                                    }
+                                >
+                                    {item.name}
+                                </Text>
+
+                                <Text
+                                    style={
+                                        styles.duration
+                                    }
+                                >
+                                    {
+                                        item.duration
+                                    }{' '}
+                                    mins
+                                </Text>
+
+                                {offerApplied &&
+                                    eligible && (
+                                        <Text
+                                            style={
+                                                styles.eligibleText
+                                            }
+                                        >
+                                            Offer applied
+                                        </Text>
+                                    )}
+                            </View>
+
+                            <View
+                                style={
+                                    styles.priceContainer
+                                }
+                            >
+                                {hasDiscount && (
+                                    <Text
+                                        style={
+                                            styles.originalPrice
+                                        }
+                                    >
+                                        ₹
+                                        {originalPrice.toFixed(
+                                            0,
+                                        )}
+                                    </Text>
+                                )}
+
+                                <Text
+                                    style={[
+                                        styles.price,
+                                        hasDiscount &&
+                                            styles.discountedPrice,
+                                    ]}
+                                >
+                                    ₹
+                                    {displayPrice.toFixed(
+                                        0,
+                                    )}
+                                </Text>
+                            </View>
+                        </View>
+                    );
+                }}
 
                 /* ================================================= */
                 /* FOOTER */
@@ -466,7 +1172,8 @@ export default function BookingSummaryScreen({
                             </Text>
 
                             <Text>
-                                {duration} mins
+                                {duration}{' '}
+                                mins
                             </Text>
                         </View>
 
@@ -557,9 +1264,7 @@ export default function BookingSummaryScreen({
                                             styles.offerDiscount
                                         }
                                     >
-                                        {
-                                            getOfferDiscountText()
-                                        }
+                                        {getOfferDiscountText()}
                                     </Text>
                                 </View>
                             ) : (
@@ -599,7 +1304,7 @@ export default function BookingSummaryScreen({
                                 Payment
                             </Text>
 
-                            {/* SERVICES */}
+                            {/* ORIGINAL SERVICES */}
 
                             <View
                                 style={
@@ -610,14 +1315,36 @@ export default function BookingSummaryScreen({
                                     Services
                                 </Text>
 
-                                <Text>
-                                    ₹{subtotal}
-                                </Text>
+                                <View
+                                    style={
+                                        styles.paymentPriceContainer
+                                    }
+                                >
+                                    {offerApplied && (
+                                        <Text
+                                            style={
+                                                styles.paymentOriginalPrice
+                                            }
+                                        >
+                                            ₹
+                                            {subtotal.toFixed(
+                                                0,
+                                            )}
+                                        </Text>
+                                    )}
+
+                                    <Text>
+                                        ₹
+                                        {discountedServicesTotal.toFixed(
+                                            0,
+                                        )}
+                                    </Text>
+                                </View>
                             </View>
 
-                            {/* OFFER */}
+                            {/* OFFER DISCOUNT */}
 
-                            {offer && (
+                            {offerApplied && (
                                 <View
                                     style={
                                         styles.row
@@ -633,13 +1360,34 @@ export default function BookingSummaryScreen({
 
                                     <Text
                                         style={
-                                            styles.discountPending
+                                            styles.discountValue
                                         }
                                     >
-                                        Applied at checkout
+                                        -₹
+                                        {discountAmount.toFixed(
+                                            0,
+                                        )}
                                     </Text>
                                 </View>
                             )}
+
+                            {/* MINIMUM AMOUNT MESSAGE */}
+
+                            {offer &&
+                                !offerApplied &&
+                                !minimumBookingAmountMet && (
+                                    <Text
+                                        style={
+                                            styles.minimumAmountText
+                                        }
+                                    >
+                                        Add more services
+                                        to meet the
+                                        minimum booking
+                                        amount for this
+                                        offer.
+                                    </Text>
+                                )}
 
                             {/* PLATFORM FEE */}
 
@@ -653,7 +1401,8 @@ export default function BookingSummaryScreen({
                                 </Text>
 
                                 <Text>
-                                    ₹{platformFee}
+                                    ₹
+                                    {platformFee}
                                 </Text>
                             </View>
 
@@ -689,23 +1438,34 @@ export default function BookingSummaryScreen({
                                             '700',
                                     }}
                                 >
-                                    {offer
-                                        ? 'Estimated Total'
-                                        : 'Total'}
+                                    Total
                                 </Text>
 
                                 <Text
-                                    style={{
-                                        fontWeight:
-                                            '700',
-                                        color:
-                                            PRIMARY,
-                                        fontSize: 18,
-                                    }}
+                                    style={
+                                        styles.totalPrice
+                                    }
                                 >
-                                    ₹{total}
+                                    ₹
+                                    {total.toFixed(
+                                        0,
+                                    )}
                                 </Text>
                             </View>
+
+                            {offerApplied && (
+                                <Text
+                                    style={
+                                        styles.savingsText
+                                    }
+                                >
+                                    You save ₹
+                                    {discountAmount.toFixed(
+                                        0,
+                                    )} with this
+                                    offer.
+                                </Text>
+                            )}
 
                             {offer && (
                                 <Text
@@ -713,9 +1473,9 @@ export default function BookingSummaryScreen({
                                         styles.backendNote
                                     }
                                 >
-                                    Final offer discount
-                                    and total will be
-                                    verified when the
+                                    The final offer
+                                    discount will be
+                                    verified when your
                                     booking is created.
                                 </Text>
                             )}
@@ -725,22 +1485,22 @@ export default function BookingSummaryScreen({
                         {/* PAYMENT METHOD */}
                         {/* ========================================= */}
 
-                        <View
+                        {/* <View
                             style={
                                 styles.card
                             }
-                        >
-                            <Text
+                        > */}
+                            {/* <Text
                                 style={
                                     styles.sectionTitle
                                 }
                             >
                                 Payment Method
-                            </Text>
+                            </Text> */}
 
                             {/* PAY AT SALON */}
 
-                            <TouchableOpacity
+                            {/* <TouchableOpacity
                                 style={
                                     styles.option
                                 }
@@ -757,11 +1517,11 @@ export default function BookingSummaryScreen({
                                         : '⚪'}{' '}
                                     Pay at Salon
                                 </Text>
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
 
                             {/* ONLINE */}
 
-                            <TouchableOpacity
+                            {/* <TouchableOpacity
                                 style={
                                     styles.option
                                 }
@@ -778,8 +1538,8 @@ export default function BookingSummaryScreen({
                                         : '⚪'}{' '}
                                     Pay Online
                                 </Text>
-                            </TouchableOpacity>
-                        </View>
+                            </TouchableOpacity> */}
+                        {/* </View> */}
 
                         {/* ========================================= */}
                         {/* CONFIRM */}
@@ -789,7 +1549,9 @@ export default function BookingSummaryScreen({
                             style={
                                 styles.confirm
                             }
-                            disabled={loading}
+                            disabled={
+                                loading
+                            }
                             onPress={
                                 confirmBooking
                             }
@@ -851,6 +1613,49 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
 
+    /*
+    ================================================================
+    OFFER TOP CARD
+    ================================================================
+    */
+
+    offerTopCard: {
+        backgroundColor: '#EAF8F3',
+        marginHorizontal: 15,
+        marginBottom: 15,
+        borderRadius: 14,
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#B9E5D5',
+    },
+
+    offerTopTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: PRIMARY,
+    },
+
+    offerTopMessage: {
+        marginTop: 4,
+        color: '#176B53',
+        fontSize: 13,
+    },
+
+    offerTopDiscount: {
+        marginLeft: 12,
+        fontSize: 18,
+        fontWeight: '800',
+        color: PRIMARY,
+    },
+
+    /*
+    ================================================================
+    SERVICES
+    ================================================================
+    */
+
     serviceRow: {
         backgroundColor: '#FFF',
         marginHorizontal: 15,
@@ -858,7 +1663,14 @@ const styles = StyleSheet.create({
         padding: 18,
         borderRadius: 14,
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent:
+            'space-between',
+        alignItems: 'center',
+    },
+
+    serviceInfo: {
+        flex: 1,
+        paddingRight: 10,
     },
 
     service: {
@@ -871,11 +1683,39 @@ const styles = StyleSheet.create({
         color: '#777',
     },
 
+    eligibleText: {
+        marginTop: 4,
+        color: PRIMARY,
+        fontSize: 11,
+        fontWeight: '700',
+    },
+
+    priceContainer: {
+        alignItems: 'flex-end',
+    },
+
+    originalPrice: {
+        color: '#999',
+        fontSize: 13,
+        textDecorationLine:
+            'line-through',
+    },
+
     price: {
         color: PRIMARY,
         fontWeight: '700',
         fontSize: 18,
     },
+
+    discountedPrice: {
+        color: PRIMARY,
+    },
+
+    /*
+    ================================================================
+    PROMO
+    ================================================================
+    */
 
     input: {
         borderWidth: 1,
@@ -927,14 +1767,60 @@ const styles = StyleSheet.create({
         color: PRIMARY,
     },
 
-    discountLabel: {
-        fontWeight: '600',
+    /*
+    ================================================================
+    PAYMENT
+    ================================================================
+    */
+
+    row: {
+        flexDirection: 'row',
+        justifyContent:
+            'space-between',
+        alignItems: 'center',
+        marginVertical: 6,
     },
 
-    discountPending: {
-        color: PRIMARY,
+    paymentPriceContainer: {
+        alignItems: 'flex-end',
+    },
+
+    paymentOriginalPrice: {
+        color: '#999',
         fontSize: 12,
+        textDecorationLine:
+            'line-through',
+    },
+
+    discountLabel: {
         fontWeight: '600',
+        color: PRIMARY,
+    },
+
+    discountValue: {
+        color: PRIMARY,
+        fontWeight: '700',
+    },
+
+    minimumAmountText: {
+        marginTop: 8,
+        marginBottom: 8,
+        color: '#C47A00',
+        fontSize: 12,
+        lineHeight: 18,
+    },
+
+    totalPrice: {
+        fontWeight: '700',
+        color: PRIMARY,
+        fontSize: 18,
+    },
+
+    savingsText: {
+        marginTop: 10,
+        color: '#16845E',
+        fontWeight: '700',
+        fontSize: 13,
     },
 
     backendNote: {
@@ -944,15 +1830,21 @@ const styles = StyleSheet.create({
         color: '#777',
     },
 
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginVertical: 6,
-    },
+    /*
+    ================================================================
+    PAYMENT METHOD
+    ================================================================
+    */
 
     option: {
         marginVertical: 10,
     },
+
+    /*
+    ================================================================
+    CONFIRM
+    ================================================================
+    */
 
     confirm: {
         marginHorizontal: 20,
@@ -960,18 +1852,21 @@ const styles = StyleSheet.create({
         backgroundColor: PRIMARY,
         height: 55,
         borderRadius: 28,
-        justifyContent: 'center',
+        justifyContent:
+            'center',
         alignItems: 'center',
-    },
-
-    back: {
-        fontSize: 28,
-        fontWeight: '700',
     },
 
     confirmText: {
         color: '#FFF',
         fontWeight: '700',
         fontSize: 17,
+    },
+
+    back: {
+        fontSize: 28,
+        fontWeight: '700',
+        marginLeft: 10,
+        marginTop: 5,
     },
 });

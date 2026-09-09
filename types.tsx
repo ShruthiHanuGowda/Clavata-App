@@ -143,6 +143,9 @@ export type WalletStackParamList = {
     offerId: string;
     offer: any;
   };
+  BookingDateTime: undefined;
+  BookingSummary: undefined;
+  BookingRequestSent: undefined
 };
 
 export type CoinWalletStackParamList = {

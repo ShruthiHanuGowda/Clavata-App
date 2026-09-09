@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+import React, {
+    useEffect,
+    useMemo,
+    useState,
+} from 'react';
+
 import {
     SafeAreaView,
     View,
@@ -47,9 +52,19 @@ type Service = {
 };
 
 type BusinessDay = {
-    open: string;
-    close: string;
-    isOpen: boolean;
+    open?: string;
+    close?: string;
+    isOpen?: boolean;
+};
+
+type BusinessHours = {
+    MONDAY?: BusinessDay;
+    TUESDAY?: BusinessDay;
+    WEDNESDAY?: BusinessDay;
+    THURSDAY?: BusinessDay;
+    FRIDAY?: BusinessDay;
+    SATURDAY?: BusinessDay;
+    SUNDAY?: BusinessDay;
 };
 
 type Salon = {
@@ -74,15 +89,56 @@ type Salon = {
 
     salonStatus?: string;
 
-    businessHours?: {
-        MONDAY: BusinessDay;
-        TUESDAY: BusinessDay;
-        WEDNESDAY: BusinessDay;
-        THURSDAY: BusinessDay;
-        FRIDAY: BusinessDay;
-        SATURDAY: BusinessDay;
-        SUNDAY: BusinessDay;
-    };
+    /**
+     * Some API responses may return:
+     *
+     * salon.MONDAY
+     *
+     * while others may return:
+     *
+     * salon.businessHours.MONDAY
+     *
+     * Support both.
+     */
+    MONDAY?: BusinessDay;
+    TUESDAY?: BusinessDay;
+    WEDNESDAY?: BusinessDay;
+    THURSDAY?: BusinessDay;
+    FRIDAY?: BusinessDay;
+    SATURDAY?: BusinessDay;
+    SUNDAY?: BusinessDay;
+
+    businessHours?: BusinessHours;
+};
+
+type Offer = {
+    offerId: string;
+    salonId: string;
+    salonName?: string;
+    title: string;
+    description?: string;
+
+    discountType:
+        | 'PERCENTAGE'
+        | 'FIXED'
+        | string;
+
+    discountValue: number;
+
+    couponCode?: string | null;
+
+    minimumBookingAmount?:
+        | number
+        | null;
+
+    category?: string | null;
+
+    serviceIds: string[];
+
+    startDate?: string;
+    endDate?: string;
+
+    status?: string;
 };
 
 export default function SalonDetailsScreen({
@@ -91,8 +147,28 @@ export default function SalonDetailsScreen({
 }: Props) {
     const { currentUser } = useUser();
 
-    const salonId = route.params?.salonId;
+    const salonId =
+        route.params?.salonId;
 
+    /**
+     * ----------------------------------------------------
+     * OFFER FROM PREVIOUS SCREEN
+     * ----------------------------------------------------
+     */
+    const routeOffer =
+        route.params?.offer ?? null;
+
+    const routeOfferId =
+        route.params?.offerId ??
+        routeOffer?.offerId ??
+        routeOffer?.id ??
+        null;
+
+    /**
+     * ----------------------------------------------------
+     * SELECTED SERVICES
+     * ----------------------------------------------------
+     */
     const [selectedServices, setSelectedServices] =
         useState<Service[]>([]);
 
@@ -100,9 +176,6 @@ export default function SalonDetailsScreen({
      * ----------------------------------------------------
      * FAVORITE LOCAL STATE
      * ----------------------------------------------------
-     *
-     * Local state prevents the heart from visually
-     * resetting while Apollo is loading/refetching.
      */
     const [isFavorite, setIsFavorite] =
         useState(false);
@@ -150,272 +223,746 @@ export default function SalonDetailsScreen({
     const services: Service[] = (
         servicesData?.listServices ?? []
     ).filter(
-        (service: Service) => service.active,
+        (service: Service) =>
+            service.active,
     );
 
     /**
      * ----------------------------------------------------
-     * GET FAVORITE STATUS
+     * NORMALIZE OFFER
+     * ----------------------------------------------------
+     */
+    const normalizedOffer:
+        | Offer
+        | null = useMemo(() => {
+        if (!routeOffer) {
+            return null;
+        }
+
+        return {
+            ...routeOffer,
+
+            discountValue: Number(
+                routeOffer.discountValue || 0,
+            ),
+
+            minimumBookingAmount:
+                routeOffer.minimumBookingAmount !==
+                    null &&
+                routeOffer.minimumBookingAmount !==
+                    undefined
+                    ? Number(
+                        routeOffer.minimumBookingAmount,
+                    )
+                    : null,
+
+            serviceIds:
+                Array.isArray(
+                    routeOffer.serviceIds,
+                )
+                    ? routeOffer.serviceIds
+                    : [],
+        };
+    }, [routeOffer]);
+
+    /**
+     * ----------------------------------------------------
+     * OFFER VALIDITY
+     * ----------------------------------------------------
+     */
+    const isOfferValid =
+        useMemo(() => {
+            if (!normalizedOffer) {
+                return false;
+            }
+
+            if (
+                normalizedOffer.status &&
+                String(
+                    normalizedOffer.status,
+                ).toUpperCase() !== 'ACTIVE'
+            ) {
+                return false;
+            }
+
+            const now = new Date();
+
+            if (
+                normalizedOffer.startDate
+            ) {
+                const startDate =
+                    new Date(
+                        normalizedOffer.startDate,
+                    );
+
+                if (
+                    !Number.isNaN(
+                        startDate.getTime(),
+                    ) &&
+                    now < startDate
+                ) {
+                    return false;
+                }
+            }
+
+            if (
+                normalizedOffer.endDate
+            ) {
+                const endDate =
+                    new Date(
+                        normalizedOffer.endDate,
+                    );
+
+                if (
+                    !Number.isNaN(
+                        endDate.getTime(),
+                    ) &&
+                    now > endDate
+                ) {
+                    return false;
+                }
+            }
+
+            return true;
+        }, [normalizedOffer]);
+
+    /**
+     * ----------------------------------------------------
+     * CHECK SERVICE ELIGIBILITY
+     * ----------------------------------------------------
+     *
+     * Priority:
+     *
+     * 1. serviceIds
+     * 2. category
+     * 3. all services
+     */
+    const isServiceEligibleForOffer = (
+        service: Service,
+    ): boolean => {
+        if (
+            !normalizedOffer ||
+            !isOfferValid
+        ) {
+            return false;
+        }
+
+        const serviceIds =
+            normalizedOffer.serviceIds ||
+            [];
+
+        if (
+            serviceIds.length > 0
+        ) {
+            return serviceIds.includes(
+                service.serviceId,
+            );
+        }
+
+        if (
+            normalizedOffer.category &&
+            normalizedOffer.category.trim()
+        ) {
+            return (
+                String(
+                    service.category || '',
+                )
+                    .trim()
+                    .toLowerCase() ===
+                String(
+                    normalizedOffer.category,
+                )
+                    .trim()
+                    .toLowerCase()
+            );
+        }
+
+        return true;
+    };
+
+    /**
+     * ----------------------------------------------------
+     * FAVORITE STATUS
      * ----------------------------------------------------
      */
     const {
         data: favoriteData,
-        loading: favoriteStatusLoading,
-        refetch: refetchFavoriteStatus,
-    } = useQuery(IS_FAVORITE_SALON, {
-        variables: {
-            userId: currentUser?.userId ?? '',
-            salonId,
+        loading:
+            favoriteStatusLoading,
+        refetch:
+            refetchFavoriteStatus,
+    } = useQuery(
+        IS_FAVORITE_SALON,
+        {
+            variables: {
+                userId:
+                    currentUser?.userId ??
+                    '',
+                salonId,
+            },
+
+            skip:
+                !currentUser?.userId ||
+                !salonId,
+
+            fetchPolicy:
+                'network-only',
+
+            notifyOnNetworkStatusChange:
+                true,
         },
-
-        skip:
-            !currentUser?.userId ||
-            !salonId,
-
-        fetchPolicy: 'network-only',
-
-        notifyOnNetworkStatusChange: true,
-    });
+    );
 
     /**
      * ----------------------------------------------------
-     * SYNC BACKEND FAVORITE STATUS
+     * SYNC FAVORITE STATE
      * ----------------------------------------------------
      */
-    React.useEffect(() => {
+    useEffect(() => {
         if (
             favoriteData &&
-            favoriteData.isFavoriteSalon !== undefined
+            favoriteData.isFavoriteSalon !==
+                undefined
         ) {
             setIsFavorite(
-                favoriteData.isFavoriteSalon === true,
+                favoriteData.isFavoriteSalon ===
+                    true,
             );
         }
     }, [favoriteData]);
 
     /**
      * ----------------------------------------------------
-     * ADD FAVORITE
+     * FAVORITE MUTATIONS
      * ----------------------------------------------------
      */
     const [addFavorite] =
-        useMutation(ADD_FAVORITE_SALON);
+        useMutation(
+            ADD_FAVORITE_SALON,
+        );
 
-    /**
-     * ----------------------------------------------------
-     * REMOVE FAVORITE
-     * ----------------------------------------------------
-     */
     const [removeFavorite] =
-        useMutation(REMOVE_FAVORITE_SALON);
+        useMutation(
+            REMOVE_FAVORITE_SALON,
+        );
 
     /**
      * ----------------------------------------------------
      * TOGGLE FAVORITE
      * ----------------------------------------------------
      */
-    const handleFavorite = async () => {
-        /**
-         * User must be logged in.
-         */
-        if (!currentUser?.userId) {
-            Alert.alert(
-                'Login required',
-                'Please login to add salons to your favorites.',
-            );
+    const handleFavorite =
+        async () => {
+            if (
+                !currentUser?.userId
+            ) {
+                Alert.alert(
+                    'Login required',
+                    'Please login to add salons to your favorites.',
+                );
 
-            return;
-        }
+                return;
+            }
 
-        /**
-         * Salon ID must exist.
-         */
-        if (!salonId) {
-            console.log(
-                'Salon ID is missing',
-            );
+            if (!salonId) {
+                console.log(
+                    'Salon ID is missing',
+                );
 
-            return;
-        }
+                return;
+            }
 
-        /**
-         * Prevent duplicate clicks.
-         */
-        if (favoriteLoading) {
-            return;
-        }
+            if (favoriteLoading) {
+                return;
+            }
 
-        try {
-            setFavoriteLoading(true);
-
-            /**
-             * Save previous state.
-             *
-             * This is important for rollback if
-             * the backend request fails.
-             */
             const previousState =
                 isFavorite;
 
-            /**
-             * ------------------------------------------------
-             * OPTIMISTIC UI
-             * ------------------------------------------------
-             *
-             * Change the heart immediately.
-             */
-            setIsFavorite(
-                !previousState,
-            );
-
-            /**
-             * ------------------------------------------------
-             * REMOVE FAVORITE
-             * ------------------------------------------------
-             */
-            if (previousState) {
-                const { data } =
-                    await removeFavorite({
-                        variables: {
-                            input: {
-                                userId:
-                                    currentUser.userId,
-
-                                salonId,
-                            },
-                        },
-                    });
-
-                console.log(
-                    'Remove favorite response:',
-                    data?.removeFavoriteSalon,
+            try {
+                setFavoriteLoading(
+                    true,
                 );
 
                 /**
-                 * Backend failed.
-                 *
-                 * Restore previous heart.
+                 * Optimistic UI.
+                 */
+                setIsFavorite(
+                    !previousState,
+                );
+
+                /**
+                 * REMOVE
                  */
                 if (
-                    !data?.removeFavoriteSalon
-                        ?.success
+                    previousState
                 ) {
-                    setIsFavorite(
-                        previousState,
-                    );
+                    const { data } =
+                        await removeFavorite(
+                            {
+                                variables: {
+                                    input: {
+                                        userId:
+                                            currentUser.userId,
+
+                                        salonId,
+                                    },
+                                },
+                            },
+                        );
 
                     console.log(
-                        'Remove favorite failed:',
-                        data
+                        'Remove favorite response:',
+                        data?.removeFavoriteSalon,
+                    );
+
+                    if (
+                        !data
                             ?.removeFavoriteSalon
-                            ?.message,
-                    );
+                            ?.success
+                    ) {
+                        setIsFavorite(
+                            previousState,
+                        );
+
+                        console.log(
+                            'Remove favorite failed:',
+                            data
+                                ?.removeFavoriteSalon
+                                ?.message,
+                        );
+                    }
                 }
-            }
 
-            /**
-             * ------------------------------------------------
-             * ADD FAVORITE
-             * ------------------------------------------------
-             */
-            else {
-                const { data } =
-                    await addFavorite({
-                        variables: {
-                            input: {
-                                userId:
-                                    currentUser.userId,
+                /**
+                 * ADD
+                 */
+                else {
+                    const { data } =
+                        await addFavorite(
+                            {
+                                variables: {
+                                    input: {
+                                        userId:
+                                            currentUser.userId,
 
-                                salonId,
+                                        salonId,
+                                    },
+                                },
                             },
-                        },
-                    });
+                        );
 
-                console.log(
-                    'Add favorite response:',
-                    data?.addFavoriteSalon,
+                    console.log(
+                        'Add favorite response:',
+                        data?.addFavoriteSalon,
+                    );
+
+                    if (
+                        !data
+                            ?.addFavoriteSalon
+                            ?.success
+                    ) {
+                        setIsFavorite(
+                            previousState,
+                        );
+
+                        console.log(
+                            'Add favorite failed:',
+                            data
+                                ?.addFavoriteSalon
+                                ?.message,
+                        );
+                    }
+                }
+
+                await refetchFavoriteStatus();
+            } catch (error) {
+                console.error(
+                    'Favorite salon error:',
+                    error,
                 );
 
                 /**
-                 * Backend failed.
-                 *
-                 * Restore previous heart.
+                 * Rollback to the actual
+                 * previous state.
                  */
-                if (
-                    !data?.addFavoriteSalon
-                        ?.success
-                ) {
-                    setIsFavorite(
-                        previousState,
-                    );
-
-                    console.log(
-                        'Add favorite failed:',
-                        data
-                            ?.addFavoriteSalon
-                            ?.message,
-                    );
-                }
+                setIsFavorite(
+                    previousState,
+                );
+            } finally {
+                setFavoriteLoading(
+                    false,
+                );
             }
-
-            /**
-             * ------------------------------------------------
-             * REFRESH BACKEND STATUS
-             * ------------------------------------------------
-             *
-             * Makes sure UI and DynamoDB agree.
-             */
-            await refetchFavoriteStatus();
-        } catch (error) {
-            console.error(
-                'Favorite salon error:',
-                error,
-            );
-
-            /**
-             * Roll back to the state that existed
-             * before the request.
-             */
-            setIsFavorite(
-                isFavorite
-                    ? true
-                    : false,
-            );
-        } finally {
-            setFavoriteLoading(false);
-        }
-    };
+        };
 
     /**
      * ----------------------------------------------------
      * CATEGORIES
      * ----------------------------------------------------
      */
-    const categories = Array.from(
-        new Set(
-            services
-                .map(
-                    service =>
-                        service.category,
-                )
-                .filter(Boolean),
-        ),
-    );
+    const categories =
+        Array.from(
+            new Set(
+                services
+                    .map(
+                        service =>
+                            service.category,
+                    )
+                    .filter(Boolean),
+            ),
+        );
 
     /**
      * ----------------------------------------------------
-     * TOTAL PRICE
+     * ORIGINAL SELECTED SERVICES SUBTOTAL
      * ----------------------------------------------------
      */
-    const totalPrice =
-        selectedServices.reduce(
-            (sum, item) =>
-                sum +
+    const subtotal =
+        useMemo(() => {
+            return selectedServices.reduce(
+                (
+                    sum,
+                    item,
+                ) =>
+                    sum +
+                    Number(
+                        item.price || 0,
+                    ),
+                0,
+            );
+        }, [selectedServices]);
+
+    /**
+     * ----------------------------------------------------
+     * OFFER ELIGIBLE SUBTOTAL
+     * ----------------------------------------------------
+     */
+    const eligibleSubtotal =
+        useMemo(() => {
+            return selectedServices.reduce(
+                (
+                    sum,
+                    item,
+                ) => {
+                    if (
+                        !isServiceEligibleForOffer(
+                            item,
+                        )
+                    ) {
+                        return sum;
+                    }
+
+                    return (
+                        sum +
+                        Number(
+                            item.price || 0,
+                        )
+                    );
+                },
+                0,
+            );
+        }, [
+            selectedServices,
+            normalizedOffer,
+            isOfferValid,
+        ]);
+
+    /**
+     * ----------------------------------------------------
+     * MINIMUM BOOKING AMOUNT
+     * ----------------------------------------------------
+     */
+    const minimumBookingAmountMet =
+        useMemo(() => {
+            if (
+                !normalizedOffer ||
+                normalizedOffer.minimumBookingAmount ===
+                    null ||
+                normalizedOffer.minimumBookingAmount ===
+                    undefined
+            ) {
+                return true;
+            }
+
+            return (
+                subtotal >=
                 Number(
-                    item.price || 0,
-                ),
-            0,
+                    normalizedOffer.minimumBookingAmount,
+                )
+            );
+        }, [
+            normalizedOffer,
+            subtotal,
+        ]);
+
+    /**
+     * ----------------------------------------------------
+     * DISCOUNT AMOUNT
+     * ----------------------------------------------------
+     */
+    const discountAmount =
+        useMemo(() => {
+            if (
+                !normalizedOffer ||
+                !isOfferValid ||
+                !minimumBookingAmountMet ||
+                eligibleSubtotal <= 0
+            ) {
+                return 0;
+            }
+
+            const discountValue =
+                Number(
+                    normalizedOffer.discountValue ||
+                        0,
+                );
+
+            if (
+                discountValue <= 0
+            ) {
+                return 0;
+            }
+
+            /**
+             * PERCENTAGE
+             */
+            if (
+                String(
+                    normalizedOffer.discountType,
+                ).toUpperCase() ===
+                'PERCENTAGE'
+            ) {
+                return Math.min(
+                    eligibleSubtotal,
+                    (
+                        eligibleSubtotal *
+                        discountValue
+                    ) / 100,
+                );
+            }
+
+            /**
+             * FIXED
+             */
+            if (
+                String(
+                    normalizedOffer.discountType,
+                ).toUpperCase() ===
+                'FIXED'
+            ) {
+                return Math.min(
+                    eligibleSubtotal,
+                    discountValue,
+                );
+            }
+
+            return 0;
+        }, [
+            normalizedOffer,
+            isOfferValid,
+            minimumBookingAmountMet,
+            eligibleSubtotal,
+        ]);
+
+    /**
+     * ----------------------------------------------------
+     * FINAL DISPLAY TOTAL
+     * ----------------------------------------------------
+     */
+    const discountedServicesTotal =
+        useMemo(() => {
+            return Math.max(
+                0,
+                subtotal -
+                    discountAmount,
+            );
+        }, [
+            subtotal,
+            discountAmount,
+        ]);
+
+    const offerApplied =
+        Boolean(
+            normalizedOffer &&
+            isOfferValid &&
+            minimumBookingAmountMet &&
+            discountAmount > 0,
         );
+
+    /**
+     * ----------------------------------------------------
+     * SERVICE DISPLAY PRICE
+     * ----------------------------------------------------
+     */
+    const getServiceDisplayPrice =
+        (
+            service: Service,
+        ): number => {
+            const originalPrice =
+                Number(
+                    service.price || 0,
+                );
+
+            if (
+                !offerApplied ||
+                !isServiceEligibleForOffer(
+                    service,
+                )
+            ) {
+                return originalPrice;
+            }
+
+            const discountType =
+                String(
+                    normalizedOffer?.discountType ||
+                        '',
+                ).toUpperCase();
+
+            /**
+             * Percentage offer.
+             */
+            if (
+                discountType ===
+                'PERCENTAGE'
+            ) {
+                const percentage =
+                    Number(
+                        normalizedOffer?.discountValue ||
+                            0,
+                    );
+
+                const serviceDiscount =
+                    (
+                        originalPrice *
+                        percentage
+                    ) / 100;
+
+                return Math.max(
+                    0,
+                    originalPrice -
+                        serviceDiscount,
+                );
+            }
+
+            /**
+             * Fixed offer.
+             */
+            if (
+                discountType ===
+                    'FIXED' &&
+                eligibleSubtotal >
+                    0
+            ) {
+                const serviceShare =
+                    originalPrice /
+                    eligibleSubtotal;
+
+                const allocatedDiscount =
+                    discountAmount *
+                    serviceShare;
+
+                return Math.max(
+                    0,
+                    originalPrice -
+                        allocatedDiscount,
+                );
+            }
+
+            return originalPrice;
+        };
+
+    /**
+     * ----------------------------------------------------
+     * OFFER DISCOUNT TEXT
+     * ----------------------------------------------------
+     */
+    const getOfferDiscountText =
+        () => {
+            if (
+                !normalizedOffer
+            ) {
+                return '';
+            }
+
+            if (
+                String(
+                    normalizedOffer.discountType,
+                ).toUpperCase() ===
+                'PERCENTAGE'
+            ) {
+                return `${normalizedOffer.discountValue}% OFF`;
+            }
+
+            if (
+                String(
+                    normalizedOffer.discountType,
+                ).toUpperCase() ===
+                'FIXED'
+            ) {
+                return `₹${normalizedOffer.discountValue} OFF`;
+            }
+
+            return 'Offer Applied';
+        };
+
+    /**
+     * ----------------------------------------------------
+     * OFFER MESSAGE
+     * ----------------------------------------------------
+     */
+    const offerMessage =
+        useMemo(() => {
+            if (
+                !normalizedOffer
+            ) {
+                return null;
+            }
+
+            if (
+                !isOfferValid
+            ) {
+                return 'This offer is no longer active.';
+            }
+
+            if (
+                !minimumBookingAmountMet &&
+                normalizedOffer.minimumBookingAmount !==
+                    null &&
+                normalizedOffer.minimumBookingAmount !==
+                    undefined
+            ) {
+                const remaining =
+                    Math.max(
+                        0,
+                        Number(
+                            normalizedOffer.minimumBookingAmount,
+                        ) -
+                            subtotal,
+                    );
+
+                return `Add ₹${remaining.toFixed(
+                    0,
+                )} more to use this offer.`;
+            }
+
+            if (
+                offerApplied
+            ) {
+                return `You save ₹${discountAmount.toFixed(
+                    0,
+                )} with this offer.`;
+            }
+
+            return null;
+        }, [
+            normalizedOffer,
+            isOfferValid,
+            minimumBookingAmountMet,
+            subtotal,
+            offerApplied,
+            discountAmount,
+        ]);
 
     /**
      * ----------------------------------------------------
@@ -424,7 +971,10 @@ export default function SalonDetailsScreen({
      */
     const totalDuration =
         selectedServices.reduce(
-            (sum, item) =>
+            (
+                sum,
+                item,
+            ) =>
                 sum +
                 Number(
                     item.duration || 0,
@@ -432,6 +982,320 @@ export default function SalonDetailsScreen({
             0,
         );
 
+    /**
+     * ----------------------------------------------------
+     * BUSINESS HOURS HELPERS
+     * ----------------------------------------------------
+     *
+     * IMPORTANT:
+     *
+     * Your salon data may look like:
+     *
+     * {
+     *   MONDAY: {
+     *      open: "09:00",
+     *      close: "19:00",
+     *      isOpen: true
+     *   }
+     * }
+     *
+     * OR:
+     *
+     * {
+     *   businessHours: {
+     *      MONDAY: {...}
+     *   }
+     * }
+     *
+     * Support both structures.
+     */
+    const getBusinessDay =
+        (
+            day:
+                | keyof BusinessHours,
+        ): BusinessDay | undefined => {
+            if (!salon) {
+                return undefined;
+            }
+
+            const directDay =
+                (
+                    salon as any
+                )?.[day];
+
+            if (
+                directDay &&
+                typeof directDay ===
+                    'object'
+            ) {
+                return directDay;
+            }
+
+            const nestedDay =
+                salon.businessHours?.[
+                    day
+                ];
+
+            if (
+                nestedDay &&
+                typeof nestedDay ===
+                    'object'
+            ) {
+                return nestedDay;
+            }
+
+            return undefined;
+        };
+
+    /**
+     * ----------------------------------------------------
+     * GET CURRENT DAY
+     * ----------------------------------------------------
+     */
+    const getCurrentDay =
+        (): keyof BusinessHours => {
+            const day =
+                new Date().getDay();
+
+            const days: (
+                keyof BusinessHours
+            )[] = [
+                'SUNDAY',
+                'MONDAY',
+                'TUESDAY',
+                'WEDNESDAY',
+                'THURSDAY',
+                'FRIDAY',
+                'SATURDAY',
+            ];
+
+            return days[day];
+        };
+
+    const today =
+        getCurrentDay();
+
+    const todayHours =
+        getBusinessDay(
+            today,
+        );
+
+    /**
+     * ----------------------------------------------------
+     * CONVERT HH:mm TO MINUTES
+     * ----------------------------------------------------
+     */
+    const parseTimeToMinutes =
+        (
+            time?: string,
+        ): number => {
+            if (!time) {
+                return NaN;
+            }
+
+            const parts =
+                String(time).split(
+                    ':',
+                );
+
+            const hours =
+                Number(
+                    parts[0],
+                );
+
+            const minutes =
+                Number(
+                    parts[1] || 0,
+                );
+
+            if (
+                Number.isNaN(
+                    hours,
+                ) ||
+                Number.isNaN(
+                    minutes,
+                )
+            ) {
+                return NaN;
+            }
+
+            if (
+                hours === 24
+            ) {
+                return 24 * 60;
+            }
+
+            return (
+                hours * 60 +
+                minutes
+            );
+        };
+
+    /**
+     * ----------------------------------------------------
+     * CURRENT OPEN/CLOSED STATUS
+     * ----------------------------------------------------
+     *
+     * This is ONLY the salon's current status.
+     *
+     * It must NOT prevent the user from
+     * booking a future date.
+     */
+    const getIsSalonOpen =
+        (): boolean => {
+            if (!todayHours) {
+                return false;
+            }
+
+            if (
+                todayHours.isOpen !==
+                true
+            ) {
+                return false;
+            }
+
+            if (
+                !todayHours.open ||
+                !todayHours.close
+            ) {
+                return false;
+            }
+
+            const now =
+                new Date();
+
+            const currentMinutes =
+                now.getHours() *
+                    60 +
+                now.getMinutes();
+
+            const openMinutes =
+                parseTimeToMinutes(
+                    todayHours.open,
+                );
+
+            const closeMinutes =
+                parseTimeToMinutes(
+                    todayHours.close,
+                );
+
+            if (
+                Number.isNaN(
+                    openMinutes,
+                ) ||
+                Number.isNaN(
+                    closeMinutes,
+                )
+            ) {
+                return false;
+            }
+
+            /**
+             * Normal schedule.
+             */
+            if (
+                closeMinutes >
+                openMinutes
+            ) {
+                return (
+                    currentMinutes >=
+                        openMinutes &&
+                    currentMinutes <
+                        closeMinutes
+                );
+            }
+
+            /**
+             * Overnight schedule.
+             */
+            if (
+                closeMinutes <
+                openMinutes
+            ) {
+                return (
+                    currentMinutes >=
+                        openMinutes ||
+                    currentMinutes <
+                        closeMinutes
+                );
+            }
+
+            /**
+             * Same open/close =
+             * closed.
+             */
+            return false;
+        };
+
+    const isOpen =
+        getIsSalonOpen();
+
+    /**
+     * ----------------------------------------------------
+     * TOGGLE SERVICE
+     * ----------------------------------------------------
+     */
+    const toggleService =
+        (
+            service: Service,
+        ) => {
+            const exists =
+                selectedServices.some(
+                    item =>
+                        item.serviceId ===
+                        service.serviceId,
+                );
+
+            if (exists) {
+                setSelectedServices(
+                    prev =>
+                        prev.filter(
+                            item =>
+                                item.serviceId !==
+                                service.serviceId,
+                        ),
+                );
+            } else {
+                setSelectedServices(
+                    prev => [
+                        ...prev,
+                        service,
+                    ],
+                );
+            }
+        };
+
+    /**
+     * ----------------------------------------------------
+     * ADDRESS
+     * ----------------------------------------------------
+     */
+    const address = [
+        salon?.address
+            ?.addressLine,
+
+        salon?.address?.city,
+
+        salon?.address?.state,
+    ]
+        .filter(Boolean)
+        .join(', ');
+
+    /**
+     * ----------------------------------------------------
+     * COVER IMAGE
+     * ----------------------------------------------------
+     */
+    const coverImage =
+        salon?.coverImageUrl ||
+        salon?.logoUrl ||
+        'https://picsum.photos/800/500';
+
+    /**
+     * ----------------------------------------------------
+     * DEBUG
+     * ----------------------------------------------------
+     */
     console.log(
         '======================================',
     );
@@ -446,8 +1310,73 @@ export default function SalonDetailsScreen({
     );
 
     console.log(
+        'Salon ID:',
+        salon?.salonId,
+    );
+
+    console.log(
+        'Salon Name:',
+        salon?.salonName,
+    );
+
+    console.log(
+        'Today:',
+        today,
+    );
+
+    console.log(
+        'Today Business Hours:',
+        todayHours,
+    );
+
+    console.log(
+        'Salon Currently Open:',
+        isOpen,
+    );
+
+    console.log(
         'Services:',
         services,
+    );
+
+    console.log(
+        'Offer from route:',
+        routeOffer,
+    );
+
+    console.log(
+        'Offer ID:',
+        routeOfferId,
+    );
+
+    console.log(
+        'Selected Services:',
+        selectedServices,
+    );
+
+    console.log(
+        'Subtotal:',
+        subtotal,
+    );
+
+    console.log(
+        'Eligible Subtotal:',
+        eligibleSubtotal,
+    );
+
+    console.log(
+        'Discount:',
+        discountAmount,
+    );
+
+    console.log(
+        'Offer Applied:',
+        offerApplied,
+    );
+
+    console.log(
+        'Discounted Total:',
+        discountedServicesTotal,
     );
 
     console.log(
@@ -601,300 +1530,6 @@ export default function SalonDetailsScreen({
         );
     }
 
-    /**
-     * ----------------------------------------------------
-     * CURRENT DAY
-     * ----------------------------------------------------
-     */
-    const getCurrentDay =
-        (): keyof NonNullable<
-            Salon['businessHours']
-        > => {
-            const day =
-                new Date().getDay();
-
-            const days: (
-                keyof NonNullable<
-                    Salon['businessHours']
-                >
-            )[] = [
-                'SUNDAY',
-                'MONDAY',
-                'TUESDAY',
-                'WEDNESDAY',
-                'THURSDAY',
-                'FRIDAY',
-                'SATURDAY',
-            ];
-
-            return days[day];
-        };
-
-    const today =
-        getCurrentDay();
-
-    const todayHours =
-        salon.businessHours?.[
-            today
-        ];
-
-    /**
-     * ----------------------------------------------------
-     * CONVERT HH:mm TO MINUTES
-     *
-     * 09:00 => 540
-     * 19:00 => 1140
-     * 24:00 => 1440
-     * ----------------------------------------------------
-     */
-    const parseTimeToMinutes = (
-        time: string,
-    ): number => {
-        const parts =
-            time.split(':');
-
-        const hours =
-            Number(parts[0]);
-
-        const minutes =
-            Number(parts[1] || 0);
-
-        /**
-         * 24:00 means midnight/end of day.
-         */
-        if (hours === 24) {
-            return 24 * 60;
-        }
-
-        return (
-            hours * 60 +
-            minutes
-        );
-    };
-
-    /**
-     * ----------------------------------------------------
-     * CURRENT OPEN/CLOSED STATUS
-     * ----------------------------------------------------
-     */
-    const getIsSalonOpen =
-        (): boolean => {
-            /**
-             * No hours.
-             */
-            if (!todayHours) {
-                return false;
-            }
-
-            /**
-             * Today is marked closed.
-             */
-            if (
-                todayHours.isOpen !==
-                true
-            ) {
-                return false;
-            }
-
-            /**
-             * Missing hours.
-             */
-            if (
-                !todayHours.open ||
-                !todayHours.close
-            ) {
-                return false;
-            }
-
-            const now =
-                new Date();
-
-            const currentMinutes =
-                now.getHours() *
-                    60 +
-                now.getMinutes();
-
-            const openMinutes =
-                parseTimeToMinutes(
-                    todayHours.open,
-                );
-
-            const closeMinutes =
-                parseTimeToMinutes(
-                    todayHours.close,
-                );
-
-            console.log(
-                '======================================',
-            );
-
-            console.log(
-                'SALON OPEN STATUS',
-            );
-
-            console.log(
-                'Salon Status from backend:',
-                salon.salonStatus,
-            );
-
-            console.log(
-                'Today:',
-                today,
-            );
-
-            console.log(
-                'Today Hours:',
-                todayHours,
-            );
-
-            console.log(
-                'Current Time:',
-                now.toLocaleTimeString(),
-            );
-
-            console.log(
-                'Current Minutes:',
-                currentMinutes,
-            );
-
-            console.log(
-                'Open Minutes:',
-                openMinutes,
-            );
-
-            console.log(
-                'Close Minutes:',
-                closeMinutes,
-            );
-
-            /**
-             * ------------------------------------------------
-             * CASE 1
-             *
-             * 09:00 -> 19:00
-             * ------------------------------------------------
-             */
-            if (
-                closeMinutes >
-                openMinutes
-            ) {
-                const result =
-                    currentMinutes >=
-                        openMinutes &&
-                    currentMinutes <
-                        closeMinutes;
-
-                console.log(
-                    'Normal schedule result:',
-                    result,
-                );
-
-                return result;
-            }
-
-            /**
-             * ------------------------------------------------
-             * CASE 2
-             *
-             * 18:00 -> 02:00
-             *
-             * Overnight schedule
-             * ------------------------------------------------
-             */
-            if (
-                closeMinutes <
-                openMinutes
-            ) {
-                const result =
-                    currentMinutes >=
-                        openMinutes ||
-                    currentMinutes <
-                        closeMinutes;
-
-                console.log(
-                    'Overnight schedule result:',
-                    result,
-                );
-
-                return result;
-            }
-
-            /**
-             * ------------------------------------------------
-             * CASE 3
-             *
-             * 09:00 -> 09:00
-             *
-             * Treat as closed.
-             * ------------------------------------------------
-             */
-            console.log(
-                'Opening and closing time are identical.',
-            );
-
-            return false;
-        };
-
-    const isOpen =
-        getIsSalonOpen();
-
-    /**
-     * ----------------------------------------------------
-     * TOGGLE SERVICE
-     * ----------------------------------------------------
-     */
-    const toggleService = (
-        service: Service,
-    ) => {
-        const exists =
-            selectedServices.some(
-                item =>
-                    item.serviceId ===
-                    service.serviceId,
-            );
-
-        if (exists) {
-            setSelectedServices(
-                prev =>
-                    prev.filter(
-                        item =>
-                            item.serviceId !==
-                            service.serviceId,
-                    ),
-            );
-        } else {
-            setSelectedServices(
-                prev => [
-                    ...prev,
-                    service,
-                ],
-            );
-        }
-    };
-
-    /**
-     * ----------------------------------------------------
-     * ADDRESS
-     * ----------------------------------------------------
-     */
-    const address = [
-        salon?.address
-            ?.addressLine,
-        salon?.address?.city,
-    ]
-        .filter(Boolean)
-        .join(', ');
-
-    /**
-     * ----------------------------------------------------
-     * COVER IMAGE
-     * ----------------------------------------------------
-     */
-    const coverImage =
-        salon.coverImageUrl ||
-        salon.logoUrl ||
-        'https://picsum.photos/800/500';
-
     return (
         <SafeAreaView
             style={styles.container}
@@ -911,7 +1546,7 @@ export default function SalonDetailsScreen({
                     paddingBottom:
                         selectedServices.length >
                         0
-                            ? 130
+                            ? 145
                             : 30,
                 }}
                 ListHeaderComponent={
@@ -923,8 +1558,6 @@ export default function SalonDetailsScreen({
                                 styles.header
                             }
                         >
-                            {/* BACK */}
-
                             <TouchableOpacity
                                 style={
                                     styles.headerButton
@@ -942,8 +1575,6 @@ export default function SalonDetailsScreen({
                                 </Text>
                             </TouchableOpacity>
 
-                            {/* TITLE */}
-
                             <Text
                                 style={
                                     styles.headerTitle
@@ -956,8 +1587,6 @@ export default function SalonDetailsScreen({
                                     salon.salonName
                                 }
                             </Text>
-
-                            {/* FAVORITE */}
 
                             <TouchableOpacity
                                 style={
@@ -1080,7 +1709,7 @@ export default function SalonDetailsScreen({
                                 </Text>
                             )}
 
-                            {/* OPEN / CLOSED */}
+                            {/* CURRENT STATUS */}
 
                             <View
                                 style={
@@ -1112,24 +1741,136 @@ export default function SalonDetailsScreen({
                                 >
                                     {isOpen
                                         ? 'Open now'
-                                        : 'Closed'}
+                                        : 'Closed now'}
                                 </Text>
 
-                                {isOpen &&
+                                {todayHours?.open &&
                                     todayHours?.close && (
                                         <Text
                                             style={
                                                 styles.closeText
                                             }
                                         >
-                                            • Closes at{' '}
+                                            •{' '}
+                                            {todayHours.open}
+                                            {' - '}
                                             {
                                                 todayHours.close
                                             }
                                         </Text>
                                     )}
                             </View>
+
+                            {/* FUTURE BOOKING MESSAGE */}
+
+                            {!isOpen && (
+                                <Text
+                                    style={
+                                        styles.futureBookingText
+                                    }
+                                >
+                                    You can still choose a
+                                    future date and time.
+                                </Text>
+                            )}
                         </View>
+
+                        {/* OFFER BANNER */}
+
+                        {normalizedOffer && (
+                            <View
+                                style={
+                                    styles.offerBanner
+                                }
+                            >
+                                <View
+                                    style={
+                                        styles.offerIcon
+                                    }
+                                >
+                                    <Text
+                                        style={
+                                            styles.offerIconText
+                                        }
+                                    >
+                                        %
+                                    </Text>
+                                </View>
+
+                                <View
+                                    style={
+                                        styles.offerContent
+                                    }
+                                >
+                                    <Text
+                                        style={
+                                            styles.offerTitle
+                                        }
+                                        numberOfLines={
+                                            2
+                                        }
+                                    >
+                                        {
+                                            normalizedOffer.title
+                                        }
+                                    </Text>
+
+                                    {!!normalizedOffer.description && (
+                                        <Text
+                                            style={
+                                                styles.offerDescription
+                                            }
+                                            numberOfLines={
+                                                2
+                                            }
+                                        >
+                                            {
+                                                normalizedOffer.description
+                                            }
+                                        </Text>
+                                    )}
+
+                                    <Text
+                                        style={
+                                            styles.offerDiscountText
+                                        }
+                                    >
+                                        {getOfferDiscountText()}
+                                    </Text>
+
+                                    {normalizedOffer.minimumBookingAmount !==
+                                        null &&
+                                        normalizedOffer.minimumBookingAmount !==
+                                            undefined && (
+                                            <Text
+                                                style={
+                                                    styles.offerMinimum
+                                                }
+                                            >
+                                                Minimum booking:
+                                                ₹
+                                                {Number(
+                                                    normalizedOffer.minimumBookingAmount,
+                                                ).toFixed(
+                                                    0,
+                                                )}
+                                            </Text>
+                                        )}
+
+                                    {!!offerMessage && (
+                                        <Text
+                                            style={
+                                                styles.offerMessage
+                                            }
+                                        >
+                                            {
+                                                offerMessage
+                                            }
+                                        </Text>
+                                    )}
+                                </View>
+                            </View>
+                        )}
 
                         {/* CATEGORIES */}
 
@@ -1210,7 +1951,9 @@ export default function SalonDetailsScreen({
                         </View>
                     </>
                 }
-                renderItem={({ item }) => {
+                renderItem={({
+                    item,
+                }) => {
                     const selected =
                         selectedServices.some(
                             service =>
@@ -1218,12 +1961,38 @@ export default function SalonDetailsScreen({
                                 item.serviceId,
                         );
 
+                    const eligible =
+                        isServiceEligibleForOffer(
+                            item,
+                        );
+
+                    const originalPrice =
+                        Number(
+                            item.price || 0,
+                        );
+
+                    const displayPrice =
+                        selected
+                            ? getServiceDisplayPrice(
+                                item,
+                            )
+                            : originalPrice;
+
+                    const hasDiscount =
+                        offerApplied &&
+                        eligible &&
+                        displayPrice <
+                            originalPrice;
+
                     return (
                         <View
                             style={[
                                 styles.serviceCard,
                                 selected &&
                                     styles.selectedServiceCard,
+                                offerApplied &&
+                                    eligible &&
+                                    styles.offerEligibleCard,
                             ]}
                         >
                             <View
@@ -1298,16 +2067,37 @@ export default function SalonDetailsScreen({
                                         styles.serviceMeta
                                     }
                                 >
-                                    <Text
+                                    <View
                                         style={
-                                            styles.price
+                                            styles.servicePriceContainer
                                         }
                                     >
-                                        ₹
-                                        {
-                                            item.price
-                                        }
-                                    </Text>
+                                        {hasDiscount && (
+                                            <Text
+                                                style={
+                                                    styles.originalPrice
+                                                }
+                                            >
+                                                ₹
+                                                {originalPrice.toFixed(
+                                                    0,
+                                                )}
+                                            </Text>
+                                        )}
+
+                                        <Text
+                                            style={[
+                                                styles.price,
+                                                hasDiscount &&
+                                                    styles.discountedPrice,
+                                            ]}
+                                        >
+                                            ₹
+                                            {displayPrice.toFixed(
+                                                0,
+                                            )}
+                                        </Text>
+                                    </View>
 
                                     <View
                                         style={
@@ -1326,6 +2116,29 @@ export default function SalonDetailsScreen({
                                         mins
                                     </Text>
                                 </View>
+
+                                {offerApplied &&
+                                    eligible && (
+                                        <Text
+                                            style={
+                                                styles.offerAppliedText
+                                            }
+                                        >
+                                            ✓ Offer applied
+                                        </Text>
+                                    )}
+
+                                {normalizedOffer &&
+                                    isOfferValid &&
+                                    !eligible && (
+                                        <Text
+                                            style={
+                                                styles.notEligibleText
+                                            }
+                                        >
+                                            Offer not applicable
+                                        </Text>
+                                    )}
                             </View>
 
                             <TouchableOpacity
@@ -1385,7 +2198,9 @@ export default function SalonDetailsScreen({
                 }
             />
 
-            {/* BOTTOM BOOKING BAR */}
+            {/* ------------------------------------------------
+                BOTTOM BOOKING BAR
+            ------------------------------------------------ */}
 
             {selectedServices.length >
                 0 && (
@@ -1413,13 +2228,54 @@ export default function SalonDetailsScreen({
                                 : 'services'}
                         </Text>
 
+                        {offerApplied && (
+                            <Text
+                                style={
+                                    styles.bottomOriginalPrice
+                                }
+                            >
+                                ₹
+                                {subtotal.toFixed(
+                                    0,
+                                )}
+                            </Text>
+                        )}
+
                         <Text
                             style={
                                 styles.totalPrice
                             }
                         >
-                            ₹{totalPrice}
+                            ₹
+                            {discountedServicesTotal.toFixed(
+                                0,
+                            )}
                         </Text>
+
+                        {offerApplied && (
+                            <Text
+                                style={
+                                    styles.bottomSavings
+                                }
+                            >
+                                Save ₹
+                                {discountAmount.toFixed(
+                                    0,
+                                )}
+                            </Text>
+                        )}
+
+                        {!offerApplied &&
+                            normalizedOffer &&
+                            !minimumBookingAmountMet && (
+                                <Text
+                                    style={
+                                        styles.minimumAmountWarning
+                                    }
+                                >
+                                    Add more for offer
+                                </Text>
+                            )}
 
                         <Text
                             style={
@@ -1433,13 +2289,25 @@ export default function SalonDetailsScreen({
                         </Text>
                     </View>
 
+                    {/*
+                     * IMPORTANT:
+                     *
+                     * Do NOT disable this button when the
+                     * salon is currently closed.
+                     *
+                     * A salon may be closed now but open
+                     * tomorrow.
+                     *
+                     * BookingDateTimeScreen will determine
+                     * which future dates/times are valid.
+                     */}
                     <TouchableOpacity
-                        style={[
-                            styles.continueButton,
-                            !isOpen &&
-                                styles.disabledButton,
-                        ]}
-                        disabled={!isOpen}
+                        style={
+                            styles.continueButton
+                        }
+                        activeOpacity={
+                            0.85
+                        }
                         onPress={() => {
                             if (
                                 !currentUser?.userId
@@ -1452,22 +2320,215 @@ export default function SalonDetailsScreen({
                                 return;
                             }
 
+                            if (
+                                !salon?.salonId
+                            ) {
+                                Alert.alert(
+                                    'Salon unavailable',
+                                    'Salon information is missing. Please try again.',
+                                );
+
+                                return;
+                            }
+
+                            if (
+                                selectedServices.length ===
+                                0
+                            ) {
+                                Alert.alert(
+                                    'Select a service',
+                                    'Please select at least one service before continuing.',
+                                );
+
+                                return;
+                            }
+
+                            /**
+                             * ------------------------------------------------
+                             * SEND EVERYTHING TO BOOKING DATETIME
+                             * ------------------------------------------------
+                             *
+                             * salon contains the business hours.
+                             *
+                             * BookingDateTimeScreen will use:
+                             *
+                             * salon.MONDAY
+                             * salon.TUESDAY
+                             * ...
+                             *
+                             * to dynamically generate available slots.
+                             */
                             const params = {
                                 salonId:
                                     salon.salonId,
 
+                                /**
+                                 * Full salon object.
+                                 *
+                                 * This includes business hours.
+                                 */
                                 salon,
+
+                                salonName:
+                                    salon.salonName,
 
                                 customerUserId:
                                     currentUser.userId,
 
                                 services:
                                     selectedServices,
+
+                                /**
+                                 * Offer object.
+                                 */
+                                offer:
+                                    normalizedOffer ||
+                                    undefined,
+
+                                /**
+                                 * Explicit offer ID.
+                                 */
+                                offerId:
+                                    routeOfferId ||
+                                    normalizedOffer?.offerId ||
+                                    undefined,
+
+                                /**
+                                 * Display pricing.
+                                 *
+                                 * Backend remains
+                                 * authoritative.
+                                 */
+                                subtotal,
+
+                                discountAmount,
+
+                                totalPrice:
+                                    discountedServicesTotal,
+
+                                offerApplied,
+
+                                /**
+                                 * Useful information for
+                                 * BookingDateTimeScreen.
+                                 */
+                                totalDuration,
+
+                                /**
+                                 * Keep original business
+                                 * hours explicitly available
+                                 * as well.
+                                 */
+                                businessHours:
+                                    salon.businessHours ??
+                                    {
+                                        MONDAY:
+                                            (
+                                                salon as any
+                                            ).MONDAY,
+
+                                        TUESDAY:
+                                            (
+                                                salon as any
+                                            ).TUESDAY,
+
+                                        WEDNESDAY:
+                                            (
+                                                salon as any
+                                            ).WEDNESDAY,
+
+                                        THURSDAY:
+                                            (
+                                                salon as any
+                                            ).THURSDAY,
+
+                                        FRIDAY:
+                                            (
+                                                salon as any
+                                            ).FRIDAY,
+
+                                        SATURDAY:
+                                            (
+                                                salon as any
+                                            ).SATURDAY,
+
+                                        SUNDAY:
+                                            (
+                                                salon as any
+                                            ).SUNDAY,
+                                    },
                             };
 
                             console.log(
-                                'Sending to BookingDateTime:',
-                                params,
+                                '======================================',
+                            );
+
+                            console.log(
+                                'SENDING TO BOOKING DATETIME',
+                            );
+
+                            console.log(
+                                'Salon ID:',
+                                params.salonId,
+                            );
+
+                            console.log(
+                                'Salon Name:',
+                                params.salonName,
+                            );
+
+                            console.log(
+                                'Business Hours:',
+                                params.businessHours,
+                            );
+
+                            console.log(
+                                'Selected services:',
+                                params.services,
+                            );
+
+                            console.log(
+                                'Total duration:',
+                                params.totalDuration,
+                            );
+
+                            console.log(
+                                'Offer:',
+                                params.offer,
+                            );
+
+                            console.log(
+                                'Offer ID:',
+                                params.offerId,
+                            );
+
+                            console.log(
+                                'Subtotal:',
+                                params.subtotal,
+                            );
+
+                            console.log(
+                                'Discount:',
+                                params.discountAmount,
+                            );
+
+                            console.log(
+                                'Discounted total:',
+                                params.totalPrice,
+                            );
+
+                            console.log(
+                                'Offer applied:',
+                                params.offerApplied,
+                            );
+
+                            console.log(
+                                'Currently open:',
+                                isOpen,
+                            );
+
+                            console.log(
+                                '======================================',
                             );
 
                             navigation.navigate(
@@ -1481,20 +2542,16 @@ export default function SalonDetailsScreen({
                                 styles.continueText
                             }
                         >
-                            {isOpen
-                                ? 'Continue'
-                                : 'Currently Closed'}
+                            Continue
                         </Text>
 
-                        {isOpen && (
-                            <Text
-                                style={
-                                    styles.continueArrow
-                                }
-                            >
-                                →
-                            </Text>
-                        )}
+                        <Text
+                            style={
+                                styles.continueArrow
+                            }
+                        >
+                            →
+                        </Text>
                     </TouchableOpacity>
                 </View>
             )}
@@ -1674,6 +2731,91 @@ const styles = StyleSheet.create({
         color: '#777',
     },
 
+    futureBookingText: {
+        marginTop: 7,
+        color: PRIMARY,
+        fontSize: 12,
+        fontWeight: '600',
+    },
+
+    /**
+     * ----------------------------------------------------
+     * OFFER
+     * ----------------------------------------------------
+     */
+
+    offerBanner: {
+        marginTop: 8,
+        marginHorizontal: 0,
+        paddingHorizontal: 18,
+        paddingVertical: 16,
+        backgroundColor: '#EAF8F3',
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: '#B9E5D5',
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+
+    offerIcon: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: PRIMARY,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+
+    offerIconText: {
+        color: '#FFF',
+        fontSize: 20,
+        fontWeight: '800',
+    },
+
+    offerContent: {
+        flex: 1,
+    },
+
+    offerTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#176B53',
+    },
+
+    offerDescription: {
+        marginTop: 3,
+        color: '#477568',
+        fontSize: 12,
+        lineHeight: 17,
+    },
+
+    offerDiscountText: {
+        marginTop: 5,
+        color: PRIMARY,
+        fontSize: 14,
+        fontWeight: '800',
+    },
+
+    offerMinimum: {
+        marginTop: 3,
+        color: '#6B7F78',
+        fontSize: 11,
+    },
+
+    offerMessage: {
+        marginTop: 5,
+        color: '#477568',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+
+    /**
+     * ----------------------------------------------------
+     * CATEGORIES
+     * ----------------------------------------------------
+     */
+
     categorySection: {
         backgroundColor: '#FFF',
         marginTop: 8,
@@ -1708,6 +2850,12 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
 
+    /**
+     * ----------------------------------------------------
+     * SERVICES
+     * ----------------------------------------------------
+     */
+
     servicesHeader: {
         backgroundColor: '#F5F6FA',
         paddingHorizontal: 18,
@@ -1737,6 +2885,10 @@ const styles = StyleSheet.create({
     selectedServiceCard: {
         borderColor: PRIMARY,
         backgroundColor: '#F7FCFB',
+    },
+
+    offerEligibleCard: {
+        borderColor: '#B9E5D5',
     },
 
     serviceInfo: {
@@ -1790,10 +2942,25 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
 
+    servicePriceContainer: {
+        alignItems: 'flex-start',
+    },
+
+    originalPrice: {
+        color: '#999',
+        fontSize: 12,
+        textDecorationLine:
+            'line-through',
+    },
+
     price: {
         color: PRIMARY,
         fontSize: 16,
         fontWeight: '800',
+    },
+
+    discountedPrice: {
+        color: PRIMARY,
     },
 
     metaDot: {
@@ -1807,6 +2974,19 @@ const styles = StyleSheet.create({
     duration: {
         color: '#777',
         fontSize: 12,
+    },
+
+    offerAppliedText: {
+        marginTop: 5,
+        color: PRIMARY,
+        fontSize: 11,
+        fontWeight: '700',
+    },
+
+    notEligibleText: {
+        marginTop: 5,
+        color: '#999',
+        fontSize: 10,
     },
 
     addButton: {
@@ -1856,6 +3036,12 @@ const styles = StyleSheet.create({
         color: '#888',
     },
 
+    /**
+     * ----------------------------------------------------
+     * BOTTOM BOOKING BAR
+     * ----------------------------------------------------
+     */
+
     bottomBar: {
         position: 'absolute',
         left: 0,
@@ -1882,11 +3068,33 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 
+    bottomOriginalPrice: {
+        marginTop: 2,
+        color: '#999',
+        fontSize: 12,
+        textDecorationLine:
+            'line-through',
+    },
+
     totalPrice: {
         marginTop: 2,
         fontSize: 20,
         color: PRIMARY,
         fontWeight: '800',
+    },
+
+    bottomSavings: {
+        marginTop: 1,
+        color: '#16845E',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+
+    minimumAmountWarning: {
+        marginTop: 2,
+        color: '#B87900',
+        fontSize: 10,
+        fontWeight: '700',
     },
 
     totalDuration: {
@@ -1906,10 +3114,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
 
-    disabledButton: {
-        backgroundColor: '#BDBDBD',
-    },
-
     continueText: {
         color: '#FFF',
         fontSize: 14,
@@ -1922,3 +3126,4 @@ const styles = StyleSheet.create({
         marginLeft: 7,
     },
 });
+

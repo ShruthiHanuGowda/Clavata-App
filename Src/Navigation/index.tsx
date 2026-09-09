@@ -137,6 +137,17 @@ export function ExploreStack() {
         component={OfferDetailsScreen}
       />
       <ExploreStackNavigator.Screen
+        name="BookingDateTime"
+        component={BookingDateTimeScreen}
+      />
+      <ExploreStackNavigator.Screen
+        name="BookingSummary"
+        component={BookingSummaryScreen}
+      />
+        <ExploreStackNavigator.Screen
+        name="BookingRequestSent"
+        component={BookingRequestSent} />
+      <ExploreStackNavigator.Screen
         name="SalonDetails"
         component={SalonDetailsScreen}
       />
