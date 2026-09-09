@@ -1,4 +1,8 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, {
+    useCallback,
+    useMemo,
+    useState,
+} from 'react';
 import {
     SafeAreaView,
     View,
@@ -39,16 +43,36 @@ type OfferStatus =
 type SalonOffer = {
     offerId: string;
     salonId: string;
+    salonName?: string;
     title: string;
     description: string;
-    discountType: 'PERCENTAGE' | 'FIXED';
+    discountType:
+        | 'PERCENTAGE'
+        | 'FIXED';
     discountValue: number;
     category?: string | null;
     startDate: string;
     endDate: string;
     couponCode?: string | null;
     minimumBookingAmount?: number | null;
+
+    /**
+     * OFFER SERVICE SCOPE
+     *
+     * Empty array = Any Services
+     * One or more IDs = Particular Services
+     *
+     * Any Services:
+     * Discount applies to the full eligible
+     * booking/service subtotal.
+     *
+     * Particular Services:
+     * Discount applies only to the selected
+     * services. Other booked services remain
+     * at their full price.
+     */
     serviceIds?: string[];
+
     usageCount: number;
     usageLimit?: number | null;
     customerLimit?: number | null;
@@ -62,83 +86,120 @@ type SalonOffer = {
     updatedAt?: string;
 };
 
-type FilterType = 'ALL' | OfferStatus;
+type FilterType =
+    | 'ALL'
+    | OfferStatus;
 
 export default function SalonOffersScreen() {
-    const navigation = useNavigation<any>();
-    const { currentUser } = useUser();
+    const navigation =
+        useNavigation<any>();
 
-    const salonId = currentUser?.salonId || null;
+    const {
+        currentUser,
+    } = useUser();
 
-    const [isRefreshing, setIsRefreshing] =
-        useState(false);
+    const salonId =
+        currentUser?.salonId ||
+        null;
 
-    const [selectedFilter, setSelectedFilter] =
-        useState<FilterType>('ALL');
+    const [
+        isRefreshing,
+        setIsRefreshing,
+    ] = useState(false);
+
+    const [
+        selectedFilter,
+        setSelectedFilter,
+    ] =
+        useState<FilterType>(
+            'ALL',
+        );
 
     const {
         data,
         loading,
         error,
         refetch,
-    } = useQuery(SALON_OFFERS, {
-        variables: {
-            salonId,
-            status: null,
+    } = useQuery(
+        SALON_OFFERS,
+        {
+            variables: {
+                salonId,
+                status: null,
+            },
+            skip: !salonId,
+            fetchPolicy:
+                'network-only',
         },
-        skip: !salonId,
-        fetchPolicy: 'network-only',
-    });
+    );
 
     const [
         deleteOffer,
         {
-            loading: deleteLoading,
+            loading:
+                deleteLoading,
         },
-    ] = useMutation(DELETE_OFFER);
+    ] = useMutation(
+        DELETE_OFFER,
+    );
 
     const offers: SalonOffer[] =
-        data?.salonOffers?.offers || [];
+        data?.salonOffers?.offers ||
+        [];
 
-    const filteredOffers = useMemo(() => {
-        if (selectedFilter === 'ALL') {
-            return offers;
-        }
+    const filteredOffers =
+        useMemo(() => {
+            if (
+                selectedFilter ===
+                'ALL'
+            ) {
+                return offers;
+            }
 
-        return offers.filter(
-            offer =>
-                offer.status ===
-                selectedFilter,
-        );
-    }, [
-        offers,
-        selectedFilter,
-    ]);
-
-    const loadOffers = useCallback(async () => {
-        if (!salonId) {
-            return;
-        }
-
-        try {
-            setIsRefreshing(true);
-
-            await refetch({
-                salonId,
-                status: null,
-            });
-        } catch (refreshError) {
-            console.error(
-                'Refresh offers error:',
-                refreshError,
+            return offers.filter(
+                offer =>
+                    offer.status ===
+                    selectedFilter,
             );
-        } finally {
-            setIsRefreshing(false);
-        }
-    }, [
-        refetch,
-        salonId,
-    ]);
+        }, [
+            offers,
+            selectedFilter,
+        ]);
+
+    const loadOffers =
+        useCallback(
+            async () => {
+                if (!salonId) {
+                    return;
+                }
+
+                try {
+                    setIsRefreshing(
+                        true,
+                    );
+
+                    await refetch({
+                        salonId,
+                        status: null,
+                    });
+                } catch (
+                    refreshError
+                ) {
+                    console.error(
+                        'Refresh offers error:',
+                        refreshError,
+                    );
+                } finally {
+                    setIsRefreshing(
+                        false,
+                    );
+                }
+            },
+            [
+                refetch,
+                salonId,
+            ],
+        );
 
     useFocusEffect(
         useCallback(() => {
@@ -151,563 +212,784 @@ export default function SalonOffersScreen() {
         ]),
     );
 
-    const handleCreateOffer = () => {
-        if (!salonId) {
-            Alert.alert(
-                'Salon information missing',
-                'We could not find your salon information. Please log in again.',
+    const handleCreateOffer =
+        () => {
+            if (!salonId) {
+                Alert.alert(
+                    'Salon information missing',
+                    'We could not find your salon information. Please log in again.',
+                );
+                return;
+            }
+
+            navigation.navigate(
+                'CreateOffer',
             );
-            return;
-        }
+        };
 
-        navigation.navigate('CreateOffer');
-    };
+    const handleOfferPress =
+        (
+            offer: SalonOffer,
+        ) => {
+            if (!salonId) {
+                Alert.alert(
+                    'Salon information missing',
+                    'Please log in again before managing offers.',
+                );
+                return;
+            }
 
-    const handleOfferPress = (
-        offer: SalonOffer,
-    ) => {
-        if (!salonId) {
-            Alert.alert(
-                'Salon information missing',
-                'Please log in again before managing offers.',
-            );
-            return;
-        }
-
-        navigation.navigate(
-            'CreateOffer',
-            {
-                offerId:
-                    offer.offerId,
-                offer,
-                mode: 'EDIT',
-            },
-        );
-    };
-
-    const handleDeleteOffer = (
-        offer: SalonOffer,
-    ) => {
-        if (deleteLoading) {
-            return;
-        }
-
-        if (!salonId) {
-            Alert.alert(
-                'Salon information missing',
-                'Please log in again before deleting an offer.',
-            );
-            return;
-        }
-
-        if (
-            offer.salonId !== salonId
-        ) {
-            Alert.alert(
-                'Unable to delete',
-                'This offer does not belong to your salon.',
-            );
-            return;
-        }
-
-        if (
-            offer.status === 'ACTIVE'
-        ) {
-            Alert.alert(
-                'Active offer',
-                'Active offers cannot be deleted. Pause the offer first, then delete it.',
-            );
-            return;
-        }
-
-        Alert.alert(
-            'Delete Offer',
-            `Are you sure you want to delete "${offer.title}"? This action cannot be undone.`,
-            [
+            navigation.navigate(
+                'CreateOffer',
                 {
-                    text: 'Cancel',
-                    style: 'cancel',
+                    offerId:
+                        offer.offerId,
+                    offer,
+                    mode: 'EDIT',
                 },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const {
-                                data,
-                            } =
-                                await deleteOffer({
-                                    variables: {
-                                        input: {
-                                            offerId:
-                                                offer.offerId,
-                                            salonId,
-                                        },
-                                    },
-                                });
+            );
+        };
 
-                            const response =
-                                data?.deleteOffer;
+    const handleDeleteOffer =
+        (
+            offer: SalonOffer,
+        ) => {
+            if (deleteLoading) {
+                return;
+            }
 
-                            if (!response) {
-                                throw new Error(
-                                    'No response received from deleteOffer.',
-                                );
-                            }
+            if (!salonId) {
+                Alert.alert(
+                    'Salon information missing',
+                    'Please log in again before deleting an offer.',
+                );
+                return;
+            }
 
-                            if (
-                                !response.success
-                            ) {
-                                Alert.alert(
-                                    'Unable to delete',
-                                    response.message ||
-                                    'The offer could not be deleted.',
-                                );
-                                return;
-                            }
+            if (
+                offer.salonId !==
+                salonId
+            ) {
+                Alert.alert(
+                    'Unable to delete',
+                    'This offer does not belong to your salon.',
+                );
+                return;
+            }
 
-                            Alert.alert(
-                                'Offer deleted',
-                                response.message ||
-                                'The offer has been deleted.',
-                            );
+            if (
+                offer.status ===
+                'ACTIVE'
+            ) {
+                Alert.alert(
+                    'Active offer',
+                    'Active offers cannot be deleted. Pause the offer first, then delete it.',
+                );
+                return;
+            }
 
-                            await refetch({
-                                salonId,
-                                status: null,
-                            });
-                        } catch (
-                        deleteError: any
-                        ) {
-                            console.error(
-                                'Delete offer error:',
-                                deleteError,
-                            );
-
-                            const message =
-                                deleteError
-                                    ?.graphQLErrors?.[0]
-                                    ?.message ||
-                                deleteError
-                                    ?.networkError
-                                    ?.message ||
-                                deleteError?.message ||
-                                'Something went wrong. Please try again.';
-
-                            Alert.alert(
-                                'Unable to delete offer',
-                                message,
-                            );
-                        }
+            Alert.alert(
+                'Delete Offer',
+                `Are you sure you want to delete "${offer.title}"? This action cannot be undone.`,
+                [
+                    {
+                        text: 'Cancel',
+                        style: 'cancel',
                     },
-                },
-            ],
-        );
-    };
+                    {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress:
+                            async () => {
+                                try {
+                                    const {
+                                        data,
+                                    } =
+                                        await deleteOffer(
+                                            {
+                                                variables:
+                                                    {
+                                                        input:
+                                                            {
+                                                                offerId:
+                                                                    offer.offerId,
+                                                                salonId,
+                                                            },
+                                                    },
+                                            },
+                                        );
 
-    const getDiscountText = (
-        offer: SalonOffer,
-    ) => {
-        if (
-            offer.discountType ===
-            'PERCENTAGE'
-        ) {
-            return `${offer.discountValue}% OFF`;
-        }
+                                    const response =
+                                        data?.deleteOffer;
 
-        return `₹${offer.discountValue} OFF`;
-    };
+                                    if (
+                                        !response
+                                    ) {
+                                        throw new Error(
+                                            'No response received from deleteOffer.',
+                                        );
+                                    }
 
-    const getStatusLabel = (
-        status: OfferStatus,
-    ) => {
-        switch (status) {
-            case 'DRAFT':
-                return 'Draft';
-            case 'PENDING_APPROVAL':
-                return 'Pending Approval';
-            case 'ACTIVE':
-                return 'Active';
-            case 'PAUSED':
-                return 'Paused';
-            case 'EXPIRED':
-                return 'Expired';
-            case 'REJECTED':
-                return 'Rejected';
-            default:
-                return status;
-        }
-    };
+                                    if (
+                                        !response.success
+                                    ) {
+                                        Alert.alert(
+                                            'Unable to delete',
+                                            response.message ||
+                                                'The offer could not be deleted.',
+                                        );
+                                        return;
+                                    }
 
-    const getStatusIcon = (
-        status: OfferStatus,
-    ) => {
-        switch (status) {
-            case 'ACTIVE':
-                return 'checkmark-circle';
-            case 'PENDING_APPROVAL':
-                return 'time';
-            case 'PAUSED':
-                return 'pause-circle';
-            case 'EXPIRED':
-                return 'close-circle';
-            case 'REJECTED':
-                return 'alert-circle';
-            case 'DRAFT':
-            default:
-                return 'document-text';
-        }
-    };
+                                    Alert.alert(
+                                        'Offer deleted',
+                                        response.message ||
+                                            'The offer has been deleted.',
+                                    );
 
-    const renderOffer = ({
-        item,
-    }: {
-        item: SalonOffer;
-    }) => {
-        const canDelete =
-            item.status !==
-            'ACTIVE';
+                                    await refetch(
+                                        {
+                                            salonId,
+                                            status: null,
+                                        },
+                                    );
+                                } catch (
+                                    deleteError: any
+                                ) {
+                                    console.error(
+                                        'Delete offer error:',
+                                        deleteError,
+                                    );
 
-        return (
-            <TouchableOpacity
-                activeOpacity={0.85}
-                style={styles.offerCard}
-                onPress={() =>
-                    handleOfferPress(
-                        item,
-                    )
-                }
-            >
-                <View
+                                    const message =
+                                        deleteError
+                                            ?.graphQLErrors?.[0]
+                                            ?.message ||
+                                        deleteError
+                                            ?.networkError
+                                            ?.message ||
+                                        deleteError?.message ||
+                                        'Something went wrong. Please try again.';
+
+                                    Alert.alert(
+                                        'Unable to delete offer',
+                                        message,
+                                    );
+                                }
+                            },
+                    },
+                ],
+            );
+        };
+
+    const getDiscountText =
+        (
+            offer: SalonOffer,
+        ) => {
+            if (
+                offer.discountType ===
+                'PERCENTAGE'
+            ) {
+                return `${offer.discountValue}% OFF`;
+            }
+
+            return `₹${offer.discountValue} OFF`;
+        };
+
+    /**
+     * ==========================================================
+     * OFFER SERVICE SCOPE
+     * ==========================================================
+     *
+     * Empty serviceIds:
+     *   Any Services
+     *
+     * One serviceId:
+     *   1 Particular Service
+     *
+     * Multiple serviceIds:
+     *   X Particular Services
+     */
+    const getOfferServiceText =
+        (
+            offer: SalonOffer,
+        ) => {
+            const serviceIds =
+                Array.isArray(
+                    offer.serviceIds,
+                )
+                    ? offer.serviceIds
+                    : [];
+
+            if (
+                serviceIds.length ===
+                0
+            ) {
+                return 'Any Services';
+            }
+
+            if (
+                serviceIds.length ===
+                1
+            ) {
+                return '1 Particular Service';
+            }
+
+            return `${serviceIds.length} Particular Services`;
+        };
+
+    /**
+     * ==========================================================
+     * CHECK WHETHER OFFER APPLIES TO ANY SERVICES
+     * ==========================================================
+     *
+     * [] means the offer is configured for Any Services.
+     */
+    const isAnyServicesOffer =
+        (
+            offer: SalonOffer,
+        ) => {
+            return (
+                !Array.isArray(
+                    offer.serviceIds,
+                ) ||
+                offer.serviceIds
+                    .length === 0
+            );
+        };
+
+    /**
+     * ==========================================================
+     * SERVICE TARGET DESCRIPTION
+     * ==========================================================
+     *
+     * ANY:
+     * Customer can book one or multiple services.
+     * The discount is calculated on the full
+     * eligible booking subtotal.
+     *
+     * PARTICULAR:
+     * Customer can book one or multiple services.
+     * The discount is calculated only on the
+     * selected offer services.
+     * Other services remain at full price.
+     */
+    const getOfferServiceDescription =
+        (
+            offer: SalonOffer,
+        ) => {
+            const anyServices =
+                isAnyServicesOffer(
+                    offer,
+                );
+
+            if (anyServices) {
+                return 'Book any number of services. Discount applies to the full booking subtotal.';
+            }
+
+            return 'Discount applies only to selected services. Other services stay at full price.';
+        };
+
+    const getStatusLabel =
+        (
+            status: OfferStatus,
+        ) => {
+            switch (status) {
+                case 'DRAFT':
+                    return 'Draft';
+
+                case 'PENDING_APPROVAL':
+                    return 'Pending Approval';
+
+                case 'ACTIVE':
+                    return 'Active';
+
+                case 'PAUSED':
+                    return 'Paused';
+
+                case 'EXPIRED':
+                    return 'Expired';
+
+                case 'REJECTED':
+                    return 'Rejected';
+
+                default:
+                    return status;
+            }
+        };
+
+    const getStatusIcon =
+        (
+            status: OfferStatus,
+        ) => {
+            switch (status) {
+                case 'ACTIVE':
+                    return 'checkmark-circle';
+
+                case 'PENDING_APPROVAL':
+                    return 'time';
+
+                case 'PAUSED':
+                    return 'pause-circle';
+
+                case 'EXPIRED':
+                    return 'close-circle';
+
+                case 'REJECTED':
+                    return 'alert-circle';
+
+                case 'DRAFT':
+                default:
+                    return 'document-text';
+            }
+        };
+
+    const renderOffer =
+        ({
+            item,
+        }: {
+            item: SalonOffer;
+        }) => {
+            const canDelete =
+                item.status !==
+                'ACTIVE';
+
+            const anyServices =
+                isAnyServicesOffer(
+                    item,
+                );
+
+            return (
+                <TouchableOpacity
+                    activeOpacity={
+                        0.85
+                    }
                     style={
-                        styles.offerTopRow
+                        styles.offerCard
+                    }
+                    onPress={() =>
+                        handleOfferPress(
+                            item,
+                        )
                     }
                 >
                     <View
                         style={
-                            styles.discountContainer
+                            styles.offerTopRow
                         }
                     >
-                        <Text
+                        <View
                             style={
-                                styles.discountText
+                                styles.discountContainer
                             }
                         >
-                            {getDiscountText(
-                                item,
-                            )}
-                        </Text>
-                    </View>
+                            <Text
+                                style={
+                                    styles.discountText
+                                }
+                            >
+                                {getDiscountText(
+                                    item,
+                                )}
+                            </Text>
+                        </View>
 
-                    <View
-                        style={[
-                            styles.statusBadge,
-                            getStatusStyle(
-                                item.status,
-                            ),
-                        ]}
-                    >
-                        <Ionicons
-                            name={getStatusIcon(
-                                item.status,
-                            )}
-                            size={14}
-                            color={getStatusColor(
-                                item.status,
-                            )}
-                        />
-
-                        <Text
+                        <View
                             style={[
-                                styles.statusText,
-                                {
-                                    color:
-                                        getStatusColor(
-                                            item.status,
-                                        ),
-                                },
+                                styles.statusBadge,
+                                getStatusStyle(
+                                    item.status,
+                                ),
                             ]}
                         >
-                            {getStatusLabel(
-                                item.status,
-                            )}
-                        </Text>
-                    </View>
-                </View>
-
-                <Text
-                    style={
-                        styles.offerTitle
-                    }
-                >
-                    {item.title}
-                </Text>
-
-                <Text
-                    style={
-                        styles.offerDescription
-                    }
-                    numberOfLines={2}
-                >
-                    {item.description}
-                </Text>
-
-                {item.status ===
-                    'REJECTED' &&
-                    item.rejectionReason ? (
-                    <View
-                        style={
-                            styles.rejectionContainer
-                        }
-                    >
-                        <Ionicons
-                            name="alert-circle-outline"
-                            size={16}
-                            color="#DC2626"
-                        />
-
-                        <Text
-                            style={
-                                styles.rejectionText
-                            }
-                            numberOfLines={3}
-                        >
-                            {item.rejectionReason}
-                        </Text>
-                    </View>
-                ) : null}
-
-                <View
-                    style={
-                        styles.divider
-                    }
-                />
-
-                <View
-                    style={
-                        styles.infoRow
-                    }
-                >
-                    <View
-                        style={
-                            styles.infoItem
-                        }
-                    >
-                        <Ionicons
-                            name="calendar-outline"
-                            size={16}
-                            color="#6B7280"
-                        />
-
-                        <Text
-                            style={
-                                styles.infoText
-                            }
-                        >
-                            {formatDate(
-                                item.startDate,
-                            )}{' '}
-                            -{' '}
-                            {formatDate(
-                                item.endDate,
-                            )}
-                        </Text>
-                    </View>
-                </View>
-
-                {item.category ? (
-                    <View
-                        style={
-                            styles.infoRow
-                        }
-                    >
-                        <View
-                            style={
-                                styles.infoItem
-                            }
-                        >
                             <Ionicons
-                                name="grid-outline"
-                                size={16}
-                                color="#6B7280"
-                            />
-
-                            <Text
-                                style={
-                                    styles.infoText
-                                }
-                            >
-                                {
-                                    item.category
-                                }
-                            </Text>
-                        </View>
-                    </View>
-                ) : null}
-
-                {item.couponCode ? (
-                    <View
-                        style={
-                            styles.infoRow
-                        }
-                    >
-                        <View
-                            style={
-                                styles.infoItem
-                            }
-                        >
-                            <Ionicons
-                                name="pricetag-outline"
-                                size={16}
-                                color="#6B7280"
-                            />
-
-                            <Text
-                                style={
-                                    styles.infoText
-                                }
-                            >
-                                Code:{' '}
-                                {
-                                    item.couponCode
-                                }
-                            </Text>
-                        </View>
-                    </View>
-                ) : null}
-
-                {item.minimumBookingAmount !=
-                    null ? (
-                    <View
-                        style={
-                            styles.infoRow
-                        }
-                    >
-                        <View
-                            style={
-                                styles.infoItem
-                            }
-                        >
-                            <Ionicons
-                                name="cart-outline"
-                                size={16}
-                                color="#6B7280"
-                            />
-
-                            <Text
-                                style={
-                                    styles.infoText
-                                }
-                            >
-                                Min. booking ₹
-                                {
-                                    item.minimumBookingAmount
-                                }
-                            </Text>
-                        </View>
-                    </View>
-                ) : null}
-
-                <View
-                    style={
-                        styles.bottomRow
-                    }
-                >
-                    <Text
-                        style={
-                            styles.usageText
-                        }
-                    >
-                        {item.usageCount}
-                        {item.usageLimit !=
-                            null
-                            ? ` / ${item.usageLimit}`
-                            : ''}{' '}
-                        redemptions
-                    </Text>
-
-                    <View
-                        style={
-                            styles.actionsRow
-                        }
-                    >
-                        <TouchableOpacity
-                            style={
-                                styles.actionButton
-                            }
-                            onPress={() =>
-                                handleOfferPress(
-                                    item,
-                                )
-                            }
-                            activeOpacity={
-                                0.75
-                            }
-                        >
-                            <Ionicons
-                                name="create-outline"
-                                size={17}
-                                color={
-                                    PRIMARY
-                                }
-                            />
-
-                            <Text
-                                style={
-                                    styles.actionButtonText
-                                }
-                            >
-                                Edit
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[
-                                styles.actionButton,
-                                !canDelete &&
-                                styles.disabledAction,
-                            ]}
-                            onPress={() =>
-                                handleDeleteOffer(
-                                    item,
-                                )
-                            }
-                            activeOpacity={
-                                0.75
-                            }
-                            disabled={
-                                deleteLoading
-                            }
-                        >
-                            <Ionicons
-                                name="trash-outline"
-                                size={17}
-                                color={
-                                    canDelete
-                                        ? '#DC2626'
-                                        : '#9CA3AF'
-                                }
+                                name={getStatusIcon(
+                                    item.status,
+                                )}
+                                size={14}
+                                color={getStatusColor(
+                                    item.status,
+                                )}
                             />
 
                             <Text
                                 style={[
-                                    styles.actionButtonText,
+                                    styles.statusText,
                                     {
                                         color:
-                                            canDelete
-                                                ? '#DC2626'
-                                                : '#9CA3AF',
+                                            getStatusColor(
+                                                item.status,
+                                            ),
                                     },
                                 ]}
                             >
-                                Delete
+                                {getStatusLabel(
+                                    item.status,
+                                )}
                             </Text>
-                        </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
-            </TouchableOpacity>
-        );
-    };
+
+                    <Text
+                        style={
+                            styles.offerTitle
+                        }
+                    >
+                        {item.title}
+                    </Text>
+
+                    <Text
+                        style={
+                            styles.offerDescription
+                        }
+                        numberOfLines={
+                            2
+                        }
+                    >
+                        {
+                            item.description
+                        }
+                    </Text>
+
+                    {/**
+                     * ==========================================
+                     * OFFER SERVICE TARGET
+                     * ==========================================
+                     *
+                     * This reflects the actual offer scope:
+                     *
+                     * ANY SERVICES:
+                     * Discount applies to the full booking
+                     * subtotal, regardless of how many services
+                     * the customer books.
+                     *
+                     * PARTICULAR SERVICES:
+                     * Discount applies only to the selected
+                     * service IDs. Other services remain at
+                     * their normal/full price.
+                     */}
+                    <View
+                        style={
+                            styles.serviceTargetBadge
+                        }
+                    >
+                        <View
+                            style={[
+                                styles.serviceTargetIcon,
+                                anyServices &&
+                                    styles.serviceTargetIconAny,
+                            ]}
+                        >
+                            <Ionicons
+                                name={
+                                    anyServices
+                                        ? 'layers-outline'
+                                        : 'list-outline'
+                                }
+                                size={15}
+                                color={
+                                    PRIMARY
+                                }
+                            />
+                        </View>
+
+                        <View
+                            style={
+                                styles.serviceTargetContent
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.serviceTargetTitle
+                                }
+                            >
+                                {
+                                    getOfferServiceText(
+                                        item,
+                                    )
+                                }
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.serviceTargetDescription
+                                }
+                            >
+                                {
+                                    getOfferServiceDescription(
+                                        item,
+                                    )
+                                }
+                            </Text>
+                        </View>
+                    </View>
+
+                    {item.status ===
+                        'REJECTED' &&
+                        item.rejectionReason ? (
+                        <View
+                            style={
+                                styles.rejectionContainer
+                            }
+                        >
+                            <Ionicons
+                                name="alert-circle-outline"
+                                size={16}
+                                color="#DC2626"
+                            />
+
+                            <Text
+                                style={
+                                    styles.rejectionText
+                                }
+                                numberOfLines={
+                                    3
+                                }
+                            >
+                                {
+                                    item.rejectionReason
+                                }
+                            </Text>
+                        </View>
+                    ) : null}
+
+                    <View
+                        style={
+                            styles.divider
+                        }
+                    />
+
+                    <View
+                        style={
+                            styles.infoRow
+                        }
+                    >
+                        <View
+                            style={
+                                styles.infoItem
+                            }
+                        >
+                            <Ionicons
+                                name="calendar-outline"
+                                size={16}
+                                color="#6B7280"
+                            />
+
+                            <Text
+                                style={
+                                    styles.infoText
+                                }
+                            >
+                                {formatDate(
+                                    item.startDate,
+                                )}{' '}
+                                -{' '}
+                                {formatDate(
+                                    item.endDate,
+                                )}
+                            </Text>
+                        </View>
+                    </View>
+
+                    {item.category ? (
+                        <View
+                            style={
+                                styles.infoRow
+                            }
+                        >
+                            <View
+                                style={
+                                    styles.infoItem
+                                }
+                            >
+                                <Ionicons
+                                    name="grid-outline"
+                                    size={16}
+                                    color="#6B7280"
+                                />
+
+                                <Text
+                                    style={
+                                        styles.infoText
+                                    }
+                                >
+                                    {
+                                        item.category
+                                    }
+                                </Text>
+                            </View>
+                        </View>
+                    ) : null}
+
+                    {item.couponCode ? (
+                        <View
+                            style={
+                                styles.infoRow
+                            }
+                        >
+                            <View
+                                style={
+                                    styles.infoItem
+                                }
+                            >
+                                <Ionicons
+                                    name="pricetag-outline"
+                                    size={16}
+                                    color="#6B7280"
+                                />
+
+                                <Text
+                                    style={
+                                        styles.infoText
+                                    }
+                                >
+                                    Code:{' '}
+                                    {
+                                        item.couponCode
+                                    }
+                                </Text>
+                            </View>
+                        </View>
+                    ) : null}
+
+                    {item.minimumBookingAmount !=
+                        null ? (
+                        <View
+                            style={
+                                styles.infoRow
+                            }
+                        >
+                            <View
+                                style={
+                                    styles.infoItem
+                                }
+                            >
+                                <Ionicons
+                                    name="cart-outline"
+                                    size={16}
+                                    color="#6B7280"
+                                />
+
+                                <Text
+                                    style={
+                                        styles.infoText
+                                    }
+                                >
+                                    Min. booking ₹
+                                    {
+                                        item.minimumBookingAmount
+                                    }
+                                </Text>
+                            </View>
+                        </View>
+                    ) : null}
+
+                    <View
+                        style={
+                            styles.bottomRow
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.usageText
+                            }
+                        >
+                            {
+                                item.usageCount
+                            }
+                            {item.usageLimit !=
+                            null
+                                ? ` / ${item.usageLimit}`
+                                : ''}{' '}
+                            redemptions
+                        </Text>
+
+                        <View
+                            style={
+                                styles.actionsRow
+                            }
+                        >
+                            <TouchableOpacity
+                                style={
+                                    styles.actionButton
+                                }
+                                onPress={() =>
+                                    handleOfferPress(
+                                        item,
+                                    )
+                                }
+                                activeOpacity={
+                                    0.75
+                                }
+                            >
+                                <Ionicons
+                                    name="create-outline"
+                                    size={
+                                        17
+                                    }
+                                    color={
+                                        PRIMARY
+                                    }
+                                />
+
+                                <Text
+                                    style={
+                                        styles.actionButtonText
+                                    }
+                                >
+                                    Edit
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.actionButton,
+                                    !canDelete &&
+                                        styles.disabledAction,
+                                ]}
+                                onPress={() =>
+                                    handleDeleteOffer(
+                                        item,
+                                    )
+                                }
+                                activeOpacity={
+                                    0.75
+                                }
+                                disabled={
+                                    deleteLoading
+                                }
+                            >
+                                <Ionicons
+                                    name="trash-outline"
+                                    size={
+                                        17
+                                    }
+                                    color={
+                                        canDelete
+                                            ? '#DC2626'
+                                            : '#9CA3AF'
+                                    }
+                                />
+
+                                <Text
+                                    style={[
+                                        styles.actionButtonText,
+                                        {
+                                            color:
+                                                canDelete
+                                                    ? '#DC2626'
+                                                    : '#9CA3AF',
+                                        },
+                                    ]}
+                                >
+                                    Delete
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            );
+        };
 
     const activeCount =
         offers.filter(
@@ -836,6 +1118,7 @@ export default function SalonOffersScreen() {
                         color="#111827"
                     />
                 </TouchableOpacity>
+
                 <View
                     style={
                         styles.headerLeft
@@ -990,7 +1273,8 @@ export default function SalonOffersScreen() {
             </View>
 
             {loading &&
-                offers.length === 0 ? (
+            offers.length ===
+                0 ? (
                 <View
                     style={
                         styles.loadingContainer
@@ -1013,8 +1297,8 @@ export default function SalonOffersScreen() {
                     </Text>
                 </View>
             ) : error &&
-                offers.length ===
-                0 ? (
+              offers.length ===
+                  0 ? (
                 <View
                     style={
                         styles.errorContainer
@@ -1087,7 +1371,7 @@ export default function SalonOffersScreen() {
                     }
                     contentContainerStyle={
                         filteredOffers.length ===
-                            0
+                        0
                             ? styles.emptyList
                             : styles.listContent
                     }
@@ -1096,7 +1380,7 @@ export default function SalonOffersScreen() {
                     }
                     ListHeaderComponent={
                         filteredOffers.length >
-                            0 ? (
+                        0 ? (
                             <View
                                 style={
                                     styles.listHeader
@@ -1137,6 +1421,12 @@ export default function SalonOffersScreen() {
         </SafeAreaView>
     );
 }
+
+/**
+ * ============================================================
+ * SUMMARY CARD
+ * ============================================================
+ */
 
 function SummaryCard({
     icon,
@@ -1186,6 +1476,12 @@ function SummaryCard({
     );
 }
 
+/**
+ * ============================================================
+ * FILTER
+ * ============================================================
+ */
+
 function FilterButton({
     label,
     active,
@@ -1200,7 +1496,7 @@ function FilterButton({
             style={[
                 styles.filterButton,
                 active &&
-                styles.filterButtonActive,
+                    styles.filterButtonActive,
             ]}
             onPress={onPress}
             activeOpacity={
@@ -1211,7 +1507,7 @@ function FilterButton({
                 style={[
                     styles.filterText,
                     active &&
-                    styles.filterTextActive,
+                        styles.filterTextActive,
                 ]}
             >
                 {label}
@@ -1219,6 +1515,12 @@ function FilterButton({
         </TouchableOpacity>
     );
 }
+
+/**
+ * ============================================================
+ * EMPTY
+ * ============================================================
+ */
 
 function EmptyOffers({
     onCreateOffer,
@@ -1301,6 +1603,12 @@ function EmptyOffers({
     );
 }
 
+/**
+ * ============================================================
+ * HELPERS
+ * ============================================================
+ */
+
 function formatDate(
     date: string,
 ) {
@@ -1334,14 +1642,19 @@ function getStatusColor(
     switch (status) {
         case 'ACTIVE':
             return '#059669';
+
         case 'PENDING_APPROVAL':
             return '#D97706';
+
         case 'PAUSED':
             return '#6B7280';
+
         case 'EXPIRED':
             return '#DC2626';
+
         case 'REJECTED':
             return '#DC2626';
+
         case 'DRAFT':
         default:
             return '#6B7280';
@@ -1357,26 +1670,31 @@ function getStatusStyle(
                 backgroundColor:
                     '#ECFDF5',
             };
+
         case 'PENDING_APPROVAL':
             return {
                 backgroundColor:
                     '#FFFBEB',
             };
+
         case 'PAUSED':
             return {
                 backgroundColor:
                     '#F3F4F6',
             };
+
         case 'EXPIRED':
             return {
                 backgroundColor:
                     '#FEF2F2',
             };
+
         case 'REJECTED':
             return {
                 backgroundColor:
                     '#FEF2F2',
             };
+
         case 'DRAFT':
         default:
             return {
@@ -1392,6 +1710,7 @@ const styles = StyleSheet.create({
         backgroundColor:
             '#F8FAFC',
     },
+
     header: {
         backgroundColor:
             '#FFFFFF',
@@ -1405,9 +1724,12 @@ const styles = StyleSheet.create({
         justifyContent:
             'space-between',
     },
+
     headerLeft: {
         flex: 1,
+        marginLeft: 12,
     },
+
     headerTitle: {
         fontSize: 26,
         fontWeight:
@@ -1415,12 +1737,14 @@ const styles = StyleSheet.create({
         color:
             '#111827',
     },
+
     headerSubtitle: {
         marginTop: 4,
         fontSize: 13,
         color:
             '#6B7280',
     },
+
     addButton: {
         height: 42,
         paddingHorizontal: 15,
@@ -1435,6 +1759,7 @@ const styles = StyleSheet.create({
             'center',
         marginLeft: 12,
     },
+
     addButtonText: {
         color:
             '#FFFFFF',
@@ -1443,6 +1768,7 @@ const styles = StyleSheet.create({
             '700',
         marginLeft: 5,
     },
+
     summaryContainer: {
         flexDirection:
             'row',
@@ -1450,6 +1776,7 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         paddingBottom: 6,
     },
+
     summaryCard: {
         flex: 1,
         backgroundColor:
@@ -1463,6 +1790,7 @@ const styles = StyleSheet.create({
         borderColor:
             '#E5E7EB',
     },
+
     summaryValue: {
         marginTop: 5,
         fontSize: 20,
@@ -1471,12 +1799,14 @@ const styles = StyleSheet.create({
         color:
             '#111827',
     },
+
     summaryLabel: {
         marginTop: 2,
         fontSize: 12,
         color:
             '#6B7280',
     },
+
     filterContainer: {
         flexDirection:
             'row',
@@ -1484,6 +1814,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         gap: 8,
     },
+
     filterButton: {
         paddingHorizontal: 14,
         paddingVertical: 9,
@@ -1494,12 +1825,14 @@ const styles = StyleSheet.create({
         borderColor:
             '#E5E7EB',
     },
+
     filterButtonActive: {
         backgroundColor:
             PRIMARY,
         borderColor:
             PRIMARY,
     },
+
     filterText: {
         fontSize: 13,
         fontWeight:
@@ -1507,14 +1840,17 @@ const styles = StyleSheet.create({
         color:
             '#6B7280',
     },
+
     filterTextActive: {
         color:
             '#FFFFFF',
     },
+
     listContent: {
         paddingHorizontal: 16,
         paddingBottom: 30,
     },
+
     listHeader: {
         flexDirection:
             'row',
@@ -1523,6 +1859,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         marginTop: 2,
     },
+
     listTitle: {
         fontSize: 18,
         fontWeight:
@@ -1530,6 +1867,7 @@ const styles = StyleSheet.create({
         color:
             '#111827',
     },
+
     offerCount: {
         marginLeft: 8,
         minWidth: 24,
@@ -1546,6 +1884,7 @@ const styles = StyleSheet.create({
             'center',
         paddingTop: 5,
     },
+
     offerCard: {
         backgroundColor:
             '#FFFFFF',
@@ -1556,6 +1895,7 @@ const styles = StyleSheet.create({
         borderColor:
             '#E5E7EB',
     },
+
     offerTopRow: {
         flexDirection:
             'row',
@@ -1564,6 +1904,7 @@ const styles = StyleSheet.create({
         justifyContent:
             'space-between',
     },
+
     discountContainer: {
         backgroundColor:
             '#E6F7F5',
@@ -1571,6 +1912,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 11,
         paddingVertical: 7,
     },
+
     discountText: {
         color:
             PRIMARY,
@@ -1578,6 +1920,7 @@ const styles = StyleSheet.create({
         fontWeight:
             '800',
     },
+
     statusBadge: {
         flexDirection:
             'row',
@@ -1587,12 +1930,14 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         borderRadius: 20,
     },
+
     statusText: {
         fontSize: 11,
         fontWeight:
             '700',
         marginLeft: 4,
     },
+
     offerTitle: {
         marginTop: 13,
         fontSize: 17,
@@ -1601,6 +1946,7 @@ const styles = StyleSheet.create({
         color:
             '#111827',
     },
+
     offerDescription: {
         marginTop: 5,
         fontSize: 13,
@@ -1608,6 +1954,66 @@ const styles = StyleSheet.create({
         color:
             '#6B7280',
     },
+
+    /**
+     * ========================================================
+     * OFFER TARGET BADGE
+     * ========================================================
+     */
+
+    serviceTargetBadge: {
+        marginTop: 12,
+        backgroundColor:
+            '#F8FAFC',
+        borderWidth: 1,
+        borderColor:
+            '#E5E7EB',
+        borderRadius: 12,
+        padding: 10,
+        flexDirection:
+            'row',
+        alignItems:
+            'center',
+    },
+
+    serviceTargetIcon: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor:
+            '#E6F7F5',
+        alignItems:
+            'center',
+        justifyContent:
+            'center',
+    },
+
+    serviceTargetIconAny: {
+        backgroundColor:
+            '#D8F5F2',
+    },
+
+    serviceTargetContent: {
+        flex: 1,
+        marginLeft: 9,
+    },
+
+    serviceTargetTitle: {
+        fontSize: 12,
+        fontWeight:
+            '700',
+        color:
+            '#374151',
+    },
+
+    serviceTargetDescription: {
+        marginTop: 2,
+        fontSize: 10,
+        lineHeight: 15,
+        color:
+            '#6B7280',
+    },
+
     rejectionContainer: {
         marginTop: 10,
         padding: 10,
@@ -1619,6 +2025,7 @@ const styles = StyleSheet.create({
         alignItems:
             'flex-start',
     },
+
     rejectionText: {
         flex: 1,
         marginLeft: 7,
@@ -1627,27 +2034,32 @@ const styles = StyleSheet.create({
         color:
             '#B91C1C',
     },
+
     divider: {
         height: 1,
         backgroundColor:
             '#F1F5F9',
         marginVertical: 13,
     },
+
     infoRow: {
         marginBottom: 7,
     },
+
     infoItem: {
         flexDirection:
             'row',
         alignItems:
             'center',
     },
+
     infoText: {
         marginLeft: 7,
         fontSize: 12,
         color:
             '#6B7280',
     },
+
     bottomRow: {
         marginTop: 7,
         paddingTop: 11,
@@ -1661,12 +2073,14 @@ const styles = StyleSheet.create({
         justifyContent:
             'space-between',
     },
+
     usageText: {
         flex: 1,
         fontSize: 12,
         color:
             '#6B7280',
     },
+
     actionsRow: {
         flexDirection:
             'row',
@@ -1674,6 +2088,7 @@ const styles = StyleSheet.create({
             'center',
         gap: 12,
     },
+
     actionButton: {
         flexDirection:
             'row',
@@ -1681,9 +2096,11 @@ const styles = StyleSheet.create({
             'center',
         paddingVertical: 5,
     },
+
     disabledAction: {
         opacity: 0.7,
     },
+
     actionButtonText: {
         marginLeft: 4,
         fontSize: 12,
@@ -1692,6 +2109,7 @@ const styles = StyleSheet.create({
         color:
             PRIMARY,
     },
+
     loadingContainer: {
         flex: 1,
         alignItems:
@@ -1700,12 +2118,14 @@ const styles = StyleSheet.create({
             'center',
         paddingHorizontal: 30,
     },
+
     loadingText: {
         marginTop: 12,
         fontSize: 13,
         color:
             '#6B7280',
     },
+
     errorContainer: {
         flex: 1,
         alignItems:
@@ -1714,6 +2134,7 @@ const styles = StyleSheet.create({
             'center',
         paddingHorizontal: 35,
     },
+
     errorTitle: {
         marginTop: 15,
         fontSize: 18,
@@ -1724,6 +2145,7 @@ const styles = StyleSheet.create({
         textAlign:
             'center',
     },
+
     errorText: {
         marginTop: 7,
         textAlign:
@@ -1733,6 +2155,7 @@ const styles = StyleSheet.create({
         color:
             '#6B7280',
     },
+
     backButton: {
         width: 42,
         height: 42,
@@ -1744,6 +2167,7 @@ const styles = StyleSheet.create({
         justifyContent:
             'center',
     },
+
     retryButton: {
         marginTop: 18,
         paddingHorizontal: 22,
@@ -1752,6 +2176,7 @@ const styles = StyleSheet.create({
         backgroundColor:
             PRIMARY,
     },
+
     retryButtonText: {
         color:
             '#FFFFFF',
@@ -1759,12 +2184,14 @@ const styles = StyleSheet.create({
         fontWeight:
             '700',
     },
+
     emptyList: {
         flexGrow: 1,
         justifyContent:
             'center',
         paddingHorizontal: 25,
     },
+
     emptyContainer: {
         alignItems:
             'center',
@@ -1772,6 +2199,7 @@ const styles = StyleSheet.create({
             'center',
         paddingVertical: 40,
     },
+
     emptyIcon: {
         width: 82,
         height: 82,
@@ -1783,6 +2211,7 @@ const styles = StyleSheet.create({
         justifyContent:
             'center',
     },
+
     emptyTitle: {
         marginTop: 18,
         fontSize: 19,
@@ -1793,6 +2222,7 @@ const styles = StyleSheet.create({
         textAlign:
             'center',
     },
+
     emptyDescription: {
         marginTop: 7,
         textAlign:
@@ -1803,6 +2233,7 @@ const styles = StyleSheet.create({
             '#6B7280',
         maxWidth: 280,
     },
+
     emptyButton: {
         marginTop: 20,
         height: 46,
@@ -1817,6 +2248,7 @@ const styles = StyleSheet.create({
         justifyContent:
             'center',
     },
+
     emptyButtonText: {
         color:
             '#FFFFFF',

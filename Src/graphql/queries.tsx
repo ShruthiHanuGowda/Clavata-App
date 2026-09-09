@@ -1429,3 +1429,23 @@ export const ACTIVE_OFFERS = gql`
   }
 }
 `;
+
+export const LIST_SALON_SERVICES = gql`
+    query ListSalonServices($salonId: ID!) {
+        listServices(salonId: $salonId) {
+            serviceId
+            salonId
+            name
+            category
+            description
+            duration
+            price
+            gender
+            popular
+            active
+            createdAt
+            updatedAt
+            updatedBy
+        }
+    }
+`;
