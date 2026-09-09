@@ -43,14 +43,23 @@ import {
 
 type BackendOffer = {
     offerId: string;
+
     salonId: string;
 
+    /*
+     * NEW
+     *
+     * Added to GraphQL Offer and populated by backend.
+     */
+    salonName: string;
+
     title: string;
+
     description: string;
 
     discountType:
-    | 'PERCENTAGE'
-    | 'FIXED';
+        | 'PERCENTAGE'
+        | 'FIXED';
 
     discountValue: number;
 
@@ -63,30 +72,35 @@ type BackendOffer = {
     serviceIds: string[];
 
     startDate: string;
+
     endDate: string;
 
     usageLimit?: number | null;
+
     usageCount: number;
 
     customerLimit?: number | null;
 
     status:
-    | 'DRAFT'
-    | 'PENDING_APPROVAL'
-    | 'ACTIVE'
-    | 'PAUSED'
-    | 'EXPIRED'
-    | 'REJECTED';
+        | 'DRAFT'
+        | 'PENDING_APPROVAL'
+        | 'ACTIVE'
+        | 'PAUSED'
+        | 'EXPIRED'
+        | 'REJECTED';
 
     rejectionReason?: string | null;
 
     approvedBy?: string | null;
+
     approvedAt?: string | null;
 
     rejectedBy?: string | null;
+
     rejectedAt?: string | null;
 
     createdAt: string;
+
     updatedAt: string;
 };
 
@@ -94,8 +108,11 @@ type BackendOffer = {
 type ActiveOffersResponse = {
     activeOffers: {
         success: boolean;
+
         message: string;
+
         totalCount: number;
+
         offers: BackendOffer[];
     };
 };
@@ -107,6 +124,16 @@ type ActiveOffersResponse = {
 
 type Offer = {
     id: string;
+
+    salonId: string;
+
+    /*
+     * NEW
+     *
+     * Keep salonName in the object because this complete
+     * offer object will be passed to SalonDetails.
+     */
+    salonName: string;
 
     discount: string;
 
@@ -128,17 +155,21 @@ type Offer = {
 
     endDate: string;
 
-    salonId: string;
-
     discountType:
-    | 'PERCENTAGE'
-    | 'FIXED';
+        | 'PERCENTAGE'
+        | 'FIXED';
 
     discountValue: number;
 
     usageCount: number;
 
     usageLimit?: number | null;
+
+    customerLimit?: number | null;
+
+    serviceIds: string[];
+
+    minimumBookingAmount?: number | null;
 };
 
 
@@ -150,18 +181,22 @@ const formatDiscount = (
     discountType:
         | 'PERCENTAGE'
         | 'FIXED',
+
     discountValue: number,
 ): string => {
 
-    if (discountType === 'PERCENTAGE') {
-
+    if (
+        discountType ===
+        'PERCENTAGE'
+    ) {
         return `${discountValue}% OFF`;
-
     }
 
     return `₹${Number(
         discountValue,
-    ).toLocaleString('en-IN')} OFF`;
+    ).toLocaleString(
+        'en-IN',
+    )} OFF`;
 };
 
 
@@ -178,7 +213,9 @@ const formatExpiryDate = (
     }
 
     const date =
-        new Date(dateString);
+        new Date(
+            dateString,
+        );
 
     if (
         Number.isNaN(
@@ -211,7 +248,9 @@ const getExpiryText = (
     }
 
     const end =
-        new Date(endDate);
+        new Date(
+            endDate,
+        );
 
     if (
         Number.isNaN(
@@ -231,7 +270,12 @@ const getExpiryText = (
     const days =
         Math.ceil(
             difference /
-            (1000 * 60 * 60 * 24),
+            (
+                1000 *
+                60 *
+                60 *
+                24
+            ),
         );
 
     if (days < 0) {
@@ -267,9 +311,9 @@ const formatMinimumBooking = (
 
     if (
         minimumBookingAmount ===
-        null ||
+            null ||
         minimumBookingAmount ===
-        undefined
+            undefined
     ) {
         return undefined;
     }
@@ -282,7 +326,9 @@ const formatMinimumBooking = (
 
     return `Min. booking ₹${Number(
         minimumBookingAmount,
-    ).toLocaleString('en-IN')}`;
+    ).toLocaleString(
+        'en-IN',
+    )}`;
 };
 
 
@@ -298,6 +344,16 @@ const mapBackendOffer = (
 
         id:
             offer.offerId,
+
+        salonId:
+            offer.salonId,
+
+        /*
+         * NEW
+         */
+        salonName:
+            offer.salonName ||
+            'Salon',
 
         discount:
             formatDiscount(
@@ -329,13 +385,6 @@ const mapBackendOffer = (
                 offer.endDate,
             ),
 
-        /*
-         * There is no `featured` field in your
-         * GraphQL Offer type.
-         *
-         * We therefore determine popular offers
-         * using usageCount.
-         */
         featured:
             offer.usageCount > 0,
 
@@ -344,9 +393,6 @@ const mapBackendOffer = (
 
         endDate:
             offer.endDate,
-
-        salonId:
-            offer.salonId,
 
         discountType:
             offer.discountType,
@@ -360,6 +406,15 @@ const mapBackendOffer = (
         usageLimit:
             offer.usageLimit,
 
+        customerLimit:
+            offer.customerLimit,
+
+        serviceIds:
+            offer.serviceIds || [],
+
+        minimumBookingAmount:
+            offer.minimumBookingAmount,
+
     };
 };
 
@@ -369,8 +424,11 @@ const mapBackendOffer = (
 // ============================================================
 
 export default function OffersScreen() {
+
     const navigation =
         useNavigation<any>();
+
+
     // ========================================================
     // STATE
     // ========================================================
@@ -384,7 +442,6 @@ export default function OffersScreen() {
         selectedCategory,
         setSelectedCategory,
     ] = useState('All');
-
 
     const [
         refreshing,
@@ -470,8 +527,10 @@ export default function OffersScreen() {
                             .filter(
                                 category =>
                                     category &&
-                                    category.trim()
-                                        .length > 0,
+                                    category
+                                        .trim()
+                                        .length >
+                                        0,
                             ),
                     ),
                 );
@@ -498,19 +557,35 @@ export default function OffersScreen() {
                     .trim()
                     .toLowerCase();
 
-
             return offers.filter(
                 offer => {
 
                     const matchesCategory =
                         selectedCategory ===
-                        'All' ||
+                            'All' ||
                         offer.category ===
-                        selectedCategory;
+                            selectedCategory;
 
 
+                    /*
+                     * Search now also checks:
+                     *
+                     * - salon name
+                     * - offer title
+                     * - description
+                     * - category
+                     * - discount
+                     * - coupon code
+                     */
                     const matchesSearch =
                         !query ||
+
+                        offer.salonName
+                            .toLowerCase()
+                            .includes(
+                                query,
+                            ) ||
+
                         offer.title
                             .toLowerCase()
                             .includes(
@@ -546,7 +621,6 @@ export default function OffersScreen() {
                         matchesCategory &&
                         matchesSearch
                     );
-
                 },
             );
 
@@ -587,12 +661,37 @@ export default function OffersScreen() {
         useCallback(
             (offer: Offer) => {
 
-                navigation.navigate(
-                    'OfferDetails',
-                    {
-                        offerId:
-                            offer.id,
+                /*
+                 * IMPORTANT:
+                 *
+                 * Offers no longer navigate to a separate
+                 * OfferDetails screen.
+                 *
+                 * They directly open the existing
+                 * SalonDetails screen.
+                 *
+                 * The complete offer object is passed so
+                 * SalonDetails -> BookingDateTime ->
+                 * BookingSummary can carry the offerId.
+                 */
+
+                if (!offer.salonId) {
+                    console.warn(
+                        'Offer does not contain salonId:',
                         offer,
+                    );
+
+                    return;
+                }
+
+                navigation.navigate(
+                    'SalonDetails',
+                    {
+                        salonId:
+                            offer.salonId,
+
+                        offer:
+                            offer,
                     },
                 );
 
@@ -624,7 +723,6 @@ export default function OffersScreen() {
                     setRefreshing(
                         false,
                     );
-
                 }
 
             },
@@ -646,7 +744,6 @@ export default function OffersScreen() {
             setSelectedCategory(
                 'All',
             );
-
         };
 
 
@@ -699,9 +796,7 @@ export default function OffersScreen() {
                 </View>
 
             </SafeAreaView>
-
         );
-
     }
 
 
@@ -772,10 +867,14 @@ export default function OffersScreen() {
 
 
                     <TouchableOpacity
-                        activeOpacity={0.8}
+                        activeOpacity={
+                            0.8
+                        }
+
                         onPress={() =>
                             refetch()
                         }
+
                         style={
                             styles.resetButton
                         }
@@ -794,9 +893,7 @@ export default function OffersScreen() {
                 </View>
 
             </SafeAreaView>
-
         );
-
     }
 
 
@@ -836,9 +933,11 @@ export default function OffersScreen() {
                         refreshing={
                             refreshing
                         }
+
                         onRefresh={
                             handleRefresh
                         }
+
                         tintColor={
                             COLORS.primary
                         }
@@ -929,7 +1028,7 @@ export default function OffersScreen() {
                             setSearch
                         }
 
-                        placeholder="Search offers"
+                        placeholder="Search offers or salons"
 
                         placeholderTextColor={
                             COLORS.textMuted
@@ -1047,7 +1146,6 @@ export default function OffersScreen() {
                                     </TouchableOpacity>
 
                                 );
-
                             },
                         )}
 
@@ -1067,7 +1165,9 @@ export default function OffersScreen() {
                         <SectionHeader
                             title="Popular near you"
                             action="View all"
+
                             onPress={() => {
+
                                 setSelectedCategory(
                                     'All',
                                 );
@@ -1115,6 +1215,7 @@ export default function OffersScreen() {
                         <SectionHeader
                             title="For you"
                             action=""
+
                             onPress={() => { }}
                         />
 
@@ -1167,7 +1268,7 @@ export default function OffersScreen() {
                             <Text
                                 style={
                                     styles.emptyIconText
-                                }
+                            }
                             >
                                 %
                             </Text>
@@ -1199,31 +1300,31 @@ export default function OffersScreen() {
                             selectedCategory !==
                             'All') && (
 
-                                <TouchableOpacity
-                                    activeOpacity={
-                                        0.8
-                                    }
+                            <TouchableOpacity
+                                activeOpacity={
+                                    0.8
+                                }
 
-                                    onPress={
-                                        clearFilters
-                                    }
+                                onPress={
+                                    clearFilters
+                                }
 
+                                style={
+                                    styles.resetButton
+                                }
+                            >
+
+                                <Text
                                     style={
-                                        styles.resetButton
+                                        styles.resetButtonText
                                     }
                                 >
+                                    Clear filters
+                                </Text>
 
-                                    <Text
-                                        style={
-                                            styles.resetButtonText
-                                        }
-                                    >
-                                        Clear filters
-                                    </Text>
+                            </TouchableOpacity>
 
-                                </TouchableOpacity>
-
-                            )}
+                        )}
 
                     </View>
 
@@ -1250,7 +1351,6 @@ export default function OffersScreen() {
             </ScrollView>
 
         </SafeAreaView>
-
     );
 }
 
@@ -1315,9 +1415,7 @@ const SectionHeader =
                 ) : null}
 
             </View>
-
         );
-
     };
 
 
@@ -1395,6 +1493,47 @@ const OfferCard =
                     }
                 >
 
+                    {/* ================================================= */}
+                    {/* SALON NAME */}
+                    {/* ================================================= */}
+
+                    <View
+                        style={
+                            styles.salonRow
+                        }
+                    >
+
+                        <Text
+                            style={
+                                styles.salonIcon
+                            }
+                        >
+                            ✦
+                        </Text>
+
+
+                        <Text
+                            style={
+                                styles.salonName
+                            }
+
+                            numberOfLines={
+                                1
+                            }
+                        >
+                            {
+                                offer.salonName ||
+                                'Salon'
+                            }
+                        </Text>
+
+                    </View>
+
+
+                    {/* ================================================= */}
+                    {/* TITLE + CATEGORY */}
+                    {/* ================================================= */}
+
                     <View
                         style={
                             styles.offerTopRow
@@ -1436,6 +1575,10 @@ const OfferCard =
 
                     </View>
 
+
+                    {/* ================================================= */}
+                    {/* DESCRIPTION */}
+                    {/* ================================================= */}
 
                     <Text
                         style={
@@ -1573,9 +1716,7 @@ const OfferCard =
                 </View>
 
             </TouchableOpacity>
-
         );
-
     };
 
 
@@ -1686,6 +1827,7 @@ const styles =
         headerTitle: {
             marginTop:
                 SPACING.small,
+
             fontSize:
                 FONT_SIZES.title,
 
@@ -2038,6 +2180,51 @@ const styles =
 
             minWidth: 0,
         },
+
+
+        // ========================================================
+        // SALON NAME
+        // ========================================================
+
+        salonRow: {
+            flexDirection:
+                'row',
+
+            alignItems:
+                'center',
+
+            marginBottom:
+                5,
+
+            minWidth:
+                0,
+        },
+
+        salonIcon: {
+            fontSize: 10,
+
+            color:
+                COLORS.primary,
+
+            marginRight:
+                5,
+        },
+
+        salonName: {
+            flex: 1,
+            fontSize: 16,
+            fontWeight:
+                '700',
+            color:
+                COLORS.primary,
+            letterSpacing:
+                0.1,
+        },
+
+
+        // ========================================================
+        // OFFER TOP ROW
+        // ========================================================
 
         offerTopRow: {
             flexDirection:

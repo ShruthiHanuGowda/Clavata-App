@@ -25,12 +25,23 @@ export default function BookingSummaryScreen({
         services,
         date,
         time,
-    } = route.params;
-    console.log('BookingSummaryScreen params:', route.params);
-    console.log("date", date);
 
-    // const temp_bookingDate = '2026-07-30';
-    // const temp_startTime = '10:00 AM'
+        // Optional offer.
+        // Normal bookings will have this as undefined.
+        offer,
+    } = route.params;
+
+    console.log(
+        'BookingSummaryScreen params:',
+        route.params,
+    );
+
+    console.log('date', date);
+
+    console.log(
+        'Applied offer:',
+        offer,
+    );
 
     const [createBooking, { loading }] =
         useMutation(CREATE_BOOKING);
@@ -38,22 +49,57 @@ export default function BookingSummaryScreen({
     const [paymentMethod, setPaymentMethod] =
         useState<'SALON' | 'ONLINE'>('SALON');
 
+    const [couponCode, setCouponCode] =
+        useState(
+            offer?.couponCode ||
+            offer?.code ||
+            '',
+        );
+
     const subtotal = useMemo(() => {
         return services.reduce(
-            (sum: number, item: any) => sum + item.price,
+            (sum: number, item: any) =>
+                sum + Number(item.price || 0),
             0,
         );
     }, [services]);
 
     const duration = useMemo(() => {
         return services.reduce(
-            (sum: number, item: any) => sum + item.duration,
+            (sum: number, item: any) =>
+                sum + Number(item.duration || 0),
             0,
         );
     }, [services]);
 
     const platformFee = 20;
-    const gst = Math.round(platformFee * 0.18);
+
+    const gst = Math.round(
+        platformFee * 0.18,
+    );
+
+    /*
+     * IMPORTANT:
+     *
+     * We do NOT calculate the offer discount here.
+     *
+     * The backend will:
+     * - fetch the offer
+     * - validate the offer
+     * - validate salon
+     * - validate services
+     * - validate dates
+     * - validate minimum booking amount
+     * - validate usage limits
+     * - calculate the actual discount
+     * - calculate final booking total
+     *
+     * This prevents the customer from manipulating the
+     * discounted amount on the mobile app.
+     *
+     * For display purposes we continue showing the normal
+     * subtotal here.
+     */
 
     const total =
         subtotal +
@@ -61,129 +107,361 @@ export default function BookingSummaryScreen({
         gst;
 
     const formatTime = (time: string) => {
-        const [clock, period] = time.split(' ');
-        let [hour, minute] = clock.split(':');
+        const [clock, period] =
+            time.split(' ');
 
-        let h = parseInt(hour, 10);
+        let [hour, minute] =
+            clock.split(':');
 
-        if (period === 'PM' && h !== 12) h += 12;
-        if (period === 'AM' && h === 12) h = 0;
+        let h = parseInt(
+            hour,
+            10,
+        );
 
-        return `${String(h).padStart(2, '0')}:${minute}`;
+        if (
+            period === 'PM' &&
+            h !== 12
+        ) {
+            h += 12;
+        }
+
+        if (
+            period === 'AM' &&
+            h === 12
+        ) {
+            h = 0;
+        }
+
+        return `${String(h).padStart(
+            2,
+            '0',
+        )}:${minute}`;
+    };
+
+    const getOfferDiscountText = () => {
+        if (!offer) {
+            return null;
+        }
+
+        if (
+            offer.discountType ===
+            'PERCENTAGE'
+        ) {
+            return `${offer.discountValue}% OFF`;
+        }
+
+        if (
+            offer.discountType ===
+            'FIXED'
+        ) {
+            return `₹${offer.discountValue} OFF`;
+        }
+
+        return 'Offer Applied';
     };
 
     const confirmBooking = async () => {
         try {
-            const response = await createBooking({
-                variables: {
-                    input: {
-                        salonId,
-                        customerUserId,
-                        bookingDate: date.date.toISOString().split('T')[0],
-                        startTime: formatTime(time),
-                        paymentMethod:
-                            paymentMethod === 'ONLINE'
-                                ? 'ONLINE'
-                                : 'PAY_AT_SALON',
-                        services: services.map((service: any) => ({
-                            serviceId: service.serviceId,
-                        })),
-                        notes: '',
+            /*
+             * The offer is optional.
+             *
+             * Normal booking:
+             * offerId = undefined
+             *
+             * Offer booking:
+             * offerId = selected offer ID
+             */
+
+            const response =
+                await createBooking({
+                    variables: {
+                        input: {
+                            salonId,
+
+                            customerUserId,
+
+                            bookingDate:
+                                date.date
+                                    .toISOString()
+                                    .split('T')[0],
+
+                            startTime:
+                                formatTime(time),
+
+                            paymentMethod:
+                                paymentMethod ===
+                                'ONLINE'
+                                    ? 'ONLINE'
+                                    : 'PAY_AT_SALON',
+
+                            services:
+                                services.map(
+                                    (
+                                        service: any,
+                                    ) => ({
+                                        serviceId:
+                                            service.serviceId,
+                                    }),
+                                ),
+
+                            notes: '',
+
+                            // =========================================
+                            // OFFER
+                            // =========================================
+                            //
+                            // This is the only new value being sent.
+                            //
+                            // Backend will validate and calculate
+                            // the actual discount.
+                            //
+                            ...(offer?.offerId ||
+                                offer?.id
+                                ? {
+                                    offerId:
+                                        offer.offerId ||
+                                        offer.id,
+                                }
+                                : {}),
+                        },
                     },
-                },
-            });
+                });
 
-            if (response.data.createBooking.success) {
+            console.log(
+                'createBooking response:',
+                response.data,
+            );
 
+            if (
+                response.data
+                    ?.createBooking
+                    ?.success
+            ) {
                 navigation.replace(
                     'BookingRequestSent',
                     {
                         booking:
-                            response.data.createBooking.booking,
+                            response.data
+                                .createBooking
+                                .booking,
                     },
                 );
-
             } else {
-
                 Alert.alert(
-                    response.data.createBooking.message,
+                    response.data
+                        ?.createBooking
+                        ?.message ||
+                    'Unable to create booking.',
                 );
-
             }
         } catch (err: any) {
-            Alert.alert(err.message);
+            console.error(
+                'Create booking error:',
+                err,
+            );
+
+            Alert.alert(
+                err?.message ||
+                'Something went wrong while creating the booking.',
+            );
         }
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView
+            style={styles.container}
+        >
+
+            {/* ===================================================== */}
+            {/* BACK */}
+            {/* ===================================================== */}
+
             <TouchableOpacity
-                onPress={() => navigation.goBack()}>
-                <Text style={styles.back}>←</Text>
+                onPress={() =>
+                    navigation.goBack()
+                }
+            >
+                <Text style={styles.back}>
+                    ←
+                </Text>
             </TouchableOpacity>
+
             <FlatList
                 data={services}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(
+                    item,
+                    index,
+                ) =>
+                    item.serviceId ||
+                    item.id ||
+                    index.toString()
+                }
+
+                /* ================================================= */
+                /* HEADER */
+                /* ================================================= */
+
                 ListHeaderComponent={
                     <>
-                        <Text style={styles.heading}>
+                        <Text
+                            style={
+                                styles.heading
+                            }
+                        >
                             Booking Summary
                         </Text>
 
-                        <View style={styles.card}>
-                            <Text style={styles.salon}>
-                                {salon?.name}
+                        {/* ========================================= */}
+                        {/* SALON */}
+                        {/* ========================================= */}
+
+                        <View
+                            style={
+                                styles.card
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.salon
+                                }
+                            >
+                                {salon?.name ||
+                                    salon?.salonName ||
+                                    'Salon'}
                             </Text>
 
-                            <Text style={styles.address}>
-                                📍  {salon?.address?.addressLine}, {salon?.address?.city}
+                            <Text
+                                style={
+                                    styles.address
+                                }
+                            >
+                                📍{' '}
+                                {salon
+                                    ?.address
+                                    ?.addressLine}
+                                {salon
+                                    ?.address
+                                    ?.city
+                                    ? `, ${salon.address.city}`
+                                    : ''}
                             </Text>
                         </View>
 
-                        <View style={styles.card}>
-                            <Text style={styles.sectionTitle}>
+                        {/* ========================================= */}
+                        {/* APPOINTMENT */}
+                        {/* ========================================= */}
+
+                        <View
+                            style={
+                                styles.card
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.sectionTitle
+                                }
+                            >
                                 Appointment
                             </Text>
 
                             <Text>
-                                📅 {date.label}, {date.dayNumber} {date.month} {date.date.getFullYear()}
+                                📅{' '}
+                                {date.label},{' '}
+                                {date.dayNumber}{' '}
+                                {date.month}{' '}
+                                {date.date.getFullYear()}
                             </Text>
 
-                            <Text style={{ marginTop: 8 }}>
+                            <Text
+                                style={{
+                                    marginTop: 8,
+                                }}
+                            >
                                 🕒 {time}
                             </Text>
                         </View>
 
-                        <View style={styles.card}>
-                            <Text style={styles.sectionTitle}>
+                        {/* ========================================= */}
+                        {/* SELECTED SERVICES */}
+                        {/* ========================================= */}
+
+                        <View
+                            style={
+                                styles.card
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.sectionTitle
+                                }
+                            >
                                 Selected Services
                             </Text>
                         </View>
                     </>
                 }
-                renderItem={({ item }) => (
-                    <View style={styles.serviceRow}>
+
+                /* ================================================= */
+                /* SERVICES */
+                /* ================================================= */
+
+                renderItem={({
+                    item,
+                }) => (
+                    <View
+                        style={
+                            styles.serviceRow
+                        }
+                    >
                         <View>
                             <Text
-                                style={styles.service}>
+                                style={
+                                    styles.service
+                                }
+                            >
                                 {item.name}
                             </Text>
 
                             <Text
-                                style={styles.duration}>
-                                {item.duration} mins
+                                style={
+                                    styles.duration
+                                }
+                            >
+                                {item.duration}{' '}
+                                mins
                             </Text>
                         </View>
 
-                        <Text style={styles.price}>
+                        <Text
+                            style={
+                                styles.price
+                            }
+                        >
                             ₹{item.price}
                         </Text>
                     </View>
                 )}
+
+                /* ================================================= */
+                /* FOOTER */
+                /* ================================================= */
+
                 ListFooterComponent={
                     <>
-                        <View style={styles.card}>
-                            <Text style={styles.sectionTitle}>
+                        {/* ========================================= */}
+                        {/* DURATION */}
+                        {/* ========================================= */}
+
+                        <View
+                            style={
+                                styles.card
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.sectionTitle
+                                }
+                            >
                                 Duration
                             </Text>
 
@@ -192,35 +470,142 @@ export default function BookingSummaryScreen({
                             </Text>
                         </View>
 
-                        <View style={styles.card}>
-                            <Text style={styles.sectionTitle}>
+                        {/* ========================================= */}
+                        {/* PROMO / OFFER */}
+                        {/* ========================================= */}
+
+                        <View
+                            style={
+                                styles.card
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.sectionTitle
+                                }
+                            >
                                 Promo Code
                             </Text>
 
                             <TextInput
                                 placeholder="Enter coupon"
-                                style={styles.input}
+                                value={
+                                    couponCode
+                                }
+                                onChangeText={
+                                    setCouponCode
+                                }
+                                editable={
+                                    !offer
+                                }
+                                style={[
+                                    styles.input,
+
+                                    offer && {
+                                        backgroundColor:
+                                            '#F3F3F3',
+                                        color:
+                                            '#666',
+                                    },
+                                ]}
                             />
 
-                            <TouchableOpacity
-                                style={styles.apply}>
-                                <Text
-                                    style={{
-                                        color: PRIMARY,
-                                        fontWeight: '700',
-                                    }}>
-                                    Apply
-                                </Text>
-                            </TouchableOpacity>
+                            {offer ? (
+                                <View
+                                    style={
+                                        styles.offerApplied
+                                    }
+                                >
+                                    <View
+                                        style={{
+                                            flex: 1,
+                                        }}
+                                    >
+                                        <Text
+                                            style={
+                                                styles.offerAppliedTitle
+                                            }
+                                        >
+                                            ✓ Offer Applied
+                                        </Text>
+
+                                        <Text
+                                            style={
+                                                styles.offerAppliedText
+                                            }
+                                        >
+                                            {offer.title ||
+                                                'Special Offer'}
+                                        </Text>
+
+                                        {offer
+                                            .description && (
+                                            <Text
+                                                style={
+                                                    styles.offerDescription
+                                                }
+                                            >
+                                                {
+                                                    offer.description
+                                                }
+                                            </Text>
+                                        )}
+                                    </View>
+
+                                    <Text
+                                        style={
+                                            styles.offerDiscount
+                                        }
+                                    >
+                                        {
+                                            getOfferDiscountText()
+                                        }
+                                    </Text>
+                                </View>
+                            ) : (
+                                <TouchableOpacity
+                                    style={
+                                        styles.apply
+                                    }
+                                >
+                                    <Text
+                                        style={{
+                                            color:
+                                                PRIMARY,
+                                            fontWeight:
+                                                '700',
+                                        }}
+                                    >
+                                        Apply
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
 
-                        <View style={styles.card}>
-                            <Text style={styles.sectionTitle}>
+                        {/* ========================================= */}
+                        {/* PAYMENT SUMMARY */}
+                        {/* ========================================= */}
+
+                        <View
+                            style={
+                                styles.card
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.sectionTitle
+                                }
+                            >
                                 Payment
                             </Text>
 
+                            {/* SERVICES */}
+
                             <View
-                                style={styles.row}>
+                                style={
+                                    styles.row
+                                }
+                            >
                                 <Text>
                                     Services
                                 </Text>
@@ -230,8 +615,39 @@ export default function BookingSummaryScreen({
                                 </Text>
                             </View>
 
+                            {/* OFFER */}
+
+                            {offer && (
+                                <View
+                                    style={
+                                        styles.row
+                                    }
+                                >
+                                    <Text
+                                        style={
+                                            styles.discountLabel
+                                        }
+                                    >
+                                        Offer Discount
+                                    </Text>
+
+                                    <Text
+                                        style={
+                                            styles.discountPending
+                                        }
+                                    >
+                                        Applied at checkout
+                                    </Text>
+                                </View>
+                            )}
+
+                            {/* PLATFORM FEE */}
+
                             <View
-                                style={styles.row}>
+                                style={
+                                    styles.row
+                                }
+                            >
                                 <Text>
                                     Platform Fee
                                 </Text>
@@ -241,14 +657,23 @@ export default function BookingSummaryScreen({
                                 </Text>
                             </View>
 
+                            {/* GST */}
+
                             <View
-                                style={styles.row}>
-                                <Text>GST</Text>
+                                style={
+                                    styles.row
+                                }
+                            >
+                                <Text>
+                                    GST
+                                </Text>
 
                                 <Text>
                                     ₹{gst}
                                 </Text>
                             </View>
+
+                            {/* TOTAL */}
 
                             <View
                                 style={[
@@ -256,56 +681,99 @@ export default function BookingSummaryScreen({
                                     {
                                         marginTop: 10,
                                     },
-                                ]}>
+                                ]}
+                            >
                                 <Text
                                     style={{
-                                        fontWeight: '700',
-                                    }}>
-                                    Total
+                                        fontWeight:
+                                            '700',
+                                    }}
+                                >
+                                    {offer
+                                        ? 'Estimated Total'
+                                        : 'Total'}
                                 </Text>
 
                                 <Text
                                     style={{
-                                        fontWeight: '700',
-                                        color: PRIMARY,
+                                        fontWeight:
+                                            '700',
+                                        color:
+                                            PRIMARY,
                                         fontSize: 18,
-                                    }}>
+                                    }}
+                                >
                                     ₹{total}
                                 </Text>
                             </View>
+
+                            {offer && (
+                                <Text
+                                    style={
+                                        styles.backendNote
+                                    }
+                                >
+                                    Final offer discount
+                                    and total will be
+                                    verified when the
+                                    booking is created.
+                                </Text>
+                            )}
                         </View>
 
-                        <View style={styles.card}>
-                            <Text style={styles.sectionTitle}>
+                        {/* ========================================= */}
+                        {/* PAYMENT METHOD */}
+                        {/* ========================================= */}
+
+                        <View
+                            style={
+                                styles.card
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.sectionTitle
+                                }
+                            >
                                 Payment Method
                             </Text>
 
+                            {/* PAY AT SALON */}
+
                             <TouchableOpacity
-                                style={styles.option}
+                                style={
+                                    styles.option
+                                }
                                 onPress={() =>
                                     setPaymentMethod(
                                         'SALON',
                                     )
-                                }>
+                                }
+                            >
                                 <Text>
                                     {paymentMethod ===
-                                        'SALON'
+                                    'SALON'
                                         ? '🟢'
                                         : '⚪'}{' '}
                                     Pay at Salon
                                 </Text>
                             </TouchableOpacity>
 
+                            {/* ONLINE */}
+
                             <TouchableOpacity
-                                style={styles.option}
+                                style={
+                                    styles.option
+                                }
                                 onPress={() =>
                                     setPaymentMethod(
                                         'ONLINE',
                                     )
-                                }>
+                                }
+                            >
                                 <Text>
                                     {paymentMethod ===
-                                        'ONLINE'
+                                    'ONLINE'
                                         ? '🟢'
                                         : '⚪'}{' '}
                                     Pay Online
@@ -313,17 +781,32 @@ export default function BookingSummaryScreen({
                             </TouchableOpacity>
                         </View>
 
+                        {/* ========================================= */}
+                        {/* CONFIRM */}
+                        {/* ========================================= */}
+
                         <TouchableOpacity
-                            style={styles.confirm}
+                            style={
+                                styles.confirm
+                            }
                             disabled={loading}
-                            onPress={confirmBooking}
+                            onPress={
+                                confirmBooking
+                            }
                         >
-                            <Text style={styles.confirmText}>
-                                {loading ? 'Booking...' : 'Confirm Booking'}
+                            <Text
+                                style={
+                                    styles.confirmText
+                                }
+                            >
+                                {loading
+                                    ? 'Booking...'
+                                    : 'Confirm Booking'}
                             </Text>
                         </TouchableOpacity>
                     </>
                 }
+
                 contentContainerStyle={{
                     paddingBottom: 30,
                 }}
@@ -405,6 +888,60 @@ const styles = StyleSheet.create({
     apply: {
         alignSelf: 'flex-end',
         marginTop: 12,
+    },
+
+    offerApplied: {
+        marginTop: 14,
+        padding: 14,
+        borderRadius: 12,
+        backgroundColor: '#EAF8F3',
+        borderWidth: 1,
+        borderColor: '#B9E5D5',
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+
+    offerAppliedTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: PRIMARY,
+    },
+
+    offerAppliedText: {
+        marginTop: 4,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#222',
+    },
+
+    offerDescription: {
+        marginTop: 3,
+        fontSize: 12,
+        color: '#666',
+    },
+
+    offerDiscount: {
+        marginLeft: 10,
+        fontSize: 15,
+        fontWeight: '800',
+        color: PRIMARY,
+    },
+
+    discountLabel: {
+        fontWeight: '600',
+    },
+
+    discountPending: {
+        color: PRIMARY,
+        fontSize: 12,
+        fontWeight: '600',
+    },
+
+    backendNote: {
+        marginTop: 12,
+        fontSize: 12,
+        lineHeight: 18,
+        color: '#777',
     },
 
     row: {

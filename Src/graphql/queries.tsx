@@ -1403,6 +1403,7 @@ export const ACTIVE_OFFERS = gql`
     offers {
       offerId
       salonId
+      salonName
       title
       description
       discountType

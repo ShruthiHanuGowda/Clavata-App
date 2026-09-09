@@ -9,6 +9,7 @@ import {
     StyleSheet,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
+
 const PRIMARY = '#008060';
 
 type DateItem = {
@@ -90,14 +91,24 @@ export default function BookingDateTimeScreen({
         salon,
         customerUserId,
         services,
+
+        // Optional offer.
+        // Normal bookings will simply have this as undefined.
+        offer,
     } = route.params;
-    console.log("BookingDateTime params:", route?.params);
+
+    console.log('BookingDateTime params:', route?.params);
+
     const today = new Date().toISOString().split('T')[0];
+
     const dates = useMemo(() => generateDates(), []);
+
     const [selectedDate, setSelectedDate] =
         useState<DateItem>(dates[0]);
+
     const [selectedSlot, setSelectedSlot] =
         useState<string | null>(null);
+
     const totalPrice = useMemo(() => {
         return services.reduce(
             (sum: number, item: any) => sum + item.price,
@@ -114,25 +125,31 @@ export default function BookingDateTimeScreen({
     }, [services]);
 
     const morning = allSlots.filter(slot => {
-        const hour = Number(slot.time.split(':')[0]);
         return slot.time.includes('AM');
     });
 
     const afternoon = allSlots.filter(slot => {
         const hour = Number(slot.time.split(':')[0]);
+
         return (
             slot.time.includes('PM') &&
-            (hour === 12 ||
+            (
+                hour === 12 ||
                 hour === 1 ||
                 hour === 2 ||
                 hour === 3 ||
-                hour === 4)
+                hour === 4
+            )
         );
     });
 
     const evening = allSlots.filter(slot => {
         const hour = Number(slot.time.split(':')[0]);
-        return slot.time.includes('PM') && hour >= 5;
+
+        return (
+            slot.time.includes('PM') &&
+            hour >= 5
+        );
     });
 
     const renderSlot = ({
@@ -155,7 +172,8 @@ export default function BookingDateTimeScreen({
                     styles.slotCardSelected,
                     !item.available &&
                     styles.slotDisabled,
-                ]}>
+                ]}
+            >
                 <Text
                     style={[
                         styles.slotText,
@@ -163,7 +181,8 @@ export default function BookingDateTimeScreen({
                         styles.slotTextSelected,
                         !item.available &&
                         styles.slotDisabledText,
-                    ]}>
+                    ]}
+                >
                     {item.time}
                 </Text>
 
@@ -181,27 +200,56 @@ export default function BookingDateTimeScreen({
 
         setSelectedDate({
             id: day.dateString,
+
             date: selected,
-            label: day.dateString === today ? 'Today' : selected.toLocaleDateString('en-US', {
-                weekday: 'short',
-            }),
-            day: selected.toLocaleDateString('en-US', {
-                weekday: 'short',
-            }),
-            dayNumber: selected.getDate().toString(),
-            month: selected.toLocaleDateString('en-US', {
-                month: 'short',
-            }),
+
+            label:
+                day.dateString === today
+                    ? 'Today'
+                    : selected.toLocaleDateString(
+                        'en-US',
+                        {
+                            weekday: 'short',
+                        },
+                    ),
+
+            day: selected.toLocaleDateString(
+                'en-US',
+                {
+                    weekday: 'short',
+                },
+            ),
+
+            dayNumber:
+                selected.getDate().toString(),
+
+            month:
+                selected.toLocaleDateString(
+                    'en-US',
+                    {
+                        month: 'short',
+                    },
+                ),
         });
 
         setSelectedSlot(null);
     };
+
     return (
         <SafeAreaView style={styles.container}>
+
+            {/* ===================================================== */}
+            {/* HEADER */}
+            {/* ===================================================== */}
+
             <View style={styles.header}>
+
                 <TouchableOpacity
-                    onPress={() => navigation.goBack()}>
-                    <Text style={styles.back}>←</Text>
+                    onPress={() => navigation.goBack()}
+                >
+                    <Text style={styles.back}>
+                        ←
+                    </Text>
                 </TouchableOpacity>
 
                 <Text style={styles.title}>
@@ -216,19 +264,31 @@ export default function BookingDateTimeScreen({
                     {selectedDate.month}{' '}
                     {selectedDate.date.getFullYear()}
                 </Text>
+
             </View>
+
+            {/* ===================================================== */}
+            {/* CALENDAR */}
+            {/* ===================================================== */}
+
             <Calendar
                 minDate={today}
                 enableSwipeMonths
                 hideExtraDays={false}
                 firstDay={1}
                 onDayPress={onDayPress}
+
                 markedDates={{
-                    [selectedDate.date.toISOString().split('T')[0]]: {
+                    [
+                        selectedDate.date
+                            .toISOString()
+                            .split('T')[0]
+                    ]: {
                         selected: true,
-                        selectedColor: '#008060',
+                        selectedColor: PRIMARY,
                     },
                 }}
+
                 theme={{
                     backgroundColor: '#fff',
                     calendarBackground: '#fff',
@@ -243,25 +303,34 @@ export default function BookingDateTimeScreen({
                     textDayHeaderFontWeight: '700',
                     textDayHeaderFontSize: 13,
 
-                    selectedDayBackgroundColor: '#008060',
+                    selectedDayBackgroundColor: PRIMARY,
                     selectedDayTextColor: '#fff',
 
-                    todayTextColor: '#008060',
+                    todayTextColor: PRIMARY,
 
-                    arrowColor: '#008060',
+                    arrowColor: PRIMARY,
 
                     textDisabledColor: '#d2d2d2',
                 }}
             />
+
+            {/* ===================================================== */}
+            {/* TIME SLOTS */}
+            {/* ===================================================== */}
+
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{
                     paddingBottom: 140,
-                }}>
+                }}
+            >
+
+                {/* MORNING */}
 
                 <Text style={styles.sectionTitle}>
                     Morning
                 </Text>
+
                 <FlatList
                     data={morning}
                     renderItem={renderSlot}
@@ -269,9 +338,13 @@ export default function BookingDateTimeScreen({
                     numColumns={3}
                     scrollEnabled={false}
                 />
+
+                {/* AFTERNOON */}
+
                 <Text style={styles.sectionTitle}>
                     Afternoon
                 </Text>
+
                 <FlatList
                     data={afternoon}
                     renderItem={renderSlot}
@@ -279,9 +352,13 @@ export default function BookingDateTimeScreen({
                     numColumns={3}
                     scrollEnabled={false}
                 />
+
+                {/* EVENING */}
+
                 <Text style={styles.sectionTitle}>
                     Evening
                 </Text>
+
                 <FlatList
                     data={evening}
                     renderItem={renderSlot}
@@ -289,7 +366,13 @@ export default function BookingDateTimeScreen({
                     numColumns={3}
                     scrollEnabled={false}
                 />
+
+                {/* ================================================= */}
+                {/* BOOKING SUMMARY */}
+                {/* ================================================= */}
+
                 <View style={styles.summaryCard}>
+
                     <View>
                         <Text style={styles.summaryTitle}>
                             Booking Summary
@@ -300,7 +383,11 @@ export default function BookingDateTimeScreen({
                         </Text>
                     </View>
 
-                    <View style={{ alignItems: 'flex-end' }}>
+                    <View
+                        style={{
+                            alignItems: 'flex-end',
+                        }}
+                    >
                         <Text style={styles.summaryPrice}>
                             ₹{totalPrice}
                         </Text>
@@ -309,11 +396,19 @@ export default function BookingDateTimeScreen({
                             {totalDuration} mins
                         </Text>
                     </View>
+
                 </View>
 
             </ScrollView>
+
+            {/* ===================================================== */}
+            {/* BOTTOM BAR */}
+            {/* ===================================================== */}
+
             <View style={styles.bottomBar}>
+
                 <View>
+
                     <Text style={styles.bottomPrice}>
                         ₹{totalPrice}
                     </Text>
@@ -321,6 +416,7 @@ export default function BookingDateTimeScreen({
                     <Text style={styles.bottomServices}>
                         {services.length} services
                     </Text>
+
                 </View>
 
                 <TouchableOpacity
@@ -331,7 +427,8 @@ export default function BookingDateTimeScreen({
                             opacity: 0.5,
                         },
                     ]}
-                    onPress={() =>
+                    onPress={() => {
+
                         navigation.navigate(
                             'BookingSummary',
                             {
@@ -339,16 +436,31 @@ export default function BookingDateTimeScreen({
                                 salon,
                                 customerUserId,
                                 services,
+
                                 date: selectedDate,
+
                                 time: selectedSlot,
+
+                                // =========================================
+                                // IMPORTANT:
+                                // Carry the offer to BookingSummary.
+                                //
+                                // For a normal booking this is undefined,
+                                // so the existing flow remains unchanged.
+                                // =========================================
+                                offer,
                             },
-                        )
-                    }>
+                        );
+
+                    }}
+                >
                     <Text style={styles.continueText}>
                         Continue
                     </Text>
                 </TouchableOpacity>
+
             </View>
+
         </SafeAreaView>
     );
 }
@@ -427,10 +539,12 @@ const styles = StyleSheet.create({
     dateNumberSelected: {
         color: '#FFF',
     },
+
     back: {
         fontSize: 28,
         fontWeight: '700',
     },
+
     favorite: {
         fontSize: 28,
     },
