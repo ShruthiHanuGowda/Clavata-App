@@ -437,88 +437,88 @@ query CustomerBookings($customerUserId: ID!) {
 }
 `;
 
-export const GET_SALON = gql`
-    query GetSalon($salonId: ID!) {
-        getSalon(salonId: $salonId) {
-            salonId
-            ownerUserId
-            salonName
-            ownerName
-            businessType
-            ownerPhoneNumber
-            alternatePhone
-            email
+// export const GET_SALON = gql`
+//     query GetSalon($salonId: ID!) {
+//         getSalon(salonId: $salonId) {
+//             salonId
+//             ownerUserId
+//             salonName
+//             ownerName
+//             businessType
+//             ownerPhoneNumber
+//             alternatePhone
+//             email
 
-            address {
-                addressLine
-                city
-                state
-                pincode
-            }
+//             address {
+//                 addressLine
+//                 city
+//                 state
+//                 pincode
+//             }
 
-            latitude
-            longitude
-            distance
+//             latitude
+//             longitude
+//             distance
 
-            logoUrl
-            coverImageUrl
-            galleryImages
+//             logoUrl
+//             coverImageUrl
+//             galleryImages
 
-            businessHours {
-                MONDAY {
-                    open
-                    close
-                    isOpen
-                }
-                TUESDAY {
-                    open
-                    close
-                    isOpen
-                }
-                WEDNESDAY {
-                    open
-                    close
-                    isOpen
-                }
-                THURSDAY {
-                    open
-                    close
-                    isOpen
-                }
-                FRIDAY {
-                    open
-                    close
-                    isOpen
-                }
-                SATURDAY {
-                    open
-                    close
-                    isOpen
-                }
-                SUNDAY {
-                    open
-                    close
-                    isOpen
-                }
-            }
+//             businessHours {
+//                 MONDAY {
+//                     open
+//                     close
+//                     isOpen
+//                 }
+//                 TUESDAY {
+//                     open
+//                     close
+//                     isOpen
+//                 }
+//                 WEDNESDAY {
+//                     open
+//                     close
+//                     isOpen
+//                 }
+//                 THURSDAY {
+//                     open
+//                     close
+//                     isOpen
+//                 }
+//                 FRIDAY {
+//                     open
+//                     close
+//                     isOpen
+//                 }
+//                 SATURDAY {
+//                     open
+//                     close
+//                     isOpen
+//                 }
+//                 SUNDAY {
+//                     open
+//                     close
+//                     isOpen
+//                 }
+//             }
 
-            kycStatus
-            salonStatus
-            isActive
-            isVisible
-            isDeleted
+//             kycStatus
+//             salonStatus
+//             isActive
+//             isVisible
+//             isDeleted
 
-            averageRating
-            totalReviews
-            totalAppointments
-            totalCompletedAppointments
-            totalCancelledAppointments
+//             averageRating
+//             totalReviews
+//             totalAppointments
+//             totalCompletedAppointments
+//             totalCancelledAppointments
 
-            createdAt
-            updatedAt
-        }
-    }
-`;
+//             createdAt
+//             updatedAt
+//         }
+//     }
+// `;
 
 export const UPDATE_BUSINESS_HOURS = gql`
   mutation UpdateBusinessHours(
@@ -1446,3 +1446,230 @@ export const REQUEST_REFUND = gql`
     }
 `;
 
+export const DELETE_SALON_MEDIA = gql`
+    mutation DeleteSalonMedia(
+        $input: DeleteSalonMediaInput!
+    ) {
+        deleteSalonMedia(
+            input: $input
+        ) {
+            success
+            message
+            key
+        }
+    }
+`;
+
+// ============================================================
+// GET SALON
+// ============================================================
+
+export const GET_SALON = gql`
+  query GetSalon($salonId: ID!) {
+    getSalon(salonId: $salonId) {
+      salonId
+      ownerUserId
+      salonName
+      ownerName
+      businessType
+      ownerPhoneNumber
+      alternatePhone
+      email
+
+      address {
+        addressLine
+        city
+        state
+        pincode
+      }
+
+      latitude
+      longitude
+
+      logoUrl
+      coverImageUrl
+      galleryImages
+
+      logoMedia {
+        imageId
+        salonId
+        mediaType
+        key
+        objectUrl
+        status
+        uploadedAt
+        approvedAt
+        approvedBy
+        rejectedAt
+        rejectedBy
+        rejectionReason
+      }
+
+      coverMedia {
+        imageId
+        salonId
+        mediaType
+        key
+        objectUrl
+        status
+        uploadedAt
+        approvedAt
+        approvedBy
+        rejectedAt
+        rejectedBy
+        rejectionReason
+      }
+
+      galleryMedia {
+        imageId
+        salonId
+        mediaType
+        key
+        objectUrl
+        status
+        uploadedAt
+        approvedAt
+        approvedBy
+        rejectedAt
+        rejectedBy
+        rejectionReason
+      }
+
+      businessHours {
+        MONDAY {
+          open
+          close
+          isOpen
+        }
+        TUESDAY {
+          open
+          close
+          isOpen
+        }
+        WEDNESDAY {
+          open
+          close
+          isOpen
+        }
+        THURSDAY {
+          open
+          close
+          isOpen
+        }
+        FRIDAY {
+          open
+          close
+          isOpen
+        }
+        SATURDAY {
+          open
+          close
+          isOpen
+        }
+        SUNDAY {
+          open
+          close
+          isOpen
+        }
+      }
+
+      kycStatus
+      salonStatus
+      isActive
+      isVisible
+      isDeleted
+      averageRating
+      totalReviews
+      totalAppointments
+      totalCompletedAppointments
+      totalCancelledAppointments
+      totalRevenue
+      approvedBy
+      approvedAt
+      rejectedBy
+      rejectedAt
+      rejectionReason
+      lastUpdatedBy
+      createdAt
+      updatedAt
+    }
+  }
+`;
+// ============================================================
+// S3 UPLOAD URL
+// ============================================================
+
+export const GENERATE_SALON_MEDIA_UPLOAD_URL = gql`
+    mutation GenerateSalonMediaUploadUrl(
+        $input: GenerateSalonMediaUploadUrlInput!
+    ) {
+        generateSalonMediaUploadUrl(
+            input: $input
+        ) {
+            success
+            message
+            uploadUrl
+            objectUrl
+            key
+            salonId
+            mediaType
+            contentType
+            imageId
+            expiresIn
+        }
+    }
+`;
+
+// ============================================================
+// UPDATE SALON PROFILE
+// ============================================================
+
+export const UPDATE_SALON_PROFILE = gql`
+    mutation UpdateSalonProfile(
+        $input: UpdateSalonProfileInput!
+    ) {
+        updateSalonProfile(input: $input) {
+            success
+            message
+
+            salon {
+                salonId
+                ownerUserId
+                salonName
+                ownerName
+                businessType
+                ownerPhoneNumber
+                alternatePhone
+                email
+
+                address {
+                    addressLine
+                    city
+                    state
+                    pincode
+                }
+
+                logoUrl
+                coverImageUrl
+                galleryImages
+
+                kycStatus
+                salonStatus
+
+                isActive
+                isVisible
+                isDeleted
+
+                averageRating
+                totalReviews
+                totalAppointments
+                totalCompletedAppointments
+                totalCancelledAppointments
+                totalRevenue
+
+                createdAt
+                updatedAt
+            }
+        }
+    }
+`;

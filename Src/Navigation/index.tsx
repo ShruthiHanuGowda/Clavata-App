@@ -43,6 +43,7 @@ import ClavataMatch from '../Screens/CustomerTabs/Home/ClavataMatch';
 import SalonOffersScreen from '../Screens/SalonTabs/Profile/SalonOffersScreen';
 import CreateOfferScreen from '../Screens/SalonTabs/Profile/CreateOfferScreen';
 import OfferDetailsScreen from '../Screens/CustomerTabs/Offer/OfferDetailsScreen';
+import SalonInformation from '../Screens/SalonTabs/Profile/SalonInformation';
 // import CustomerLocationScreen from '../Screens/CustomerTabs/Home/CustomerLocationScreen';
 
 function RootScreenStack() {
@@ -261,6 +262,10 @@ export function SalonProfileStack() {
       <SalonProfilePlaceStack.Screen
         name="StaffManagementScreen"
         component={StaffManagementScreen}
+      />
+       <SalonProfilePlaceStack.Screen
+        name="SalonInformation"
+        component={SalonInformation}
       />
       <SalonProfilePlaceStack.Screen
         name="BusinessHoursScreen"

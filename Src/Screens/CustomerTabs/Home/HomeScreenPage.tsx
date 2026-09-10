@@ -3852,7 +3852,7 @@ const styles =
       marginTop: 3,
       fontSize: 12,
       color:
-        '#BEBEBE',
+        COLORS.white,
       fontWeight:
         '400',
     },

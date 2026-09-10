@@ -190,6 +190,7 @@ export type SalonProfileStackParamList = {
     offer?: any;
     mode?: 'EDIT';
   } | undefined;
+  SalonInformation: undefined;
 };
 
 export type MarketplaceStackParamList = {
