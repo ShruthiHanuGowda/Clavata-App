@@ -3000,7 +3000,7 @@ const styles =
             borderRadius:
                 14,
             backgroundColor:
-                COLORS.black,
+                COLORS.themeColor,
             alignItems:
                 'center',
             justifyContent:

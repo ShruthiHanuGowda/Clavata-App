@@ -12,7 +12,7 @@ import {
 import { useMutation } from '@apollo/client';
 import { CREATE_BOOKING } from '../../../graphql/queries';
 
-const PRIMARY = '#008060';
+const PRIMARY = '#009D94';
 
 type Service = {
     serviceId: string;

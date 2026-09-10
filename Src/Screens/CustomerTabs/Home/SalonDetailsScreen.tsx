@@ -31,7 +31,7 @@ import {
     IS_FAVORITE_SALON,
 } from '../../../graphql/queries';
 
-const PRIMARY = '#008060';
+const PRIMARY = '#009D94';
 
 type Props = {
     navigation: any;

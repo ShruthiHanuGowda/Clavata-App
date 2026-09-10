@@ -654,7 +654,7 @@ export default function BusinessHoursScreen() {
                     >
                         <ActivityIndicator
                             size="small"
-                            color="#008060"
+                            color="#009D94"
                         />
 
                         <Text
@@ -1005,7 +1005,7 @@ const styles = {
     timeValue: {
         fontSize: 15,
         fontWeight: '700' as const,
-        color: '#008060',
+        color: '#009D94',
     },
 
     separator: {
@@ -1030,7 +1030,7 @@ const styles = {
 
         borderRadius: 14,
 
-        backgroundColor: '#008060',
+        backgroundColor: '#009D94',
 
         alignItems: 'center' as const,
         justifyContent: 'center' as const,

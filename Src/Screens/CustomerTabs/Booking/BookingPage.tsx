@@ -13,7 +13,11 @@ import {
     RefreshControl,
 } from 'react-native';
 
-import { useMutation, useQuery } from '@apollo/client';
+import {
+    gql,
+    useMutation,
+    useQuery,
+} from '@apollo/client';
 
 import { useUser } from '../../../context/UserContext';
 
@@ -30,6 +34,59 @@ type BookingNavigationProp =
         WalletStackParamList,
         'explore'
     >;
+
+// ============================================================
+// REQUEST REFUND
+// ============================================================
+//
+// This mutation uses the backend mutation:
+//
+// requestRefund(input: {
+//   bookingId: ID!
+//   reason: RefundReason!
+// })
+//
+// For customer cancellation we always use:
+// CUSTOMER_CANCELLED
+//
+// The backend is responsible for calculating the exact refund
+// according to the cancellation policy.
+// ============================================================
+
+const REQUEST_REFUND = gql`
+    mutation RequestRefund(
+        $input: RequestRefundInput!
+    ) {
+        requestRefund(input: $input) {
+            success
+            message
+            refund {
+                refundId
+                bookingId
+                paymentTransactionId
+                customerUserId
+                customerName
+                customerPhone
+                salonId
+                salonName
+                originalAmount
+                refundAmount
+                clavataAmount
+                salonAmount
+                reason
+                status
+                paymentMethod
+                razorpayPaymentId
+                razorpayRefundId
+                requestedAt
+                processedAt
+                createdAt
+                updatedAt
+            }
+        }
+    }
+`;
+
 // ============================================================
 // DESIGN SYSTEM
 // ============================================================
@@ -73,6 +130,9 @@ export default function BookingPage() {
     const [refreshing, setRefreshing] =
         useState(false);
 
+    const [cancellingBookingId, setCancellingBookingId] =
+        useState<string | null>(null);
+
     const { currentUser } =
         useUser();
 
@@ -111,6 +171,17 @@ export default function BookingPage() {
         cancelBookingMutation,
     ] = useMutation(
         CANCEL_BOOKING,
+    );
+
+
+    // ============================================================
+    // REFUND MUTATION
+    // ============================================================
+
+    const [
+        requestRefundMutation,
+    ] = useMutation(
+        REQUEST_REFUND,
     );
 
 
@@ -321,17 +392,152 @@ export default function BookingPage() {
 
 
     // ============================================================
+    // REFUND MESSAGE
+    // ============================================================
+
+    const getRefundMessage =
+        (refund: any, booking: any) => {
+
+            const originalAmount =
+                Number(
+                    refund?.originalAmount ??
+                    booking?.bookingFee ??
+                    0,
+                );
+
+            const refundAmount =
+                Number(
+                    refund?.refundAmount ?? 0,
+                );
+
+            const clavataAmount =
+                Number(
+                    refund?.clavataAmount ?? 0,
+                );
+
+            const salonAmount =
+                Number(
+                    refund?.salonAmount ?? 0,
+                );
+
+
+            if (
+                originalAmount <= 0
+            ) {
+                return {
+                    title:
+                        'Booking cancelled',
+
+                    message:
+                        'Your booking has been cancelled successfully.',
+                };
+            }
+
+
+            if (
+                refundAmount >=
+                originalAmount
+            ) {
+                return {
+                    title:
+                        'Full refund requested',
+
+                    message:
+                        `Your ₹${refundAmount.toFixed(
+                            2,
+                        )} Clavata booking fee is eligible for a full refund under the cancellation policy.`,
+                };
+            }
+
+
+            if (
+                refundAmount > 0
+            ) {
+                return {
+                    title:
+                        'Partial refund requested',
+
+                    message:
+                        `₹${refundAmount.toFixed(
+                            2,
+                        )} of your ₹${originalAmount.toFixed(
+                            2,
+                        )} Clavata booking fee is eligible for refund under the cancellation policy.`,
+                };
+            }
+
+
+            return {
+                title: 'No customer refund',
+                message:
+                    `Your ₹${originalAmount.toFixed(2)} Clavata booking fee is non-refundable because the cancellation was made less than 1 hour before the appointment.`,
+            };
+        };
+
+
+    // ============================================================
     // CANCEL BOOKING
     // ============================================================
 
     const cancelBooking =
-        (bookingId: string) => {
+        (booking: any) => {
+
+            const bookingId =
+                booking?.bookingId;
+
+            if (!bookingId) {
+
+                Alert.alert(
+                    'Unable to Cancel',
+                    'Booking information is missing.',
+                );
+
+                return;
+            }
+
+
+            if (
+                cancellingBookingId
+            ) {
+                return;
+            }
+
+
+            const bookingFee =
+                Number(
+                    booking?.bookingFee ?? 0,
+                );
+
+            const bookingFeePaid =
+                booking?.bookingFeeStatus ===
+                'PAID';
+
+
+            // =====================================================
+            // CONFIRMATION MESSAGE
+            // =====================================================
+
+            let confirmationMessage =
+                'Are you sure you want to cancel this booking?';
+
+
+            if (
+                bookingFeePaid &&
+                bookingFee > 0
+            ) {
+
+                confirmationMessage =
+                    `Are you sure you want to cancel this booking?\n\nYour Clavata booking fee of ₹${bookingFee.toFixed(
+                        2,
+                    )} will be handled according to the cancellation refund policy.`;
+            }
+
 
             Alert.alert(
 
                 'Cancel Booking',
 
-                'Are you sure you want to cancel this booking?',
+                confirmationMessage,
 
                 [
 
@@ -356,6 +562,16 @@ export default function BookingPage() {
 
                                 try {
 
+                                    setCancellingBookingId(
+                                        bookingId,
+                                    );
+
+
+                                    // =================================================
+                                    // STEP 1:
+                                    // CANCEL BOOKING
+                                    // =================================================
+
                                     await cancelBookingMutation(
                                         {
                                             variables: {
@@ -365,22 +581,135 @@ export default function BookingPage() {
                                     );
 
 
-                                    await refetch();
+                                    // =================================================
+                                    // STEP 2:
+                                    // REQUEST REFUND ONLY IF BOOKING FEE WAS PAID
+                                    // =================================================
+
+                                    if (
+                                        bookingFeePaid &&
+                                        bookingFee > 0
+                                    ) {
+
+                                        try {
+
+                                            const refundResult =
+                                                await requestRefundMutation(
+                                                    {
+                                                        variables: {
+                                                            input: {
+                                                                bookingId,
+                                                                reason:
+                                                                    'CUSTOMER_CANCELLED',
+                                                            },
+                                                        },
+                                                    },
+                                                );
 
 
-                                    Alert.alert(
-                                        'Booking Cancelled',
-                                        'Your booking has been cancelled successfully.',
-                                    );
+                                            const refundResponse =
+                                                refundResult
+                                                    ?.data
+                                                    ?.requestRefund;
+
+
+                                            const refund =
+                                                refundResponse
+                                                    ?.refund;
+
+
+                                            // =============================================
+                                            // REFUND REQUEST CREATED
+                                            // =============================================
+
+                                            if (
+                                                refundResponse?.success &&
+                                                refund
+                                            ) {
+
+                                                const refundMessage =
+                                                    getRefundMessage(
+                                                        refund,
+                                                        booking,
+                                                    );
+
+
+                                                await refetch();
+
+
+                                                Alert.alert(
+                                                    refundMessage.title,
+                                                    `${refundMessage.message}\n\nRefund status: ${String(
+                                                        refund.status ||
+                                                        'REQUESTED',
+                                                    ).toLowerCase()}.\n\nOnly the Clavata booking fee is covered by this refund. Any remaining amount is paid directly at the salon and is not part of this refund.`,
+                                                );
+
+                                            } else {
+
+                                                await refetch();
+
+
+                                                Alert.alert(
+                                                    'Booking Cancelled',
+                                                    `Your booking has been cancelled successfully.\n\nHowever, we could not create the refund request automatically. Please contact Clavata support.\n\n${refundResponse?.message || ''}`,
+                                                );
+                                            }
+
+                                        } catch (
+                                        refundError: any
+                                        ) {
+
+                                            console.error(
+                                                'Refund request error:',
+                                                refundError,
+                                            );
+
+
+                                            await refetch();
+
+
+                                            Alert.alert(
+                                                'Booking Cancelled',
+                                                `Your booking has been cancelled successfully.\n\nThe refund request could not be created automatically. Please contact Clavata support.\n\n${refundError?.message || 'Unable to create refund request.'}`,
+                                            );
+                                        }
+
+                                    } else {
+
+                                        // =============================================
+                                        // NO PAID BOOKING FEE
+                                        // =============================================
+
+                                        await refetch();
+
+
+                                        Alert.alert(
+                                            'Booking Cancelled',
+                                            'Your booking has been cancelled successfully.\n\nNo Clavata booking fee was paid, so there is no refund to process.',
+                                        );
+                                    }
 
                                 } catch (
                                 e: any
                                 ) {
 
+                                    console.error(
+                                        'Cancel booking error:',
+                                        e,
+                                    );
+
+
                                     Alert.alert(
                                         'Unable to Cancel',
                                         e?.message ||
-                                        'Something went wrong.',
+                                        'Something went wrong while cancelling your booking.',
+                                    );
+
+                                } finally {
+
+                                    setCancellingBookingId(
+                                        null,
                                     );
 
                                 }
@@ -392,111 +721,196 @@ export default function BookingPage() {
             );
         };
 
+
+    // ============================================================
+    // BOOK AGAIN
+    // ============================================================
+
     const bookAgain = (booking: any) => {
+
         console.log('BOOK AGAIN:', {
             bookingId: booking?.bookingId,
             salonId: booking?.salonId,
             services: booking?.services,
         });
 
+
         if (!booking?.salonId) {
+
             Alert.alert(
                 'Unable to book again',
                 'Salon information is missing from this booking.',
             );
+
             return;
         }
 
+
         if (
-            !Array.isArray(booking?.services) ||
+            !Array.isArray(
+                booking?.services,
+            ) ||
             booking.services.length === 0
         ) {
+
             Alert.alert(
                 'Unable to book again',
                 'Service information is missing from this booking.',
             );
+
             return;
         }
 
-        if (!currentUser?.userId) {
+
+        if (
+            !currentUser?.userId
+        ) {
+
             Alert.alert(
                 'Unable to book again',
                 'Customer information is missing. Please login again.',
             );
+
             return;
         }
 
-        const services = booking.services
-            .map((service: any) => ({
-                serviceId: String(service?.serviceId ?? ''),
-                name: service?.name ?? '',
-                category: service?.category ?? '',
-                price: Number(service?.price ?? 0),
-                duration: Number(service?.duration ?? 0),
-            }))
-            .filter(
-                (service: {
-                    serviceId: string;
-                    name: string;
-                    category: string;
-                    price: number;
-                    duration: number;
-                }) => Boolean(service.serviceId),
-            );
 
-        if (services.length === 0) {
+        const services =
+            booking.services
+                .map(
+                    (service: any) => ({
+                        serviceId:
+                            String(
+                                service?.serviceId ??
+                                '',
+                            ),
+
+                        name:
+                            service?.name ??
+                            '',
+
+                        category:
+                            service?.category ??
+                            '',
+
+                        price:
+                            Number(
+                                service?.price ??
+                                0,
+                            ),
+
+                        duration:
+                            Number(
+                                service?.duration ??
+                                0,
+                            ),
+                    }),
+                )
+                .filter(
+                    (
+                        service: {
+                            serviceId: string;
+                            name: string;
+                            category: string;
+                            price: number;
+                            duration: number;
+                        },
+                    ) =>
+                        Boolean(
+                            service.serviceId,
+                        ),
+                );
+
+
+        if (
+            services.length === 0
+        ) {
+
             Alert.alert(
                 'Unable to book again',
                 'No valid services were found in the previous booking.',
             );
+
             return;
         }
 
-        console.log('BOOK AGAIN NAVIGATION:', {
-            salonId: booking.salonId,
-            customerUserId: currentUser.userId,
-            services,
-        });
 
-        const parentNavigation = navigation.getParent<any>();
+        console.log(
+            'BOOK AGAIN NAVIGATION:',
+            {
+                salonId:
+                    booking.salonId,
 
-        if (!parentNavigation) {
+                customerUserId:
+                    currentUser.userId,
+
+                services,
+            },
+        );
+
+
+        const parentNavigation =
+            navigation.getParent<any>();
+
+
+        if (
+            !parentNavigation
+        ) {
+
             Alert.alert(
                 'Unable to continue',
                 'Navigation is not available.',
             );
+
             return;
         }
 
-        parentNavigation.navigate('Home', {
-            screen: 'BookingDateTime',
-            params: {
-                salonId: booking.salonId,
-                customerUserId: currentUser.userId,
-                services,
+
+        parentNavigation.navigate(
+            'Home',
+            {
+                screen:
+                    'BookingDateTime',
+
+                params: {
+                    salonId:
+                        booking.salonId,
+
+                    customerUserId:
+                        currentUser.userId,
+
+                    services,
+                },
             },
-        });
+        );
     };
+
+
     // ============================================================
     // VIEW BOOKING
     // ============================================================
 
-    const viewBooking = (booking: any) => {
-        console.log(
-            'VIEW BOOKING:',
-            booking.bookingId,
-        );
+    const viewBooking =
+        (booking: any) => {
 
-        navigation.navigate(
-            'BookingDetails',
-            {
-                bookingId:
-                    booking.bookingId,
+            console.log(
+                'VIEW BOOKING:',
+                booking.bookingId,
+            );
 
-                booking,
-            },
-        );
-    };
+
+            navigation.navigate(
+                'BookingDetails',
+                {
+                    bookingId:
+                        booking.bookingId,
+
+                    booking,
+                },
+            );
+        };
+
+
     // ============================================================
     // LOADING
     // ============================================================
@@ -890,7 +1304,7 @@ export default function BookingPage() {
 
                                 onCancel={() =>
                                     cancelBooking(
-                                        item.bookingId,
+                                        item,
                                     )
                                 }
 
@@ -901,25 +1315,42 @@ export default function BookingPage() {
                                 }
 
                                 onPay={() => {
+
                                     console.log(
                                         'PAYMENT BOOKING:',
-                                        JSON.stringify(item, null, 2),
+                                        JSON.stringify(
+                                            item,
+                                            null,
+                                            2,
+                                        ),
                                     );
+
 
                                     console.log(
                                         'PAYMENT PREFERRED METHOD:',
-                                        item?.preferredPaymentMethod || 'NOT SET',
+                                        item?.preferredPaymentMethod ||
+                                        'NOT SET',
                                     );
+
 
                                     navigation.navigate(
                                         'BookingPayment',
                                         {
-                                            booking: item,
+                                            booking:
+                                                item,
                                         },
                                     );
                                 }}
+
                                 onBookAgain={() =>
-                                    bookAgain(item)
+                                    bookAgain(
+                                        item,
+                                    )
+                                }
+
+                                isCancelling={
+                                    cancellingBookingId ===
+                                    item.bookingId
                                 }
                             />
 
@@ -982,6 +1413,8 @@ type BookingCardProps = {
     onPay: () => void;
 
     onBookAgain: () => void;
+
+    isCancelling: boolean;
 };
 
 
@@ -993,6 +1426,7 @@ function BookingCard({
     onView,
     onPay,
     onBookAgain,
+    isCancelling,
 }: BookingCardProps) {
 
     const services =
@@ -1441,6 +1875,139 @@ function BookingCard({
 
 
             {/* ================================================= */}
+            {/* CANCELLED REFUND INFORMATION */}
+            {/* ================================================= */}
+
+            {tab ===
+                'Cancelled' &&
+
+                booking.bookingFeeStatus ===
+                'REFUNDED' && (
+
+                    <View
+                        style={
+                            styles.refundCompletedCard
+                        }
+                    >
+
+                        <View
+                            style={
+                                styles.refundIcon
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.refundIconText
+                                }
+                            >
+                                ✓
+                            </Text>
+
+                        </View>
+
+
+                        <View
+                            style={
+                                styles.refundContent
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.refundTitle
+                                }
+                            >
+                                Booking fee refunded
+                            </Text>
+
+
+                            <Text
+                                style={
+                                    styles.refundMessage
+                                }
+                            >
+                                Your Clavata booking fee has
+                                been refunded according to the
+                                applicable cancellation policy.
+                            </Text>
+
+                        </View>
+
+                    </View>
+
+                )}
+
+
+            {/* ================================================= */}
+            {/* CANCELLED BUT NO REFUND / STILL PROCESSING */}
+            {/* ================================================= */}
+
+            {tab ===
+                'Cancelled' &&
+
+                booking.bookingFeeStatus !==
+                'REFUNDED' &&
+
+                booking.bookingFeeStatus ===
+                'PAID' && (
+
+                    <View
+                        style={
+                            styles.refundPendingCard
+                        }
+                    >
+
+                        <View
+                            style={
+                                styles.refundPendingIcon
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.refundPendingIconText
+                                }
+                            >
+                                ₹
+                            </Text>
+
+                        </View>
+
+
+                        <View
+                            style={
+                                styles.refundContent
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.refundPendingTitle
+                                }
+                            >
+                                Refund under processing
+                            </Text>
+
+
+                            <Text
+                                style={
+                                    styles.refundMessage
+                                }
+                            >
+                                Your Clavata booking fee refund
+                                is being handled according to
+                                the cancellation policy.
+                            </Text>
+
+                        </View>
+
+                    </View>
+
+                )}
+
+
+            {/* ================================================= */}
             {/* ACTIONS */}
             {/* ================================================= */}
 
@@ -1454,14 +2021,20 @@ function BookingCard({
                 >
 
                     <TouchableOpacity
-                        style={
-                            styles.cancelButton
-                        }
+                        style={[
+                            styles.cancelButton,
+
+                            isCancelling &&
+                            styles.disabledButton,
+                        ]}
                         activeOpacity={
                             0.8
                         }
                         onPress={
                             onCancel
+                        }
+                        disabled={
+                            isCancelling
                         }
                     >
 
@@ -1470,21 +2043,29 @@ function BookingCard({
                                 styles.cancelButtonText
                             }
                         >
-                            Cancel
+                            {isCancelling
+                                ? 'Cancelling...'
+                                : 'Cancel'}
                         </Text>
 
                     </TouchableOpacity>
 
 
                     <TouchableOpacity
-                        style={
-                            styles.viewButton
-                        }
+                        style={[
+                            styles.viewButton,
+
+                            isCancelling &&
+                            styles.disabledButtonDark,
+                        ]}
                         activeOpacity={
                             0.85
                         }
                         onPress={
                             onView
+                        }
+                        disabled={
+                            isCancelling
                         }
                     >
 
@@ -2238,6 +2819,175 @@ const styles =
 
 
         // ======================================================
+        // REFUND
+        // ======================================================
+
+        refundCompletedCard: {
+            marginTop:
+                13,
+
+            backgroundColor:
+                '#F5F5F5',
+
+            borderWidth:
+                1,
+
+            borderColor:
+                COLORS.border,
+
+            borderRadius:
+                13,
+
+            padding:
+                12,
+
+            flexDirection:
+                'row',
+
+            alignItems:
+                'flex-start',
+        },
+
+        refundIcon: {
+            width:
+                28,
+
+            height:
+                28,
+
+            borderRadius:
+                14,
+
+            backgroundColor:
+                COLORS.primary,
+
+            alignItems:
+                'center',
+
+            justifyContent:
+                'center',
+
+            marginRight:
+                9,
+        },
+
+        refundIconText: {
+            color:
+                COLORS.white,
+
+            fontSize:
+                13,
+
+            fontWeight:
+                '800',
+        },
+
+        refundPendingCard: {
+            marginTop:
+                13,
+
+            backgroundColor:
+                '#FFF8EF',
+
+            borderWidth:
+                1,
+
+            borderColor:
+                '#F1D2AE',
+
+            borderRadius:
+                13,
+
+            padding:
+                12,
+
+            flexDirection:
+                'row',
+
+            alignItems:
+                'flex-start',
+        },
+
+        refundPendingIcon: {
+            width:
+                28,
+
+            height:
+                28,
+
+            borderRadius:
+                14,
+
+            backgroundColor:
+                '#8B4A10',
+
+            alignItems:
+                'center',
+
+            justifyContent:
+                'center',
+
+            marginRight:
+                9,
+        },
+
+        refundPendingIconText: {
+            color:
+                COLORS.white,
+
+            fontSize:
+                12,
+
+            fontWeight:
+                '800',
+        },
+
+        refundContent: {
+            flex:
+                1,
+        },
+
+        refundTitle: {
+            fontSize:
+                13,
+
+            fontWeight:
+                '700',
+
+            color:
+                COLORS.text,
+
+            marginBottom:
+                3,
+        },
+
+        refundPendingTitle: {
+            fontSize:
+                13,
+
+            fontWeight:
+                '700',
+
+            color:
+                '#8B4A10',
+
+            marginBottom:
+                3,
+        },
+
+        refundMessage: {
+            fontSize:
+                11,
+
+            lineHeight:
+                16,
+
+            color:
+                COLORS.textSecondary,
+        },
+
+
+        // ======================================================
         // BUTTONS
         // ======================================================
 
@@ -2332,6 +3082,16 @@ const styles =
 
             marginLeft:
                 6,
+        },
+
+        disabledButton: {
+            opacity:
+                0.55,
+        },
+
+        disabledButtonDark: {
+            opacity:
+                0.55,
         },
 
         bookAgainButton: {

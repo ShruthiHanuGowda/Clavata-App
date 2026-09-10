@@ -15,7 +15,7 @@ import {
 
 import { Calendar } from 'react-native-calendars';
 
-const PRIMARY = '#008060';
+const PRIMARY = '#009D94';
 
 /*
 ================================================================

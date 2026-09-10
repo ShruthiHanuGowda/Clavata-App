@@ -5,7 +5,7 @@ import Config from 'react-native-config';
 export const COLORS = {
   background: '#F8F8FA',
   surface: '#FFFFFF',
-  badgeColor: '#8fceba',
+  badgeColor: '#009D94',
   primary: '#111111',
   highlight: '#3F71BB',
   text: '#111111',
@@ -16,6 +16,7 @@ export const COLORS = {
   white: '#FFFFFF',
   black: '#000000',
   transparent: 'transparent',
+  themeColor: '#009D94'
 };
 
 

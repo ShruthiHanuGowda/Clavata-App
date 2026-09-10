@@ -3716,7 +3716,7 @@ const styles =
       height: 54,
       borderRadius: 14,
       backgroundColor:
-        COLORS.black,
+        COLORS.themeColor,
       alignItems:
         'center',
       justifyContent:
@@ -3827,7 +3827,7 @@ const styles =
       borderRadius:
         18,
       backgroundColor:
-        COLORS.black,
+        COLORS.themeColor,
       flexDirection:
         'row',
       alignItems:
@@ -3977,7 +3977,7 @@ const styles =
       paddingHorizontal: 20,
       borderRadius: 12,
       backgroundColor:
-        COLORS.black,
+        COLORS.themeColor,
       alignItems:
         'center',
       justifyContent:
@@ -4153,7 +4153,7 @@ const styles =
       height: 10,
       borderRadius: 5,
       backgroundColor:
-        COLORS.black,
+        COLORS.themeColor,
       marginRight: 12,
     },
 
@@ -4206,9 +4206,9 @@ const styles =
 
     budgetOptionSelected: {
       backgroundColor:
-        COLORS.black,
+        COLORS.themeColor,
       borderColor:
-        COLORS.black,
+        COLORS.themeColor,
     },
 
     budgetOptionText: {
@@ -4259,9 +4259,9 @@ const styles =
 
     distanceOptionSelected: {
       backgroundColor:
-        COLORS.black,
+        COLORS.themeColor,
       borderColor:
-        COLORS.black,
+        COLORS.themeColor,
     },
 
     distanceNumber: {

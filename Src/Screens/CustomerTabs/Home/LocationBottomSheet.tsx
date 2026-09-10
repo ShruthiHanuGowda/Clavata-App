@@ -51,7 +51,7 @@ import { USE_HARDCODED_LOCATION } from '../../../services/locationConfig';
 // COLORS
 // ============================================================
 
-const PRIMARY = '#008060';
+const PRIMARY = '#009D94';
 const PRIMARY_LIGHT = '#EAF8F5';
 
 const TEXT_PRIMARY = '#111827';

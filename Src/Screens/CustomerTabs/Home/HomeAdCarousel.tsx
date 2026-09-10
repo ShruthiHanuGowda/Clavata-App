@@ -14,7 +14,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 32;
 const CARD_HEIGHT = 175;
 
-const PRIMARY = '#008060';
+const PRIMARY = '#009D94';
 
 type Ad = {
     id: string;

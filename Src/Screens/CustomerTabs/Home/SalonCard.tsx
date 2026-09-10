@@ -28,7 +28,7 @@ import {
 // COLORS
 // ============================================================
 
-const PRIMARY = '#008060';
+const PRIMARY = '#009D94';
 
 const COLORS = {
     black: '#111111',

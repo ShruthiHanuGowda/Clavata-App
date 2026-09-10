@@ -1179,7 +1179,6 @@ export default function OffersScreen() {
 
                         {featuredOffers.map(
                             offer => (
-
                                 <OfferCard
                                     key={
                                         offer.id
@@ -1879,7 +1878,7 @@ const styles =
                 '800',
 
             color:
-                COLORS.primary,
+                COLORS.white,
         },
 
 
@@ -2002,10 +2001,10 @@ const styles =
 
         categoryChipSelected: {
             backgroundColor:
-                COLORS.primary,
+                COLORS.themeColor,
 
             borderColor:
-                COLORS.primary,
+                COLORS.themeColor,
         },
 
         categoryText: {
@@ -2148,7 +2147,7 @@ const styles =
                 '900',
 
             color:
-                COLORS.primary,
+                COLORS.white,
 
             textAlign:
                 'center',
@@ -2164,7 +2163,7 @@ const styles =
                 1,
 
             color:
-                COLORS.textSecondary,
+                COLORS.white,
 
             marginTop:
                 3,
@@ -2274,7 +2273,7 @@ const styles =
                 '700',
 
             color:
-                COLORS.primary,
+                COLORS.white,
         },
 
         offerDescription: {
