@@ -1620,6 +1620,32 @@ export const GENERATE_SALON_MEDIA_UPLOAD_URL = gql`
     }
 `;
 
+export const CREATE_SALON_MEDIA = gql`
+    mutation CreateSalonMedia(
+        $input: CreateSalonMediaInput!
+    ) {
+        createSalonMedia(
+            input: $input
+        ) {
+            success
+            message
+            media {
+                imageId
+                salonId
+                mediaType
+                key
+                objectUrl
+                status
+                uploadedAt
+                approvedAt
+                approvedBy
+                rejectedAt
+                rejectedBy
+                rejectionReason
+            }
+        }
+    }
+`;
 // ============================================================
 // UPDATE SALON PROFILE
 // ============================================================

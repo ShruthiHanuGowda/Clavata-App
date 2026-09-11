@@ -1,8 +1,8 @@
-
 import React, {
     useCallback,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from 'react';
 
@@ -26,10 +26,10 @@ import {
     launchImageLibrary,
     ImagePickerResponse,
     Asset,
+    ImageLibraryOptions,
 } from 'react-native-image-picker';
 
 import {
-    gql,
     useMutation,
     useQuery,
 } from '@apollo/client';
@@ -39,7 +39,14 @@ import {
 } from '@react-navigation/native';
 
 import { useUser } from '../../../context/UserContext';
-import { DELETE_SALON_MEDIA, GENERATE_SALON_MEDIA_UPLOAD_URL, GET_SALON, UPDATE_SALON_PROFILE } from '../../../graphql/queries';
+
+import {
+    CREATE_SALON_MEDIA,
+    DELETE_SALON_MEDIA,
+    GENERATE_SALON_MEDIA_UPLOAD_URL,
+    GET_SALON,
+    UPDATE_SALON_PROFILE,
+} from '../../../graphql/queries';
 
 
 // ============================================================
@@ -51,7 +58,14 @@ const MAX_GALLERY_IMAGES = 6;
 const MAX_FILE_SIZE_BYTES =
     10 * 1024 * 1024;
 
-const DEFAULT_IMAGE_TYPE = 'image/jpeg';
+const DEFAULT_IMAGE_TYPE =
+    'image/jpeg';
+
+const SUPPORTED_IMAGE_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+];
 
 
 // ============================================================
@@ -63,6 +77,21 @@ type SalonAddress = {
     city: string;
     state: string;
     pincode: string;
+};
+
+type SalonMedia = {
+    imageId: string;
+    salonId: string;
+    mediaType: string;
+    key: string;
+    objectUrl?: string | null;
+    status?: string | null;
+    uploadedAt?: string | null;
+    approvedAt?: string | null;
+    approvedBy?: string | null;
+    rejectedAt?: string | null;
+    rejectedBy?: string | null;
+    rejectionReason?: string | null;
 };
 
 type Salon = {
@@ -83,6 +112,10 @@ type Salon = {
     coverImageUrl?: string | null;
     galleryImages: string[];
 
+    logoMedia?: SalonMedia | null;
+    coverMedia?: SalonMedia | null;
+    galleryMedia?: SalonMedia[] | null;
+
     kycStatus?: string;
     salonStatus?: string;
 
@@ -101,6 +134,30 @@ type ImageType =
     | 'logo'
     | 'cover'
     | 'gallery';
+
+type GraphQLMediaType =
+    | 'LOGO'
+    | 'COVER'
+    | 'GALLERY';
+
+type MediaReference = {
+    imageId: string;
+
+    mediaType:
+        | 'LOGO'
+        | 'COVER'
+        | 'GALLERY';
+
+    key: string;
+
+    objectUrl: string;
+};
+
+type MediaChangedState = {
+    logo: boolean;
+    cover: boolean;
+    gallery: boolean;
+};
 
 
 // ============================================================
@@ -134,9 +191,9 @@ const getContentType = (
         ).toLowerCase();
 
     if (
-        type === 'image/jpeg' ||
-        type === 'image/png' ||
-        type === 'image/webp'
+        SUPPORTED_IMAGE_TYPES.includes(
+            type,
+        )
     ) {
         return type;
     }
@@ -157,32 +214,20 @@ const isSupportedImage = (
             asset.type,
         ).toLowerCase();
 
-    return (
-        type === 'image/jpeg' ||
-        type === 'image/png' ||
-        type === 'image/webp'
-    );
-};
-
-
-// ============================================================
-// FILE EXTENSION
-// ============================================================
-
-const getFileExtension = (
-    contentType: string,
-): string => {
-    switch (contentType) {
-        case 'image/png':
-            return 'png';
-
-        case 'image/webp':
-            return 'webp';
-
-        case 'image/jpeg':
-        default:
-            return 'jpg';
+    /*
+     * Some Android photo picker implementations can return
+     * an asset without a MIME type.
+     *
+     * In that case we allow it and let the server/S3 validation
+     * decide, rather than incorrectly rejecting a valid photo.
+     */
+    if (!type) {
+        return true;
     }
+
+    return SUPPORTED_IMAGE_TYPES.includes(
+        type,
+    );
 };
 
 
@@ -197,13 +242,6 @@ const getS3KeyFromUrl = (
         if (!value) {
             return null;
         }
-
-        /*
-         * Example:
-         *
-         * https://bucket.s3.ap-south-2.amazonaws.com/
-         * salons/123/gallery/abc.jpg
-         */
 
         const parsed =
             new URL(value);
@@ -240,6 +278,44 @@ const getS3KeyFromUrl = (
 
 
 // ============================================================
+// CONVERT SALON MEDIA TO REFERENCE
+// ============================================================
+
+const toMediaReference = (
+    media:
+        | SalonMedia
+        | null
+        | undefined,
+    fallbackType:
+        | 'LOGO'
+        | 'COVER'
+        | 'GALLERY',
+): MediaReference | null => {
+    if (
+        !media?.imageId ||
+        !media?.key ||
+        !media?.objectUrl
+    ) {
+        return null;
+    }
+
+    return {
+        imageId:
+            media.imageId,
+
+        mediaType:
+            fallbackType,
+
+        key:
+            media.key,
+
+        objectUrl:
+            media.objectUrl,
+    };
+};
+
+
+// ============================================================
 // IMAGE UPLOAD
 // ============================================================
 
@@ -249,8 +325,14 @@ async function uploadImageToS3(
     mediaType: ImageType,
     generateUploadUrl: any,
 ): Promise<{
+    imageId: string;
     objectUrl: string;
     key: string;
+
+    mediaType:
+        | 'LOGO'
+        | 'COVER'
+        | 'GALLERY';
 }> {
     if (!salonId) {
         throw new Error(
@@ -273,7 +355,7 @@ async function uploadImageToS3(
     if (
         asset.fileSize &&
         asset.fileSize >
-        MAX_FILE_SIZE_BYTES
+            MAX_FILE_SIZE_BYTES
     ) {
         throw new Error(
             'Image size cannot exceed 10 MB.',
@@ -283,25 +365,39 @@ async function uploadImageToS3(
     const contentType =
         getContentType(asset);
 
+    const graphqlMediaType =
+        mediaType.toUpperCase() as
+            | 'LOGO'
+            | 'COVER'
+            | 'GALLERY';
+
     console.log(
-        'Requesting S3 upload URL:',
+        '[SalonInformation] Requesting upload URL:',
         {
             salonId,
-            mediaType,
+            mediaType:
+                graphqlMediaType,
             contentType,
             fileSize:
                 asset.fileSize,
+            uri:
+                asset.uri,
         },
     );
 
-    const { data } =
+    const {
+        data,
+    } =
         await generateUploadUrl({
             variables: {
                 input: {
                     salonId,
+
                     mediaType:
-                        mediaType.toUpperCase(),
+                        graphqlMediaType,
+
                     contentType,
+
                     fileSize:
                         asset.fileSize ||
                         undefined,
@@ -311,6 +407,22 @@ async function uploadImageToS3(
 
     const response =
         data?.generateSalonMediaUploadUrl;
+
+    console.log(
+        '[SalonInformation] Upload URL response:',
+        {
+            success:
+                response?.success,
+            hasUploadUrl:
+                !!response?.uploadUrl,
+            hasObjectUrl:
+                !!response?.objectUrl,
+            hasKey:
+                !!response?.key,
+            hasImageId:
+                !!response?.imageId,
+        },
+    );
 
     if (!response?.success) {
         throw new Error(
@@ -331,35 +443,64 @@ async function uploadImageToS3(
         );
     }
 
+    if (!response.key) {
+        throw new Error(
+            'S3 object key was not returned.',
+        );
+    }
+
+    if (!response.imageId) {
+        throw new Error(
+            'Image ID was not returned by the server.',
+        );
+    }
+
+    // ========================================================
+    // READ SELECTED PHONE IMAGE
+    // ========================================================
+
     console.log(
-        'Uploading image to S3:',
-        response.key,
+        '[SalonInformation] Reading selected image:',
+        asset.uri,
     );
 
     const localResponse =
-        await fetch(asset.uri);
+        await fetch(
+            asset.uri,
+        );
 
     if (!localResponse.ok) {
         throw new Error(
-            'Unable to read the selected image.',
+            'Unable to read the selected image from the phone.',
         );
     }
 
     const blob =
         await localResponse.blob();
 
+    // ========================================================
+    // UPLOAD TO S3
+    // ========================================================
+
+    console.log(
+        '[SalonInformation] Uploading image to S3:',
+        response.key,
+    );
+
     const uploadResponse =
         await fetch(
             response.uploadUrl,
             {
-                method: 'PUT',
+                method:
+                    'PUT',
 
                 headers: {
                     'Content-Type':
                         contentType,
                 },
 
-                body: blob,
+                body:
+                    blob,
             },
         );
 
@@ -372,7 +513,7 @@ async function uploadImageToS3(
                 );
 
         console.error(
-            'S3 upload failed:',
+            '[SalonInformation] S3 upload failed:',
             uploadResponse.status,
             errorText,
         );
@@ -383,15 +524,31 @@ async function uploadImageToS3(
     }
 
     console.log(
-        'S3 upload successful:',
-        response.key,
+        '[SalonInformation] Image uploaded successfully:',
+        {
+            imageId:
+                response.imageId,
+
+            key:
+                response.key,
+
+            objectUrl:
+                response.objectUrl,
+        },
     );
 
     return {
+        imageId:
+            response.imageId,
+
         objectUrl:
             response.objectUrl,
+
         key:
             response.key,
+
+        mediaType:
+            graphqlMediaType,
     };
 }
 
@@ -408,16 +565,6 @@ export default function SalonInformation() {
         currentUser,
     } = useUser();
 
-    // ========================================================
-    // IMPORTANT TYPESCRIPT FIX
-    //
-    // currentUser?.salonId can be:
-    // string | null | undefined
-    //
-    // Converting missing values to an empty string means
-    // salonId is ALWAYS a string from this point onward.
-    // ========================================================
-
     const salonId =
         currentUser?.salonId ?? '';
 
@@ -429,9 +576,9 @@ export default function SalonInformation() {
     const {
         data,
         loading:
-        loadingSalon,
+            loadingSalon,
         error:
-        salonError,
+            salonError,
         refetch,
     } = useQuery(
         GET_SALON,
@@ -457,12 +604,11 @@ export default function SalonInformation() {
         updateSalonProfile,
         {
             loading:
-            updatingProfile,
+                updatingProfile,
         },
     ] = useMutation(
         UPDATE_SALON_PROFILE,
     );
-
 
     const [
         generateUploadUrl,
@@ -470,6 +616,11 @@ export default function SalonInformation() {
         GENERATE_SALON_MEDIA_UPLOAD_URL,
     );
 
+    const [
+        createSalonMedia,
+    ] = useMutation(
+        CREATE_SALON_MEDIA,
+    );
 
     const [
         deleteSalonMedia,
@@ -548,6 +699,61 @@ export default function SalonInformation() {
     ] = useState<string[]>(
         [],
     );
+
+
+    // ========================================================
+    // MEDIA REFERENCES
+    // ========================================================
+
+    const [
+        logoMedia,
+        setLogoMedia,
+    ] = useState<
+        MediaReference | null
+    >(null);
+
+    const [
+        coverMedia,
+        setCoverMedia,
+    ] = useState<
+        MediaReference | null
+    >(null);
+
+    const [
+        galleryMedia,
+        setGalleryMedia,
+    ] = useState<
+        MediaReference[]
+    >([]);
+
+
+    // ========================================================
+    // MEDIA CHANGES
+    // ========================================================
+
+    const [
+        mediaChanged,
+        setMediaChanged,
+    ] = useState<MediaChangedState>({
+        logo:
+            false,
+
+        cover:
+            false,
+
+        gallery:
+            false,
+    });
+
+
+    // ========================================================
+    // NEWLY UPLOADED MEDIA
+    // ========================================================
+
+    const newlyUploadedMediaKeysRef =
+        useRef<Set<string>>(
+            new Set(),
+        );
 
 
     // ========================================================
@@ -656,11 +862,69 @@ export default function SalonInformation() {
                 MAX_GALLERY_IMAGES,
             ),
         );
+
+        setLogoMedia(
+            toMediaReference(
+                salon.logoMedia,
+                'LOGO',
+            ),
+        );
+
+        setCoverMedia(
+            toMediaReference(
+                salon.coverMedia,
+                'COVER',
+            ),
+        );
+
+        const existingGalleryMedia =
+            Array.isArray(
+                salon.galleryMedia,
+            )
+                ? salon.galleryMedia
+                : [];
+
+        const validGalleryMedia =
+            existingGalleryMedia
+                .map(
+                    media =>
+                        toMediaReference(
+                            media,
+                            'GALLERY',
+                        ),
+                )
+                .filter(
+                    (
+                        media,
+                    ): media is MediaReference =>
+                        !!media,
+                )
+                .slice(
+                    0,
+                    MAX_GALLERY_IMAGES,
+                );
+
+        setGalleryMedia(
+            validGalleryMedia,
+        );
+
+        setMediaChanged({
+            logo:
+                false,
+
+            cover:
+                false,
+
+            gallery:
+                false,
+        });
+
+        newlyUploadedMediaKeysRef.current.clear();
     }, [data]);
 
 
     // ========================================================
-    // ERROR
+    // QUERY ERROR
     // ========================================================
 
     useEffect(() => {
@@ -827,7 +1091,258 @@ export default function SalonInformation() {
 
 
     // ========================================================
-    // PICK IMAGE
+    // OPEN PHONE PHOTO PICKER
+    // ========================================================
+
+    const openPhonePhotoPicker =
+        useCallback(
+            async (
+                mediaType: ImageType,
+            ): Promise<ImagePickerResponse | null> => {
+                try {
+                    console.log(
+                        '[SalonInformation] Opening native photo picker:',
+                        {
+                            platform:
+                                Platform.OS,
+                            androidVersion:
+                                Platform.OS ===
+                                'android'
+                                    ? Platform.Version
+                                    : undefined,
+                            mediaType,
+                        },
+                    );
+
+                    const selectionLimit =
+                        mediaType ===
+                        'gallery'
+                            ? Math.max(
+                                1,
+                                Math.min(
+                                    MAX_GALLERY_IMAGES -
+                                        galleryImages.length,
+                                    MAX_GALLERY_IMAGES,
+                                ),
+                            )
+                            : 1;
+
+                    const options:
+                        ImageLibraryOptions = {
+                        mediaType:
+                            'photo',
+
+                        selectionLimit,
+
+                        includeBase64:
+                            false,
+
+                        includeExtra:
+                            false,
+
+                        quality:
+                            1,
+
+                        ...(Platform.OS ===
+                            'ios'
+                            ? {
+                                presentationStyle:
+                                    'fullScreen',
+                            }
+                            : {}),
+                    };
+
+                    console.log(
+                        '[SalonInformation] Photo picker options:',
+                        options,
+                    );
+
+                    console.log(
+                        '[SalonInformation] Calling launchImageLibrary...',
+                    );
+
+                    const result =
+                        await launchImageLibrary(
+                            options,
+                        );
+
+                    console.log(
+                        '[SalonInformation] Native photo picker returned:',
+                        {
+                            didCancel:
+                                result.didCancel,
+
+                            errorCode:
+                                result.errorCode,
+
+                            errorMessage:
+                                result.errorMessage,
+
+                            assetCount:
+                                result.assets
+                                    ?.length || 0,
+                        },
+                    );
+
+                    return result;
+                } catch (error) {
+                    console.error(
+                        '[SalonInformation] launchImageLibrary exception:',
+                        error,
+                    );
+
+                    throw error;
+                }
+            },
+            [
+                galleryImages.length,
+            ],
+        );
+
+
+    // ========================================================
+    // CREATE PENDING MEDIA RECORD
+    // ========================================================
+
+    const createPendingMediaRecord =
+        useCallback(
+            async (
+                uploaded: {
+                    imageId: string;
+                    objectUrl: string;
+                    key: string;
+                    mediaType: GraphQLMediaType;
+                },
+            ) => {
+                console.log(
+                    '[SalonInformation] Creating pending media record:',
+                    {
+                        salonId,
+                        imageId:
+                            uploaded.imageId,
+                        mediaType:
+                            uploaded.mediaType,
+                        key:
+                            uploaded.key,
+                    },
+                );
+
+                try {
+                    const {
+                        data,
+                    } =
+                        await createSalonMedia({
+                            variables: {
+                                input: {
+                                    salonId,
+
+                                    imageId:
+                                        uploaded.imageId,
+
+                                    mediaType:
+                                        uploaded.mediaType,
+
+                                    key:
+                                        uploaded.key,
+
+                                    objectUrl:
+                                        uploaded.objectUrl,
+                                },
+                            },
+                        });
+
+                    const response =
+                        data?.createSalonMedia;
+
+                    console.log(
+                        '[SalonInformation] createSalonMedia response:',
+                        {
+                            success:
+                                response?.success,
+
+                            message:
+                                response?.message,
+
+                            imageId:
+                                response?.media?.imageId,
+
+                            status:
+                                response?.media?.status,
+                        },
+                    );
+
+                    if (
+                        !response?.success
+                    ) {
+                        throw new Error(
+                            response?.message ||
+                            'Unable to create salon media approval request.',
+                        );
+                    }
+
+                    if (
+                        !response.media
+                    ) {
+                        throw new Error(
+                            'Salon media approval record was not returned.',
+                        );
+                    }
+
+                    return response.media;
+                } catch (error) {
+                    console.error(
+                        '[SalonInformation] createSalonMedia failed:',
+                        error,
+                    );
+
+                    /*
+                     * S3 upload already succeeded.
+                     *
+                     * Remove the uploaded object/media record so
+                     * we don't leave an orphaned image when the
+                     * pending media record cannot be created.
+                     */
+                    try {
+                        console.log(
+                            '[SalonInformation] Cleaning up S3 upload after createSalonMedia failure:',
+                            uploaded.key,
+                        );
+
+                        await deleteSalonMedia({
+                            variables: {
+                                input: {
+                                    salonId,
+
+                                    key:
+                                        uploaded.key,
+                                },
+                            },
+                        });
+
+                        console.log(
+                            '[SalonInformation] Failed media upload cleanup completed:',
+                            uploaded.key,
+                        );
+                    } catch (cleanupError) {
+                        console.warn(
+                            '[SalonInformation] Failed media cleanup:',
+                            cleanupError,
+                        );
+                    }
+
+                    throw error;
+                }
+            },
+            [
+                salonId,
+                createSalonMedia,
+                deleteSalonMedia,
+            ],
+        );
+
+
+    // ========================================================
+    // PICK + UPLOAD IMAGE
     // ========================================================
 
     const pickImage =
@@ -841,7 +1356,6 @@ export default function SalonInformation() {
                     return;
                 }
 
-                // Extra runtime safety.
                 if (!salonId) {
                     Alert.alert(
                         'Salon not found',
@@ -853,9 +1367,9 @@ export default function SalonInformation() {
 
                 if (
                     mediaType ===
-                    'gallery' &&
+                        'gallery' &&
                     galleryImages.length >=
-                    MAX_GALLERY_IMAGES
+                        MAX_GALLERY_IMAGES
                 ) {
                     Alert.alert(
                         'Gallery full',
@@ -866,35 +1380,30 @@ export default function SalonInformation() {
                 }
 
                 try {
-                    const result:
-                        ImagePickerResponse =
-                        await launchImageLibrary(
-                            {
-                                mediaType:
-                                    'photo',
+                    setSavingImage(
+                        mediaType,
+                    );
 
-                                selectionLimit:
-                                    mediaType ===
-                                        'gallery'
-                                        ? Math.max(
-                                            1,
-                                            MAX_GALLERY_IMAGES -
-                                            galleryImages.length,
-                                        )
-                                        : 1,
+                    // ==================================================
+                    // OPEN NATIVE PHOTO PICKER
+                    // ==================================================
 
-                                includeBase64:
-                                    false,
-
-                                // Removed quality because
-                                // the installed image-picker
-                                // typings reject 0.8 / 0.85.
-                            },
+                    const result =
+                        await openPhonePhotoPicker(
+                            mediaType,
                         );
+
+                    if (!result) {
+                        return;
+                    }
 
                     if (
                         result.didCancel
                     ) {
+                        console.log(
+                            '[SalonInformation] User cancelled photo picker.',
+                        );
+
                         return;
                     }
 
@@ -902,15 +1411,20 @@ export default function SalonInformation() {
                         result.errorCode
                     ) {
                         console.error(
-                            'Image picker error:',
-                            result.errorCode,
-                            result.errorMessage,
+                            '[SalonInformation] Photo picker error:',
+                            {
+                                errorCode:
+                                    result.errorCode,
+
+                                errorMessage:
+                                    result.errorMessage,
+                            },
                         );
 
                         Alert.alert(
                             'Image selection failed',
                             result.errorMessage ||
-                            'Unable to select image.',
+                            `Unable to open/select photos (${result.errorCode}).`,
                         );
 
                         return;
@@ -920,16 +1434,43 @@ export default function SalonInformation() {
                         result.assets ||
                         [];
 
+                    console.log(
+                        '[SalonInformation] Selected assets:',
+                        assets.map(
+                            asset => ({
+                                uri:
+                                    asset.uri,
+
+                                type:
+                                    asset.type,
+
+                                fileName:
+                                    asset.fileName,
+
+                                fileSize:
+                                    asset.fileSize,
+
+                                width:
+                                    asset.width,
+
+                                height:
+                                    asset.height,
+                            }),
+                        ),
+                    );
+
                     if (
                         assets.length ===
                         0
                     ) {
+                        Alert.alert(
+                            'No photo selected',
+                            'Please select a photo from your phone gallery.',
+                        );
+
                         return;
                     }
 
-                    setSavingImage(
-                        mediaType,
-                    );
 
                     // ==================================================
                     // GALLERY
@@ -953,17 +1494,47 @@ export default function SalonInformation() {
                             string[] =
                             [];
 
+                        const uploadedMedia:
+                            MediaReference[] =
+                            [];
+
                         for (
                             const asset of selectedAssets
                         ) {
                             try {
+                                // --------------------------------------
+                                // S3 UPLOAD
+                                // --------------------------------------
+
                                 const uploaded =
                                     await uploadImageToS3(
                                         asset,
                                         salonId,
-                                        mediaType,
+                                        'gallery',
                                         generateUploadUrl,
                                     );
+
+                                /*
+                                 * Keep track of this key so that if
+                                 * the salon removes the image before
+                                 * saving, deleteSalonMedia can clean
+                                 * it up.
+                                 */
+                                newlyUploadedMediaKeysRef.current.add(
+                                    uploaded.key,
+                                );
+
+                                // --------------------------------------
+                                // CREATE PENDING MEDIA
+                                // --------------------------------------
+
+                                await createPendingMediaRecord(
+                                    uploaded,
+                                );
+
+                                // --------------------------------------
+                                // LOCAL UI
+                                // --------------------------------------
 
                                 if (
                                     !galleryImages.includes(
@@ -976,12 +1547,37 @@ export default function SalonInformation() {
                                     uploadedUrls.push(
                                         uploaded.objectUrl,
                                     );
+
+                                    uploadedMedia.push({
+                                        imageId:
+                                            uploaded.imageId,
+
+                                        mediaType:
+                                            'GALLERY',
+
+                                        key:
+                                            uploaded.key,
+
+                                        objectUrl:
+                                            uploaded.objectUrl,
+                                    });
                                 }
+
+                                console.log(
+                                    '[SalonInformation] Gallery media is now PENDING:',
+                                    {
+                                        imageId:
+                                            uploaded.imageId,
+
+                                        key:
+                                            uploaded.key,
+                                    },
+                                );
                             } catch (
-                            uploadError
+                                uploadError
                             ) {
                                 console.error(
-                                    'Gallery image upload error:',
+                                    '[SalonInformation] Gallery upload/create error:',
                                     uploadError,
                                 );
 
@@ -1014,45 +1610,181 @@ export default function SalonInformation() {
                                     ),
                             );
                         }
+
+                        if (
+                            uploadedMedia.length >
+                            0
+                        ) {
+                            setGalleryMedia(
+                                previous => {
+                                    const existingIds =
+                                        new Set(
+                                            previous.map(
+                                                media =>
+                                                    media.imageId,
+                                            ),
+                                        );
+
+                                    const newMedia =
+                                        uploadedMedia.filter(
+                                            media =>
+                                                !existingIds.has(
+                                                    media.imageId,
+                                                ),
+                                        );
+
+                                    return [
+                                        ...previous,
+                                        ...newMedia,
+                                    ].slice(
+                                        0,
+                                        MAX_GALLERY_IMAGES,
+                                    );
+                                },
+                            );
+
+                            setMediaChanged(
+                                previous => ({
+                                    ...previous,
+
+                                    gallery:
+                                        true,
+                                }),
+                            );
+                        }
+
+                        return;
                     }
+
 
                     // ==================================================
                     // LOGO / COVER
                     // ==================================================
 
-                    else {
-                        const asset =
-                            assets[0];
+                    const asset =
+                        assets[0];
 
-                        const uploaded =
-                            await uploadImageToS3(
-                                asset,
-                                salonId,
-                                mediaType,
-                                generateUploadUrl,
-                            );
+                    if (!asset) {
+                        return;
+                    }
 
-                        if (
+                    // ----------------------------------------------
+                    // S3 UPLOAD
+                    // ----------------------------------------------
+
+                    const uploaded =
+                        await uploadImageToS3(
+                            asset,
+                            salonId,
+                            mediaType,
+                            generateUploadUrl,
+                        );
+
+                    /*
+                     * Track the uploaded object before creating
+                     * the pending record so cleanup is possible.
+                     */
+                    newlyUploadedMediaKeysRef.current.add(
+                        uploaded.key,
+                    );
+
+                    // ----------------------------------------------
+                    // CREATE PENDING MEDIA
+                    // ----------------------------------------------
+
+                    await createPendingMediaRecord(
+                        uploaded,
+                    );
+
+                    const reference:
+                        MediaReference = {
+                        imageId:
+                            uploaded.imageId,
+
+                        mediaType:
                             mediaType ===
-                            'logo'
-                        ) {
-                            setLogoUrl(
-                                uploaded.objectUrl,
-                            );
-                        }
+                                'logo'
+                                ? 'LOGO'
+                                : 'COVER',
 
-                        if (
-                            mediaType ===
-                            'cover'
-                        ) {
-                            setCoverImageUrl(
-                                uploaded.objectUrl,
-                            );
-                        }
+                        key:
+                            uploaded.key,
+
+                        objectUrl:
+                            uploaded.objectUrl,
+                    };
+
+
+                    console.log(
+                        '[SalonInformation] Media is now PENDING:',
+                        {
+                            imageId:
+                                uploaded.imageId,
+
+                            key:
+                                uploaded.key,
+
+                            mediaType:
+                                uploaded.mediaType,
+                        },
+                    );
+
+
+                    // ==================================================
+                    // LOGO
+                    // ==================================================
+
+                    if (
+                        mediaType ===
+                        'logo'
+                    ) {
+                        setLogoUrl(
+                            uploaded.objectUrl,
+                        );
+
+                        setLogoMedia(
+                            reference,
+                        );
+
+                        setMediaChanged(
+                            previous => ({
+                                ...previous,
+
+                                logo:
+                                    true,
+                            }),
+                        );
+                    }
+
+
+                    // ==================================================
+                    // COVER
+                    // ==================================================
+
+                    if (
+                        mediaType ===
+                        'cover'
+                    ) {
+                        setCoverImageUrl(
+                            uploaded.objectUrl,
+                        );
+
+                        setCoverMedia(
+                            reference,
+                        );
+
+                        setMediaChanged(
+                            previous => ({
+                                ...previous,
+
+                                cover:
+                                    true,
+                            }),
+                        );
                     }
                 } catch (error) {
                     console.error(
-                        'Image selection/upload error:',
+                        '[SalonInformation] Image picker/upload error:',
                         error,
                     );
 
@@ -1061,7 +1793,7 @@ export default function SalonInformation() {
                         error instanceof
                             Error
                             ? error.message
-                            : 'Unable to upload image.',
+                            : 'Unable to select or upload image.',
                     );
                 } finally {
                     setSavingImage(
@@ -1071,9 +1803,11 @@ export default function SalonInformation() {
             },
             [
                 savingImage,
-                galleryImages,
                 salonId,
+                galleryImages,
+                openPhonePhotoPicker,
                 generateUploadUrl,
+                createPendingMediaRecord,
             ],
         );
 
@@ -1089,19 +1823,10 @@ export default function SalonInformation() {
             ) => {
                 const image =
                     galleryImages[
-                    index
+                        index
                     ];
 
                 if (!image) {
-                    return;
-                }
-
-                if (!salonId) {
-                    Alert.alert(
-                        'Salon not found',
-                        'Your salon information could not be identified.',
-                    );
-
                     return;
                 }
 
@@ -1112,12 +1837,15 @@ export default function SalonInformation() {
                         {
                             text:
                                 'Cancel',
+
                             style:
                                 'cancel',
                         },
+
                         {
                             text:
                                 'Remove',
+
                             style:
                                 'destructive',
 
@@ -1128,42 +1856,80 @@ export default function SalonInformation() {
                                             index,
                                         );
 
-                                        const key =
-                                            getS3KeyFromUrl(
-                                                image,
+                                        const media =
+                                            galleryMedia.find(
+                                                item =>
+                                                    item.objectUrl ===
+                                                    image,
                                             );
 
+                                        /*
+                                         * Only physically delete media
+                                         * that was uploaded during this
+                                         * current editing session.
+                                         *
+                                         * Existing approved media is NOT
+                                         * physically deleted here.
+                                         */
                                         if (
-                                            key
+                                            media &&
+                                            newlyUploadedMediaKeysRef
+                                                .current
+                                                .has(
+                                                    media.key,
+                                                )
                                         ) {
-                                            const {
-                                                data: deleteData,
-                                            } =
-                                                await deleteSalonMedia(
-                                                    {
-                                                        variables:
+                                            try {
+                                                const {
+                                                    data:
+                                                        deleteData,
+                                                } =
+                                                    await deleteSalonMedia(
                                                         {
-                                                            input:
+                                                            variables:
                                                             {
-                                                                salonId,
-                                                                key,
+                                                                input:
+                                                                {
+                                                                    salonId,
+
+                                                                    key:
+                                                                        media.key,
+                                                                },
                                                             },
                                                         },
-                                                    },
-                                                );
+                                                    );
 
-                                            const deleteResponse =
-                                                deleteData
-                                                    ?.deleteSalonMedia;
+                                                const deleteResponse =
+                                                    deleteData
+                                                        ?.deleteSalonMedia;
 
-                                            if (
-                                                !deleteResponse?.success
+                                                if (
+                                                    !deleteResponse?.success
+                                                ) {
+                                                    console.warn(
+                                                        'Unable to clean up newly uploaded image:',
+                                                        deleteResponse?.message,
+                                                    );
+                                                } else {
+                                                    console.log(
+                                                        '[SalonInformation] Newly uploaded gallery media deleted:',
+                                                        media.key,
+                                                    );
+                                                }
+                                            } catch (
+                                                cleanupError
                                             ) {
-                                                throw new Error(
-                                                    deleteResponse?.message ||
-                                                    'Unable to delete image from S3.',
+                                                console.warn(
+                                                    'New image cleanup failed:',
+                                                    cleanupError,
                                                 );
                                             }
+
+                                            newlyUploadedMediaKeysRef
+                                                .current
+                                                .delete(
+                                                    media.key,
+                                                );
                                         }
 
                                         setGalleryImages(
@@ -1178,15 +1944,37 @@ export default function SalonInformation() {
                                                 ),
                                         );
 
+                                        if (
+                                            media
+                                        ) {
+                                            setGalleryMedia(
+                                                previous =>
+                                                    previous.filter(
+                                                        item =>
+                                                            item.imageId !==
+                                                            media.imageId,
+                                                    ),
+                                            );
+                                        }
+
+                                        setMediaChanged(
+                                            previous => ({
+                                                ...previous,
+
+                                                gallery:
+                                                    true,
+                                            }),
+                                        );
+
                                         Alert.alert(
                                             'Image removed',
-                                            'The gallery image has been removed.',
+                                            'The gallery change will be submitted for admin approval when you save your profile.',
                                         );
                                     } catch (
-                                    error
+                                        error
                                     ) {
                                         console.error(
-                                            'Delete gallery image error:',
+                                            'Remove gallery image error:',
                                             error,
                                         );
 
@@ -1209,6 +1997,7 @@ export default function SalonInformation() {
             },
             [
                 galleryImages,
+                galleryMedia,
                 salonId,
                 deleteSalonMedia,
             ],
@@ -1244,63 +2033,164 @@ export default function SalonInformation() {
                 }
 
                 try {
+                    const input: any = {
+                        salonId,
+
+                        salonName:
+                            salonName.trim(),
+
+                        ownerName:
+                            ownerName.trim(),
+
+                        businessType:
+                            businessType.trim(),
+
+                        email:
+                            email.trim(),
+
+                        ownerPhoneNumber:
+                            phoneNumber.trim(),
+
+                        alternatePhone:
+                            alternatePhone.trim() ||
+                            null,
+
+                        address: {
+                            addressLine:
+                                addressLine.trim(),
+
+                            city:
+                                city.trim(),
+
+                            state:
+                                state.trim(),
+
+                            pincode:
+                                pincode.trim(),
+                        },
+
+                        logoUrl:
+                            logoUrl ||
+                            null,
+
+                        coverImageUrl:
+                            coverImageUrl ||
+                            null,
+
+                        galleryImages:
+                            galleryImages,
+                    };
+
+
+                    // ====================================================
+                    // LOGO MEDIA
+                    // ====================================================
+
+                    if (
+                        mediaChanged.logo
+                    ) {
+                        input.logoMedia =
+                            logoMedia
+                                ? {
+                                    imageId:
+                                        logoMedia.imageId,
+
+                                    mediaType:
+                                        logoMedia.mediaType,
+
+                                    key:
+                                        logoMedia.key,
+
+                                    objectUrl:
+                                        logoMedia.objectUrl,
+                                }
+                                : null;
+                    }
+
+
+                    // ====================================================
+                    // COVER MEDIA
+                    // ====================================================
+
+                    if (
+                        mediaChanged.cover
+                    ) {
+                        input.coverMedia =
+                            coverMedia
+                                ? {
+                                    imageId:
+                                        coverMedia.imageId,
+
+                                    mediaType:
+                                        coverMedia.mediaType,
+
+                                    key:
+                                        coverMedia.key,
+
+                                    objectUrl:
+                                        coverMedia.objectUrl,
+                                }
+                                : null;
+                    }
+
+
+                    // ====================================================
+                    // GALLERY MEDIA
+                    // ====================================================
+
+                    if (
+                        mediaChanged.gallery
+                    ) {
+                        input.galleryMedia =
+                            galleryMedia.map(
+                                media => ({
+                                    imageId:
+                                        media.imageId,
+
+                                    mediaType:
+                                        media.mediaType,
+
+                                    key:
+                                        media.key,
+
+                                    objectUrl:
+                                        media.objectUrl,
+                                }),
+                            );
+                    }
+
+
+                    console.log(
+                        '[SalonInformation] Submitting profile:',
+                        {
+                            salonId,
+
+                            hasLogoMedia:
+                                !!input.logoMedia,
+
+                            hasCoverMedia:
+                                !!input.coverMedia,
+
+                            galleryCount:
+                                galleryImages.length,
+
+                            galleryMediaCount:
+                                input.galleryMedia
+                                    ?.length ??
+                                'unchanged',
+
+                            mediaChanged,
+                        },
+                    );
+
                     const {
                         data:
-                        mutationData,
+                            mutationData,
                     } =
                         await updateSalonProfile(
                             {
-                                variables:
-                                {
-                                    input:
-                                    {
-                                        salonId,
-
-                                        salonName:
-                                            salonName.trim(),
-
-                                        ownerName:
-                                            ownerName.trim(),
-
-                                        businessType:
-                                            businessType.trim(),
-
-                                        email:
-                                            email.trim(),
-
-                                        ownerPhoneNumber:
-                                            phoneNumber.trim(),
-
-                                        alternatePhone:
-                                            alternatePhone.trim() ||
-                                            null,
-
-                                        address:
-                                        {
-                                            addressLine:
-                                                addressLine.trim(),
-
-                                            city:
-                                                city.trim(),
-
-                                            state:
-                                                state.trim(),
-
-                                            pincode:
-                                                pincode.trim(),
-                                        },
-
-                                        logoUrl:
-                                            logoUrl ||
-                                            null,
-
-                                        coverImageUrl:
-                                            coverImageUrl ||
-                                            null,
-
-                                        galleryImages:
-                                            galleryImages,
-                                    },
+                                variables: {
+                                    input,
                                 },
                             },
                         );
@@ -1320,12 +2210,32 @@ export default function SalonInformation() {
 
                     await refetch();
 
-                   Alert.alert(
-    'Changes submitted',
-    'Your profile changes have been submitted for admin approval. Your current customer-facing profile will remain unchanged until the changes are approved.',
-);
+                    /*
+                     * At this point the pending media records already
+                     * exist in the backend. We no longer need to treat
+                     * them as temporary S3 uploads from this screen.
+                     */
+                    newlyUploadedMediaKeysRef
+                        .current
+                        .clear();
+
+                    setMediaChanged({
+                        logo:
+                            false,
+
+                        cover:
+                            false,
+
+                        gallery:
+                            false,
+                    });
+
+                    Alert.alert(
+                        'Changes submitted',
+                        'Your profile changes have been submitted for admin approval. Your uploaded photos have also been submitted for media approval.',
+                    );
                 } catch (
-                error
+                    error
                 ) {
                     console.error(
                         'Update salon profile error:',
@@ -1359,6 +2269,10 @@ export default function SalonInformation() {
                 logoUrl,
                 coverImageUrl,
                 galleryImages,
+                logoMedia,
+                coverMedia,
+                galleryMedia,
+                mediaChanged,
                 refetch,
             ],
         );
@@ -1378,7 +2292,7 @@ export default function SalonInformation() {
 
 
     // ========================================================
-    // NO SALON ID
+    // NO SALON
     // ========================================================
 
     if (!salonId) {
@@ -1574,7 +2488,6 @@ export default function SalonInformation() {
                             about your salon.
                         </Text>
 
-
                         <InputField
                             label="Salon Name"
                             value={
@@ -1585,7 +2498,6 @@ export default function SalonInformation() {
                             }
                             placeholder="Enter salon name"
                         />
-
 
                         <InputField
                             label="Owner Name"
@@ -1598,7 +2510,6 @@ export default function SalonInformation() {
                             placeholder="Enter owner name"
                         />
 
-
                         <InputField
                             label="Business Type"
                             value={
@@ -1609,7 +2520,6 @@ export default function SalonInformation() {
                             }
                             placeholder="e.g. Salon, Beauty Parlour"
                         />
-
 
                         <InputField
                             label="Email"
@@ -1624,7 +2534,6 @@ export default function SalonInformation() {
                             autoCapitalize="none"
                         />
 
-
                         <InputField
                             label="Phone Number"
                             value={
@@ -1636,7 +2545,6 @@ export default function SalonInformation() {
                             placeholder="Enter phone number"
                             keyboardType="phone-pad"
                         />
-
 
                         <InputField
                             label="Alternate Phone"
@@ -1722,7 +2630,7 @@ export default function SalonInformation() {
 
 
                     {/* ================================================= */}
-                    {/* LOGO */}
+                    {/* PROFILE PHOTO */}
                     {/* ================================================= */}
 
                     <View
@@ -1735,7 +2643,7 @@ export default function SalonInformation() {
                                 styles.sectionTitle
                             }
                         >
-                            Salon Logo
+                            Salon Profile Photo
                         </Text>
 
                         <Text
@@ -1743,8 +2651,9 @@ export default function SalonInformation() {
                                 styles.sectionSubtitle
                             }
                         >
-                            Add a clear logo customers can
-                            recognize.
+                            Choose a photo directly from your
+                            phone. Photo changes require admin
+                            approval.
                         </Text>
 
                         <View
@@ -1813,8 +2722,8 @@ export default function SalonInformation() {
                                             }
                                         >
                                             {logoUrl
-                                                ? 'Change Logo'
-                                                : 'Add Logo'}
+                                                ? 'Change Photo'
+                                                : 'Choose Photo'}
                                         </Text>
                                     )}
                                 </TouchableOpacity>
@@ -1824,6 +2733,7 @@ export default function SalonInformation() {
                                         styles.imageHint
                                     }
                                 >
+                                    Opens your phone photo picker •
                                     JPEG, PNG or WebP • Max 10 MB
                                 </Text>
                             </View>
@@ -1853,8 +2763,9 @@ export default function SalonInformation() {
                                 styles.sectionSubtitle
                             }
                         >
-                            This image can be used as the main
-                            banner for your salon.
+                            Choose a banner image directly from
+                            your phone. Cover photo changes require
+                            admin approval.
                         </Text>
 
                         <View
@@ -1915,7 +2826,7 @@ export default function SalonInformation() {
                                     >
                                         {coverImageUrl
                                             ? 'Change Cover'
-                                            : 'Add Cover'}
+                                            : 'Choose Cover'}
                                     </Text>
                                 )}
                             </TouchableOpacity>
@@ -1955,7 +2866,10 @@ export default function SalonInformation() {
                                         styles.sectionSubtitle
                                     }
                                 >
-                                    Showcase your salon and work.
+                                    Select photos directly from
+                                    your phone to showcase your
+                                    salon and work. Gallery changes
+                                    require admin approval.
                                 </Text>
                             </View>
 
@@ -2000,8 +2914,9 @@ export default function SalonInformation() {
                                         styles.emptyGalleryText
                                     }
                                 >
-                                    Add photos to help customers
-                                    discover your salon.
+                                    Add photos from your phone to
+                                    help customers discover your
+                                    salon.
                                 </Text>
                             </View>
                         ) : (
@@ -2097,7 +3012,7 @@ export default function SalonInformation() {
                                                 styles.addGalleryButtonText
                                             }
                                         >
-                                            + Add Gallery Photos
+                                            + Choose Photos from Phone
                                         </Text>
                                     )}
                                 </TouchableOpacity>
@@ -2108,10 +3023,42 @@ export default function SalonInformation() {
                                 styles.imageHint
                             }
                         >
-                            You can add up to{' '}
+                            Select multiple photos at once • Up to{' '}
                             {
                                 MAX_GALLERY_IMAGES
-                            } images.
+                            } images • Max 10 MB each
+                        </Text>
+                    </View>
+
+
+                    {/* ================================================= */}
+                    {/* APPROVAL INFORMATION */}
+                    {/* ================================================= */}
+
+                    <View
+                        style={
+                            styles.infoCard
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.infoTitle
+                            }
+                        >
+                            Photo approval
+                        </Text>
+
+                        <Text
+                            style={
+                                styles.infoText
+                            }
+                        >
+                            Photos selected from your phone are
+                            uploaded securely and submitted for
+                            separate media approval. Your existing
+                            customer-facing photos remain unchanged
+                            until the administrator approves the
+                            uploaded media.
                         </Text>
                     </View>
 
@@ -2153,6 +3100,7 @@ export default function SalonInformation() {
                     <TouchableOpacity
                         style={[
                             styles.saveButton,
+
                             updatingProfile &&
                             styles.saveButtonDisabled,
                         ]}
@@ -2160,7 +3108,8 @@ export default function SalonInformation() {
                             handleSave
                         }
                         disabled={
-                            updatingProfile
+                            updatingProfile ||
+                            !!savingImage
                         }
                     >
                         {updatingProfile ? (
@@ -2175,7 +3124,7 @@ export default function SalonInformation() {
                                         styles.saveButtonText
                                     }
                                 >
-                                    Saving...
+                                    Submitting...
                                 </Text>
                             </>
                         ) : (
@@ -2184,11 +3133,10 @@ export default function SalonInformation() {
                                     styles.saveButtonText
                                 }
                             >
-                                Save Changes
+                                Submit Changes for Approval
                             </Text>
                         )}
                     </TouchableOpacity>
-
 
                     <View
                         style={{
@@ -2287,6 +3235,7 @@ function InputField({
                 }
                 style={[
                     styles.input,
+
                     multiline &&
                     styles.multilineInput,
                 ]}
@@ -2962,4 +3911,3 @@ const styles =
                 '700',
         },
     });
-

@@ -47,7 +47,7 @@ interface DInputProps {
 //for mobile
 export function DMobileInput({
   value,
-  placeholder = 'Enter Mobile number',
+  placeholder = 'Enter mobile number',
   setValue,
   setValid,
   inputAccessoryViewID,

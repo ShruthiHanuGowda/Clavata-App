@@ -14,6 +14,7 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
+
 import BlurView from '../BlurView';
 // import { BlurView } from '@react-native-community/blur';
 
@@ -27,6 +28,14 @@ import {
 import { DButton } from '../index';
 
 import styles from './styles';
+
+
+// ============================================================
+// THEME
+// ============================================================
+
+const PRIMARY_COLOR = '#009D94';
+const INACTIVE_COLOR = '#000000';
 
 
 // ============================================================
@@ -141,6 +150,21 @@ export default function OTPModal({
         setError('');
       }
     };
+
+
+  // ==========================================================
+  // BUTTON STATE
+  // ==========================================================
+
+  const isVerifyEnabled =
+    otp.length === 6 &&
+    !verifying &&
+    !resending;
+
+  const verifyButtonBackgroundColor =
+    isVerifyEnabled
+      ? PRIMARY_COLOR
+      : INACTIVE_COLOR;
 
 
   // ==========================================================
@@ -542,13 +566,15 @@ export default function OTPModal({
 
             <DButton
               type="primary"
-              style={
-                styles.verifyButton
-              }
+              style={[
+                styles.verifyButton,
+                {
+                  backgroundColor:
+                    verifyButtonBackgroundColor,
+                },
+              ]}
               disabled={
-                verifying ||
-                resending ||
-                otp.length !== 6
+                !isVerifyEnabled
               }
               onPress={
                 handleVerify

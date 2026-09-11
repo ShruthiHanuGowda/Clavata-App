@@ -16,7 +16,29 @@ import { navReset } from '../../../Navigation/NavigationFunctions';
 
 export default function SalonProfileScreen() {
     const navigation = useNavigation();
-    const { currentUser, setCurrentUser } = useUser();
+
+    const {
+        currentUser,
+        setCurrentUser,
+    } = useUser();
+
+    // ============================================================
+    // DYNAMIC USER / SALON DATA
+    // ============================================================
+
+    const ownerName =
+        currentUser?.fullName?.trim() || 'User';
+
+    const salonName =
+        currentUser?.salonName?.trim() || 'Salon';
+
+    const profileImageUrl =
+        currentUser?.profileImageUrl?.trim() || null;
+
+    // ============================================================
+    // LOGOUT
+    // ============================================================
+
     const onLogout = () => {
         Alert.alert(
             'Logout',
@@ -34,18 +56,23 @@ export default function SalonProfileScreen() {
                             console.log(
                                 '========== PROVIDER LOGOUT =========='
                             );
+
                             // ------------------------------------------------
                             // 1. Remove authenticated session flag
                             // ------------------------------------------------
+
                             await secureStorage.removeItem(
                                 'isAuthenticated',
                             );
+
                             console.log(
                                 'isAuthenticated removed',
                             );
+
                             // ------------------------------------------------
                             // 2. RESET ROOT NAVIGATION FIRST
                             // ------------------------------------------------
+
                             navReset(
                                 'LoginScreen',
                                 {
@@ -53,6 +80,7 @@ export default function SalonProfileScreen() {
                                     hideBackButton: true,
                                 },
                             );
+
                             console.log(
                                 'Navigation reset to LoginScreen',
                             );
@@ -60,7 +88,9 @@ export default function SalonProfileScreen() {
                             // ------------------------------------------------
                             // 3. Clear current user AFTER navigation reset
                             // ------------------------------------------------
+
                             setCurrentUser(null);
+
                             console.log(
                                 'Provider user context cleared',
                             );
@@ -69,6 +99,7 @@ export default function SalonProfileScreen() {
                                 'Provider logout error:',
                                 error,
                             );
+
                             Alert.alert(
                                 'Logout failed',
                                 'Unable to logout. Please try again.',
@@ -79,6 +110,11 @@ export default function SalonProfileScreen() {
             ],
         );
     };
+
+    // ============================================================
+    // BUSINESS NAVIGATION
+    // ============================================================
+
     const handleBusinessNavigation = (
         screen: string,
     ) => {
@@ -88,6 +124,7 @@ export default function SalonProfileScreen() {
                     .getParent()
                     ?.navigate('SalonInformation');
                 break;
+
             case 'BusinessHours':
                 navigation
                     .getParent()
@@ -95,23 +132,29 @@ export default function SalonProfileScreen() {
                 break;
 
             case 'StaffManagement':
-                navigation.getParent()?.navigate('StaffManagementScreen');
+                navigation
+                    .getParent()
+                    ?.navigate('StaffManagementScreen');
                 break;
+
             case 'ManageServices':
                 navigation
                     .getParent()
                     ?.navigate('ManageServices');
                 break;
+
             case 'Offers':
                 navigation
                     .getParent()
                     ?.navigate('Offers');
                 break;
+
             case 'PaymentSettings':
                 navigation
                     .getParent()
                     ?.navigate('PaymentSettings');
                 break;
+
             default:
                 console.log(
                     'Unknown business screen:',
@@ -120,6 +163,10 @@ export default function SalonProfileScreen() {
                 break;
         }
     };
+
+    // ============================================================
+    // ACCOUNT NAVIGATION
+    // ============================================================
 
     const handleAccountNavigation = (
         screen: string,
@@ -130,21 +177,25 @@ export default function SalonProfileScreen() {
                     .getParent()
                     ?.navigate('EditProfile');
                 break;
+
             case 'Notifications':
                 navigation
                     .getParent()
                     ?.navigate('Notifications');
                 break;
+
             case 'ChangePassword':
                 navigation
                     .getParent()
                     ?.navigate('ChangePassword');
                 break;
+
             case 'Language':
                 navigation
                     .getParent()
                     ?.navigate('Language');
                 break;
+
             default:
                 console.log(
                     'Unknown account screen:',
@@ -153,6 +204,10 @@ export default function SalonProfileScreen() {
                 break;
         }
     };
+
+    // ============================================================
+    // SUPPORT NAVIGATION
+    // ============================================================
 
     const handleSupportNavigation = (
         screen: string,
@@ -163,16 +218,19 @@ export default function SalonProfileScreen() {
                     .getParent()
                     ?.navigate('HelpCenter');
                 break;
+
             case 'PrivacyPolicy':
                 navigation
                     .getParent()
                     ?.navigate('PrivacyPolicy');
                 break;
+
             case 'TermsConditions':
                 navigation
                     .getParent()
                     ?.navigate('TermsConditions');
                 break;
+
             default:
                 console.log(
                     'Unknown support screen:',
@@ -182,30 +240,82 @@ export default function SalonProfileScreen() {
         }
     };
 
+    // ============================================================
+    // PROFILE IMAGE FALLBACK
+    // ============================================================
+
+    const renderProfileImage = () => {
+        if (profileImageUrl) {
+            return (
+                <Image
+                    source={{
+                        uri: profileImageUrl,
+                    }}
+                    style={styles.avatar}
+                />
+            );
+        }
+
+        return (
+            <View
+                style={[
+                    styles.avatar,
+                    {
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    },
+                ]}
+            >
+                <Text
+                    style={{
+                        fontSize: 32,
+                        fontWeight: '600',
+                    }}
+                >
+                    {ownerName
+                        .charAt(0)
+                        .toUpperCase()}
+                </Text>
+            </View>
+        );
+    };
+
+    // ============================================================
+    // RENDER
+    // ============================================================
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
             >
+                {/* ==================================================
+                    PROFILE HEADER
+                ================================================== */}
+
                 <View style={styles.profileHeader}>
-                    <Image
-                        source={{
-                            uri: 'https://i.pravatar.cc/150?img=12',
-                        }}
-                        style={styles.avatar}
-                    />
+                    {renderProfileImage()}
+
+                    {/* Dynamic owner name */}
                     <Text style={styles.profileName}>
-                        {currentUser?.fullName ||
-                            'User'}
+                        {ownerName}
                     </Text>
+
+                    {/* Dynamic salon name */}
                     <Text style={styles.profileRole}>
-                        Owner • Glow Beauty Salon
+                        Owner • {salonName}
                     </Text>
                 </View>
+
+                {/* ==================================================
+                    BUSINESS
+                ================================================== */}
+
                 <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
                         Business
                     </Text>
+
                     <MenuItem
                         title="Salon Information"
                         onPress={() =>
@@ -214,6 +324,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
+
                     <MenuItem
                         title="Business Hours"
                         onPress={() =>
@@ -222,6 +333,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
+
                     <MenuItem
                         title="Staff Management"
                         onPress={() =>
@@ -230,6 +342,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
+
                     <MenuItem
                         title="Manage Services"
                         onPress={() =>
@@ -238,6 +351,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
+
                     <MenuItem
                         title="Offers"
                         onPress={() =>
@@ -246,6 +360,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
+
                     <MenuItem
                         title="Payment Settings"
                         onPress={() =>
@@ -255,10 +370,16 @@ export default function SalonProfileScreen() {
                         }
                     />
                 </View>
+
+                {/* ==================================================
+                    ACCOUNT
+                ================================================== */}
+
                 <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
                         Account
                     </Text>
+
                     <MenuItem
                         title="Edit Profile"
                         onPress={() =>
@@ -267,6 +388,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
+
                     <MenuItem
                         title="Notifications"
                         onPress={() =>
@@ -275,6 +397,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
+
                     <MenuItem
                         title="Change Password"
                         onPress={() =>
@@ -283,6 +406,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
+
                     <MenuItem
                         title="Language"
                         onPress={() =>
@@ -292,10 +416,16 @@ export default function SalonProfileScreen() {
                         }
                     />
                 </View>
+
+                {/* ==================================================
+                    SUPPORT
+                ================================================== */}
+
                 <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
                         Support
                     </Text>
+
                     <MenuItem
                         title="Help Center"
                         onPress={() =>
@@ -304,6 +434,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
+
                     <MenuItem
                         title="Privacy Policy"
                         onPress={() =>
@@ -312,6 +443,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
+
                     <MenuItem
                         title="Terms & Conditions"
                         onPress={() =>
@@ -321,6 +453,11 @@ export default function SalonProfileScreen() {
                         }
                     />
                 </View>
+
+                {/* ==================================================
+                    LOGOUT
+                ================================================== */}
+
                 <TouchableOpacity
                     style={styles.logoutButton}
                     onPress={onLogout}
@@ -329,11 +466,16 @@ export default function SalonProfileScreen() {
                         Logout
                     </Text>
                 </TouchableOpacity>
+
                 <View style={{ height: 30 }} />
             </ScrollView>
         </SafeAreaView>
     );
 }
+
+// ================================================================
+// MENU ITEM
+// ================================================================
 
 function MenuItem({
     title,
@@ -351,6 +493,7 @@ function MenuItem({
             <Text style={styles.menuText}>
                 {title}
             </Text>
+
             <Text style={styles.menuArrow}>
                 ›
             </Text>

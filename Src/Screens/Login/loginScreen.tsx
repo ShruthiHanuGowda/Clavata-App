@@ -1,4 +1,9 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+} from 'react';
+
 import {
   Text,
   View,
@@ -15,7 +20,10 @@ import 'react-native-get-random-values';
 import '@ethersproject/shims';
 
 import { useMutation } from '@apollo/client';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 
 import OTPModal from '../../components/OTPModal/OTPModal';
 import styles from './styles';
@@ -26,7 +34,13 @@ import { SEND_OTP } from '../../graphql/queries';
 import { useUser } from '../../context/UserContext';
 import { getSavedLocation } from '../../services/locationStorage';
 
-type LoginMode = 'CUSTOMER' | 'PROVIDER' | 'SIGN_IN';
+type LoginMode =
+  | 'CUSTOMER'
+  | 'PROVIDER'
+  | 'SIGN_IN';
+
+const PRIMARY_COLOR = '#009D94';
+const INACTIVE_COLOR = '#000000';
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
@@ -34,17 +48,42 @@ export default function LoginScreen() {
 
   const { setCurrentUser } = useUser();
 
-  const mode: LoginMode = route.params?.mode || 'SIGN_IN';
-  const hideBackButton = route.params?.hideBackButton === true;
+  const mode: LoginMode =
+    route.params?.mode || 'SIGN_IN';
 
-  const [showOTP, setShowOTP] = useState(false);
-  const [isValid, setValid] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState(
-    route.params?.phoneNumber || '',
-  );
-  const [loading, setLoading] = useState(false);
+  const hideBackButton =
+    route.params?.hideBackButton === true;
 
-  const [sendOTP, { error: queryError }] = useMutation(SEND_OTP);
+  const [showOTP, setShowOTP] =
+    useState(false);
+
+  const [isValid, setValid] =
+    useState(false);
+
+  const [phoneNumber, setPhoneNumber] =
+    useState(
+      route.params?.phoneNumber || '',
+    );
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [sendOTP, { error: queryError }] =
+    useMutation(SEND_OTP);
+
+  // ============================================================
+  // BUTTON STATE
+  // ============================================================
+
+  const isButtonEnabled =
+    Boolean(phoneNumber?.trim()) &&
+    isValid &&
+    !loading;
+
+  const buttonBackgroundColor =
+    isButtonEnabled
+      ? PRIMARY_COLOR
+      : INACTIVE_COLOR;
 
   // ============================================================
   // SEND OTP ERROR
@@ -53,7 +92,10 @@ export default function LoginScreen() {
   useEffect(() => {
     if (!queryError) return;
 
-    console.error('Send OTP error:', queryError);
+    console.error(
+      'Send OTP error:',
+      queryError,
+    );
 
     setLoading(false);
 
@@ -67,70 +109,104 @@ export default function LoginScreen() {
   // LOGIN WITH PHONE
   // ============================================================
 
-  const loginWithPhone = useCallback(async () => {
-    if (!phoneNumber || !isValid || loading) return;
-
-    try {
-      setLoading(true);
-
-      const { data } = await sendOTP({
-        variables: {
-          phoneNumber,
-        },
-      });
-
-      if (data?.sendOTP?.success) {
-        setShowOTP(true);
-      } else {
-        Alert.alert(
-          'Unable to continue',
-          data?.sendOTP?.message ||
-            'We could not send the verification code.',
-        );
+  const loginWithPhone = useCallback(
+    async () => {
+      if (
+        !phoneNumber ||
+        !isValid ||
+        loading
+      ) {
+        return;
       }
-    } catch (error) {
-      console.error('OTP error:', error);
 
-      Alert.alert(
-        'Something went wrong',
-        'Please check your internet connection and try again.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [phoneNumber, isValid, loading, sendOTP]);
+      try {
+        setLoading(true);
+
+        const { data } =
+          await sendOTP({
+            variables: {
+              phoneNumber,
+            },
+          });
+
+        if (data?.sendOTP?.success) {
+          setShowOTP(true);
+        } else {
+          Alert.alert(
+            'Unable to continue',
+            data?.sendOTP?.message ||
+              'We could not send the verification code.',
+          );
+        }
+      } catch (error) {
+        console.error(
+          'OTP error:',
+          error,
+        );
+
+        Alert.alert(
+          'Something went wrong',
+          'Please check your internet connection and try again.',
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      phoneNumber,
+      isValid,
+      loading,
+      sendOTP,
+    ],
+  );
 
   // ============================================================
   // BACK
   // ============================================================
 
-  const handleBack = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
+  const handleBack = useCallback(
+    () => {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
 
-    navigation.navigate('authScreens');
-  }, [navigation]);
+      navigation.navigate(
+        'authScreens',
+      );
+    },
+    [navigation],
+  );
 
   // ============================================================
   // GET EXISTING ROLE
   // ============================================================
 
-  const getExistingRole = (user: any) => {
-    if (user?.roles?.customer === true) {
+  const getExistingRole = (
+    user: any,
+  ) => {
+    if (
+      user?.roles?.customer === true
+    ) {
       return 'CUSTOMER';
     }
 
-    if (user?.roles?.businessPartner === true) {
+    if (
+      user?.roles?.businessPartner ===
+      true
+    ) {
       return 'PROVIDER';
     }
 
-    if (user?.activeRole === 'CUSTOMER') {
+    if (
+      user?.activeRole === 'CUSTOMER'
+    ) {
       return 'CUSTOMER';
     }
 
-    if (user?.activeRole === 'PROVIDER') {
+    if (
+      user?.activeRole === 'PROVIDER'
+    ) {
       return 'PROVIDER';
     }
 
@@ -141,27 +217,55 @@ export default function LoginScreen() {
   // OPEN EXISTING ACCOUNT
   // ============================================================
 
-  const openExistingAccount = async (user: any) => {
+  const openExistingAccount = async (
+    user: any,
+  ) => {
     setCurrentUser(user);
 
-    const existingRole = getExistingRole(user);
+    const existingRole =
+      getExistingRole(user);
 
-    console.log('========== EXISTING ACCOUNT ==========');
-    console.log('ROLE:', existingRole);
-    console.log('PROVIDER STATUS:', user?.providerStatus);
-    console.log('USER:', JSON.stringify(user, null, 2));
-    console.log('======================================');
+    console.log(
+      '========== EXISTING ACCOUNT ==========',
+    );
+
+    console.log(
+      'ROLE:',
+      existingRole,
+    );
+
+    console.log(
+      'PROVIDER STATUS:',
+      user?.providerStatus,
+    );
+
+    console.log(
+      'USER:',
+      JSON.stringify(
+        user,
+        null,
+        2,
+      ),
+    );
+
+    console.log(
+      '======================================',
+    );
 
     // ==========================================================
     // PROVIDER ACCOUNT
     // ==========================================================
 
-    if (existingRole === 'PROVIDER') {
-      const providerStatus = String(
-        user?.providerStatus || 'NOT_REGISTERED',
-      )
-        .trim()
-        .toUpperCase();
+    if (
+      existingRole === 'PROVIDER'
+    ) {
+      const providerStatus =
+        String(
+          user?.providerStatus ||
+            'NOT_REGISTERED',
+        )
+          .trim()
+          .toUpperCase();
 
       console.log(
         'NORMALIZED PROVIDER STATUS:',
@@ -172,8 +276,13 @@ export default function LoginScreen() {
       // NOT REGISTERED
       // ========================================================
 
-      if (providerStatus === 'NOT_REGISTERED') {
-        navigation.navigate('BecomePartner');
+      if (
+        providerStatus ===
+        'NOT_REGISTERED'
+      ) {
+        navigation.navigate(
+          'BecomePartner',
+        );
         return;
       }
 
@@ -181,10 +290,16 @@ export default function LoginScreen() {
       // PENDING
       // ========================================================
 
-      if (providerStatus === 'PENDING') {
-        navigation.replace('BecomePartner', {
-          screen: 'SalonPendingVerification',
-        });
+      if (
+        providerStatus === 'PENDING'
+      ) {
+        navigation.replace(
+          'BecomePartner',
+          {
+            screen:
+              'SalonPendingVerification',
+          },
+        );
 
         return;
       }
@@ -193,8 +308,12 @@ export default function LoginScreen() {
       // APPROVED
       // ========================================================
 
-      if (providerStatus === 'APPROVED') {
-        navigation.navigate('appScreens');
+      if (
+        providerStatus === 'APPROVED'
+      ) {
+        navigation.navigate(
+          'appScreens',
+        );
         return;
       }
 
@@ -202,8 +321,12 @@ export default function LoginScreen() {
       // REJECTED
       // ========================================================
 
-      if (providerStatus === 'REJECTED') {
-        navigation.navigate('BecomePartner');
+      if (
+        providerStatus === 'REJECTED'
+      ) {
+        navigation.navigate(
+          'BecomePartner',
+        );
         return;
       }
 
@@ -216,7 +339,10 @@ export default function LoginScreen() {
         providerStatus,
       );
 
-      navigation.navigate('BecomePartner');
+      navigation.navigate(
+        'BecomePartner',
+      );
+
       return;
     }
 
@@ -224,10 +350,15 @@ export default function LoginScreen() {
     // CUSTOMER ACCOUNT
     // ============================================================
 
-    if (existingRole === 'CUSTOMER') {
-      navigation.replace('appScreens', {
-        screen: 'HomeScreen',
-      });
+    if (
+      existingRole === 'CUSTOMER'
+    ) {
+      navigation.replace(
+        'appScreens',
+        {
+          screen: 'HomeScreen',
+        },
+      );
 
       return;
     }
@@ -238,7 +369,11 @@ export default function LoginScreen() {
 
     console.error(
       'UNKNOWN ACCOUNT ROLE:',
-      JSON.stringify(user, null, 2),
+      JSON.stringify(
+        user,
+        null,
+        2,
+      ),
     );
 
     Alert.alert(
@@ -251,16 +386,40 @@ export default function LoginScreen() {
   // OTP VERIFIED
   // ============================================================
 
-  const handleOTPVerified = (result: any) => {
-    console.log('========== OTP LOGIN RESULT ==========');
-    console.log('SUCCESS:', result?.success);
-    console.log('EXISTING:', result?.isExistingUser);
+  const handleOTPVerified = (
+    result: any,
+  ) => {
+    console.log(
+      '========== OTP LOGIN RESULT ==========',
+    );
+
+    console.log(
+      'SUCCESS:',
+      result?.success,
+    );
+
+    console.log(
+      'EXISTING:',
+      result?.isExistingUser,
+    );
+
     console.log(
       'USER:',
-      JSON.stringify(result?.user, null, 2),
+      JSON.stringify(
+        result?.user,
+        null,
+        2,
+      ),
     );
-    console.log('MODE:', mode);
-    console.log('======================================');
+
+    console.log(
+      'MODE:',
+      mode,
+    );
+
+    console.log(
+      '======================================',
+    );
 
     setShowOTP(false);
 
@@ -268,7 +427,9 @@ export default function LoginScreen() {
     // VERIFICATION FAILED
     // ==========================================================
 
-    if (result?.success !== true) {
+    if (
+      result?.success !== true
+    ) {
       Alert.alert(
         'Verification failed',
         result?.message ||
@@ -283,18 +444,27 @@ export default function LoginScreen() {
     // ==========================================================
 
     if (
-      result?.isExistingUser === true &&
+      result?.isExistingUser ===
+        true &&
       result?.user
     ) {
-      const user = result.user;
-      const existingRole = getExistingRole(user);
+      const user =
+        result.user;
+
+      const existingRole =
+        getExistingRole(user);
 
       // ========================================================
       // SIGN IN
       // ========================================================
 
-      if (mode === 'SIGN_IN') {
-        openExistingAccount(user);
+      if (
+        mode === 'SIGN_IN'
+      ) {
+        openExistingAccount(
+          user,
+        );
+
         return;
       }
 
@@ -302,9 +472,17 @@ export default function LoginScreen() {
       // CUSTOMER
       // ========================================================
 
-      if (mode === 'CUSTOMER') {
-        if (existingRole === 'CUSTOMER') {
-          openExistingAccount(user);
+      if (
+        mode === 'CUSTOMER'
+      ) {
+        if (
+          existingRole ===
+          'CUSTOMER'
+        ) {
+          openExistingAccount(
+            user,
+          );
+
           return;
         }
 
@@ -315,10 +493,13 @@ export default function LoginScreen() {
             {
               text: 'Sign in',
               onPress: () => {
-                navigation.replace('LoginScreen', {
-                  mode: 'SIGN_IN',
-                  phoneNumber,
-                });
+                navigation.replace(
+                  'LoginScreen',
+                  {
+                    mode: 'SIGN_IN',
+                    phoneNumber,
+                  },
+                );
               },
             },
           ],
@@ -331,9 +512,17 @@ export default function LoginScreen() {
       // PROVIDER
       // ========================================================
 
-      if (mode === 'PROVIDER') {
-        if (existingRole === 'PROVIDER') {
-          openExistingAccount(user);
+      if (
+        mode === 'PROVIDER'
+      ) {
+        if (
+          existingRole ===
+          'PROVIDER'
+        ) {
+          openExistingAccount(
+            user,
+          );
+
           return;
         }
 
@@ -344,10 +533,13 @@ export default function LoginScreen() {
             {
               text: 'Sign in',
               onPress: () => {
-                navigation.replace('LoginScreen', {
-                  mode: 'SIGN_IN',
-                  phoneNumber,
-                });
+                navigation.replace(
+                  'LoginScreen',
+                  {
+                    mode: 'SIGN_IN',
+                    phoneNumber,
+                  },
+                );
               },
             },
           ],
@@ -363,20 +555,28 @@ export default function LoginScreen() {
     // NEW USER
     // ============================================================
 
-    if (result?.isExistingUser === false) {
+    if (
+      result?.isExistingUser ===
+      false
+    ) {
       // ==========================================================
       // SIGN IN - ACCOUNT NOT FOUND
       // ==========================================================
 
-      if (mode === 'SIGN_IN') {
+      if (
+        mode === 'SIGN_IN'
+      ) {
         Alert.alert(
           'Account not found',
           'No Clavata account exists for this mobile number.',
           [
             {
-              text: 'Choose account type',
+              text:
+                'Choose account type',
               onPress: () => {
-                navigation.replace('authScreens');
+                navigation.replace(
+                  'authScreens',
+                );
               },
             },
           ],
@@ -389,11 +589,17 @@ export default function LoginScreen() {
       // CUSTOMER REGISTRATION
       // ==========================================================
 
-      if (mode === 'CUSTOMER') {
-        navigation.replace('RegisterUser', {
-          phoneNumber,
-          activeRole: 'CUSTOMER',
-        });
+      if (
+        mode === 'CUSTOMER'
+      ) {
+        navigation.replace(
+          'RegisterUser',
+          {
+            phoneNumber,
+            activeRole:
+              'CUSTOMER',
+          },
+        );
 
         return;
       }
@@ -402,11 +608,17 @@ export default function LoginScreen() {
       // PROVIDER REGISTRATION
       // ==========================================================
 
-      if (mode === 'PROVIDER') {
-        navigation.replace('RegisterUser', {
-          phoneNumber,
-          activeRole: 'PROVIDER',
-        });
+      if (
+        mode === 'PROVIDER'
+      ) {
+        navigation.replace(
+          'RegisterUser',
+          {
+            phoneNumber,
+            activeRole:
+              'PROVIDER',
+          },
+        );
 
         return;
       }
@@ -434,7 +646,9 @@ export default function LoginScreen() {
   // ============================================================
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={styles.safeArea}
+    >
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={
@@ -444,20 +658,27 @@ export default function LoginScreen() {
         }
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={
+            styles.scrollContent
+          }
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={
+            false
+          }
         >
           {/* ==================================================
               LOGO HEADER
-              No hero container / background
           ================================================== */}
 
-          <View style={styles.header}>
+          <View
+            style={styles.header}
+          >
             {!hideBackButton && (
               <TouchableOpacity
                 onPress={handleBack}
-                style={styles.backButton}
+                style={
+                  styles.backButton
+                }
                 activeOpacity={0.7}
                 hitSlop={{
                   top: 10,
@@ -466,13 +687,19 @@ export default function LoginScreen() {
                   right: 10,
                 }}
               >
-                <Text style={styles.back}>‹</Text>
+                <Text
+                  style={styles.back}
+                >
+                  ‹
+                </Text>
               </TouchableOpacity>
             )}
 
             <Image
               source={require('../../assets/logo-blue.png')}
-              style={styles.heroLogo}
+              style={
+                styles.heroLogo
+              }
               resizeMode="contain"
             />
           </View>
@@ -481,28 +708,54 @@ export default function LoginScreen() {
               LOGIN CREDENTIALS
           ================================================== */}
 
-          <View style={styles.content}>
-            <View style={styles.inputSection}>
+          <View
+            style={styles.content}
+          >
+            <View
+              style={
+                styles.inputSection
+              }
+            >
               <DMobileInput
                 inputAccessoryViewID="sendOtp"
                 setValid={setValid}
                 value={phoneNumber}
-                setValue={setPhoneNumber}
+                setValue={
+                  setPhoneNumber
+                }
               />
             </View>
 
-            <View style={styles.buttonContainer}>
+            {/* ==================================================
+                CONTINUE BUTTON
+            ================================================== */}
+
+            <View
+              style={
+                styles.buttonContainer
+              }
+            >
               <DButton
                 type="primary"
-                style={styles.loginBtnStyle}
+                style={[
+                  styles.loginBtnStyle,
+                  {
+                    backgroundColor:
+                      buttonBackgroundColor,
+                  },
+                ]}
                 disabled={
-                  !phoneNumber ||
-                  !isValid ||
-                  loading
+                  !isButtonEnabled
                 }
-                onPress={loginWithPhone}
+                onPress={
+                  loginWithPhone
+                }
               >
-                <Text style={styles.loginText}>
+                <Text
+                  style={
+                    styles.loginText
+                  }
+                >
                   {loading
                     ? 'Sending code...'
                     : 'Continue'}
@@ -515,24 +768,50 @@ export default function LoginScreen() {
               LEGAL FOOTER
           ================================================== */}
 
-          <View style={styles.bottomContainer}>
-            <Text style={styles.bottomText}>
+          <View
+            style={
+              styles.bottomContainer
+            }
+          >
+            <Text
+              style={
+                styles.bottomText
+              }
+            >
               By continuing, you agree to our
             </Text>
 
-            <View style={styles.legalRow}>
-              <TouchableOpacity activeOpacity={0.7}>
-                <Text style={styles.legalLink}>
+            <View
+              style={styles.legalRow}
+            >
+              <TouchableOpacity
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={
+                    styles.legalLink
+                  }
+                >
                   Terms of Service
                 </Text>
               </TouchableOpacity>
 
-              <Text style={styles.separator}>
+              <Text
+                style={
+                  styles.separator
+                }
+              >
                 ·
               </Text>
 
-              <TouchableOpacity activeOpacity={0.7}>
-                <Text style={styles.legalLink}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={
+                    styles.legalLink
+                  }
+                >
                   Privacy Policy
                 </Text>
               </TouchableOpacity>
@@ -548,8 +827,12 @@ export default function LoginScreen() {
       <OTPModal
         visible={showOTP}
         phoneNumber={phoneNumber}
-        onClose={() => setShowOTP(false)}
-        onVerified={handleOTPVerified}
+        onClose={() =>
+          setShowOTP(false)
+        }
+        onVerified={
+          handleOTPVerified
+        }
       />
     </SafeAreaView>
   );

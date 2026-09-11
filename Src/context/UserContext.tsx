@@ -1,10 +1,16 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, {
+    createContext,
+    useContext,
+    useState,
+} from 'react';
 
 type User = {
     userId: string;
     phoneNumber: string;
     fullName: string;
-    profileImageUrl?: string;
+
+    profileImageUrl?: string | null;
+
     roles: {
         customer: boolean;
         businessPartner: boolean;
@@ -12,7 +18,11 @@ type User = {
 
     activeRole: string;
     providerStatus: string;
+
     salonId?: string | null;
+
+    // Dynamic salon name
+    salonName?: string | null;
 };
 
 type UserContextType = {
@@ -20,7 +30,8 @@ type UserContextType = {
     setCurrentUser: (user: User | null) => void;
 };
 
-const UserContext = createContext<UserContextType | null>(null);
+const UserContext =
+    createContext<UserContextType | null>(null);
 
 export const UserProvider = ({
     children,
@@ -35,7 +46,8 @@ export const UserProvider = ({
             value={{
                 currentUser,
                 setCurrentUser,
-            }}>
+            }}
+        >
             {children}
         </UserContext.Provider>
     );
@@ -46,7 +58,7 @@ export const useUser = () => {
 
     if (!context) {
         throw new Error(
-            'useUser must be used inside UserProvider'
+            'useUser must be used inside UserProvider',
         );
     }
 
