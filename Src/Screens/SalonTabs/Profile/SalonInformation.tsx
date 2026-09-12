@@ -133,9 +133,9 @@ type GraphQLMediaType =
 type MediaReference = {
     imageId: string;
     mediaType:
-        | 'LOGO'
-        | 'COVER'
-        | 'GALLERY';
+    | 'LOGO'
+    | 'COVER'
+    | 'GALLERY';
     key: string;
     objectUrl: string;
 
@@ -270,38 +270,29 @@ const getS3KeyFromUrl = (
 // ============================================================
 
 const toMediaReference = (
-    media:
-        | SalonMedia
-        | null
-        | undefined,
-    fallbackType:
-        | 'LOGO'
-        | 'COVER'
-        | 'GALLERY',
+    media: SalonMedia | null | undefined,
+    fallbackType: 'LOGO' | 'COVER' | 'GALLERY',
+    fallbackObjectUrl?: string | null,
 ): MediaReference | null => {
-    if (
-        !media?.imageId ||
-        !media?.key ||
-        !media?.objectUrl
-    ) {
+    const imageId = normalizeString(media?.imageId);
+    const key =
+        normalizeString(media?.key) ||
+        getS3KeyFromUrl(normalizeString(fallbackObjectUrl));
+
+    const objectUrl =
+        normalizeString(media?.objectUrl) ||
+        normalizeString(fallbackObjectUrl);
+
+    if (!imageId || !key || !objectUrl) {
         return null;
     }
 
     return {
-        imageId:
-            media.imageId,
-
-        mediaType:
-            fallbackType,
-
-        key:
-            media.key,
-
-        objectUrl:
-            media.objectUrl,
-
-        previewUrl:
-            media.objectUrl,
+        imageId,
+        mediaType: fallbackType,
+        key,
+        objectUrl,
+        previewUrl: objectUrl,
     };
 };
 
@@ -319,9 +310,9 @@ async function uploadImageToS3(
     objectUrl: string;
     key: string;
     mediaType:
-        | 'LOGO'
-        | 'COVER'
-        | 'GALLERY';
+    | 'LOGO'
+    | 'COVER'
+    | 'GALLERY';
 }> {
     if (!salonId) {
         throw new Error(
@@ -344,7 +335,7 @@ async function uploadImageToS3(
     if (
         asset.fileSize &&
         asset.fileSize >
-            MAX_FILE_SIZE_BYTES
+        MAX_FILE_SIZE_BYTES
     ) {
         throw new Error(
             'Image size cannot exceed 10 MB.',
@@ -356,9 +347,9 @@ async function uploadImageToS3(
 
     const graphqlMediaType =
         mediaType.toUpperCase() as
-            | 'LOGO'
-            | 'COVER'
-            | 'GALLERY';
+        | 'LOGO'
+        | 'COVER'
+        | 'GALLERY';
 
     console.log(
         '[SalonInformation] Requesting upload URL:',
@@ -420,7 +411,7 @@ async function uploadImageToS3(
     if (!response?.success) {
         throw new Error(
             response?.message ||
-                'Unable to generate S3 upload URL.',
+            'Unable to generate S3 upload URL.',
         );
     }
 
@@ -567,9 +558,9 @@ export default function SalonInformation() {
     const {
         data,
         loading:
-            loadingSalon,
+        loadingSalon,
         error:
-            salonError,
+        salonError,
     } = useQuery(
         GET_SALON,
         {
@@ -585,16 +576,80 @@ export default function SalonInformation() {
         },
     );
 
+    const testImageUrl = async (url: any) => {
+    if (!url) {
+        console.log('[S3 TEST] No URL');
+        return;
+    }
+
+    console.log('[S3 TEST] Starting request');
+
+    try {
+        const response = await fetch(url);
+
+        console.log('[S3 TEST] HTTP status:', response.status);
+        console.log('[S3 TEST] OK:', response.ok);
+        console.log(
+            '[S3 TEST] Content-Type:',
+            response.headers.get('content-type'),
+        );
+
+        const blob = await response.blob();
+
+        console.log('[S3 TEST] Blob size:', blob.size);
+        console.log('[S3 TEST] Blob type:', blob.type);
+    } catch (error) {
+        console.error('[S3 TEST] FAILED:', error);
+    }
+};
+    useEffect(() => {
+        if (data?.getSalon?.logoUrl) {
+            console.log('[S3 TEST] Testing logo URL...');
+            testImageUrl(data.getSalon.logoUrl);
+        }
+    }, [data]);
+    // DEBUG LOG
+    console.log('========== GET_SALON FRONTEND ==========');
+    console.log('salonId:', salonId);
+    console.log('loadingSalon:', loadingSalon);
+    console.log('salonError:', salonError);
+    console.log('hasData:', !!data);
+
+    if (data?.getSalon) {
+        console.log('salonName:', data.getSalon.salonName);
+        console.log('logoUrl:', data.getSalon.logoUrl);
+        console.log('coverImageUrl:', data.getSalon.coverImageUrl);
+        console.log('galleryImages:', data.getSalon.galleryImages);
+
+        console.log(
+            'logoMedia.objectUrl:',
+            data.getSalon.logoMedia?.objectUrl,
+        );
+
+        console.log(
+            'coverMedia.objectUrl:',
+            data.getSalon.coverMedia?.objectUrl,
+        );
+
+        console.log(
+            'galleryMedia.objectUrls:',
+            data.getSalon.galleryMedia?.map(
+                (item: { objectUrl: any; }) => item?.objectUrl,
+            ),
+        );
+    }
+
+    console.log('========================================');
     // ========================================================
     // PENDING PROFILE CHANGE QUERY
     // ========================================================
 
     const {
         data:
-            pendingChangeData,
+        pendingChangeData,
 
         loading:
-            loadingPendingChange,
+        loadingPendingChange,
     } = useQuery(
         GET_PENDING_SALON_PROFILE_CHANGE,
         {
@@ -618,7 +673,7 @@ export default function SalonInformation() {
         updateSalonProfile,
         {
             loading:
-                updatingProfile,
+            updatingProfile,
         },
     ] = useMutation(
         UPDATE_SALON_PROFILE,
@@ -856,7 +911,23 @@ export default function SalonInformation() {
         if (!salon) {
             return;
         }
-
+        console.log(
+            '[SalonInformation] GET_SALON DATA:',
+            JSON.stringify(
+                {
+                    salonId: salon.salonId,
+                    salonName: salon.salonName,
+                    logoUrl: salon.logoUrl,
+                    coverImageUrl: salon.coverImageUrl,
+                    galleryImages: salon.galleryImages,
+                    logoMedia: salon.logoMedia,
+                    coverMedia: salon.coverMedia,
+                    galleryMedia: salon.galleryMedia,
+                },
+                null,
+                2
+            )
+        );
         setSalonName(
             salon.salonName || '',
         );
@@ -875,12 +946,12 @@ export default function SalonInformation() {
 
         setPhoneNumber(
             salon.ownerPhoneNumber ||
-                '',
+            '',
         );
 
         setAlternatePhone(
             salon.alternatePhone ||
-                '',
+            '',
         );
 
         setAddressLine(
@@ -890,12 +961,12 @@ export default function SalonInformation() {
 
         setCity(
             salon.address?.city ||
-                '',
+            '',
         );
 
         setState(
             salon.address?.state ||
-                '',
+            '',
         );
 
         setPincode(
@@ -909,7 +980,7 @@ export default function SalonInformation() {
 
         setCoverImageUrl(
             salon.coverImageUrl ||
-                '',
+            '',
         );
 
         const images =
@@ -936,6 +1007,7 @@ export default function SalonInformation() {
             toMediaReference(
                 salon.logoMedia,
                 'LOGO',
+                salon.logoUrl,
             ),
         );
 
@@ -943,6 +1015,7 @@ export default function SalonInformation() {
             toMediaReference(
                 salon.coverMedia,
                 'COVER',
+                salon.coverImageUrl,
             ),
         );
 
@@ -1008,7 +1081,7 @@ export default function SalonInformation() {
         Alert.alert(
             'Unable to load salon',
             salonError.message ||
-                'Unable to load salon information.',
+            'Unable to load salon information.',
         );
     }, [salonError]);
 
@@ -1173,7 +1246,7 @@ export default function SalonInformation() {
 
                             androidVersion:
                                 Platform.OS ===
-                                'android'
+                                    'android'
                                     ? Platform.Version
                                     : undefined,
 
@@ -1183,12 +1256,12 @@ export default function SalonInformation() {
 
                     const selectionLimit =
                         mediaType ===
-                        'gallery'
+                            'gallery'
                             ? Math.max(
                                 1,
                                 Math.min(
                                     MAX_GALLERY_IMAGES -
-                                        galleryImages.length,
+                                    galleryImages.length,
                                     MAX_GALLERY_IMAGES,
                                 ),
                             )
@@ -1211,7 +1284,7 @@ export default function SalonInformation() {
                             1,
 
                         ...(Platform.OS ===
-                        'ios'
+                            'ios'
                             ? {
                                 presentationStyle:
                                     'fullScreen',
@@ -1346,7 +1419,7 @@ export default function SalonInformation() {
                     ) {
                         throw new Error(
                             response?.message ||
-                                'Unable to create salon media approval request.',
+                            'Unable to create salon media approval request.',
                         );
                     }
 
@@ -1394,7 +1467,7 @@ export default function SalonInformation() {
                             uploaded.key,
                         );
                     } catch (
-                        cleanupError
+                    cleanupError
                     ) {
                         console.warn(
                             '[SalonInformation] Failed media cleanup:',
@@ -1456,9 +1529,9 @@ export default function SalonInformation() {
 
                 if (
                     mediaType ===
-                        'gallery' &&
+                    'gallery' &&
                     galleryImages.length >=
-                        MAX_GALLERY_IMAGES
+                    MAX_GALLERY_IMAGES
                 ) {
                     Alert.alert(
                         'Gallery full',
@@ -1525,7 +1598,7 @@ export default function SalonInformation() {
                         Alert.alert(
                             'Image selection failed',
                             result.errorMessage ||
-                                `Unable to open/select photos (${result.errorCode}).`,
+                            `Unable to open/select photos (${result.errorCode}).`,
                         );
 
                         return;
@@ -1722,7 +1795,7 @@ export default function SalonInformation() {
                                     },
                                 );
                             } catch (
-                                uploadError
+                            uploadError
                             ) {
                                 console.error(
                                     '[SalonInformation] Gallery upload/create error:',
@@ -1860,7 +1933,7 @@ export default function SalonInformation() {
 
                         mediaType:
                             mediaType ===
-                            'logo'
+                                'logo'
                                 ? 'LOGO'
                                 : 'COVER',
 
@@ -1898,7 +1971,7 @@ export default function SalonInformation() {
                     ) {
                         setLogoUrl(
                             asset.uri ||
-                                uploaded.objectUrl,
+                            uploaded.objectUrl,
                         );
 
                         setLogoMedia(
@@ -1925,7 +1998,7 @@ export default function SalonInformation() {
                     ) {
                         setCoverImageUrl(
                             asset.uri ||
-                                uploaded.objectUrl,
+                            uploaded.objectUrl,
                         );
 
                         setCoverMedia(
@@ -2026,7 +2099,7 @@ export default function SalonInformation() {
 
                 const image =
                     galleryImages[
-                        index
+                    index
                     ];
 
                 if (!image) {
@@ -2063,9 +2136,9 @@ export default function SalonInformation() {
                                             galleryMedia.find(
                                                 item =>
                                                     item.objectUrl ===
-                                                        image ||
+                                                    image ||
                                                     item.previewUrl ===
-                                                        image,
+                                                    image,
                                             );
 
                                         /**
@@ -2087,7 +2160,7 @@ export default function SalonInformation() {
                                             try {
                                                 const {
                                                     data:
-                                                        deleteData,
+                                                    deleteData,
                                                 } =
                                                     await deleteSalonMedia(
                                                         {
@@ -2122,7 +2195,7 @@ export default function SalonInformation() {
                                                     );
                                                 }
                                             } catch (
-                                                cleanupError
+                                            cleanupError
                                             ) {
                                                 console.warn(
                                                     'New image cleanup failed:',
@@ -2176,7 +2249,7 @@ export default function SalonInformation() {
                                             'The gallery change will be submitted for admin approval when you save your profile.',
                                         );
                                     } catch (
-                                        error
+                                    error
                                     ) {
                                         console.error(
                                             'Remove gallery image error:',
@@ -2470,7 +2543,7 @@ export default function SalonInformation() {
 
                     const {
                         data:
-                            mutationData,
+                        mutationData,
                     } =
                         await updateSalonProfile(
                             {
@@ -2489,7 +2562,7 @@ export default function SalonInformation() {
                     ) {
                         throw new Error(
                             response?.message ||
-                                'Unable to update salon profile.',
+                            'Unable to update salon profile.',
                         );
                     }
 
@@ -2527,7 +2600,7 @@ export default function SalonInformation() {
                         'Your changes have been submitted for admin approval. You cannot make another change while this request is under review. You can edit your salon information again after the administrator approves or rejects it.',
                     );
                 } catch (
-                    error
+                error
                 ) {
                     console.error(
                         'Update salon profile error:',
@@ -2698,7 +2771,7 @@ export default function SalonInformation() {
                 }
                 behavior={
                     Platform.OS ===
-                    'ios'
+                        'ios'
                         ? 'padding'
                         : undefined
                 }
@@ -2991,11 +3064,14 @@ export default function SalonInformation() {
                                 {logoUrl ? (
                                     <Image
                                         source={{
-                                            uri:
-                                                logoUrl,
+                                            uri: logoUrl,
                                         }}
                                         style={
                                             styles.logoImage
+                                        }
+                                        onLoad={() => console.log('[IMAGE] LOGO LOADED')}
+                                        onError={(e) =>
+                                            console.log('[IMAGE] LOGO ERROR:', e.nativeEvent)
                                         }
                                     />
                                 ) : (
@@ -3031,7 +3107,7 @@ export default function SalonInformation() {
                                     }
                                 >
                                     {savingImage ===
-                                    'logo' ? (
+                                        'logo' ? (
                                         <ActivityIndicator
                                             size="small"
                                             color={
@@ -3104,6 +3180,10 @@ export default function SalonInformation() {
                                     style={
                                         styles.coverImage
                                     }
+                                    onLoad={() => console.log('[IMAGE] LOGO LOADED')}
+                                    onError={(e) =>
+                                        console.log('[IMAGE] LOGO ERROR:', e.nativeEvent)
+                                    }
                                 />
                             ) : (
                                 <View
@@ -3136,7 +3216,7 @@ export default function SalonInformation() {
                                 }
                             >
                                 {savingImage ===
-                                'cover' ? (
+                                    'cover' ? (
                                     <ActivityIndicator
                                         size="small"
                                         color="#FFFFFF"
@@ -3208,7 +3288,7 @@ export default function SalonInformation() {
                         </View>
 
                         {galleryImages.length ===
-                        0 ? (
+                            0 ? (
                             <View
                                 style={
                                     styles.emptyGallery
@@ -3265,6 +3345,10 @@ export default function SalonInformation() {
                                                 style={
                                                     styles.galleryImage
                                                 }
+                                                onLoad={() => console.log('[IMAGE] LOGO LOADED')}
+                                                onError={(e) =>
+                                                    console.log('[IMAGE] LOGO ERROR:', e.nativeEvent)
+                                                }
                                             />
 
                                             <Pressable
@@ -3283,7 +3367,7 @@ export default function SalonInformation() {
                                                 }
                                             >
                                                 {removingGalleryIndex ===
-                                                index ? (
+                                                    index ? (
                                                     <ActivityIndicator
                                                         size="small"
                                                         color="#FFFFFF"
@@ -3306,39 +3390,39 @@ export default function SalonInformation() {
 
                         {galleryImages.length <
                             MAX_GALLERY_IMAGES && (
-                            <TouchableOpacity
-                                style={
-                                    styles.addGalleryButton
-                                }
-                                onPress={() =>
-                                    pickImage(
-                                        'gallery',
-                                    )
-                                }
-                                disabled={
-                                    !!savingImage ||
-                                    profileChangeLocked
-                                }
-                            >
-                                {savingImage ===
-                                'gallery' ? (
-                                    <ActivityIndicator
-                                        size="small"
-                                        color={
-                                            stylesVars.primary
-                                        }
-                                    />
-                                ) : (
-                                    <Text
-                                        style={
-                                            styles.addGalleryButtonText
-                                        }
-                                    >
-                                        + Choose Photos from Phone
-                                    </Text>
-                                )}
-                            </TouchableOpacity>
-                        )}
+                                <TouchableOpacity
+                                    style={
+                                        styles.addGalleryButton
+                                    }
+                                    onPress={() =>
+                                        pickImage(
+                                            'gallery',
+                                        )
+                                    }
+                                    disabled={
+                                        !!savingImage ||
+                                        profileChangeLocked
+                                    }
+                                >
+                                    {savingImage ===
+                                        'gallery' ? (
+                                        <ActivityIndicator
+                                            size="small"
+                                            color={
+                                                stylesVars.primary
+                                            }
+                                        />
+                                    ) : (
+                                        <Text
+                                            style={
+                                                styles.addGalleryButtonText
+                                            }
+                                        >
+                                            + Choose Photos from Phone
+                                        </Text>
+                                    )}
+                                </TouchableOpacity>
+                            )}
 
                         <Text
                             style={
