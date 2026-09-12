@@ -1,5 +1,6 @@
 import React, {
     useCallback,
+    useEffect,
 } from 'react';
 
 import {
@@ -9,6 +10,7 @@ import {
     Text,
     TouchableOpacity,
     Image,
+    ImageBackground,
     Alert,
     ActivityIndicator,
 } from 'react-native';
@@ -36,6 +38,7 @@ import {
 
 import {
     GET_PENDING_SALON_PROFILE_CHANGE,
+    GET_SALON,
 } from '../../../graphql/queries';
 
 export default function SalonProfileScreen() {
@@ -47,20 +50,153 @@ export default function SalonProfileScreen() {
     } = useUser();
 
     // ============================================================
-    // DYNAMIC USER / SALON DATA
+    // SALON ID
     // ============================================================
-
-    const ownerName =
-        currentUser?.fullName?.trim() || 'User';
-
-    const salonName =
-        currentUser?.salonName?.trim() || 'Salon';
-
-    const profileImageUrl =
-        currentUser?.profileImageUrl?.trim() || null;
 
     const salonId =
         currentUser?.salonId ?? '';
+
+    // ============================================================
+    // GET SALON DATA
+    // ============================================================
+
+    const {
+        data: salonData,
+        loading: loadingSalon,
+        error: salonError,
+        refetch: refetchSalon,
+    } = useQuery(
+        GET_SALON,
+        {
+            variables: {
+                salonId,
+            },
+            skip: !salonId,
+            fetchPolicy: 'network-only',
+        },
+    );
+
+    // ============================================================
+    // DYNAMIC SALON DATA
+    // ============================================================
+
+    const salon =
+        salonData?.getSalon;
+
+    const ownerName =
+        salon?.ownerName?.trim() ||
+        currentUser?.fullName?.trim() ||
+        'User';
+
+    const salonName =
+        salon?.salonName?.trim() ||
+        currentUser?.salonName?.trim() ||
+        'Salon';
+
+    const salonLogoUrl =
+        salon?.logoUrl?.trim() ||
+        salon?.logoMedia?.objectUrl?.trim() ||
+        null;
+
+    const salonCoverImageUrl =
+        salon?.coverImageUrl?.trim() ||
+        salon?.coverMedia?.objectUrl?.trim() ||
+        null;
+
+    // ============================================================
+    // SALON DEBUG LOGGING
+    // ============================================================
+
+    useEffect(() => {
+        console.log(
+            '========================================',
+        );
+
+        console.log(
+            '[SalonProfile] GET_SALON state',
+        );
+
+        console.log(
+            '[SalonProfile] salonId:',
+            salonId,
+        );
+
+        console.log(
+            '[SalonProfile] loadingSalon:',
+            loadingSalon,
+        );
+
+        console.log(
+            '[SalonProfile] salonError:',
+            salonError,
+        );
+
+        console.log(
+            '[SalonProfile] salon data:',
+            salon,
+        );
+
+        console.log(
+            '[SalonProfile] salonName:',
+            salon?.salonName,
+        );
+
+        console.log(
+            '[SalonProfile] ownerName:',
+            salon?.ownerName,
+        );
+
+        console.log(
+            '[SalonProfile] logoUrl:',
+            salon?.logoUrl,
+        );
+
+        console.log(
+            '[SalonProfile] coverImageUrl:',
+            salon?.coverImageUrl,
+        );
+
+        console.log(
+            '[SalonProfile] logoMedia.objectUrl:',
+            salon?.logoMedia?.objectUrl,
+        );
+
+        console.log(
+            '[SalonProfile] coverMedia.objectUrl:',
+            salon?.coverMedia?.objectUrl,
+        );
+
+        console.log(
+            '========================================',
+        );
+    }, [
+        salonId,
+        loadingSalon,
+        salonError,
+        salon,
+    ]);
+
+    // ============================================================
+    // REFRESH SALON DATA WHEN PROFILE SCREEN GETS FOCUS
+    // ============================================================
+
+    useFocusEffect(
+        useCallback(() => {
+            if (!salonId) {
+                return;
+            }
+
+            refetchSalon().catch(error => {
+                console.error(
+                    '[SalonProfile] Failed to refresh salon data:',
+                    error,
+                );
+            });
+        }, [
+            salonId,
+            refetchSalon,
+        ]),
+    );
 
     // ============================================================
     // PENDING SALON PROFILE CHANGE
@@ -81,7 +217,8 @@ export default function SalonProfileScreen() {
             fetchPolicy: 'network-only',
         },
     );
-    React.useEffect(() => {
+
+    useEffect(() => {
         console.log(
             '[SalonProfile] Pending query state:',
             {
@@ -109,6 +246,7 @@ export default function SalonProfileScreen() {
         pendingChangeData,
         pendingChangeError,
     ]);
+
     const pendingChange =
         pendingChangeData
             ?.getPendingSalonProfileChange;
@@ -217,6 +355,7 @@ export default function SalonProfileScreen() {
     // ============================================================
     // SALON INFORMATION NAVIGATION
     // ============================================================
+
     const handleSalonInformationNavigation =
         useCallback(async () => {
             if (!salonId) {
@@ -496,17 +635,30 @@ export default function SalonProfileScreen() {
     };
 
     // ============================================================
-    // PROFILE IMAGE FALLBACK
+    // SALON LOGO FALLBACK
     // ============================================================
 
-    const renderProfileImage = () => {
-        if (profileImageUrl) {
+    const renderSalonLogo = () => {
+        if (salonLogoUrl) {
             return (
                 <Image
                     source={{
-                        uri: profileImageUrl,
+                        uri: salonLogoUrl,
                     }}
                     style={styles.avatar}
+                    resizeMode="cover"
+                    onLoad={() => {
+                        console.log(
+                            '[SalonProfile] Salon logo loaded:',
+                            salonLogoUrl,
+                        );
+                    }}
+                    onError={(error) => {
+                        console.error(
+                            '[SalonProfile] Salon logo failed:',
+                            error?.nativeEvent,
+                        );
+                    }}
                 />
             );
         }
@@ -518,6 +670,7 @@ export default function SalonProfileScreen() {
                     {
                         alignItems: 'center',
                         justifyContent: 'center',
+                        backgroundColor: '#E5E7EB',
                     },
                 ]}
             >
@@ -527,7 +680,7 @@ export default function SalonProfileScreen() {
                         fontWeight: '600',
                     }}
                 >
-                    {ownerName
+                    {salonName
                         .charAt(0)
                         .toUpperCase()}
                 </Text>
@@ -545,20 +698,124 @@ export default function SalonProfileScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {/* ==================================================
-                    PROFILE HEADER
+                    DYNAMIC SALON PROFILE HEADER
                 ================================================== */}
 
-                <View style={styles.profileHeader}>
-                    {renderProfileImage()}
+                <ImageBackground
+                    source={
+                        salonCoverImageUrl
+                            ? {
+                                uri: salonCoverImageUrl,
+                            }
+                            : undefined
+                    }
+                    style={[
+                        styles.profileHeader,
+                        {
+                            overflow: 'hidden',
+                            minHeight: 250,
+                            justifyContent: 'flex-end',
+                            alignItems: 'center',
+                        },
+                    ]}
+                    imageStyle={{
+                        resizeMode: 'cover',
+                    }}
+                    onLoad={() => {
+                        if (salonCoverImageUrl) {
+                            console.log(
+                                '[SalonProfile] Cover image loaded:',
+                                salonCoverImageUrl,
+                            );
+                        }
+                    }}
+                    onError={(error) => {
+                        console.error(
+                            '[SalonProfile] Cover image failed:',
+                            error?.nativeEvent,
+                        );
+                    }}
+                >
+                    {/* ----------------------------------------------
+                        COVER IMAGE OVERLAY
+                    ---------------------------------------------- */}
 
-                    <Text style={styles.profileName}>
-                        {ownerName}
+                    <View
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor:
+                                'rgba(0,0,0,0.25)',
+                        }}
+                    />
+
+                    {/* ----------------------------------------------
+                        SALON LOGO
+                    ---------------------------------------------- */}
+
+                    <View
+                        style={{
+                            marginBottom: 12,
+                            borderRadius: 60,
+                            borderWidth: 3,
+                            borderColor: '#FFFFFF',
+                            overflow: 'hidden',
+                            backgroundColor: '#FFFFFF',
+                        }}
+                    >
+                        {renderSalonLogo()}
+                    </View>
+
+                    {/* ----------------------------------------------
+                        SALON NAME
+                    ---------------------------------------------- */}
+
+                    <Text
+                        style={[
+                            styles.profileName,
+                            {
+                                color: '#FFFFFF',
+                                textAlign: 'center',
+                                textShadowColor:
+                                    'rgba(0,0,0,0.5)',
+                                textShadowOffset: {
+                                    width: 0,
+                                    height: 1,
+                                },
+                                textShadowRadius: 3,
+                            },
+                        ]}
+                    >
+                        {salonName}
                     </Text>
 
-                    <Text style={styles.profileRole}>
-                        Owner • {salonName}
+                    {/* ----------------------------------------------
+                        OWNER NAME
+                    ---------------------------------------------- */}
+
+                    <Text
+                        style={[
+                            styles.profileRole,
+                            {
+                                color: '#FFFFFF',
+                                textAlign: 'center',
+                                textShadowColor:
+                                    'rgba(0,0,0,0.5)',
+                                textShadowOffset: {
+                                    width: 0,
+                                    height: 1,
+                                },
+                                textShadowRadius: 3,
+                                marginBottom: 18,
+                            },
+                        ]}
+                    >
+                        Owner • {ownerName}
                     </Text>
-                </View>
+                </ImageBackground>
 
                 {/* ==================================================
                     BUSINESS
