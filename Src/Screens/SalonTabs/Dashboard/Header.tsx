@@ -3,50 +3,177 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Image,
+  ImageBackground,
 } from 'react-native';
 
 import styles from './styles';
-import { useUser } from '../../../context/UserContext';
 
 type Props = {
   salonName: string;
+  ownerName: string;
+  logoUrl?: string | null;
+  coverImageUrl?: string | null;
 };
 
 export default function Header({
   salonName,
+  ownerName,
+  logoUrl,
+  coverImageUrl,
 }: Props) {
-  const { currentUser, setCurrentUser } = useUser();
   const today = new Date();
+
   const formattedDate = today.toLocaleDateString('en-IN', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   });
 
+  const renderHeaderContent = () => {
+    return (
+      <>
+        {/* Notification */}
+        <TouchableOpacity
+          style={styles.notificationButton}
+          activeOpacity={0.8}>
+          <Text style={{ fontSize: 20 }}>
+            🔔
+          </Text>
+        </TouchableOpacity>
+
+        {/* Profile / Salon Logo */}
+        {logoUrl ? (
+          <Image
+            source={{
+              uri: logoUrl,
+            }}
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              marginBottom: 12,
+              borderWidth: 3,
+              borderColor: '#FFFFFF',
+            }}
+            resizeMode="cover"
+            onError={error => {
+              console.log(
+                '[DashboardHeader] Logo image failed:',
+                error?.nativeEvent,
+              );
+              console.log(
+                '[DashboardHeader] logoUrl:',
+                logoUrl,
+              );
+            }}
+          />
+        ) : (
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              marginBottom: 12,
+              borderWidth: 3,
+              borderColor: '#FFFFFF',
+              backgroundColor: '#FFFFFF',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+            <Text
+              style={{
+                fontSize: 28,
+                fontWeight: '700',
+                color: '#555',
+              }}>
+              {(salonName || 'S')
+                .charAt(0)
+                .toUpperCase()}
+            </Text>
+          </View>
+        )}
+
+        {/* Salon Name */}
+        <Text style={styles.salonName}>
+          {salonName || 'Your Salon'}
+        </Text>
+
+        {/* Owner Name */}
+        <Text
+          style={{
+            color: '#FFFFFF',
+            marginTop: 4,
+            fontSize: 15,
+            fontWeight: '500',
+          }}>
+          {ownerName || 'Owner'}
+        </Text>
+
+        {/* Date */}
+        <Text
+          style={{
+            color: '#E5E7EB',
+            marginTop: 8,
+            fontSize: 15,
+          }}>
+          {formattedDate}
+        </Text>
+      </>
+    );
+  };
+
+  /*
+   * If a cover photo exists, use it as the
+   * complete dashboard header background.
+   */
+  if (coverImageUrl) {
+    return (
+      <ImageBackground
+        source={{
+          uri: coverImageUrl,
+        }}
+        style={styles.header}
+        imageStyle={{
+          borderBottomLeftRadius: 24,
+          borderBottomRightRadius: 24,
+        }}
+        resizeMode="cover"
+        onError={error => {
+          console.log(
+            '[DashboardHeader] Cover image failed:',
+            error?.nativeEvent,
+          );
+          console.log(
+            '[DashboardHeader] coverImageUrl:',
+            coverImageUrl,
+          );
+        }}>
+        {/* Dark overlay so text remains readable */}
+        <View
+          style={{
+            flex: 1,
+            width: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.40)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 25,
+            borderBottomLeftRadius: 24,
+            borderBottomRightRadius: 24,
+          }}>
+          {renderHeaderContent()}
+        </View>
+      </ImageBackground>
+    );
+  }
+
+  /*
+   * Fallback when no cover photo exists.
+   * Keeps the existing header styling.
+   */
   return (
     <View style={styles.header}>
-      <TouchableOpacity
-        style={styles.notificationButton}
-        activeOpacity={0.8}>
-        <Text style={{ fontSize: 20 }}>🔔</Text>
-      </TouchableOpacity>
-
-      {/* <Text style={styles.greeting}>
-        Hi {currentUser?.fullName || 'there'}
-      </Text> */}
-
-      <Text style={styles.salonName}>
-        {salonName}
-      </Text>
-
-      <Text
-        style={{
-          color: '#E5E7EB',
-          marginTop: 8,
-          fontSize: 15,
-        }}>
-        {formattedDate}
-      </Text>
+      {renderHeaderContent()}
     </View>
   );
 }

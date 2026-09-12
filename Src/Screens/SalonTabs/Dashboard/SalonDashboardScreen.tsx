@@ -20,7 +20,7 @@ import QuickActions from './QuickActions';
 import AppointmentCard from './AppointmentCard';
 import ReviewCard from './ReviewCard';
 
-import { SALON_DASHBOARD_QUERY } from '../../../graphql/queries';
+import { SALON_DASHBOARD_QUERY, GET_SALON, } from '../../../graphql/queries';
 
 type Service = {
     serviceId: string;
@@ -107,7 +107,20 @@ export default function SalonDashboardScreen() {
             fetchPolicy: 'cache-and-network',
         },
     );
-
+    const {
+        data: salonData,
+        loading: salonLoading,
+        error: salonError,
+    } = useQuery(
+        GET_SALON,
+        {
+            variables: {
+                salonId: salonId as string,
+            },
+            skip: !salonId,
+            fetchPolicy: 'network-only',
+        },
+    );
     const bookings = data?.salonBookings ?? [];
 
     /**
@@ -276,12 +289,28 @@ export default function SalonDashboardScreen() {
      *
      * Currently Booking contains salonName.
      */
-    const salonName = useMemo(() => {
-        return (
-            bookings.find(booking => booking.salonName)
-                ?.salonName || 'Your Salon'
-        );
-    }, [bookings]);
+    const salon = salonData?.getSalon;
+
+    const salonName =
+        salon?.salonName?.trim() ||
+        bookings.find(booking => booking.salonName)
+            ?.salonName ||
+        'Your Salon';
+
+    const ownerName =
+        salon?.ownerName?.trim() ||
+        currentUser?.fullName?.trim() ||
+        'Owner';
+
+    const logoUrl =
+        salon?.logoUrl?.trim() ||
+        salon?.logoMedia?.objectUrl?.trim() ||
+        null;
+
+    const coverImageUrl =
+        salon?.coverImageUrl?.trim() ||
+        salon?.coverMedia?.objectUrl?.trim() ||
+        null;
 
     /**
      * Summary cards
@@ -439,7 +468,12 @@ export default function SalonDashboardScreen() {
                 }>
 
                 {/* Header */}
-                <DashboardHeader salonName={salonName} />
+                <DashboardHeader
+                    salonName={salonName}
+                    ownerName={ownerName}
+                    logoUrl={logoUrl}
+                    coverImageUrl={coverImageUrl}
+                />
 
                 {/* Summary */}
                 <Text style={styles.sectionTitle}>
