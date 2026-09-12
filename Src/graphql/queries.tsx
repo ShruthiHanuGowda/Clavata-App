@@ -1699,3 +1699,19 @@ export const UPDATE_SALON_PROFILE = gql`
         }
     }
 `;
+
+export const GET_PENDING_SALON_PROFILE_CHANGE = gql`
+    query GetPendingSalonProfileChange(
+        $salonId: ID!
+    ) {
+        getPendingSalonProfileChange(
+            salonId: $salonId
+        ) {
+            changeId
+            salonId
+            status
+            submittedAt
+            rejectionReason
+        }
+    }
+`;

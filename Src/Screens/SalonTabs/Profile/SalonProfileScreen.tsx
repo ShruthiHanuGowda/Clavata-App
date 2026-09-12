@@ -1,4 +1,7 @@
-import React from 'react';
+import React, {
+    useCallback,
+} from 'react';
+
 import {
     SafeAreaView,
     ScrollView,
@@ -7,15 +10,36 @@ import {
     TouchableOpacity,
     Image,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+
+import {
+    useFocusEffect,
+    useNavigation,
+} from '@react-navigation/native';
+
+import {
+    useQuery,
+} from '@apollo/client';
+
 import styles from './styles';
-import { useUser } from '../../../context/UserContext';
+
+import {
+    useUser,
+} from '../../../context/UserContext';
+
 import secureStorage from '../../../utils/secureStorage';
-import { navReset } from '../../../Navigation/NavigationFunctions';
+
+import {
+    navReset,
+} from '../../../Navigation/NavigationFunctions';
+
+import {
+    GET_PENDING_SALON_PROFILE_CHANGE,
+} from '../../../graphql/queries';
 
 export default function SalonProfileScreen() {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
 
     const {
         currentUser,
@@ -34,6 +58,85 @@ export default function SalonProfileScreen() {
 
     const profileImageUrl =
         currentUser?.profileImageUrl?.trim() || null;
+
+    const salonId =
+        currentUser?.salonId ?? '';
+
+    // ============================================================
+    // PENDING SALON PROFILE CHANGE
+    // ============================================================
+
+    const {
+        data: pendingChangeData,
+        loading: loadingPendingChange,
+        error: pendingChangeError,
+        refetch: refetchPendingChange,
+    } = useQuery(
+        GET_PENDING_SALON_PROFILE_CHANGE,
+        {
+            variables: {
+                salonId,
+            },
+            skip: !salonId,
+            fetchPolicy: 'network-only',
+        },
+    );
+    React.useEffect(() => {
+        console.log(
+            '[SalonProfile] Pending query state:',
+            {
+                salonId,
+                loading: loadingPendingChange,
+                data: pendingChangeData,
+                error: pendingChangeError,
+            },
+        );
+
+        if (pendingChangeError) {
+            console.error(
+                '[SalonProfile] Pending query GraphQL errors:',
+                pendingChangeError.graphQLErrors,
+            );
+
+            console.error(
+                '[SalonProfile] Pending query network error:',
+                pendingChangeError.networkError,
+            );
+        }
+    }, [
+        salonId,
+        loadingPendingChange,
+        pendingChangeData,
+        pendingChangeError,
+    ]);
+    const pendingChange =
+        pendingChangeData
+            ?.getPendingSalonProfileChange;
+
+    const isProfileChangePending =
+        pendingChange?.status === 'PENDING';
+
+    // ============================================================
+    // REFRESH PENDING STATUS WHEN PROFILE SCREEN GETS FOCUS
+    // ============================================================
+
+    useFocusEffect(
+        useCallback(() => {
+            if (!salonId) {
+                return;
+            }
+
+            refetchPendingChange().catch(error => {
+                console.error(
+                    'Failed to refresh salon profile change status:',
+                    error,
+                );
+            });
+        }, [
+            salonId,
+            refetchPendingChange,
+        ]),
+    );
 
     // ============================================================
     // LOGOUT
@@ -112,6 +215,160 @@ export default function SalonProfileScreen() {
     };
 
     // ============================================================
+    // SALON INFORMATION NAVIGATION
+    // ============================================================
+    const handleSalonInformationNavigation =
+        useCallback(async () => {
+            if (!salonId) {
+                console.log(
+                    '[SalonProfile] No salonId found:',
+                    salonId,
+                );
+
+                Alert.alert(
+                    'Salon not found',
+                    'Your salon information could not be identified.',
+                );
+
+                return;
+            }
+
+            console.log(
+                '========================================',
+            );
+
+            console.log(
+                '[SalonProfile] Checking pending salon profile change',
+            );
+
+            console.log(
+                '[SalonProfile] salonId:',
+                salonId,
+            );
+
+            console.log(
+                '[SalonProfile] Calling refetchPendingChange...',
+            );
+
+            try {
+                const result =
+                    await refetchPendingChange();
+
+                console.log(
+                    '[SalonProfile] refetch completed',
+                );
+
+                console.log(
+                    '[SalonProfile] Full query result:',
+                    result,
+                );
+
+                console.log(
+                    '[SalonProfile] Query data:',
+                    result?.data,
+                );
+
+                console.log(
+                    '[SalonProfile] Pending change:',
+                    result?.data
+                        ?.getPendingSalonProfileChange,
+                );
+
+                const latestPendingChange =
+                    result?.data
+                        ?.getPendingSalonProfileChange;
+
+                const latestIsPending =
+                    latestPendingChange?.status ===
+                    'PENDING';
+
+                console.log(
+                    '[SalonProfile] Pending status:',
+                    latestPendingChange?.status,
+                );
+
+                console.log(
+                    '[SalonProfile] Is pending:',
+                    latestIsPending,
+                );
+
+                if (latestIsPending) {
+                    console.log(
+                        '[SalonProfile] BLOCKING navigation - request is PENDING',
+                    );
+
+                    Alert.alert(
+                        'Changes under review',
+                        'Your salon profile changes are currently under review by the administrator. You cannot make or submit another change while this request is under review. You can edit your salon information again after the administrator approves or rejects it.',
+                    );
+
+                    return;
+                }
+
+                console.log(
+                    '[SalonProfile] No pending request found.',
+                );
+
+                console.log(
+                    '[SalonProfile] Navigating to SalonInformation',
+                );
+
+                navigation
+                    .getParent()
+                    ?.navigate('SalonInformation');
+            } catch (error: any) {
+                console.error(
+                    '========================================',
+                );
+
+                console.error(
+                    '[SalonProfile] FAILED TO CHECK PENDING CHANGE',
+                );
+
+                console.error(
+                    '[SalonProfile] Error:',
+                    error,
+                );
+
+                console.error(
+                    '[SalonProfile] Error message:',
+                    error?.message,
+                );
+
+                console.error(
+                    '[SalonProfile] GraphQL errors:',
+                    error?.graphQLErrors,
+                );
+
+                console.error(
+                    '[SalonProfile] Network error:',
+                    error?.networkError,
+                );
+
+                console.error(
+                    '[SalonProfile] Error result:',
+                    error?.result,
+                );
+
+                console.error(
+                    '========================================',
+                );
+
+                Alert.alert(
+                    'Unable to check status',
+                    error?.message ||
+                    'We could not verify whether your previous salon profile change is still under review. Please try again.',
+                );
+
+                return;
+            }
+        }, [
+            salonId,
+            refetchPendingChange,
+            navigation,
+        ]);
+
+    // ============================================================
     // BUSINESS NAVIGATION
     // ============================================================
 
@@ -120,9 +377,7 @@ export default function SalonProfileScreen() {
     ) => {
         switch (screen) {
             case 'SalonInformation':
-                navigation
-                    .getParent()
-                    ?.navigate('SalonInformation');
+                handleSalonInformationNavigation();
                 break;
 
             case 'BusinessHours':
@@ -296,12 +551,10 @@ export default function SalonProfileScreen() {
                 <View style={styles.profileHeader}>
                     {renderProfileImage()}
 
-                    {/* Dynamic owner name */}
                     <Text style={styles.profileName}>
                         {ownerName}
                     </Text>
 
-                    {/* Dynamic salon name */}
                     <Text style={styles.profileRole}>
                         Owner • {salonName}
                     </Text>
@@ -322,6 +575,9 @@ export default function SalonProfileScreen() {
                             handleBusinessNavigation(
                                 'SalonInformation',
                             )
+                        }
+                        loading={
+                            loadingPendingChange
                         }
                     />
 
@@ -480,23 +736,33 @@ export default function SalonProfileScreen() {
 function MenuItem({
     title,
     onPress,
+    loading = false,
 }: {
     title: string;
     onPress?: () => void;
+    loading?: boolean;
 }) {
     return (
         <TouchableOpacity
             style={styles.menuRow}
             onPress={onPress}
             activeOpacity={0.7}
+            disabled={loading}
         >
             <Text style={styles.menuText}>
                 {title}
             </Text>
 
-            <Text style={styles.menuArrow}>
-                ›
-            </Text>
+            {loading ? (
+                <ActivityIndicator
+                    size="small"
+                    color="#999"
+                />
+            ) : (
+                <Text style={styles.menuArrow}>
+                    ›
+                </Text>
+            )}
         </TouchableOpacity>
     );
 }

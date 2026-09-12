@@ -44,10 +44,10 @@ import {
     CREATE_SALON_MEDIA,
     DELETE_SALON_MEDIA,
     GENERATE_SALON_MEDIA_UPLOAD_URL,
+    GET_PENDING_SALON_PROFILE_CHANGE,
     GET_SALON,
     UPDATE_SALON_PROFILE,
 } from '../../../graphql/queries';
-
 
 // ============================================================
 // CONSTANTS
@@ -66,7 +66,6 @@ const SUPPORTED_IMAGE_TYPES = [
     'image/png',
     'image/webp',
 ];
-
 
 // ============================================================
 // TYPES
@@ -97,35 +96,26 @@ type SalonMedia = {
 type Salon = {
     salonId: string;
     ownerUserId: string;
-
     salonName: string;
     ownerName: string;
     businessType: string;
-
     ownerPhoneNumber: string;
     alternatePhone?: string | null;
     email: string;
-
     address: SalonAddress;
-
     logoUrl?: string | null;
     coverImageUrl?: string | null;
     galleryImages: string[];
-
     logoMedia?: SalonMedia | null;
     coverMedia?: SalonMedia | null;
     galleryMedia?: SalonMedia[] | null;
-
     kycStatus?: string;
     salonStatus?: string;
-
     isActive?: boolean;
     isVisible?: boolean;
     isDeleted?: boolean;
-
     averageRating?: number;
     totalReviews?: number;
-
     createdAt?: string;
     updatedAt?: string;
 };
@@ -142,15 +132,18 @@ type GraphQLMediaType =
 
 type MediaReference = {
     imageId: string;
-
     mediaType:
         | 'LOGO'
         | 'COVER'
         | 'GALLERY';
-
     key: string;
-
     objectUrl: string;
+
+    /**
+     * Local phone URI used only for an immediate
+     * on-device preview.
+     */
+    previewUrl?: string;
 };
 
 type MediaChangedState = {
@@ -158,7 +151,6 @@ type MediaChangedState = {
     cover: boolean;
     gallery: boolean;
 };
-
 
 // ============================================================
 // HELPERS
@@ -176,7 +168,6 @@ const normalizeString = (
 
     return String(value).trim();
 };
-
 
 // ============================================================
 // CONTENT TYPE
@@ -201,7 +192,6 @@ const getContentType = (
     return DEFAULT_IMAGE_TYPE;
 };
 
-
 // ============================================================
 // SUPPORTED IMAGE
 // ============================================================
@@ -214,12 +204,12 @@ const isSupportedImage = (
             asset.type,
         ).toLowerCase();
 
-    /*
-     * Some Android photo picker implementations can return
-     * an asset without a MIME type.
+    /**
+     * Some Android photo picker implementations can
+     * return an asset without a MIME type.
      *
-     * In that case we allow it and let the server/S3 validation
-     * decide, rather than incorrectly rejecting a valid photo.
+     * In that case we allow it and let the
+     * server/S3 validation decide.
      */
     if (!type) {
         return true;
@@ -229,7 +219,6 @@ const isSupportedImage = (
         type,
     );
 };
-
 
 // ============================================================
 // GET S3 KEY FROM STORED URL
@@ -276,7 +265,6 @@ const getS3KeyFromUrl = (
     }
 };
 
-
 // ============================================================
 // CONVERT SALON MEDIA TO REFERENCE
 // ============================================================
@@ -311,9 +299,11 @@ const toMediaReference = (
 
         objectUrl:
             media.objectUrl,
+
+        previewUrl:
+            media.objectUrl,
     };
 };
-
 
 // ============================================================
 // IMAGE UPLOAD
@@ -328,7 +318,6 @@ async function uploadImageToS3(
     imageId: string;
     objectUrl: string;
     key: string;
-
     mediaType:
         | 'LOGO'
         | 'COVER'
@@ -413,12 +402,16 @@ async function uploadImageToS3(
         {
             success:
                 response?.success,
+
             hasUploadUrl:
                 !!response?.uploadUrl,
+
             hasObjectUrl:
                 !!response?.objectUrl,
+
             hasKey:
                 !!response?.key,
+
             hasImageId:
                 !!response?.imageId,
         },
@@ -427,7 +420,7 @@ async function uploadImageToS3(
     if (!response?.success) {
         throw new Error(
             response?.message ||
-            'Unable to generate S3 upload URL.',
+                'Unable to generate S3 upload URL.',
         );
     }
 
@@ -552,7 +545,6 @@ async function uploadImageToS3(
     };
 }
 
-
 // ============================================================
 // MAIN SCREEN
 // ============================================================
@@ -568,7 +560,6 @@ export default function SalonInformation() {
     const salonId =
         currentUser?.salonId ?? '';
 
-
     // ========================================================
     // SALON QUERY
     // ========================================================
@@ -579,7 +570,6 @@ export default function SalonInformation() {
             loadingSalon,
         error:
             salonError,
-        refetch,
     } = useQuery(
         GET_SALON,
         {
@@ -595,6 +585,30 @@ export default function SalonInformation() {
         },
     );
 
+    // ========================================================
+    // PENDING PROFILE CHANGE QUERY
+    // ========================================================
+
+    const {
+        data:
+            pendingChangeData,
+
+        loading:
+            loadingPendingChange,
+    } = useQuery(
+        GET_PENDING_SALON_PROFILE_CHANGE,
+        {
+            variables: {
+                salonId,
+            },
+
+            skip:
+                !salonId,
+
+            fetchPolicy:
+                'network-only',
+        },
+    );
 
     // ========================================================
     // MUTATIONS
@@ -627,7 +641,6 @@ export default function SalonInformation() {
     ] = useMutation(
         DELETE_SALON_MEDIA,
     );
-
 
     // ========================================================
     // FORM STATE
@@ -700,7 +713,6 @@ export default function SalonInformation() {
         [],
     );
 
-
     // ========================================================
     // MEDIA REFERENCES
     // ========================================================
@@ -726,7 +738,6 @@ export default function SalonInformation() {
         MediaReference[]
     >([]);
 
-
     // ========================================================
     // MEDIA CHANGES
     // ========================================================
@@ -745,7 +756,6 @@ export default function SalonInformation() {
             false,
     });
 
-
     // ========================================================
     // NEWLY UPLOADED MEDIA
     // ========================================================
@@ -754,7 +764,6 @@ export default function SalonInformation() {
         useRef<Set<string>>(
             new Set(),
         );
-
 
     // ========================================================
     // UI STATE
@@ -774,6 +783,65 @@ export default function SalonInformation() {
         number | null
     >(null);
 
+    // ========================================================
+    // SUBMISSION LOCK
+    // ========================================================
+
+    /**
+     * Local lock is kept so that immediately after a successful
+     * submission the screen becomes locked without waiting for
+     * another GraphQL request.
+     *
+     * The server-backed pending query below is the source of truth
+     * when the screen is opened again.
+     */
+    const [
+        submissionLocked,
+        setSubmissionLocked,
+    ] = useState(false);
+
+    // ========================================================
+    // SERVER PENDING STATUS
+    // ========================================================
+
+    const pendingChange =
+        pendingChangeData
+            ?.getPendingSalonProfileChange;
+
+    const serverSubmissionLocked =
+        pendingChange?.status ===
+        'PENDING';
+
+    const profileChangeLocked =
+        submissionLocked ||
+        serverSubmissionLocked;
+
+    // ========================================================
+    // INITIALIZE SUBMISSION LOCK
+    // ========================================================
+
+    useEffect(() => {
+        /**
+         * Only update the local lock when the server query has
+         * actually returned data.
+         *
+         * While the query is loading, rendering is blocked below,
+         * so the editable form cannot briefly flash before the
+         * pending status is known.
+         */
+        if (
+            loadingPendingChange
+        ) {
+            return;
+        }
+
+        setSubmissionLocked(
+            serverSubmissionLocked,
+        );
+    }, [
+        loadingPendingChange,
+        serverSubmissionLocked,
+    ]);
 
     // ========================================================
     // INITIALIZE FORM
@@ -781,7 +849,8 @@ export default function SalonInformation() {
 
     useEffect(() => {
         const salon:
-            Salon | undefined =
+            | Salon
+            | undefined =
             data?.getSalon;
 
         if (!salon) {
@@ -806,12 +875,12 @@ export default function SalonInformation() {
 
         setPhoneNumber(
             salon.ownerPhoneNumber ||
-            '',
+                '',
         );
 
         setAlternatePhone(
             salon.alternatePhone ||
-            '',
+                '',
         );
 
         setAddressLine(
@@ -821,12 +890,12 @@ export default function SalonInformation() {
 
         setCity(
             salon.address?.city ||
-            '',
+                '',
         );
 
         setState(
             salon.address?.state ||
-            '',
+                '',
         );
 
         setPincode(
@@ -840,7 +909,7 @@ export default function SalonInformation() {
 
         setCoverImageUrl(
             salon.coverImageUrl ||
-            '',
+                '',
         );
 
         const images =
@@ -922,7 +991,6 @@ export default function SalonInformation() {
         newlyUploadedMediaKeysRef.current.clear();
     }, [data]);
 
-
     // ========================================================
     // QUERY ERROR
     // ========================================================
@@ -940,10 +1008,9 @@ export default function SalonInformation() {
         Alert.alert(
             'Unable to load salon',
             salonError.message ||
-            'Unable to load salon information.',
+                'Unable to load salon information.',
         );
     }, [salonError]);
-
 
     // ========================================================
     // SALON
@@ -952,7 +1019,6 @@ export default function SalonInformation() {
     const salon:
         Salon | null =
         data?.getSalon || null;
-
 
     // ========================================================
     // VALIDATION
@@ -1089,7 +1155,6 @@ export default function SalonInformation() {
             galleryImages.length,
         ]);
 
-
     // ========================================================
     // OPEN PHONE PHOTO PICKER
     // ========================================================
@@ -1105,11 +1170,13 @@ export default function SalonInformation() {
                         {
                             platform:
                                 Platform.OS,
+
                             androidVersion:
                                 Platform.OS ===
                                 'android'
                                     ? Platform.Version
                                     : undefined,
+
                             mediaType,
                         },
                     );
@@ -1144,7 +1211,7 @@ export default function SalonInformation() {
                             1,
 
                         ...(Platform.OS ===
-                            'ios'
+                        'ios'
                             ? {
                                 presentationStyle:
                                     'fullScreen',
@@ -1180,7 +1247,8 @@ export default function SalonInformation() {
 
                             assetCount:
                                 result.assets
-                                    ?.length || 0,
+                                    ?.length ||
+                                0,
                         },
                     );
 
@@ -1198,7 +1266,6 @@ export default function SalonInformation() {
                 galleryImages.length,
             ],
         );
-
 
     // ========================================================
     // CREATE PENDING MEDIA RECORD
@@ -1218,10 +1285,13 @@ export default function SalonInformation() {
                     '[SalonInformation] Creating pending media record:',
                     {
                         salonId,
+
                         imageId:
                             uploaded.imageId,
+
                         mediaType:
                             uploaded.mediaType,
+
                         key:
                             uploaded.key,
                     },
@@ -1276,7 +1346,7 @@ export default function SalonInformation() {
                     ) {
                         throw new Error(
                             response?.message ||
-                            'Unable to create salon media approval request.',
+                                'Unable to create salon media approval request.',
                         );
                     }
 
@@ -1295,7 +1365,7 @@ export default function SalonInformation() {
                         error,
                     );
 
-                    /*
+                    /**
                      * S3 upload already succeeded.
                      *
                      * Remove the uploaded object/media record so
@@ -1323,7 +1393,9 @@ export default function SalonInformation() {
                             '[SalonInformation] Failed media upload cleanup completed:',
                             uploaded.key,
                         );
-                    } catch (cleanupError) {
+                    } catch (
+                        cleanupError
+                    ) {
                         console.warn(
                             '[SalonInformation] Failed media cleanup:',
                             cleanupError,
@@ -1340,7 +1412,6 @@ export default function SalonInformation() {
             ],
         );
 
-
     // ========================================================
     // PICK + UPLOAD IMAGE
     // ========================================================
@@ -1350,6 +1421,24 @@ export default function SalonInformation() {
             async (
                 mediaType: ImageType,
             ) => {
+                /**
+                 * Extra client-side protection.
+                 *
+                 * The UI is already disabled when a profile request
+                 * is pending, but this also protects the callback
+                 * itself.
+                 */
+                if (
+                    profileChangeLocked
+                ) {
+                    Alert.alert(
+                        'Changes under review',
+                        'You cannot change your salon information while the current request is under review. You can make another change after the administrator approves or rejects it.',
+                    );
+
+                    return;
+                }
+
                 if (
                     savingImage
                 ) {
@@ -1378,6 +1467,18 @@ export default function SalonInformation() {
 
                     return;
                 }
+
+                const previousLogoUrl =
+                    logoUrl;
+
+                const previousCoverImageUrl =
+                    coverImageUrl;
+
+                const previousLogoMedia =
+                    logoMedia;
+
+                const previousCoverMedia =
+                    coverMedia;
 
                 try {
                     setSavingImage(
@@ -1424,7 +1525,7 @@ export default function SalonInformation() {
                         Alert.alert(
                             'Image selection failed',
                             result.errorMessage ||
-                            `Unable to open/select photos (${result.errorCode}).`,
+                                `Unable to open/select photos (${result.errorCode}).`,
                         );
 
                         return;
@@ -1471,7 +1572,6 @@ export default function SalonInformation() {
                         return;
                     }
 
-
                     // ==================================================
                     // GALLERY
                     // ==================================================
@@ -1490,17 +1590,71 @@ export default function SalonInformation() {
                                 remaining,
                             );
 
-                        const uploadedUrls:
-                            string[] =
-                            [];
+                        const selectedAssetsWithUris =
+                            selectedAssets.filter(
+                                asset =>
+                                    !!asset.uri,
+                            );
+
+                        if (
+                            selectedAssetsWithUris.length ===
+                            0
+                        ) {
+                            Alert.alert(
+                                'Invalid photo',
+                                'The selected photo does not have a usable phone URI.',
+                            );
+
+                            return;
+                        }
+
+                        /**
+                         * Show the phone images immediately.
+                         * The local URI is only a UI preview;
+                         * the backend still receives the real
+                         * S3 objectUrl after upload.
+                         */
+                        const localPreviewUris =
+                            selectedAssetsWithUris
+                                .map(
+                                    asset =>
+                                        asset.uri as string,
+                                )
+                                .filter(
+                                    (
+                                        uri,
+                                        index,
+                                        all,
+                                    ) =>
+                                        all.indexOf(
+                                            uri,
+                                        ) ===
+                                        index,
+                                );
+
+                        setGalleryImages(
+                            previous =>
+                                Array.from(
+                                    new Set([
+                                        ...previous,
+                                        ...localPreviewUris,
+                                    ]),
+                                ).slice(
+                                    0,
+                                    MAX_GALLERY_IMAGES,
+                                ),
+                        );
 
                         const uploadedMedia:
                             MediaReference[] =
                             [];
 
                         for (
-                            const asset of selectedAssets
+                            const asset of selectedAssetsWithUris
                         ) {
+                            const localPreviewUri =
+                                asset.uri as string;
+
                             try {
                                 // --------------------------------------
                                 // S3 UPLOAD
@@ -1514,11 +1668,10 @@ export default function SalonInformation() {
                                         generateUploadUrl,
                                     );
 
-                                /*
+                                /**
                                  * Keep track of this key so that if
                                  * the salon removes the image before
-                                 * saving, deleteSalonMedia can clean
-                                 * it up.
+                                 * saving, deleteSalonMedia can clean it.
                                  */
                                 newlyUploadedMediaKeysRef.current.add(
                                     uploaded.key,
@@ -1532,36 +1685,25 @@ export default function SalonInformation() {
                                     uploaded,
                                 );
 
-                                // --------------------------------------
-                                // LOCAL UI
-                                // --------------------------------------
+                                /**
+                                 * Keep the local URI for the preview.
+                                 */
+                                uploadedMedia.push({
+                                    imageId:
+                                        uploaded.imageId,
 
-                                if (
-                                    !galleryImages.includes(
+                                    mediaType:
+                                        'GALLERY',
+
+                                    key:
+                                        uploaded.key,
+
+                                    objectUrl:
                                         uploaded.objectUrl,
-                                    ) &&
-                                    !uploadedUrls.includes(
-                                        uploaded.objectUrl,
-                                    )
-                                ) {
-                                    uploadedUrls.push(
-                                        uploaded.objectUrl,
-                                    );
 
-                                    uploadedMedia.push({
-                                        imageId:
-                                            uploaded.imageId,
-
-                                        mediaType:
-                                            'GALLERY',
-
-                                        key:
-                                            uploaded.key,
-
-                                        objectUrl:
-                                            uploaded.objectUrl,
-                                    });
-                                }
+                                    previewUrl:
+                                        localPreviewUri,
+                                });
 
                                 console.log(
                                     '[SalonInformation] Gallery media is now PENDING:',
@@ -1571,6 +1713,12 @@ export default function SalonInformation() {
 
                                         key:
                                             uploaded.key,
+
+                                        previewUri:
+                                            localPreviewUri,
+
+                                        objectUrl:
+                                            uploaded.objectUrl,
                                     },
                                 );
                             } catch (
@@ -1579,6 +1727,16 @@ export default function SalonInformation() {
                                 console.error(
                                     '[SalonInformation] Gallery upload/create error:',
                                     uploadError,
+                                );
+
+                                // Remove only the failed local preview.
+                                setGalleryImages(
+                                    previous =>
+                                        previous.filter(
+                                            image =>
+                                                image !==
+                                                localPreviewUri,
+                                        ),
                                 );
 
                                 Alert.alert(
@@ -1591,24 +1749,6 @@ export default function SalonInformation() {
 
                                 break;
                             }
-                        }
-
-                        if (
-                            uploadedUrls.length >
-                            0
-                        ) {
-                            setGalleryImages(
-                                previous =>
-                                    Array.from(
-                                        new Set([
-                                            ...previous,
-                                            ...uploadedUrls,
-                                        ]),
-                                    ).slice(
-                                        0,
-                                        MAX_GALLERY_IMAGES,
-                                    ),
-                            );
                         }
 
                         if (
@@ -1656,7 +1796,6 @@ export default function SalonInformation() {
                         return;
                     }
 
-
                     // ==================================================
                     // LOGO / COVER
                     // ==================================================
@@ -1666,6 +1805,24 @@ export default function SalonInformation() {
 
                     if (!asset) {
                         return;
+                    }
+
+                    /**
+                     * Show the selected phone image immediately.
+                     */
+                    if (asset.uri) {
+                        if (
+                            mediaType ===
+                            'logo'
+                        ) {
+                            setLogoUrl(
+                                asset.uri,
+                            );
+                        } else {
+                            setCoverImageUrl(
+                                asset.uri,
+                            );
+                        }
                     }
 
                     // ----------------------------------------------
@@ -1680,7 +1837,7 @@ export default function SalonInformation() {
                             generateUploadUrl,
                         );
 
-                    /*
+                    /**
                      * Track the uploaded object before creating
                      * the pending record so cleanup is possible.
                      */
@@ -1703,7 +1860,7 @@ export default function SalonInformation() {
 
                         mediaType:
                             mediaType ===
-                                'logo'
+                            'logo'
                                 ? 'LOGO'
                                 : 'COVER',
 
@@ -1712,8 +1869,10 @@ export default function SalonInformation() {
 
                         objectUrl:
                             uploaded.objectUrl,
-                    };
 
+                        previewUrl:
+                            asset.uri,
+                    };
 
                     console.log(
                         '[SalonInformation] Media is now PENDING:',
@@ -1729,7 +1888,6 @@ export default function SalonInformation() {
                         },
                     );
 
-
                     // ==================================================
                     // LOGO
                     // ==================================================
@@ -1739,7 +1897,8 @@ export default function SalonInformation() {
                         'logo'
                     ) {
                         setLogoUrl(
-                            uploaded.objectUrl,
+                            asset.uri ||
+                                uploaded.objectUrl,
                         );
 
                         setLogoMedia(
@@ -1756,7 +1915,6 @@ export default function SalonInformation() {
                         );
                     }
 
-
                     // ==================================================
                     // COVER
                     // ==================================================
@@ -1766,7 +1924,8 @@ export default function SalonInformation() {
                         'cover'
                     ) {
                         setCoverImageUrl(
-                            uploaded.objectUrl,
+                            asset.uri ||
+                                uploaded.objectUrl,
                         );
 
                         setCoverMedia(
@@ -1788,6 +1947,35 @@ export default function SalonInformation() {
                         error,
                     );
 
+                    /**
+                     * If logo/cover upload fails, restore the previous
+                     * working image instead of leaving the local preview
+                     * pointing at an image that was never uploaded.
+                     */
+                    if (
+                        mediaType ===
+                        'logo'
+                    ) {
+                        setLogoUrl(
+                            previousLogoUrl,
+                        );
+
+                        setLogoMedia(
+                            previousLogoMedia,
+                        );
+                    } else if (
+                        mediaType ===
+                        'cover'
+                    ) {
+                        setCoverImageUrl(
+                            previousCoverImageUrl,
+                        );
+
+                        setCoverMedia(
+                            previousCoverMedia,
+                        );
+                    }
+
                     Alert.alert(
                         'Upload failed',
                         error instanceof
@@ -1802,15 +1990,19 @@ export default function SalonInformation() {
                 }
             },
             [
+                profileChangeLocked,
                 savingImage,
                 salonId,
                 galleryImages,
                 openPhonePhotoPicker,
                 generateUploadUrl,
                 createPendingMediaRecord,
+                logoUrl,
+                coverImageUrl,
+                logoMedia,
+                coverMedia,
             ],
         );
-
 
     // ========================================================
     // REMOVE GALLERY IMAGE
@@ -1821,6 +2013,17 @@ export default function SalonInformation() {
             (
                 index: number,
             ) => {
+                if (
+                    profileChangeLocked
+                ) {
+                    Alert.alert(
+                        'Changes under review',
+                        'You cannot change your salon information while the current request is under review. You can make another change after the administrator approves or rejects it.',
+                    );
+
+                    return;
+                }
+
                 const image =
                     galleryImages[
                         index
@@ -1860,10 +2063,12 @@ export default function SalonInformation() {
                                             galleryMedia.find(
                                                 item =>
                                                     item.objectUrl ===
-                                                    image,
+                                                        image ||
+                                                    item.previewUrl ===
+                                                        image,
                                             );
 
-                                        /*
+                                        /**
                                          * Only physically delete media
                                          * that was uploaded during this
                                          * current editing session.
@@ -1996,13 +2201,13 @@ export default function SalonInformation() {
                 );
             },
             [
+                profileChangeLocked,
                 galleryImages,
                 galleryMedia,
                 salonId,
                 deleteSalonMedia,
             ],
         );
-
 
     // ========================================================
     // SAVE PROFILE
@@ -2014,6 +2219,21 @@ export default function SalonInformation() {
                 if (
                     updatingProfile
                 ) {
+                    return;
+                }
+
+                /**
+                 * Protect the save callback itself in addition
+                 * to disabling the button.
+                 */
+                if (
+                    profileChangeLocked
+                ) {
+                    Alert.alert(
+                        'Changes under review',
+                        'You cannot update your salon information while the current request is under review. You can make another change after the administrator approves or rejects it.',
+                    );
+
                     return;
                 }
 
@@ -2029,6 +2249,50 @@ export default function SalonInformation() {
                 if (
                     !validateForm()
                 ) {
+                    return;
+                }
+
+                const confirmed =
+                    await new Promise<boolean>(
+                        resolve => {
+                            Alert.alert(
+                                'Submit changes for approval?',
+                                'Once you submit these changes, you will not be able to update your salon information while this request is under review. You can make another change after the administrator approves or rejects it.',
+                                [
+                                    {
+                                        text:
+                                            'Cancel',
+
+                                        style:
+                                            'cancel',
+
+                                        onPress:
+                                            () =>
+                                                resolve(
+                                                    false,
+                                                ),
+                                    },
+
+                                    {
+                                        text:
+                                            'Submit for Approval',
+
+                                        onPress:
+                                            () =>
+                                                resolve(
+                                                    true,
+                                                ),
+                                    },
+                                ],
+                                {
+                                    cancelable:
+                                        false,
+                                },
+                            );
+                        },
+                    );
+
+                if (!confirmed) {
                     return;
                 }
 
@@ -2081,7 +2345,6 @@ export default function SalonInformation() {
                             galleryImages,
                     };
 
-
                     // ====================================================
                     // LOGO MEDIA
                     // ====================================================
@@ -2089,6 +2352,10 @@ export default function SalonInformation() {
                     if (
                         mediaChanged.logo
                     ) {
+                        input.logoUrl =
+                            logoMedia?.objectUrl ||
+                            null;
+
                         input.logoMedia =
                             logoMedia
                                 ? {
@@ -2107,7 +2374,6 @@ export default function SalonInformation() {
                                 : null;
                     }
 
-
                     // ====================================================
                     // COVER MEDIA
                     // ====================================================
@@ -2115,6 +2381,10 @@ export default function SalonInformation() {
                     if (
                         mediaChanged.cover
                     ) {
+                        input.coverImageUrl =
+                            coverMedia?.objectUrl ||
+                            null;
+
                         input.coverMedia =
                             coverMedia
                                 ? {
@@ -2133,7 +2403,6 @@ export default function SalonInformation() {
                                 : null;
                     }
 
-
                     // ====================================================
                     // GALLERY MEDIA
                     // ====================================================
@@ -2141,6 +2410,23 @@ export default function SalonInformation() {
                     if (
                         mediaChanged.gallery
                     ) {
+                        /**
+                         * galleryImages is the display state and may
+                         * contain local phone URIs for newly selected
+                         * photos.
+                         *
+                         * Never send those local URIs to the API.
+                         */
+                        input.galleryImages =
+                            galleryMedia
+                                .map(
+                                    media =>
+                                        media.objectUrl,
+                                )
+                                .filter(
+                                    Boolean,
+                                );
+
                         input.galleryMedia =
                             galleryMedia.map(
                                 media => ({
@@ -2158,7 +2444,6 @@ export default function SalonInformation() {
                                 }),
                             );
                     }
-
 
                     console.log(
                         '[SalonInformation] Submitting profile:',
@@ -2204,16 +2489,14 @@ export default function SalonInformation() {
                     ) {
                         throw new Error(
                             response?.message ||
-                            'Unable to update salon profile.',
+                                'Unable to update salon profile.',
                         );
                     }
 
-                    await refetch();
-
-                    /*
-                     * At this point the pending media records already
-                     * exist in the backend. We no longer need to treat
-                     * them as temporary S3 uploads from this screen.
+                    /**
+                     * Do not refetch immediately after saving.
+                     * Pending media may intentionally be excluded
+                     * from the customer-facing gallery until approval.
                      */
                     newlyUploadedMediaKeysRef
                         .current
@@ -2230,9 +2513,18 @@ export default function SalonInformation() {
                             false,
                     });
 
+                    /**
+                     * Lock immediately after successful submission.
+                     * The server-backed pending query will also
+                     * return PENDING on the next screen load.
+                     */
+                    setSubmissionLocked(
+                        true,
+                    );
+
                     Alert.alert(
                         'Changes submitted',
-                        'Your profile changes have been submitted for admin approval. Your uploaded photos have also been submitted for media approval.',
+                        'Your changes have been submitted for admin approval. You cannot make another change while this request is under review. You can edit your salon information again after the administrator approves or rejects it.',
                     );
                 } catch (
                     error
@@ -2253,6 +2545,7 @@ export default function SalonInformation() {
             },
             [
                 updatingProfile,
+                profileChangeLocked,
                 validateForm,
                 updateSalonProfile,
                 salonId,
@@ -2273,10 +2566,8 @@ export default function SalonInformation() {
                 coverMedia,
                 galleryMedia,
                 mediaChanged,
-                refetch,
             ],
         );
-
 
     // ========================================================
     // HEADER TITLE
@@ -2289,7 +2580,6 @@ export default function SalonInformation() {
                 'Salon Information',
             [salon],
         );
-
 
     // ========================================================
     // NO SALON
@@ -2345,14 +2635,22 @@ export default function SalonInformation() {
         );
     }
 
-
     // ========================================================
     // LOADING
     // ========================================================
 
+    /**
+     * IMPORTANT:
+     *
+     * We also wait for the pending-change query.
+     *
+     * This prevents the editable Salon Information screen
+     * from briefly appearing while the app is still checking
+     * whether an existing request is PENDING.
+     */
     if (
-        loadingSalon &&
-        !salon
+        loadingSalon ||
+        loadingPendingChange
     ) {
         return (
             <SafeAreaView
@@ -2377,13 +2675,12 @@ export default function SalonInformation() {
                             styles.loadingText
                         }
                     >
-                        Loading salon information...
+                        Checking salon information...
                     </Text>
                 </View>
             </SafeAreaView>
         );
     }
-
 
     // ========================================================
     // RENDER
@@ -2401,12 +2698,11 @@ export default function SalonInformation() {
                 }
                 behavior={
                     Platform.OS ===
-                        'ios'
+                    'ios'
                         ? 'padding'
                         : undefined
                 }
             >
-
                 {/* ================================================= */}
                 {/* HEADER */}
                 {/* ================================================= */}
@@ -2451,7 +2747,6 @@ export default function SalonInformation() {
                     />
                 </View>
 
-
                 <ScrollView
                     showsVerticalScrollIndicator={
                         false
@@ -2461,7 +2756,6 @@ export default function SalonInformation() {
                         styles.scrollContent
                     }
                 >
-
                     {/* ================================================= */}
                     {/* BASIC INFORMATION */}
                     {/* ================================================= */}
@@ -2496,6 +2790,9 @@ export default function SalonInformation() {
                             onChangeText={
                                 setSalonName
                             }
+                            disabled={
+                                profileChangeLocked
+                            }
                             placeholder="Enter salon name"
                         />
 
@@ -2506,6 +2803,9 @@ export default function SalonInformation() {
                             }
                             onChangeText={
                                 setOwnerName
+                            }
+                            disabled={
+                                profileChangeLocked
                             }
                             placeholder="Enter owner name"
                         />
@@ -2518,6 +2818,9 @@ export default function SalonInformation() {
                             onChangeText={
                                 setBusinessType
                             }
+                            disabled={
+                                profileChangeLocked
+                            }
                             placeholder="e.g. Salon, Beauty Parlour"
                         />
 
@@ -2528,6 +2831,9 @@ export default function SalonInformation() {
                             }
                             onChangeText={
                                 setEmail
+                            }
+                            disabled={
+                                profileChangeLocked
                             }
                             placeholder="Enter email"
                             keyboardType="email-address"
@@ -2542,6 +2848,9 @@ export default function SalonInformation() {
                             onChangeText={
                                 setPhoneNumber
                             }
+                            disabled={
+                                profileChangeLocked
+                            }
                             placeholder="Enter phone number"
                             keyboardType="phone-pad"
                         />
@@ -2554,12 +2863,14 @@ export default function SalonInformation() {
                             onChangeText={
                                 setAlternatePhone
                             }
+                            disabled={
+                                profileChangeLocked
+                            }
                             placeholder="Optional alternate phone"
                             keyboardType="phone-pad"
                             optional
                         />
                     </View>
-
 
                     {/* ================================================= */}
                     {/* ADDRESS */}
@@ -2586,6 +2897,9 @@ export default function SalonInformation() {
                             onChangeText={
                                 setAddressLine
                             }
+                            disabled={
+                                profileChangeLocked
+                            }
                             placeholder="Enter full address"
                             multiline
                         />
@@ -2598,6 +2912,9 @@ export default function SalonInformation() {
                             onChangeText={
                                 setCity
                             }
+                            disabled={
+                                profileChangeLocked
+                            }
                             placeholder="Enter city"
                         />
 
@@ -2608,6 +2925,9 @@ export default function SalonInformation() {
                             }
                             onChangeText={
                                 setState
+                            }
+                            disabled={
+                                profileChangeLocked
                             }
                             placeholder="Enter state"
                         />
@@ -2620,6 +2940,9 @@ export default function SalonInformation() {
                             onChangeText={
                                 setPincode
                             }
+                            disabled={
+                                profileChangeLocked
+                            }
                             placeholder="Enter pincode"
                             keyboardType="number-pad"
                             maxLength={
@@ -2627,7 +2950,6 @@ export default function SalonInformation() {
                             }
                         />
                     </View>
-
 
                     {/* ================================================= */}
                     {/* PROFILE PHOTO */}
@@ -2704,11 +3026,12 @@ export default function SalonInformation() {
                                         )
                                     }
                                     disabled={
-                                        !!savingImage
+                                        !!savingImage ||
+                                        profileChangeLocked
                                     }
                                 >
                                     {savingImage ===
-                                        'logo' ? (
+                                    'logo' ? (
                                         <ActivityIndicator
                                             size="small"
                                             color={
@@ -2739,7 +3062,6 @@ export default function SalonInformation() {
                             </View>
                         </View>
                     </View>
-
 
                     {/* ================================================= */}
                     {/* COVER */}
@@ -2809,11 +3131,12 @@ export default function SalonInformation() {
                                     )
                                 }
                                 disabled={
-                                    !!savingImage
+                                    !!savingImage ||
+                                    profileChangeLocked
                                 }
                             >
                                 {savingImage ===
-                                    'cover' ? (
+                                'cover' ? (
                                     <ActivityIndicator
                                         size="small"
                                         color="#FFFFFF"
@@ -2832,7 +3155,6 @@ export default function SalonInformation() {
                             </TouchableOpacity>
                         </View>
                     </View>
-
 
                     {/* ================================================= */}
                     {/* GALLERY */}
@@ -2885,9 +3207,8 @@ export default function SalonInformation() {
                             </Text>
                         </View>
 
-
                         {galleryImages.length ===
-                            0 ? (
+                        0 ? (
                             <View
                                 style={
                                     styles.emptyGallery
@@ -2956,12 +3277,13 @@ export default function SalonInformation() {
                                                     )
                                                 }
                                                 disabled={
+                                                    profileChangeLocked ||
                                                     removingGalleryIndex ===
                                                     index
                                                 }
                                             >
                                                 {removingGalleryIndex ===
-                                                    index ? (
+                                                index ? (
                                                     <ActivityIndicator
                                                         size="small"
                                                         color="#FFFFFF"
@@ -2982,41 +3304,41 @@ export default function SalonInformation() {
                             </View>
                         )}
 
-
                         {galleryImages.length <
                             MAX_GALLERY_IMAGES && (
-                                <TouchableOpacity
-                                    style={
-                                        styles.addGalleryButton
-                                    }
-                                    onPress={() =>
-                                        pickImage(
-                                            'gallery',
-                                        )
-                                    }
-                                    disabled={
-                                        !!savingImage
-                                    }
-                                >
-                                    {savingImage ===
-                                        'gallery' ? (
-                                        <ActivityIndicator
-                                            size="small"
-                                            color={
-                                                stylesVars.primary
-                                            }
-                                        />
-                                    ) : (
-                                        <Text
-                                            style={
-                                                styles.addGalleryButtonText
-                                            }
-                                        >
-                                            + Choose Photos from Phone
-                                        </Text>
-                                    )}
-                                </TouchableOpacity>
-                            )}
+                            <TouchableOpacity
+                                style={
+                                    styles.addGalleryButton
+                                }
+                                onPress={() =>
+                                    pickImage(
+                                        'gallery',
+                                    )
+                                }
+                                disabled={
+                                    !!savingImage ||
+                                    profileChangeLocked
+                                }
+                            >
+                                {savingImage ===
+                                'gallery' ? (
+                                    <ActivityIndicator
+                                        size="small"
+                                        color={
+                                            stylesVars.primary
+                                        }
+                                    />
+                                ) : (
+                                    <Text
+                                        style={
+                                            styles.addGalleryButtonText
+                                        }
+                                    >
+                                        + Choose Photos from Phone
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        )}
 
                         <Text
                             style={
@@ -3029,7 +3351,6 @@ export default function SalonInformation() {
                             } images • Max 10 MB each
                         </Text>
                     </View>
-
 
                     {/* ================================================= */}
                     {/* APPROVAL INFORMATION */}
@@ -3062,7 +3383,6 @@ export default function SalonInformation() {
                         </Text>
                     </View>
 
-
                     {/* ================================================= */}
                     {/* PROTECTED INFORMATION */}
                     {/* ================================================= */}
@@ -3092,6 +3412,37 @@ export default function SalonInformation() {
                         </Text>
                     </View>
 
+                    {/* ================================================= */}
+                    {/* SUBMISSION LOCK */}
+                    {/* ================================================= */}
+
+                    {profileChangeLocked && (
+                        <View
+                            style={
+                                styles.lockedCard
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.lockedTitle
+                                }
+                            >
+                                Changes awaiting admin review
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.lockedText
+                                }
+                            >
+                                You cannot make or submit another
+                                change while the current request is
+                                under review. You can edit your salon
+                                information again after the
+                                administrator approves or rejects it.
+                            </Text>
+                        </View>
+                    )}
 
                     {/* ================================================= */}
                     {/* SAVE */}
@@ -3101,7 +3452,10 @@ export default function SalonInformation() {
                         style={[
                             styles.saveButton,
 
-                            updatingProfile &&
+                            (
+                                updatingProfile ||
+                                profileChangeLocked
+                            ) &&
                             styles.saveButtonDisabled,
                         ]}
                         onPress={
@@ -3109,7 +3463,8 @@ export default function SalonInformation() {
                         }
                         disabled={
                             updatingProfile ||
-                            !!savingImage
+                            !!savingImage ||
+                            profileChangeLocked
                         }
                     >
                         {updatingProfile ? (
@@ -3127,6 +3482,14 @@ export default function SalonInformation() {
                                     Submitting...
                                 </Text>
                             </>
+                        ) : profileChangeLocked ? (
+                            <Text
+                                style={
+                                    styles.saveButtonText
+                                }
+                            >
+                                Awaiting Admin Review
+                            </Text>
                         ) : (
                             <Text
                                 style={
@@ -3149,7 +3512,6 @@ export default function SalonInformation() {
     );
 }
 
-
 // ============================================================
 // INPUT COMPONENT
 // ============================================================
@@ -3164,6 +3526,7 @@ function InputField({
     maxLength,
     autoCapitalize,
     optional,
+    disabled,
 }: {
     label: string;
     value: string;
@@ -3176,6 +3539,7 @@ function InputField({
     maxLength?: number;
     autoCapitalize?: any;
     optional?: boolean;
+    disabled?: boolean;
 }) {
     return (
         <View
@@ -3233,6 +3597,9 @@ function InputField({
                     autoCapitalize ||
                     'sentences'
                 }
+                editable={
+                    !disabled
+                }
                 style={[
                     styles.input,
 
@@ -3248,7 +3615,6 @@ function InputField({
         </View>
     );
 }
-
 
 // ============================================================
 // INITIALS
@@ -3278,7 +3644,6 @@ function getInitials(
         .join('')
         .toUpperCase();
 }
-
 
 // ============================================================
 // STYLE CONSTANTS
@@ -3312,7 +3677,6 @@ const stylesVars = {
     danger:
         '#DC2626',
 };
-
 
 // ============================================================
 // STYLES
@@ -3875,6 +4239,42 @@ const styles =
             lineHeight: 18,
             color:
                 '#5E5368',
+        },
+
+        // ====================================================
+        // SUBMISSION LOCK
+        // ====================================================
+
+        lockedCard: {
+            backgroundColor:
+                '#FFF7ED',
+            borderRadius:
+                16,
+            padding:
+                16,
+            marginBottom:
+                16,
+            borderWidth:
+                1,
+            borderColor:
+                '#FED7AA',
+        },
+
+        lockedTitle: {
+            fontSize: 14,
+            fontWeight:
+                '700',
+            color:
+                '#9A3412',
+            marginBottom:
+                6,
+        },
+
+        lockedText: {
+            fontSize: 12,
+            lineHeight: 18,
+            color:
+                '#7C2D12',
         },
 
         // ====================================================
