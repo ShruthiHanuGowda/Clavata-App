@@ -43,7 +43,7 @@ import {
 import {
   DEFAULT_LOCATION_RADIUS,
   USE_HARDCODED_LOCATION,
-} from '../../../services/locationConfig';
+} from '../../../constants/locationConfig';
 
 import {
   GET_NEARBY_SALONS,
@@ -307,7 +307,7 @@ export default function HomeScreenPage() {
     selectedDistance,
     setSelectedDistance,
   ] = useState(
-    DEFAULT_LOCATION_RADIUS || 10,
+    DEFAULT_LOCATION_RADIUS,
   );
 
 
@@ -641,8 +641,7 @@ export default function HomeScreenPage() {
           Number(
             radiusOverride ??
             selectedDistance ??
-            DEFAULT_LOCATION_RADIUS ??
-            10,
+            DEFAULT_LOCATION_RADIUS
           );
 
 
@@ -2093,9 +2092,7 @@ export default function HomeScreenPage() {
 
             distance:
               selectedDistance ||
-              DEFAULT_LOCATION_RADIUS ||
-              10,
-
+              DEFAULT_LOCATION_RADIUS
           },
         );
 

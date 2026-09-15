@@ -1,0 +1,1404 @@
+{
+    "Users":  [
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Aarav"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "9c5102dc-f1cc-4126-a3c5-8fcce45f2b64"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_001"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001001"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "d03fc8d2-b543-4839-ba0c-e81e8be1bb24"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "UPI"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Vihaan"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "1f4ff7a3-7ed8-4714-a8e5-c22171bfa168"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_002"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001002"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "bb44b044-d498-4a1d-b054-953a86a779f5"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "CARD"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Aditya"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "49d901aa-576a-45ac-b762-4b2135ea2b85"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_003"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001003"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "593483d4-5ddd-4762-a061-73f35caf660c"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "NETBANKING"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Arjun"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "ebc3e1fa-4746-4eb0-9651-26876cf494ec"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_004"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001004"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "6879c99d-6538-4714-af11-fe60f39d5caa"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "UPI"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Reyansh"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "a2be0487-da22-4f42-a61a-ee6a6aa14a0e"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_005"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001005"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "7d7e5c51-cf8a-4f77-8458-b12a9c734890"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "CARD"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Kabir"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "ed34084f-c0d9-49b8-9b43-f4c02aebdcef"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_006"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001006"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "e70433df-4034-411e-8825-955122ecbf26"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "NETBANKING"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Rohan"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "adbed117-130d-4b82-8cb1-71bec82e549c"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_007"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001007"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "4e8c031f-a062-406e-9ec4-96932c7d087b"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "UPI"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Rahul"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "b3b7815e-f4a3-4531-999f-5b5ef898098d"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_008"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001008"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "c8ce4ed3-cfd1-4391-ab72-4ee45ba58b96"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "CARD"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Karan"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "dbe628d4-217a-4dc2-a26d-cc0ab8ce502a"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_009"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001009"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "52e322dc-9d62-443c-a062-1d417b0447e6"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "NETBANKING"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Vikram"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "6010587f-6352-4f5f-bc94-a586edcfe6fa"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_010"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001010"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "97fea4af-f7b3-4bcf-aec2-95a504dc2ef9"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "UPI"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Siddharth"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "a46628d5-759a-42ef-8b90-6820ca344fc5"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_011"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001011"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "b98e734a-54b3-454b-8c22-37b18de941b8"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "CARD"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Nikhil"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "6942a795-7d49-409a-a66c-9a9b58bd1832"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_012"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001012"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "fa39e8fb-d611-40c4-9475-4d83b5b69de4"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "NETBANKING"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Akash"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "955c93e5-1f69-44b0-86d9-49b90f0aba27"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_013"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001013"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "aea51031-6123-44ba-95f3-db121a73a2bf"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "UPI"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Varun"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "e5a72bc0-53a3-4513-8fbb-0adac2d2d30d"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_014"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001014"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "519c28ce-8c00-4210-9652-f3a4296e330c"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "CARD"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Manish"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "601ffebc-1d59-43b3-9c9d-f114339c3f68"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_015"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001015"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "f8fd3f98-1bc3-4997-be8e-9a24f9ecc4ff"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "NETBANKING"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Suresh"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "8ad2a7ab-82de-4204-9331-a3b49f3d7bd3"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_016"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001016"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "b6a641f7-498d-417b-9529-7a61356d9d77"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "UPI"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Pranav"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "14c926db-0206-4b88-9965-c309c101cb57"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_017"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001017"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "0d76ced6-2cd6-492d-a66c-68a3ec62cd84"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "CARD"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Ravi"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "5bcdc20a-ce0f-4e04-9e49-9bc0dcdfb8cc"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_018"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001018"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "6a17e0ac-1c05-4779-9415-968665aa371c"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "NETBANKING"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Amit"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "d3a67c80-6db8-4def-9004-9a539606a165"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_019"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001019"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "15ee8256-5284-4c72-9509-c1a060758e8a"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "UPI"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Ankit"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "40f3246f-bf29-4c9b-951b-d0f4fb151f3f"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_020"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001020"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "d7a413b2-882a-4702-a8bf-0fe958f9d30f"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "CARD"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Deepak"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "b587f095-ac52-46d2-96bb-2fc6daceb6c6"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_021"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001021"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "74ea32d1-a777-4f13-958a-921262d491c4"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "NETBANKING"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Harish"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "edd38366-fcaa-4b0d-a186-8d55b6138808"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_022"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001022"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "10dde9da-c0d0-473e-b6ba-6e469d0b0f97"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "UPI"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Kishore"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "ae9e5a34-a3bd-4f33-a2e6-8d38cff13e7b"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_023"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001023"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "24b8ddaa-7905-44da-bdc7-dfd39a2e8972"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "CARD"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Naveen"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "aedc1dd9-074b-4ec6-9744-1b06ec95c70e"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_024"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001024"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "a0513b52-92ca-45a5-b3a8-d6f3700e80ab"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "NETBANKING"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  },
+                  {
+                      "PutRequest":  {
+                                         "Item":  {
+                                                      "roles":  {
+                                                                    "M":  {
+                                                                              "businessPartner":  {
+                                                                                                      "BOOL":  true
+                                                                                                  },
+                                                                              "customer":  {
+                                                                                               "BOOL":  false
+                                                                                           }
+                                                                          }
+                                                                },
+                                                      "fullName":  {
+                                                                       "S":  "Abhishek"
+                                                                   },
+                                                      "providerStatus":  {
+                                                                             "S":  "APPROVED"
+                                                                         },
+                                                      "userId":  {
+                                                                     "S":  "1b2fddc9-22c9-43b6-827b-bc9edea519aa"
+                                                                 },
+                                                      "activeRole":  {
+                                                                         "S":  "PROVIDER"
+                                                                     },
+                                                      "fcmTokens":  {
+                                                                        "L":  [
+                                                                                  {
+                                                                                      "S":  "TEST_FCM_TOKEN_PROVIDER_025"
+                                                                                  }
+                                                                              ]
+                                                                    },
+                                                      "phoneNumber":  {
+                                                                          "S":  "919900001025"
+                                                                      },
+                                                      "updatedAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "salonId":  {
+                                                                      "S":  "3b79d081-b25a-4c2c-87aa-feb51d05d5de"
+                                                                  },
+                                                      "fcmPlatform":  {
+                                                                          "S":  "ANDROID"
+                                                                      },
+                                                      "createdAt":  {
+                                                                        "S":  "2026-09-15T10:00:00.000Z"
+                                                                    },
+                                                      "preferredPaymentMethod":  {
+                                                                                     "S":  "UPI"
+                                                                                 },
+                                                      "fcmTokenUpdatedAt":  {
+                                                                                "S":  "2026-09-15T10:00:00.000Z"
+                                                                            }
+                                                  }
+                                     }
+                  }
+              ]
+}

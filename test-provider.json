@@ -1,0 +1,20 @@
+{
+  "phoneNumber": {
+    "S": "919900001025"
+  },
+  "activeRole": {
+    "S": "PROVIDER"
+  },
+  "fullName": {
+    "S": "Abhishek"
+  },
+  "providerStatus": {
+    "S": "APPROVED"
+  },
+  "salonId": {
+    "S": "98ca2a70-bc33-4dd5-b92f-40842b5025"
+  },
+  "userId": {
+    "S": "b1c2d3e4-f5a6-4789-a012-100000000025"
+  }
+}

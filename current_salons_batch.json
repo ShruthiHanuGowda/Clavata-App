@@ -1,0 +1,247 @@
+{
+    "Salons":  [
+                   {
+                       "PutRequest":  {
+                                          "Item":  {
+                                                       "approvedBy":  {
+                                                                          "S":  "ADMIN"
+                                                                      },
+                                                       "longitude":  {
+                                                                         "N":  "77.4059239"
+                                                                     },
+                                                       "averageRating":  {
+                                                                             "N":  "0"
+                                                                         },
+                                                       "createdAt":  {
+                                                                         "S":  "2026-09-15T10:00:00.000Z"
+                                                                     },
+                                                       "logoUrl":  {
+                                                                       "S":  ""
+                                                                   },
+                                                       "totalReviews":  {
+                                                                            "N":  "0"
+                                                                        },
+                                                       "ownerPhoneNumber":  {
+                                                                                "S":  "919900001026"
+                                                                            },
+                                                       "kycStatus":  {
+                                                                         "S":  "APPROVED"
+                                                                     },
+                                                       "businessHours":  {
+                                                                             "M":  {
+                                                                                       "TUESDAY":  {
+                                                                                                       "M":  {
+                                                                                                                 "close":  {
+                                                                                                                               "S":  "19:00"
+                                                                                                                           },
+                                                                                                                 "isOpen":  {
+                                                                                                                                "BOOL":  true
+                                                                                                                            },
+                                                                                                                 "open":  {
+                                                                                                                              "S":  "09:00"
+                                                                                                                          }
+                                                                                                             }
+                                                                                                   },
+                                                                                       "FRIDAY":  {
+                                                                                                      "M":  {
+                                                                                                                "close":  {
+                                                                                                                              "S":  "19:00"
+                                                                                                                          },
+                                                                                                                "isOpen":  {
+                                                                                                                               "BOOL":  true
+                                                                                                                           },
+                                                                                                                "open":  {
+                                                                                                                             "S":  "09:00"
+                                                                                                                         }
+                                                                                                            }
+                                                                                                  },
+                                                                                       "WEDNESDAY":  {
+                                                                                                         "M":  {
+                                                                                                                   "close":  {
+                                                                                                                                 "S":  "19:00"
+                                                                                                                             },
+                                                                                                                   "isOpen":  {
+                                                                                                                                  "BOOL":  true
+                                                                                                                              },
+                                                                                                                   "open":  {
+                                                                                                                                "S":  "09:00"
+                                                                                                                            }
+                                                                                                               }
+                                                                                                     },
+                                                                                       "SATURDAY":  {
+                                                                                                        "M":  {
+                                                                                                                  "close":  {
+                                                                                                                                "S":  "18:00"
+                                                                                                                            },
+                                                                                                                  "isOpen":  {
+                                                                                                                                 "BOOL":  true
+                                                                                                                             },
+                                                                                                                  "open":  {
+                                                                                                                               "S":  "10:00"
+                                                                                                                           }
+                                                                                                              }
+                                                                                                    },
+                                                                                       "THURSDAY":  {
+                                                                                                        "M":  {
+                                                                                                                  "close":  {
+                                                                                                                                "S":  "19:00"
+                                                                                                                            },
+                                                                                                                  "isOpen":  {
+                                                                                                                                 "BOOL":  true
+                                                                                                                             },
+                                                                                                                  "open":  {
+                                                                                                                               "S":  "09:00"
+                                                                                                                           }
+                                                                                                              }
+                                                                                                    },
+                                                                                       "MONDAY":  {
+                                                                                                      "M":  {
+                                                                                                                "close":  {
+                                                                                                                              "S":  "19:00"
+                                                                                                                          },
+                                                                                                                "isOpen":  {
+                                                                                                                               "BOOL":  true
+                                                                                                                           },
+                                                                                                                "open":  {
+                                                                                                                             "S":  "09:00"
+                                                                                                                         }
+                                                                                                            }
+                                                                                                  },
+                                                                                       "SUNDAY":  {
+                                                                                                      "M":  {
+                                                                                                                "close":  {
+                                                                                                                              "S":  "18:00"
+                                                                                                                          },
+                                                                                                                "isOpen":  {
+                                                                                                                               "BOOL":  false
+                                                                                                                           },
+                                                                                                                "open":  {
+                                                                                                                             "S":  "10:00"
+                                                                                                                         }
+                                                                                                            }
+                                                                                                  }
+                                                                                   }
+                                                                         },
+                                                       "email":  {
+                                                                     "S":  "ritesh051@test.clavata.com"
+                                                                 },
+                                                       "salonName":  {
+                                                                         "S":  "Ritesh Beauty Studio"
+                                                                     },
+                                                       "aadhaarNumber":  {
+                                                                             "S":  "999900000051"
+                                                                         },
+                                                       "totalCompletedAppointments":  {
+                                                                                          "N":  "0"
+                                                                                      },
+                                                       "businessType":  {
+                                                                            "S":  "SALON"
+                                                                        },
+                                                       "adminApprovalStatus":  {
+                                                                                   "S":  "APPROVED"
+                                                                               },
+                                                       "totalRevenue":  {
+                                                                            "N":  "0"
+                                                                        },
+                                                       "isVisible":  {
+                                                                         "BOOL":  true
+                                                                     },
+                                                       "coverImageUrl":  {
+                                                                             "S":  ""
+                                                                         },
+                                                       "galleryImages":  {
+                                                                             "L":  [
+
+                                                                                   ]
+                                                                         },
+                                                       "isActive":  {
+                                                                        "BOOL":  true
+                                                                    },
+                                                       "salonStatus":  {
+                                                                           "S":  "CLOSED"
+                                                                       },
+                                                       "isDeleted":  {
+                                                                         "BOOL":  false
+                                                                     },
+                                                       "panNumber":  {
+                                                                         "S":  "TESTP00051"
+                                                                     },
+                                                       "ownerUserId":  {
+                                                                           "S":  "c8f5a9f4-4a56-4691-ad43-7caecc196b61"
+                                                                       },
+                                                       "ifsc":  {
+                                                                    "S":  ""
+                                                                },
+                                                       "address":  {
+                                                                       "M":  {
+                                                                                 "state":  {
+                                                                                               "S":  "Karnataka"
+                                                                                           },
+                                                                                 "addressLine":  {
+                                                                                                     "S":  "61"
+                                                                                                 },
+                                                                                 "pincode":  {
+                                                                                                 "S":  "562130"
+                                                                                             },
+                                                                                 "city":  {
+                                                                                              "S":  "Tavarekere"
+                                                                                          }
+                                                                             }
+                                                                   },
+                                                       "alternatePhone":  {
+                                                                              "S":  ""
+                                                                          },
+                                                       "salonId":  {
+                                                                       "S":  "3d931f8d-31e5-40b6-99db-c7b0db7b6194"
+                                                                   },
+                                                       "latitude":  {
+                                                                        "N":  "12.957694"
+                                                                    },
+                                                       "bankAccount":  {
+                                                                           "S":  ""
+                                                                       },
+                                                       "gstNumber":  {
+                                                                         "S":  "29TEST000000511Z5"
+                                                                     },
+                                                       "approvedAt":  {
+                                                                          "S":  "2026-09-15T10:00:00.000Z"
+                                                                      },
+                                                       "lastUpdatedBy":  {
+                                                                             "S":  "ADMIN"
+                                                                         },
+                                                       "ownerName":  {
+                                                                         "S":  "Ritesh"
+                                                                     },
+                                                       "totalAppointments":  {
+                                                                                 "N":  "0"
+                                                                             },
+                                                       "documents":  {
+                                                                         "M":  {
+                                                                                   "gstCertificate":  {
+                                                                                                          "S":  ""
+                                                                                                      },
+                                                                                   "panCard":  {
+                                                                                                   "S":  ""
+                                                                                               },
+                                                                                   "aadhaarFront":  {
+                                                                                                        "S":  ""
+                                                                                                    },
+                                                                                   "aadhaarBack":  {
+                                                                                                       "S":  ""
+                                                                                                   }
+                                                                               }
+                                                                     },
+                                                       "totalCancelledAppointments":  {
+                                                                                          "N":  "0"
+                                                                                      },
+                                                       "accountHolderName":  {
+                                                                                 "S":  "Ritesh"
+                                                                             },
+                                                       "updatedAt":  {
+                                                                         "S":  "2026-09-15T10:00:00.000Z"
+                                                                     }
+                                                   }
+                                      }
+                   }
+               ]
+}

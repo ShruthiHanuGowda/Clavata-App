@@ -39,7 +39,7 @@ import {
     SavedLocation,
     LocationData,
 } from '../../../services/locationStorage';
-import { USE_HARDCODED_LOCATION } from '../../../services/locationConfig';
+import { USE_HARDCODED_LOCATION } from '../../../constants/locationConfig';
 
 // import {
 //     USE_HARDCODED_LOCATION,
@@ -651,7 +651,7 @@ export default function LocationBottomSheet({
                         </Text>
 
                         <Text style={styles.headerSubtitle}>
-                            Find salons and services near you
+                            To find salons and services near you
                         </Text>
 
                     </View>

@@ -46,7 +46,7 @@ import {
 import {
     USE_HARDCODED_LOCATION,
     HARDCODED_LOCATION,
-} from '../../../services/locationConfig';
+} from '../../../constants/locationConfig';
 
 import {
     COLORS,

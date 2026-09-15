@@ -27,7 +27,7 @@ import {
 
 import {
     USE_HARDCODED_LOCATION,
-} from '../../../services/locationConfig';
+} from '../../../constants/locationConfig';
 
 
 // ============================================================
