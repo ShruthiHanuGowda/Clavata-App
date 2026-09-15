@@ -1,4 +1,3 @@
-
 import React, {
   useCallback,
   useEffect,
@@ -89,6 +88,9 @@ export type NearbySalonService = {
   serviceId: string;
   name: string;
   category: string;
+  categoryId?: string;
+  subcategoryId?: string;
+  subcategoryName?: string;
   price: number;
 };
 
@@ -102,15 +104,6 @@ type Salon = {
   distanceValue: number;
   address: any;
 
-  /*
-   * IMPORTANT:
-   *
-   * price is now optional.
-   *
-   * We must NOT use 0 when the backend has not
-   * returned a price because 0 would incorrectly
-   * pass the budget filter.
-   */
   price?: number;
 
   image: string;
@@ -120,6 +113,17 @@ type Salon = {
   minServicePrice?: number;
 
   matchingServices?: NearbySalonService[];
+};
+
+
+// ============================================================
+// SERVICE SELECTION
+// ============================================================
+
+type ServiceSelection = {
+  categoryId: string;
+  category: string;
+  subcategoryIds: string[];
 };
 
 
@@ -209,10 +213,25 @@ export default function HomeScreenPage() {
     setSearch,
   ] = useState('');
 
+
+  // ==========================================================
+  // CATEGORY / SUBCATEGORY
+  // ==========================================================
+
+  const [
+    selectedCategoryId,
+    setSelectedCategoryId,
+  ] = useState('');
+
   const [
     selectedCategory,
     setSelectedCategory,
   ] = useState('');
+
+  const [
+    selectedSubcategoryIds,
+    setSelectedSubcategoryIds,
+  ] = useState<string[]>([]);
 
 
   // ==========================================================
@@ -315,12 +334,13 @@ export default function HomeScreenPage() {
 
 
   // ==========================================================
-  // RESOLVE LOCATION FOR SEARCH / FILTER ACTIONS
+  // RESOLVE LOCATION
   // ==========================================================
 
   const resolveSearchLocation =
     useCallback(
       async (): Promise<LocationData | null> => {
+
         if (
           locationCoordinates &&
           locationCoordinates.latitude != null &&
@@ -329,42 +349,69 @@ export default function HomeScreenPage() {
           return locationCoordinates;
         }
 
-        const activeLocation = await getActiveLocation();
+        const activeLocation =
+          await getActiveLocation();
 
         if (
           activeLocation &&
           activeLocation.latitude != null &&
           activeLocation.longitude != null
         ) {
-          setLocationCoordinates(activeLocation);
-          if (activeLocation.address) {
-            setSelectedLocation(activeLocation.address);
+
+          setLocationCoordinates(
+            activeLocation,
+          );
+
+          if (
+            activeLocation.address
+          ) {
+            setSelectedLocation(
+              activeLocation.address,
+            );
           }
+
           return activeLocation;
         }
 
-        if (!USE_HARDCODED_LOCATION) {
-          const currentLocation = await getCurrentLocation();
+        if (
+          !USE_HARDCODED_LOCATION
+        ) {
+
+          const currentLocation =
+            await getCurrentLocation();
+
           if (
             currentLocation &&
             currentLocation.latitude != null &&
             currentLocation.longitude != null
           ) {
-            setLocationCoordinates(currentLocation);
-            if (currentLocation.address) {
-              setSelectedLocation(currentLocation.address);
+
+            setLocationCoordinates(
+              currentLocation,
+            );
+
+            if (
+              currentLocation.address
+            ) {
+              setSelectedLocation(
+                currentLocation.address,
+              );
             }
+
             return currentLocation;
           }
         }
 
         return null;
       },
-      [locationCoordinates],
+      [
+        locationCoordinates,
+      ],
     );
 
+
   // ==========================================================
-  // FETCH SALONS
+  // FETCH NEARBY SALONS
   // ==========================================================
 
   const fetchNearbySalons =
@@ -373,7 +420,8 @@ export default function HomeScreenPage() {
         latitude?: number,
         longitude?: number,
         searchText = '',
-        category = '',
+        categoryId = '',
+        subcategoryIds: string[] = [],
         radiusOverride?: number,
       ) => {
 
@@ -401,8 +449,13 @@ export default function HomeScreenPage() {
         );
 
         console.log(
-          '🏷️ Input category:',
-          category,
+          '🏷️ Input categoryId:',
+          categoryId,
+        );
+
+        console.log(
+          '🏷️ Input subcategoryIds:',
+          subcategoryIds,
         );
 
         console.log(
@@ -425,16 +478,16 @@ export default function HomeScreenPage() {
         );
 
 
+        // ======================================================
+        // LOCATION
+        // ======================================================
+
         let finalLatitude:
           number | null = null;
 
         let finalLongitude:
           number | null = null;
 
-
-        // ======================================================
-        // LOCATION
-        // ======================================================
 
         if (
           latitude != null &&
@@ -478,6 +531,18 @@ export default function HomeScreenPage() {
               Number(
                 activeLocation.longitude,
               );
+
+            setLocationCoordinates(
+              activeLocation,
+            );
+
+            if (
+              activeLocation.address
+            ) {
+              setSelectedLocation(
+                activeLocation.address,
+              );
+            }
           }
 
         } else {
@@ -535,7 +600,7 @@ export default function HomeScreenPage() {
 
 
         // ======================================================
-        // SEARCH / CATEGORY
+        // SEARCH
         // ======================================================
 
         const cleanSearch =
@@ -543,28 +608,91 @@ export default function HomeScreenPage() {
             searchText ?? '',
           ).trim();
 
-        const cleanCategory =
+
+        // ======================================================
+        // CATEGORY
+        // ======================================================
+
+        const cleanCategoryId =
           String(
-            category ?? '',
+            categoryId ?? '',
           ).trim();
 
+
+        // ======================================================
+        // SUBCATEGORIES
+        // ======================================================
+
+        const cleanSubcategoryIds =
+          Array.isArray(
+            subcategoryIds,
+          )
+            ? subcategoryIds
+              .map(
+                id =>
+                  String(
+                    id ?? '',
+                  ).trim(),
+              )
+              .filter(Boolean)
+            : [];
+
+
+        const uniqueSubcategoryIds =
+          Array.from(
+            new Set(
+              cleanSubcategoryIds,
+            ),
+          );
+
+
+        // ======================================================
+        // SEARCH / FILTER LOGIC
+        //
+        // IMPORTANT:
+        //
+        // Category WITHOUT subcategories is valid.
+        //
+        // Example:
+        // categoryId = CAT#Hair
+        // subcategoryIds = []
+        //
+        // This means:
+        // "Show salons having ANY service in Hair."
+        // ======================================================
 
         const finalSearch =
           cleanSearch.length > 0
             ? cleanSearch
             : null;
 
-        const finalCategory =
+
+        const finalCategoryId =
           cleanSearch.length === 0 &&
-            cleanCategory.length > 0
-            ? cleanCategory
+            cleanCategoryId.length > 0
+            ? cleanCategoryId
             : null;
 
-        // Budget applies only when a service/category is selected.
-        const applyPriceFilter =
-          cleanCategory.length > 0 &&
+
+        const finalSubcategoryIds =
           cleanSearch.length === 0 &&
+            uniqueSubcategoryIds.length > 0
+            ? uniqueSubcategoryIds
+            : null;
+
+
+        // ======================================================
+        // BUDGET LOGIC
+        //
+        // Budget is allowed when CATEGORY is selected,
+        // even if no subcategory is selected.
+        // ======================================================
+
+        const applyPriceFilter =
+          cleanSearch.length === 0 &&
+          cleanCategoryId.length > 0 &&
           selectedBudget.label !== 'Any';
+
 
         console.log(
           '💰 APPLY PRICE FILTER:',
@@ -589,39 +717,40 @@ export default function HomeScreenPage() {
         // GRAPHQL VARIABLES
         // ======================================================
 
-        // const variables = {
-
-        //   latitude:
-        //     finalLatitude,
-
-        //   longitude:
-        //     finalLongitude,
-
-        //   radius:
-        //     finalRadius,
-
-        //   search:
-        //     finalSearch,
-
-        //   category:
-        //     finalCategory,
-        // };
         const variables = {
-          latitude: finalLatitude,
-          longitude: finalLongitude,
-          radius: finalRadius,
-          search: finalSearch,
-          category: finalCategory,
+
+          latitude:
+            finalLatitude,
+
+          longitude:
+            finalLongitude,
+
+          radius:
+            finalRadius,
+
+          search:
+            finalSearch,
+
+          categoryId:
+            finalCategoryId,
+
+          // null when no subcategories are selected.
+          // Backend interprets this as "any subcategory".
+          subcategoryIds:
+            finalSubcategoryIds,
+
           minPrice:
             applyPriceFilter
               ? selectedBudget.min
               : null,
+
           maxPrice:
             applyPriceFilter &&
               selectedBudget.max !== Infinity
               ? selectedBudget.max
               : null,
         };
+
 
         console.log(
           '🚀 GET_NEARBY_SALONS VARIABLES:',
@@ -639,7 +768,9 @@ export default function HomeScreenPage() {
             true,
           );
 
-
+          console.log('🔴 SELECTED CATEGORY ID:', selectedCategoryId);
+          console.log('🔴 SELECTED CATEGORY:', selectedCategory);
+          console.log('🔴 SELECTED SUBCATEGORY IDS:', selectedSubcategoryIds);
           const {
             data,
           } =
@@ -655,7 +786,18 @@ export default function HomeScreenPage() {
 
             });
 
-
+          console.log(
+            '🔎 NEARBY MATCHING SERVICES:',
+            JSON.stringify(
+              data?.nearbySalons?.map((salon: any) => ({
+                salonId: salon.salonId,
+                salonName: salon.salonName,
+                matchingServices: salon.matchingServices,
+              })),
+              null,
+              2,
+            ),
+          );
           console.log(
             '📦 GET_NEARBY_SALONS RESPONSE:',
             JSON.stringify(
@@ -691,7 +833,7 @@ export default function HomeScreenPage() {
 
 
                 // ==================================================
-                // SERVICES / PRICES
+                // MATCHING SERVICES
                 // ==================================================
 
                 const matchingServices:
@@ -717,7 +859,20 @@ export default function HomeScreenPage() {
 
                           category:
                             service?.category ??
+                            service?.categoryName ??
                             '',
+
+                          categoryId:
+                            service?.categoryId ??
+                            undefined,
+
+                          subcategoryId:
+                            service?.subcategoryId ??
+                            undefined,
+
+                          subcategoryName:
+                            service?.subcategoryName ??
+                            undefined,
 
                           price:
                             Number(
@@ -803,19 +958,6 @@ export default function HomeScreenPage() {
                   number | undefined;
 
 
-                /*
-                 * Priority:
-                 *
-                 * 1. matchingServices
-                 * 2. backend price fields
-                 *
-                 * IMPORTANT:
-                 *
-                 * If no price exists, keep it undefined.
-                 *
-                 * NEVER convert missing price to 0.
-                 */
-
                 if (
                   servicePrices.length > 0
                 ) {
@@ -851,18 +993,6 @@ export default function HomeScreenPage() {
 
                     backendMinServicePrice:
                       item?.minServicePrice,
-
-                    backendPrice:
-                      item?.price,
-
-                    backendServicePrice:
-                      item?.servicePrice,
-
-                    backendStartingPrice:
-                      item?.startingPrice,
-
-                    backendMinimumPrice:
-                      item?.minimumPrice,
 
                     calculatedMinServicePrice:
                       minServicePrice,
@@ -922,17 +1052,6 @@ export default function HomeScreenPage() {
                   address:
                     item?.address ?? {},
 
-                  /*
-                   * IMPORTANT:
-                   *
-                   * Do NOT use:
-                   *
-                   * price: minServicePrice ?? 0
-                   *
-                   * because 0 means free service and
-                   * would break budget filtering.
-                   */
-
                   price:
                     minServicePrice,
 
@@ -958,13 +1077,14 @@ export default function HomeScreenPage() {
 
 
           // ====================================================
-          // DEBUG PRICE SUMMARY
+          // DEBUG
           // ====================================================
 
           console.log(
             '💰 ALL SALON PRICES:',
             formatted.map(
               salon => ({
+
                 name:
                   salon.name,
 
@@ -977,11 +1097,25 @@ export default function HomeScreenPage() {
                 matchingServices:
                   salon.matchingServices?.map(
                     service => ({
+
                       name:
                         service.name,
 
+                      category:
+                        service.category,
+
+                      categoryId:
+                        service.categoryId,
+
+                      subcategoryId:
+                        service.subcategoryId,
+
+                      subcategoryName:
+                        service.subcategoryName,
+
                       price:
                         service.price,
+
                     }),
                   ),
               }),
@@ -992,7 +1126,6 @@ export default function HomeScreenPage() {
           setSalons(
             formatted,
           );
-
 
         } catch (
         error: any
@@ -1028,6 +1161,8 @@ export default function HomeScreenPage() {
         getActiveCoordinates,
         selectedDistance,
         selectedBudget.label,
+        selectedBudget.min,
+        selectedBudget.max,
       ],
     );
 
@@ -1090,7 +1225,9 @@ export default function HomeScreenPage() {
 
               search,
 
-              selectedCategory,
+              selectedCategoryId,
+
+              selectedSubcategoryIds,
 
               selectedDistance,
 
@@ -1098,6 +1235,66 @@ export default function HomeScreenPage() {
 
 
             return;
+          }
+
+
+          // ====================================================
+          // HARDCODED LOCATION
+          // ====================================================
+
+          if (
+            USE_HARDCODED_LOCATION
+          ) {
+
+            console.log(
+              '📍 Hardcoded location mode enabled',
+            );
+
+
+            const activeLocation =
+              await getActiveLocation();
+
+
+            if (
+              activeLocation &&
+              activeLocation.latitude != null &&
+              activeLocation.longitude != null
+            ) {
+
+              setLocationCoordinates(
+                activeLocation,
+              );
+
+
+              setSelectedLocation(
+                activeLocation.address ||
+                'Selected location',
+              );
+
+
+              await fetchNearbySalons(
+
+                Number(
+                  activeLocation.latitude,
+                ),
+
+                Number(
+                  activeLocation.longitude,
+                ),
+
+                search,
+
+                selectedCategoryId,
+
+                selectedSubcategoryIds,
+
+                selectedDistance,
+
+              );
+
+
+              return;
+            }
           }
 
 
@@ -1127,9 +1324,11 @@ export default function HomeScreenPage() {
               'Choose location',
             );
 
+
             setLocationCoordinates(
               null,
             );
+
 
             setSalons([]);
 
@@ -1166,12 +1365,13 @@ export default function HomeScreenPage() {
 
             search,
 
-            selectedCategory,
+            selectedCategoryId,
+
+            selectedSubcategoryIds,
 
             selectedDistance,
 
           );
-
 
         } catch (
         error
@@ -1187,18 +1387,22 @@ export default function HomeScreenPage() {
             'Choose location',
           );
 
+
           setLocationCoordinates(
             null,
           );
 
+
           setSalons([]);
+
         }
 
       },
       [
         fetchNearbySalons,
         search,
-        selectedCategory,
+        selectedCategoryId,
+        selectedSubcategoryIds,
         selectedDistance,
       ],
     );
@@ -1212,6 +1416,8 @@ export default function HomeScreenPage() {
     () => {
 
       loadLocation();
+
+      // eslint-disable-next-line react-hooks/exhaustive-deps
 
     },
     [],
@@ -1283,7 +1489,9 @@ export default function HomeScreenPage() {
 
         search,
 
-        selectedCategory,
+        selectedCategoryId,
+
+        selectedSubcategoryIds,
 
         selectedDistance,
 
@@ -1308,7 +1516,13 @@ export default function HomeScreenPage() {
         text.trim().length > 0
       ) {
 
+        setSelectedCategoryId('');
         setSelectedCategory('');
+        setSelectedSubcategoryIds([]);
+
+        setSelectedBudget(
+          BUDGET_OPTIONS[0],
+        );
 
       }
 
@@ -1353,12 +1567,23 @@ export default function HomeScreenPage() {
       }
 
 
+      // ======================================================
+      // CLEAR SEARCH
+      // ======================================================
+
       if (
         !cleanSearch
       ) {
 
         setSearch('');
+
+        setSelectedCategoryId('');
         setSelectedCategory('');
+        setSelectedSubcategoryIds([]);
+
+        setSelectedBudget(
+          BUDGET_OPTIONS[0],
+        );
 
 
         await fetchNearbySalons(
@@ -1375,6 +1600,8 @@ export default function HomeScreenPage() {
 
           '',
 
+          [],
+
           selectedDistance,
 
         );
@@ -1384,7 +1611,17 @@ export default function HomeScreenPage() {
       }
 
 
+      // ======================================================
+      // SEARCH MODE
+      // ======================================================
+
+      setSelectedCategoryId('');
       setSelectedCategory('');
+      setSelectedSubcategoryIds([]);
+
+      setSelectedBudget(
+        BUDGET_OPTIONS[0],
+      );
 
 
       await fetchNearbySalons(
@@ -1401,6 +1638,8 @@ export default function HomeScreenPage() {
 
         '',
 
+        [],
+
         selectedDistance,
 
       );
@@ -1409,20 +1648,32 @@ export default function HomeScreenPage() {
 
 
   // ==========================================================
-  // CATEGORY
+  // CATEGORY / SUBCATEGORY SELECTION
   // ==========================================================
 
-  const handleCategorySelect =
+  const handleServiceSelection =
     async (
-      category: string,
+      selection: ServiceSelection,
     ) => {
+
+      const {
+        categoryId,
+        category,
+        subcategoryIds,
+      } = selection;
+
 
       console.log(
         '========================================',
       );
 
       console.log(
-        '🏷️ CATEGORY TOGGLE',
+        '🏷️ SERVICE SELECTION',
+      );
+
+      console.log(
+        '🏷️ Category ID:',
+        categoryId,
       );
 
       console.log(
@@ -1431,8 +1682,8 @@ export default function HomeScreenPage() {
       );
 
       console.log(
-        '🏷️ Current selected category:',
-        selectedCategory,
+        '🏷️ Subcategory IDs:',
+        subcategoryIds,
       );
 
       console.log(
@@ -1451,7 +1702,7 @@ export default function HomeScreenPage() {
       ) {
 
         console.log(
-          '❌ Cannot search category: location unavailable',
+          '❌ Cannot search service: location unavailable',
         );
 
 
@@ -1463,30 +1714,71 @@ export default function HomeScreenPage() {
       }
 
 
-      const isAlreadySelected =
-        selectedCategory
-          .trim()
-          .toLowerCase() ===
-        category
-          .trim()
-          .toLowerCase();
+      const normalizedCategoryId =
+        String(
+          categoryId ?? '',
+        ).trim();
+
+
+      const normalizedCategory =
+        String(
+          category ?? '',
+        ).trim();
+
+
+      const normalizedSubcategoryIds =
+        Array.isArray(
+          subcategoryIds,
+        )
+          ? Array.from(
+            new Set(
+              subcategoryIds
+                .map(
+                  id =>
+                    String(
+                      id ?? '',
+                    ).trim(),
+                )
+                .filter(Boolean),
+            ),
+          )
+          : [];
 
 
       // ========================================================
-      // TOGGLE OFF
+      // CLEAR CATEGORY
+      //
+      // If ServiceChips sends the same category with no
+      // subcategories as a toggle/clear event, clear it.
+      //
+      // IMPORTANT:
+      // This is only triggered when the category is already
+      // selected AND there are no subcategories in the
+      // incoming selection.
       // ========================================================
 
       if (
-        isAlreadySelected
+        normalizedCategoryId &&
+        normalizedCategoryId ===
+        selectedCategoryId &&
+        normalizedSubcategoryIds.length === 0 &&
+        selectedSubcategoryIds.length === 0
       ) {
 
         console.log(
-          '🔄 Service already selected → UNSELECTING',
+          '🧹 CLEARING SELECTED CATEGORY',
         );
 
 
+        setSelectedCategoryId('');
         setSelectedCategory('');
+        setSelectedSubcategoryIds([]);
         setSearch('');
+
+
+        setSelectedBudget(
+          BUDGET_OPTIONS[0],
+        );
 
 
         await fetchNearbySalons(
@@ -1503,6 +1795,8 @@ export default function HomeScreenPage() {
 
           '',
 
+          [],
+
           selectedDistance,
 
         );
@@ -1513,21 +1807,89 @@ export default function HomeScreenPage() {
 
 
       // ========================================================
-      // SELECT NEW SERVICE
+      // CLEAR EVERYTHING
       // ========================================================
 
-      console.log(
-        '✅ Selecting service:',
-        category,
+      if (
+        !normalizedCategoryId
+      ) {
+
+        console.log(
+          '🧹 CLEARING ALL SERVICE FILTERS',
+        );
+
+
+        setSelectedCategoryId('');
+        setSelectedCategory('');
+        setSelectedSubcategoryIds([]);
+        setSearch('');
+
+
+        setSelectedBudget(
+          BUDGET_OPTIONS[0],
+        );
+
+
+        await fetchNearbySalons(
+
+          Number(
+            location.latitude,
+          ),
+
+          Number(
+            location.longitude,
+          ),
+
+          '',
+
+          '',
+
+          [],
+
+          selectedDistance,
+
+        );
+
+
+        return;
+      }
+
+
+      // ========================================================
+      // SAVE CATEGORY
+      //
+      // A category with zero subcategories is VALID.
+      //
+      // Example:
+      //
+      // categoryId:
+      // CAT#fe2ca7c3...
+      //
+      // subcategoryIds:
+      // []
+      //
+      // This means:
+      // "Show all services in this category."
+      // ========================================================
+
+      setSelectedCategoryId(
+        normalizedCategoryId,
       );
 
-
       setSelectedCategory(
-        category,
+        normalizedCategory,
+      );
+
+      setSelectedSubcategoryIds(
+        normalizedSubcategoryIds,
       );
 
       setSearch('');
 
+
+      // ========================================================
+      // FETCH CATEGORY / SUBCATEGORY RESULTS
+      // ========================================================
 
       await fetchNearbySalons(
 
@@ -1541,11 +1903,14 @@ export default function HomeScreenPage() {
 
         '',
 
-        category,
+        normalizedCategoryId,
+
+        normalizedSubcategoryIds,
 
         selectedDistance,
 
       );
+
     };
 
 
@@ -1575,6 +1940,21 @@ export default function HomeScreenPage() {
       );
 
       console.log(
+        '🏷️ Category ID:',
+        selectedCategoryId,
+      );
+
+      console.log(
+        '🏷️ Category:',
+        selectedCategory,
+      );
+
+      console.log(
+        '🏷️ Subcategories:',
+        selectedSubcategoryIds,
+      );
+
+      console.log(
         '💰 Budget:',
         selectedBudget.label,
       );
@@ -1589,24 +1969,27 @@ export default function HomeScreenPage() {
       );
 
 
-      setShowFilterModal(
-        false,
-      );
-
-
       const hasService =
-        selectedCategory.trim().length > 0;
+        selectedCategoryId.trim().length > 0;
+
+
+      // ========================================================
+      // BUDGET REQUIRES CATEGORY
+      // ========================================================
 
       if (
         selectedBudget.label !== 'Any' &&
         !hasService
       ) {
+
         Alert.alert(
           'Choose a service',
           'Please choose a service first to apply the budget filter.',
         );
+
         return;
       }
+
 
       const location =
         await resolveSearchLocation();
@@ -1623,17 +2006,11 @@ export default function HomeScreenPage() {
         return;
       }
 
-      setShowFilterModal(false);
 
+      setShowFilterModal(
+        false,
+      );
 
-
-      /*
-       * Distance is sent to the backend.
-       *
-       * Budget is filtered locally because
-       * GET_NEARBY_SALONS does not currently
-       * have a budget argument.
-       */
 
       await fetchNearbySalons(
 
@@ -1647,7 +2024,9 @@ export default function HomeScreenPage() {
 
         search,
 
-        selectedCategory,
+        selectedCategoryId,
+
+        selectedSubcategoryIds,
 
         selectedDistance,
 
@@ -1657,7 +2036,7 @@ export default function HomeScreenPage() {
 
 
   // ==========================================================
-  // CLAVATA
+  // CLAVATA MATCH
   // ==========================================================
 
   const askClavata =
@@ -1675,6 +2054,15 @@ export default function HomeScreenPage() {
           service:
             selectedCategory.trim() ||
             undefined,
+
+          categoryId:
+            selectedCategoryId.trim() ||
+            undefined,
+
+          subcategoryIds:
+            selectedSubcategoryIds.length > 0
+              ? selectedSubcategoryIds
+              : undefined,
 
           location:
             locationCoordinates,
@@ -1775,7 +2163,7 @@ export default function HomeScreenPage() {
 
 
   // ==========================================================
-  // GET SALON PRICE FOR BUDGET
+  // GET SALON PRICE
   // ==========================================================
 
   const getSalonBudgetPrice =
@@ -1784,29 +2172,54 @@ export default function HomeScreenPage() {
         salon: Salon,
       ): number | undefined => {
 
-        // ======================================================
-        // 1. matchingServices
-        // ======================================================
+        const selectedSubcategorySet =
+          new Set(
+            selectedSubcategoryIds,
+          );
 
-        const servicePrices =
+
+        const matchingServices =
           Array.isArray(
             salon.matchingServices,
           )
             ? salon.matchingServices
-              .map(
-                service =>
-                  Number(
-                    service?.price,
-                  ),
-              )
-              .filter(
-                price =>
-                  Number.isFinite(
-                    price,
-                  ) &&
-                  price >= 0,
-              )
             : [];
+
+
+        // ======================================================
+        // WHEN SUBCATEGORIES ARE SELECTED
+        // ONLY THEIR SERVICES SHOULD AFFECT BUDGET
+        // ======================================================
+
+        const relevantServices =
+          selectedSubcategorySet.size > 0
+            ? matchingServices.filter(
+              service =>
+                !!service.subcategoryId &&
+                selectedSubcategorySet.has(
+                  String(
+                    service.subcategoryId,
+                  ),
+                ),
+            )
+            : matchingServices;
+
+
+        const servicePrices =
+          relevantServices
+            .map(
+              service =>
+                Number(
+                  service?.price,
+                ),
+            )
+            .filter(
+              price =>
+                Number.isFinite(
+                  price,
+                ) &&
+                price >= 0,
+            );
 
 
         if (
@@ -1820,7 +2233,7 @@ export default function HomeScreenPage() {
 
 
         // ======================================================
-        // 2. minServicePrice
+        // MIN SERVICE PRICE
         // ======================================================
 
         const minServicePrice =
@@ -1841,7 +2254,7 @@ export default function HomeScreenPage() {
 
 
         // ======================================================
-        // 3. price
+        // PRICE
         // ======================================================
 
         const price =
@@ -1861,14 +2274,12 @@ export default function HomeScreenPage() {
         }
 
 
-        // ======================================================
-        // 4. NO PRICE
-        // ======================================================
-
         return undefined;
 
       },
-      [],
+      [
+        selectedSubcategoryIds,
+      ],
     );
 
 
@@ -1880,19 +2291,22 @@ export default function HomeScreenPage() {
     useMemo(
       () => {
 
-        // ======================================================
-        // ANY BUDGET
-        // ======================================================
+        /*
+         * Budget only has meaning when a category/service
+         * has been selected.
+         */
 
         if (
-          selectedBudget.label ===
-          'Any'
+          selectedCategoryId.trim().length === 0
         ) {
 
-          console.log(
-            '💰 BUDGET = ANY → showing all salons:',
-            salons.length,
-          );
+          return salons;
+        }
+
+
+        if (
+          selectedBudget.label === 'Any'
+        ) {
 
           return salons;
         }
@@ -1903,22 +2317,27 @@ export default function HomeScreenPage() {
         );
 
         console.log(
-          '💰 APPLYING BUDGET FILTER',
+          '💰 APPLYING LOCAL BUDGET FILTER',
+        );
+
+        console.log(
+          '💰 Category ID:',
+          selectedCategoryId,
+        );
+
+        console.log(
+          '💰 Category:',
+          selectedCategory,
+        );
+
+        console.log(
+          '💰 Subcategories:',
+          selectedSubcategoryIds,
         );
 
         console.log(
           '💰 Selected budget:',
           selectedBudget.label,
-        );
-
-        console.log(
-          '💰 Min:',
-          selectedBudget.min,
-        );
-
-        console.log(
-          '💰 Max:',
-          selectedBudget.max,
         );
 
         console.log(
@@ -1941,10 +2360,6 @@ export default function HomeScreenPage() {
                 );
 
 
-              // ==================================================
-              // NO PRICE
-              // ==================================================
-
               if (
                 price === undefined
               ) {
@@ -1957,10 +2372,6 @@ export default function HomeScreenPage() {
                 return false;
               }
 
-
-              // ==================================================
-              // BUDGET MATCH
-              // ==================================================
 
               const matches =
                 price >=
@@ -1997,45 +2408,8 @@ export default function HomeScreenPage() {
 
 
         console.log(
-          '========================================',
-        );
-
-        console.log(
-          '💰 FINAL BUDGET RESULTS',
-        );
-
-        console.log(
-          '💰 Budget:',
-          selectedBudget.label,
-        );
-
-        console.log(
-          '💰 Before:',
-          salons.length,
-        );
-
-        console.log(
-          '💰 After:',
+          '💰 FINAL BUDGET RESULTS:',
           filtered.length,
-        );
-
-        console.log(
-          '💰 Results:',
-          filtered.map(
-            salon => ({
-              name:
-                salon.name,
-
-              price:
-                getSalonBudgetPrice(
-                  salon,
-                ),
-            }),
-          ),
-        );
-
-        console.log(
-          '========================================',
         );
 
 
@@ -2045,7 +2419,9 @@ export default function HomeScreenPage() {
       [
         salons,
         selectedBudget,
+        selectedCategoryId,
         selectedCategory,
+        selectedSubcategoryIds,
         getSalonBudgetPrice,
       ],
     );
@@ -2063,20 +2439,27 @@ export default function HomeScreenPage() {
 
 
         if (
-          selectedBudget.label !==
-          'Any'
+          selectedCategoryId.trim().length > 0 &&
+          selectedBudget.label !== 'Any'
         ) {
 
           count++;
+
         }
+
+
+        const defaultRadius =
+          DEFAULT_LOCATION_RADIUS ||
+          10;
 
 
         if (
           selectedDistance !==
-          10
+          defaultRadius
         ) {
 
           count++;
+
         }
 
 
@@ -2085,7 +2468,7 @@ export default function HomeScreenPage() {
       },
       [
         selectedBudget,
-        selectedCategory,
+        selectedCategoryId,
         selectedDistance,
       ],
     );
@@ -2112,6 +2495,7 @@ export default function HomeScreenPage() {
         ) {
 
           return selectedCategory;
+
         }
 
 
@@ -2381,12 +2765,20 @@ export default function HomeScreenPage() {
 
             <ServiceChips
 
+              selectedCategoryId={
+                selectedCategoryId
+              }
+
               selectedCategory={
                 selectedCategory
               }
 
+              selectedSubcategoryIds={
+                selectedSubcategoryIds
+              }
+
               onSelect={
-                handleCategorySelect
+                handleServiceSelection
               }
 
             />
@@ -2802,7 +3194,9 @@ export default function HomeScreenPage() {
             </View>
 
 
-            {/* SERVICE */}
+            {/* ==================================================
+                SERVICE
+            ================================================== */}
 
             <Text
               style={
@@ -2811,6 +3205,7 @@ export default function HomeScreenPage() {
             >
               SERVICE
             </Text>
+
 
             <View
               style={
@@ -2838,31 +3233,53 @@ export default function HomeScreenPage() {
                   }
                 </Text>
 
+
                 <Text
                   style={
                     styles.filterFieldHint
                   }
                 >
-                  {selectedCategory
-                    ? 'Budget will apply to this service'
-                    : 'Choose a service to apply budget'}
+                  {
+                    selectedCategory
+                      ? selectedSubcategoryIds.length > 0
+                        ? `${selectedSubcategoryIds.length} subcategor${selectedSubcategoryIds.length === 1
+                          ? 'y'
+                          : 'ies'
+                        } selected`
+                        : 'All services in this category'
+                      : 'Choose a service to apply budget'
+                  }
                 </Text>
 
               </View>
 
             </View>
 
+
             <ServiceChips
+
+              selectedCategoryId={
+                selectedCategoryId
+              }
+
               selectedCategory={
                 selectedCategory
               }
-              onSelect={
-                handleCategorySelect
+
+              selectedSubcategoryIds={
+                selectedSubcategoryIds
               }
+
+              onSelect={
+                handleServiceSelection
+              }
+
             />
 
 
-            {/* LOCATION */}
+            {/* ==================================================
+                LOCATION
+            ================================================== */}
 
             <Text
               style={
@@ -2946,7 +3363,9 @@ export default function HomeScreenPage() {
             </TouchableOpacity>
 
 
-            {/* BUDGET */}
+            {/* ==================================================
+                BUDGET
+            ================================================== */}
 
             <View
               style={
@@ -3011,18 +3430,24 @@ export default function HomeScreenPage() {
                           option.label,
                         );
 
+
                         if (
                           option.label !== 'Any' &&
-                          selectedCategory.trim().length === 0
+                          selectedCategoryId.trim().length === 0
                         ) {
+
                           Alert.alert(
                             'Choose a service',
                             'Please choose a service first to apply the budget filter.',
                           );
+
                           return;
                         }
 
-                        setSelectedBudget(option);
+
+                        setSelectedBudget(
+                          option,
+                        );
 
                       }}
 
@@ -3055,7 +3480,9 @@ export default function HomeScreenPage() {
             </View>
 
 
-            {/* DISTANCE */}
+            {/* ==================================================
+                DISTANCE
+            ================================================== */}
 
             <View
               style={
@@ -3161,7 +3588,9 @@ export default function HomeScreenPage() {
             </View>
 
 
-            {/* ACTION */}
+            {/* ==================================================
+                ACTION
+            ================================================== */}
 
             <TouchableOpacity
 
@@ -3198,7 +3627,9 @@ export default function HomeScreenPage() {
             </TouchableOpacity>
 
 
-            {/* CLAVATA */}
+            {/* ==================================================
+                CLAVATA
+            ================================================== */}
 
             <TouchableOpacity
 
@@ -3293,7 +3724,8 @@ const styles =
         COLORS.black,
       fontWeight:
         '300',
-      marginRight: 8,
+      marginRight:
+        8,
     },
 
     searchInput: {
@@ -3302,7 +3734,8 @@ const styles =
       fontSize: 15,
       color:
         COLORS.black,
-      paddingVertical: 0,
+      paddingVertical:
+        0,
     },
 
     filterButton: {
@@ -3310,7 +3743,7 @@ const styles =
       height: 54,
       borderRadius: 14,
       backgroundColor:
-        COLORS.black,
+        COLORS.themeColor,
       alignItems:
         'center',
       justifyContent:
@@ -3330,15 +3763,22 @@ const styles =
     filterBadge: {
       position:
         'absolute',
-      right: -2,
-      top: -4,
-      minWidth: 18,
-      height: 18,
-      paddingHorizontal: 4,
-      borderRadius: 9,
+      right:
+        -2,
+      top:
+        -4,
+      minWidth:
+        18,
+      height:
+        18,
+      paddingHorizontal:
+        4,
+      borderRadius:
+        9,
       backgroundColor:
         COLORS.white,
-      borderWidth: 2,
+      borderWidth:
+        2,
       borderColor:
         COLORS.black,
       alignItems:
@@ -3348,7 +3788,8 @@ const styles =
     },
 
     filterBadgeText: {
-      fontSize: 9,
+      fontSize:
+        9,
       color:
         COLORS.black,
       fontWeight:
@@ -3362,16 +3803,21 @@ const styles =
         SPACING.xl,
       marginBottom:
         22,
-      gap: 8,
+      gap:
+        8,
     },
 
     quickChip: {
-      height: 34,
-      paddingHorizontal: 13,
-      borderRadius: 17,
+      height:
+        34,
+      paddingHorizontal:
+        13,
+      borderRadius:
+        17,
       backgroundColor:
         COLORS.white,
-      borderWidth: 1,
+      borderWidth:
+        1,
       borderColor:
         '#E4E4E4',
       justifyContent:
@@ -3379,7 +3825,8 @@ const styles =
     },
 
     quickChipText: {
-      fontSize: 12,
+      fontSize:
+        12,
       color:
         '#333333',
       fontWeight:
@@ -3400,7 +3847,8 @@ const styles =
     },
 
     sectionTitle: {
-      fontSize: 21,
+      fontSize:
+        21,
       color:
         COLORS.black,
       fontWeight:
@@ -3421,7 +3869,7 @@ const styles =
       borderRadius:
         18,
       backgroundColor:
-        COLORS.black,
+        COLORS.themeColor,
       flexDirection:
         'row',
       alignItems:
@@ -3431,11 +3879,13 @@ const styles =
     },
 
     clavataBody: {
-      flex: 1,
+      flex:
+        1,
     },
 
     clavataTitle: {
-      fontSize: 15,
+      fontSize:
+        15,
       color:
         COLORS.white,
       fontWeight:
@@ -3443,8 +3893,10 @@ const styles =
     },
 
     clavataText: {
-      marginTop: 3,
-      fontSize: 12,
+      marginTop:
+        3,
+      fontSize:
+        12,
       color:
         '#BEBEBE',
       fontWeight:
@@ -3452,8 +3904,10 @@ const styles =
     },
 
     clavataArrow: {
-      width: 36,
-      height: 36,
+      width:
+        36,
+      height:
+        36,
       alignItems:
         'center',
       justifyContent:
@@ -3461,7 +3915,8 @@ const styles =
     },
 
     clavataArrowText: {
-      fontSize: 21,
+      fontSize:
+        21,
       color:
         COLORS.white,
       fontWeight:
@@ -3471,8 +3926,10 @@ const styles =
     resultsHeader: {
       marginHorizontal:
         SPACING.xl,
-      marginTop: 24,
-      marginBottom: 14,
+      marginTop:
+        24,
+      marginBottom:
+        14,
       flexDirection:
         'row',
       alignItems:
@@ -3482,11 +3939,13 @@ const styles =
     },
 
     resultsTitleWrap: {
-      flex: 1,
+      flex:
+        1,
     },
 
     resultsTitle: {
-      fontSize: 21,
+      fontSize:
+        21,
       color:
         COLORS.black,
       fontWeight:
@@ -3496,8 +3955,10 @@ const styles =
     },
 
     resultsSubtitle: {
-      marginTop: 3,
-      fontSize: 12,
+      marginTop:
+        3,
+      fontSize:
+        12,
       color:
         COLORS.textMuted,
       fontWeight:
@@ -3505,10 +3966,14 @@ const styles =
     },
 
     sortButton: {
-      height: 34,
-      paddingHorizontal: 13,
-      borderRadius: 17,
-      borderWidth: 1,
+      height:
+        34,
+      paddingHorizontal:
+        13,
+      borderRadius:
+        17,
+      borderWidth:
+        1,
       borderColor:
         '#DDDDDD',
       backgroundColor:
@@ -3520,7 +3985,8 @@ const styles =
     },
 
     sortText: {
-      fontSize: 12,
+      fontSize:
+        12,
       color:
         COLORS.black,
       fontWeight:
@@ -3528,14 +3994,17 @@ const styles =
     },
 
     loadingContainer: {
-      marginTop: 45,
+      marginTop:
+        45,
       alignItems:
         'center',
     },
 
     loadingText: {
-      marginTop: 12,
-      fontSize: 13,
+      marginTop:
+        12,
+      fontSize:
+        13,
       color:
         COLORS.textSecondary,
       fontWeight:
@@ -3543,15 +4012,19 @@ const styles =
     },
 
     emptyContainer: {
-      marginTop: 45,
-      marginHorizontal: 30,
+      marginTop:
+        45,
+      marginHorizontal:
+        30,
       alignItems:
         'center',
     },
 
     emptyTitle: {
-      marginTop: 16,
-      fontSize: 18,
+      marginTop:
+        16,
+      fontSize:
+        18,
       color:
         COLORS.black,
       fontWeight:
@@ -3559,19 +4032,25 @@ const styles =
     },
 
     emptyText: {
-      marginTop: 5,
-      fontSize: 13,
+      marginTop:
+        5,
+      fontSize:
+        13,
       color:
         COLORS.textSecondary,
     },
 
     emptyButton: {
-      marginTop: 18,
-      height: 44,
-      paddingHorizontal: 20,
-      borderRadius: 12,
+      marginTop:
+        18,
+      height:
+        44,
+      paddingHorizontal:
+        20,
+      borderRadius:
+        12,
       backgroundColor:
-        COLORS.black,
+        COLORS.themeColor,
       alignItems:
         'center',
       justifyContent:
@@ -3581,13 +4060,15 @@ const styles =
     emptyButtonText: {
       color:
         COLORS.white,
-      fontSize: 13,
+      fontSize:
+        13,
       fontWeight:
         '600',
     },
 
     modalOverlay: {
-      flex: 1,
+      flex:
+        1,
       backgroundColor:
         'rgba(0,0,0,0.48)',
       justifyContent:
@@ -3595,7 +4076,8 @@ const styles =
     },
 
     modalDismiss: {
-      flex: 1,
+      flex:
+        1,
     },
 
     filterSheet: {
@@ -3616,9 +4098,12 @@ const styles =
     },
 
     sheetHandle: {
-      width: 38,
-      height: 4,
-      borderRadius: 4,
+      width:
+        38,
+      height:
+        4,
+      borderRadius:
+        4,
       backgroundColor:
         '#D4D4D4',
       alignSelf:
@@ -3639,7 +4124,8 @@ const styles =
     },
 
     sheetTitle: {
-      fontSize: 27,
+      fontSize:
+        27,
       color:
         COLORS.black,
       fontWeight:
@@ -3649,8 +4135,10 @@ const styles =
     },
 
     sheetSubtitle: {
-      marginTop: 4,
-      fontSize: 13,
+      marginTop:
+        4,
+      fontSize:
+        13,
       color:
         COLORS.textSecondary,
       fontWeight:
@@ -3658,9 +4146,12 @@ const styles =
     },
 
     closeButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+      width:
+        36,
+      height:
+        36,
+      borderRadius:
+        18,
       backgroundColor:
         '#F4F4F4',
       alignItems:
@@ -3670,35 +4161,44 @@ const styles =
     },
 
     closeButtonText: {
-      fontSize: 24,
+      fontSize:
+        24,
       color:
         COLORS.black,
       fontWeight:
         '300',
-      marginTop: -2,
+      marginTop:
+        -2,
     },
 
     filterLabel: {
-      fontSize: 10,
+      fontSize:
+        10,
       color:
         '#8A8A8A',
       fontWeight:
         '700',
       letterSpacing:
         1.1,
-      marginTop: 14,
-      marginBottom: 7,
+      marginTop:
+        14,
+      marginBottom:
+        7,
     },
 
     filterField: {
-      minHeight: 56,
-      borderRadius: 13,
-      borderWidth: 1,
+      minHeight:
+        56,
+      borderRadius:
+        13,
+      borderWidth:
+        1,
       borderColor:
         '#E5E5E5',
       backgroundColor:
         '#FAFAFA',
-      paddingHorizontal: 14,
+      paddingHorizontal:
+        14,
       flexDirection:
         'row',
       alignItems:
@@ -3710,7 +4210,8 @@ const styles =
     filterFieldValue: {
       maxWidth:
         '90%',
-      fontSize: 14,
+      fontSize:
+        14,
       color:
         COLORS.black,
       fontWeight:
@@ -3718,8 +4219,10 @@ const styles =
     },
 
     filterFieldHint: {
-      marginTop: 2,
-      fontSize: 10,
+      marginTop:
+        2,
+      fontSize:
+        10,
       color:
         COLORS.textMuted,
       fontWeight:
@@ -3727,7 +4230,8 @@ const styles =
     },
 
     fieldArrow: {
-      fontSize: 20,
+      fontSize:
+        20,
       color:
         COLORS.black,
       fontWeight:
@@ -3739,24 +4243,31 @@ const styles =
         'row',
       alignItems:
         'center',
-      flex: 1,
+      flex:
+        1,
     },
 
     locationDot: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
+      width:
+        10,
+      height:
+        10,
+      borderRadius:
+        5,
       backgroundColor:
-        COLORS.black,
-      marginRight: 12,
+        COLORS.themeColor,
+      marginRight:
+        12,
     },
 
     locationValueWrap: {
-      flex: 1,
+      flex:
+        1,
     },
 
     labelRow: {
-      marginTop: 13,
+      marginTop:
+        13,
       flexDirection:
         'row',
       alignItems:
@@ -3766,12 +4277,14 @@ const styles =
     },
 
     selectedValue: {
-      fontSize: 12,
+      fontSize:
+        12,
       color:
         COLORS.black,
       fontWeight:
         '600',
-      marginTop: 14,
+      marginTop:
+        14,
     },
 
     budgetGrid: {
@@ -3779,15 +4292,21 @@ const styles =
         'row',
       flexWrap:
         'wrap',
-      gap: 7,
-      marginTop: 1,
+      gap:
+        7,
+      marginTop:
+        1,
     },
 
     budgetOption: {
-      paddingHorizontal: 13,
-      height: 39,
-      borderRadius: 20,
-      borderWidth: 1,
+      paddingHorizontal:
+        13,
+      height:
+        39,
+      borderRadius:
+        20,
+      borderWidth:
+        1,
       borderColor:
         '#E2E2E2',
       backgroundColor:
@@ -3800,13 +4319,14 @@ const styles =
 
     budgetOptionSelected: {
       backgroundColor:
-        COLORS.black,
+        COLORS.themeColor,
       borderColor:
-        COLORS.black,
+        COLORS.themeColor,
     },
 
     budgetOptionText: {
-      fontSize: 11,
+      fontSize:
+        11,
       color:
         '#333333',
       fontWeight:
@@ -3819,7 +4339,8 @@ const styles =
     },
 
     labelRowDistance: {
-      marginTop: 10,
+      marginTop:
+        10,
       flexDirection:
         'row',
       alignItems:
@@ -3833,14 +4354,19 @@ const styles =
         'row',
       justifyContent:
         'space-between',
-      marginTop: 2,
+      marginTop:
+        2,
     },
 
     distanceOption: {
-      width: 52,
-      height: 46,
-      borderRadius: 12,
-      borderWidth: 1,
+      width:
+        52,
+      height:
+        46,
+      borderRadius:
+        12,
+      borderWidth:
+        1,
       borderColor:
         '#E2E2E2',
       backgroundColor:
@@ -3853,18 +4379,20 @@ const styles =
 
     distanceOptionSelected: {
       backgroundColor:
-        COLORS.black,
+        COLORS.themeColor,
       borderColor:
-        COLORS.black,
+        COLORS.themeColor,
     },
 
     distanceNumber: {
-      fontSize: 14,
+      fontSize:
+        14,
       color:
         COLORS.black,
       fontWeight:
         '700',
-      lineHeight: 16,
+      lineHeight:
+        16,
     },
 
     distanceNumberSelected: {
@@ -3873,7 +4401,8 @@ const styles =
     },
 
     distanceUnit: {
-      fontSize: 9,
+      fontSize:
+        9,
       color:
         COLORS.textMuted,
       fontWeight:
@@ -3886,11 +4415,14 @@ const styles =
     },
 
     findButton: {
-      height: 54,
-      borderRadius: 14,
+      height:
+        54,
+      borderRadius:
+        14,
       backgroundColor:
-        COLORS.black,
-      marginTop: 18,
+        COLORS.themeColor,
+      marginTop:
+        18,
       flexDirection:
         'row',
       alignItems:
@@ -3902,7 +4434,8 @@ const styles =
     findButtonText: {
       color:
         COLORS.white,
-      fontSize: 14,
+      fontSize:
+        14,
       fontWeight:
         '700',
     },
@@ -3910,28 +4443,31 @@ const styles =
     findButtonArrow: {
       color:
         COLORS.white,
-      fontSize: 20,
-      marginLeft: 8,
+      fontSize:
+        20,
+      marginLeft:
+        8,
       fontWeight:
         '300',
     },
 
     clavataLink: {
-      height: 40,
+      height:
+        40,
       alignItems:
         'center',
       justifyContent:
         'center',
-      marginTop: 3,
+      marginTop:
+        3,
     },
 
     clavataLinkText: {
       color:
         COLORS.black,
-      fontSize: 12,
+      fontSize:
+        12,
       fontWeight:
         '600',
     },
-
   });
-

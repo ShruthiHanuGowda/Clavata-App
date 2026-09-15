@@ -314,7 +314,8 @@ export const GET_NEARBY_SALONS = gql`
     $longitude: Float!
     $radius: Float!
     $search: String
-    $category: String
+    $categoryId: ID
+    $subcategoryIds: [ID!]
     $minPrice: Float
     $maxPrice: Float
   ) {
@@ -323,7 +324,8 @@ export const GET_NEARBY_SALONS = gql`
       longitude: $longitude
       radius: $radius
       search: $search
-      category: $category
+      categoryId: $categoryId
+      subcategoryIds: $subcategoryIds
       minPrice: $minPrice
       maxPrice: $maxPrice
     ) {
@@ -332,9 +334,6 @@ export const GET_NEARBY_SALONS = gql`
       averageRating
       totalReviews
 
-      # ============================================================
-      # SALON MEDIA
-      # ============================================================
       logoUrl
       coverImageUrl
       galleryImages
@@ -392,6 +391,9 @@ export const GET_NEARBY_SALONS = gql`
         serviceId
         name
         category
+        categoryId
+        subcategoryId
+        subcategoryName
         price
       }
 

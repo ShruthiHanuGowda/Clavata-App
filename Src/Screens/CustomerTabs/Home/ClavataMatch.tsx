@@ -2845,7 +2845,7 @@ const styles =
             borderRadius:
                 13,
             backgroundColor:
-                COLORS.black,
+                COLORS.themeColor,
             flexDirection:
                 'row',
             alignItems:
