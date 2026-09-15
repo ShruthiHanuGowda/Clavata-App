@@ -43,4 +43,4 @@ export const HARDCODED_LOCATION = {
 // SEARCH RADIUS
 // ============================================================
 
-export const DEFAULT_LOCATION_RADIUS = 10;
+export const DEFAULT_LOCATION_RADIUS = 25;
