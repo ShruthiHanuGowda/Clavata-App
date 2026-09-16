@@ -1,4 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
+
 import {
   ActivityIndicator,
   Alert,
@@ -10,11 +15,19 @@ import {
   View,
 } from 'react-native';
 
-import { gql, useMutation } from '@apollo/client';
+import {
+  useMutation,
+  useQuery,
+} from '@apollo/client';
 
-import { Header, DButton } from '../../components';
+import {
+  Header,
+  DButton,
+} from '../../components';
 
-import { useSalonRegistration } from '../../context/SalonRegistrationContext';
+import {
+  useSalonRegistration,
+} from '../../context/SalonRegistrationContext';
 
 import {
   COLORS,
@@ -23,25 +36,18 @@ import {
   RADIUS,
 } from '../../constants/constants';
 
-// ============================================================
-// GRAPHQL MUTATION
-// ============================================================
+import {
+  REGISTER_SALON_PARTNER,
+  GET_CLAVATA_CATEGORIES,
+  GET_CLAVATA_SUBCATEGORIES,
+} from '../../graphql/queries';
 
-const REGISTER_SALON_PARTNER = gql`
-  mutation RegisterSalonPartner(
-    $input: RegisterSalonPartnerInput!
-  ) {
-    registerSalonPartner(input: $input) {
-      success
-      message
-      salonId
-    }
-  }
-`;
 
-// ============================================================
-// TYPES
-// ============================================================
+/*
+ * =====================================================
+ * TYPES
+ * =====================================================
+ */
 
 type RegisterSalonPartnerResponse = {
   registerSalonPartner: {
@@ -50,6 +56,34 @@ type RegisterSalonPartnerResponse = {
     salonId: string;
   };
 };
+
+
+type ReviewServiceSelection = {
+  categoryId: string;
+  categoryName?: string;
+  subcategoryId: string;
+  subcategoryName?: string;
+};
+
+
+type Category = {
+  categoryId: string;
+  name: string;
+  description?: string;
+  servicesCount: number;
+  status: string;
+};
+
+
+type Subcategory = {
+  subcategoryId: string;
+  categoryId: string;
+  name: string;
+  description?: string;
+  servicesCount: number;
+  status: string;
+};
+
 
 type RegisterSalonPartnerVariables = {
   input: {
@@ -81,546 +115,674 @@ type RegisterSalonPartnerVariables = {
     aadhaarNumber?: string;
     bankAccount?: string;
     ifsc?: string;
+
+    /*
+     * Master category/subcategory selections.
+     */
+    serviceSelections: Array<{
+      categoryId: string;
+      subcategoryId: string;
+    }>;
   };
 };
 
-// ============================================================
-// SCREEN
-// ============================================================
 
-export default function SalonReviewScreen({
+/*
+ * =====================================================
+ * SCREEN
+ * =====================================================
+ */
+
+const SalonReviewScreen = ({
   navigation,
-}: any) {
-  const { data } = useSalonRegistration();
+}: any) => {
+  const {
+    data,
+  } = useSalonRegistration();
 
-  const [submitting, setSubmitting] =
-    useState(false);
 
-  // ==========================================================
-  // GRAPHQL
-  // ==========================================================
+  const [
+    submitting,
+    setSubmitting,
+  ] = useState(false);
+
+
+  /*
+   * --------------------------------------------------
+   * MASTER CATEGORIES
+   * --------------------------------------------------
+   */
+
+  const {
+    data: categoryResponse,
+    loading: categoriesLoading,
+  } = useQuery(
+    GET_CLAVATA_CATEGORIES,
+    {
+      fetchPolicy: 'network-only',
+    },
+  );
+
+
+  /*
+   * --------------------------------------------------
+   * MASTER SUBCATEGORIES
+   * --------------------------------------------------
+   */
+
+  const {
+    data: subcategoryResponse,
+    loading: subcategoriesLoading,
+  } = useQuery(
+    GET_CLAVATA_SUBCATEGORIES,
+    {
+      fetchPolicy: 'network-only',
+    },
+  );
+
+
+  const categories: Category[] =
+    categoryResponse?.categories?.categories || [];
+
+
+  const subcategories: Subcategory[] =
+    subcategoryResponse?.subcategories?.subcategories || [];
+
+
+  /*
+   * --------------------------------------------------
+   * SERVICE SELECTIONS
+   * --------------------------------------------------
+   */
+
+  const serviceSelections: ReviewServiceSelection[] =
+    data.serviceSelections || [];
+
+
+  /*
+   * --------------------------------------------------
+   * GROUP SELECTED SERVICES BY CATEGORY
+   * --------------------------------------------------
+   *
+   * Context currently stores categoryId + subcategoryId.
+   *
+   * We resolve the names from the master Category and
+   * Subcategory data so the Review screen always shows
+   * the actual Clavata master names.
+   *
+   * --------------------------------------------------
+   */
+
+  const groupedServices = useMemo(() => {
+    const grouped: Record<
+      string,
+      {
+        categoryId: string;
+        categoryName: string;
+        services: Array<{
+          subcategoryId: string;
+          subcategoryName: string;
+        }>;
+      }
+    > = {};
+
+
+    serviceSelections.forEach(
+      selection => {
+        const categoryId =
+          selection.categoryId;
+
+
+        if (!categoryId) {
+          return;
+        }
+
+
+        /*
+         * Find category from master list.
+         */
+
+        const category =
+          categories.find(
+            item =>
+              item.categoryId ===
+              categoryId,
+          );
+
+
+        /*
+         * Find subcategory from master list.
+         */
+
+        const subcategory =
+          subcategories.find(
+            item =>
+              item.subcategoryId ===
+              selection.subcategoryId,
+          );
+
+
+        /*
+         * Prefer stored name if available.
+         * Otherwise use master data.
+         */
+
+        const categoryName =
+          selection.categoryName ||
+          category?.name ||
+          'Category';
+
+
+        const subcategoryName =
+          selection.subcategoryName ||
+          subcategory?.name ||
+          'Service';
+
+
+        /*
+         * Create category group if needed.
+         */
+
+        if (!grouped[categoryId]) {
+          grouped[categoryId] = {
+            categoryId,
+            categoryName,
+            services: [],
+          };
+        }
+
+
+        /*
+         * Prevent duplicate subcategories
+         * inside the same category.
+         */
+
+        const alreadyExists =
+          grouped[
+            categoryId
+          ].services.some(
+            service =>
+              service.subcategoryId ===
+              selection.subcategoryId,
+          );
+
+
+        if (!alreadyExists) {
+          grouped[
+            categoryId
+          ].services.push({
+            subcategoryId:
+              selection.subcategoryId,
+
+            subcategoryName,
+          });
+        }
+      },
+    );
+
+
+    return Object.values(grouped);
+  }, [
+    serviceSelections,
+    categories,
+    subcategories,
+  ]);
+
+
+  /*
+   * --------------------------------------------------
+   * REGISTER MUTATION
+   * --------------------------------------------------
+   */
 
   const [
     registerSalonPartner,
   ] = useMutation<
     RegisterSalonPartnerResponse,
     RegisterSalonPartnerVariables
-  >(REGISTER_SALON_PARTNER);
+  >(
+    REGISTER_SALON_PARTNER,
+  );
 
-  // ==========================================================
-  // SUBMIT REGISTRATION
-  // ==========================================================
 
-  const handleSubmit = useCallback(() => {
-    // --------------------------------------------------------
-    // BASIC VALIDATION
-    // --------------------------------------------------------
+  /*
+   * --------------------------------------------------
+   * EDIT HANDLERS
+   * --------------------------------------------------
+   */
 
-    if (!data.userId?.trim()) {
-      Alert.alert(
-        'Registration Error',
-        'User information is missing. Please sign in again.',
+  const handleEditAddress =
+    () => {
+      navigation.navigate(
+        'SalonAddress',
       );
-      return;
-    }
+    };
 
-    if (!data.phoneNumber?.trim()) {
-      Alert.alert(
-        'Registration Error',
-        'Phone number is missing.',
+
+  const handleEditBusinessHours =
+    () => {
+      navigation.navigate(
+        'SalonBusinessHours',
       );
-      return;
-    }
+    };
 
-    if (!data.salonName?.trim()) {
-      Alert.alert(
-        'Missing Information',
-        'Salon name is missing.',
+
+  const handleEditKYC =
+    () => {
+      navigation.navigate(
+        'SalonKYC',
       );
-      return;
-    }
+    };
 
-    if (!data.ownerName?.trim()) {
-      Alert.alert(
-        'Missing Information',
-        'Owner name is missing.',
+
+  const handleEditServices =
+    () => {
+      navigation.navigate(
+        'SalonKYC',
       );
-      return;
-    }
+    };
 
-    if (!data.email?.trim()) {
-      Alert.alert(
-        'Missing Information',
-        'Email address is missing.',
-      );
-      return;
-    }
 
-    if (!data.addressLine?.trim()) {
-      Alert.alert(
-        'Missing Information',
-        'Salon address is missing.',
-      );
-      return;
-    }
+  /*
+   * --------------------------------------------------
+   * SUBMIT
+   * --------------------------------------------------
+   */
 
-    if (!data.city?.trim()) {
-      Alert.alert(
-        'Missing Information',
-        'City is missing.',
-      );
-      return;
-    }
+  const handleSubmit =
+    useCallback(
+      async () => {
+        if (submitting) {
+          return;
+        }
 
-    if (!data.state?.trim()) {
-      Alert.alert(
-        'Missing Information',
-        'State is missing.',
-      );
-      return;
-    }
 
-    if (!/^\d{6}$/.test(data.pincode?.trim() || '')) {
-      Alert.alert(
-        'Invalid Pincode',
-        'Please provide a valid 6-digit pincode.',
-      );
-      return;
-    }
+        /*
+         * --------------------------------------------
+         * BASIC VALIDATION
+         * --------------------------------------------
+         */
 
-    if (
-      data.latitude == null ||
-      data.longitude == null
-    ) {
-      Alert.alert(
-        'Location Missing',
-        'Please go back and confirm your salon location.',
-      );
-      return;
-    }
+        if (
+          !data.userId ||
+          !data.phoneNumber ||
+          !data.salonName ||
+          !data.ownerName ||
+          !data.email ||
+          !data.businessType
+        ) {
+          Alert.alert(
+            'Missing Information',
+            'Please complete all required salon information.',
+          );
 
-    if (!data.businessType?.trim()) {
-      Alert.alert(
-        'Missing Information',
-        'Business type is missing.',
-      );
-      return;
-    }
+          return;
+        }
 
-    if (
-      !data.businessHours ||
-      Object.keys(data.businessHours).length === 0
-    ) {
-      Alert.alert(
-        'Missing Information',
-        'Business hours are missing.',
-      );
-      return;
-    }
 
-    // --------------------------------------------------------
-    // CONFIRMATION
-    // --------------------------------------------------------
+        /*
+         * --------------------------------------------
+         * ADDRESS VALIDATION
+         * --------------------------------------------
+         */
 
-    Alert.alert(
-      'Submit Registration?',
-      'Your salon registration will be submitted for verification. You will not be able to access the salon dashboard until your application is approved.',
+        if (
+          !data.addressLine ||
+          !data.city ||
+          !data.state ||
+          !data.pincode
+        ) {
+          Alert.alert(
+            'Missing Address',
+            'Please complete the salon address.',
+          );
+
+          return;
+        }
+
+
+        /*
+         * --------------------------------------------
+         * BUSINESS HOURS VALIDATION
+         * --------------------------------------------
+         */
+
+        if (
+          !data.businessHours ||
+          Object.keys(
+            data.businessHours,
+          ).length === 0
+        ) {
+          Alert.alert(
+            'Missing Business Hours',
+            'Please provide your business hours.',
+          );
+
+          return;
+        }
+
+
+        /*
+         * --------------------------------------------
+         * KYC VALIDATION
+         * --------------------------------------------
+         */
+
+        if (!data.panNumber) {
+          Alert.alert(
+            'Missing PAN',
+            'Please provide your PAN number.',
+          );
+
+          return;
+        }
+
+
+        if (!data.aadhaarNumber) {
+          Alert.alert(
+            'Missing Aadhaar',
+            'Please provide your Aadhaar number.',
+          );
+
+          return;
+        }
+
+
+        if (
+          !data.gstNumber &&
+          !data.shopEstablishmentNumber &&
+          !data.udyamNumber
+        ) {
+          Alert.alert(
+            'Business Verification Required',
+            'Please provide GST, Shop Establishment Number, or Udyam Number.',
+          );
+
+          return;
+        }
+
+
+        /*
+         * --------------------------------------------
+         * SERVICE VALIDATION
+         * --------------------------------------------
+         */
+
+        if (
+          !serviceSelections ||
+          serviceSelections.length === 0
+        ) {
+          Alert.alert(
+            'Services Required',
+            'Please select at least one service category/subcategory for your salon.',
+          );
+
+          return;
+        }
+
+
+        /*
+         * --------------------------------------------
+         * REMOVE INVALID SELECTIONS
+         * --------------------------------------------
+         */
+
+        const validServiceSelections =
+          serviceSelections.filter(
+            selection =>
+              Boolean(
+                selection.categoryId,
+              ) &&
+              Boolean(
+                selection.subcategoryId,
+              ),
+          );
+
+
+        if (
+          validServiceSelections.length ===
+          0
+        ) {
+          Alert.alert(
+            'Services Required',
+            'Please select at least one valid service category/subcategory for your salon.',
+          );
+
+          return;
+        }
+
+
+        /*
+         * --------------------------------------------
+         * SUBMIT
+         * --------------------------------------------
+         */
+
+        try {
+          setSubmitting(true);
+
+
+          /*
+           * Only IDs are sent to the backend.
+           *
+           * Category/subcategory names are master
+           * data and should not be trusted from the
+           * mobile client.
+           */
+
+          const input = {
+            userId:
+              data.userId,
+
+            phoneNumber:
+              data.phoneNumber,
+
+            salonName:
+              data.salonName,
+
+            ownerName:
+              data.ownerName,
+
+            email:
+              data.email,
+
+            businessType:
+              data.businessType,
+
+
+            address: {
+              addressLine:
+                data.addressLine,
+
+              city:
+                data.city,
+
+              state:
+                data.state,
+
+              pincode:
+                data.pincode,
+            },
+
+
+            businessHours:
+              data.businessHours,
+
+
+            gstNumber:
+              data.gstNumber ||
+              undefined,
+
+            panNumber:
+              data.panNumber ||
+              undefined,
+
+            aadhaarNumber:
+              data.aadhaarNumber ||
+              undefined,
+
+            bankAccount:
+              data.bankAccount ||
+              undefined,
+
+            ifsc:
+              data.ifsc ||
+              undefined,
+
+
+            /*
+             * ----------------------------------------
+             * MASTER SERVICE SELECTIONS
+             * ----------------------------------------
+             */
+
+            serviceSelections:
+              validServiceSelections.map(
+                selection => ({
+                  categoryId:
+                    selection.categoryId,
+
+                  subcategoryId:
+                    selection.subcategoryId,
+                }),
+              ),
+          };
+
+
+          console.log(
+            'Submitting salon registration:',
+            {
+              ...input,
+              serviceSelections:
+                input.serviceSelections,
+            },
+          );
+
+
+          const result =
+            await registerSalonPartner({
+              variables: {
+                input,
+              },
+            });
+
+
+          const response =
+            result.data
+              ?.registerSalonPartner;
+
+
+          if (
+            !response?.success
+          ) {
+            throw new Error(
+              response?.message ||
+                'Unable to submit salon registration.',
+            );
+          }
+
+
+          Alert.alert(
+            'Registration Submitted',
+            response.message ||
+              'Your salon registration has been submitted successfully.',
+            [
+              {
+                text: 'OK',
+
+                onPress: () => {
+                  navigation.navigate(
+                    'SalonSuccess',
+                    {
+                      salonId:
+                        response.salonId,
+
+                      salonName:
+                        data.salonName,
+                    },
+                  );
+                },
+              },
+            ],
+          );
+        } catch (error: any) {
+          console.error(
+            'Salon registration error:',
+            error,
+          );
+
+
+          Alert.alert(
+            'Registration Failed',
+            error?.message ||
+              'Something went wrong while submitting your registration.',
+          );
+        } finally {
+          setSubmitting(false);
+        }
+      },
       [
-        {
-          text: 'Go Back',
-          style: 'cancel',
-        },
-        {
-          text: 'Submit',
-          onPress: submitRegistration,
-        },
+        data,
+        serviceSelections,
+        submitting,
+        registerSalonPartner,
+        navigation,
       ],
     );
-  }, [data]);
 
-  // ==========================================================
-  // ACTUAL SUBMISSION
-  // ==========================================================
 
-  const submitRegistration = useCallback(async () => {
-    if (submitting) {
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      // ======================================================
-      // BUILD GRAPHQL INPUT
-      // ======================================================
-
-      const input = {
-        userId:
-          data.userId.trim(),
-
-        phoneNumber:
-          data.phoneNumber.trim(),
-
-        salonName:
-          data.salonName.trim(),
-
-        ownerName:
-          data.ownerName.trim(),
-
-        email:
-          data.email.trim(),
-
-        businessType:
-          data.businessType.trim(),
-
-        // IMPORTANT:
-        // Your Lambda expects an `address` object.
-        address: {
-          addressLine:
-            data.addressLine.trim(),
-
-          city:
-            data.city.trim(),
-
-          state:
-            data.state.trim(),
-
-          pincode:
-            data.pincode.trim(),
-        },
-
-        businessHours:
-          data.businessHours,
-
-        gstNumber:
-          data.gstNumber?.trim() || '',
-
-        panNumber:
-          data.panNumber?.trim() || '',
-
-        aadhaarNumber:
-          data.aadhaarNumber?.trim() || '',
-
-        bankAccount:
-          data.bankAccount?.trim() || '',
-
-        ifsc:
-          data.ifsc?.trim() || '',
-      };
-
-      // ======================================================
-      // DEBUG
-      // ======================================================
-
-      console.log(
-        '==========================================',
-      );
-
-      console.log(
-        'SUBMITTING SALON REGISTRATION',
-      );
-
-      console.log(
-        '==========================================',
-      );
-
-      console.log(
-        'USER ID:',
-        input.userId,
-      );
-
-      console.log(
-        'PHONE:',
-        input.phoneNumber,
-      );
-
-      console.log(
-        'SALON:',
-        input.salonName,
-      );
-
-      console.log(
-        'OWNER:',
-        input.ownerName,
-      );
-
-      console.log(
-        'EMAIL:',
-        input.email,
-      );
-
-      console.log(
-        'BUSINESS TYPE:',
-        input.businessType,
-      );
-
-      console.log(
-        'ADDRESS:',
-        JSON.stringify(
-          input.address,
-          null,
-          2,
-        ),
-      );
-
-      console.log(
-        'BUSINESS HOURS:',
-        JSON.stringify(
-          input.businessHours,
-          null,
-          2,
-        ),
-      );
-
-      console.log(
-        '==========================================',
-      );
-
-      // ======================================================
-      // GRAPHQL MUTATION
-      // ======================================================
-
-      const response =
-        await registerSalonPartner({
-          variables: {
-            input,
-          },
-        });
-
-      // ======================================================
-      // GRAPHQL RESPONSE
-      // ======================================================
-
-      const result =
-        response.data
-          ?.registerSalonPartner;
-
-      console.log(
-        'REGISTER SALON RESPONSE:',
-        JSON.stringify(
-          result,
-          null,
-          2,
-        ),
-      );
-
-      // ======================================================
-      // NO RESPONSE
-      // ======================================================
-
-      if (!result) {
-        throw new Error(
-          'No response received from the server.',
-        );
-      }
-
-      // ======================================================
-      // FAILED
-      // ======================================================
-
-      if (
-        result.success !== true
-      ) {
-        Alert.alert(
-          'Registration Failed',
-          result.message ||
-          'Unable to submit salon registration.',
-        );
-
-        return;
-      }
-
-      // ======================================================
-      // SUCCESS
-      // ======================================================
-
-      console.log(
-        '==========================================',
-      );
-
-      console.log(
-        'SALON REGISTRATION SUCCESSFUL',
-      );
-
-      console.log(
-        'SALON ID:',
-        result.salonId,
-      );
-
-      console.log(
-        'MESSAGE:',
-        result.message,
-      );
-
-      console.log(
-        '==========================================',
-      );
-
-      // ======================================================
-      // NAVIGATE TO SUCCESS
-      // ======================================================
-
-      navigation.replace(
-        'SalonSuccess',
-        {
-          salonId:
-            result.salonId,
-          message:
-            result.message,
-        },
-      );
-    } catch (error: any) {
-      console.error(
-        '==========================================',
-      );
-
-      console.error(
-        'SALON REGISTRATION ERROR:',
-      );
-
-      console.error(
-        error,
-      );
-
-      console.error(
-        '==========================================',
-      );
-
-      let message =
-        'We could not submit your salon registration. Please try again.';
-
-      // ------------------------------------------------------
-      // APOLLO ERROR
-      // ------------------------------------------------------
-
-      if (
-        error?.graphQLErrors?.length
-      ) {
-        message =
-          error.graphQLErrors[0]
-            ?.message ||
-          message;
-      }
-
-      // ------------------------------------------------------
-      // NETWORK ERROR
-      // ------------------------------------------------------
-
-      else if (
-        error?.networkError
-      ) {
-        message =
-          'Unable to connect to the server. Please check your internet connection and try again.';
-      }
-
-      // ------------------------------------------------------
-      // NORMAL ERROR
-      // ------------------------------------------------------
-
-      else if (
-        error?.message
-      ) {
-        message =
-          error.message;
-      }
-
-      Alert.alert(
-        'Registration Failed',
-        message,
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }, [
-    data,
-    navigation,
-    registerSalonPartner,
-    submitting,
-  ]);
-
-  // ==========================================================
-  // EDIT SECTION
-  // ==========================================================
-
-  const handleEditAddress = () => {
-    navigation.navigate(
-      'SalonAddress',
-    );
-  };
-
-  const handleEditBusinessHours = () => {
-    navigation.navigate(
-      'SalonBusinessHours',
-    );
-  };
-
-  const handleEditKYC = () => {
-    navigation.navigate(
-      'SalonKYC',
-    );
-  };
-
-  // ==========================================================
-  // BUSINESS HOURS
-  // ==========================================================
-
-  const dayLabels: Record<
-    string,
-    string
-  > = {
-    MONDAY: 'Monday',
-    TUESDAY: 'Tuesday',
-    WEDNESDAY: 'Wednesday',
-    THURSDAY: 'Thursday',
-    FRIDAY: 'Friday',
-    SATURDAY: 'Saturday',
-    SUNDAY: 'Sunday',
-  };
-
-  // ==========================================================
-  // RENDER
-  // ==========================================================
+  /*
+   * --------------------------------------------------
+   * HELPERS
+   * --------------------------------------------------
+   */
+
+  const maskedAadhaar =
+    data.aadhaarNumber
+      ? `XXXX XXXX ${data.aadhaarNumber.slice(
+          -4,
+        )}`
+      : 'Not provided';
+
+
+  const maskedBankAccount =
+    data.bankAccount
+      ? `XXXXXX${data.bankAccount.slice(
+          -4,
+        )}`
+      : 'Not provided';
+
+
+  /*
+   * --------------------------------------------------
+   * RENDER
+   * --------------------------------------------------
+   */
 
   return (
     <SafeAreaView
       style={styles.container}
     >
       <Header
-        headerTitle="Review Registration"
+        headerTitle="Review & Submit"
+        backBtn={() =>
+          navigation.goBack()
+        }
       />
+
 
       <ScrollView
         contentContainerStyle={
-          styles.content
+          styles.contentContainer
         }
         showsVerticalScrollIndicator={
           false
         }
       >
-        {/* ==================================================
-            HEADER
-        ================================================== */}
 
-        <View
-          style={styles.headerSection}
-        >
-          <Text
-            style={styles.title}
-          >
-            Review your application
-          </Text>
-
-          <Text
-            style={styles.subtitle}
-          >
-            Please check all your information carefully
-            before submitting your salon for verification.
-          </Text>
-        </View>
-
-        {/* ==================================================
-            BASIC INFORMATION
-        ================================================== */}
+        {/* ============================================
+            SALON INFORMATION
+        ============================================ */}
 
         <View
           style={styles.section}
@@ -628,80 +790,101 @@ export default function SalonReviewScreen({
           <View
             style={styles.sectionHeader}
           >
-            <View>
-              <Text
-                style={styles.sectionTitle}
-              >
-                Salon information
-              </Text>
+            <Text
+              style={styles.sectionTitle}
+            >
+              Salon Information
+            </Text>
 
-              <Text
-                style={styles.sectionSubtitle}
-              >
-                Your business details
-              </Text>
-            </View>
-          </View>
 
-          <InfoRow
-            label="Salon name"
-            value={data.salonName}
-          />
-
-          <InfoRow
-            label="Owner name"
-            value={data.ownerName}
-          />
-
-          <InfoRow
-            label="Email"
-            value={data.email}
-          />
-
-          <InfoRow
-            label="Phone"
-            value={data.phoneNumber}
-          />
-
-          <InfoRow
-            label="Business type"
-            value={data.businessType}
-          />
-        </View>
-
-        {/* ==================================================
-            ADDRESS
-        ================================================== */}
-
-        <View
-          style={styles.section}
-        >
-          <View
-            style={styles.sectionHeader}
-          >
-            <View
-              style={
-                styles.sectionHeaderText
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate(
+                  'SalonInformation',
+                )
               }
             >
               <Text
-                style={styles.sectionTitle}
+                style={styles.editText}
               >
-                Salon address
+                Edit
               </Text>
+            </TouchableOpacity>
+          </View>
 
-              <Text
-                style={styles.sectionSubtitle}
-              >
-                Registered salon location
-              </Text>
-            </View>
+
+          <View
+            style={styles.card}
+          >
+            <ReviewRow
+              label="Salon Name"
+              value={
+                data.salonName ||
+                'Not provided'
+              }
+            />
+
+
+            <ReviewRow
+              label="Owner Name"
+              value={
+                data.ownerName ||
+                'Not provided'
+              }
+            />
+
+
+            <ReviewRow
+              label="Email"
+              value={
+                data.email ||
+                'Not provided'
+              }
+            />
+
+
+            <ReviewRow
+              label="Phone Number"
+              value={
+                data.phoneNumber ||
+                'Not provided'
+              }
+            />
+
+
+            <ReviewRow
+              label="Business Type"
+              value={
+                data.businessType ||
+                'Not provided'
+              }
+              last
+            />
+          </View>
+        </View>
+
+
+        {/* ============================================
+            ADDRESS
+        ============================================ */}
+
+        <View
+          style={styles.section}
+        >
+          <View
+            style={styles.sectionHeader}
+          >
+            <Text
+              style={styles.sectionTitle}
+            >
+              Address
+            </Text>
+
 
             <TouchableOpacity
               onPress={
                 handleEditAddress
               }
-              activeOpacity={0.7}
             >
               <Text
                 style={styles.editText}
@@ -711,69 +894,52 @@ export default function SalonReviewScreen({
             </TouchableOpacity>
           </View>
 
-          <InfoRow
-            label="Address"
-            value={data.addressLine}
-          />
 
-          <InfoRow
-            label="City"
-            value={data.city}
-          />
+          <View
+            style={styles.card}
+          >
+            <ReviewRow
+              label="Address"
+              value={
+                data.addressLine ||
+                'Not provided'
+              }
+            />
 
-          <InfoRow
-            label="State"
-            value={data.state}
-          />
 
-          <InfoRow
-            label="Pincode"
-            value={data.pincode}
-          />
+            <ReviewRow
+              label="City"
+              value={
+                data.city ||
+                'Not provided'
+              }
+            />
 
-          {data.latitude != null &&
-            data.longitude != null && (
-              <View
-                style={
-                  styles.locationCard
-                }
-              >
-                <Text
-                  style={
-                    styles.locationTitle
-                  }
-                >
-                  ✓ Location confirmed
-                </Text>
 
-                <Text
-                  style={
-                    styles.locationText
-                  }
-                >
-                  Latitude:{' '}
-                  {Number(
-                    data.latitude,
-                  ).toFixed(6)}
-                </Text>
+            <ReviewRow
+              label="State"
+              value={
+                data.state ||
+                'Not provided'
+              }
+            />
 
-                <Text
-                  style={
-                    styles.locationText
-                  }
-                >
-                  Longitude:{' '}
-                  {Number(
-                    data.longitude,
-                  ).toFixed(6)}
-                </Text>
-              </View>
-            )}
+
+            <ReviewRow
+              label="Pincode"
+              value={
+                data.pincode ||
+                'Not provided'
+              }
+              last
+            />
+          </View>
         </View>
 
-        {/* ==================================================
+
+        {/* ============================================
             BUSINESS HOURS
-        ================================================== */}
+        ============================================ */}
 
         <View
           style={styles.section}
@@ -781,29 +947,17 @@ export default function SalonReviewScreen({
           <View
             style={styles.sectionHeader}
           >
-            <View
-              style={
-                styles.sectionHeaderText
-              }
+            <Text
+              style={styles.sectionTitle}
             >
-              <Text
-                style={styles.sectionTitle}
-              >
-                Business hours
-              </Text>
+              Business Hours
+            </Text>
 
-              <Text
-                style={styles.sectionSubtitle}
-              >
-                Your salon operating hours
-              </Text>
-            </View>
 
             <TouchableOpacity
               onPress={
                 handleEditBusinessHours
               }
-              activeOpacity={0.7}
             >
               <Text
                 style={styles.editText}
@@ -813,54 +967,69 @@ export default function SalonReviewScreen({
             </TouchableOpacity>
           </View>
 
-          {Object.entries(
-            data.businessHours || {},
-          ).map(
-            ([day, hours]: [
-              string,
-              any,
-            ]) => (
-              <View
-                key={day}
+
+          <View
+            style={styles.card}
+          >
+            {data.businessHours &&
+            Object.keys(
+              data.businessHours,
+            ).length > 0 ? (
+              Object.entries(
+                data.businessHours,
+              ).map(
+                (
+                  [
+                    day,
+                    hours,
+                  ],
+                ) => (
+                  <View
+                    key={day}
+                    style={
+                      styles.hoursRow
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.dayText
+                      }
+                    >
+                      {day}
+                    </Text>
+
+
+                    <Text
+                      style={
+                        styles.hoursText
+                      }
+                    >
+                      {hours.isOpen
+                        ? `${hours.open || ''} - ${
+                            hours.close ||
+                            ''
+                          }`
+                        : 'Closed'}
+                    </Text>
+                  </View>
+                ),
+              )
+            ) : (
+              <Text
                 style={
-                  styles.businessHourRow
+                  styles.emptyText
                 }
               >
-                <Text
-                  style={
-                    styles.businessDay
-                  }
-                >
-                  {dayLabels[day] ||
-                    day}
-                </Text>
-
-                {hours?.isOpen ? (
-                  <Text
-                    style={
-                      styles.businessTime
-                    }
-                  >
-                    {hours.open} -{' '}
-                    {hours.close}
-                  </Text>
-                ) : (
-                  <Text
-                    style={
-                      styles.closedText
-                    }
-                  >
-                    Closed
-                  </Text>
-                )}
-              </View>
-            ),
-          )}
+                Business hours not provided
+              </Text>
+            )}
+          </View>
         </View>
 
-        {/* ==================================================
-            KYC
-        ================================================== */}
+
+        {/* ============================================
+            SERVICES
+        ============================================ */}
 
         <View
           style={styles.section}
@@ -868,29 +1037,17 @@ export default function SalonReviewScreen({
           <View
             style={styles.sectionHeader}
           >
-            <View
-              style={
-                styles.sectionHeaderText
-              }
+            <Text
+              style={styles.sectionTitle}
             >
-              <Text
-                style={styles.sectionTitle}
-              >
-                KYC information
-              </Text>
+              Services provided by your salon
+            </Text>
 
-              <Text
-                style={styles.sectionSubtitle}
-              >
-                Verification information
-              </Text>
-            </View>
 
             <TouchableOpacity
               onPress={
-                handleEditKYC
+                handleEditServices
               }
-              activeOpacity={0.7}
             >
               <Text
                 style={styles.editText}
@@ -900,76 +1057,223 @@ export default function SalonReviewScreen({
             </TouchableOpacity>
           </View>
 
-          <KYCRow
-            label="PAN"
-            value={data.panNumber}
-          />
-
-          <KYCRow
-            label="Aadhaar"
-            value={
-              data.aadhaarNumber
-            }
-          />
-
-          <KYCRow
-            label="GST"
-            value={
-              data.gstNumber
-                ? data.gstNumber
-                : 'Not provided'
-            }
-          />
-
-          <KYCRow
-            label="Bank account"
-            value={
-              data.bankAccount
-                ? maskAccount(
-                  data.bankAccount,
-                )
-                : 'Not provided'
-            }
-          />
-
-          <KYCRow
-            label="IFSC"
-            value={
-              data.ifsc
-                ? data.ifsc
-                : 'Not provided'
-            }
-          />
 
           <View
-            style={styles.kycNotice}
+            style={styles.card}
           >
-            <Text
-              style={
-                styles.kycNoticeTitle
-              }
-            >
-              KYC verification
-            </Text>
+            {(
+              categoriesLoading ||
+              subcategoriesLoading
+            ) ? (
+              <View
+                style={
+                  styles.servicesLoading
+                }
+              >
+                <ActivityIndicator
+                  size="small"
+                  color={
+                    COLORS.primary ||
+                    '#009D94'
+                  }
+                />
 
-            <Text
-              style={
-                styles.kycNoticeText
-              }
-            >
-              Your KYC information will be verified
-              before your salon can become active.
-            </Text>
+
+                <Text
+                  style={
+                    styles.loadingText
+                  }
+                >
+                  Loading selected services...
+                </Text>
+              </View>
+            ) : serviceSelections.length ===
+              0 ? (
+              <Text
+                style={
+                  styles.emptyText
+                }
+              >
+                No services selected
+              </Text>
+            ) : groupedServices.length ===
+              0 ? (
+              <Text
+                style={
+                  styles.emptyText
+                }
+              >
+                Selected services could not be loaded.
+                Please edit your services and try again.
+              </Text>
+            ) : (
+              groupedServices.map(
+                category => (
+                  <View
+                    key={
+                      category.categoryId
+                    }
+                    style={
+                      styles.serviceCategory
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.categoryName
+                      }
+                    >
+                      {
+                        category.categoryName
+                      }
+                    </Text>
+
+
+                    <View
+                      style={
+                        styles.serviceList
+                      }
+                    >
+                      {category.services.map(
+                        service => (
+                          <View
+                            key={
+                              `${category.categoryId}-${service.subcategoryId}`
+                            }
+                            style={
+                              styles.serviceItem
+                            }
+                          >
+                            <View
+                              style={
+                                styles.serviceDot
+                              }
+                            />
+
+
+                            <Text
+                              style={
+                                styles.serviceName
+                              }
+                            >
+                              {
+                                service.subcategoryName
+                              }
+                            </Text>
+                          </View>
+                        ),
+                      )}
+                    </View>
+                  </View>
+                ),
+              )
+            )}
           </View>
         </View>
 
-        {/* ==================================================
-            VERIFICATION PROCESS
-        ================================================== */}
+
+        {/* ============================================
+            KYC
+        ============================================ */}
+
+        <View
+          style={styles.section}
+        >
+          <View
+            style={styles.sectionHeader}
+          >
+            <Text
+              style={styles.sectionTitle}
+            >
+              KYC & Verification
+            </Text>
+
+
+            <TouchableOpacity
+              onPress={handleEditKYC}
+            >
+              <Text
+                style={styles.editText}
+              >
+                Edit
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+
+          <View
+            style={styles.card}
+          >
+            <ReviewRow
+              label="PAN Number"
+              value={
+                data.panNumber ||
+                'Not provided'
+              }
+            />
+
+
+            <ReviewRow
+              label="Aadhaar Number"
+              value={
+                maskedAadhaar
+              }
+            />
+
+
+            <ReviewRow
+              label="GST Number"
+              value={
+                data.gstNumber ||
+                'Not provided'
+              }
+            />
+
+
+            <ReviewRow
+              label="Shop Establishment Number"
+              value={
+                data.shopEstablishmentNumber ||
+                'Not provided'
+              }
+            />
+
+
+            <ReviewRow
+              label="Udyam Number"
+              value={
+                data.udyamNumber ||
+                'Not provided'
+              }
+            />
+
+
+            <ReviewRow
+              label="Bank Account"
+              value={
+                maskedBankAccount
+              }
+            />
+
+
+            <ReviewRow
+              label="IFSC"
+              value={
+                data.ifsc ||
+                'Not provided'
+              }
+              last
+            />
+          </View>
+        </View>
+
+
+        {/* ============================================
+            VERIFICATION NOTICE
+        ============================================ */}
 
         <View
           style={
-            styles.verificationCard
+            styles.verificationNotice
           }
         >
           <Text
@@ -977,805 +1281,497 @@ export default function SalonReviewScreen({
               styles.verificationTitle
             }
           >
-            What happens next?
+            Verification Required
           </Text>
 
-          <Step
-            number="1"
-            title="Submit application"
-            description="Your salon information will be securely submitted."
-          />
 
-          <Step
-            number="2"
-            title="KYC verification"
-            description="Your submitted KYC details and documents will be verified."
-          />
-
-          <Step
-            number="3"
-            title="Salon verification"
-            description="Our verification process will review your salon registration."
-          />
-
-          <Step
-            number="4"
-            title="Dashboard access"
-            description="Once approved, your salon dashboard will become available."
-            last
-          />
+          <Text
+            style={
+              styles.verificationText
+            }
+          >
+            Your salon registration will be
+            reviewed by Clavata. Your salon
+            will become active only after the
+            required verification and approval
+            are completed.
+          </Text>
         </View>
 
-        {/* ==================================================
-            IMPORTANT NOTICE
-        ================================================== */}
+
+        {/* ============================================
+            SUBMIT
+        ============================================ */}
 
         <View
-          style={styles.warningCard}
+          style={
+            styles.submitContainer
+          }
         >
-          <Text
-            style={styles.warningTitle}
+          <DButton
+          style={
+                styles.submitButtonStyle
+              }
+            onPress={handleSubmit}
+            disabled={submitting}
+            loading={submitting}
           >
-            Before you submit
-          </Text>
+            {/*
+             * IMPORTANT:
+             * DButton renders children directly.
+             * Therefore this MUST be wrapped in
+             * Text instead of passing a raw string.
+             */}
 
-          <Text
-            style={styles.warningText}
-          >
-            Make sure your salon name, address, business
-            details and KYC information are correct. Incorrect
-            information may delay verification.
-          </Text>
+            <Text
+              style={
+                styles.submitButtonText
+              }
+            >
+              Submit Registration
+            </Text>
+          </DButton>
         </View>
 
-        {/* ==================================================
-            SUBMIT
-        ================================================== */}
 
-        <DButton
-          type="primary"
-          style={styles.submitButton}
-          onPress={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <ActivityIndicator
-              color={COLORS.white}
-            />
-          ) : (
-            <Text
-              style={styles.submitText}
-            >
-              Submit for Verification
-            </Text>
-          )}
-        </DButton>
+        <View
+          style={
+            styles.bottomSpacing
+          }
+        />
 
-        <Text
-          style={styles.bottomText}
-        >
-          By submitting, you confirm that the information
-          provided is accurate.
-        </Text>
       </ScrollView>
     </SafeAreaView>
   );
-}
+};
 
-// ============================================================
-// INFO ROW
-// ============================================================
 
-function InfoRow({
-  label,
-  value,
-}: {
+/*
+ * =====================================================
+ * REVIEW ROW
+ * =====================================================
+ */
+
+type ReviewRowProps = {
   label: string;
-  value?: string;
-}) {
-  return (
-    <View
-      style={styles.infoRow}
-    >
-      <Text
-        style={styles.infoLabel}
-      >
-        {label}
-      </Text>
-
-      <Text
-        style={[
-          styles.infoValue,
-          !value &&
-          styles.missingValue,
-        ]}
-      >
-        {value?.trim()
-          ? value
-          : 'Not provided'}
-      </Text>
-    </View>
-  );
-}
-
-// ============================================================
-// KYC ROW
-// ============================================================
-
-function KYCRow({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string;
-}) {
-  const safeValue =
-    value?.trim()
-      ? value
-      : 'Not provided';
-
-  return (
-    <View
-      style={styles.kycRow}
-    >
-      <Text
-        style={styles.kycLabel}
-      >
-        {label}
-      </Text>
-
-      <Text
-        style={[
-          styles.kycValue,
-          safeValue ===
-          'Not provided' &&
-          styles.missingValue,
-        ]}
-      >
-        {safeValue}
-      </Text>
-    </View>
-  );
-}
-
-// ============================================================
-// MASK BANK ACCOUNT
-// ============================================================
-
-function maskAccount(
-  account: string,
-): string {
-  const clean =
-    account.replace(
-      /\s/g,
-      '',
-    );
-
-  if (clean.length <= 4) {
-    return clean;
-  }
-
-  return (
-    '•••• •••• ' +
-    clean.slice(-4)
-  );
-}
-
-// ============================================================
-// VERIFICATION STEP
-// ============================================================
-
-function Step({
-  number,
-  title,
-  description,
-  last = false,
-}: {
-  number: string;
-  title: string;
-  description: string;
+  value: string;
   last?: boolean;
-}) {
+};
+
+
+const ReviewRow = ({
+  label,
+  value,
+  last = false,
+}: ReviewRowProps) => {
   return (
     <View
-      style={
-        styles.stepContainer
-      }
+      style={[
+        styles.reviewRow,
+        last &&
+          styles.reviewRowLast,
+      ]}
     >
-      <View
-        style={styles.stepLeft}
+      <Text
+        style={styles.reviewLabel}
       >
-        <View
-          style={styles.stepCircle}
-        >
-          <Text
-            style={
-              styles.stepNumber
-            }
-          >
-            {number}
-          </Text>
-        </View>
+        {label}
+      </Text>
 
-        {!last && (
-          <View
-            style={styles.stepLine}
-          />
-        )}
-      </View>
 
-      <View
-        style={styles.stepContent}
+      <Text
+        style={styles.reviewValue}
       >
-        <Text
-          style={styles.stepTitle}
-        >
-          {title}
-        </Text>
-
-        <Text
-          style={
-            styles.stepDescription
-          }
-        >
-          {description}
-        </Text>
-      </View>
+        {value}
+      </Text>
     </View>
   );
-}
+};
 
-// ============================================================
-// STYLES
-// ============================================================
+
+/*
+ * =====================================================
+ * STYLES
+ * =====================================================
+ */
 
 const styles = StyleSheet.create({
+  submitContainer: {
+  width: '100%',
+  paddingHorizontal: 20,
+  paddingBottom: 24,
+},
+
+submitButton: {
+  width: '100%',
+  minHeight: 56,
+  borderRadius: 14,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+submitButtonText: {
+  fontFamily: FONTS.semiBold || FONTS.bold,
+  fontSize: 16,
+  color: '#FFFFFF',
+  textAlign: 'center',
+},
   container: {
     flex: 1,
     backgroundColor:
-      COLORS.background,
+      COLORS.background ||
+      '#FFFFFF',
   },
 
-  content: {
+
+  contentContainer: {
     paddingHorizontal:
-      SPACING.xxl,
+      SPACING.large,
 
     paddingTop:
-      SPACING.xxxl,
+      SPACING.medium,
 
     paddingBottom:
       SPACING.huge,
   },
 
-  headerSection: {
-    marginBottom:
-      SPACING.xxl,
-  },
-
-  title: {
-    fontFamily:
-      FONTS.bold,
-
-    fontSize: 22,
-
-    lineHeight: 28,
-
-    color:
-      COLORS.text,
-
-    marginBottom:
-      SPACING.small,
-  },
-
-  subtitle: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 14,
-
-    lineHeight: 21,
-
-    color:
-      COLORS.textSecondary,
-  },
-
+submitButtonStyle:{
+backgroundColor: COLORS.themeColor
+},
   section: {
-    backgroundColor:
-      COLORS.surface,
-
-    borderWidth: 1,
-
-    borderColor:
-      COLORS.border,
-
-    borderRadius:
-      RADIUS.large,
-
-    padding:
-      SPACING.large,
-
     marginBottom:
-      SPACING.medium,
+      SPACING.large,
   },
+
 
   sectionHeader: {
     flexDirection:
       'row',
 
     alignItems:
-      'flex-start',
+      'center',
 
     justifyContent:
       'space-between',
 
     marginBottom:
-      SPACING.medium,
+      SPACING.small,
   },
 
-  sectionHeaderText: {
-    flex: 1,
-  },
 
   sectionTitle: {
     fontFamily:
-      FONTS.semiBold,
+      FONTS.semiBold ||
+      FONTS.bold,
 
     fontSize: 17,
 
     color:
-      COLORS.text,
+      COLORS.text ||
+      '#111111',
 
-    marginBottom: 3,
+    flex: 1,
   },
 
-  sectionSubtitle: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 12,
-
-    color:
-      COLORS.textSecondary,
-  },
 
   editText: {
     fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 13,
-
-    color:
-      COLORS.primary,
-
-    paddingLeft:
-      SPACING.medium,
-  },
-
-  infoRow: {
-    paddingVertical:
-      SPACING.small,
-
-    borderBottomWidth: 1,
-
-    borderBottomColor:
-      COLORS.border,
-  },
-
-  infoLabel: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 11,
-
-    color:
-      COLORS.textMuted,
-
-    marginBottom: 3,
-  },
-
-  infoValue: {
-    fontFamily:
-      FONTS.semiBold,
+      FONTS.semiBold ||
+      FONTS.bold,
 
     fontSize: 14,
 
-    lineHeight: 20,
-
     color:
-      COLORS.text,
+      COLORS.primary ||
+      '#009D94',
   },
 
-  missingValue: {
-    color:
-      COLORS.textMuted,
-  },
 
-  locationCard: {
-    marginTop:
-      SPACING.medium,
-
-    padding:
-      SPACING.medium,
+  card: {
+    backgroundColor:
+      COLORS.white ||
+      '#FFFFFF',
 
     borderRadius:
       RADIUS.medium,
 
-    backgroundColor:
-      COLORS.background,
+    paddingHorizontal:
+      SPACING.medium,
+
+    paddingVertical:
+      SPACING.small,
 
     borderWidth: 1,
 
     borderColor:
-      COLORS.border,
+      COLORS.border ||
+      '#E5E5E5',
   },
 
-  locationTitle: {
-    fontFamily:
-      FONTS.semiBold,
 
-    fontSize: 13,
+  reviewRow: {
+    paddingVertical:
+      SPACING.medium,
 
-    color:
-      COLORS.primary,
+    borderBottomWidth: 1,
 
-    marginBottom: 5,
+    borderBottomColor:
+      COLORS.border ||
+      '#E5E5E5',
   },
 
-  locationText: {
+
+  reviewRowLast: {
+    borderBottomWidth: 0,
+  },
+
+
+  reviewLabel: {
     fontFamily:
       FONTS.regular,
 
     fontSize: 12,
 
     color:
-      COLORS.textSecondary,
-
-    marginTop: 2,
-  },
-
-  businessHourRow: {
-    flexDirection:
-      'row',
-
-    alignItems:
-      'center',
-
-    justifyContent:
-      'space-between',
-
-    paddingVertical:
-      SPACING.small,
-
-    borderBottomWidth: 1,
-
-    borderBottomColor:
-      COLORS.border,
-  },
-
-  businessDay: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 13,
-
-    color:
-      COLORS.text,
-  },
-
-  businessTime: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 13,
-
-    color:
-      COLORS.textSecondary,
-  },
-
-  closedText: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 12,
-
-    color:
-      COLORS.textMuted,
-  },
-
-  kycRow: {
-    flexDirection:
-      'row',
-
-    alignItems:
-      'center',
-
-    justifyContent:
-      'space-between',
-
-    paddingVertical:
-      SPACING.small,
-
-    borderBottomWidth: 1,
-
-    borderBottomColor:
-      COLORS.border,
-  },
-
-  kycLabel: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 13,
-
-    color:
-      COLORS.textSecondary,
-  },
-
-  kycValue: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 13,
-
-    color:
-      COLORS.text,
-
-    maxWidth:
-      '60%',
-
-    textAlign:
-      'right',
-  },
-
-  kycNotice: {
-    marginTop:
-      SPACING.medium,
-
-    padding:
-      SPACING.medium,
-
-    borderRadius:
-      RADIUS.medium,
-
-    backgroundColor:
-      COLORS.background,
-
-    borderWidth: 1,
-
-    borderColor:
-      COLORS.border,
-  },
-
-  kycNoticeTitle: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 13,
-
-    color:
-      COLORS.text,
+      COLORS.textSecondary ||
+      '#777777',
 
     marginBottom: 4,
   },
 
-  kycNoticeText: {
+
+  reviewValue: {
     fontFamily:
+      FONTS.medium ||
       FONTS.regular,
 
-    fontSize: 12,
-
-    lineHeight: 18,
+    fontSize: 15,
 
     color:
-      COLORS.textSecondary,
+      COLORS.text ||
+      '#111111',
   },
 
-  verificationCard: {
-    backgroundColor:
-      COLORS.surface,
 
-    borderWidth: 1,
-
-    borderColor:
-      COLORS.border,
-
-    borderRadius:
-      RADIUS.large,
-
-    padding:
-      SPACING.large,
-
-    marginBottom:
-      SPACING.medium,
-  },
-
-  verificationTitle: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 17,
-
-    color:
-      COLORS.text,
-
-    marginBottom:
-      SPACING.large,
-  },
-
-  stepContainer: {
+  hoursRow: {
     flexDirection:
       'row',
 
-    minHeight: 70,
-  },
-
-  stepLeft: {
-    width: 34,
-
-    alignItems:
-      'center',
-  },
-
-  stepCircle: {
-    width: 28,
-
-    height: 28,
-
-    borderRadius:
-      RADIUS.round,
-
-    backgroundColor:
-      COLORS.black,
-
-    alignItems:
-      'center',
-
     justifyContent:
+      'space-between',
+
+    alignItems:
       'center',
 
-    zIndex: 2,
+    paddingVertical:
+      SPACING.medium,
+
+    borderBottomWidth: 1,
+
+    borderBottomColor:
+      COLORS.border ||
+      '#E5E5E5',
   },
 
-  stepNumber: {
-    color:
-      COLORS.white,
 
+  dayText: {
     fontFamily:
-      FONTS.bold,
+      FONTS.medium ||
+      FONTS.regular,
 
-    fontSize: 12,
+    fontSize: 14,
+
+    color:
+      COLORS.text ||
+      '#111111',
+
+    textTransform:
+      'capitalize',
   },
 
-  stepLine: {
-    width: 1,
 
-    flex: 1,
+  hoursText: {
+    fontFamily:
+      FONTS.regular,
 
-    backgroundColor:
-      COLORS.border,
+    fontSize: 14,
 
-    marginTop: -1,
+    color:
+      COLORS.textSecondary ||
+      '#666666',
   },
 
-  stepContent: {
-    flex: 1,
 
-    paddingLeft:
-      SPACING.small,
+  emptyText: {
+    fontFamily:
+      FONTS.regular,
 
-    paddingBottom:
+    fontSize: 14,
+
+    color:
+      COLORS.textSecondary ||
+      '#777777',
+
+    paddingVertical:
       SPACING.medium,
   },
 
-  stepTitle: {
-    fontFamily:
-      FONTS.semiBold,
 
-    fontSize: 14,
+  servicesLoading: {
+    flexDirection:
+      'row',
 
-    color:
-      COLORS.text,
+    alignItems:
+      'center',
 
-    marginBottom: 3,
+    paddingVertical:
+      SPACING.medium,
   },
 
-  stepDescription: {
+
+  loadingText: {
     fontFamily:
       FONTS.regular,
 
-    fontSize: 12,
-
-    lineHeight: 17,
-
-    color:
-      COLORS.textSecondary,
-  },
-
-  warningCard: {
-    padding:
-      SPACING.large,
-
-    borderRadius:
-      RADIUS.large,
-
-    backgroundColor:
-      COLORS.surface,
-
-    borderWidth: 1,
-
-    borderColor:
-      COLORS.border,
-
-    marginBottom:
-      SPACING.large,
-  },
-
-  warningTitle: {
-    fontFamily:
-      FONTS.semiBold,
-
     fontSize: 14,
 
     color:
-      COLORS.text,
+      COLORS.textSecondary ||
+      '#777777',
+
+    marginLeft:
+      SPACING.small,
+  },
+
+
+  serviceCategory: {
+    paddingVertical:
+      SPACING.medium,
+
+    borderBottomWidth: 1,
+
+    borderBottomColor:
+      COLORS.border ||
+      '#E5E5E5',
+  },
+
+
+  categoryName: {
+    fontFamily:
+      FONTS.semiBold ||
+      FONTS.bold,
+
+    fontSize: 15,
+
+    color:
+      COLORS.text ||
+      '#111111',
 
     marginBottom:
       SPACING.small,
   },
 
-  warningText: {
+
+  serviceList: {
+    gap: 7,
+  },
+
+
+  serviceItem: {
+    flexDirection:
+      'row',
+
+    alignItems:
+      'center',
+
+    paddingVertical: 3,
+  },
+
+
+  serviceDot: {
+    width: 6,
+
+    height: 6,
+
+    borderRadius: 3,
+
+    backgroundColor:
+      COLORS.primary ||
+      '#009D94',
+
+    marginRight:
+      SPACING.small,
+  },
+
+
+  serviceName: {
     fontFamily:
       FONTS.regular,
 
-    fontSize: 12,
-
-    lineHeight: 18,
+    fontSize: 14,
 
     color:
-      COLORS.textSecondary,
+      COLORS.textSecondary ||
+      '#555555',
+
+    flex: 1,
   },
 
-  submitButton: {
-    width:
-      '100%',
 
-    height: 54,
+  verificationNotice: {
+    backgroundColor:
+      '#F5F7FA',
 
     borderRadius:
       RADIUS.medium,
 
-    marginTop:
-      SPACING.small,
+    padding:
+      SPACING.medium,
+
+    marginBottom:
+      SPACING.large,
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.border ||
+      '#E5E5E5',
   },
 
-  submitText: {
-    color:
-      COLORS.white,
 
+  verificationTitle: {
     fontFamily:
-      FONTS.semiBold,
+      FONTS.semiBold ||
+      FONTS.bold,
 
     fontSize: 15,
 
-    textAlign:
-      'center',
+    color:
+      COLORS.text ||
+      '#111111',
+
+    marginBottom:
+      SPACING.small,
   },
 
-  bottomText: {
+
+  verificationText: {
     fontFamily:
       FONTS.regular,
 
-    fontSize: 11,
+    fontSize: 13,
 
-    lineHeight: 17,
+    lineHeight: 20,
 
     color:
-      COLORS.textMuted,
-
-    textAlign:
-      'center',
-
-    marginTop:
-      SPACING.medium,
+      COLORS.textSecondary ||
+      '#666666',
+  },
+  bottomSpacing: {
+    height:
+      SPACING.huge,
   },
 });
+
+
+export default SalonReviewScreen;

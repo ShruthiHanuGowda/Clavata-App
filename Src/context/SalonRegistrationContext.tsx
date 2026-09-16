@@ -145,6 +145,27 @@ export type BusinessDocument = {
 };
 
 // =====================================================
+// SALON SERVICE SELECTION
+// =====================================================
+//
+// These are the categories/subcategories provided by
+// Clavata. The salon only selects from them.
+//
+// IMPORTANT:
+// Keep this aligned with:
+//
+// input SalonServiceSelectionInput {
+//     categoryId: ID!
+//     subcategoryId: ID!
+// }
+// =====================================================
+
+export type SalonServiceSelection = {
+    categoryId: string;
+    subcategoryId: string;
+};
+
+// =====================================================
 // REGISTRATION DATA
 // =====================================================
 
@@ -222,6 +243,26 @@ export type SalonRegistrationData = {
     // ===================================================
 
     businessDocuments: BusinessDocument[];
+
+    // ===================================================
+    // CLAVATA SERVICE SELECTIONS
+    // ===================================================
+    //
+    // Salon selects category + subcategory from the
+    // master list maintained by Clavata.
+    //
+    // Example:
+    //
+    // [
+    //     {
+    //         categoryId: 'hair-category-id',
+    //         subcategoryId: 'haircut-subcategory-id',
+    //     },
+    // ]
+    //
+    // ===================================================
+
+    serviceSelections: SalonServiceSelection[];
 
     // ===================================================
     // VERIFICATION
@@ -305,6 +346,11 @@ const createInitialData =
         accountHolderName: '',
 
         businessDocuments: [],
+
+        // =================================================
+        // CLAVATA SERVICE SELECTIONS
+        // =================================================
+        serviceSelections: [],
 
         kycStatus: 'NOT_STARTED',
 

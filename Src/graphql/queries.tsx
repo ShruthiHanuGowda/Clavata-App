@@ -1769,3 +1769,42 @@ export const GET_PENDING_SALON_PROFILE_CHANGE = gql`
         }
     }
 `;
+
+export const GET_CLAVATA_CATEGORIES = gql`
+  query GetClavataCategories {
+    categories(status: ACTIVE) {
+      success
+      message
+      totalCount
+      categories {
+        categoryId
+        name
+        description
+        servicesCount
+        status
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const GET_CLAVATA_SUBCATEGORIES = gql`
+  query GetClavataSubcategories {
+    subcategories(status: ACTIVE) {
+      success
+      message
+      totalCount
+      subcategories {
+        subcategoryId
+        categoryId
+        name
+        description
+        servicesCount
+        status
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;

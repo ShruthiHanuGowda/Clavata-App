@@ -8,9 +8,7 @@ import {
     Switch,
     Alert,
 } from 'react-native';
-
 import DatePicker from 'react-native-date-picker';
-
 import {
     COLORS,
     FONTS,
@@ -18,13 +16,11 @@ import {
     SPACING,
     RADIUS,
 } from '../../constants/constants';
-
 import {
     useSalonRegistration,
     BusinessHours,
     DayKey,
 } from '../../context/SalonRegistrationContext';
-
 const DAYS: {
     key: DayKey;
     label: string;
@@ -37,23 +33,18 @@ const DAYS: {
         { key: 'SATURDAY', label: 'Saturday' },
         { key: 'SUNDAY', label: 'Sunday' },
     ];
-
 function parseTime(time: string): Date {
     const [hoursString, minutesString] =
         time.split(':');
-
     const hours = Number(hoursString);
     const minutes = Number(minutesString);
-
     const date = new Date();
-
     date.setHours(
         Number.isFinite(hours) ? hours : 9,
         Number.isFinite(minutes) ? minutes : 0,
         0,
         0,
     );
-
     return date;
 }
 
@@ -154,39 +145,42 @@ export default function SalonBusinessHoursScreen({
         for (const day of DAYS) {
             const value = hours[day.key];
 
+            // Closed day — no validation needed
             if (!value.isOpen) {
                 continue;
             }
 
-            const openParts =
-                value.open.split(':');
+            const [openHour, openMinute] =
+                value.open.split(':').map(Number);
 
-            const closeParts =
-                value.close.split(':');
+            const [closeHour, closeMinute] =
+                value.close.split(':').map(Number);
 
             const openMinutes =
-                Number(openParts[0]) * 60 +
-                Number(openParts[1]);
+                openHour * 60 + openMinute;
 
             const closeMinutes =
-                Number(closeParts[0]) * 60 +
-                Number(closeParts[1]);
+                closeHour * 60 + closeMinute;
 
-            if (
-                closeMinutes <= openMinutes
-            ) {
-                Alert.alert(
-                    'Invalid Hours',
-                    `${day.label}: closing time must be after opening time.`,
-                );
-
-                return false;
+            // Same time = 24 hours
+            if (openMinutes === closeMinutes) {
+                continue;
             }
+
+            // Different times are always valid.
+            //
+            // Examples:
+            // 09:00 → 18:00  = same day
+            // 09:00 → 00:00  = midnight
+            // 18:00 → 02:00  = overnight
+            // 22:00 → 04:00  = overnight
+            //
+            // Therefore we don't reject close time merely
+            // because it is numerically smaller.
         }
 
         return true;
     };
-
     const handleNext = () => {
         if (!validateHours()) {
             return;
@@ -288,7 +282,7 @@ export default function SalonBusinessHoursScreen({
                                                 false:
                                                     COLORS.borderStrong,
                                                 true:
-                                                    COLORS.primary,
+                                                    COLORS.themeColor,
                                             }}
                                             thumbColor={
                                                 COLORS.white
@@ -549,7 +543,7 @@ const styles = {
         height: 52,
         marginTop: SPACING.xl,
         borderRadius: RADIUS.medium,
-        backgroundColor: COLORS.primary,
+        backgroundColor: COLORS.themeColor,
         alignItems: 'center' as const,
         justifyContent: 'center' as const,
     },
