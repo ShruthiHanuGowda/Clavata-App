@@ -83,11 +83,11 @@ const BecomePartnerScreen = ({ navigation }: any) => {
 
         <View style={styles.hero}>
 
-          <View style={styles.iconCircle}>
+          {/* <View style={styles.iconCircle}>
             <Text style={styles.icon}>
               ✦
             </Text>
-          </View>
+          </View> */}
 
           <Text style={styles.title}>
             Grow your business with Clavata
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
       RADIUS.round,
 
     backgroundColor:
-      COLORS.black,
+      COLORS.themeColor,
 
     alignItems: 'center',
 
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
       RADIUS.medium,
 
     backgroundColor:
-      COLORS.black,
+      COLORS.themeColor,
 
     flexDirection: 'row',
 

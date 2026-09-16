@@ -101,7 +101,7 @@ export default function SalonRegistrationScreen({ navigation }: any) {
           />
         </View>
 
-        <DButton type="primary" style={styles.button} onPress={onNext}>
+        <DButton style={styles.button} onPress={onNext}>
           <Text style={styles.buttonText}>Continue</Text>
         </DButton>
       </ScrollView>
@@ -169,6 +169,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.medium,
     marginTop: SPACING.xl,
     alignSelf: 'center',
+    backgroundColor: COLORS.themeColor
   },
   buttonText: {
     color: COLORS.white,
