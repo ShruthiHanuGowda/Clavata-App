@@ -260,6 +260,114 @@ export default function SalonKYCScreen({
   };
 
   // ==========================================================
+  // TOGGLE ENTIRE CATEGORY
+  //
+  // Checking a category selects ALL of its subcategories.
+  // Unchecking a category removes ALL of its subcategories.
+  // ==========================================================
+
+  const toggleCategorySelection = (
+    category: Category,
+  ) => {
+    const categorySubcategories =
+      getCategorySubcategories(
+        category.categoryId,
+      );
+
+    if (categorySubcategories.length === 0) {
+      return;
+    }
+
+    const selectedCategoryCount =
+      selectedServiceSelections.filter(
+        selection =>
+          selection.categoryId ===
+          category.categoryId,
+      ).length;
+
+    const allSelected =
+      selectedCategoryCount ===
+      categorySubcategories.length;
+
+    if (allSelected) {
+      // Remove every subcategory belonging to this category.
+      updateData({
+        serviceSelections:
+          selectedServiceSelections.filter(
+            selection =>
+              selection.categoryId !==
+              category.categoryId,
+          ),
+      });
+
+      return;
+    }
+
+    // Select every subcategory belonging to this category.
+    const selectionsForCategory =
+      categorySubcategories.map(
+        subcategory => ({
+          categoryId:
+            category.categoryId,
+          categoryName:
+            category.name,
+          subcategoryId:
+            subcategory.subcategoryId,
+          subcategoryName:
+            subcategory.name,
+        }),
+      );
+
+    const selectionsFromOtherCategories =
+      selectedServiceSelections.filter(
+        selection =>
+          selection.categoryId !==
+          category.categoryId,
+      );
+
+    updateData({
+      serviceSelections: [
+        ...selectionsFromOtherCategories,
+        ...selectionsForCategory,
+      ],
+    });
+  };
+
+  // ==========================================================
+  // CATEGORY CHECKBOX STATE
+  // ==========================================================
+
+  const getCategorySelectionState = (
+    categoryId: string,
+  ) => {
+    const categorySubcategories =
+      getCategorySubcategories(
+        categoryId,
+      );
+
+    const selectedCount =
+      selectedServiceSelections.filter(
+        selection =>
+          selection.categoryId ===
+          categoryId,
+      ).length;
+
+    return {
+      selectedCount,
+      totalCount:
+        categorySubcategories.length,
+      allSelected:
+        categorySubcategories.length > 0 &&
+        selectedCount ===
+          categorySubcategories.length,
+      partiallySelected:
+        selectedCount > 0 &&
+        selectedCount <
+          categorySubcategories.length,
+    };
+  };
+
+  // ==========================================================
   // TOGGLE SUBCATEGORY
   // ==========================================================
 
@@ -1412,6 +1520,66 @@ export default function SalonKYCScreen({
                           }
                         >
 
+                          {/* =================================
+                              CATEGORY CHECKBOX
+                              Checking this selects ALL
+                              subcategories in the category.
+                          ================================= */}
+
+                          {(() => {
+                            const categorySelectionState =
+                              getCategorySelectionState(
+                                category.categoryId,
+                              );
+
+                            const categorySelected =
+                              categorySelectionState.allSelected;
+
+                            const categoryPartial =
+                              categorySelectionState.partiallySelected;
+
+                            return (
+                              <TouchableOpacity
+                                activeOpacity={0.8}
+                                disabled={
+                                  categorySubcategories.length === 0
+                                }
+                                onPress={() =>
+                                  toggleCategorySelection(
+                                    category,
+                                  )
+                                }
+                                style={[
+                                  styles.categoryCheckbox,
+                                  categorySelected &&
+                                    styles.categoryCheckboxSelected,
+                                  categoryPartial &&
+                                    styles.categoryCheckboxPartial,
+                                  categorySubcategories.length === 0 &&
+                                    styles.categoryCheckboxDisabled,
+                                ]}
+                              >
+                                {categorySelected ? (
+                                  <Text
+                                    style={
+                                      styles.categoryCheckmark
+                                    }
+                                  >
+                                    ✓
+                                  </Text>
+                                ) : categoryPartial ? (
+                                  <Text
+                                    style={
+                                      styles.categoryPartialMark
+                                    }
+                                  >
+                                    −
+                                  </Text>
+                                ) : null}
+                              </TouchableOpacity>
+                            );
+                          })()}
+
                           <View
                             style={
                               styles.categoryIcon
@@ -1467,7 +1635,13 @@ export default function SalonKYCScreen({
                             OPEN / CLOSE
                         =================================== */}
 
-                        <View
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() =>
+                            toggleCategory(
+                              category.categoryId,
+                            )
+                          }
                           style={
                             styles.categoryToggle
                           }
@@ -1483,7 +1657,7 @@ export default function SalonKYCScreen({
                               : '+'}
                           </Text>
 
-                        </View>
+                        </TouchableOpacity>
 
                       </TouchableOpacity>
 
@@ -2429,6 +2603,80 @@ const styles =
 
       color:
         COLORS.textSecondary,
+    },
+
+    // ========================================================
+    // CATEGORY CHECKBOX
+    // ========================================================
+
+    categoryCheckbox: {
+      width: 24,
+
+      height: 24,
+
+      borderRadius: 6,
+
+      borderWidth: 1.5,
+
+      borderColor:
+        COLORS.border,
+
+      alignItems:
+        'center',
+
+      justifyContent:
+        'center',
+
+      marginRight:
+        SPACING.medium,
+
+      backgroundColor:
+        COLORS.surface,
+    },
+
+    categoryCheckboxSelected: {
+      backgroundColor:
+        COLORS.themeColor,
+
+      borderColor:
+        COLORS.themeColor,
+    },
+
+    categoryCheckboxPartial: {
+      backgroundColor:
+        COLORS.themeColor,
+
+      borderColor:
+        COLORS.themeColor,
+    },
+
+    categoryCheckboxDisabled: {
+      opacity:
+        0.45,
+    },
+
+    categoryCheckmark: {
+      color:
+        COLORS.white,
+
+      fontFamily:
+        FONTS.bold,
+
+      fontSize: 15,
+
+      lineHeight: 18,
+    },
+
+    categoryPartialMark: {
+      color:
+        COLORS.white,
+
+      fontFamily:
+        FONTS.bold,
+
+      fontSize: 18,
+
+      lineHeight: 18,
     },
 
     categoryToggle: {

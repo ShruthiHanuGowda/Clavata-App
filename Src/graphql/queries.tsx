@@ -1589,6 +1589,17 @@ export const GET_SALON = gql`
         rejectionReason
       }
 
+      # ==========================================================
+      # SERVICE SELECTIONS
+      # ==========================================================
+
+      serviceSelections {
+        categoryId
+        categoryName
+        subcategoryId
+        subcategoryName
+      }
+
       businessHours {
         MONDAY {
           open
@@ -1704,11 +1715,62 @@ export const CREATE_SALON_MEDIA = gql`
 // UPDATE SALON PROFILE
 // ============================================================
 
+// export const UPDATE_SALON_PROFILE = gql`
+//     mutation UpdateSalonProfile(
+//         $input: UpdateSalonProfileInput!
+//     ) {
+//         updateSalonProfile(input: $input) {
+//             success
+//             message
+
+//             salon {
+//                 salonId
+//                 ownerUserId
+//                 salonName
+//                 ownerName
+//                 businessType
+//                 ownerPhoneNumber
+//                 alternatePhone
+//                 email
+
+//                 address {
+//                     addressLine
+//                     city
+//                     state
+//                     pincode
+//                 }
+
+//                 logoUrl
+//                 coverImageUrl
+//                 galleryImages
+
+//                 kycStatus
+//                 salonStatus
+
+//                 isActive
+//                 isVisible
+//                 isDeleted
+
+//                 averageRating
+//                 totalReviews
+//                 totalAppointments
+//                 totalCompletedAppointments
+//                 totalCancelledAppointments
+//                 totalRevenue
+
+//                 createdAt
+//                 updatedAt
+//             }
+//         }
+//     }
+// `;
 export const UPDATE_SALON_PROFILE = gql`
     mutation UpdateSalonProfile(
         $input: UpdateSalonProfileInput!
     ) {
-        updateSalonProfile(input: $input) {
+        updateSalonProfile(
+            input: $input
+        ) {
             success
             message
 
@@ -1733,20 +1795,24 @@ export const UPDATE_SALON_PROFILE = gql`
                 coverImageUrl
                 galleryImages
 
+                serviceSelections {
+                    categoryId
+                    categoryName
+                    subcategoryId
+                    subcategoryName
+                }
+
                 kycStatus
                 salonStatus
-
                 isActive
                 isVisible
                 isDeleted
-
                 averageRating
                 totalReviews
                 totalAppointments
                 totalCompletedAppointments
                 totalCancelledAppointments
                 totalRevenue
-
                 createdAt
                 updatedAt
             }

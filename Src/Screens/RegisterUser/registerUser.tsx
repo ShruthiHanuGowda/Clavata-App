@@ -243,7 +243,7 @@ export default function RegisterUser() {
             </Pressable>
 
             <DButton
-              type="primary"
+              // type="primary"
               style={styles.button}
               disabled={
                 loading ||
@@ -435,6 +435,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   button: {
+    backgroundColor: COLORS.themeColor,
     width: '100%',
     height: 52,
     borderRadius: RADIUS.medium,
