@@ -83,43 +83,43 @@ export default function SalonKYCScreen({
   } = useSalonRegistration();
 
   // ==========================================================
-  // STATE
+  // KYC STATE
+  //
+  // IMPORTANT:
+  // These are intentionally EMPTY when the KYC screen opens.
+  //
+  // Previously these were initialized using:
+  //
+  // useState(data.panNumber || '')
+  //
+  // which caused previously stored context values to appear
+  // automatically.
   // ==========================================================
 
   const [
     panNumber,
     setPanNumber,
-  ] = useState(
-    data.panNumber || '',
-  );
+  ] = useState('');
 
   const [
     aadhaarNumber,
     setAadhaarNumber,
-  ] = useState(
-    data.aadhaarNumber || '',
-  );
+  ] = useState('');
 
   const [
     gstNumber,
     setGstNumber,
-  ] = useState(
-    data.gstNumber || '',
-  );
+  ] = useState('');
 
   const [
     shopEstablishmentNumber,
     setShopEstablishmentNumber,
-  ] = useState(
-    data.shopEstablishmentNumber || '',
-  );
+  ] = useState('');
 
   const [
     udyamNumber,
     setUdyamNumber,
-  ] = useState(
-    data.udyamNumber || '',
-  );
+  ] = useState('');
 
   const [
     submitting,
@@ -128,9 +128,6 @@ export default function SalonKYCScreen({
 
   // ==========================================================
   // SELECTED SERVICES EXPANSION
-  //
-  // false = show first 6
-  // true  = show all selected services
   // ==========================================================
 
   const [
@@ -150,8 +147,7 @@ export default function SalonKYCScreen({
   // ==========================================================
   // OPEN CATEGORIES
   //
-  // IMPORTANT:
-  // Empty object means every category is CLOSED initially.
+  // Empty object = all categories closed initially.
   // ==========================================================
 
   const [
@@ -187,11 +183,19 @@ export default function SalonKYCScreen({
     },
   );
 
+  // ==========================================================
+  // CATEGORIES
+  // ==========================================================
+
   const categories: Category[] =
     categoryResponse
       ?.categories
       ?.categories ||
     [];
+
+  // ==========================================================
+  // SUBCATEGORIES
+  // ==========================================================
 
   const subcategories: Subcategory[] =
     subcategoryResponse
@@ -201,6 +205,9 @@ export default function SalonKYCScreen({
 
   // ==========================================================
   // CURRENT SERVICE SELECTIONS
+  //
+  // These SHOULD continue coming from context.
+  // The user already selected these on the previous screen.
   // ==========================================================
 
   const selectedServiceSelections:
@@ -262,19 +269,22 @@ export default function SalonKYCScreen({
   // ==========================================================
   // TOGGLE ENTIRE CATEGORY
   //
-  // Checking a category selects ALL of its subcategories.
-  // Unchecking a category removes ALL of its subcategories.
+  // Checking category = select all subcategories.
+  // Unchecking category = remove all subcategories.
   // ==========================================================
 
   const toggleCategorySelection = (
     category: Category,
   ) => {
+
     const categorySubcategories =
       getCategorySubcategories(
         category.categoryId,
       );
 
-    if (categorySubcategories.length === 0) {
+    if (
+      categorySubcategories.length === 0
+    ) {
       return;
     }
 
@@ -289,8 +299,12 @@ export default function SalonKYCScreen({
       selectedCategoryCount ===
       categorySubcategories.length;
 
+    // ========================================================
+    // REMOVE ALL
+    // ========================================================
+
     if (allSelected) {
-      // Remove every subcategory belonging to this category.
+
       updateData({
         serviceSelections:
           selectedServiceSelections.filter(
@@ -303,16 +317,22 @@ export default function SalonKYCScreen({
       return;
     }
 
-    // Select every subcategory belonging to this category.
+    // ========================================================
+    // SELECT ALL
+    // ========================================================
+
     const selectionsForCategory =
       categorySubcategories.map(
         subcategory => ({
           categoryId:
             category.categoryId,
+
           categoryName:
             category.name,
+
           subcategoryId:
             subcategory.subcategoryId,
+
           subcategoryName:
             subcategory.name,
         }),
@@ -340,6 +360,7 @@ export default function SalonKYCScreen({
   const getCategorySelectionState = (
     categoryId: string,
   ) => {
+
     const categorySubcategories =
       getCategorySubcategories(
         categoryId,
@@ -354,12 +375,15 @@ export default function SalonKYCScreen({
 
     return {
       selectedCount,
+
       totalCount:
         categorySubcategories.length,
+
       allSelected:
         categorySubcategories.length > 0 &&
         selectedCount ===
           categorySubcategories.length,
+
       partiallySelected:
         selectedCount > 0 &&
         selectedCount <
@@ -385,6 +409,10 @@ export default function SalonKYCScreen({
     let updatedSelections:
       SalonServiceSelection[];
 
+    // ========================================================
+    // REMOVE
+    // ========================================================
+
     if (alreadySelected) {
 
       updatedSelections =
@@ -399,6 +427,10 @@ export default function SalonKYCScreen({
         );
 
     } else {
+
+      // ======================================================
+      // ADD
+      // ======================================================
 
       updatedSelections = [
         ...selectedServiceSelections,
@@ -580,6 +612,9 @@ export default function SalonKYCScreen({
 
       // ======================================================
       // SAVE KYC INFORMATION
+      //
+      // KYC fields are saved into registration context ONLY
+      // when Continue is pressed.
       // ======================================================
 
       updateData({
@@ -619,6 +654,9 @@ export default function SalonKYCScreen({
 
         // ====================================================
         // KEEP SELECTED CLAVATA CATEGORIES/SUBCATEGORIES
+        //
+        // Only IDs are sent to backend.
+        // Names are used by UI.
         // ====================================================
 
         serviceSelections:
@@ -945,7 +983,7 @@ export default function SalonKYCScreen({
           </Text>
 
           {/* =================================================
-              SERVICE SELECTOR
+              SERVICE LOADING
           ================================================= */}
 
           {(
@@ -1120,12 +1158,6 @@ export default function SalonKYCScreen({
 
               </View>
 
-              {/* =================================================
-                  SELECTED SERVICES
-                  First 6 by default.
-                  All when expanded.
-              ================================================= */}
-
               {(
                 showAllSelectedServices
                   ? selectedServiceSelections
@@ -1182,9 +1214,7 @@ export default function SalonKYCScreen({
                 ),
               )}
 
-              {/* =================================================
-                  MORE / SHOW LESS
-              ================================================= */}
+              {/* MORE / SHOW LESS */}
 
               {selectedServiceSelections.length > 6 ? (
 
@@ -1520,13 +1550,10 @@ export default function SalonKYCScreen({
                           }
                         >
 
-                          {/* =================================
-                              CATEGORY CHECKBOX
-                              Checking this selects ALL
-                              subcategories in the category.
-                          ================================= */}
+                          {/* CATEGORY CHECKBOX */}
 
                           {(() => {
+
                             const categorySelectionState =
                               getCategorySelectionState(
                                 category.categoryId,
@@ -1559,7 +1586,9 @@ export default function SalonKYCScreen({
                                     styles.categoryCheckboxDisabled,
                                 ]}
                               >
+
                                 {categorySelected ? (
+
                                   <Text
                                     style={
                                       styles.categoryCheckmark
@@ -1567,7 +1596,9 @@ export default function SalonKYCScreen({
                                   >
                                     ✓
                                   </Text>
+
                                 ) : categoryPartial ? (
+
                                   <Text
                                     style={
                                       styles.categoryPartialMark
@@ -1575,10 +1606,15 @@ export default function SalonKYCScreen({
                                   >
                                     −
                                   </Text>
+
                                 ) : null}
+
                               </TouchableOpacity>
                             );
+
                           })()}
+
+                          {/* CATEGORY ICON */}
 
                           <View
                             style={
@@ -1597,6 +1633,8 @@ export default function SalonKYCScreen({
                             </Text>
 
                           </View>
+
+                          {/* CATEGORY NAME */}
 
                           <View
                             style={
@@ -1631,9 +1669,7 @@ export default function SalonKYCScreen({
 
                         </View>
 
-                        {/* ===================================
-                            OPEN / CLOSE
-                        =================================== */}
+                        {/* OPEN / CLOSE */}
 
                         <TouchableOpacity
                           activeOpacity={0.8}
@@ -1802,10 +1838,6 @@ export default function SalonKYCScreen({
               <Pressable
                 onPress={() => {
 
-                  // ==========================================
-                  // SERVICE SELECTION IS MANDATORY
-                  // ==========================================
-
                   if (
                     selectedServiceSelections.length === 0
                   ) {
@@ -1858,7 +1890,6 @@ const styles =
 
     container: {
       flex: 1,
-
       backgroundColor:
         COLORS.background,
     },

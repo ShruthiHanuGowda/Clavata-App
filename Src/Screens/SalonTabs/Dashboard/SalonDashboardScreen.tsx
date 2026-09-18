@@ -92,6 +92,9 @@ export default function SalonDashboardScreen() {
     const navigation = useNavigation();
     const { currentUser } = useUser();
     const salonId = currentUser?.salonId;
+    console.log('========== SALON DASHBOARD ==========');
+    console.log('currentUser:', JSON.stringify(currentUser, null, 2));
+    console.log('salonId:', salonId);
     const {
         data,
         loading,
@@ -121,6 +124,7 @@ export default function SalonDashboardScreen() {
             fetchPolicy: 'network-only',
         },
     );
+
     const bookings = data?.salonBookings ?? [];
 
     /**
@@ -290,6 +294,13 @@ export default function SalonDashboardScreen() {
      * Currently Booking contains salonName.
      */
     const salon = salonData?.getSalon;
+
+    console.log('========== GET SALON RESULT ==========');
+    console.log('salonLoading:', salonLoading);
+    console.log('salonError:', salonError?.message);
+    console.log('salonData:', JSON.stringify(salonData, null, 2));
+    console.log('salon:', JSON.stringify(salon, null, 2));
+    console.log('salonName:', salon?.salonName);
 
     const salonName =
         salon?.salonName?.trim() ||

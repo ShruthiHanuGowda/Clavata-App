@@ -358,8 +358,8 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
   },
   verifiedIcon: {
-    width: 32,
-    height: 32,
+    width: 20,
+    height: 20,
     borderRadius: RADIUS.round,
     borderWidth: 1,
     borderColor: COLORS.primary,
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   },
   verifiedTick: {
     fontFamily: FONTS.semiBold,
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '600',
     color: COLORS.primary,
     includeFontPadding: false,
@@ -411,8 +411,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   checkboxSelected: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: COLORS.themeColor,
+    borderColor: COLORS.themeColor,
   },
   tick: {
     fontFamily: FONTS.semiBold,
