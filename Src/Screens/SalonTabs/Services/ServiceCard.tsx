@@ -13,7 +13,12 @@ type Props = {
     salonId: string;
 
     name: string;
+
     category: string;
+    categoryId?: string;
+
+    subcategoryName?: string;
+    subcategoryId?: string;
 
     description?: string;
 
@@ -38,6 +43,7 @@ type Props = {
 export default function ServiceCard({
     name,
     category,
+    subcategoryName,
     description,
     duration,
     price,
@@ -56,7 +62,12 @@ export default function ServiceCard({
                     </Text>
 
                     <Text style={styles.duration}>
-                        {category} • {duration} min
+                        {category}
+                        {subcategoryName
+                            ? ` • ${subcategoryName}`
+                            : ''}
+                        {' • '}
+                        {duration} min
                     </Text>
 
                     {!!description && (

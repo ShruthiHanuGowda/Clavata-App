@@ -102,72 +102,72 @@ export const REGISTER_SALON_PARTNER = gql`
 `;
 
 
-export const CREATE_SERVICE = gql`
-  mutation CreateService($input: CreateServiceInput!) {
-    createService(input: $input) {
-      success
-      message
-      service {
-        serviceId
-        salonId
-        name
-        category
-        description
-        duration
-        price
-        gender
-        popular
-        active
-        createdAt
-      }
-    }
-  }
-`;
+// export const CREATE_SERVICE = gql`
+//   mutation CreateService($input: CreateServiceInput!) {
+//     createService(input: $input) {
+//       success
+//       message
+//       service {
+//         serviceId
+//         salonId
+//         name
+//         category
+//         description
+//         duration
+//         price
+//         gender
+//         popular
+//         active
+//         createdAt
+//       }
+//     }
+//   }
+// `;
 
-export const UPDATE_SERVICE = gql`
-mutation UpdateService($input: UpdateServiceInput!) {
-  updateService(input: $input) {
-    success
-    message
-    service {
-      serviceId
-      name
-      category
-      description
-      duration
-      price
-      gender
-      popular
-      active
-    }
-  }
-}`;
+// export const UPDATE_SERVICE = gql`
+// mutation UpdateService($input: UpdateServiceInput!) {
+//   updateService(input: $input) {
+//     success
+//     message
+//     service {
+//       serviceId
+//       name
+//       category
+//       description
+//       duration
+//       price
+//       gender
+//       popular
+//       active
+//     }
+//   }
+// }`;
 
 
-export const DELETE_SERVICE = gql`
-mutation DeleteService($input: DeleteServiceInput!) {
-  deleteService(input: $input) {
-    success
-    message
-  }
-}`;
+// export const DELETE_SERVICE = gql`
+// mutation DeleteService($input: DeleteServiceInput!) {
+//   deleteService(input: $input) {
+//     success
+//     message
+//   }
+// }`;
 
-export const LIST_SERVICES = gql`
-query ListServices($salonId: ID!) {
-  listServices(salonId: $salonId) {
-    serviceId
-    salonId
-    name
-    category
-    description
-    duration
-    price
-    gender
-    popular
-    active
-    createdAt
-  }
-}`
+// export const LIST_SERVICES = gql`
+// query ListServices($salonId: ID!) {
+//   listServices(salonId: $salonId) {
+//     serviceId
+//     salonId
+//     name
+//     category
+//     description
+//     duration
+//     price
+//     gender
+//     popular
+//     active
+//     createdAt
+//   }
+// }`
 
 export const GET_BOOKING = gql`
     query GetBooking($bookingId: ID!) {
@@ -1871,6 +1871,198 @@ export const GET_CLAVATA_SUBCATEGORIES = gql`
         createdAt
         updatedAt
       }
+    }
+  }
+`;
+
+/**
+ * ============================================================
+ * SALON SERVICE SELECTIONS
+ * ============================================================
+ *
+ * Fetches the category/subcategory combinations selected
+ * by this salon during registration.
+ *
+ * We intentionally request ONLY serviceSelections here.
+ * This avoids unnecessary Salon fields such as statistics.
+ */
+// export const GET_SALON_SERVICE_SELECTIONS = gql`
+//   query GetSalonServiceSelections($salonId: ID!) {
+//     getSalon(salonId: $salonId) {
+//       serviceSelections {
+//         categoryId
+//         categoryName
+//         subcategoryId
+//         subcategoryName
+//       }
+//     }
+//   }
+// `;
+
+
+
+export const GET_SALON_SERVICE_SELECTIONS = gql`
+  query GetSalonServiceSelections($salonId: ID!) {
+    getSalon(salonId: $salonId) {
+      salonId
+      salonName
+      serviceSelections {
+        categoryId
+        categoryName
+        subcategoryId
+        subcategoryName
+      }
+    }
+  }
+`;
+
+export const LIST_CATEGORIES = gql`
+  query Categories($search: String, $status: CategoryStatus) {
+    categories(search: $search, status: $status) {
+      success
+      message
+      categories {
+        categoryId
+        name
+        description
+        servicesCount
+        status
+        createdAt
+        updatedAt
+      }
+      totalCount
+    }
+  }
+`;
+
+export const LIST_SUBCATEGORIES = gql`
+  query Subcategories(
+    $categoryId: ID
+    $search: String
+    $status: SubcategoryStatus
+  ) {
+    subcategories(
+      categoryId: $categoryId
+      search: $search
+      status: $status
+    ) {
+      success
+      message
+      subcategories {
+        subcategoryId
+        categoryId
+        name
+        description
+        servicesCount
+        status
+        createdAt
+        updatedAt
+      }
+      totalCount
+    }
+  }
+`;
+
+export const CREATE_SERVICE = gql`
+  mutation CreateService($input: CreateServiceInput!) {
+    createService(input: $input) {
+      success
+      message
+      service {
+        serviceId
+        salonId
+        name
+        categoryId
+        categoryName
+        subcategoryId
+        subcategoryName
+        description
+        duration
+        price
+        gender
+        popular
+        active
+        createdAt
+        updatedAt
+        updatedBy
+      }
+    }
+  }
+`;
+
+export const UPDATE_SERVICE = gql`
+  mutation UpdateService($input: UpdateServiceInput!) {
+    updateService(input: $input) {
+      success
+      message
+      service {
+        serviceId
+        salonId
+        name
+        categoryId
+        categoryName
+        subcategoryId
+        subcategoryName
+        description
+        duration
+        price
+        gender
+        popular
+        active
+        createdAt
+        updatedAt
+        updatedBy
+      }
+    }
+  }
+`;
+
+export const DELETE_SERVICE = gql`
+  mutation DeleteService($input: DeleteServiceInput!) {
+    deleteService(input: $input) {
+      success
+      message
+      service {
+        serviceId
+        salonId
+        name
+        categoryId
+        categoryName
+        subcategoryId
+        subcategoryName
+        description
+        duration
+        price
+        gender
+        popular
+        active
+        createdAt
+        updatedAt
+        updatedBy
+      }
+    }
+  }
+`;
+
+export const LIST_SERVICES = gql`
+  query ListServices($salonId: ID!) {
+    listServices(salonId: $salonId) {
+      serviceId
+      salonId
+      name
+      categoryId
+      categoryName
+      subcategoryId
+      subcategoryName
+      description
+      duration
+      price
+      gender
+      popular
+      active
+      createdAt
+      updatedAt
+      updatedBy
     }
   }
 `;
