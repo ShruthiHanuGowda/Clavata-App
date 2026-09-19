@@ -255,11 +255,11 @@ export default function SalonRegistrationScreen({ navigation }: any) {
               BUSINESS PHONE
           ================================================== */}
 
-          <Text style={styles.label}>
+          {/* <Text style={styles.label}>
             Business Phone/Mobile Number
-          </Text>
+          </Text> */}
 
-          <View style={styles.phoneContainer}>
+          {/* <View style={styles.phoneContainer}>
 
             <Text style={styles.phoneText}>
               {currentUser?.phoneNumber ||
@@ -276,7 +276,7 @@ export default function SalonRegistrationScreen({ navigation }: any) {
 
           <Text style={styles.phoneHint}>
             This is the mobile number verified with Clavata.
-          </Text>
+          </Text> */}
 
         </View>
 

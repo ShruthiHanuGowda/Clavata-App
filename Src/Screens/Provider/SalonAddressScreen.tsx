@@ -956,7 +956,7 @@ export default function SalonAddressScreen({
               PAGE INTRO
           ================================================== */}
 
-          <View
+          {/* <View
             style={
               styles.headerSection
             }
@@ -974,7 +974,7 @@ export default function SalonAddressScreen({
               location. You can fine-tune the exact location on
               the map.
             </Text>
-          </View>
+          </View> */}
 
           {/* ==================================================
               LOCATION METHOD CARD
@@ -1017,13 +1017,13 @@ export default function SalonAddressScreen({
                   Find your salon
                 </Text>
 
-                <Text
+                {/* <Text
                   style={
                     styles.locationMethodSubtitle
                   }
                 >
                   Choose whichever is easier for you.
-                </Text>
+                </Text> */}
               </View>
             </View>
 

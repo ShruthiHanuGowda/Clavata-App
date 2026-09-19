@@ -30,6 +30,7 @@ export const FONTS = {
 export const FONT_SIZES = {
   xs: 12,
   small: 14,
+  selected:15,
   body: 16,
   medium: 17,
   title: 20,

@@ -75,9 +75,9 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             Become a service partner
           </Text>
 
-          <Text style={styles.headerWith}>
+          {/* <Text style={styles.headerWith}>
             with
-          </Text>
+          </Text> */}
 
         </View>
 
@@ -108,7 +108,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
           </Text>
 
           <Text style={styles.subtitle}>
-            Your next client starts here.
+            Your next client starts here
           </Text>
 
         </View>
@@ -120,7 +120,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
         <View style={styles.card}>
 
           <Text style={styles.cardTitle}>
-            Everything you need to Grow Your Business
+            Grow Your Business
           </Text>
 
           {/* ------------------------------------------------
@@ -190,7 +190,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             </View>
 
             <Text style={styles.itemText}>
-              Manage your business and staff with ease
+              Manage your business with ease
             </Text>
 
           </View>
@@ -225,7 +225,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
         ==================================================== */}
 
         <Text style={styles.note}>
-          Register in minutes and get your business verified.
+          Register in minutes and get your business verified
         </Text>
 
       </View>
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
       SPACING.xxl,
 
     paddingTop:
-      SPACING.xxxl,
+      SPACING.medium,
   },
 
   // ==========================================================
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
       FONTS.semiBold,
 
     fontSize:
-      FONT_SIZES.title,
+      FONT_SIZES.heading,
 
     lineHeight:
       FONT_SIZES.title + 5,
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
       FONTS.regular,
 
     fontSize:
-      FONT_SIZES.small,
+      FONT_SIZES.medium,
 
     lineHeight:
       FONT_SIZES.small + 7,
@@ -494,10 +494,10 @@ const styles = StyleSheet.create({
 
   cardTitle: {
     fontFamily:
-      FONTS.semiBold,
+      FONTS.bold,
 
     fontSize:
-      FONT_SIZES.body,
+      FONT_SIZES.title,
 
     color:
       COLORS.text,
@@ -556,10 +556,10 @@ const styles = StyleSheet.create({
     flex: 1,
 
     fontFamily:
-      FONTS.regular,
+      FONTS.medium,
 
     fontSize:
-      FONT_SIZES.small,
+      FONT_SIZES.body,
 
     lineHeight:
       FONT_SIZES.small + 6,
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
       FONTS.regular,
 
     fontSize:
-      FONT_SIZES.xs,
+      FONT_SIZES.selected,
 
     color:
       COLORS.textMuted,

@@ -719,7 +719,7 @@ export default function SalonKYCScreen({
     >
 
       <Header
-        headerTitle="Salon KYC"
+        headerTitle="Business Verification"
       />
 
       <ScrollView
@@ -742,12 +742,12 @@ export default function SalonKYCScreen({
           Verify your salon
         </Text>
 
-        <Text
+        {/* <Text
           style={styles.subtitle}
         >
           Provide the owner and business information required
           to verify your salon.
-        </Text>
+        </Text> */}
 
         {/* ==================================================
             OWNER VERIFICATION
@@ -766,7 +766,7 @@ export default function SalonKYCScreen({
           <Text
             style={styles.sectionSubtitle}
           >
-            These details are used to verify the salon owner.
+            These details are used to verify the business owner.
           </Text>
 
           {/* PAN */}
