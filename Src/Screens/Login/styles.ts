@@ -179,7 +179,13 @@ const styles = StyleSheet.create({
 
     includeFontPadding: false,
   },
-
+yearText: {
+  fontFamily: FONTS.medium,
+  fontSize: FONT_SIZES.small,
+  color: COLORS.textMuted,
+  textAlign: 'center',
+  marginTop: 2,
+},
   legalRow: {
     flexDirection: 'row',
 

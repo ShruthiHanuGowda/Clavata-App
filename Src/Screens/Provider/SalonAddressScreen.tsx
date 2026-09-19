@@ -932,7 +932,7 @@ export default function SalonAddressScreen({
       style={styles.container}
     >
       <Header
-        headerTitle="Salon Address"
+        headerTitle="Business Address"
       />
 
       <KeyboardAvoidingView

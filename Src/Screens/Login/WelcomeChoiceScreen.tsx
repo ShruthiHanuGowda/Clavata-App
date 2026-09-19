@@ -10,6 +10,8 @@ import {
     Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
 import {
     COLORS,
     FONTS,
@@ -49,55 +51,86 @@ const WelcomeChoiceScreen = () => {
                 barStyle="dark-content"
                 backgroundColor={COLORS.background}
             />
+
             <View style={styles.container}>
+                {/* Logo */}
                 <Image
                     source={require('../../assets/logo-blue.png')}
                     style={styles.logo}
                     resizeMode="contain"
                 />
+
+                {/* Options */}
                 <View style={styles.optionsContainer}>
+                    {/* Customer */}
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={handleFindService}
                         style={styles.option}
                     >
                         <View style={styles.iconContainer}>
-                            <PersonIcon />
+                            <MaterialCommunityIcons
+                                name="account-search-outline"
+                                size={28}
+                                color={COLORS.primary}
+                            />
                         </View>
+
                         <View style={styles.optionContent}>
                             <Text style={styles.optionTitle}>
                                 Royal Member
                             </Text>
+
                             <Text style={styles.optionDescription}>
-                                Find the right service.
-                                Book in minutes
+                                Find the right service. Book in minutes
                             </Text>
                         </View>
-                        <Text style={styles.arrow}>›</Text>
+
+                        <MaterialCommunityIcons
+                            name="chevron-right"
+                            size={26}
+                            color={COLORS.textMuted}
+                        />
                     </TouchableOpacity>
+
+                    {/* Provider */}
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={handleProvideService}
                         style={styles.option}
                     >
                         <View style={styles.iconContainer}>
-                            <BusinessIcon />
+                            <MaterialCommunityIcons
+                                name="storefront-outline"
+                                size={28}
+                                color={COLORS.primary}
+                            />
                         </View>
+
                         <View style={styles.optionContent}>
                             <Text style={styles.optionTitle}>
-                               Service Partner
+                                Service Partner
                             </Text>
+
                             <Text style={styles.optionDescription}>
                                 Get discovered. Receive bookings
                             </Text>
                         </View>
-                        <Text style={styles.arrow}>›</Text>
+
+                        <MaterialCommunityIcons
+                            name="chevron-right"
+                            size={26}
+                            color={COLORS.textMuted}
+                        />
                     </TouchableOpacity>
                 </View>
+
+                {/* Sign In */}
                 <View style={styles.signInContainer}>
                     <Text style={styles.signInText}>
                         Already have an account?
                     </Text>
+
                     <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={handleSignIn}
@@ -112,28 +145,6 @@ const WelcomeChoiceScreen = () => {
     );
 };
 
-const PersonIcon = () => {
-    return (
-        <View style={styles.personIcon}>
-            <View style={styles.personHead} />
-            <View style={styles.personBody} />
-        </View>
-    );
-};
-
-const BusinessIcon = () => {
-    return (
-        <View style={styles.businessIcon}>
-            <View style={styles.businessRoof} />
-            <View style={styles.businessBuilding}>
-                <View style={styles.businessDoor} />
-                <View style={styles.businessWindow} />
-                <View style={styles.businessWindow} />
-            </View>
-        </View>
-    );
-};
-
 export default WelcomeChoiceScreen;
 
 const styles = StyleSheet.create({
@@ -141,6 +152,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.background,
     },
+
     container: {
         flex: 1,
         backgroundColor: COLORS.background,
@@ -150,6 +162,7 @@ const styles = StyleSheet.create({
         ),
         paddingTop: height * 0.06,
     },
+
     logo: {
         width: 190,
         height: 70,
@@ -163,9 +176,11 @@ const styles = StyleSheet.create({
             height * 0.025,
         ),
     },
+
     optionsContainer: {
         width: '100%',
     },
+
     option: {
         width: '100%',
         minHeight: Math.min(
@@ -181,9 +196,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: SPACING.large,
         marginBottom: SPACING.medium,
     },
+
     iconContainer: {
-        width: 48,
-        height: 48,
+        width: 52,
+        height: 52,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
@@ -192,90 +208,27 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
         marginRight: SPACING.large,
     },
-    personIcon: {
-        width: 25,
-        height: 28,
-        alignItems: 'center',
-    },
-    personHead: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        borderWidth: 1.8,
-        borderColor: COLORS.primary,
-        marginBottom: 4,
-    },
-    personBody: {
-        width: 22,
-        height: 13,
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderWidth: 1.8,
-        borderBottomWidth: 0,
-        borderColor: COLORS.primary,
-    },
-    businessIcon: {
-        width: 25,
-        height: 27,
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-    },
-    businessRoof: {
-        width: 22,
-        height: 6,
-        borderWidth: 1.8,
-        borderBottomWidth: 0,
-        borderColor: COLORS.primary,
-        transform: [{ rotate: '45deg' }],
-        position: 'absolute',
-        top: 1,
-    },
-    businessBuilding: {
-        width: 22,
-        height: 19,
-        borderWidth: 1.8,
-        borderColor: COLORS.primary,
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        paddingBottom: 2,
-    },
-    businessDoor: {
-        width: 5,
-        height: 9,
-        borderWidth: 1.5,
-        borderColor: COLORS.primary,
-    },
-    businessWindow: {
-        width: 4,
-        height: 4,
-        borderWidth: 1,
-        borderColor: COLORS.primary,
-        position: 'absolute',
-        top: 5,
-    },
+
     optionContent: {
         flex: 1,
         justifyContent: 'center',
         paddingRight: SPACING.small,
     },
+
     optionTitle: {
         fontFamily: FONTS.semiBold,
         fontSize: FONT_SIZES.medium,
         color: COLORS.primary,
+        marginBottom: 3,
     },
+
     optionDescription: {
         fontFamily: FONTS.medium,
         fontSize: FONT_SIZES.small,
         color: COLORS.text,
+        lineHeight: FONT_SIZES.small + 5,
     },
-    arrow: {
-        fontFamily: FONTS.regular,
-        fontSize: 28,
-        lineHeight: 30,
-        color: COLORS.text,
-        marginLeft: SPACING.small,
-        includeFontPadding: false,
-    },
+
     signInContainer: {
         width: '100%',
         flexDirection: 'row',
@@ -283,11 +236,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: SPACING.medium,
     },
+
     signInText: {
         fontFamily: FONTS.medium,
         fontSize: FONT_SIZES.small,
         color: COLORS.text,
     },
+
     signInLink: {
         fontFamily: FONTS.bold,
         fontSize: FONT_SIZES.medium,

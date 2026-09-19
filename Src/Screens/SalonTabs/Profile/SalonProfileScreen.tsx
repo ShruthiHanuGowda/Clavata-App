@@ -856,14 +856,14 @@ export default function SalonProfileScreen() {
                         }
                     />
 
-                    <MenuItem
+                    {/* <MenuItem
                         title="Manage Services"
                         onPress={() =>
                             handleBusinessNavigation(
                                 'ManageServices',
                             )
                         }
-                    />
+                    /> */}
 
                     <MenuItem
                         title="Offers"
@@ -892,7 +892,7 @@ export default function SalonProfileScreen() {
                     <Text style={styles.sectionTitle}>
                         Account
                     </Text>
-
+{/* 
                     <MenuItem
                         title="Edit Profile"
                         onPress={() =>
@@ -900,7 +900,7 @@ export default function SalonProfileScreen() {
                                 'EditProfile',
                             )
                         }
-                    />
+                    /> */}
 
                     <MenuItem
                         title="Notifications"

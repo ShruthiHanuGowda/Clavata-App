@@ -135,7 +135,7 @@ export default function LoginScreen() {
           Alert.alert(
             'Unable to continue',
             data?.sendOTP?.message ||
-              'We could not send the verification code.',
+            'We could not send the verification code.',
           );
         }
       } catch (error) {
@@ -262,7 +262,7 @@ export default function LoginScreen() {
       const providerStatus =
         String(
           user?.providerStatus ||
-            'NOT_REGISTERED',
+          'NOT_REGISTERED',
         )
           .trim()
           .toUpperCase();
@@ -433,7 +433,7 @@ export default function LoginScreen() {
       Alert.alert(
         'Verification failed',
         result?.message ||
-          'OTP verification failed. Please try again.',
+        'OTP verification failed. Please try again.',
       );
 
       return;
@@ -445,7 +445,7 @@ export default function LoginScreen() {
 
     if (
       result?.isExistingUser ===
-        true &&
+      true &&
       result?.user
     ) {
       const user =
@@ -778,10 +778,13 @@ export default function LoginScreen() {
                 styles.bottomText
               }
             >
-              By continuing, you agree to our
+              Clavata Connects Private Limited
+            </Text>
+            <Text style={styles.yearText}>
+              2026
             </Text>
 
-            <View
+            {/* <View
               style={styles.legalRow}
             >
               <TouchableOpacity
@@ -815,7 +818,7 @@ export default function LoginScreen() {
                   Privacy Policy
                 </Text>
               </TouchableOpacity>
-            </View>
+            </View> */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

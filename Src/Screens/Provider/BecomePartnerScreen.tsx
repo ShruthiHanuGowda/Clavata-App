@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
 import {
   COLORS,
   FONTS,
@@ -13,6 +14,7 @@ import {
   SPACING,
   RADIUS,
 } from '../../constants/constants';
+
 const BecomePartnerScreen = ({ navigation }: any) => {
 
   const handleBack = () => {
@@ -63,9 +65,21 @@ const BecomePartnerScreen = ({ navigation }: any) => {
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>
-          Become a Partner
-        </Text>
+        {/* ====================================================
+            CENTERED HEADER TITLE
+        ==================================================== */}
+
+        <View style={styles.headerTitleContainer}>
+
+          <Text style={styles.headerTitle}>
+            Become a service partner
+          </Text>
+
+          <Text style={styles.headerWith}>
+            with
+          </Text>
+
+        </View>
 
         <View style={styles.headerSpacer} />
 
@@ -90,12 +104,11 @@ const BecomePartnerScreen = ({ navigation }: any) => {
           </View> */}
 
           <Text style={styles.title}>
-            Grow your business with Clavata
+            Clavata
           </Text>
 
           <Text style={styles.subtitle}>
-            List your salon, connect with customers and manage
-            your business effortlessly.
+            Your next client starts here.
           </Text>
 
         </View>
@@ -107,7 +120,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
         <View style={styles.card}>
 
           <Text style={styles.cardTitle}>
-            Everything you need
+            Everything you need to Grow Your Business
           </Text>
 
           {/* ------------------------------------------------
@@ -123,7 +136,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             </View>
 
             <Text style={styles.itemText}>
-              Reach more local customers
+              List your salon
             </Text>
 
           </View>
@@ -141,7 +154,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             </View>
 
             <Text style={styles.itemText}>
-              Manage bookings with ease
+              Connect with customers
             </Text>
 
           </View>
@@ -159,13 +172,31 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             </View>
 
             <Text style={styles.itemText}>
-              Grow your salon business
+              Boost your online visibility
             </Text>
 
           </View>
 
           {/* ------------------------------------------------
               FEATURE 4
+          ------------------------------------------------ */}
+
+          <View style={styles.item}>
+
+            <View style={styles.check}>
+              <Text style={styles.checkText}>
+                ✓
+              </Text>
+            </View>
+
+            <Text style={styles.itemText}>
+              Manage your business and staff with ease
+            </Text>
+
+          </View>
+
+          {/* ------------------------------------------------
+              FEATURE 5
           ------------------------------------------------ */}
 
           <View
@@ -182,7 +213,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             </View>
 
             <Text style={styles.itemText}>
-              Accept secure online payments
+              Secure online payments
             </Text>
 
           </View>
@@ -194,7 +225,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
         ==================================================== */}
 
         <Text style={styles.note}>
-          It only takes a few minutes to get started.
+          Register in minutes and get your business verified.
         </Text>
 
       </View>
@@ -292,11 +323,19 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
-  headerTitle: {
+  // ==========================================================
+  // HEADER TITLE
+  // ==========================================================
+
+  headerTitleContainer: {
     flex: 1,
 
-    textAlign: 'center',
+    alignItems: 'center',
 
+    justifyContent: 'center',
+  },
+
+  headerTitle: {
     fontFamily:
       FONTS.semiBold,
 
@@ -309,6 +348,27 @@ const styles = StyleSheet.create({
 
     color:
       COLORS.primary,
+
+    textAlign: 'center',
+
+    includeFontPadding: false,
+  },
+
+  headerWith: {
+    marginTop: 2,
+
+    fontFamily:
+      FONTS.regular,
+
+    fontSize:
+      FONT_SIZES.small,
+
+    lineHeight: 18,
+
+    color:
+      COLORS.textSecondary,
+
+    textAlign: 'center',
 
     includeFontPadding: false,
   },
@@ -575,8 +635,11 @@ const styles = StyleSheet.create({
   arrow: {
     color:
       COLORS.white,
+
     fontSize: 25,
+
     lineHeight: 27,
+
     marginLeft:
       SPACING.small,
   },

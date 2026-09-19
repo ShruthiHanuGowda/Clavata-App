@@ -120,7 +120,7 @@ const WelcomeChoiceScreen = () => {
                                 </Text>
 
                                 <View style={styles.actionRow}>
-                                    <Text style={styles.actionText}>Become a partner</Text>
+                                    <Text style={styles.actionText}>Become a service partner</Text>
                                     <Text style={styles.arrow}>→</Text>
                                 </View>
                             </View>

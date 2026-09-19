@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View,
+  TouchableOpacity,
   Text,
 } from 'react-native';
 
@@ -10,15 +10,22 @@ type Props = {
   title: string;
   value: string;
   icon: string;
+  onPress?: () => void;
 };
 
 export default function SummaryCard({
   title,
   value,
   icon,
+  onPress,
 }: Props) {
   return (
-    <View style={styles.summaryCard}>
+    <TouchableOpacity
+      activeOpacity={0.75}
+      onPress={onPress}
+      disabled={!onPress}
+      style={styles.summaryCard}
+    >
       <Text style={{ fontSize: 28 }}>
         {icon}
       </Text>
@@ -30,6 +37,6 @@ export default function SummaryCard({
       <Text style={styles.summaryValue}>
         {value}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 }
