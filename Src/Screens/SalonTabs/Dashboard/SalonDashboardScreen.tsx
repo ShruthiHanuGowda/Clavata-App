@@ -605,64 +605,42 @@ export default function SalonDashboardScreen() {
      * ============================================================
      */
 
-    const summaryData =
-        useMemo(() => {
-            return [
-                {
-                    id:
-                        'todayAppointments',
-                    title:
-                        "Today's Appointments",
-                    value:
-                        String(
-                            todaysBookings.length,
-                        ),
-                    icon: '📅',
-                },
+   const summaryData = useMemo(() => {
+  return [
+    {
+      id: 'todayAppointments',
+      title: "Today's Appointments",
+      value: String(todaysBookings.length),
+      icon: 'calendar-outline',
+    },
 
-                {
-                    id:
-                        'todayCustomers',
-                    title:
-                        "Today's Customers",
-                    value:
-                        String(
-                            todaysCustomers,
-                        ),
-                    icon: '👥',
-                },
+    {
+      id: 'todayCustomers',
+      title: "Today's Customers",
+      value: String(todaysCustomers),
+      icon: 'people-outline',
+    },
 
-                {
-                    id:
-                        'todayRevenue',
-                    title:
-                        "Today's Revenue",
-                    value:
-                        formatCurrency(
-                            todaysRevenue,
-                        ),
-                    icon: '💰',
-                },
+    {
+      id: 'todayRevenue',
+      title: "Today's Revenue",
+      value: formatCurrency(todaysRevenue),
+      icon: 'cash-outline',
+    },
 
-                {
-                    id:
-                        'pendingRequests',
-                    title:
-                        'Pending Requests',
-                    value:
-                        String(
-                            pendingRequests.length,
-                        ),
-                    icon: '⏳',
-                },
-            ];
-        }, [
-            todaysBookings.length,
-            todaysCustomers,
-            todaysRevenue,
-            pendingRequests.length,
-        ]);
-
+    {
+      id: 'pendingRequests',
+      title: 'Pending Requests',
+      value: String(pendingRequests.length),
+      icon: 'time-outline',
+    },
+  ];
+}, [
+  todaysBookings.length,
+  todaysCustomers,
+  todaysRevenue,
+  pendingRequests.length,
+]);
     /*
      * ============================================================
      * SUMMARY CARD PRESS
@@ -2182,210 +2160,176 @@ export default function SalonDashboardScreen() {
                     </View>
                 )}
 
-                {/* ==================================================
-                    RATING & REVIEWS
-                ================================================== */}
+             {/* ==================================================
+    RATING & REVIEWS
+================================================== */}
 
-                <Text
-                    style={[
-                        styles.sectionTitle,
-                        {
-                            marginTop:
-                                16,
-                        },
-                    ]}>
-                    Rating & Reviews
-                </Text>
+<Text
+    style={[
+        styles.sectionTitle,
+        {
+            marginTop: 16,
+        },
+    ]}>
+    Rating & Reviews
+</Text>
+
+{totalReviews === 0 ? (
+    <View
+        style={{
+            marginHorizontal: 20,
+            paddingVertical: 24,
+            paddingHorizontal: 18,
+            borderRadius: 14,
+            backgroundColor: '#F7F7F7',
+            alignItems: 'center',
+            justifyContent: 'center',
+        }}>
+
+        <Text
+            style={{
+                fontSize: 15,
+                fontWeight: '600',
+                color: '#555',
+            }}>
+            No reviews yet
+        </Text>
+
+        <Text
+            style={{
+                marginTop: 6,
+                fontSize: 13,
+                color: '#888',
+                textAlign: 'center',
+            }}>
+            Customer reviews will appear here after
+            completed bookings.
+        </Text>
+    </View>
+) : (
+    <>
+        {/* ==================================================
+            RATING SUMMARY
+        ================================================== */}
+
+        <View
+            style={{
+                marginHorizontal: 20,
+                padding: 18,
+                borderRadius: 14,
+                backgroundColor: '#F7F7F7',
+            }}>
+
+            <View
+                style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                }}>
 
                 <View
                     style={{
-                        marginHorizontal:
-                            20,
-                        padding:
-                            18,
-                        borderRadius:
-                            14,
-                        backgroundColor:
-                            '#F7F7F7',
+                        width: 64,
+                        height: 64,
+                        borderRadius: 32,
+                        backgroundColor: '#FFFFFF',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                     }}>
 
-                    <View
-                        style={{
-                            flexDirection:
-                                'row',
-                            alignItems:
-                                'center',
-                        }}>
-
-                        <View
-                            style={{
-                                width:
-                                    64,
-                                height:
-                                    64,
-                                borderRadius:
-                                    32,
-                                backgroundColor:
-                                    '#FFFFFF',
-                                alignItems:
-                                    'center',
-                                justifyContent:
-                                    'center',
-                            }}>
-
-                            <Text
-                                style={{
-                                    fontSize:
-                                        22,
-                                    fontWeight:
-                                        '700',
-                                    color:
-                                        '#222',
-                                }}>
-                                {averageRating >
-                                0
-                                    ? averageRating.toFixed(
-                                          1,
-                                      )
-                                    : '—'}
-                            </Text>
-
-                            <Text
-                                style={{
-                                    fontSize:
-                                        15,
-                                    marginTop:
-                                        1,
-                                }}>
-                                ⭐
-                            </Text>
-                        </View>
-
-                        <View
-                            style={{
-                                marginLeft:
-                                    14,
-                                flex:
-                                    1,
-                            }}>
-
-                            <Text
-                                style={{
-                                    fontSize:
-                                        15,
-                                    fontWeight:
-                                        '700',
-                                    color:
-                                        '#333',
-                                }}>
-                                Your salon rating
-                            </Text>
-
-                            <Text
-                                style={{
-                                    marginTop:
-                                        5,
-                                    color:
-                                        '#777',
-                                    fontSize:
-                                        13,
-                                }}>
-                                {
-                                    totalReviews
-                                }{' '}
-                                review
-                                {totalReviews !==
-                                1
-                                    ? 's'
-                                    : ''}
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* ==================================================
-                    LATEST REVIEWS
-                ================================================== */}
-
-                {reviews.length >
-                    0 && (
-                    <View
-                        style={{
-                            marginTop:
-                                4,
-                        }}>
-
-                        <Text
-                            style={{
-                                marginHorizontal:
-                                    20,
-                                marginTop:
-                                    12,
-                                marginBottom:
-                                    4,
-                                fontSize:
-                                    14,
-                                fontWeight:
-                                    '600',
-                                color:
-                                    '#555',
-                            }}>
-                            Latest Reviews
-                        </Text>
-
-                        {reviews.map(
-                            item => (
-                                <ReviewCard
-                                    key={
-                                        item.bookingId
-                                    }
-                                    customer={
-                                        item.customerName
-                                    }
-                                    rating={
-                                        item.rating ||
-                                        0
-                                    }
-                                    review={
-                                        item.review ||
-                                        ''
-                                    }
-                                    onReply={() =>
-                                        Alert.alert(
-                                            'Reply',
-                                            `Reply to ${item.customerName}`,
-                                        )
-                                    }
-                                />
-                            ),
-                        )}
-                    </View>
-                )}
-
-                {totalReviews ===
-                    0 && (
                     <Text
                         style={{
-                            marginHorizontal:
-                                20,
-                            marginTop:
-                                12,
-                            color:
-                                '#888',
-                            fontSize:
-                                13,
+                            fontSize: 22,
+                            fontWeight: '700',
+                            color: '#222',
                         }}>
-                        Customer reviews will
-                        appear here after
-                        completed bookings.
+                        {averageRating > 0
+                            ? averageRating.toFixed(1)
+                            : '—'}
                     </Text>
-                )}
+
+                    <Text
+                        style={{
+                            fontSize: 15,
+                            marginTop: 1,
+                        }}>
+                        ⭐
+                    </Text>
+                </View>
+
+                <View
+                    style={{
+                        marginLeft: 14,
+                        flex: 1,
+                    }}>
+
+                    <Text
+                        style={{
+                            fontSize: 15,
+                            fontWeight: '700',
+                            color: '#333',
+                        }}>
+                        Your salon rating
+                    </Text>
+
+                    <Text
+                        style={{
+                            marginTop: 5,
+                            color: '#777',
+                            fontSize: 13,
+                        }}>
+                        {totalReviews} review
+                        {totalReviews !== 1 ? 's' : ''}
+                    </Text>
+                </View>
+            </View>
+        </View>
+
+        {/* ==================================================
+            LATEST REVIEWS
+        ================================================== */}
+
+        {reviews.length > 0 && (
+            <View
+                style={{
+                    marginTop: 4,
+                }}>
+
+                <Text
+                    style={{
+                        marginHorizontal: 20,
+                        marginTop: 12,
+                        marginBottom: 4,
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: '#555',
+                    }}>
+                    Latest Reviews
+                </Text>
+
+                {reviews.map(item => (
+                    <ReviewCard
+                        key={item.bookingId}
+                        customer={item.customerName}
+                        rating={item.rating || 0}
+                        review={item.review || ''}
+                        onReply={() =>
+                            Alert.alert(
+                                'Reply',
+                                `Reply to ${item.customerName}`,
+                            )
+                        }
+                    />
+                ))}
+            </View>
+        )}
+    </>
+)}
 
                 {/* ==================================================
                     FOOTER
                 ================================================== */}
 
-                <Text
+                {/* <Text
                     style={{
                         textAlign:
                             'center',
@@ -2395,7 +2339,7 @@ export default function SalonDashboardScreen() {
                             25,
                     }}>
                     Version 1.0
-                </Text>
+                </Text> */}
             </ScrollView>
         </SafeAreaView>
     );

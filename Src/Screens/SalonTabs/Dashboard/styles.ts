@@ -120,41 +120,50 @@ notificationBadgeText: {
   summaryContainer: {
     paddingHorizontal: 20,
   },
-
+summaryIconContainer: {
+  width: 42,
+  height: 42,
+  borderRadius: 13,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#E8F7F5',
+  marginBottom: 12,
+},
   summaryCard: {
-    width: 170,
-    marginRight: 15,
+  width: 155,
+  minHeight: 145,
+  marginRight: 12,
+  padding: 16,
+  borderRadius: 16,
+  backgroundColor: '#FFFFFF',
+  borderWidth: 1,
+  borderColor: '#EEEEEE',
 
-    backgroundColor: '#FFFFFF',
-
-    borderRadius: 18,
-
-    padding: 18,
-
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-
-    elevation: 3,
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 2,
   },
+  shadowOpacity: 0.06,
+  shadowRadius: 6,
+  elevation: 2,
+},
 
-  summaryTitle: {
-    marginTop: 10,
-    color: '#6B7280',
-    fontSize: 14,
-  },
+ summaryTitle: {
+  fontSize: 12,
+  lineHeight: 16,
+  fontWeight: '500',
+  color: '#777777',
+  minHeight: 32,
+},
 
-  summaryValue: {
-    marginTop: 8,
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
-  },
+summaryValue: {
+  marginTop: 6,
+  fontSize: 23,
+  lineHeight: 28,
+  fontWeight: '700',
+  color: '#222222',
+},
 
   /* =========================
         QUICK ACTIONS
