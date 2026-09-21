@@ -34,7 +34,6 @@ import {
 
 import {
   Header,
-  DButton,
 } from '../../components';
 
 import {
@@ -728,10 +727,21 @@ export default function SalonAddressScreen({
 
   // ==========================================================
   // CONFIRM LOCATION
+  //
+  // This is now the FINAL action on this screen.
+  //
+  // Once the user confirms:
+  // 1. Validate address
+  // 2. Save address + coordinates
+  // 3. Navigate automatically to next screen
   // ==========================================================
 
   const handleConfirmLocation =
     useCallback(() => {
+      // --------------------------------------------------------
+      // LOCATION
+      // --------------------------------------------------------
+
       if (!coordinates) {
         Alert.alert(
           'Select your location',
@@ -740,6 +750,10 @@ export default function SalonAddressScreen({
 
         return;
       }
+
+      // --------------------------------------------------------
+      // ADDRESS
+      // --------------------------------------------------------
 
       if (!addressLine.trim()) {
         Alert.alert(
@@ -750,6 +764,10 @@ export default function SalonAddressScreen({
         return;
       }
 
+      // --------------------------------------------------------
+      // CITY
+      // --------------------------------------------------------
+
       if (!city.trim()) {
         Alert.alert(
           'City required',
@@ -758,6 +776,10 @@ export default function SalonAddressScreen({
 
         return;
       }
+
+      // --------------------------------------------------------
+      // STATE
+      // --------------------------------------------------------
 
       if (!state.trim()) {
         Alert.alert(
@@ -768,49 +790,9 @@ export default function SalonAddressScreen({
         return;
       }
 
-      if (
-        !/^\d{6}$/.test(
-          pincode.trim(),
-        )
-      ) {
-        Alert.alert(
-          'Invalid Pincode',
-          'Please enter a valid 6-digit Indian pincode.',
-        );
-
-        return;
-      }
-
-      setLocationConfirmed(
-        true,
-      );
-    }, [
-      coordinates,
-      addressLine,
-      city,
-      state,
-      pincode,
-    ]);
-
-  // ==========================================================
-  // NEXT
-  // ==========================================================
-
-  const onNext =
-    useCallback(() => {
-      if (
-        !addressLine.trim() ||
-        !city.trim() ||
-        !state.trim() ||
-        !pincode.trim()
-      ) {
-        Alert.alert(
-          'Address details required',
-          'Please complete all address details before continuing.',
-        );
-
-        return;
-      }
+      // --------------------------------------------------------
+      // PINCODE
+      // --------------------------------------------------------
 
       if (
         !/^\d{6}$/.test(
@@ -825,27 +807,9 @@ export default function SalonAddressScreen({
         return;
       }
 
-      if (!coordinates) {
-        Alert.alert(
-          'Location required',
-          'Please search for your salon address or use your current location.',
-        );
-
-        return;
-      }
-
-      if (!locationConfirmed) {
-        Alert.alert(
-          'Confirm your location',
-          'Please check the map and tap "Confirm Location" before continuing.',
-        );
-
-        return;
-      }
-
-      // ======================================================
+      // --------------------------------------------------------
       // SAVE REGISTRATION DATA
-      // ======================================================
+      // --------------------------------------------------------
 
       updateData({
         addressLine:
@@ -866,6 +830,18 @@ export default function SalonAddressScreen({
         longitude:
           coordinates.longitude,
       });
+
+      // --------------------------------------------------------
+      // MARK AS CONFIRMED
+      // --------------------------------------------------------
+
+      setLocationConfirmed(
+        true,
+      );
+
+      // --------------------------------------------------------
+      // LOG
+      // --------------------------------------------------------
 
       console.log(
         '======================================',
@@ -909,16 +885,19 @@ export default function SalonAddressScreen({
         '======================================',
       );
 
+      // --------------------------------------------------------
+      // AUTOMATICALLY GO TO NEXT SCREEN
+      // --------------------------------------------------------
+
       navigation.navigate(
         'SalonBusinessHours',
       );
     }, [
+      coordinates,
       addressLine,
       city,
       state,
       pincode,
-      coordinates,
-      locationConfirmed,
       updateData,
       navigation,
     ]);
@@ -953,30 +932,6 @@ export default function SalonAddressScreen({
           }
         >
           {/* ==================================================
-              PAGE INTRO
-          ================================================== */}
-
-          {/* <View
-            style={
-              styles.headerSection
-            }
-          >
-            <Text
-              style={styles.title}
-            >
-              Set your salon location
-            </Text>
-
-            <Text
-              style={styles.subtitle}
-            >
-              Search for your salon address or use your current
-              location. You can fine-tune the exact location on
-              the map.
-            </Text>
-          </View> */}
-
-          {/* ==================================================
               LOCATION METHOD CARD
           ================================================== */}
 
@@ -990,20 +945,6 @@ export default function SalonAddressScreen({
                 styles.locationMethodHeader
               }
             >
-              {/* <View
-                style={
-                  styles.locationIconContainer
-                }
-              >
-                <Text
-                  style={
-                    styles.locationPinIcon
-                  }
-                >
-                  ◎
-                </Text>
-              </View> */}
-
               <View
                 style={
                   styles.locationMethodHeaderText
@@ -1016,14 +957,6 @@ export default function SalonAddressScreen({
                 >
                   Find your salon
                 </Text>
-
-                {/* <Text
-                  style={
-                    styles.locationMethodSubtitle
-                  }
-                >
-                  Choose whichever is easier for you.
-                </Text> */}
               </View>
             </View>
 
@@ -1166,14 +1099,6 @@ export default function SalonAddressScreen({
                 />
               ) : (
                 <>
-                  {/* <Text
-                    style={
-                      styles.currentLocationIcon
-                    }
-                  >
-                    ◎
-                  </Text> */}
-
                   <View
                     style={
                       styles.currentLocationContent
@@ -1551,14 +1476,6 @@ export default function SalonAddressScreen({
                       styles.mapEmptyCard
                     }
                   >
-                    {/* <Text
-                      style={
-                        styles.mapEmptyIcon
-                      }
-                    >
-                      ◎
-                    </Text> */}
-
                     <Text
                       style={
                         styles.mapEmptyTitle
@@ -1676,6 +1593,7 @@ export default function SalonAddressScreen({
 
             {/* ==================================================
                 CONFIRM LOCATION
+                FINAL ACTION
             ================================================== */}
 
             <TouchableOpacity
@@ -1683,10 +1601,10 @@ export default function SalonAddressScreen({
                 styles.confirmLocationButton,
 
                 !coordinates &&
-                styles.confirmLocationButtonDisabled,
+                  styles.confirmLocationButtonDisabled,
 
                 locationConfirmed &&
-                styles.confirmLocationButtonConfirmed,
+                  styles.confirmLocationButtonConfirmed,
               ]}
               disabled={
                 !coordinates ||
@@ -1718,27 +1636,6 @@ export default function SalonAddressScreen({
               )}
             </TouchableOpacity>
           </View>
-
-          {/* ==================================================
-              CONTINUE
-          ================================================== */}
-
-          <DButton
-            style={
-              styles.button
-            }
-            onPress={
-              onNext
-            }
-          >
-            <Text
-              style={
-                styles.buttonText
-              }
-            >
-              Continue
-            </Text>
-          </DButton>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -1750,6 +1647,10 @@ export default function SalonAddressScreen({
 // ============================================================
 
 const styles = StyleSheet.create({
+  // ==========================================================
+  // CONTAINER
+  // ==========================================================
+
   container: {
     flex: 1,
 
@@ -2632,33 +2533,5 @@ const styles = StyleSheet.create({
       FONTS.semiBold,
 
     fontSize: 15,
-  },
-
-  // ==========================================================
-  // CONTINUE
-  // ==========================================================
-
-  button: {
-    width:
-      '100%',
-    height: 54,
-    marginTop:
-      SPACING.medium,
-      backgroundColor: COLORS.themeColor,
-      borderRadius:
-      RADIUS.medium,
-  },
-
-  buttonText: {
-    color:
-      COLORS.white,
-
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 16,
-
-    textAlign:
-      'center',
   },
 });
