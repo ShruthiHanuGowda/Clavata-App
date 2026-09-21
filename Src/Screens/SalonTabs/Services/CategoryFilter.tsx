@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {
   ScrollView,
   TouchableOpacity,
@@ -7,10 +8,17 @@ import {
 
 import styles from './styles';
 
+export type CategoryOption = {
+  id: string;
+  name: string;
+};
+
 type Props = {
-  categories: string[];
+  categories: CategoryOption[];
   selected: string;
-  onSelect: (value: string) => void;
+  onSelect: (
+    categoryId: string,
+  ) => void;
 };
 
 export default function CategoryFilter({
@@ -22,27 +30,75 @@ export default function CategoryFilter({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.categoryContainer}>
+      contentContainerStyle={
+        styles.categoryContainer
+      }
+    >
+      {/* ALL */}
 
-      {categories.map(item => (
-        <TouchableOpacity
-          key={item}
-          onPress={() => onSelect(item)}
+      <TouchableOpacity
+        key="ALL"
+        activeOpacity={0.8}
+        onPress={() =>
+          onSelect('ALL')
+        }
+        style={[
+          styles.categoryButton,
+          selected === 'ALL' &&
+            styles.categoryActive,
+        ]}
+      >
+        <Text
           style={[
-            styles.categoryButton,
-            selected === item && styles.categoryActive,
-          ]}>
+            styles.categoryText,
+            selected === 'ALL' &&
+              styles.categoryTextActive,
+          ]}
+        >
+          All
+        </Text>
+      </TouchableOpacity>
 
-          <Text
-            style={[
-              styles.categoryText,
-              selected === item &&
-                styles.categoryTextActive,
-            ]}>
-            {item}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      {/* CATEGORIES */}
+
+      {categories.map(
+        category => {
+          const active =
+            selected ===
+            category.id;
+
+          return (
+            <TouchableOpacity
+              key={
+                category.id
+              }
+              activeOpacity={0.8}
+              onPress={() =>
+                onSelect(
+                  category.id,
+                )
+              }
+              style={[
+                styles.categoryButton,
+                active &&
+                  styles.categoryActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  active &&
+                    styles.categoryTextActive,
+                ]}
+              >
+                {
+                  category.name
+                }
+              </Text>
+            </TouchableOpacity>
+          );
+        },
+      )}
     </ScrollView>
   );
 }

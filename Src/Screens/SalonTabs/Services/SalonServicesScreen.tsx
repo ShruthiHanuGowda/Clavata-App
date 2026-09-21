@@ -1,713 +1,570 @@
 import React, {
-    useMemo,
-    useState,
-    useCallback,
+  useMemo,
+  useState,
 } from 'react';
 
 import {
-    SafeAreaView,
-    View,
-    Text,
-    TextInput,
-    FlatList,
-    TouchableOpacity,
-    Alert,
-    ActivityIndicator,
+  SafeAreaView,
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  ActivityIndicator,
 } from 'react-native';
 
-import {
-    useQuery,
-    useMutation,
-} from '@apollo/client';
+import { useQuery } from '@apollo/client';
 
 import { useUser } from '../../../context/UserContext';
 
 import {
-    GET_SALON_SERVICE_SELECTIONS,
-    LIST_SERVICES,
-    DELETE_SERVICE,
+  GET_SALON_SERVICE_SELECTIONS,
 } from '../../../graphql/queries';
 
 import styles from './styles';
 
-import CategoryFilter from './CategoryFilter';
-import ServiceCard from './ServiceCard';
-import AddServiceModal, {
-    Service,
-    ServiceSelection,
+import CategoryFilter, {
+  CategoryOption,
+} from './CategoryFilter';
+
+import {
+  ServiceSelection,
 } from './AddServiceModal';
 
 export default function SalonServicesScreen() {
-    const { currentUser } = useUser();
+  const { currentUser } = useUser();
 
-    const salonId =
-        currentUser?.salonId;
+  const salonId =
+    currentUser?.salonId;
 
-    const [
-        selectedCategory,
-        setSelectedCategory,
-    ] = useState('All');
+  /*
+   * ------------------------------------------------
+   * STATE
+   * ------------------------------------------------
+   */
 
-    const [
-        search,
-        setSearch,
-    ] = useState('');
+  const [
+    selectedCategory,
+    setSelectedCategory,
+  ] = useState<string>('ALL');
 
-    const [
-        modalVisible,
-        setModalVisible,
-    ] = useState(false);
+  const [
+    search,
+    setSearch,
+  ] = useState('');
 
-    const [
-        selectedService,
-        setSelectedService,
-    ] = useState<Service | null>(null);
+  /*
+   * ------------------------------------------------
+   * GET SALON SERVICE SELECTIONS
+   * ------------------------------------------------
+   *
+   * These are the services/categories selected
+   * for this salon during registration/profile setup.
+   */
 
-    /*
-     * ------------------------------------------------
-     * GET REGISTRATION SERVICE SELECTIONS
-     * ------------------------------------------------
-     */
+  const {
+    data: salonData,
+    loading,
+    refetch,
+  } = useQuery(
+    GET_SALON_SERVICE_SELECTIONS,
+    {
+      variables: {
+        salonId,
+      },
 
-    const {
-        data: salonData,
-        loading: salonLoading,
-        refetch: refetchSalon,
-    } = useQuery(
-        GET_SALON_SERVICE_SELECTIONS,
-        {
-            variables: {
-                salonId,
-            },
-            skip: !salonId,
-            fetchPolicy:
-                'network-only',
+      skip: !salonId,
+
+      fetchPolicy:
+        'network-only',
+    },
+  );
+
+  /*
+   * ------------------------------------------------
+   * SERVICE SELECTIONS
+   * ------------------------------------------------
+   */
+
+  const serviceSelections: ServiceSelection[] =
+    salonData?.getSalon
+      ?.serviceSelections ?? [];
+
+  /*
+   * ------------------------------------------------
+   * NORMALIZE TEXT
+   * ------------------------------------------------
+   */
+
+  const normalizeText = (
+    value?: string | null,
+  ) => {
+    return String(value ?? '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+  };
+
+  /*
+   * ------------------------------------------------
+   * CATEGORY LIST
+   * ------------------------------------------------
+   *
+   * IMPORTANT:
+   *
+   * categoryId is used internally.
+   * categoryName is only displayed.
+   *
+   * Example:
+   *
+   * Face -> abc123
+   * Hair -> xyz456
+   */
+
+  const categories =
+    useMemo<CategoryOption[]>(() => {
+      const categoryMap =
+        new Map<
+          string,
+          string
+        >();
+
+      serviceSelections.forEach(
+        selection => {
+          if (
+            selection.categoryId &&
+            selection.categoryName
+          ) {
+            const categoryId =
+              String(
+                selection.categoryId,
+              );
+
+            const categoryName =
+              String(
+                selection.categoryName,
+              ).trim();
+
+            if (
+              !categoryMap.has(
+                categoryId,
+              )
+            ) {
+              categoryMap.set(
+                categoryId,
+                categoryName,
+              );
+            }
+          }
         },
-    );
+      );
 
-    /*
-     * These are the category/subcategory pairs
-     * selected during salon registration.
-     */
-
-    const serviceSelections: ServiceSelection[] =
-        salonData?.getSalon
-            ?.serviceSelections ?? [];
-
-    /*
-     * ------------------------------------------------
-     * GET ACTUAL SERVICES
-     * ------------------------------------------------
-     */
-
-    const {
-        data,
-        loading: servicesLoading,
-        refetch,
-    } = useQuery(LIST_SERVICES, {
-        variables: {
-            salonId,
-        },
-        skip: !salonId,
-        fetchPolicy:
-            'network-only',
-    });
-
-    const [
-        deleteService,
-    ] = useMutation(
-        DELETE_SERVICE,
-    );
-
-    const services: Service[] =
-        data?.listServices ?? [];
-
-    /*
-     * ------------------------------------------------
-     * CATEGORY FILTER
-     * ------------------------------------------------
-     *
-     * Use actual service categories first.
-     * If there are no services yet, show the
-     * registration-selected categories.
-     */
-
-    const categories = useMemo(() => {
-        const values =
-            new Map<
-                string,
-                string
-            >();
-
-        services.forEach(
-            service => {
-                if (
-                    service.categoryId &&
-                    service.categoryName
-                ) {
-                    values.set(
-                        service.categoryId,
-                        service.categoryName,
-                    );
-                }
-            },
-        );
-
-        /*
-         * Also add registration categories.
-         */
-        serviceSelections.forEach(
-            selection => {
-                if (
-                    selection.categoryId &&
-                    selection.categoryName
-                ) {
-                    values.set(
-                        selection.categoryId,
-                        selection.categoryName,
-                    );
-                }
-            },
-        );
-
-        return [
-            'All',
-            ...Array.from(
-                values.values(),
+      return Array.from(
+        categoryMap.entries(),
+      )
+        .map(
+          ([id, name]) => ({
+            id,
+            name,
+          }),
+        )
+        .sort(
+          (a, b) =>
+            a.name.localeCompare(
+              b.name,
+              undefined,
+              {
+                sensitivity:
+                  'base',
+              },
             ),
-        ];
+        );
     }, [
-        services,
-        serviceSelections,
+      serviceSelections,
     ]);
 
-    /*
-     * ------------------------------------------------
-     * FILTER SERVICES
-     * ------------------------------------------------
-     */
+  /*
+   * ------------------------------------------------
+   * FILTER + SORT SERVICE SELECTIONS
+   * ------------------------------------------------
+   *
+   * This is now the MAIN LIST.
+   *
+   * Face -> only Face
+   * Hair -> only Hair
+   * All -> everything
+   */
 
-    const filteredServices =
-        useMemo(() => {
-            const searchValue =
-                search
-                    .trim()
-                    .toLowerCase();
+  const filteredServices =
+    useMemo(() => {
+      const searchValue =
+        normalizeText(search);
 
-            return services.filter(
-                service => {
-                    const categoryMatch =
-                        selectedCategory ===
-                            'All' ||
-                        service.categoryName ===
-                            selectedCategory;
+      const filtered =
+        serviceSelections.filter(
+          selection => {
+            /*
+             * ----------------------------------------
+             * CATEGORY FILTER
+             * ----------------------------------------
+             */
 
-                    const searchMatch =
-                        !searchValue ||
-                        service.name
-                            .toLowerCase()
-                            .includes(
-                                searchValue,
-                            ) ||
-                        service.categoryName
-                            ?.toLowerCase()
-                            .includes(
-                                searchValue,
-                            ) ||
-                        service.subcategoryName
-                            ?.toLowerCase()
-                            .includes(
-                                searchValue,
-                            );
+            const categoryMatch =
+              selectedCategory ===
+                'ALL' ||
+              String(
+                selection.categoryId,
+              ) ===
+                String(
+                  selectedCategory,
+                );
 
-                    return (
-                        categoryMatch &&
-                        searchMatch
-                    );
-                },
+            /*
+             * ----------------------------------------
+             * SEARCH FILTER
+             * ----------------------------------------
+             */
+
+            const categoryName =
+              normalizeText(
+                selection.categoryName,
+              );
+
+            const subcategoryName =
+              normalizeText(
+                selection.subcategoryName,
+              );
+
+            const searchMatch =
+              !searchValue ||
+              categoryName.includes(
+                searchValue,
+              ) ||
+              subcategoryName.includes(
+                searchValue,
+              );
+
+            return (
+              categoryMatch &&
+              searchMatch
             );
-        }, [
-            services,
-            search,
-            selectedCategory,
-        ]);
-
-    /*
-     * ------------------------------------------------
-     * REFRESH
-     * ------------------------------------------------
-     */
-
-    const refreshServices =
-        useCallback(async () => {
-            await Promise.all([
-                refetch(),
-                refetchSalon(),
-            ]);
-        }, [
-            refetch,
-            refetchSalon,
-        ]);
-
-    /*
-     * ------------------------------------------------
-     * ADD
-     * ------------------------------------------------
-     */
-
-    const openAddModal = () => {
-        setSelectedService(null);
-        setModalVisible(true);
-    };
-
-    /*
-     * ------------------------------------------------
-     * EDIT
-     * ------------------------------------------------
-     */
-
-    const openEditModal = (
-        service: Service,
-    ) => {
-        setSelectedService(
-            service,
+          },
         );
 
-        setModalVisible(true);
-    };
+      /*
+       * ----------------------------------------
+       * ALPHABETICAL SORT
+       * ----------------------------------------
+       *
+       * First category,
+       * then subcategory.
+       */
 
-    /*
-     * ------------------------------------------------
-     * DELETE
-     * ------------------------------------------------
-     */
+      return filtered.sort(
+        (a, b) => {
+          const categoryCompare =
+            normalizeText(
+              a.categoryName,
+            ).localeCompare(
+              normalizeText(
+                b.categoryName,
+              ),
+              undefined,
+              {
+                sensitivity:
+                  'base',
+              },
+            );
 
-    const confirmDelete = (
-        service: Service,
-    ) => {
-        Alert.alert(
-            'Delete Service',
-            `Delete "${service.name}"?`,
-            [
-                {
-                    text: 'Cancel',
-                    style: 'cancel',
-                },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
+          if (
+            categoryCompare !==
+            0
+          ) {
+            return categoryCompare;
+          }
 
-                    onPress:
-                        async () => {
-                            try {
-                                const {
-                                    data,
-                                } =
-                                    await deleteService(
-                                        {
-                                            variables:
-                                                {
-                                                    input:
-                                                        {
-                                                            serviceId:
-                                                                service.serviceId,
-                                                            salonId:
-                                                                service.salonId,
-                                                        },
-                                                },
-                                        },
-                                    );
+          return normalizeText(
+            a.subcategoryName,
+          ).localeCompare(
+            normalizeText(
+              b.subcategoryName,
+            ),
+            undefined,
+            {
+              sensitivity:
+                'base',
+            },
+          );
+        },
+      );
+    }, [
+      serviceSelections,
+      selectedCategory,
+      search,
+    ]);
 
-                                if (
-                                    data
-                                        ?.deleteService
-                                        ?.success
-                                ) {
-                                    Alert.alert(
-                                        'Success',
-                                        'Service deleted successfully.',
-                                    );
+  /*
+   * ------------------------------------------------
+   * LOADING
+   * ------------------------------------------------
+   */
 
-                                    await refreshServices();
-                                } else {
-                                    Alert.alert(
-                                        'Error',
-                                        data
-                                            ?.deleteService
-                                            ?.message ??
-                                            'Unable to delete service',
-                                    );
-                                }
-                            } catch (
-                                error
-                            ) {
-                                console.log(
-                                    'DELETE SERVICE ERROR:',
-                                    error,
-                                );
-
-                                Alert.alert(
-                                    'Error',
-                                    'Something went wrong while deleting the service.',
-                                );
-                            }
-                        },
-                },
-            ],
-        );
-    };
-
-    /*
-     * ------------------------------------------------
-     * LOADING
-     * ------------------------------------------------
-     */
-
-    if (
-        salonLoading &&
-        servicesLoading
-    ) {
-        return (
-            <SafeAreaView
-                style={[
-                    styles.container,
-                    {
-                        justifyContent:
-                            'center',
-                        alignItems:
-                            'center',
-                    },
-                ]}>
-                <ActivityIndicator
-                    size="large"
-                    color="#009D94"
-                />
-            </SafeAreaView>
-        );
-    }
-
-    /*
-     * ------------------------------------------------
-     * RENDER
-     * ------------------------------------------------
-     */
-
+  if (loading) {
     return (
-        <SafeAreaView
-            style={styles.container}>
-            <FlatList
-                data={
-                    filteredServices
-                }
-                keyExtractor={item =>
-                    item.serviceId ??
-                    `${item.categoryId}-${item.subcategoryId}`
-                }
-                onRefresh={
-                    refreshServices
-                }
-                refreshing={
-                    servicesLoading
-                }
-                keyboardShouldPersistTaps="handled"
-                ListHeaderComponent={
-                    <>
-                        <View
-                            style={
-                                styles.header
-                            }>
-                            <Text
-                                style={
-                                    styles.title
-                                }>
-                                Services
-                            </Text>
-
-                            <Text
-                                style={{
-                                    marginTop: 4,
-                                    fontSize: 13,
-                                    color: '#6B7280',
-                                }}>
-                                {
-                                    serviceSelections.length
-                                }{' '}
-                                service options
-                                available
-                            </Text>
-                        </View>
-
-                        <View
-                            style={
-                                styles.searchContainer
-                            }>
-                            <TextInput
-                                placeholder="Search service..."
-                                value={
-                                    search
-                                }
-                                onChangeText={
-                                    setSearch
-                                }
-                                placeholderTextColor="#9CA3AF"
-                                style={{
-                                    fontSize: 15,
-                                    color: '#111827',
-                                }}
-                            />
-                        </View>
-
-                        {categories.length >
-                            1 && (
-                            <CategoryFilter
-                                categories={
-                                    categories
-                                }
-                                selected={
-                                    selectedCategory
-                                }
-                                onSelect={
-                                    setSelectedCategory
-                                }
-                            />
-                        )}
-
-                        {serviceSelections.length >
-                            0 && (
-                            <View
-                                style={{
-                                    marginHorizontal: 16,
-                                    marginBottom: 16,
-                                    padding: 14,
-                                    borderRadius: 12,
-                                    backgroundColor:
-                                        '#F8FAFC',
-                                }}>
-                                <Text
-                                    style={{
-                                        fontSize: 15,
-                                        fontWeight:
-                                            '700',
-                                        color:
-                                            '#111827',
-                                        marginBottom: 8,
-                                    }}>
-                                    Your selected
-                                    service categories
-                                </Text>
-
-                                <View
-                                    style={{
-                                        flexDirection:
-                                            'row',
-                                        flexWrap:
-                                            'wrap',
-                                    }}>
-                                    {serviceSelections.map(
-                                        (
-                                            selection,
-                                        ) => (
-                                            <View
-                                                key={`${selection.categoryId}-${selection.subcategoryId}`}
-                                                style={{
-                                                    paddingHorizontal: 10,
-                                                    paddingVertical: 7,
-                                                    borderRadius: 16,
-                                                    backgroundColor:
-                                                        '#E6F7F5',
-                                                    marginRight: 6,
-                                                    marginBottom: 6,
-                                                }}>
-                                                <Text
-                                                    style={{
-                                                        fontSize: 12,
-                                                        color:
-                                                            '#007F78',
-                                                        fontWeight:
-                                                            '600',
-                                                    }}>
-                                                    {
-                                                        selection.categoryName
-                                                    }{' '}
-                                                    •{' '}
-                                                    {
-                                                        selection.subcategoryName
-                                                    }
-                                                </Text>
-                                            </View>
-                                        ),
-                                    )}
-                                </View>
-                            </View>
-                        )}
-                    </>
-                }
-                ListEmptyComponent={
-                    <View
-                        style={{
-                            paddingVertical: 60,
-                            paddingHorizontal: 20,
-                            alignItems:
-                                'center',
-                        }}>
-                        <Text
-                            style={{
-                                fontSize: 18,
-                                fontWeight:
-                                    '600',
-                                color:
-                                    '#6B7280',
-                                textAlign:
-                                    'center',
-                            }}>
-                            No services added yet
-                        </Text>
-
-                        {serviceSelections.length >
-                        0 ? (
-                            <Text
-                                style={{
-                                    marginTop: 8,
-                                    color:
-                                        '#9CA3AF',
-                                    textAlign:
-                                        'center',
-                                    lineHeight: 20,
-                                }}>
-                                You can add services
-                                using the categories
-                                and subcategories
-                                selected during
-                                registration.
-                            </Text>
-                        ) : (
-                            <Text
-                                style={{
-                                    marginTop: 8,
-                                    color:
-                                        '#9CA3AF',
-                                    textAlign:
-                                        'center',
-                                }}>
-                                No service categories
-                                were selected during
-                                registration.
-                            </Text>
-                        )}
-                    </View>
-                }
-                renderItem={({
-                    item,
-                }) => (
-                    <ServiceCard
-                        serviceId={
-                            item.serviceId
-                        }
-                        salonId={
-                            item.salonId
-                        }
-                        name={
-                            item.name
-                        }
-                        category={
-                            item.categoryName
-                        }
-                        categoryId={
-                            item.categoryId
-                        }
-                        subcategoryId={
-                            item.subcategoryId
-                        }
-                        subcategoryName={
-                            item.subcategoryName
-                        }
-                        description={
-                            item.description
-                        }
-                        duration={
-                            item.duration
-                        }
-                        price={
-                            item.price
-                        }
-                        gender={
-                            item.gender
-                        }
-                        active={
-                            item.active
-                        }
-                        popular={
-                            item.popular
-                        }
-                        createdAt={
-                            item.createdAt
-                        }
-                        updatedAt={
-                            item.updatedAt
-                        }
-                        onEdit={() =>
-                            openEditModal(
-                                item,
-                            )
-                        }
-                        onDelete={() =>
-                            confirmDelete(
-                                item,
-                            )
-                        }
-                    />
-                )}
-                contentContainerStyle={{
-                    paddingBottom: 100,
-                }}
-            />
-
-            <TouchableOpacity
-                style={
-                    styles.fab
-                }
-                activeOpacity={0.8}
-                onPress={
-                    openAddModal
-                }>
-                <Text
-                    style={
-                        styles.fabText
-                    }>
-                    +
-                </Text>
-            </TouchableOpacity>
-
-            <AddServiceModal
-                visible={
-                    modalVisible
-                }
-                serviceSelections={
-                    serviceSelections
-                }
-                initialData={
-                    selectedService
-                }
-                onClose={() => {
-                    setModalVisible(
-                        false,
-                    );
-                    setSelectedService(
-                        null,
-                    );
-                }}
-                onSave={async () => {
-                    setModalVisible(
-                        false,
-                    );
-
-                    setSelectedService(
-                        null,
-                    );
-
-                    await refreshServices();
-                }}
-            />
-        </SafeAreaView>
+      <SafeAreaView
+        style={[
+          styles.container,
+          {
+            justifyContent:
+              'center',
+            alignItems:
+              'center',
+          },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color="#009D94"
+        />
+      </SafeAreaView>
     );
+  }
+
+  /*
+   * ------------------------------------------------
+   * RENDER
+   * ------------------------------------------------
+   */
+
+  return (
+    <SafeAreaView
+      style={styles.container}
+    >
+      <FlatList
+        data={filteredServices}
+
+        /*
+         * categoryId + subcategoryId
+         * uniquely identifies a selection.
+         */
+
+        keyExtractor={
+          item =>
+            `${item.categoryId}-${item.subcategoryId}`
+        }
+
+        onRefresh={refetch}
+
+        refreshing={loading}
+
+        keyboardShouldPersistTaps="handled"
+
+        /*
+         * ------------------------------------------------
+         * HEADER
+         * ------------------------------------------------
+         */
+
+        ListHeaderComponent={
+          <>
+            {/* HEADER */}
+
+            <View
+              style={styles.header}
+            >
+              <Text
+                style={styles.title}
+              >
+                Services
+              </Text>
+
+              <Text
+                style={{
+                  marginTop: 4,
+                  fontSize: 13,
+                  color: '#6B7280',
+                }}
+              >
+                {
+                  serviceSelections.length
+                }{' '}
+                service options
+                available
+              </Text>
+            </View>
+
+            {/* SEARCH */}
+
+            <View
+              style={
+                styles.searchContainer
+              }
+            >
+              <TextInput
+                placeholder="Search service..."
+                value={search}
+                onChangeText={
+                  setSearch
+                }
+                placeholderTextColor="#9CA3AF"
+                style={{
+                  fontSize: 15,
+                  color: '#111827',
+                }}
+              />
+            </View>
+
+            {/* CATEGORY FILTER */}
+
+            {categories.length >
+              0 && (
+              <CategoryFilter
+                categories={
+                  categories
+                }
+                selected={
+                  selectedCategory
+                }
+                onSelect={
+                  setSelectedCategory
+                }
+              />
+            )}
+          </>
+        }
+
+        /*
+         * ------------------------------------------------
+         * EMPTY STATE
+         * ------------------------------------------------
+         */
+
+        ListEmptyComponent={
+          <View
+            style={{
+              paddingVertical: 50,
+              paddingHorizontal: 20,
+              alignItems:
+                'center',
+            }}
+          >
+            {serviceSelections.length ===
+            0 ? (
+              <>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight:
+                      '600',
+                    color:
+                      '#6B7280',
+                    textAlign:
+                      'center',
+                  }}
+                >
+                  No services selected
+                </Text>
+
+                <Text
+                  style={{
+                    marginTop: 8,
+                    color:
+                      '#9CA3AF',
+                    textAlign:
+                      'center',
+                    lineHeight: 20,
+                  }}
+                >
+                  No service categories
+                  or subcategories were
+                  selected for this salon.
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text
+                  style={{
+                    fontSize: 17,
+                    fontWeight:
+                      '600',
+                    color:
+                      '#6B7280',
+                    textAlign:
+                      'center',
+                  }}
+                >
+                  No matching services
+                </Text>
+
+                <Text
+                  style={{
+                    marginTop: 8,
+                    color:
+                      '#9CA3AF',
+                    textAlign:
+                      'center',
+                  }}
+                >
+                  Try another category
+                  or search term.
+                </Text>
+              </>
+            )}
+          </View>
+        }
+
+        /*
+         * ------------------------------------------------
+         * SERVICE ITEM
+         * ------------------------------------------------
+         */
+
+        renderItem={({
+          item,
+        }) => (
+          <View
+            style={{
+              marginHorizontal: 16,
+              marginBottom: 10,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              borderRadius: 14,
+              backgroundColor:
+                '#E6F7F5',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color:
+                  '#007F78',
+              }}
+            >
+              {item.categoryName}
+            </Text>
+
+            <Text
+              style={{
+                marginTop: 4,
+                fontSize: 14,
+                fontWeight: '600',
+                color:
+                  '#111827',
+              }}
+            >
+              {item.subcategoryName}
+            </Text>
+          </View>
+        )}
+
+        /*
+         * Bottom spacing
+         */
+
+        contentContainerStyle={{
+          paddingBottom: 100,
+        }}
+      />
+    </SafeAreaView>
+  );
 }
