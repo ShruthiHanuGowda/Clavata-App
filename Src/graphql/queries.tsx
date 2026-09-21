@@ -2066,3 +2066,27 @@ export const LIST_SERVICES = gql`
     }
   }
 `;
+
+export const GET_BUSINESS_TYPES = gql`
+  query BusinessTypes(
+    $search: String
+    $status: BusinessTypeStatus
+  ) {
+    businessTypes(
+      search: $search
+      status: $status
+    ) {
+      success
+      message
+      totalCount
+      businessTypes {
+        businessTypeId
+        name
+        description
+        status
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;

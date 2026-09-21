@@ -2146,7 +2146,7 @@ const styles = StyleSheet.create({
       RADIUS.round,
 
     backgroundColor:
-      COLORS.primary,
+      COLORS.themeColor,
 
     marginRight:
       SPACING.small,

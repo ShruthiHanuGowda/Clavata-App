@@ -24,23 +24,21 @@ import {
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
-
 import OTPModal from '../../components/OTPModal/OTPModal';
 import styles from './styles';
-
 import { DButton } from '../../components';
 import { DMobileInput } from '../../components/Dinputs';
 import { SEND_OTP } from '../../graphql/queries';
 import { useUser } from '../../context/UserContext';
 import { getSavedLocation } from '../../services/locationStorage';
+import {
+    COLORS,
+} from '../../constants/constants';
 
 type LoginMode =
   | 'CUSTOMER'
   | 'PROVIDER'
   | 'SIGN_IN';
-
-const PRIMARY_COLOR = '#009D94';
-const INACTIVE_COLOR = '#000000';
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
@@ -82,8 +80,8 @@ export default function LoginScreen() {
 
   const buttonBackgroundColor =
     isButtonEnabled
-      ? PRIMARY_COLOR
-      : INACTIVE_COLOR;
+      ? COLORS.themeColor
+      : COLORS.black;
 
   // ============================================================
   // SEND OTP ERROR

@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-
 import {
     COLORS,
     FONTS,
@@ -19,12 +18,10 @@ import {
     SPACING,
     RADIUS,
 } from '../../constants/constants';
-
 const { width, height } = Dimensions.get('window');
 
 const WelcomeChoiceScreen = () => {
     const navigation = useNavigation<any>();
-
     const handleFindService = () => {
         navigation.navigate('LoginScreen', {
             mode: 'CUSTOMER',

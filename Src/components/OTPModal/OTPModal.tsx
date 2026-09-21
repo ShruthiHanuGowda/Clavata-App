@@ -14,33 +14,17 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
-
 import BlurView from '../BlurView';
-// import { BlurView } from '@react-native-community/blur';
-
 import { useMutation } from '@apollo/client';
-
 import {
   VERIFY_OTP,
   RESEND_OTP,
 } from '../../graphql/queries';
-
 import { DButton } from '../index';
-
 import styles from './styles';
-
-
-// ============================================================
-// THEME
-// ============================================================
-
-const PRIMARY_COLOR = '#009D94';
-const INACTIVE_COLOR = '#000000';
-
-
-// ============================================================
-// OTP RESULT
-// ============================================================
+import {
+  COLORS,
+} from '../../constants/constants';
 
 export type OTPResult = {
   success: boolean;
@@ -163,8 +147,8 @@ export default function OTPModal({
 
   const verifyButtonBackgroundColor =
     isVerifyEnabled
-      ? PRIMARY_COLOR
-      : INACTIVE_COLOR;
+      ? COLORS.themeColor
+      : COLORS.black;
 
 
   // ==========================================================
