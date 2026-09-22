@@ -63,6 +63,8 @@ type ReviewServiceSelection = {
   categoryName?: string;
   subcategoryId: string;
   subcategoryName?: string;
+  price?: number;
+  durationMinutes?: number;
 };
 
 
@@ -118,6 +120,15 @@ type RegisterSalonPartnerVariables = {
 
     /*
      * Master category/subcategory selections.
+     *
+     * NOTE:
+     * Your current GraphQL schema accepts only
+     * categoryId + subcategoryId.
+     *
+     * Price and duration are therefore currently
+     * kept in the registration context and displayed
+     * on this screen, but are NOT sent to the backend
+     * until the GraphQL input is updated.
      */
     serviceSelections: Array<{
       categoryId: string;
@@ -136,6 +147,7 @@ type RegisterSalonPartnerVariables = {
 const SalonReviewScreen = ({
   navigation,
 }: any) => {
+
   const {
     data,
   } = useSalonRegistration();
@@ -148,9 +160,9 @@ const SalonReviewScreen = ({
 
 
   /*
-   * --------------------------------------------------
+   * ---------------------------------------------------
    * MASTER CATEGORIES
-   * --------------------------------------------------
+   * ---------------------------------------------------
    */
 
   const {
@@ -165,9 +177,9 @@ const SalonReviewScreen = ({
 
 
   /*
-   * --------------------------------------------------
+   * ---------------------------------------------------
    * MASTER SUBCATEGORIES
-   * --------------------------------------------------
+   * ---------------------------------------------------
    */
 
   const {
@@ -190,9 +202,9 @@ const SalonReviewScreen = ({
 
 
   /*
-   * --------------------------------------------------
+   * ---------------------------------------------------
    * SERVICE SELECTIONS
-   * --------------------------------------------------
+   * ---------------------------------------------------
    */
 
   const serviceSelections: ReviewServiceSelection[] =
@@ -200,20 +212,23 @@ const SalonReviewScreen = ({
 
 
   /*
-   * --------------------------------------------------
+   * ---------------------------------------------------
    * GROUP SELECTED SERVICES BY CATEGORY
-   * --------------------------------------------------
+   * ---------------------------------------------------
    *
-   * Context currently stores categoryId + subcategoryId.
+   * Category names and service names are resolved from
+   * Clavata master data.
    *
-   * We resolve the names from the master Category and
-   * Subcategory data so the Review screen always shows
-   * the actual Clavata master names.
+   * Categories are displayed alphabetically.
    *
-   * --------------------------------------------------
+   * Services inside every category are also displayed
+   * alphabetically.
+   *
+   * ---------------------------------------------------
    */
 
   const groupedServices = useMemo(() => {
+
     const grouped: Record<
       string,
       {
@@ -222,6 +237,8 @@ const SalonReviewScreen = ({
         services: Array<{
           subcategoryId: string;
           subcategoryName: string;
+          price?: number;
+          durationMinutes?: number;
         }>;
       }
     > = {};
@@ -229,6 +246,7 @@ const SalonReviewScreen = ({
 
     serviceSelections.forEach(
       selection => {
+
         const categoryId =
           selection.categoryId;
 
@@ -263,8 +281,7 @@ const SalonReviewScreen = ({
 
 
         /*
-         * Prefer stored name if available.
-         * Otherwise use master data.
+         * Resolve names.
          */
 
         const categoryName =
@@ -280,21 +297,22 @@ const SalonReviewScreen = ({
 
 
         /*
-         * Create category group if needed.
+         * Create category group.
          */
 
         if (!grouped[categoryId]) {
+
           grouped[categoryId] = {
             categoryId,
             categoryName,
             services: [],
           };
+
         }
 
 
         /*
-         * Prevent duplicate subcategories
-         * inside the same category.
+         * Prevent duplicate services.
          */
 
         const alreadyExists =
@@ -308,20 +326,67 @@ const SalonReviewScreen = ({
 
 
         if (!alreadyExists) {
+
           grouped[
             categoryId
           ].services.push({
+
             subcategoryId:
               selection.subcategoryId,
 
             subcategoryName,
+
+            price:
+              selection.price,
+
+            durationMinutes:
+              selection.durationMinutes,
+
           });
+
         }
+
       },
     );
 
 
-    return Object.values(grouped);
+    /*
+     * Sort services alphabetically.
+     */
+
+    Object.values(grouped).forEach(
+      category => {
+
+        category.services.sort(
+          (a, b) =>
+            a.subcategoryName.localeCompare(
+              b.subcategoryName,
+              undefined,
+              {
+                sensitivity: 'base',
+              },
+            ),
+        );
+
+      },
+    );
+
+
+    /*
+     * Sort categories alphabetically.
+     */
+
+    return Object.values(grouped).sort(
+      (a, b) =>
+        a.categoryName.localeCompare(
+          b.categoryName,
+          undefined,
+          {
+            sensitivity: 'base',
+          },
+        ),
+    );
+
   }, [
     serviceSelections,
     categories,
@@ -330,9 +395,9 @@ const SalonReviewScreen = ({
 
 
   /*
-   * --------------------------------------------------
+   * ---------------------------------------------------
    * REGISTER MUTATION
-   * --------------------------------------------------
+   * ---------------------------------------------------
    */
 
   const [
@@ -346,61 +411,95 @@ const SalonReviewScreen = ({
 
 
   /*
-   * --------------------------------------------------
+   * ---------------------------------------------------
    * EDIT HANDLERS
-   * --------------------------------------------------
+   * ---------------------------------------------------
    */
+
+  const handleEditSalonInformation =
+    () => {
+
+      navigation.navigate(
+        'SalonInformation',
+      );
+
+    };
+
 
   const handleEditAddress =
     () => {
+
       navigation.navigate(
         'SalonAddress',
       );
+
     };
 
 
   const handleEditBusinessHours =
     () => {
+
       navigation.navigate(
         'SalonBusinessHours',
       );
-    };
 
-
-  const handleEditKYC =
-    () => {
-      navigation.navigate(
-        'SalonKYC',
-      );
     };
 
 
   const handleEditServices =
     () => {
+
+      /*
+       * New registration flow:
+       *
+       * SalonServices
+       *      ↓
+       * ConfigureSalonServices
+       *      ↓
+       * SalonKYC
+       *      ↓
+       * SalonReview
+       *
+       * Therefore editing services should start
+       * from SalonServices.
+       */
+
+      navigation.navigate(
+        'SalonServices',
+      );
+
+    };
+
+
+  const handleEditKYC =
+    () => {
+
       navigation.navigate(
         'SalonKYC',
       );
+
     };
 
 
   /*
-   * --------------------------------------------------
+   * ---------------------------------------------------
    * SUBMIT
-   * --------------------------------------------------
+   * ---------------------------------------------------
    */
 
   const handleSubmit =
     useCallback(
       async () => {
+
         if (submitting) {
           return;
         }
 
 
         /*
-         * --------------------------------------------
+         * ---------------------------------------------
          * BASIC VALIDATION
-         * --------------------------------------------
+         * ---------------------------------------------
          */
 
         if (
@@ -411,19 +510,21 @@ const SalonReviewScreen = ({
           !data.email ||
           !data.businessType
         ) {
+
           Alert.alert(
             'Missing Information',
             'Please complete all required salon information.',
           );
 
           return;
+
         }
 
 
         /*
-         * --------------------------------------------
+         * ---------------------------------------------
          * ADDRESS VALIDATION
-         * --------------------------------------------
+         * ---------------------------------------------
          */
 
         if (
@@ -432,19 +533,21 @@ const SalonReviewScreen = ({
           !data.state ||
           !data.pincode
         ) {
+
           Alert.alert(
             'Missing Address',
             'Please complete the salon address.',
           );
 
           return;
+
         }
 
 
         /*
-         * --------------------------------------------
+         * ---------------------------------------------
          * BUSINESS HOURS VALIDATION
-         * --------------------------------------------
+         * ---------------------------------------------
          */
 
         if (
@@ -453,38 +556,44 @@ const SalonReviewScreen = ({
             data.businessHours,
           ).length === 0
         ) {
+
           Alert.alert(
             'Missing Business Hours',
             'Please provide your business hours.',
           );
 
           return;
+
         }
 
 
         /*
-         * --------------------------------------------
+         * ---------------------------------------------
          * KYC VALIDATION
-         * --------------------------------------------
+         * ---------------------------------------------
          */
 
         if (!data.panNumber) {
+
           Alert.alert(
             'Missing PAN',
             'Please provide your PAN number.',
           );
 
           return;
+
         }
 
 
         if (!data.aadhaarNumber) {
+
           Alert.alert(
             'Missing Aadhaar',
             'Please provide your Aadhaar number.',
           );
 
           return;
+
         }
 
 
@@ -493,38 +602,42 @@ const SalonReviewScreen = ({
           !data.shopEstablishmentNumber &&
           !data.udyamNumber
         ) {
+
           Alert.alert(
             'Business Verification Required',
             'Please provide GST, Shop Establishment Number, or Udyam Number.',
           );
 
           return;
+
         }
 
 
         /*
-         * --------------------------------------------
+         * ---------------------------------------------
          * SERVICE VALIDATION
-         * --------------------------------------------
+         * ---------------------------------------------
          */
 
         if (
           !serviceSelections ||
           serviceSelections.length === 0
         ) {
+
           Alert.alert(
             'Services Required',
             'Please select at least one service category/subcategory for your salon.',
           );
 
           return;
+
         }
 
 
         /*
-         * --------------------------------------------
+         * ---------------------------------------------
          * REMOVE INVALID SELECTIONS
-         * --------------------------------------------
+         * ---------------------------------------------
          */
 
         const validServiceSelections =
@@ -543,34 +656,89 @@ const SalonReviewScreen = ({
           validServiceSelections.length ===
           0
         ) {
+
           Alert.alert(
             'Services Required',
             'Please select at least one valid service category/subcategory for your salon.',
           );
 
           return;
+
         }
 
 
         /*
-         * --------------------------------------------
+         * ---------------------------------------------
+         * PRICE + DURATION VALIDATION
+         * ---------------------------------------------
+         *
+         * Every selected service should have a valid
+         * price and duration before registration.
+         *
+         * This protects against accidentally submitting
+         * an incomplete Configure Services screen.
+         */
+
+        const incompleteServices =
+          validServiceSelections.filter(
+            selection => {
+
+              const price =
+                Number(
+                  selection.price,
+                );
+
+              const duration =
+                Number(
+                  selection.durationMinutes,
+                );
+
+              return (
+                !Number.isFinite(price) ||
+                price <= 0 ||
+                !Number.isFinite(duration) ||
+                duration <= 0
+              );
+
+            },
+          );
+
+
+        if (
+          incompleteServices.length > 0
+        ) {
+
+          Alert.alert(
+            'Service Details Required',
+            'Please provide a valid price and duration for every selected service.',
+          );
+
+          return;
+
+        }
+
+
+        /*
+         * ---------------------------------------------
          * SUBMIT
-         * --------------------------------------------
+         * ---------------------------------------------
          */
 
         try {
+
           setSubmitting(true);
 
 
           /*
-           * Only IDs are sent to the backend.
+           * Only master IDs are sent to the current
+           * backend GraphQL input.
            *
-           * Category/subcategory names are master
-           * data and should not be trusted from the
-           * mobile client.
+           * Category/service names are master data and
+           * should not be trusted from the mobile client.
            */
 
           const input = {
+
             userId:
               data.userId,
 
@@ -591,6 +759,7 @@ const SalonReviewScreen = ({
 
 
             address: {
+
               addressLine:
                 data.addressLine,
 
@@ -602,6 +771,7 @@ const SalonReviewScreen = ({
 
               pincode:
                 data.pincode,
+
             },
 
 
@@ -631,39 +801,53 @@ const SalonReviewScreen = ({
 
 
             /*
-             * ----------------------------------------
-             * MASTER SERVICE SELECTIONS
-             * ----------------------------------------
+             * Master service selections.
              */
 
             serviceSelections:
               validServiceSelections.map(
                 selection => ({
+
                   categoryId:
                     selection.categoryId,
 
                   subcategoryId:
                     selection.subcategoryId,
+
                 }),
               ),
+
           };
 
 
           console.log(
-            'Submitting salon registration:',
-            {
-              ...input,
-              serviceSelections:
-                input.serviceSelections,
-            },
+            '======================================',
+          );
+
+          console.log(
+            'Submitting salon registration',
+          );
+
+          console.log(
+            JSON.stringify(
+              input,
+              null,
+              2,
+            ),
+          );
+
+          console.log(
+            '======================================',
           );
 
 
           const result =
             await registerSalonPartner({
+
               variables: {
                 input,
               },
+
             });
 
 
@@ -675,12 +859,20 @@ const SalonReviewScreen = ({
           if (
             !response?.success
           ) {
+
             throw new Error(
               response?.message ||
                 'Unable to submit salon registration.',
             );
+
           }
 
+
+          /*
+           * -------------------------------------------
+           * SUCCESS
+           * -------------------------------------------
+           */
 
           Alert.alert(
             'Registration Submitted',
@@ -688,24 +880,32 @@ const SalonReviewScreen = ({
               'Your salon registration has been submitted successfully.',
             [
               {
+
                 text: 'OK',
 
                 onPress: () => {
+
                   navigation.navigate(
                     'SalonSuccess',
                     {
+
                       salonId:
                         response.salonId,
 
                       salonName:
                         data.salonName,
+
                     },
                   );
+
                 },
+
               },
             ],
           );
+
         } catch (error: any) {
+
           console.error(
             'Salon registration error:',
             error,
@@ -717,9 +917,13 @@ const SalonReviewScreen = ({
             error?.message ||
               'Something went wrong while submitting your registration.',
           );
+
         } finally {
+
           setSubmitting(false);
+
         }
+
       },
       [
         data,
@@ -732,9 +936,9 @@ const SalonReviewScreen = ({
 
 
   /*
-   * --------------------------------------------------
-   * HELPERS
-   * --------------------------------------------------
+   * ---------------------------------------------------
+   * MASKED VALUES
+   * ---------------------------------------------------
    */
 
   const maskedAadhaar =
@@ -754,15 +958,20 @@ const SalonReviewScreen = ({
 
 
   /*
-   * --------------------------------------------------
+   * ---------------------------------------------------
    * RENDER
-   * --------------------------------------------------
+   * ---------------------------------------------------
    */
 
   return (
     <SafeAreaView
       style={styles.container}
     >
+
+      {/* ============================================
+          HEADER
+      ============================================ */}
+
       <Header
         headerTitle="Review & Submit"
         backBtn={() =>
@@ -787,9 +996,11 @@ const SalonReviewScreen = ({
         <View
           style={styles.section}
         >
+
           <View
             style={styles.sectionHeader}
           >
+
             <Text
               style={styles.sectionTitle}
             >
@@ -798,24 +1009,26 @@ const SalonReviewScreen = ({
 
 
             <TouchableOpacity
-              onPress={() =>
-                navigation.navigate(
-                  'SalonInformation',
-                )
+              onPress={
+                handleEditSalonInformation
               }
             >
+
               <Text
                 style={styles.editText}
               >
                 Edit
               </Text>
+
             </TouchableOpacity>
+
           </View>
 
 
           <View
             style={styles.card}
           >
+
             <ReviewRow
               label="Salon Name"
               value={
@@ -860,7 +1073,9 @@ const SalonReviewScreen = ({
               }
               last
             />
+
           </View>
+
         </View>
 
 
@@ -871,9 +1086,11 @@ const SalonReviewScreen = ({
         <View
           style={styles.section}
         >
+
           <View
             style={styles.sectionHeader}
           >
+
             <Text
               style={styles.sectionTitle}
             >
@@ -886,18 +1103,22 @@ const SalonReviewScreen = ({
                 handleEditAddress
               }
             >
+
               <Text
                 style={styles.editText}
               >
                 Edit
               </Text>
+
             </TouchableOpacity>
+
           </View>
 
 
           <View
             style={styles.card}
           >
+
             <ReviewRow
               label="Address"
               value={
@@ -933,7 +1154,9 @@ const SalonReviewScreen = ({
               }
               last
             />
+
           </View>
+
         </View>
 
 
@@ -944,9 +1167,11 @@ const SalonReviewScreen = ({
         <View
           style={styles.section}
         >
+
           <View
             style={styles.sectionHeader}
           >
+
             <Text
               style={styles.sectionTitle}
             >
@@ -959,22 +1184,27 @@ const SalonReviewScreen = ({
                 handleEditBusinessHours
               }
             >
+
               <Text
                 style={styles.editText}
               >
                 Edit
               </Text>
+
             </TouchableOpacity>
+
           </View>
 
 
           <View
             style={styles.card}
           >
+
             {data.businessHours &&
             Object.keys(
               data.businessHours,
             ).length > 0 ? (
+
               Object.entries(
                 data.businessHours,
               ).map(
@@ -984,12 +1214,14 @@ const SalonReviewScreen = ({
                     hours,
                   ],
                 ) => (
+
                   <View
                     key={day}
                     style={
                       styles.hoursRow
                     }
                   >
+
                     <Text
                       style={
                         styles.dayText
@@ -1004,17 +1236,23 @@ const SalonReviewScreen = ({
                         styles.hoursText
                       }
                     >
+
                       {hours.isOpen
                         ? `${hours.open || ''} - ${
                             hours.close ||
                             ''
                           }`
                         : 'Closed'}
+
                     </Text>
+
                   </View>
+
                 ),
               )
+
             ) : (
+
               <Text
                 style={
                   styles.emptyText
@@ -1022,8 +1260,11 @@ const SalonReviewScreen = ({
               >
                 Business hours not provided
               </Text>
+
             )}
+
           </View>
+
         </View>
 
 
@@ -1034,9 +1275,11 @@ const SalonReviewScreen = ({
         <View
           style={styles.section}
         >
+
           <View
             style={styles.sectionHeader}
           >
+
             <Text
               style={styles.sectionTitle}
             >
@@ -1049,27 +1292,33 @@ const SalonReviewScreen = ({
                 handleEditServices
               }
             >
+
               <Text
                 style={styles.editText}
               >
                 Edit
               </Text>
+
             </TouchableOpacity>
+
           </View>
 
 
           <View
             style={styles.card}
           >
+
             {(
               categoriesLoading ||
               subcategoriesLoading
             ) ? (
+
               <View
                 style={
                   styles.servicesLoading
                 }
               >
+
                 <ActivityIndicator
                   size="small"
                   color={
@@ -1086,9 +1335,12 @@ const SalonReviewScreen = ({
                 >
                   Loading selected services...
                 </Text>
+
               </View>
+
             ) : serviceSelections.length ===
               0 ? (
+
               <Text
                 style={
                   styles.emptyText
@@ -1096,8 +1348,10 @@ const SalonReviewScreen = ({
               >
                 No services selected
               </Text>
+
             ) : groupedServices.length ===
               0 ? (
+
               <Text
                 style={
                   styles.emptyText
@@ -1106,9 +1360,12 @@ const SalonReviewScreen = ({
                 Selected services could not be loaded.
                 Please edit your services and try again.
               </Text>
+
             ) : (
+
               groupedServices.map(
                 category => (
+
                   <View
                     key={
                       category.categoryId
@@ -1117,6 +1374,7 @@ const SalonReviewScreen = ({
                       styles.serviceCategory
                     }
                   >
+
                     <Text
                       style={
                         styles.categoryName
@@ -1133,8 +1391,10 @@ const SalonReviewScreen = ({
                         styles.serviceList
                       }
                     >
+
                       {category.services.map(
                         service => (
+
                           <View
                             key={
                               `${category.categoryId}-${service.subcategoryId}`
@@ -1143,6 +1403,7 @@ const SalonReviewScreen = ({
                               styles.serviceItem
                             }
                           >
+
                             <View
                               style={
                                 styles.serviceDot
@@ -1150,24 +1411,83 @@ const SalonReviewScreen = ({
                             />
 
 
-                            <Text
+                            <View
                               style={
-                                styles.serviceName
+                                styles.serviceContent
                               }
                             >
-                              {
-                                service.subcategoryName
-                              }
-                            </Text>
+
+                              <Text
+                                style={
+                                  styles.serviceName
+                                }
+                              >
+                                {
+                                  service.subcategoryName
+                                }
+                              </Text>
+
+
+                              <View
+                                style={
+                                  styles.serviceDetails
+                                }
+                              >
+
+                                <Text
+                                  style={
+                                    styles.serviceDetailText
+                                  }
+                                >
+                                  {typeof service.price ===
+                                    'number' &&
+                                  service.price > 0
+                                    ? `₹${service.price}`
+                                    : 'Price not set'}
+                                </Text>
+
+
+                                <Text
+                                  style={
+                                    styles.serviceSeparator
+                                  }
+                                >
+                                  •
+                                </Text>
+
+
+                                <Text
+                                  style={
+                                    styles.serviceDetailText
+                                  }
+                                >
+                                  {typeof service.durationMinutes ===
+                                    'number' &&
+                                  service.durationMinutes > 0
+                                    ? `${service.durationMinutes} min`
+                                    : 'Duration not set'}
+                                </Text>
+
+                              </View>
+
+                            </View>
+
                           </View>
+
                         ),
                       )}
+
                     </View>
+
                   </View>
+
                 ),
               )
+
             )}
+
           </View>
+
         </View>
 
 
@@ -1178,9 +1498,11 @@ const SalonReviewScreen = ({
         <View
           style={styles.section}
         >
+
           <View
             style={styles.sectionHeader}
           >
+
             <Text
               style={styles.sectionTitle}
             >
@@ -1189,20 +1511,26 @@ const SalonReviewScreen = ({
 
 
             <TouchableOpacity
-              onPress={handleEditKYC}
+              onPress={
+                handleEditKYC
+              }
             >
+
               <Text
                 style={styles.editText}
               >
                 Edit
               </Text>
+
             </TouchableOpacity>
+
           </View>
 
 
           <View
             style={styles.card}
           >
+
             <ReviewRow
               label="PAN Number"
               value={
@@ -1263,7 +1591,9 @@ const SalonReviewScreen = ({
               }
               last
             />
+
           </View>
+
         </View>
 
 
@@ -1276,6 +1606,7 @@ const SalonReviewScreen = ({
             styles.verificationNotice
           }
         >
+
           <Text
             style={
               styles.verificationTitle
@@ -1296,6 +1627,7 @@ const SalonReviewScreen = ({
             required verification and approval
             are completed.
           </Text>
+
         </View>
 
 
@@ -1308,20 +1640,21 @@ const SalonReviewScreen = ({
             styles.submitContainer
           }
         >
+
           <DButton
-          style={
-                styles.submitButtonStyle
-              }
-            onPress={handleSubmit}
-            disabled={submitting}
-            loading={submitting}
+            style={
+              styles.submitButtonStyle
+            }
+            onPress={
+              handleSubmit
+            }
+            disabled={
+              submitting
+            }
+            loading={
+              submitting
+            }
           >
-            {/*
-             * IMPORTANT:
-             * DButton renders children directly.
-             * Therefore this MUST be wrapped in
-             * Text instead of passing a raw string.
-             */}
 
             <Text
               style={
@@ -1330,7 +1663,9 @@ const SalonReviewScreen = ({
             >
               Submit Registration
             </Text>
+
           </DButton>
+
         </View>
 
 
@@ -1341,6 +1676,7 @@ const SalonReviewScreen = ({
         />
 
       </ScrollView>
+
     </SafeAreaView>
   );
 };
@@ -1364,6 +1700,7 @@ const ReviewRow = ({
   value,
   last = false,
 }: ReviewRowProps) => {
+
   return (
     <View
       style={[
@@ -1372,18 +1709,24 @@ const ReviewRow = ({
           styles.reviewRowLast,
       ]}
     >
+
       <Text
-        style={styles.reviewLabel}
+        style={
+          styles.reviewLabel
+        }
       >
         {label}
       </Text>
 
 
       <Text
-        style={styles.reviewValue}
+        style={
+          styles.reviewValue
+        }
       >
         {value}
       </Text>
+
     </View>
   );
 };
@@ -1396,28 +1739,10 @@ const ReviewRow = ({
  */
 
 const styles = StyleSheet.create({
-  submitContainer: {
-  width: '100%',
-  paddingHorizontal: 20,
-  paddingBottom: 24,
-},
 
-submitButton: {
-  width: '100%',
-  minHeight: 56,
-  borderRadius: 14,
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-
-submitButtonText: {
-  fontFamily: FONTS.semiBold || FONTS.bold,
-  fontSize: 16,
-  color: '#FFFFFF',
-  textAlign: 'center',
-},
   container: {
     flex: 1,
+
     backgroundColor:
       COLORS.background ||
       '#FFFFFF',
@@ -1435,9 +1760,7 @@ submitButtonText: {
       SPACING.huge,
   },
 
-submitButtonStyle:{
-backgroundColor: COLORS.themeColor
-},
+
   section: {
     marginBottom:
       SPACING.large,
@@ -1682,9 +2005,9 @@ backgroundColor: COLORS.themeColor
       'row',
 
     alignItems:
-      'center',
+      'flex-start',
 
-    paddingVertical: 3,
+    paddingVertical: 5,
   },
 
 
@@ -1701,6 +2024,13 @@ backgroundColor: COLORS.themeColor
 
     marginRight:
       SPACING.small,
+
+    marginTop: 7,
+  },
+
+
+  serviceContent: {
+    flex: 1,
   },
 
 
@@ -1711,10 +2041,45 @@ backgroundColor: COLORS.themeColor
     fontSize: 14,
 
     color:
-      COLORS.textSecondary ||
-      '#555555',
+      COLORS.text ||
+      '#333333',
 
     flex: 1,
+  },
+
+
+  serviceDetails: {
+    flexDirection:
+      'row',
+
+    alignItems:
+      'center',
+
+    marginTop: 3,
+  },
+
+
+  serviceDetailText: {
+    fontFamily:
+      FONTS.medium ||
+      FONTS.regular,
+
+    fontSize: 12,
+
+    color:
+      COLORS.textSecondary ||
+      '#777777',
+  },
+
+
+  serviceSeparator: {
+    marginHorizontal: 7,
+
+    fontSize: 12,
+
+    color:
+      COLORS.textSecondary ||
+      '#999999',
   },
 
 
@@ -1767,10 +2132,54 @@ backgroundColor: COLORS.themeColor
       COLORS.textSecondary ||
       '#666666',
   },
+
+
+  submitContainer: {
+    width: '100%',
+
+    paddingHorizontal: 20,
+
+    paddingBottom: 24,
+  },
+
+
+  submitButtonStyle: {
+    width: '100%',
+
+    minHeight: 56,
+
+    borderRadius: 14,
+
+    justifyContent:
+      'center',
+
+    alignItems:
+      'center',
+
+    backgroundColor:
+      COLORS.themeColor ||
+      '#009D94',
+  },
+
+
+  submitButtonText: {
+    fontFamily:
+      FONTS.semiBold ||
+      FONTS.bold,
+
+    fontSize: 16,
+
+    color: '#FFFFFF',
+
+    textAlign: 'center',
+  },
+
+
   bottomSpacing: {
     height:
       SPACING.huge,
   },
+
 });
 
 

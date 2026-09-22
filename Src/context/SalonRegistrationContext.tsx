@@ -128,14 +128,14 @@ export type KYCStatus =
 
 export type BusinessDocument = {
     type:
-    | 'GST_CERTIFICATE'
-    | 'SHOP_ESTABLISHMENT'
-    | 'UDYAM'
-    | 'PARTNERSHIP_DEED'
-    | 'INCORPORATION_CERTIFICATE'
-    | 'RENTAL_AGREEMENT'
-    | 'UTILITY_BILL'
-    | 'OTHER';
+        | 'GST_CERTIFICATE'
+        | 'SHOP_ESTABLISHMENT'
+        | 'UDYAM'
+        | 'PARTNERSHIP_DEED'
+        | 'INCORPORATION_CERTIFICATE'
+        | 'RENTAL_AGREEMENT'
+        | 'UTILITY_BILL'
+        | 'OTHER';
 
     uri: string;
 
@@ -169,28 +169,69 @@ export type ServiceMode =
 // SALON SERVICE SELECTION
 // =====================================================
 //
-// These are the categories/subcategories provided by
-// Clavata. The salon only selects from them.
+// These are the services selected from Clavata's
+// master service catalog.
 //
 // IMPORTANT:
-// Keep this aligned with:
 //
-// input SalonServiceSelectionInput {
-//     categoryId: ID!
-//     subcategoryId: ID!
+// Price and duration belong to the SALON's offering.
+//
+// Example:
+//
+// {
+//     categoryId: 'hair-category-id',
+//     subcategoryId: 'haircut-subcategory-id',
+//     price: 500,
+//     durationMinutes: 30
 // }
+//
+// Price and duration are optional while the salon is
+// still configuring services during registration.
+//
+// Before final registration submission, both values
+// must be present and greater than zero.
+//
 // =====================================================
 
 export type SalonServiceSelection = {
     categoryId: string;
+
     subcategoryId: string;
+
+    // =================================================
+    // SALON-SPECIFIC PRICE
+    // =================================================
+    //
+    // Example:
+    // Haircut = ₹500
+    //
+    // Optional during registration until configured.
+    //
+    // =================================================
+
+    price?: number;
+
+    // =================================================
+    // SALON-SPECIFIC DURATION
+    // =================================================
+    //
+    // Stored in minutes.
+    //
+    // Example:
+    // Haircut = 30 minutes
+    //
+    // Optional during registration until configured.
+    //
+    // =================================================
+
+    durationMinutes?: number;
 };
 
 // =====================================================
 // SERVICE-SPECIFIC MODE
 // =====================================================
 //
-// The key is the service ID.
+// The key is the subcategory/service ID.
 //
 // Example:
 //
@@ -215,6 +256,7 @@ export type ServiceSpecificModes = Record<
 // =====================================================
 
 export type SalonRegistrationData = {
+
     // ===================================================
     // USER
     // ===================================================
@@ -239,11 +281,10 @@ export type SalonRegistrationData = {
     // SERVICE AVAILABILITY
     // ===================================================
     //
-    // This is the general/default service availability
-    // selected during registration.
+    // General/default service availability.
     //
-    // The salon can later customize this individually
-    // for each service using serviceSpecificModes.
+    // The salon can later customize availability
+    // individually using serviceSpecificModes.
     //
     // ===================================================
 
@@ -309,17 +350,12 @@ export type SalonRegistrationData = {
     // CLAVATA SERVICE SELECTIONS
     // ===================================================
     //
-    // Salon selects category + subcategory from the
-    // master list maintained by Clavata.
+    // Contains:
     //
-    // Example:
-    //
-    // [
-    //     {
-    //         categoryId: 'hair-category-id',
-    //         subcategoryId: 'haircut-subcategory-id',
-    //     },
-    // ]
+    // categoryId
+    // subcategoryId
+    // price
+    // durationMinutes
     //
     // ===================================================
 
@@ -339,15 +375,15 @@ export type SalonRegistrationData = {
 
     kycRejectionReason: string;
 
-    // ==========================================
+    // ===================================================
     // PROVIDER STATUS
-    // ==========================================
+    // ===================================================
 
     providerStatus:
-    | 'NOT_REGISTERED'
-    | 'PENDING'
-    | 'APPROVED'
-    | 'REJECTED';
+        | 'NOT_REGISTERED'
+        | 'PENDING'
+        | 'APPROVED'
+        | 'REJECTED';
 
     // ===================================================
     // BUSINESS HOURS
@@ -362,6 +398,7 @@ export type SalonRegistrationData = {
 
 const createInitialData =
     (): SalonRegistrationData => ({
+
         // =================================================
         // USER
         // =================================================
@@ -385,14 +422,6 @@ const createInitialData =
         // =================================================
         // SERVICE AVAILABILITY
         // =================================================
-        //
-        // Empty string means the salon has not selected
-        // its service availability yet.
-        //
-        // The registration screen will require the salon
-        // to select one before continuing.
-        //
-        // =================================================
 
         serviceMode: 'SALON_ONLY',
 
@@ -400,10 +429,9 @@ const createInitialData =
         // SERVICE-SPECIFIC MODES
         // =================================================
         //
-        // Initially empty because services have not yet
-        // been selected/configured.
+        // Empty during registration.
         //
-        // This can later contain:
+        // Later this can contain:
         //
         // {
         //     "service-id": "HOME_ONLY"
@@ -470,6 +498,26 @@ const createInitialData =
         // =================================================
         // CLAVATA SERVICE SELECTIONS
         // =================================================
+        //
+        // Initially empty.
+        //
+        // SalonServices.tsx will add:
+        //
+        // {
+        //     categoryId,
+        //     subcategoryId
+        // }
+        //
+        // ConfigureSalonServices.tsx will then add:
+        //
+        // {
+        //     categoryId,
+        //     subcategoryId,
+        //     price,
+        //     durationMinutes
+        // }
+        //
+        // =================================================
 
         serviceSelections: [],
 
@@ -506,6 +554,7 @@ const createInitialData =
 // =====================================================
 
 type SalonRegistrationContextType = {
+
     data: SalonRegistrationData;
 
     updateData: (
@@ -533,6 +582,7 @@ export const SalonRegistrationProvider = ({
 }: {
     children: React.ReactNode;
 }) => {
+
     const [data, setData] =
         useState<SalonRegistrationData>(
             createInitialData(),
@@ -545,6 +595,7 @@ export const SalonRegistrationProvider = ({
     const updateData = (
         values: Partial<SalonRegistrationData>,
     ) => {
+
         console.log(
             '======================================',
         );
@@ -559,6 +610,7 @@ export const SalonRegistrationProvider = ({
             '======================================',
         );
 
+
         setData(prev => ({
             ...prev,
             ...values,
@@ -570,11 +622,14 @@ export const SalonRegistrationProvider = ({
     // ===================================================
 
     const reset = () => {
+
         console.log(
             'SALON REGISTRATION RESET',
         );
 
-        setData(createInitialData());
+        setData(
+            createInitialData(),
+        );
     };
 
     // ===================================================
@@ -599,12 +654,14 @@ export const SalonRegistrationProvider = ({
 // =====================================================
 
 export const useSalonRegistration = () => {
+
     const context =
         useContext(
             SalonRegistrationContext,
         );
 
     if (!context) {
+
         throw new Error(
             'useSalonRegistration must be used inside SalonRegistrationProvider',
         );

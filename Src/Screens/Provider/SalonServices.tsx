@@ -565,7 +565,7 @@ export default function SalonServices({
       // ======================================================
 
       navigation.navigate(
-        'SalonKYC',
+        'ConfigureSalonServices',
       );
     } catch (error) {
       console.error(
