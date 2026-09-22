@@ -145,6 +145,27 @@ export type BusinessDocument = {
 };
 
 // =====================================================
+// SERVICE MODE
+// =====================================================
+//
+// SALON_ONLY
+//     Service is provided only at the salon.
+//
+// HOME_ONLY
+//     Service is provided only at customer's home.
+//
+// SALON_AND_HOME
+//     Service is provided both at the salon and
+//     at customer's home.
+//
+// =====================================================
+
+export type ServiceMode =
+    | 'SALON_ONLY'
+    | 'HOME_ONLY'
+    | 'SALON_AND_HOME';
+
+// =====================================================
 // SALON SERVICE SELECTION
 // =====================================================
 //
@@ -164,6 +185,30 @@ export type SalonServiceSelection = {
     categoryId: string;
     subcategoryId: string;
 };
+
+// =====================================================
+// SERVICE-SPECIFIC MODE
+// =====================================================
+//
+// The key is the service ID.
+//
+// Example:
+//
+// {
+//     "service-id-1": "SALON_AND_HOME",
+//     "service-id-2": "SALON_ONLY",
+//     "service-id-3": "HOME_ONLY"
+// }
+//
+// This allows the salon to configure home-service
+// availability individually for each service later.
+//
+// =====================================================
+
+export type ServiceSpecificModes = Record<
+    string,
+    ServiceMode
+>;
 
 // =====================================================
 // REGISTRATION DATA
@@ -189,6 +234,22 @@ export type SalonRegistrationData = {
     email: string;
 
     businessType: string;
+
+    // ===================================================
+    // SERVICE AVAILABILITY
+    // ===================================================
+    //
+    // This is the general/default service availability
+    // selected during registration.
+    //
+    // The salon can later customize this individually
+    // for each service using serviceSpecificModes.
+    //
+    // ===================================================
+
+    serviceMode: ServiceMode;
+
+    serviceSpecificModes: ServiceSpecificModes;
 
     // ===================================================
     // ADDRESS
@@ -301,9 +362,17 @@ export type SalonRegistrationData = {
 
 const createInitialData =
     (): SalonRegistrationData => ({
+        // =================================================
+        // USER
+        // =================================================
+
         userId: '',
 
         phoneNumber: '',
+
+        // =================================================
+        // BUSINESS
+        // =================================================
 
         salonName: '',
 
@@ -312,6 +381,41 @@ const createInitialData =
         email: '',
 
         businessType: '',
+
+        // =================================================
+        // SERVICE AVAILABILITY
+        // =================================================
+        //
+        // Empty string means the salon has not selected
+        // its service availability yet.
+        //
+        // The registration screen will require the salon
+        // to select one before continuing.
+        //
+        // =================================================
+
+        serviceMode: 'SALON_ONLY',
+
+        // =================================================
+        // SERVICE-SPECIFIC MODES
+        // =================================================
+        //
+        // Initially empty because services have not yet
+        // been selected/configured.
+        //
+        // This can later contain:
+        //
+        // {
+        //     "service-id": "HOME_ONLY"
+        // }
+        //
+        // =================================================
+
+        serviceSpecificModes: {},
+
+        // =================================================
+        // ADDRESS
+        // =================================================
 
         addressLine: '',
 
@@ -325,9 +429,17 @@ const createInitialData =
 
         longitude: undefined,
 
+        // =================================================
+        // KYC - OWNER
+        // =================================================
+
         panNumber: '',
 
         aadhaarNumber: '',
+
+        // =================================================
+        // KYB - BUSINESS
+        // =================================================
 
         gstNumber: '',
 
@@ -339,18 +451,31 @@ const createInitialData =
 
         llpinNumber: '',
 
+        // =================================================
+        // BANK
+        // =================================================
+
         bankAccount: '',
 
         ifsc: '',
 
         accountHolderName: '',
 
+        // =================================================
+        // DOCUMENTS
+        // =================================================
+
         businessDocuments: [],
 
         // =================================================
         // CLAVATA SERVICE SELECTIONS
         // =================================================
+
         serviceSelections: [],
+
+        // =================================================
+        // VERIFICATION
+        // =================================================
 
         kycStatus: 'NOT_STARTED',
 
@@ -362,7 +487,15 @@ const createInitialData =
 
         kycRejectionReason: '',
 
+        // =================================================
+        // PROVIDER STATUS
+        // =================================================
+
         providerStatus: 'NOT_REGISTERED',
+
+        // =================================================
+        // BUSINESS HOURS
+        // =================================================
 
         businessHours:
             createDefaultBusinessHours(),
@@ -405,6 +538,10 @@ export const SalonRegistrationProvider = ({
             createInitialData(),
         );
 
+    // ===================================================
+    // UPDATE DATA
+    // ===================================================
+
     const updateData = (
         values: Partial<SalonRegistrationData>,
     ) => {
@@ -428,6 +565,10 @@ export const SalonRegistrationProvider = ({
         }));
     };
 
+    // ===================================================
+    // RESET
+    // ===================================================
+
     const reset = () => {
         console.log(
             'SALON REGISTRATION RESET',
@@ -435,6 +576,10 @@ export const SalonRegistrationProvider = ({
 
         setData(createInitialData());
     };
+
+    // ===================================================
+    // PROVIDER
+    // ===================================================
 
     return (
         <SalonRegistrationContext.Provider

@@ -198,7 +198,7 @@ export default function SalonBusinessHoursScreen({
             businessHours: hours,
         });
 
-        navigation.navigate('SalonKYC');
+        navigation.navigate('SalonServices');
     };
 
     const pickerDate = picker
