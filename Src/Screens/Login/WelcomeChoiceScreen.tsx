@@ -75,7 +75,7 @@ const WelcomeChoiceScreen = () => {
 
                         <View style={styles.optionContent}>
                             <Text style={styles.optionTitle}>
-                                Royal Member
+                                Customer
                             </Text>
 
                             <Text style={styles.optionDescription}>

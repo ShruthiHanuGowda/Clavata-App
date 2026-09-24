@@ -690,7 +690,7 @@ if (!businessTypeId) {
             style={styles.subtitle}
           >
             Provide your business details
-            to get started with Clavata.
+            to get started with Clavata
           </Text>
 
           {/* =================================================
