@@ -96,6 +96,28 @@ type RegisterSalonPartnerVariables = {
     email: string;
     businessType: string;
 
+    /*
+     * -------------------------------------------------
+     * SERVICE AUDIENCE
+     * -------------------------------------------------
+     *
+     * Who the salon provides services to.
+     *
+     * Multiple values are allowed.
+     *
+     * Example:
+     *
+     * ['FEMALE', 'MALE']
+     *
+     * -------------------------------------------------
+     */
+
+    targetAudiences: Array<
+      'FEMALE' |
+      'MALE' |
+      'KIDS'
+    >;
+
     address: {
       addressLine: string;
       city: string;
@@ -120,21 +142,43 @@ type RegisterSalonPartnerVariables = {
 
     /*
      * Master category/subcategory selections.
-     *
-     * NOTE:
-     * Your current GraphQL schema accepts only
-     * categoryId + subcategoryId.
-     *
-     * Price and duration are therefore currently
-     * kept in the registration context and displayed
-     * on this screen, but are NOT sent to the backend
-     * until the GraphQL input is updated.
      */
+
     serviceSelections: Array<{
       categoryId: string;
       subcategoryId: string;
+      price: number;
+      duration: number;
     }>;
   };
+};
+
+
+/*
+ * =====================================================
+ * AUDIENCE LABELS
+ * =====================================================
+ */
+
+const getAudienceLabel = (
+  audience: string,
+): string => {
+
+  switch (audience) {
+
+    case 'FEMALE':
+      return 'Female';
+
+    case 'MALE':
+      return 'Male';
+
+    case 'KIDS':
+      return 'Kids';
+
+    default:
+      return audience;
+
+  }
 };
 
 
@@ -209,6 +253,38 @@ const SalonReviewScreen = ({
 
   const serviceSelections: ReviewServiceSelection[] =
     data.serviceSelections || [];
+
+
+  /*
+   * ---------------------------------------------------
+   * SELECTED AUDIENCES
+   * ---------------------------------------------------
+   *
+   * The values come from SalonRegistrationContext.
+   *
+   * Example:
+   *
+   * ['FEMALE', 'MALE']
+   *
+   * ---------------------------------------------------
+   */
+
+  const selectedAudiences =
+    data.targetAudiences || [];
+
+
+  /*
+   * ---------------------------------------------------
+   * DISPLAY AUDIENCE LABEL
+   * ---------------------------------------------------
+   */
+
+  const selectedAudienceLabel =
+    selectedAudiences.length > 0
+      ? selectedAudiences
+          .map(getAudienceLabel)
+          .join(', ')
+      : 'Not provided';
 
 
   /*
@@ -449,21 +525,6 @@ const SalonReviewScreen = ({
   const handleEditServices =
     () => {
 
-      /*
-       * New registration flow:
-       *
-       * SalonServices
-       *      ↓
-       * ConfigureSalonServices
-       *      ↓
-       * SalonKYC
-       *      ↓
-       * SalonReview
-       *
-       * Therefore editing services should start
-       * from SalonServices.
-       */
-
       navigation.navigate(
         'SalonServices',
       );
@@ -476,6 +537,30 @@ const SalonReviewScreen = ({
 
       navigation.navigate(
         'SalonKYC',
+      );
+
+    };
+
+
+  /*
+   * ---------------------------------------------------
+   * EDIT AUDIENCE
+   * ---------------------------------------------------
+   *
+   * Audience is selected on the salon information/
+   * registration screen.
+   *
+   * Change this route if your screen is named
+   * differently.
+   *
+   * ---------------------------------------------------
+   */
+
+  const handleEditAudience =
+    () => {
+
+      navigation.navigate(
+        'SalonInformation',
       );
 
     };
@@ -514,6 +599,27 @@ const SalonReviewScreen = ({
           Alert.alert(
             'Missing Information',
             'Please complete all required salon information.',
+          );
+
+          return;
+
+        }
+
+
+        /*
+         * ---------------------------------------------
+         * SERVICE AUDIENCE VALIDATION
+         * ---------------------------------------------
+         */
+
+        if (
+          !data.targetAudiences ||
+          data.targetAudiences.length === 0
+        ) {
+
+          Alert.alert(
+            'Service Audience Required',
+            'Please select at least one audience: Female, Male, or Kids.',
           );
 
           return;
@@ -671,12 +777,6 @@ const SalonReviewScreen = ({
          * ---------------------------------------------
          * PRICE + DURATION VALIDATION
          * ---------------------------------------------
-         *
-         * Every selected service should have a valid
-         * price and duration before registration.
-         *
-         * This protects against accidentally submitting
-         * an incomplete Configure Services screen.
          */
 
         const incompleteServices =
@@ -730,11 +830,10 @@ const SalonReviewScreen = ({
 
 
           /*
-           * Only master IDs are sent to the current
-           * backend GraphQL input.
+           * Current backend input.
            *
-           * Category/service names are master data and
-           * should not be trusted from the mobile client.
+           * targetAudiences is included so the backend
+           * can store who the salon serves.
            */
 
           const input = {
@@ -757,6 +856,14 @@ const SalonReviewScreen = ({
             businessType:
               data.businessType,
 
+            /*
+             * -----------------------------------------
+             * SERVICE AUDIENCE
+             * -----------------------------------------
+             */
+
+            targetAudiences:
+              data.targetAudiences,
 
             address: {
 
@@ -814,6 +921,16 @@ const SalonReviewScreen = ({
                   subcategoryId:
                     selection.subcategoryId,
 
+                  price:
+                    Number(
+                      selection.price,
+                    ),
+
+                  duration:
+                    Number(
+                      selection.durationMinutes,
+                    ),
+
                 }),
               ),
 
@@ -862,7 +979,7 @@ const SalonReviewScreen = ({
 
             throw new Error(
               response?.message ||
-                'Unable to submit salon registration.',
+              'Unable to submit salon registration.',
             );
 
           }
@@ -877,7 +994,7 @@ const SalonReviewScreen = ({
           Alert.alert(
             'Registration Submitted',
             response.message ||
-              'Your salon registration has been submitted successfully.',
+            'Your salon registration has been submitted successfully.',
             [
               {
 
@@ -915,7 +1032,7 @@ const SalonReviewScreen = ({
           Alert.alert(
             'Registration Failed',
             error?.message ||
-              'Something went wrong while submitting your registration.',
+            'Something went wrong while submitting your registration.',
           );
 
         } finally {
@@ -944,16 +1061,16 @@ const SalonReviewScreen = ({
   const maskedAadhaar =
     data.aadhaarNumber
       ? `XXXX XXXX ${data.aadhaarNumber.slice(
-          -4,
-        )}`
+        -4,
+      )}`
       : 'Not provided';
 
 
   const maskedBankAccount =
     data.bankAccount
       ? `XXXXXX${data.bankAccount.slice(
-          -4,
-        )}`
+        -4,
+      )}`
       : 'Not provided';
 
 
@@ -1071,8 +1188,130 @@ const SalonReviewScreen = ({
                 data.businessType ||
                 'Not provided'
               }
-              last
             />
+
+
+            {/* ========================================
+                SERVICE AUDIENCE
+            ======================================== */}
+
+            <View
+              style={[
+                styles.reviewRow,
+                styles.reviewRowLast,
+              ]}
+            >
+
+              <View
+                style={
+                  styles.audienceHeader
+                }
+              >
+
+                <View
+                  style={
+                    styles.audienceLabelContainer
+                  }
+                >
+
+                  <Text
+                    style={
+                      styles.reviewLabel
+                    }
+                  >
+                    Service Audience
+                  </Text>
+
+
+                  <Text
+                    style={
+                      styles.audienceHelper
+                    }
+                  >
+                    Who your salon provides services to
+                  </Text>
+
+                </View>
+
+
+                <TouchableOpacity
+                  onPress={
+                    handleEditAudience
+                  }
+                >
+
+                  <Text
+                    style={
+                      styles.editText
+                    }
+                  >
+                    Edit
+                  </Text>
+
+                </TouchableOpacity>
+
+              </View>
+
+
+              <View
+                style={
+                  styles.audienceValueContainer
+                }
+              >
+
+                {selectedAudiences.length >
+                0 ? (
+
+                  <View
+                    style={
+                      styles.audienceChipContainer
+                    }
+                  >
+
+                    {selectedAudiences.map(
+                      audience => (
+
+                        <View
+                          key={audience}
+                          style={
+                            styles.audienceChip
+                          }
+                        >
+
+                          <Text
+                            style={
+                              styles.audienceChipText
+                            }
+                          >
+                            {
+                              getAudienceLabel(
+                                audience,
+                              )
+                            }
+                          </Text>
+
+                        </View>
+
+                      ),
+                    )}
+
+                  </View>
+
+                ) : (
+
+                  <Text
+                    style={
+                      styles.notProvidedText
+                    }
+                  >
+                    Not provided
+                  </Text>
+
+                )}
+
+              </View>
+
+            </View>
 
           </View>
 
@@ -1201,9 +1440,9 @@ const SalonReviewScreen = ({
           >
 
             {data.businessHours &&
-            Object.keys(
-              data.businessHours,
-            ).length > 0 ? (
+              Object.keys(
+                data.businessHours,
+              ).length > 0 ? (
 
               Object.entries(
                 data.businessHours,
@@ -1238,10 +1477,9 @@ const SalonReviewScreen = ({
                     >
 
                       {hours.isOpen
-                        ? `${hours.open || ''} - ${
-                            hours.close ||
-                            ''
-                          }`
+                        ? `${hours.open || ''} - ${hours.close ||
+                        ''
+                        }`
                         : 'Closed'}
 
                     </Text>
@@ -1441,7 +1679,7 @@ const SalonReviewScreen = ({
                                 >
                                   {typeof service.price ===
                                     'number' &&
-                                  service.price > 0
+                                    service.price > 0
                                     ? `₹${service.price}`
                                     : 'Price not set'}
                                 </Text>
@@ -1463,7 +1701,7 @@ const SalonReviewScreen = ({
                                 >
                                   {typeof service.durationMinutes ===
                                     'number' &&
-                                  service.durationMinutes > 0
+                                    service.durationMinutes > 0
                                     ? `${service.durationMinutes} min`
                                     : 'Duration not set'}
                                 </Text>
@@ -1706,7 +1944,7 @@ const ReviewRow = ({
       style={[
         styles.reviewRow,
         last &&
-          styles.reviewRowLast,
+        styles.reviewRowLast,
       ]}
     >
 
@@ -1873,6 +2111,105 @@ const styles = StyleSheet.create({
     color:
       COLORS.text ||
       '#111111',
+  },
+
+
+  /*
+   * ---------------------------------------------------
+   * AUDIENCE
+   * ---------------------------------------------------
+   */
+
+  audienceHeader: {
+    flexDirection:
+      'row',
+
+    alignItems:
+      'flex-start',
+
+    justifyContent:
+      'space-between',
+  },
+
+
+  audienceLabelContainer: {
+    flex: 1,
+
+    paddingRight: 12,
+  },
+
+
+  audienceHelper: {
+    fontFamily:
+      FONTS.regular,
+
+    fontSize: 11,
+
+    color:
+      COLORS.textSecondary ||
+      '#888888',
+
+    marginTop: 1,
+  },
+
+
+  audienceValueContainer: {
+    marginTop:
+      SPACING.small,
+  },
+
+
+  audienceChipContainer: {
+    flexDirection:
+      'row',
+
+    flexWrap:
+      'wrap',
+
+    gap: 8,
+  },
+
+
+  audienceChip: {
+    paddingHorizontal: 12,
+
+    paddingVertical: 7,
+
+    borderRadius: 20,
+
+    backgroundColor:
+      '#E8F7F5',
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.primary ||
+      '#009D94',
+  },
+
+
+  audienceChipText: {
+    fontFamily:
+      FONTS.medium ||
+      FONTS.regular,
+
+    fontSize: 13,
+
+    color:
+      COLORS.primary ||
+      '#009D94',
+  },
+
+
+  notProvidedText: {
+    fontFamily:
+      FONTS.regular,
+
+    fontSize: 14,
+
+    color:
+      COLORS.textSecondary ||
+      '#777777',
   },
 
 

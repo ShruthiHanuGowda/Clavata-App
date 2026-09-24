@@ -1836,13 +1836,15 @@ export const GET_PENDING_SALON_PROFILE_CHANGE = gql`
     }
 `;
 
-export const GET_CLAVATA_CATEGORIES = gql`
-  query GetClavataCategories {
-    categories(status: ACTIVE) {
+export const GET_CLAVATA_SUBCATEGORIES = gql`
+  query GetClavataSubcategories {
+    subcategories(status: ACTIVE) {
       success
       message
       totalCount
-      categories {
+
+      subcategories {
+        subcategoryId
         categoryId
         name
         description
@@ -1850,19 +1852,20 @@ export const GET_CLAVATA_CATEGORIES = gql`
         status
         createdAt
         updatedAt
+        audiences
       }
     }
   }
 `;
 
-export const GET_CLAVATA_SUBCATEGORIES = gql`
-  query GetClavataSubcategories {
-    subcategories(status: ACTIVE) {
+export const GET_CLAVATA_CATEGORIES = gql`
+  query GetClavataCategories {
+    categories(status: ACTIVE) {
       success
       message
       totalCount
-      subcategories {
-        subcategoryId
+
+      categories {
         categoryId
         name
         description

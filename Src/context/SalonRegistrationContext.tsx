@@ -166,6 +166,45 @@ export type ServiceMode =
     | 'SALON_AND_HOME';
 
 // =====================================================
+// SERVICE AUDIENCE
+// =====================================================
+//
+// Defines WHO the salon/business provides services to.
+//
+// FEMALE
+//     Services for women.
+//
+// MALE
+//     Services for men.
+//
+// KIDS
+//     Services for children.
+//
+// Multiple values can be selected.
+//
+// Example:
+//
+// [
+//     'FEMALE',
+//     'MALE'
+// ]
+//
+// or:
+//
+// [
+//     'FEMALE',
+//     'MALE',
+//     'KIDS'
+// ]
+//
+// =====================================================
+
+export type ServiceAudience =
+    | 'FEMALE'
+    | 'MALE'
+    | 'KIDS';
+
+// =====================================================
 // SALON SERVICE SELECTION
 // =====================================================
 //
@@ -276,6 +315,26 @@ export type SalonRegistrationData = {
     email: string;
 
     businessType: string;
+
+    // ===================================================
+    // SERVICE AUDIENCE
+    // ===================================================
+    //
+    // Defines whether the business provides services for:
+    //
+    // FEMALE
+    // MALE
+    // KIDS
+    //
+    // Multiple selections are allowed.
+    //
+    // Example:
+    //
+    // ['FEMALE', 'MALE']
+    //
+    // ===================================================
+
+    targetAudiences: ServiceAudience[];
 
     // ===================================================
     // SERVICE AVAILABILITY
@@ -418,6 +477,25 @@ const createInitialData =
         email: '',
 
         businessType: '',
+
+        // =================================================
+        // SERVICE AUDIENCE
+        // =================================================
+        //
+        // Initially empty.
+        //
+        // SalonRegistrationScreen will set this.
+        //
+        // Example:
+        //
+        // [
+        //     'FEMALE',
+        //     'MALE'
+        // ]
+        //
+        // =================================================
+
+        targetAudiences: [],
 
         // =================================================
         // SERVICE AVAILABILITY
@@ -609,7 +687,6 @@ export const SalonRegistrationProvider = ({
         console.log(
             '======================================',
         );
-
 
         setData(prev => ({
             ...prev,

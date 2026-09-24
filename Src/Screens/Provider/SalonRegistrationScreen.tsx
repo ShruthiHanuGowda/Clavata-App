@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import {
   SafeAreaView,
@@ -18,7 +18,10 @@ import { useQuery } from '@apollo/client';
 
 import { Header, DButton } from '../../components';
 
-import { useSalonRegistration } from '../../context/SalonRegistrationContext';
+import {
+  useSalonRegistration,
+  ServiceMode,
+} from '../../context/SalonRegistrationContext';
 
 import { useUser } from '../../context/UserContext';
 
@@ -32,9 +35,9 @@ import {
 
 import { GET_BUSINESS_TYPES } from '../../graphql/queries';
 
-// ============================================================
-// TYPES
-// ============================================================
+/* =========================================================
+   TYPES
+========================================================= */
 
 interface BusinessType {
   businessTypeId: string;
@@ -58,92 +61,121 @@ interface BusinessTypesQueryVariables {
   status: 'ACTIVE' | 'INACTIVE';
 }
 
-// ============================================================
-// SERVICE MODE
-// ============================================================
+/*
+ * Who the business serves.
+ *
+ * Multiple values can be selected.
+ */
+type TargetAudience =
+  | 'FEMALE'
+  | 'MALE'
+  | 'KIDS';
 
-type ServiceMode =
-  | 'SALON_ONLY'
-  | 'HOME_ONLY'
-  | 'SALON_AND_HOME';
-
-interface ServiceModeOption {
-  value: ServiceMode;
+interface TargetAudienceOption {
+  value: TargetAudience;
   label: string;
   description: string;
 }
 
-// ============================================================
-// SERVICE MODE OPTIONS
-// ============================================================
+/* =========================================================
+   TARGET AUDIENCE OPTIONS
+========================================================= */
 
-const SERVICE_MODE_OPTIONS: ServiceModeOption[] = [
+const TARGET_AUDIENCE_OPTIONS: TargetAudienceOption[] = [
   {
-    value: 'SALON_ONLY',
-    label: 'Salon service only',
+    value: 'FEMALE',
+    label: 'Female',
     description:
-      'Customers can receive this service at your salon.',
+      'Services primarily intended for women.',
   },
   {
-    value: 'HOME_ONLY',
-    label: 'Home service only',
+    value: 'MALE',
+    label: 'Male',
     description:
-      'You provide this service at the customer’s location.',
+      'Services primarily intended for men.',
   },
   {
-    value: 'SALON_AND_HOME',
-    label: 'Salon & Home service',
+    value: 'KIDS',
+    label: 'Kids',
     description:
-      'You provide this service both at your salon and at the customer’s location.',
+      'Services specifically offered for children.',
   },
 ];
 
-// ============================================================
-// SCREEN
-// ============================================================
+/* =========================================================
+   COMPONENT
+========================================================= */
 
-export default function SalonRegistrationScreen({
+const SalonRegistrationScreen = ({
   navigation,
-}: any) {
-  const { updateData } = useSalonRegistration();
+}: any) => {
+  const { updateData } =
+    useSalonRegistration();
 
   const { currentUser } = useUser();
 
-  // ==========================================================
-  // FORM STATE
-  // ==========================================================
+  /* =======================================================
+     FORM STATE
+  ======================================================= */
 
-  const [businessType, setBusinessType] = useState('');
-
-  const [otherBusinessType, setOtherBusinessType] =
+  const [businessType, setBusinessType] =
     useState('');
 
-  const [salonName, setSalonName] = useState('');
+  const [
+    selectedBusinessType,
+    setSelectedBusinessType,
+  ] = useState<BusinessType | null>(null);
 
-  const [ownerName, setOwnerName] = useState('');
+  const [salonName, setSalonName] =
+    useState('');
 
-  const [email, setEmail] = useState('');
+  const [ownerName, setOwnerName] =
+    useState('');
+
+  const [email, setEmail] =
+    useState('');
 
   const [
     businessTypeModalVisible,
     setBusinessTypeModalVisible,
   ] = useState(false);
 
-  // ==========================================================
-  // SERVICE MODE STATE
-  // ==========================================================
+  const [
+    helpModalVisible,
+    setHelpModalVisible,
+  ] = useState(false);
 
-  const [serviceMode, setServiceMode] =
-    useState<ServiceMode | null>(null);
+  const [
+    serviceMode,
+    setServiceMode,
+  ] = useState<ServiceMode | null>(null);
 
   const [
     serviceModeModalVisible,
     setServiceModeModalVisible,
   ] = useState(false);
 
-  // ==========================================================
-  // GET ACTIVE BUSINESS TYPES FROM ADMIN
-  // ==========================================================
+  /*
+   * NEW:
+   * Multiple target audiences can be selected.
+   */
+  const [
+    targetAudiences,
+    setTargetAudiences,
+  ] = useState<TargetAudience[]>([]);
+
+  const [
+    targetAudienceModalVisible,
+    setTargetAudienceModalVisible,
+  ] = useState(false);
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  /* =======================================================
+     BUSINESS TYPES
+     SOURCE OF TRUTH = ADMIN PANEL
+  ======================================================= */
 
   const {
     data: businessTypesData,
@@ -157,110 +189,217 @@ export default function SalonRegistrationScreen({
     variables: {
       status: 'ACTIVE',
     },
+
     fetchPolicy: 'network-only',
+
     notifyOnNetworkStatusChange: true,
 
     onError: error => {
       console.log(
-        '[SalonRegistrationScreen] Business types query error:',
+        '[SalonRegistration] GET_BUSINESS_TYPES error:',
         error,
       );
     },
   });
 
-  // ==========================================================
-  // BUSINESS TYPES
-  //
-  // Admin-managed active types + permanent "Other"
-  // ==========================================================
+  /* =======================================================
+     ACTIVE BUSINESS TYPE OPTIONS
 
-  const adminBusinessTypes: BusinessType[] =
-    businessTypesData?.businessTypes?.businessTypes ?? [];
+     - Only ACTIVE types
+     - No "Other"
+     - Sorted alphabetically
+     - Duplicate names removed
+  ======================================================= */
 
-  const activeBusinessTypes = adminBusinessTypes
-    .filter(type => type.status === 'ACTIVE')
-    .filter(type => type.name.trim().length > 0)
-    .sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, {
-        sensitivity: 'base',
-      }),
-    );
+  const businessTypeOptions =
+    useMemo(() => {
+      const types =
+        businessTypesData
+          ?.businessTypes
+          ?.businessTypes ?? [];
 
-  const businessTypeOptions: string[] = [
-    ...activeBusinessTypes
-      .map(type => type.name.trim())
-      .filter(
-        (name, index, array) =>
-          array.findIndex(
-            item =>
-              item.toLowerCase() ===
-              name.toLowerCase(),
-          ) === index,
-      )
-      .filter(
-        name => name.toLowerCase() !== 'other',
-      ),
+      const activeTypes =
+        types.filter(
+          item =>
+            item.status === 'ACTIVE' &&
+            item.name?.trim(),
+        );
 
-    'Other',
-  ];
+      const uniqueTypes: BusinessType[] =
+        [];
 
-  // ==========================================================
-  // BUSINESS TYPE
-  // ==========================================================
+      const seenNames =
+        new Set<string>();
 
-  const selectBusinessType = (type: string) => {
-    setBusinessType(type);
+      activeTypes
+        .sort((a, b) =>
+          a.name.localeCompare(
+            b.name,
+            undefined,
+            {
+              sensitivity: 'base',
+            },
+          ),
+        )
+        .forEach(item => {
+          const normalizedName =
+            item.name
+              .trim()
+              .toLowerCase();
 
-    if (type !== 'Other') {
-      setOtherBusinessType('');
-    }
+          if (
+            !seenNames.has(
+              normalizedName,
+            )
+          ) {
+            seenNames.add(
+              normalizedName,
+            );
 
-    setBusinessTypeModalVisible(false);
-  };
+            uniqueTypes.push(item);
+          }
+        });
 
-  // ==========================================================
-  // OPEN BUSINESS TYPE MODAL
-  // ==========================================================
+      return uniqueTypes;
+    }, [businessTypesData]);
 
-  const openBusinessTypeModal = () => {
-    setBusinessTypeModalVisible(true);
-  };
+  /* =======================================================
+     SELECT BUSINESS TYPE
+  ======================================================= */
 
-  // ==========================================================
-  // SERVICE MODE HELPERS
-  // ==========================================================
-
-  const getServiceModeLabel = (
-    mode: ServiceMode | null,
+  const selectBusinessType = (
+    type: BusinessType,
   ) => {
-    if (!mode) {
-      return 'Select service availability';
-    }
+    setSelectedBusinessType(type);
 
-    const option = SERVICE_MODE_OPTIONS.find(
-      item => item.value === mode,
+    setBusinessType(
+      type.name.trim(),
     );
 
-    return option?.label ?? 'Select service availability';
+    setBusinessTypeModalVisible(
+      false,
+    );
   };
+
+  /* =======================================================
+     TARGET AUDIENCE
+  ======================================================= */
+
+  const toggleTargetAudience = (
+    audience: TargetAudience,
+  ) => {
+    setTargetAudiences(
+      current => {
+        if (
+          current.includes(audience)
+        ) {
+          return current.filter(
+            item =>
+              item !== audience,
+          );
+        }
+
+        return [
+          ...current,
+          audience,
+        ];
+      },
+    );
+  };
+
+  /* =======================================================
+     TARGET AUDIENCE LABEL
+  ======================================================= */
+
+  const getTargetAudienceLabel =
+    () => {
+      if (
+        targetAudiences.length === 0
+      ) {
+        return '';
+      }
+
+      const selectedLabels =
+        TARGET_AUDIENCE_OPTIONS
+          .filter(option =>
+            targetAudiences.includes(
+              option.value,
+            ),
+          )
+          .map(option => option.label);
+
+      return selectedLabels.join(
+        ', ',
+      );
+    };
+
+  /* =======================================================
+     SELECT SERVICE MODE
+  ======================================================= */
 
   const selectServiceMode = (
     mode: ServiceMode,
   ) => {
     setServiceMode(mode);
-    setServiceModeModalVisible(false);
+
+    setServiceModeModalVisible(
+      false,
+    );
   };
 
-  // ==========================================================
-  // CONTINUE
-  // ==========================================================
+  /* =======================================================
+     SERVICE MODE LABEL
+  ======================================================= */
 
-  const onNext = () => {
+  const getServiceModeLabel = () => {
+    switch (serviceMode) {
+      case 'SALON_ONLY':
+        return 'Salon only';
+
+      case 'HOME_ONLY':
+        return 'Home only';
+
+      case 'SALON_AND_HOME':
+        return 'Salon & Home';
+
+      default:
+        return '';
+    }
+  };
+
+  /* =======================================================
+     SERVICE MODE DESCRIPTION
+  ======================================================= */
+
+  const getServiceModeDescription = (
+    mode: ServiceMode,
+  ) => {
+    switch (mode) {
+      case 'SALON_ONLY':
+        return 'Customers visit your business location for services.';
+
+      case 'HOME_ONLY':
+        return 'You provide services at the customer’s location.';
+
+      case 'SALON_AND_HOME':
+        return 'You provide services both at your business location and at the customer’s location.';
+
+      default:
+        return '';
+    }
+  };
+
+  /* =======================================================
+     SUBMIT / NEXT
+  ======================================================= */
+
+  const onNext = async () => {
+    if (submitting) {
+      return;
+    }
+
     const trimmedBusinessType =
       businessType.trim();
-
-    const trimmedOtherBusinessType =
-      otherBusinessType.trim();
 
     const trimmedSalonName =
       salonName.trim();
@@ -271,88 +410,81 @@ export default function SalonRegistrationScreen({
     const trimmedEmail =
       email.trim();
 
-    // ----------------------------------------------------------
-    // BUSINESS TYPE VALIDATION
-    // ----------------------------------------------------------
+    /* -------------------------------------------------------
+       BUSINESS TYPE
+    ------------------------------------------------------- */
 
     if (!trimmedBusinessType) {
       Alert.alert(
         'Business Type Required',
-        'Please select your business type.',
+        'Please select your business type to continue.',
       );
 
       return;
     }
 
-    // ----------------------------------------------------------
-    // OTHER BUSINESS TYPE VALIDATION
-    // ----------------------------------------------------------
+    /* -------------------------------------------------------
+       TARGET AUDIENCE
+    ------------------------------------------------------- */
 
     if (
-      trimmedBusinessType === 'Other' &&
-      !trimmedOtherBusinessType
+      targetAudiences.length === 0
     ) {
       Alert.alert(
-        'Business Type Required',
-        'Please enter your business type.',
+        'Customer Type Required',
+        'Please select who your business serves. You can select more than one.',
       );
 
       return;
     }
 
-    // ----------------------------------------------------------
-    // FINAL BUSINESS TYPE
-    // ----------------------------------------------------------
-
-    const finalBusinessType =
-      trimmedBusinessType === 'Other'
-        ? trimmedOtherBusinessType
-        : trimmedBusinessType;
-
-    // ----------------------------------------------------------
-    // SALON NAME
-    // ----------------------------------------------------------
+    /* -------------------------------------------------------
+       BUSINESS NAME
+    ------------------------------------------------------- */
 
     if (!trimmedSalonName) {
       Alert.alert(
         'Business Name Required',
-        'Please enter your business or salon name.',
+        'Please enter your business name.',
       );
 
       return;
     }
 
-    // ----------------------------------------------------------
-    // OWNER NAME
-    // ----------------------------------------------------------
+    /* -------------------------------------------------------
+       OWNER NAME
+    ------------------------------------------------------- */
 
     if (!trimmedOwnerName) {
       Alert.alert(
         'Owner Name Required',
-        'Please enter the owner name as per Aadhar.',
+        'Please enter the owner name as per Aadhaar.',
       );
 
       return;
     }
 
-    // ----------------------------------------------------------
-    // EMAIL
-    // ----------------------------------------------------------
+    /* -------------------------------------------------------
+       EMAIL
+    ------------------------------------------------------- */
 
     if (!trimmedEmail) {
       Alert.alert(
-        'Business Email Required',
+        'Email Required',
         'Please enter your business email address.',
       );
 
       return;
     }
 
-    // Fixed email validation
     const emailRegex =
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailRegex.test(trimmedEmail)) {
+    if (
+      !emailRegex.test(
+        trimmedEmail,
+      )
+    ) {
       Alert.alert(
         'Invalid Email',
         'Please enter a valid business email address.',
@@ -361,1259 +493,3133 @@ export default function SalonRegistrationScreen({
       return;
     }
 
-    // ----------------------------------------------------------
-    // SERVICE MODE VALIDATION
-    // ----------------------------------------------------------
+    /* -------------------------------------------------------
+       SERVICE MODE
+    ------------------------------------------------------- */
 
     if (!serviceMode) {
       Alert.alert(
         'Service Availability Required',
-        'Please select where you provide your services.',
+        'Please select how you provide your services.',
       );
 
       return;
     }
 
-    // ----------------------------------------------------------
-    // USER VALIDATION
-    // ----------------------------------------------------------
+    /* -------------------------------------------------------
+       CURRENT USER
+    ------------------------------------------------------- */
 
     if (!currentUser?.userId) {
       Alert.alert(
-        'Session Expired',
-        'Please sign in again.',
+        'Unable to Continue',
+        'Your user information is unavailable. Please sign in again.',
       );
 
       return;
     }
 
-    if (!currentUser?.phoneNumber) {
+    if (
+      !currentUser?.phoneNumber
+    ) {
       Alert.alert(
         'Phone Number Missing',
-        'Please verify your mobile number again.',
+        'Your phone number is unavailable. Please sign in again.',
       );
 
       return;
     }
 
-    // ----------------------------------------------------------
-    // SAVE REGISTRATION DATA
-    // ----------------------------------------------------------
+    /* -------------------------------------------------------
+       SAVE REGISTRATION DATA
+    ------------------------------------------------------- */
 
-    updateData({
-      userId: currentUser.userId,
+    try {
+      setSubmitting(true);
 
-      phoneNumber: currentUser.phoneNumber,
+      await updateData({
+        userId:
+          currentUser.userId,
 
-      salonName: trimmedSalonName,
+        phoneNumber:
+          currentUser.phoneNumber,
 
-      ownerName: trimmedOwnerName,
+        salonName:
+          trimmedSalonName,
 
-      email: trimmedEmail,
+        ownerName:
+          trimmedOwnerName,
 
-      businessType: finalBusinessType,
+        email:
+          trimmedEmail,
 
-      // Overall service availability selected
-      // during registration.
-      serviceMode: serviceMode,
+        /*
+         * Existing business type field.
+         */
+        businessType:
+          trimmedBusinessType,
 
-      // This is intentionally empty initially.
-      // Service-specific modes can be populated
-      // after the salon selects its services.
-      serviceSpecificModes: {},
-    });
+        /*
+         * NEW:
+         * Store who this business serves.
+         *
+         * Example:
+         * ['FEMALE']
+         *
+         * or:
+         * ['FEMALE', 'MALE', 'KIDS']
+         */
+        targetAudiences:
+          targetAudiences,
 
-    // ----------------------------------------------------------
-    // NEXT SCREEN
-    // ----------------------------------------------------------
+        serviceMode,
 
-    navigation.navigate('SalonAddress');
+        /*
+         * Service-specific modes are
+         * configured later.
+         */
+        serviceSpecificModes: {},
+      });
+
+      navigation.navigate(
+        'SalonAddress',
+      );
+    } catch (error) {
+      console.log(
+        '[SalonRegistration] Failed to save registration:',
+        error,
+      );
+
+      Alert.alert(
+        'Unable to Continue',
+        'Something went wrong while saving your registration details. Please try again.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // ============================================================
-  // RENDER
-  // ============================================================
+  /* =======================================================
+     RENDER
+  ======================================================= */
 
   return (
-    <SafeAreaView style={styles.container}>
-
-      {/* ======================================================
-          HEADER
-      ====================================================== */}
-
-      <Header headerTitle="Registration" />
-
-      {/* ======================================================
-          CONTENT
-      ====================================================== */}
+    <SafeAreaView
+      style={styles.safeArea}
+    >
+      <Header
+        headerTitle="Registration"
+      />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        style={styles.container}
+        contentContainerStyle={
+          styles.contentContainer
+        }
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-
-        <View style={styles.header} />
-
-        <View style={styles.card}>
-
-          {/* ==================================================
-              BUSINESS TYPE
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Business type
-          </Text>
-
-          <TouchableOpacity
-            style={styles.dropdown}
-            activeOpacity={0.75}
-            onPress={openBusinessTypeModal}
-          >
-            <Text
-              style={[
-                styles.dropdownText,
-                !businessType &&
-                  styles.dropdownPlaceholder,
-              ]}
-              numberOfLines={1}
-            >
-              {businessType ||
-                'Select business type'}
-            </Text>
-
-            <Text style={styles.dropdownArrow}>
-              ▾
-            </Text>
-          </TouchableOpacity>
-
-          {/* ==================================================
-              BUSINESS TYPE LOAD STATUS
-          ================================================== */}
-
-          {businessTypesLoading && (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator
-                size="small"
-                color={COLORS.themeColor}
-              />
-
-              <Text style={styles.loadingText}>
-                Loading business types...
-              </Text>
-            </View>
-          )}
-
-          {/* ==================================================
-              BUSINESS TYPE ERROR
-          ================================================== */}
-
-          {!businessTypesLoading &&
-            businessTypesError && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>
-                  Unable to load business types.
-                </Text>
-
-                <TouchableOpacity
-                  activeOpacity={0.75}
-                  onPress={() =>
-                    refetchBusinessTypes()
-                  }
-                >
-                  <Text style={styles.retryText}>
-                    Tap to retry
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-          {/* ==================================================
-              OTHER BUSINESS TYPE
-          ================================================== */}
-
-          {businessType === 'Other' && (
-            <View
-              style={
-                styles.otherBusinessTypeContainer
-              }
-            >
-              <Text style={styles.label}>
-                Enter Your Business type
-              </Text>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Hair Salon, Beauty Salon"
-                placeholderTextColor={
-                  COLORS.textMuted
-                }
-                value={otherBusinessType}
-                onChangeText={
-                  setOtherBusinessType
-                }
-                autoCapitalize="words"
-                autoCorrect={false}
-                returnKeyType="next"
-              />
-            </View>
-          )}
-
-          {/* ==================================================
-              BUSINESS / SALON NAME
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Business/Salon Name
-          </Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Enter business or salon name"
-            placeholderTextColor={
-              COLORS.textMuted
-            }
-            value={salonName}
-            onChangeText={setSalonName}
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
-
-          {/* ==================================================
-              OWNER NAME
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Owner Name (As per Aadhar)
-          </Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Enter owner name as per Aadhar"
-            placeholderTextColor={
-              COLORS.textMuted
-            }
-            value={ownerName}
-            onChangeText={setOwnerName}
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
-
-          {/* ==================================================
-              BUSINESS EMAIL
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Business email
-          </Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="example@email.com"
-            placeholderTextColor={
-              COLORS.textMuted
-            }
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={email}
-            onChangeText={setEmail}
-          />
-
-          {/* ==================================================
-              SERVICE AVAILABILITY
-          ================================================== */}
-
-          <View style={styles.sectionSpacing} />
-
-          <Text style={styles.label}>
-            Service availability
-          </Text>
-
-          <Text style={styles.fieldDescription}>
-            Tell us where you currently provide your
-            services.
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.dropdown,
-              styles.serviceModeDropdown,
-            ]}
-            activeOpacity={0.75}
-            onPress={() =>
-              setServiceModeModalVisible(true)
-            }
-          >
-            <Text
-              style={[
-                styles.dropdownText,
-                !serviceMode &&
-                  styles.dropdownPlaceholder,
-              ]}
-              numberOfLines={1}
-            >
-              {getServiceModeLabel(serviceMode)}
-            </Text>
-
-            <Text style={styles.dropdownArrow}>
-              ▾
-            </Text>
-          </TouchableOpacity>
-
-          {/* ==================================================
-              SERVICE MODE INFORMATION
-          ================================================== */}
-
-          <View style={styles.infoBox}>
-
-            <View style={styles.infoIcon}>
-              <Text style={styles.infoIconText}>
-                i
-              </Text>
-            </View>
-
-            <View style={styles.infoContent}>
-
-              <Text style={styles.infoTitle}>
-                Service-specific options
-              </Text>
-
-              <Text style={styles.infoText}>
-                You can choose a different service mode
-                for each service later.
-              </Text>
-
-              <Text
-                style={[
-                  styles.infoText,
-                  styles.infoTextSpacing,
-                ]}
-              >
-                For example, Haircut can be available
-                at the salon and at home, while Hair
-                Coloring can be salon-only.
-              </Text>
-
-              <Text
-                style={[
-                  styles.infoText,
-                  styles.infoTextSpacing,
-                ]}
-              >
-                You can also edit these service
-                availability settings later from your
-                salon profile.
-              </Text>
-
-            </View>
-          </View>
-
-          {/* ==================================================
-              BUSINESS PHONE
-              Kept commented as before.
-          ================================================== */}
-
-          {/*
-          <Text style={styles.label}>
-            Business Phone/Mobile Number
-          </Text>
-
-          <View style={styles.phoneContainer}>
-            <Text style={styles.phoneText}>
-              {currentUser?.phoneNumber ||
-                'Mobile number not available'}
-            </Text>
-
-            <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedBadgeText}>
-                ✓
-              </Text>
-            </View>
-          </View>
-
-          <Text style={styles.phoneHint}>
-            This is the mobile number verified with Clavata.
-          </Text>
-          */}
-
-        </View>
-
-        {/* ====================================================
-            CONTINUE BUTTON
-        ==================================================== */}
-
-        <DButton
-          style={styles.button}
-          onPress={onNext}
-        >
-          <Text style={styles.buttonText}>
-            Continue
-          </Text>
-        </DButton>
-
-      </ScrollView>
-
-      {/* ======================================================
-          BUSINESS TYPE MODAL
-      ====================================================== */}
-
-      <Modal
-        visible={businessTypeModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() =>
-          setBusinessTypeModalVisible(false)
+        showsVerticalScrollIndicator={
+          false
         }
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() =>
-            setBusinessTypeModalVisible(false)
-          }
-        >
-          <Pressable
-            style={styles.modalContainer}
-            onPress={() => {}}
+        <View style={styles.card}>
+          {/* =================================================
+              INTRO
+          ================================================= */}
+
+          <Text style={styles.title}>
+            Tell us about your business
+          </Text>
+
+          <Text
+            style={styles.subtitle}
           >
+            Provide your business details
+            to get started with Clavata.
+          </Text>
 
-            {/* ==================================================
-                MODAL HEADER
-            ================================================== */}
+          {/* =================================================
+              BUSINESS TYPE
+          ================================================= */}
 
-            <View style={styles.modalHeader}>
-
-              <Text style={styles.modalTitle}>
-                Select Business Type
+          <View
+            style={
+              styles.fieldContainer
+            }
+          >
+            <View
+              style={styles.labelRow}
+            >
+              <Text
+                style={styles.label}
+              >
+                Business type
               </Text>
 
               <TouchableOpacity
-                style={styles.closeButton}
+                style={
+                  styles.helpButton
+                }
                 activeOpacity={0.7}
                 onPress={() =>
-                  setBusinessTypeModalVisible(false)
+                  setHelpModalVisible(
+                    true,
+                  )
                 }
               >
-                <Text style={styles.closeIcon}>
-                  ×
-                </Text>
-              </TouchableOpacity>
-
-            </View>
-
-            <View style={styles.modalDivider} />
-
-            {/* ==================================================
-                OPTIONS
-            ================================================== */}
-
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={
-                styles.optionsContainer
-              }
-            >
-              {businessTypeOptions.length === 0 ? (
                 <View
                   style={
-                    styles.emptyOptionsContainer
+                    styles.helpIcon
                   }
                 >
                   <Text
-                    style={styles.emptyOptionsText}
+                    style={
+                      styles.helpIconText
+                    }
                   >
-                    No business types available.
+                    ?
+                  </Text>
+                </View>
+
+                <Text
+                  style={
+                    styles.helpButtonText
+                  }
+                >
+                  Need help?
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.dropdown,
+                businessTypeModalVisible &&
+                  styles.dropdownActive,
+              ]}
+              activeOpacity={0.7}
+              onPress={() =>
+                setBusinessTypeModalVisible(
+                  true,
+                )
+              }
+              disabled={
+                businessTypesLoading
+              }
+            >
+              <View
+                style={
+                  styles.dropdownContent
+                }
+              >
+                {businessTypesLoading ? (
+                  <View
+                    style={
+                      styles.loadingRow
+                    }
+                  >
+                    <ActivityIndicator
+                      size="small"
+                    />
+
+                    <Text
+                      style={
+                        styles.loadingText
+                      }
+                    >
+                      Loading business
+                      types...
+                    </Text>
+                  </View>
+                ) : (
+                  <Text
+                    style={[
+                      styles.dropdownText,
+                      !businessType &&
+                        styles.placeholderText,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {businessType ||
+                      'Select business type'}
+                  </Text>
+                )}
+              </View>
+
+              {!businessTypesLoading && (
+                <Text
+                  style={
+                    styles.dropdownArrow
+                  }
+                >
+                  ▾
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {/* ERROR */}
+
+            {!businessTypesLoading &&
+              businessTypesError && (
+                <View
+                  style={
+                    styles.errorContainer
+                  }
+                >
+                  <Text
+                    style={
+                      styles.errorText
+                    }
+                  >
+                    We couldn't load the
+                    available business
+                    types.
                   </Text>
 
                   <TouchableOpacity
-                    activeOpacity={0.75}
                     onPress={() =>
                       refetchBusinessTypes()
                     }
+                    activeOpacity={0.7}
                   >
                     <Text
-                      style={styles.retryText}
+                      style={
+                        styles.retryText
+                      }
                     >
-                      Tap to retry
+                      Try again
                     </Text>
                   </TouchableOpacity>
                 </View>
-              ) : (
-                businessTypeOptions.map(type => {
-                  const selected =
-                    businessType === type;
-
-                  return (
-                    <TouchableOpacity
-                      key={type}
-                      style={[
-                        styles.option,
-                        selected &&
-                          styles.selectedOption,
-                      ]}
-                      activeOpacity={0.7}
-                      onPress={() =>
-                        selectBusinessType(type)
-                      }
-                    >
-                      <Text
-                        style={[
-                          styles.optionText,
-                          selected &&
-                            styles.selectedOptionText,
-                        ]}
-                      >
-                        {type}
-                      </Text>
-
-                      {selected && (
-                        <View
-                          style={
-                            styles.optionCheck
-                          }
-                        >
-                          <Text
-                            style={
-                              styles.optionCheckText
-                            }
-                          >
-                            ✓
-                          </Text>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })
               )}
-            </ScrollView>
 
-          </Pressable>
-        </Pressable>
-      </Modal>
+            {/* EMPTY */}
 
-      {/* ======================================================
-          SERVICE MODE MODAL
-      ====================================================== */}
-
-      <Modal
-        visible={serviceModeModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() =>
-          setServiceModeModalVisible(false)
-        }
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() =>
-            setServiceModeModalVisible(false)
-          }
-        >
-          <Pressable
-            style={styles.modalContainer}
-            onPress={() => {}}
-          >
-
-            {/* ==================================================
-                MODAL HEADER
-            ================================================== */}
-
-            <View style={styles.modalHeader}>
-
-              <Text style={styles.modalTitle}>
-                Service Availability
-              </Text>
-
-              <TouchableOpacity
-                style={styles.closeButton}
-                activeOpacity={0.7}
-                onPress={() =>
-                  setServiceModeModalVisible(false)
-                }
-              >
-                <Text style={styles.closeIcon}>
-                  ×
-                </Text>
-              </TouchableOpacity>
-
-            </View>
-
-            <View style={styles.modalDivider} />
-
-            {/* ==================================================
-                MODAL DESCRIPTION
-            ================================================== */}
-
-            <View style={styles.modalDescriptionContainer}>
-
-              <Text
-                style={styles.modalDescription}
-              >
-                Select your general service
-                availability. You can customize this
-                for each individual service later.
-              </Text>
-
-            </View>
-
-            {/* ==================================================
-                SERVICE MODE OPTIONS
-            ================================================== */}
-
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={
-                styles.serviceModeOptionsContainer
-              }
-            >
-              {SERVICE_MODE_OPTIONS.map(option => {
-
-                const selected =
-                  serviceMode === option.value;
-
-                return (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.serviceModeOption,
-                      selected &&
-                        styles.selectedServiceModeOption,
-                    ]}
-                    activeOpacity={0.75}
-                    onPress={() =>
-                      selectServiceMode(
-                        option.value,
-                      )
+            {!businessTypesLoading &&
+              !businessTypesError &&
+              businessTypeOptions.length ===
+                0 && (
+                <View
+                  style={
+                    styles.errorContainer
+                  }
+                >
+                  <Text
+                    style={
+                      styles.errorText
                     }
                   >
+                    No business types are
+                    currently available.
+                  </Text>
 
-                    <View
+                  <TouchableOpacity
+                    onPress={() =>
+                      setHelpModalVisible(
+                        true,
+                      )
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <Text
                       style={
-                        styles.radioOuter
+                        styles.retryText
                       }
                     >
-                      {selected && (
-                        <View
-                          style={
-                            styles.radioInner
-                          }
-                        />
-                      )}
-                    </View>
+                      Need help?
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
-                    <View
-                      style={
-                        styles.serviceModeOptionContent
-                      }
-                    >
-                      <Text
-                        style={[
-                          styles.serviceModeOptionTitle,
-                          selected &&
-                            styles.selectedServiceModeOptionTitle,
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
+            {/* SELECTED BUSINESS TYPE DESCRIPTION */}
 
-                      <Text
+            {selectedBusinessType
+              ?.description
+              ?.trim() && (
+              <View
+                style={
+                  styles.selectedBusinessTypeInfo
+                }
+              >
+                <View
+                  style={
+                    styles.infoIconContainer
+                  }
+                >
+                  <Text
+                    style={
+                      styles.infoIconText
+                    }
+                  >
+                    i
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.selectedDescriptionContent
+                  }
+                >
+                  <Text
+                    style={
+                      styles.selectedDescriptionLabel
+                    }
+                  >
+                    About this business type
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.selectedDescription
+                    }
+                  >
+                    {selectedBusinessType.description.trim()}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* =================================================
+              TARGET AUDIENCE
+          ================================================= */}
+
+          <View
+            style={
+              styles.fieldContainer
+            }
+          >
+            <Text style={styles.label}>
+              Who does your business serve?
+            </Text>
+
+            <Text
+              style={
+                styles.audienceHelperText
+              }
+            >
+              Select all that apply
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.dropdown,
+                targetAudienceModalVisible &&
+                  styles.dropdownActive,
+              ]}
+              activeOpacity={0.7}
+              onPress={() =>
+                setTargetAudienceModalVisible(
+                  true,
+                )
+              }
+            >
+              <View
+                style={
+                  styles.dropdownContent
+                }
+              >
+                <Text
+                  style={[
+                    styles.dropdownText,
+                    targetAudiences.length ===
+                      0 &&
+                      styles.placeholderText,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {getTargetAudienceLabel() ||
+                    'Select customer type'}
+                </Text>
+              </View>
+
+              <Text
+                style={
+                  styles.dropdownArrow
+                }
+              >
+                ▾
+              </Text>
+            </TouchableOpacity>
+
+            {targetAudiences.length >
+              0 && (
+              <View
+                style={
+                  styles.selectedAudienceInfo
+                }
+              >
+                <Text
+                  style={
+                    styles.selectedAudienceTitle
+                  }
+                >
+                  Selected
+                </Text>
+
+                <View
+                  style={
+                    styles.audienceChipContainer
+                  }
+                >
+                  {TARGET_AUDIENCE_OPTIONS
+                    .filter(option =>
+                      targetAudiences.includes(
+                        option.value,
+                      ),
+                    )
+                    .map(option => (
+                      <View
+                        key={
+                          option.value
+                        }
                         style={
-                          styles.serviceModeOptionDescription
+                          styles.audienceChip
                         }
                       >
-                        {option.description}
-                      </Text>
-                    </View>
+                        <Text
+                          style={
+                            styles.audienceChipText
+                          }
+                        >
+                          {option.label}
+                        </Text>
+                      </View>
+                    ))}
+                </View>
+              </View>
+            )}
+          </View>
 
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+          {/* =================================================
+              BUSINESS / SALON NAME
+          ================================================= */}
 
-            {/* ==================================================
-                EDIT LATER MESSAGE
-            ================================================== */}
+          <View
+            style={
+              styles.fieldContainer
+            }
+          >
+            <Text style={styles.label}>
+              Business / Salon name
+            </Text>
 
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your business name"
+              placeholderTextColor={
+                COLORS.textSecondary
+              }
+              value={salonName}
+              onChangeText={
+                setSalonName
+              }
+              autoCapitalize="words"
+              returnKeyType="next"
+              maxLength={100}
+            />
+          </View>
+
+          {/* =================================================
+              OWNER NAME
+          ================================================= */}
+
+          <View
+            style={
+              styles.fieldContainer
+            }
+          >
+            <Text style={styles.label}>
+              Owner name
+            </Text>
+
+            <Text
+              style={styles.helperText}
+            >
+              Enter the name exactly as it
+              appears on Aadhaar.
+            </Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Enter owner name"
+              placeholderTextColor={
+                COLORS.textSecondary
+              }
+              value={ownerName}
+              onChangeText={
+                setOwnerName
+              }
+              autoCapitalize="words"
+              returnKeyType="next"
+              maxLength={100}
+            />
+          </View>
+
+          {/* =================================================
+              BUSINESS EMAIL
+          ================================================= */}
+
+          <View
+            style={
+              styles.fieldContainer
+            }
+          >
+            <Text style={styles.label}>
+              Business email
+            </Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Enter business email"
+              placeholderTextColor={
+                COLORS.textSecondary
+              }
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              maxLength={150}
+            />
+          </View>
+
+          {/* =================================================
+              SERVICE AVAILABILITY
+          ================================================= */}
+
+          <View
+            style={
+              styles.sectionContainer
+            }
+          >
+            <Text
+              style={styles.sectionTitle}
+            >
+              Service availability
+            </Text>
+
+            <Text
+              style={
+                styles.sectionDescription
+              }
+            >
+              Choose where you provide your
+              services. You can configure
+              availability for individual
+              services later.
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.dropdown,
+                serviceModeModalVisible &&
+                  styles.dropdownActive,
+              ]}
+              activeOpacity={0.7}
+              onPress={() =>
+                setServiceModeModalVisible(
+                  true,
+                )
+              }
+            >
+              <Text
+                style={[
+                  styles.dropdownText,
+                  !serviceMode &&
+                    styles.placeholderText,
+                ]}
+              >
+                {getServiceModeLabel() ||
+                  'Select service availability'}
+              </Text>
+
+              <Text
+                style={
+                  styles.dropdownArrow
+                }
+              >
+                ▾
+              </Text>
+            </TouchableOpacity>
+
+            {serviceMode && (
+              <View
+                style={
+                  styles.selectedModeInfo
+                }
+              >
+                <Text
+                  style={
+                    styles.selectedModeTitle
+                  }
+                >
+                  {getServiceModeLabel()}
+                </Text>
+
+                <Text
+                  style={
+                    styles.selectedModeDescription
+                  }
+                >
+                  {getServiceModeDescription(
+                    serviceMode,
+                  )}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* =================================================
+              INFO BOX
+          ================================================= */}
+
+          <View
+            style={styles.infoBox}
+          >
             <View
               style={
-                styles.modalBottomInfo
+                styles.infoBoxIcon
               }
             >
               <Text
                 style={
-                  styles.modalBottomInfoText
+                  styles.infoBoxIconText
                 }
               >
-                You can change this later and set
-                availability separately for each
-                service.
+                i
               </Text>
             </View>
 
-          </Pressable>
-        </Pressable>
+            <View
+              style={
+                styles.infoBoxContent
+              }
+            >
+              <Text
+                style={
+                  styles.infoBoxTitle
+                }
+              >
+                Service settings
+              </Text>
+
+              <Text
+                style={
+                  styles.infoBoxText
+                }
+              >
+                After registration, you can
+                select the services you offer
+                and configure pricing, duration,
+                and service-specific availability.
+              </Text>
+            </View>
+          </View>
+
+          {/* =================================================
+              CONTINUE BUTTON
+          ================================================= */}
+
+          <DButton
+            style={styles.button}
+            onPress={onNext}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator
+                color={COLORS.white}
+              />
+            ) : (
+              <Text
+                style={
+                  styles.buttonText
+                }
+              >
+                Continue
+              </Text>
+            )}
+          </DButton>
+        </View>
+      </ScrollView>
+
+      {/* =====================================================
+          BUSINESS TYPE MODAL
+      ===================================================== */}
+
+      <Modal
+        visible={
+          businessTypeModalVisible
+        }
+        transparent
+        animationType="slide"
+        onRequestClose={() =>
+          setBusinessTypeModalVisible(
+            false,
+          )
+        }
+      >
+        <View
+          style={
+            styles.modalOverlay
+          }
+        >
+          <Pressable
+            style={
+              styles.modalOutside
+            }
+            onPress={() =>
+              setBusinessTypeModalVisible(
+                false,
+              )
+            }
+          />
+
+          <View
+            style={
+              styles.modalContainer
+            }
+          >
+            <View
+              style={
+                styles.modalHeader
+              }
+            >
+              <View
+                style={
+                  styles.modalHeaderTextContainer
+                }
+              >
+                <Text
+                  style={
+                    styles.modalTitle
+                  }
+                >
+                  Select Business Type
+                </Text>
+
+                <Text
+                  style={
+                    styles.modalSubtitle
+                  }
+                >
+                  Choose the option that best
+                  describes your business.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={
+                  styles.closeButton
+                }
+                activeOpacity={0.7}
+                onPress={() =>
+                  setBusinessTypeModalVisible(
+                    false,
+                  )
+                }
+              >
+                <Text
+                  style={
+                    styles.closeButtonText
+                  }
+                >
+                  ×
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={
+                styles.modalScroll
+              }
+              contentContainerStyle={
+                styles.modalScrollContent
+              }
+              showsVerticalScrollIndicator={
+                false
+              }
+            >
+              {businessTypesLoading ? (
+                <View
+                  style={
+                    styles.modalLoadingContainer
+                  }
+                >
+                  <ActivityIndicator />
+
+                  <Text
+                    style={
+                      styles.modalLoadingText
+                    }
+                  >
+                    Loading business types...
+                  </Text>
+                </View>
+              ) : businessTypeOptions.length ===
+                0 ? (
+                <View
+                  style={
+                    styles.emptyModalContainer
+                  }
+                >
+                  <Text
+                    style={
+                      styles.emptyModalTitle
+                    }
+                  >
+                    No business types available
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.emptyModalText
+                    }
+                  >
+                    Please contact Clavata
+                    Support if you need
+                    assistance choosing a
+                    business type.
+                  </Text>
+
+                  <TouchableOpacity
+                    style={
+                      styles.modalActionButton
+                    }
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setBusinessTypeModalVisible(
+                        false,
+                      );
+
+                      setHelpModalVisible(
+                        true,
+                      );
+                    }}
+                  >
+                    <Text
+                      style={
+                        styles.modalActionButtonText
+                      }
+                    >
+                      Contact Clavata Support
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                businessTypeOptions.map(
+                  type => {
+                    const isSelected =
+                      selectedBusinessType
+                        ?.businessTypeId ===
+                      type.businessTypeId;
+
+                    return (
+                      <TouchableOpacity
+                        key={
+                          type.businessTypeId
+                        }
+                        style={[
+                          styles.businessTypeOption,
+                          isSelected &&
+                            styles.businessTypeOptionSelected,
+                        ]}
+                        activeOpacity={0.7}
+                        onPress={() =>
+                          selectBusinessType(
+                            type,
+                          )
+                        }
+                      >
+                        <View
+                          style={
+                            styles.businessTypeOptionContent
+                          }
+                        >
+                          <View
+                            style={
+                              styles.businessTypeTitleRow
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.businessTypeOptionTitle,
+                                isSelected &&
+                                  styles.businessTypeOptionTitleSelected,
+                              ]}
+                            >
+                              {type.name}
+                            </Text>
+
+                            {isSelected && (
+                              <View
+                                style={
+                                  styles.selectedCheck
+                                }
+                              >
+                                <Text
+                                  style={
+                                    styles.selectedCheckText
+                                  }
+                                >
+                                  ✓
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+
+                          <Text
+                            style={
+                              styles.businessTypeOptionDescription
+                            }
+                          >
+                            {type.description?.trim() ||
+                              'Select this option if it best describes your business.'}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  },
+                )
+              )}
+            </ScrollView>
+
+            {businessTypeOptions.length >
+              0 && (
+              <View
+                style={
+                  styles.modalHelpContainer
+                }
+              >
+                <Text
+                  style={
+                    styles.modalHelpText
+                  }
+                >
+                  Can't find a suitable
+                  business type?
+                </Text>
+
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setBusinessTypeModalVisible(
+                      false,
+                    );
+
+                    setHelpModalVisible(
+                      true,
+                    );
+                  }}
+                >
+                  <Text
+                    style={
+                      styles.modalHelpLink
+                    }
+                  >
+                    Contact Clavata Support
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
       </Modal>
 
+      {/* =====================================================
+          TARGET AUDIENCE MODAL
+      ===================================================== */}
+
+      <Modal
+        visible={
+          targetAudienceModalVisible
+        }
+        transparent
+        animationType="slide"
+        onRequestClose={() =>
+          setTargetAudienceModalVisible(
+            false,
+          )
+        }
+      >
+        <View
+          style={
+            styles.modalOverlay
+          }
+        >
+          <Pressable
+            style={
+              styles.modalOutside
+            }
+            onPress={() =>
+              setTargetAudienceModalVisible(
+                false,
+              )
+            }
+          />
+
+          <View
+            style={
+              styles.modalContainer
+            }
+          >
+            {/* HEADER */}
+
+            <View
+              style={
+                styles.modalHeader
+              }
+            >
+              <View
+                style={
+                  styles.modalHeaderTextContainer
+                }
+              >
+                <Text
+                  style={
+                    styles.modalTitle
+                  }
+                >
+                  Who does your business serve?
+                </Text>
+
+                <Text
+                  style={
+                    styles.modalSubtitle
+                  }
+                >
+                  Select all that apply
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={
+                  styles.closeButton
+                }
+                activeOpacity={0.7}
+                onPress={() =>
+                  setTargetAudienceModalVisible(
+                    false,
+                  )
+                }
+              >
+                <Text
+                  style={
+                    styles.closeButtonText
+                  }
+                >
+                  ×
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* OPTIONS */}
+
+            <ScrollView
+              style={
+                styles.modalScroll
+              }
+              contentContainerStyle={
+                styles.modalScrollContent
+              }
+              showsVerticalScrollIndicator={
+                false
+              }
+            >
+              {TARGET_AUDIENCE_OPTIONS.map(
+                option => {
+                  const isSelected =
+                    targetAudiences.includes(
+                      option.value,
+                    );
+
+                  return (
+                    <TouchableOpacity
+                      key={
+                        option.value
+                      }
+                      style={[
+                        styles.audienceOption,
+                        isSelected &&
+                          styles.audienceOptionSelected,
+                      ]}
+                      activeOpacity={0.7}
+                      onPress={() =>
+                        toggleTargetAudience(
+                          option.value,
+                        )
+                      }
+                    >
+                      {/* CHECKBOX */}
+
+                      <View
+                        style={[
+                          styles.checkbox,
+                          isSelected &&
+                            styles.checkboxSelected,
+                        ]}
+                      >
+                        {isSelected && (
+                          <Text
+                            style={
+                              styles.checkboxText
+                            }
+                          >
+                            ✓
+                          </Text>
+                        )}
+                      </View>
+
+                      {/* CONTENT */}
+
+                      <View
+                        style={
+                          styles.audienceOptionContent
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.audienceOptionTitle,
+                            isSelected &&
+                              styles.audienceOptionTitleSelected,
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.audienceOptionDescription
+                          }
+                        >
+                          {
+                            option.description
+                          }
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                },
+              )}
+
+              {/* INFO */}
+
+              <View
+                style={
+                  styles.audienceInfoBox
+                }
+              >
+                <View
+                  style={
+                    styles.modalInfoIcon
+                  }
+                >
+                  <Text
+                    style={
+                      styles.modalInfoIconText
+                    }
+                  >
+                    i
+                  </Text>
+                </View>
+
+                <Text
+                  style={
+                    styles.modalInfoText
+                  }
+                >
+                  You can select more than one.
+                  For example, select Female,
+                  Male and Kids if your business
+                  serves all three.
+                </Text>
+              </View>
+            </ScrollView>
+
+            {/* DONE */}
+
+            <View
+              style={
+                styles.audienceDoneContainer
+              }
+            >
+              <TouchableOpacity
+                style={[
+                  styles.audienceDoneButton,
+                  targetAudiences.length ===
+                    0 &&
+                    styles.audienceDoneButtonDisabled,
+                ]}
+                activeOpacity={0.7}
+                onPress={() =>
+                  setTargetAudienceModalVisible(
+                    false,
+                  )
+                }
+              >
+                <Text
+                  style={
+                    styles.audienceDoneButtonText
+                  }
+                >
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* =====================================================
+          HELP MODAL
+      ===================================================== */}
+
+      <Modal
+        visible={helpModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() =>
+          setHelpModalVisible(
+            false,
+          )
+        }
+      >
+        <View
+          style={
+            styles.helpModalOverlay
+          }
+        >
+          <Pressable
+            style={
+              styles.helpModalOutside
+            }
+            onPress={() =>
+              setHelpModalVisible(
+                false,
+              )
+            }
+          />
+
+          <View
+            style={
+              styles.helpModalContainer
+            }
+          >
+            <Text
+              style={
+                styles.helpModalTitle
+              }
+            >
+              Business type not listed?
+            </Text>
+
+            <Text
+              style={
+                styles.helpModalDescription
+              }
+            >
+              Please contact Clavata Support
+              and tell us about your business.
+              Our team will help you identify
+              the appropriate business type.
+            </Text>
+
+            <View
+              style={
+                styles.helpGuidanceBox
+              }
+            >
+              <Text
+                style={
+                  styles.helpGuidanceTitle
+                }
+              >
+                Important
+              </Text>
+
+              <Text
+                style={
+                  styles.helpGuidanceText
+                }
+              >
+                Please do not select an unrelated
+                business type just to continue
+                your registration.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={
+                styles.helpCloseButton
+              }
+              activeOpacity={0.7}
+              onPress={() =>
+                setHelpModalVisible(
+                  false,
+                )
+              }
+            >
+              <Text
+                style={
+                  styles.helpCloseButtonText
+                }
+              >
+                Close
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* =====================================================
+          SERVICE MODE MODAL
+      ===================================================== */}
+
+      <Modal
+        visible={
+          serviceModeModalVisible
+        }
+        transparent
+        animationType="slide"
+        onRequestClose={() =>
+          setServiceModeModalVisible(
+            false,
+          )
+        }
+      >
+        <View
+          style={
+            styles.modalOverlay
+          }
+        >
+          <Pressable
+            style={
+              styles.modalOutside
+            }
+            onPress={() =>
+              setServiceModeModalVisible(
+                false,
+              )
+            }
+          />
+
+          <View
+            style={
+              styles.modalContainer
+            }
+          >
+            {/* HEADER */}
+
+            <View
+              style={
+                styles.modalHeader
+              }
+            >
+              <View
+                style={
+                  styles.modalHeaderTextContainer
+                }
+              >
+                <Text
+                  style={
+                    styles.modalTitle
+                  }
+                >
+                  Service Availability
+                </Text>
+
+                <Text
+                  style={
+                    styles.modalSubtitle
+                  }
+                >
+                  Choose where you provide your
+                  services.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={
+                  styles.closeButton
+                }
+                activeOpacity={0.7}
+                onPress={() =>
+                  setServiceModeModalVisible(
+                    false,
+                  )
+                }
+              >
+                <Text
+                  style={
+                    styles.closeButtonText
+                  }
+                >
+                  ×
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={
+                styles.modalScroll
+              }
+              contentContainerStyle={
+                styles.modalScrollContent
+              }
+              showsVerticalScrollIndicator={
+                false
+              }
+            >
+              {/* SALON ONLY */}
+
+              <TouchableOpacity
+                style={[
+                  styles.serviceModeOption,
+                  serviceMode ===
+                    'SALON_ONLY' &&
+                    styles.serviceModeOptionSelected,
+                ]}
+                activeOpacity={0.7}
+                onPress={() =>
+                  selectServiceMode(
+                    'SALON_ONLY',
+                  )
+                }
+              >
+                <View
+                  style={[
+                    styles.radioOuter,
+                    serviceMode ===
+                      'SALON_ONLY' &&
+                      styles.radioOuterSelected,
+                  ]}
+                >
+                  {serviceMode ===
+                    'SALON_ONLY' && (
+                    <View
+                      style={
+                        styles.radioInner
+                      }
+                    />
+                  )}
+                </View>
+
+                <View
+                  style={
+                    styles.serviceModeContent
+                  }
+                >
+                  <Text
+                    style={
+                      styles.serviceModeTitle
+                    }
+                  >
+                    Salon only
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.serviceModeDescription
+                    }
+                  >
+                    Customers visit your
+                    business location for
+                    services.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* HOME ONLY */}
+
+              <TouchableOpacity
+                style={[
+                  styles.serviceModeOption,
+                  serviceMode ===
+                    'HOME_ONLY' &&
+                    styles.serviceModeOptionSelected,
+                ]}
+                activeOpacity={0.7}
+                onPress={() =>
+                  selectServiceMode(
+                    'HOME_ONLY',
+                  )
+                }
+              >
+                <View
+                  style={[
+                    styles.radioOuter,
+                    serviceMode ===
+                      'HOME_ONLY' &&
+                      styles.radioOuterSelected,
+                  ]}
+                >
+                  {serviceMode ===
+                    'HOME_ONLY' && (
+                    <View
+                      style={
+                        styles.radioInner
+                      }
+                    />
+                  )}
+                </View>
+
+                <View
+                  style={
+                    styles.serviceModeContent
+                  }
+                >
+                  <Text
+                    style={
+                      styles.serviceModeTitle
+                    }
+                  >
+                    Home only
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.serviceModeDescription
+                    }
+                  >
+                    You provide services at
+                    the customer's location.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* SALON AND HOME */}
+
+              <TouchableOpacity
+                style={[
+                  styles.serviceModeOption,
+                  serviceMode ===
+                    'SALON_AND_HOME' &&
+                    styles.serviceModeOptionSelected,
+                ]}
+                activeOpacity={0.7}
+                onPress={() =>
+                  selectServiceMode(
+                    'SALON_AND_HOME',
+                  )
+                }
+              >
+                <View
+                  style={[
+                    styles.radioOuter,
+                    serviceMode ===
+                      'SALON_AND_HOME' &&
+                      styles.radioOuterSelected,
+                  ]}
+                >
+                  {serviceMode ===
+                    'SALON_AND_HOME' && (
+                    <View
+                      style={
+                        styles.radioInner
+                      }
+                    />
+                  )}
+                </View>
+
+                <View
+                  style={
+                    styles.serviceModeContent
+                  }
+                >
+                  <Text
+                    style={
+                      styles.serviceModeTitle
+                    }
+                  >
+                    Salon & Home
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.serviceModeDescription
+                    }
+                  >
+                    You provide services both at
+                    your business location and at
+                    the customer's location.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* INFO */}
+
+              <View
+                style={
+                  styles.modalInfoBox
+                }
+              >
+                <View
+                  style={
+                    styles.modalInfoIcon
+                  }
+                >
+                  <Text
+                    style={
+                      styles.modalInfoIconText
+                    }
+                  >
+                    i
+                  </Text>
+                </View>
+
+                <Text
+                  style={
+                    styles.modalInfoText
+                  }
+                >
+                  You can configure availability
+                  for individual services during
+                  the next service setup step.
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
-}
+};
 
-// ============================================================
-// STYLES
-// ============================================================
+/* =========================================================
+   STYLES
+========================================================= */
 
 const styles = StyleSheet.create({
-
-  // ==========================================================
-  // CONTAINER
-  // ==========================================================
+  safeArea: {
+    flex: 1,
+    backgroundColor:
+      COLORS.background,
+  },
 
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
 
-  // ==========================================================
-  // CONTENT
-  // ==========================================================
+  contentContainer: {
+    paddingHorizontal:
+      SPACING?.medium ?? 16,
 
-  content: {
-    paddingHorizontal: SPACING.xxl,
-    paddingTop: SPACING.xxl,
-    paddingBottom: SPACING.xxxl,
+    paddingTop:
+      SPACING?.medium ?? 16,
+
+    paddingBottom: 40,
   },
-
-  header: {
-    marginBottom: SPACING.xxl,
-  },
-
-  // ==========================================================
-  // CARD
-  // ==========================================================
 
   card: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.large,
-    padding: SPACING.xl,
+    backgroundColor:
+      COLORS.white,
+
+    borderRadius:
+      RADIUS?.large ?? 16,
+
+    padding:
+      SPACING?.medium ?? 16,
   },
 
-  // ==========================================================
-  // LABEL
-  // ==========================================================
+  title: {
+    fontSize:
+      FONT_SIZES?.title ?? 24,
+
+    fontFamily:
+      FONTS?.bold,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 6,
+  },
+
+  subtitle: {
+    fontSize:
+      FONT_SIZES?.small ?? 14,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 21,
+
+    marginBottom: 24,
+  },
+
+  /* =======================================================
+     FIELDS
+  ======================================================= */
+
+  fieldContainer: {
+    marginBottom: 22,
+  },
+
+  labelRow: {
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    justifyContent:
+      'space-between',
+
+    marginBottom: 8,
+  },
 
   label: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.small,
-    lineHeight: 19,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: SPACING.small,
-    includeFontPadding: false,
+    fontSize:
+      FONT_SIZES?.small ?? 14,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 8,
   },
 
-  // ==========================================================
-  // FIELD DESCRIPTION
-  // ==========================================================
+  helperText: {
+    fontSize: 12,
 
-  fieldDescription: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.xs,
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    marginTop: -3,
+
+    marginBottom: 8,
+
     lineHeight: 17,
-    color: COLORS.textMuted,
-    marginBottom: SPACING.small,
-    includeFontPadding: false,
   },
 
-  // ==========================================================
-  // INPUT
-  // ==========================================================
+  /* =======================================================
+     TARGET AUDIENCE
+  ======================================================= */
+
+  audienceHelperText: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    marginTop: -4,
+
+    marginBottom: 9,
+  },
+
+  selectedAudienceInfo: {
+    marginTop: 9,
+
+    padding: 12,
+
+    backgroundColor:
+      COLORS.background,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+  },
+
+  selectedAudienceTitle: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 8,
+  },
+
+  audienceChipContainer: {
+    flexDirection: 'row',
+
+    flexWrap: 'wrap',
+
+    gap: 7,
+  },
+
+  audienceChip: {
+    paddingHorizontal: 10,
+
+    paddingVertical: 6,
+
+    borderRadius: 20,
+
+    backgroundColor:
+      COLORS.white,
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.primary,
+  },
+
+  audienceChipText: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.primary,
+  },
 
   input: {
-    height: 54,
+    height: 52,
+
     borderWidth: 1,
-    borderColor: COLORS.borderStrong,
-    borderRadius: RADIUS.medium,
-    paddingHorizontal: SPACING.large,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.body,
-    color: COLORS.text,
-    backgroundColor: COLORS.surface,
-    marginBottom: SPACING.large,
+
+    borderColor:
+      COLORS.border,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    paddingHorizontal: 14,
+
+    fontSize:
+      FONT_SIZES?.small ?? 14,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.text,
+
+    backgroundColor:
+      COLORS.white,
   },
 
-  // ==========================================================
-  // OTHER BUSINESS TYPE
-  // ==========================================================
+  /* =======================================================
+     HELP BUTTON
+  ======================================================= */
 
-  otherBusinessTypeContainer: {
-    marginBottom: 0,
+  helpButton: {
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    marginBottom: 8,
+
+    paddingVertical: 2,
   },
 
-  // ==========================================================
-  // SECTION SPACING
-  // ==========================================================
+  helpIcon: {
+    width: 18,
 
-  sectionSpacing: {
-    height: SPACING.small,
+    height: 18,
+
+    borderRadius: 9,
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.primary,
+
+    alignItems: 'center',
+
+    justifyContent:
+      'center',
+
+    marginRight: 5,
   },
 
-  // ==========================================================
-  // DROPDOWN
-  // ==========================================================
+  helpIconText: {
+    fontSize: 11,
+
+    fontFamily:
+      FONTS?.bold,
+
+    color:
+      COLORS.primary,
+  },
+
+  helpButtonText: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.primary,
+  },
+
+  /* =======================================================
+     DROPDOWN
+  ======================================================= */
 
   dropdown: {
-    height: 54,
+    minHeight: 52,
+
     borderWidth: 1,
-    borderColor: COLORS.borderStrong,
-    borderRadius: RADIUS.medium,
-    paddingHorizontal: SPACING.large,
+
+    borderColor:
+      COLORS.border,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    paddingHorizontal: 14,
+
     flexDirection: 'row',
+
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.surface,
-    marginBottom: SPACING.large,
+
+    justifyContent:
+      'space-between',
+
+    backgroundColor:
+      COLORS.white,
   },
 
-  serviceModeDropdown: {
-    marginBottom: SPACING.medium,
+  dropdownActive: {
+    borderColor:
+      COLORS.primary,
+  },
+
+  dropdownContent: {
+    flex: 1,
+
+    marginRight: 10,
   },
 
   dropdownText: {
-    flex: 1,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.body,
-    color: COLORS.text,
-    includeFontPadding: false,
+    fontSize:
+      FONT_SIZES?.small ?? 14,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.text,
   },
 
-  dropdownPlaceholder: {
-    color: COLORS.textMuted,
+  placeholderText: {
+    color:
+      COLORS.textSecondary,
   },
 
   dropdownArrow: {
-    fontFamily: FONTS.semiBold,
-    fontSize: 20,
-    color: COLORS.primary,
-    marginLeft: SPACING.medium,
-    includeFontPadding: false,
+    fontSize: 18,
+
+    color:
+      COLORS.textSecondary,
+
+    marginTop: -3,
   },
 
-  // ==========================================================
-  // INFORMATION BOX
-  // ==========================================================
-
-  infoBox: {
+  loadingRow: {
     flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.medium,
-    backgroundColor: COLORS.background,
-    padding: SPACING.large,
-    marginBottom: SPACING.small,
+
+    alignItems: 'center',
   },
 
-  infoIcon: {
+  loadingText: {
+    fontSize: 13,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    marginLeft: 8,
+  },
+
+  /* =======================================================
+     ERROR
+  ======================================================= */
+
+  errorContainer: {
+    marginTop: 8,
+
+    paddingHorizontal: 2,
+  },
+
+  errorText: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 17,
+  },
+
+  retryText: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.primary,
+
+    marginTop: 4,
+  },
+
+  /* =======================================================
+     SELECTED BUSINESS TYPE
+  ======================================================= */
+
+  selectedBusinessTypeInfo: {
+    flexDirection: 'row',
+
+    backgroundColor:
+      COLORS.background,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    padding: 12,
+
+    marginTop: 10,
+  },
+
+  infoIconContainer: {
     width: 22,
+
     height: 22,
-    borderRadius: RADIUS.round,
-    backgroundColor: COLORS.themeColor,
+
+    borderRadius: 11,
+
+    backgroundColor:
+      COLORS.themeColor,
+
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACING.medium,
+
+    justifyContent:
+      'center',
+
+    marginRight: 9,
+
     marginTop: 1,
   },
 
   infoIconText: {
-    fontFamily: FONTS.bold,
-    fontSize: 13,
-    color: COLORS.white,
-    includeFontPadding: false,
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.bold,
+
+    color:
+      COLORS.white,
   },
 
-  infoContent: {
+  selectedDescriptionContent: {
     flex: 1,
   },
 
-  infoTitle: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.small,
-    fontWeight: '600',
-    color: COLORS.text,
+  selectedDescriptionLabel: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 3,
+  },
+
+  selectedDescription: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 18,
+  },
+
+  /* =======================================================
+     SECTION
+  ======================================================= */
+
+  sectionContainer: {
+    marginTop: 4,
+
+    marginBottom: 20,
+  },
+
+  sectionTitle: {
+    fontSize:
+      FONT_SIZES?.medium ?? 16,
+
+    fontFamily:
+      FONTS?.bold,
+
+    color:
+      COLORS.text,
+
     marginBottom: 5,
-    includeFontPadding: false,
   },
 
-  infoText: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.xs,
-    lineHeight: 17,
-    color: COLORS.textMuted,
-    includeFontPadding: false,
+  sectionDescription: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 18,
+
+    marginBottom: 12,
   },
 
-  infoTextSpacing: {
-    marginTop: 5,
+  selectedModeInfo: {
+    marginTop: 9,
+
+    padding: 12,
+
+    backgroundColor:
+      COLORS.background,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
   },
 
-  // ==========================================================
-  // LOADING
-  // ==========================================================
+  selectedModeTitle: {
+    fontSize: 13,
 
-  loadingRow: {
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 3,
+  },
+
+  selectedModeDescription: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 18,
+  },
+
+  /* =======================================================
+     INFO BOX
+  ======================================================= */
+
+  infoBox: {
     flexDirection: 'row',
+
+    backgroundColor:
+      COLORS.background,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    padding: 13,
+
+    marginBottom: 24,
+  },
+
+  infoBoxIcon: {
+    width: 22,
+
+    height: 22,
+
+    borderRadius: 11,
+
+    backgroundColor:
+      COLORS.themeColor,
+
     alignItems: 'center',
-    marginTop: -SPACING.small,
-    marginBottom: SPACING.large,
+
+    justifyContent:
+      'center',
+
+    marginRight: 10,
   },
 
-  loadingText: {
-    marginLeft: SPACING.small,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.textMuted,
-    includeFontPadding: false,
+  infoBoxIconText: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.bold,
+
+    color:
+      COLORS.white,
   },
 
-  // ==========================================================
-  // ERROR
-  // ==========================================================
-
-  errorContainer: {
-    marginTop: -SPACING.small,
-    marginBottom: SPACING.large,
-    paddingVertical: 4,
-  },
-
-  errorText: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.xs,
-    color: '#C62828',
-    marginBottom: 4,
-    includeFontPadding: false,
-  },
-
-  retryText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.xs,
-    fontWeight: '600',
-    color: COLORS.themeColor,
-    includeFontPadding: false,
-  },
-
-  // ==========================================================
-  // EMPTY OPTIONS
-  // ==========================================================
-
-  emptyOptionsContainer: {
-    paddingVertical: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  emptyOptionsText: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.body,
-    color: COLORS.textMuted,
-    marginBottom: SPACING.medium,
-    textAlign: 'center',
-    includeFontPadding: false,
-  },
-
-  // ==========================================================
-  // PHONE NUMBER
-  // ==========================================================
-
-  phoneContainer: {
-    minHeight: 54,
-    borderWidth: 1,
-    borderColor: COLORS.borderStrong,
-    borderRadius: RADIUS.medium,
-    paddingHorizontal: SPACING.large,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.background,
-  },
-
-  phoneText: {
+  infoBoxContent: {
     flex: 1,
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.body,
-    fontWeight: '600',
-    color: COLORS.text,
-    includeFontPadding: false,
   },
 
-  verifiedBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: RADIUS.round,
-    backgroundColor: COLORS.themeColor,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: SPACING.medium,
+  infoBoxTitle: {
+    fontSize: 13,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 3,
   },
 
-  verifiedBadgeText: {
-    fontFamily: FONTS.bold,
-    fontSize: 14,
-    color: COLORS.white,
-    includeFontPadding: false,
+  infoBoxText: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 18,
   },
 
-  phoneHint: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.xs,
-    lineHeight: 17,
-    color: COLORS.textMuted,
-    marginTop: 6,
-    marginBottom: SPACING.large,
-    includeFontPadding: false,
-  },
-
-  // ==========================================================
-  // BUTTON
-  // ==========================================================
+  /* =======================================================
+     BUTTON
+  ======================================================= */
 
   button: {
     width: '100%',
+
     height: 54,
-    borderRadius: RADIUS.medium,
-    marginTop: SPACING.xl,
-    alignSelf: 'center',
-    backgroundColor: COLORS.themeColor,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    backgroundColor:
+      COLORS.themeColor,
+
+    alignItems: 'center',
+
+    justifyContent:
+      'center',
   },
 
   buttonText: {
-    color: COLORS.white,
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.body,
-    textAlign: 'center',
-    includeFontPadding: false,
+    color:
+      COLORS.white,
+
+    fontSize:
+      FONT_SIZES?.medium ?? 16,
+
+    fontFamily:
+      FONTS?.medium,
   },
 
-  // ==========================================================
-  // MODAL
-  // ==========================================================
+  /* =======================================================
+     MODAL
+  ======================================================= */
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.50)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 40,
+
+    justifyContent:
+      'flex-end',
+
+    backgroundColor:
+      'rgba(0,0,0,0.45)',
+  },
+
+  modalOutside: {
+    flex: 1,
   },
 
   modalContainer: {
-    width: '100%',
-    maxHeight: '80%',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.large,
-    overflow: 'hidden',
+    backgroundColor:
+      COLORS.white,
+
+    borderTopLeftRadius: 22,
+
+    borderTopRightRadius: 22,
+
+    maxHeight: '85%',
+
+    paddingBottom: 10,
   },
 
   modalHeader: {
-    minHeight: 62,
-    paddingHorizontal: 20,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+
+    justifyContent:
+      'space-between',
+
+    alignItems:
+      'flex-start',
+
+    paddingHorizontal: 20,
+
+    paddingTop: 20,
+
+    paddingBottom: 15,
+
+    borderBottomWidth:
+      StyleSheet.hairlineWidth,
+
+    borderBottomColor:
+      COLORS.border,
+  },
+
+  modalHeaderTextContainer: {
+    flex: 1,
+
+    paddingRight: 12,
   },
 
   modalTitle: {
-    flex: 1,
-    fontFamily: FONTS.semiBold,
-    fontSize: 19,
-    lineHeight: 24,
-    fontWeight: '600',
-    color: COLORS.primary,
-    includeFontPadding: false,
+    fontSize: 18,
+
+    fontFamily:
+      FONTS?.bold,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 4,
+  },
+
+  modalSubtitle: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 18,
   },
 
   closeButton: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.round,
+    width: 34,
+
+    height: 34,
+
+    borderRadius: 17,
+
+    backgroundColor:
+      COLORS.background,
+
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.background,
-    marginLeft: SPACING.medium,
+
+    justifyContent:
+      'center',
   },
 
-  closeIcon: {
-    fontFamily: FONTS.regular,
-    fontSize: 27,
-    lineHeight: 29,
-    fontWeight: '300',
-    color: COLORS.text,
-    includeFontPadding: false,
+  closeButtonText: {
+    fontSize: 24,
+
+    lineHeight: 25,
+
+    color:
+      COLORS.textSecondary,
+
+    fontFamily:
+      FONTS?.regular,
   },
 
-  modalDivider: {
-    height: 1,
-    backgroundColor: COLORS.border,
+  modalScroll: {
+    flexGrow: 0,
   },
 
-  // ==========================================================
-  // BUSINESS TYPE OPTIONS
-  // ==========================================================
-
-  optionsContainer: {
-    padding: SPACING.medium,
+  modalScrollContent: {
+    padding: 16,
   },
 
-  option: {
-    minHeight: 52,
-    borderRadius: RADIUS.medium,
-    paddingHorizontal: SPACING.large,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
+  /* =======================================================
+     BUSINESS TYPE OPTIONS
+  ======================================================= */
 
-  selectedOption: {
-    backgroundColor: COLORS.background,
+  businessTypeOption: {
     borderWidth: 1,
-    borderColor: COLORS.themeColor,
+
+    borderColor:
+      COLORS.border,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    padding: 15,
+
+    marginBottom: 10,
+
+    backgroundColor:
+      COLORS.white,
   },
 
-  optionText: {
+  businessTypeOptionSelected: {
+    borderColor:
+      COLORS.primary,
+
+    backgroundColor:
+      'rgba(0,157,148,0.04)',
+  },
+
+  businessTypeOptionContent: {
     flex: 1,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.body,
-    color: COLORS.text,
-    includeFontPadding: false,
   },
 
-  selectedOptionText: {
-    fontFamily: FONTS.semiBold,
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
+  businessTypeTitleRow: {
+    flexDirection: 'row',
 
-  optionCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: RADIUS.round,
-    backgroundColor: COLORS.themeColor,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: SPACING.medium,
+
+    justifyContent:
+      'space-between',
   },
 
-  optionCheckText: {
-    fontFamily: FONTS.bold,
+  businessTypeOptionTitle: {
+    flex: 1,
+
+    fontSize: 15,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.text,
+
+    paddingRight: 10,
+  },
+
+  businessTypeOptionTitleSelected: {
+    fontFamily:
+      FONTS?.bold,
+
+    color:
+      COLORS.primary,
+  },
+
+  businessTypeOptionDescription: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 18,
+
+    marginTop: 6,
+
+    paddingRight: 8,
+  },
+
+  selectedCheck: {
+    width: 22,
+
+    height: 22,
+
+    borderRadius: 11,
+
+    backgroundColor:
+      COLORS.themeColor,
+
+    alignItems: 'center',
+
+    justifyContent:
+      'center',
+  },
+
+  selectedCheckText: {
+    color:
+      COLORS.white,
+
     fontSize: 13,
-    color: COLORS.white,
-    includeFontPadding: false,
+
+    fontFamily:
+      FONTS?.bold,
   },
 
-  // ==========================================================
-  // SERVICE MODE MODAL
-  // ==========================================================
+  /* =======================================================
+     TARGET AUDIENCE OPTIONS
+  ======================================================= */
 
-  modalDescriptionContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+  audienceOption: {
+    flexDirection: 'row',
+
+    alignItems: 'flex-start',
+
+    borderWidth: 1,
+
+    borderColor:
+      COLORS.border,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    padding: 15,
+
+    marginBottom: 10,
+
+    backgroundColor:
+      COLORS.white,
+  },
+
+  audienceOptionSelected: {
+    borderColor:
+      COLORS.primary,
+
+    backgroundColor:
+      'rgba(0,157,148,0.04)',
+  },
+
+  checkbox: {
+    width: 22,
+
+    height: 22,
+
+    borderRadius: 6,
+
+    borderWidth: 1.5,
+
+    borderColor:
+      COLORS.border,
+
+    alignItems: 'center',
+
+    justifyContent:
+      'center',
+
+    marginRight: 12,
+
+    marginTop: 1,
+  },
+
+  checkboxSelected: {
+    borderColor:
+      COLORS.themeColor,
+
+    backgroundColor:
+      COLORS.themeColor,
+  },
+
+  checkboxText: {
+    color:
+      COLORS.white,
+
+    fontSize: 14,
+
+    fontFamily:
+      FONTS?.bold,
+  },
+
+  audienceOptionContent: {
+    flex: 1,
+  },
+
+  audienceOptionTitle: {
+    fontSize: 15,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 4,
+  },
+
+  audienceOptionTitleSelected: {
+    fontFamily:
+      FONTS?.bold,
+
+    color:
+      COLORS.primary,
+  },
+
+  audienceOptionDescription: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 18,
+  },
+
+  audienceInfoBox: {
+    flexDirection: 'row',
+
+    backgroundColor:
+      COLORS.background,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    padding: 13,
+
+    marginTop: 5,
+  },
+
+  audienceDoneContainer: {
+    borderTopWidth:
+      StyleSheet.hairlineWidth,
+
+    borderTopColor:
+      COLORS.border,
+
+    paddingHorizontal: 16,
+
+    paddingTop: 12,
+
     paddingBottom: 6,
   },
 
-  modalDescription: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.small,
-    lineHeight: 19,
-    color: COLORS.textMuted,
-    includeFontPadding: false,
+  audienceDoneButton: {
+    height: 48,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    backgroundColor:
+      COLORS.themeColor,
+
+    alignItems: 'center',
+
+    justifyContent:
+      'center',
   },
 
-  serviceModeOptionsContainer: {
-    padding: SPACING.medium,
+  audienceDoneButtonDisabled: {
+    opacity: 0.5,
   },
+
+  audienceDoneButtonText: {
+    color:
+      COLORS.white,
+
+    fontSize: 14,
+
+    fontFamily:
+      FONTS?.medium,
+  },
+
+  /* =======================================================
+     MODAL LOADING / EMPTY
+  ======================================================= */
+
+  modalLoadingContainer: {
+    alignItems: 'center',
+
+    justifyContent:
+      'center',
+
+    paddingVertical: 50,
+  },
+
+  modalLoadingText: {
+    fontSize: 13,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    marginTop: 10,
+  },
+
+  emptyModalContainer: {
+    alignItems: 'center',
+
+    paddingVertical: 40,
+
+    paddingHorizontal: 20,
+  },
+
+  emptyModalTitle: {
+    fontSize: 16,
+
+    fontFamily:
+      FONTS?.bold,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 8,
+
+    textAlign: 'center',
+  },
+
+  emptyModalText: {
+    fontSize: 13,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 19,
+
+    textAlign: 'center',
+
+    marginBottom: 20,
+  },
+
+  modalActionButton: {
+    backgroundColor:
+      COLORS.primary,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    paddingHorizontal: 18,
+
+    paddingVertical: 12,
+  },
+
+  modalActionButtonText: {
+    color:
+      COLORS.white,
+
+    fontSize: 13,
+
+    fontFamily:
+      FONTS?.medium,
+  },
+
+  /* =======================================================
+     MODAL HELP
+  ======================================================= */
+
+  modalHelpContainer: {
+    borderTopWidth:
+      StyleSheet.hairlineWidth,
+
+    borderTopColor:
+      COLORS.border,
+
+    paddingHorizontal: 20,
+
+    paddingVertical: 15,
+
+    alignItems: 'center',
+  },
+
+  modalHelpText: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    marginBottom: 4,
+  },
+
+  modalHelpLink: {
+    fontSize: 13,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.primary,
+  },
+
+  /* =======================================================
+     HELP MODAL
+  ======================================================= */
+
+  helpModalOverlay: {
+    flex: 1,
+
+    backgroundColor:
+      'rgba(0,0,0,0.5)',
+
+    justifyContent:
+      'center',
+
+    alignItems:
+      'center',
+
+    paddingHorizontal: 22,
+  },
+
+  helpModalOutside: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  helpModalContainer: {
+    width: '100%',
+
+    backgroundColor:
+      COLORS.white,
+
+    borderRadius: 18,
+
+    padding: 22,
+  },
+
+  helpModalTitle: {
+    fontSize: 19,
+
+    fontFamily:
+      FONTS?.bold,
+
+    color:
+      COLORS.text,
+
+    textAlign: 'center',
+
+    marginBottom: 12,
+  },
+
+  helpModalDescription: {
+    fontSize: 13,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 20,
+
+    textAlign: 'center',
+
+    marginBottom: 8,
+  },
+
+  helpGuidanceBox: {
+    backgroundColor:
+      COLORS.background,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    padding: 13,
+
+    marginTop: 10,
+
+    marginBottom: 18,
+  },
+
+  helpGuidanceTitle: {
+    fontSize: 13,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 4,
+  },
+
+  helpGuidanceText: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 18,
+  },
+
+  helpCloseButton: {
+    height: 48,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    backgroundColor:
+      COLORS.themeColor,
+
+    alignItems: 'center',
+
+    justifyContent:
+      'center',
+  },
+
+  helpCloseButtonText: {
+    color:
+      COLORS.white,
+
+    fontSize: 14,
+
+    fontFamily:
+      FONTS?.medium,
+  },
+
+  /* =======================================================
+     SERVICE MODE
+  ======================================================= */
 
   serviceModeOption: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+
+    alignItems:
+      'flex-start',
+
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.medium,
-    padding: SPACING.large,
-    marginBottom: SPACING.medium,
-    backgroundColor: COLORS.surface,
+
+    borderColor:
+      COLORS.border,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    padding: 15,
+
+    marginBottom: 10,
   },
 
-  selectedServiceModeOption: {
-    borderColor: COLORS.themeColor,
-    backgroundColor: COLORS.background,
+  serviceModeOptionSelected: {
+    borderColor:
+      COLORS.primary,
+
+    backgroundColor:
+      'rgba(0,157,148,0.04)',
   },
 
   radioOuter: {
     width: 22,
+
     height: 22,
-    borderRadius: RADIUS.round,
-    borderWidth: 2,
-    borderColor: COLORS.borderStrong,
+
+    borderRadius: 11,
+
+    borderWidth: 1.5,
+
+    borderColor:
+      COLORS.border,
+
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACING.medium,
+
+    justifyContent:
+      'center',
+
+    marginRight: 12,
+
     marginTop: 1,
   },
 
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: RADIUS.round,
-    backgroundColor: COLORS.themeColor,
+  radioOuterSelected: {
+    borderColor:
+      COLORS.primary,
   },
 
-  serviceModeOptionContent: {
+  radioInner: {
+    width: 11,
+
+    height: 11,
+
+    borderRadius: 5.5,
+
+    backgroundColor:
+      COLORS.primary,
+  },
+
+  serviceModeContent: {
     flex: 1,
   },
 
-  serviceModeOptionTitle: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.body,
-    lineHeight: 20,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 5,
-    includeFontPadding: false,
+  serviceModeTitle: {
+    fontSize: 14,
+
+    fontFamily:
+      FONTS?.medium,
+
+    color:
+      COLORS.text,
+
+    marginBottom: 4,
   },
 
-  selectedServiceModeOptionTitle: {
-    color: COLORS.primary,
+  serviceModeDescription: {
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 18,
   },
 
-  serviceModeOptionDescription: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.xs,
-    lineHeight: 17,
-    color: COLORS.textMuted,
-    includeFontPadding: false,
+  modalInfoBox: {
+    flexDirection: 'row',
+
+    backgroundColor:
+      COLORS.background,
+
+    borderRadius:
+      RADIUS?.medium ?? 10,
+
+    padding: 13,
+
+    marginTop: 5,
   },
 
-  // ==========================================================
-  // MODAL BOTTOM INFORMATION
-  // ==========================================================
+  modalInfoIcon: {
+    width: 21,
 
-  modalBottomInfo: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: COLORS.background,
+    height: 21,
+
+    borderRadius: 10.5,
+
+    backgroundColor:
+      COLORS.themeColor,
+
+    alignItems: 'center',
+
+    justifyContent:
+      'center',
+
+    marginRight: 9,
   },
 
-  modalBottomInfoText: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.xs,
-    lineHeight: 17,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    includeFontPadding: false,
+  modalInfoIconText: {
+    color:
+      COLORS.white,
+
+    fontSize: 11,
+
+    fontFamily:
+      FONTS?.bold,
   },
 
+  modalInfoText: {
+    flex: 1,
+
+    fontSize: 12,
+
+    fontFamily:
+      FONTS?.regular,
+
+    color:
+      COLORS.textSecondary,
+
+    lineHeight: 18,
+  },
 });
+
+export default SalonRegistrationScreen;
