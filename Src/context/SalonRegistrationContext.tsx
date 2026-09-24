@@ -128,14 +128,14 @@ export type KYCStatus =
 
 export type BusinessDocument = {
     type:
-        | 'GST_CERTIFICATE'
-        | 'SHOP_ESTABLISHMENT'
-        | 'UDYAM'
-        | 'PARTNERSHIP_DEED'
-        | 'INCORPORATION_CERTIFICATE'
-        | 'RENTAL_AGREEMENT'
-        | 'UTILITY_BILL'
-        | 'OTHER';
+    | 'GST_CERTIFICATE'
+    | 'SHOP_ESTABLISHMENT'
+    | 'UDYAM'
+    | 'PARTNERSHIP_DEED'
+    | 'INCORPORATION_CERTIFICATE'
+    | 'RENTAL_AGREEMENT'
+    | 'UTILITY_BILL'
+    | 'OTHER';
 
     uri: string;
 
@@ -231,38 +231,13 @@ export type ServiceAudience =
 // must be present and greater than zero.
 //
 // =====================================================
-
 export type SalonServiceSelection = {
+    audience: 'FEMALE' | 'MALE' | 'KIDS';
     categoryId: string;
-
+    categoryName: string;
     subcategoryId: string;
-
-    // =================================================
-    // SALON-SPECIFIC PRICE
-    // =================================================
-    //
-    // Example:
-    // Haircut = ₹500
-    //
-    // Optional during registration until configured.
-    //
-    // =================================================
-
+    subcategoryName: string;
     price?: number;
-
-    // =================================================
-    // SALON-SPECIFIC DURATION
-    // =================================================
-    //
-    // Stored in minutes.
-    //
-    // Example:
-    // Haircut = 30 minutes
-    //
-    // Optional during registration until configured.
-    //
-    // =================================================
-
     durationMinutes?: number;
 };
 
@@ -313,7 +288,7 @@ export type SalonRegistrationData = {
     ownerName: string;
 
     email: string;
-
+    businessTypeId: string;
     businessType: string;
 
     // ===================================================
@@ -439,10 +414,10 @@ export type SalonRegistrationData = {
     // ===================================================
 
     providerStatus:
-        | 'NOT_REGISTERED'
-        | 'PENDING'
-        | 'APPROVED'
-        | 'REJECTED';
+    | 'NOT_REGISTERED'
+    | 'PENDING'
+    | 'APPROVED'
+    | 'REJECTED';
 
     // ===================================================
     // BUSINESS HOURS
@@ -475,7 +450,7 @@ const createInitialData =
         ownerName: '',
 
         email: '',
-
+        businessTypeId: '',
         businessType: '',
 
         // =================================================

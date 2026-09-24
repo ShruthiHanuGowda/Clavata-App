@@ -109,7 +109,7 @@ const TARGET_AUDIENCE_OPTIONS: TargetAudienceOption[] = [
 const SalonRegistrationScreen = ({
   navigation,
 }: any) => {
-  const { updateData } =
+  const {  data, updateData } =
     useSalonRegistration();
 
   const { currentUser } = useUser();
@@ -156,7 +156,6 @@ const SalonRegistrationScreen = ({
   ] = useState(false);
 
   /*
-   * NEW:
    * Multiple target audiences can be selected.
    */
   const [
@@ -269,17 +268,25 @@ const SalonRegistrationScreen = ({
 
   const selectBusinessType = (
     type: BusinessType,
-  ) => {
+) => {
     setSelectedBusinessType(type);
 
     setBusinessType(
-      type.name.trim(),
+        type.name.trim(),
     );
 
+    updateData({
+        businessTypeId:
+            type.businessTypeId.trim(),
+
+        businessType:
+            type.name.trim(),
+    });
+
     setBusinessTypeModalVisible(
-      false,
+        false,
     );
-  };
+};
 
   /* =======================================================
      TARGET AUDIENCE
@@ -411,7 +418,7 @@ const SalonRegistrationScreen = ({
       email.trim();
 
     /* -------------------------------------------------------
-       BUSINESS TYPE
+       BUSINESS TYPE NAME
     ------------------------------------------------------- */
 
     if (!trimmedBusinessType) {
@@ -422,6 +429,39 @@ const SalonRegistrationScreen = ({
 
       return;
     }
+
+    /* -------------------------------------------------------
+       BUSINESS TYPE ID
+       
+       RegisterSalonPartnerInput requires:
+       
+       businessTypeId: ID!
+       
+       Therefore a valid selected business
+       type object must exist.
+    ------------------------------------------------------- */
+
+const businessTypeId =
+    selectedBusinessType?.businessTypeId?.trim()
+    || data.businessTypeId?.trim();
+
+if (!businessTypeId) {
+    console.log(
+        '[SalonRegistration] BUSINESS TYPE ID IS MISSING',
+        {
+            selectedBusinessType,
+            contextBusinessTypeId: data.businessTypeId,
+            businessType,
+        },
+    );
+
+    Alert.alert(
+        'Business Type Required',
+        'Please select a valid business type to continue.',
+    );
+
+    return;
+}
 
     /* -------------------------------------------------------
        TARGET AUDIENCE
@@ -537,6 +577,15 @@ const SalonRegistrationScreen = ({
     try {
       setSubmitting(true);
 
+      console.log(
+        '[SalonRegistration] BUSINESS TYPE:',
+        {
+          businessTypeId,
+          businessType:
+            trimmedBusinessType,
+        },
+      );
+
       await updateData({
         userId:
           currentUser.userId,
@@ -554,20 +603,27 @@ const SalonRegistrationScreen = ({
           trimmedEmail,
 
         /*
-         * Existing business type field.
+         * REQUIRED BY:
+         *
+         * RegisterSalonPartnerInput
+         *
+         * businessTypeId: ID!
+         */
+        businessTypeId:
+          businessTypeId,
+
+        /*
+         * REQUIRED BY:
+         *
+         * RegisterSalonPartnerInput
+         *
+         * businessType: String!
          */
         businessType:
           trimmedBusinessType,
 
         /*
-         * NEW:
          * Store who this business serves.
-         *
-         * Example:
-         * ['FEMALE']
-         *
-         * or:
-         * ['FEMALE', 'MALE', 'KIDS']
          */
         targetAudiences:
           targetAudiences,

@@ -14,6 +14,7 @@ import {
     TouchableOpacity,
     Alert,
     ActivityIndicator,
+    Keyboard,
 } from 'react-native';
 
 import { useQuery } from '@apollo/client';
@@ -32,6 +33,7 @@ import {
 
 import {
     SalonServiceSelection,
+    ServiceAudience,
     useSalonRegistration,
 } from '../../context/SalonRegistrationContext';
 
@@ -169,28 +171,16 @@ const ConfigureSalonServices = ({
 
 
     // ========================================================
-    // SERVICE LOOKUPS
+    // SERVICE LOOKUP
     // ========================================================
-
-    const getCategory = useCallback(
-        (categoryId: string) => {
-
-            return categories.find(
-                category =>
-                    category.categoryId === categoryId,
-            );
-
-        },
-        [categories],
-    );
-
 
     const getSubcategory = useCallback(
         (subcategoryId: string) => {
 
             return subcategories.find(
                 subcategory =>
-                    subcategory.subcategoryId === subcategoryId,
+                    subcategory.subcategoryId ===
+                    subcategoryId,
             );
 
         },
@@ -209,30 +199,65 @@ const ConfigureSalonServices = ({
             SalonServiceSelection[]
         > = {};
 
+
         selectedServices.forEach(service => {
 
             if (!grouped[service.categoryId]) {
+
                 grouped[service.categoryId] = [];
+
             }
 
-            grouped[service.categoryId].push(service);
-        });
-
-
-        Object.keys(grouped).forEach(categoryId => {
-
-            grouped[categoryId].sort((a, b) => {
-
-                const aName =
-                    getSubcategory(a.subcategoryId)?.name || '';
-
-                const bName =
-                    getSubcategory(b.subcategoryId)?.name || '';
-
-                return aName.localeCompare(bName);
-            });
+            grouped[
+                service.categoryId
+            ].push(service);
 
         });
+
+
+        Object.keys(grouped).forEach(
+            categoryId => {
+
+                grouped[categoryId].sort(
+                    (a, b) => {
+
+                        const aName =
+                            getSubcategory(
+                                a.subcategoryId,
+                            )?.name ||
+                            a.subcategoryName ||
+                            '';
+
+                        const bName =
+                            getSubcategory(
+                                b.subcategoryId,
+                            )?.name ||
+                            b.subcategoryName ||
+                            '';
+
+
+                        const nameComparison =
+                            aName.localeCompare(
+                                bName,
+                            );
+
+
+                        if (
+                            nameComparison !== 0
+                        ) {
+                            return nameComparison;
+                        }
+
+
+                        return a.audience.localeCompare(
+                            b.audience,
+                        );
+
+                    },
+                );
+
+            },
+        );
 
 
         return grouped;
@@ -244,52 +269,69 @@ const ConfigureSalonServices = ({
 
 
     // ========================================================
-    // FILTER CATEGORIES BY SEARCH
+    // FILTER CATEGORIES
     // ========================================================
 
     const filteredCategories = useMemo(() => {
 
         const search =
-            searchText.trim().toLowerCase();
+            searchText
+                .trim()
+                .toLowerCase();
 
 
-        return categories.filter(category => {
+        return categories.filter(
+            category => {
 
-            const categoryServices =
-                servicesByCategory[category.categoryId] || [];
-
-
-            if (!search) {
-                return categoryServices.length > 0;
-            }
+                const categoryServices =
+                    servicesByCategory[
+                        category.categoryId
+                    ] || [];
 
 
-            const categoryMatches =
-                category.name
-                    .toLowerCase()
-                    .includes(search);
+                if (!search) {
+
+                    return (
+                        categoryServices.length >
+                        0
+                    );
+
+                }
 
 
-            const serviceMatches =
-                categoryServices.some(service => {
-
-                    const name =
-                        getSubcategory(
-                            service.subcategoryId,
-                        )?.name || '';
-
-                    return name
+                const categoryMatches =
+                    category.name
                         .toLowerCase()
                         .includes(search);
-                });
 
 
-            return (
-                categoryMatches ||
-                serviceMatches
-            );
+                const serviceMatches =
+                    categoryServices.some(
+                        service => {
 
-        });
+                            const name =
+                                getSubcategory(
+                                    service.subcategoryId,
+                                )?.name ||
+                                service.subcategoryName ||
+                                '';
+
+
+                            return name
+                                .toLowerCase()
+                                .includes(search);
+
+                        },
+                    );
+
+
+                return (
+                    categoryMatches ||
+                    serviceMatches
+                );
+
+            },
+        );
 
     }, [
         categories,
@@ -300,39 +342,58 @@ const ConfigureSalonServices = ({
 
 
     // ========================================================
-    // CONFIGURATION STATUS
+    // SERVICE CONFIGURATION STATUS
     // ========================================================
 
-    const isServiceConfigured = useCallback(
-        (service: SalonServiceSelection) => {
+    const isServiceConfigured =
+        useCallback(
+            (
+                service: SalonServiceSelection,
+            ) => {
 
-            const validPrice =
-                typeof service.price === 'number' &&
-                service.price > 0;
-
-            const validDuration =
-                typeof service.durationMinutes === 'number' &&
-                service.durationMinutes > 0;
-
-            return (
-                validPrice &&
-                validDuration
-            );
-        },
-        [],
-    );
+                const validPrice =
+                    typeof service.price ===
+                        'number' &&
+                    Number.isFinite(
+                        service.price,
+                    ) &&
+                    service.price > 0;
 
 
-    const configuredCount = useMemo(() => {
+                const validDuration =
+                    typeof service.durationMinutes ===
+                        'number' &&
+                    Number.isFinite(
+                        service.durationMinutes,
+                    ) &&
+                    service.durationMinutes > 0;
 
-        return selectedServices.filter(
+
+                return (
+                    validPrice &&
+                    validDuration
+                );
+
+            },
+            [],
+        );
+
+
+    // ========================================================
+    // COUNTS
+    // ========================================================
+
+    const configuredCount =
+        useMemo(() => {
+
+            return selectedServices.filter(
+                isServiceConfigured,
+            ).length;
+
+        }, [
+            selectedServices,
             isServiceConfigured,
-        ).length;
-
-    }, [
-        selectedServices,
-        isServiceConfigured,
-    ]);
+        ]);
 
 
     const totalCount =
@@ -340,7 +401,8 @@ const ConfigureSalonServices = ({
 
 
     const remainingCount =
-        totalCount - configuredCount;
+        totalCount -
+        configuredCount;
 
 
     const allConfigured =
@@ -355,274 +417,409 @@ const ConfigureSalonServices = ({
     const progressPercentage =
         totalCount > 0
             ? Math.round(
-                (configuredCount / totalCount) * 100,
+                (
+                    configuredCount /
+                    totalCount
+                ) * 100,
             )
             : 0;
 
 
     // ========================================================
-    // UPDATE SERVICE
+    // UPDATE INDIVIDUAL SERVICE
     // ========================================================
 
-    const updateService = useCallback(
-        (
-            subcategoryId: string,
-            field:
-                | 'price'
-                | 'durationMinutes',
-            value: string,
-        ) => {
+    const updateService =
+        useCallback(
+            (
+                subcategoryId: string,
+                audience: ServiceAudience,
+                field:
+                    | 'price'
+                    | 'durationMinutes',
+                value: string,
+            ) => {
 
-            const cleanedValue =
-                value.replace(/[^0-9]/g, '');
-
-
-            const numericValue =
-                cleanedValue === ''
-                    ? undefined
-                    : Number(cleanedValue);
-
-
-            const updatedSelections =
-                selectedServices.map(service => {
-
-                    if (
-                        service.subcategoryId !==
-                        subcategoryId
-                    ) {
-                        return service;
-                    }
+                const cleanedValue =
+                    value.replace(
+                        /[^0-9]/g,
+                        '',
+                    );
 
 
-                    return {
-                        ...service,
-                        [field]: numericValue,
-                    };
+                const numericValue =
+                    cleanedValue === ''
+                        ? undefined
+                        : Number(
+                            cleanedValue,
+                        );
+
+
+                const updatedSelections =
+                    selectedServices.map(
+                        service => {
+
+                            if (
+                                service.subcategoryId !==
+                                    subcategoryId ||
+                                service.audience !==
+                                    audience
+                            ) {
+
+                                return service;
+
+                            }
+
+
+                            return {
+                                ...service,
+                                [field]:
+                                    numericValue,
+                            };
+
+                        },
+                    );
+
+
+                updateData({
+                    serviceSelections:
+                        updatedSelections,
                 });
 
-
-            updateData({
-                serviceSelections:
-                    updatedSelections,
-            });
-
-        },
-        [
-            selectedServices,
-            updateData,
-        ],
-    );
+            },
+            [
+                selectedServices,
+                updateData,
+            ],
+        );
 
 
     // ========================================================
     // TOGGLE CATEGORY
     // ========================================================
 
-    const toggleCategory = useCallback(
-        (categoryId: string) => {
+    const toggleCategory =
+        useCallback(
+            (
+                categoryId: string,
+            ) => {
 
-            setExpandedCategories(
-                previous => ({
-                    ...previous,
-                    [categoryId]:
-                        !previous[categoryId],
-                }),
-            );
+                setExpandedCategories(
+                    previous => ({
+                        ...previous,
+                        [categoryId]:
+                            !previous[
+                                categoryId
+                            ],
+                    }),
+                );
 
-        },
-        [],
-    );
-
-
-    // ========================================================
-    // APPLY DURATION TO ALL
-    // ========================================================
-
-    const applyDurationToAll = useCallback(() => {
-
-        const cleaned =
-            defaultDuration.replace(
-                /[^0-9]/g,
-                '',
-            );
-
-        const duration =
-            cleaned === ''
-                ? 0
-                : Number(cleaned);
-
-
-        if (
-            !Number.isFinite(duration) ||
-            duration <= 0
-        ) {
-
-            Alert.alert(
-                'Invalid duration',
-                'Please enter a valid duration in minutes.',
-            );
-
-            return;
-        }
-
-
-        const updatedSelections =
-            selectedServices.map(service => ({
-                ...service,
-                durationMinutes: duration,
-            }));
-
-
-        updateData({
-            serviceSelections:
-                updatedSelections,
-        });
-
-
-        Alert.alert(
-            'Duration applied',
-            `${duration} minutes has been applied to all selected services.`,
+            },
+            [],
         );
 
-    }, [
-        defaultDuration,
-        selectedServices,
-        updateData,
-    ]);
+
+    // ========================================================
+    // APPLY DURATION TO ALL SERVICES
+    // ========================================================
+
+    const applyDurationToAll =
+        useCallback(
+            () => {
+
+                Keyboard.dismiss();
+
+
+                const cleaned =
+                    defaultDuration.replace(
+                        /[^0-9]/g,
+                        '',
+                    );
+
+
+                const duration =
+                    Number(cleaned);
+
+
+                if (
+                    !Number.isFinite(
+                        duration,
+                    ) ||
+                    duration <= 0
+                ) {
+
+                    Alert.alert(
+                        'Invalid duration',
+                        'Please enter a valid duration in minutes.',
+                    );
+
+                    return;
+                }
+
+
+                const updatedSelections =
+                    selectedServices.map(
+                        service => ({
+                            ...service,
+                            durationMinutes:
+                                duration,
+                        }),
+                    );
+
+
+                updateData({
+                    serviceSelections:
+                        updatedSelections,
+                });
+
+
+                Alert.alert(
+                    'Duration applied',
+                    `${duration} minutes has been applied to all selected services.`,
+                );
+
+            },
+            [
+                defaultDuration,
+                selectedServices,
+                updateData,
+            ],
+        );
 
 
     // ========================================================
     // APPLY DURATION TO CATEGORY
     // ========================================================
 
-    const applyDurationToCategory = useCallback(
-        (
-            categoryId: string,
-            durationText: string,
-        ) => {
+    const applyDurationToCategory =
+        useCallback(
+            (
+                categoryId: string,
+                durationText: string,
+            ) => {
 
-            const cleaned =
-                durationText.replace(
-                    /[^0-9]/g,
-                    '',
-                );
-
-            const duration =
-                cleaned === ''
-                    ? 0
-                    : Number(cleaned);
+                Keyboard.dismiss();
 
 
-            if (
-                !Number.isFinite(duration) ||
-                duration <= 0
-            ) {
-
-                Alert.alert(
-                    'Invalid duration',
-                    'Please enter a valid duration in minutes.',
-                );
-
-                return;
-            }
+                /*
+                 * Remove anything except numbers.
+                 */
+                const cleaned =
+                    durationText.replace(
+                        /[^0-9]/g,
+                        '',
+                    );
 
 
-            const updatedSelections =
-                selectedServices.map(service => {
-
-                    if (
-                        service.categoryId !==
-                        categoryId
-                    ) {
-                        return service;
-                    }
+                const duration =
+                    Number(cleaned);
 
 
-                    return {
-                        ...service,
-                        durationMinutes: duration,
-                    };
+                /*
+                 * Validate duration.
+                 */
+                if (
+                    !cleaned ||
+                    !Number.isFinite(
+                        duration,
+                    ) ||
+                    duration <= 0
+                ) {
+
+                    Alert.alert(
+                        'Invalid duration',
+                        'Please enter a valid duration in minutes.',
+                    );
+
+                    return;
+                }
+
+
+                /*
+                 * IMPORTANT:
+                 *
+                 * Use the same categoryId that was
+                 * used to group and render the services.
+                 *
+                 * Every service under this category
+                 * gets the same duration.
+                 *
+                 * This includes:
+                 *
+                 * FEMALE
+                 * MALE
+                 * KIDS
+                 *
+                 * if they are selected for this category.
+                 */
+                const updatedSelections =
+                    selectedServices.map(
+                        service => {
+
+                            if (
+                                String(
+                                    service.categoryId,
+                                ) !==
+                                String(
+                                    categoryId,
+                                )
+                            ) {
+
+                                return service;
+
+                            }
+
+
+                            return {
+                                ...service,
+                                durationMinutes:
+                                    duration,
+                            };
+
+                        },
+                    );
+
+
+                /*
+                 * Check whether anything was actually
+                 * matched before updating.
+                 */
+                const matchedCount =
+                    selectedServices.filter(
+                        service =>
+                            String(
+                                service.categoryId,
+                            ) ===
+                            String(
+                                categoryId,
+                            ),
+                    ).length;
+
+
+                if (
+                    matchedCount === 0
+                ) {
+
+                    Alert.alert(
+                        'Unable to apply duration',
+                        'No selected services were found in this category.',
+                    );
+
+                    return;
+                }
+
+
+                /*
+                 * Save the updated service selections.
+                 */
+                updateData({
+                    serviceSelections:
+                        updatedSelections,
                 });
 
 
-            updateData({
-                serviceSelections:
-                    updatedSelections,
-            });
+                /*
+                 * Confirm to the salon owner.
+                 */
+                Alert.alert(
+                    'Duration applied',
+                    `${duration} minutes has been applied to ${matchedCount} selected ${
+                        matchedCount === 1
+                            ? 'service'
+                            : 'services'
+                    } in this category.`,
+                );
 
-        },
-        [
-            selectedServices,
-            updateData,
-        ],
-    );
+            },
+            [
+                selectedServices,
+                updateData,
+            ],
+        );
 
 
     // ========================================================
     // CONTINUE
     // ========================================================
 
-    const handleContinue = useCallback(() => {
+    const handleContinue =
+        useCallback(
+            () => {
 
-        if (totalCount === 0) {
+                if (
+                    totalCount === 0
+                ) {
 
-            Alert.alert(
-                'Services required',
-                'Please select at least one service.',
-            );
+                    Alert.alert(
+                        'Services required',
+                        'Please select at least one service.',
+                    );
 
-            return;
-        }
-
-
-        const incompleteServices =
-            selectedServices.filter(
-                service =>
-                    !isServiceConfigured(service),
-            );
+                    return;
+                }
 
 
-        if (incompleteServices.length > 0) {
-
-            const serviceWord =
-                incompleteServices.length === 1
-                    ? 'service'
-                    : 'services';
-
-            const verb =
-                incompleteServices.length === 1
-                    ? 'needs'
-                    : 'need';
+                const incompleteServices =
+                    selectedServices.filter(
+                        service =>
+                            !isServiceConfigured(
+                                service,
+                            ),
+                    );
 
 
-            Alert.alert(
-                'Complete service details',
-                `Please enter a valid price and duration for all selected services. ${incompleteServices.length} ${serviceWord} ${verb} to be completed.`,
-            );
+                if (
+                    incompleteServices.length >
+                    0
+                ) {
 
-            return;
-        }
+                    const serviceWord =
+                        incompleteServices.length ===
+                        1
+                            ? 'service'
+                            : 'services';
 
 
-        setSaving(true);
+                    const verb =
+                        incompleteServices.length ===
+                        1
+                            ? 'needs'
+                            : 'need';
 
 
-        setTimeout(() => {
+                    Alert.alert(
+                        'Complete service details',
+                        `Please enter a valid price and duration for all selected services. ${incompleteServices.length} ${serviceWord} ${verb} to be completed.`,
+                    );
 
-            setSaving(false);
+                    return;
+                }
 
-            navigation.navigate(
-                'SalonKYC',
-            );
 
-        }, 300);
+                setSaving(true);
 
-    }, [
-        totalCount,
-        selectedServices,
-        isServiceConfigured,
-        navigation,
-    ]);
+
+                setTimeout(
+                    () => {
+
+                        setSaving(false);
+
+                        navigation.navigate(
+                            'SalonKYC',
+                        );
+
+                    },
+                    300,
+                );
+
+            },
+            [
+                totalCount,
+                selectedServices,
+                isServiceConfigured,
+                navigation,
+            ],
+        );
 
 
     // ========================================================
@@ -638,7 +835,9 @@ const ConfigureSalonServices = ({
 
         return (
             <SafeAreaView
-                style={styles.container}
+                style={
+                    styles.container
+                }
             >
 
                 <Header
@@ -649,16 +848,22 @@ const ConfigureSalonServices = ({
                 />
 
                 <View
-                    style={styles.loadingContainer}
+                    style={
+                        styles.loadingContainer
+                    }
                 >
 
                     <ActivityIndicator
                         size="large"
-                        color={COLORS.primary}
+                        color={
+                            COLORS.primary
+                        }
                     />
 
                     <Text
-                        style={styles.loadingText}
+                        style={
+                            styles.loadingText
+                        }
                     >
                         Loading selected services...
                     </Text>
@@ -681,7 +886,9 @@ const ConfigureSalonServices = ({
 
         return (
             <SafeAreaView
-                style={styles.container}
+                style={
+                    styles.container
+                }
             >
 
                 <Header
@@ -692,30 +899,40 @@ const ConfigureSalonServices = ({
                 />
 
                 <View
-                    style={styles.errorContainer}
+                    style={
+                        styles.errorContainer
+                    }
                 >
 
                     <Text
-                        style={styles.errorTitle}
+                        style={
+                            styles.errorTitle
+                        }
                     >
                         Unable to load services
                     </Text>
 
                     <Text
-                        style={styles.errorText}
+                        style={
+                            styles.errorText
+                        }
                     >
                         Please go back and try again.
                     </Text>
 
                     <TouchableOpacity
-                        style={styles.errorButton}
+                        style={
+                            styles.errorButton
+                        }
                         onPress={() =>
                             navigation.goBack()
                         }
                     >
 
                         <Text
-                            style={styles.errorButtonText}
+                            style={
+                                styles.errorButtonText
+                            }
                         >
                             Go Back
                         </Text>
@@ -735,7 +952,9 @@ const ConfigureSalonServices = ({
 
     return (
         <SafeAreaView
-            style={styles.container}
+            style={
+                styles.container
+            }
         >
 
             <Header
@@ -747,7 +966,9 @@ const ConfigureSalonServices = ({
 
 
             <ScrollView
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={
+                    false
+                }
                 contentContainerStyle={
                     styles.content
                 }
@@ -758,13 +979,18 @@ const ConfigureSalonServices = ({
                 {/* ================================================= */}
 
                 <Text
-                    style={styles.title}
+                    style={
+                        styles.title
+                    }
                 >
                     Set your service prices
                 </Text>
 
+
                 <Text
-                    style={styles.subtitle}
+                    style={
+                        styles.subtitle
+                    }
                 >
                     Enter the price and duration for every
                     service you offer. Customers will see
@@ -777,11 +1003,15 @@ const ConfigureSalonServices = ({
                 {/* ================================================= */}
 
                 <View
-                    style={styles.progressCard}
+                    style={
+                        styles.progressCard
+                    }
                 >
 
                     <View
-                        style={styles.progressHeader}
+                        style={
+                            styles.progressHeader
+                        }
                     >
 
                         <View>
@@ -870,17 +1100,24 @@ const ConfigureSalonServices = ({
                 {/* ================================================= */}
 
                 <View
-                    style={styles.bulkCard}
+                    style={
+                        styles.bulkCard
+                    }
                 >
 
                     <Text
-                        style={styles.bulkTitle}
+                        style={
+                            styles.bulkTitle
+                        }
                     >
                         Save time
                     </Text>
 
+
                     <Text
-                        style={styles.bulkSubtitle}
+                        style={
+                            styles.bulkSubtitle
+                        }
                     >
                         If most of your services have the same
                         duration, apply it to all services at once.
@@ -888,11 +1125,15 @@ const ConfigureSalonServices = ({
 
 
                     <View
-                        style={styles.bulkRow}
+                        style={
+                            styles.bulkRow
+                        }
                     >
 
                         <TextInput
-                            value={defaultDuration}
+                            value={
+                                defaultDuration
+                            }
                             onChangeText={
                                 value =>
                                     setDefaultDuration(
@@ -910,11 +1151,16 @@ const ConfigureSalonServices = ({
                             style={
                                 styles.bulkInput
                             }
-                            maxLength={3}
+                            maxLength={
+                                3
+                            }
                         />
 
+
                         <Text
-                            style={styles.minutesText}
+                            style={
+                                styles.minutesText
+                            }
                         >
                             min
                         </Text>
@@ -926,6 +1172,9 @@ const ConfigureSalonServices = ({
                             }
                             onPress={
                                 applyDurationToAll
+                            }
+                            activeOpacity={
+                                0.7
                             }
                         >
 
@@ -949,11 +1198,15 @@ const ConfigureSalonServices = ({
                 {/* ================================================= */}
 
                 <View
-                    style={styles.searchContainer}
+                    style={
+                        styles.searchContainer
+                    }
                 >
 
                     <TextInput
-                        value={searchText}
+                        value={
+                            searchText
+                        }
                         onChangeText={
                             setSearchText
                         }
@@ -988,6 +1241,7 @@ const ConfigureSalonServices = ({
                         >
                             No services selected
                         </Text>
+
 
                         <Text
                             style={
@@ -1050,34 +1304,44 @@ const ConfigureSalonServices = ({
                                         const serviceName =
                                             getSubcategory(
                                                 service.subcategoryId,
-                                            )?.name || '';
+                                            )?.name ||
+                                            service.subcategoryName ||
+                                            '';
 
 
                                         const categoryMatches =
                                             category.name
                                                 .toLowerCase()
-                                                .includes(search);
+                                                .includes(
+                                                    search,
+                                                );
 
 
                                         const serviceMatches =
                                             serviceName
                                                 .toLowerCase()
-                                                .includes(search);
+                                                .includes(
+                                                    search,
+                                                );
 
 
                                         return (
                                             categoryMatches ||
                                             serviceMatches
                                         );
+
                                     },
                                 )
                                 : categoryServices;
 
 
                         if (
-                            visibleServices.length === 0
+                            visibleServices.length ===
+                            0
                         ) {
+
                             return null;
+
                         }
 
 
@@ -1106,7 +1370,9 @@ const ConfigureSalonServices = ({
                                 {/* CATEGORY HEADER */}
 
                                 <TouchableOpacity
-                                    activeOpacity={0.7}
+                                    activeOpacity={
+                                        0.7
+                                    }
                                     style={
                                         styles.categoryHeader
                                     }
@@ -1128,17 +1394,24 @@ const ConfigureSalonServices = ({
                                                 styles.categoryName
                                             }
                                         >
-                                            {category.name}
+                                            {
+                                                category.name
+                                            }
                                         </Text>
+
 
                                         <Text
                                             style={
                                                 styles.categoryCount
                                             }
                                         >
-                                            {categoryCompleted}
+                                            {
+                                                categoryCompleted
+                                            }
                                             {' / '}
-                                            {categoryServices.length}
+                                            {
+                                                categoryServices.length
+                                            }
                                             {' completed'}
                                         </Text>
 
@@ -1150,7 +1423,9 @@ const ConfigureSalonServices = ({
                                             styles.categoryArrow
                                         }
                                     >
-                                        {isOpen ? '−' : '+'}
+                                        {isOpen
+                                            ? '−'
+                                            : '+'}
                                     </Text>
 
                                 </TouchableOpacity>
@@ -1167,7 +1442,10 @@ const ConfigureSalonServices = ({
                                     >
 
                                         {visibleServices.map(
-                                            service => {
+                                            (
+                                                service,
+                                                index,
+                                            ) => {
 
                                                 const subcategory =
                                                     getSubcategory(
@@ -1181,10 +1459,14 @@ const ConfigureSalonServices = ({
                                                     );
 
 
+                                                const serviceKey =
+                                                    `${service.categoryId}-${service.subcategoryId}-${service.audience}-${index}`;
+
+
                                                 return (
                                                     <View
                                                         key={
-                                                            service.subcategoryId
+                                                            serviceKey
                                                         }
                                                         style={[
                                                             styles.serviceCard,
@@ -1210,8 +1492,28 @@ const ConfigureSalonServices = ({
                                                                         styles.serviceName
                                                                     }
                                                                 >
-                                                                    {subcategory?.name ||
-                                                                        'Selected service'}
+                                                                    {
+                                                                        subcategory?.name ||
+                                                                        service.subcategoryName ||
+                                                                        'Selected service'
+                                                                    }
+                                                                </Text>
+
+
+                                                                <Text
+                                                                    style={
+                                                                        styles.audienceLabel
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        service.audience ===
+                                                                        'FEMALE'
+                                                                            ? 'Women'
+                                                                            : service.audience ===
+                                                                                'MALE'
+                                                                                ? 'Men'
+                                                                                : 'Kids'
+                                                                    }
                                                                 </Text>
 
 
@@ -1295,6 +1597,7 @@ const ConfigureSalonServices = ({
                                                                             value =>
                                                                                 updateService(
                                                                                     service.subcategoryId,
+                                                                                    service.audience,
                                                                                     'price',
                                                                                     value,
                                                                                 )
@@ -1307,7 +1610,9 @@ const ConfigureSalonServices = ({
                                                                         style={
                                                                             styles.serviceInput
                                                                         }
-                                                                        maxLength={6}
+                                                                        maxLength={
+                                                                            6
+                                                                        }
                                                                     />
 
                                                                 </View>
@@ -1351,6 +1656,7 @@ const ConfigureSalonServices = ({
                                                                             value =>
                                                                                 updateService(
                                                                                     service.subcategoryId,
+                                                                                    service.audience,
                                                                                     'durationMinutes',
                                                                                     value,
                                                                                 )
@@ -1363,7 +1669,9 @@ const ConfigureSalonServices = ({
                                                                         style={
                                                                             styles.serviceInput
                                                                         }
-                                                                        maxLength={3}
+                                                                        maxLength={
+                                                                            3
+                                                                        }
                                                                     />
 
 
@@ -1383,11 +1691,14 @@ const ConfigureSalonServices = ({
 
                                                     </View>
                                                 );
+
                                             },
                                         )}
 
 
+                                        {/* ================================================= */}
                                         {/* CATEGORY BULK DURATION */}
+                                        {/* ================================================= */}
 
                                         <CategoryDurationInput
                                             onApply={
@@ -1405,6 +1716,7 @@ const ConfigureSalonServices = ({
 
                             </View>
                         );
+
                     },
                 )}
 
@@ -1414,17 +1726,24 @@ const ConfigureSalonServices = ({
                 {/* ================================================= */}
 
                 <View
-                    style={styles.infoCard}
+                    style={
+                        styles.infoCard
+                    }
                 >
 
                     <Text
-                        style={styles.infoTitle}
+                        style={
+                            styles.infoTitle
+                        }
                     >
                         💡 You can edit these later
                     </Text>
 
+
                     <Text
-                        style={styles.infoText}
+                        style={
+                            styles.infoText
+                        }
                     >
                         Your service prices and durations can
                         be changed later from your salon profile.
@@ -1437,7 +1756,9 @@ const ConfigureSalonServices = ({
 
 
                 <View
-                    style={styles.bottomSpace}
+                    style={
+                        styles.bottomSpace
+                    }
                 />
 
             </ScrollView>
@@ -1448,7 +1769,9 @@ const ConfigureSalonServices = ({
             {/* ================================================= */}
 
             <View
-                style={styles.footer}
+                style={
+                    styles.footer
+                }
             >
 
                 {!allConfigured && (
@@ -1470,12 +1793,16 @@ const ConfigureSalonServices = ({
 
 
                 <DButton
-                    onPress={handleContinue}
+                    onPress={
+                        handleContinue
+                    }
                     disabled={
                         !allConfigured ||
                         saving
                     }
-                    loading={saving}
+                    loading={
+                        saving
+                    }
                 >
                     Continue
                 </DButton>
@@ -1494,13 +1821,32 @@ const ConfigureSalonServices = ({
 const CategoryDurationInput = ({
     onApply,
 }: {
-    onApply: (duration: string) => void;
+    onApply: (
+        duration: string,
+    ) => void;
 }) => {
 
     const [
         duration,
         setDuration,
     ] = useState('');
+
+
+    const handleApply = useCallback(
+        () => {
+
+            Keyboard.dismiss();
+
+            onApply(
+                duration,
+            );
+
+        },
+        [
+            duration,
+            onApply,
+        ],
+    );
 
 
     return (
@@ -1526,7 +1872,9 @@ const CategoryDurationInput = ({
             >
 
                 <TextInput
-                    value={duration}
+                    value={
+                        duration
+                    }
                     onChangeText={
                         value =>
                             setDuration(
@@ -1544,7 +1892,9 @@ const CategoryDurationInput = ({
                     style={
                         styles.categoryDurationInput
                     }
-                    maxLength={3}
+                    maxLength={
+                        3
+                    }
                 />
 
 
@@ -1561,8 +1911,11 @@ const CategoryDurationInput = ({
                     style={
                         styles.categoryApplyButton
                     }
-                    onPress={() =>
-                        onApply(duration)
+                    onPress={
+                        handleApply
+                    }
+                    activeOpacity={
+                        0.7
                     }
                 >
 
@@ -1591,185 +1944,258 @@ const styles = StyleSheet.create({
 
     container: {
         flex: 1,
-        backgroundColor: COLORS.background,
+        backgroundColor:
+            COLORS.background,
     },
 
     content: {
-        paddingHorizontal: SPACING.large,
-        paddingTop: SPACING.large,
-        paddingBottom: SPACING.xl,
+        paddingHorizontal:
+            SPACING.large,
+        paddingTop:
+            SPACING.large,
+        paddingBottom:
+            SPACING.xl,
     },
 
     title: {
-        fontFamily: FONTS.bold,
+        fontFamily:
+            FONTS.bold,
         fontSize: 24,
-        color: COLORS.black,
-        marginBottom: SPACING.small,
+        color:
+            COLORS.black,
+        marginBottom:
+            SPACING.small,
     },
 
     subtitle: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 14,
         lineHeight: 21,
-        color: COLORS.textSecondary,
-        marginBottom: SPACING.large,
+        color:
+            COLORS.textSecondary,
+        marginBottom:
+            SPACING.large,
     },
 
     progressCard: {
-        backgroundColor: COLORS.white,
-        borderRadius: RADIUS.large,
-        padding: SPACING.medium,
-        marginBottom: SPACING.medium,
+        backgroundColor:
+            COLORS.white,
+        borderRadius:
+            RADIUS.large,
+        padding:
+            SPACING.medium,
+        marginBottom:
+            SPACING.medium,
     },
 
     progressHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: SPACING.medium,
+        flexDirection:
+            'row',
+        alignItems:
+            'center',
+        justifyContent:
+            'space-between',
+        marginBottom:
+            SPACING.medium,
     },
 
     progressTitle: {
-        fontFamily: FONTS.bold,
+        fontFamily:
+            FONTS.bold,
         fontSize: 16,
-        color: COLORS.black,
+        color:
+            COLORS.black,
     },
 
     progressSubtitle: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 13,
-        color: COLORS.textSecondary,
+        color:
+            COLORS.textSecondary,
         marginTop: 3,
     },
 
     progressPercentage: {
-        fontFamily: FONTS.bold,
+        fontFamily:
+            FONTS.bold,
         fontSize: 20,
-        color: COLORS.primary,
+        color:
+            COLORS.primary,
     },
 
     progressTrack: {
         height: 8,
-        backgroundColor: '#E8E8E8',
+        backgroundColor:
+            '#E8E8E8',
         borderRadius: 10,
         overflow: 'hidden',
     },
 
     progressFill: {
         height: '100%',
-        backgroundColor: COLORS.primary,
+        backgroundColor:
+            COLORS.primary,
         borderRadius: 10,
     },
 
     remainingText: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 12,
-        color: '#C77700',
-        marginTop: SPACING.small,
+        color:
+            '#C77700',
+        marginTop:
+            SPACING.small,
     },
 
     completedText: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 12,
-        color: COLORS.primary,
-        marginTop: SPACING.small,
+        color:
+            COLORS.primary,
+        marginTop:
+            SPACING.small,
     },
 
     bulkCard: {
-        backgroundColor: '#F3FAF9',
-        borderRadius: RADIUS.large,
-        padding: SPACING.medium,
-        marginBottom: SPACING.medium,
+        backgroundColor:
+            '#F3FAF9',
+        borderRadius:
+            RADIUS.large,
+        padding:
+            SPACING.medium,
+        marginBottom:
+            SPACING.medium,
         borderWidth: 1,
-        borderColor: '#D8EFEC',
+        borderColor:
+            '#D8EFEC',
     },
 
     bulkTitle: {
-        fontFamily: FONTS.bold,
+        fontFamily:
+            FONTS.bold,
         fontSize: 15,
-        color: COLORS.black,
+        color:
+            COLORS.black,
         marginBottom: 4,
     },
 
     bulkSubtitle: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 12,
         lineHeight: 18,
-        color: COLORS.textSecondary,
-        marginBottom: SPACING.medium,
+        color:
+            COLORS.textSecondary,
+        marginBottom:
+            SPACING.medium,
     },
 
     bulkRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection:
+            'row',
+        alignItems:
+            'center',
     },
 
     bulkInput: {
         width: 75,
         height: 44,
-        backgroundColor: COLORS.white,
+        backgroundColor:
+            COLORS.white,
         borderWidth: 1,
-        borderColor: '#D5D5D5',
-        borderRadius: RADIUS.medium,
+        borderColor:
+            '#D5D5D5',
+        borderRadius:
+            RADIUS.medium,
         paddingHorizontal: 12,
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 15,
-        color: COLORS.black,
-        textAlign: 'center',
+        color:
+            COLORS.black,
+        textAlign:
+            'center',
     },
 
     minutesText: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 13,
-        color: COLORS.textSecondary,
+        color:
+            COLORS.textSecondary,
         marginHorizontal: 8,
     },
 
     applyButton: {
         height: 44,
         paddingHorizontal: 16,
-        borderRadius: RADIUS.medium,
-        backgroundColor: COLORS.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginLeft: 'auto',
+        borderRadius:
+            RADIUS.medium,
+        backgroundColor:
+            COLORS.primary,
+        justifyContent:
+            'center',
+        alignItems:
+            'center',
+        marginLeft:
+            'auto',
     },
 
     applyButtonText: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 13,
-        color: COLORS.white,
+        color:
+            COLORS.white,
     },
 
     searchContainer: {
-        marginBottom: SPACING.medium,
+        marginBottom:
+            SPACING.medium,
     },
 
     searchInput: {
         height: 48,
-        backgroundColor: COLORS.white,
+        backgroundColor:
+            COLORS.white,
         borderWidth: 1,
-        borderColor: '#DDDDDD',
-        borderRadius: RADIUS.medium,
+        borderColor:
+            '#DDDDDD',
+        borderRadius:
+            RADIUS.medium,
         paddingHorizontal: 15,
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 14,
-        color: COLORS.black,
+        color:
+            COLORS.black,
     },
 
     categoryCard: {
-        backgroundColor: COLORS.white,
-        borderRadius: RADIUS.large,
-        marginBottom: SPACING.medium,
-        overflow: 'hidden',
+        backgroundColor:
+            COLORS.white,
+        borderRadius:
+            RADIUS.large,
+        marginBottom:
+            SPACING.medium,
+        overflow:
+            'hidden',
     },
 
     categoryHeader: {
         minHeight: 66,
-        paddingHorizontal: SPACING.medium,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        paddingHorizontal:
+            SPACING.medium,
+        flexDirection:
+            'row',
+        alignItems:
+            'center',
+        justifyContent:
+            'space-between',
     },
 
     categoryHeaderLeft: {
@@ -1777,47 +2203,64 @@ const styles = StyleSheet.create({
     },
 
     categoryName: {
-        fontFamily: FONTS.bold,
+        fontFamily:
+            FONTS.bold,
         fontSize: 16,
-        color: COLORS.black,
+        color:
+            COLORS.black,
     },
 
     categoryCount: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 12,
-        color: COLORS.textSecondary,
+        color:
+            COLORS.textSecondary,
         marginTop: 4,
     },
 
     categoryArrow: {
-        fontFamily: FONTS.bold,
+        fontFamily:
+            FONTS.bold,
         fontSize: 25,
-        color: COLORS.primary,
+        color:
+            COLORS.primary,
         marginLeft: 12,
     },
 
     servicesContainer: {
-        paddingHorizontal: SPACING.medium,
-        paddingBottom: SPACING.medium,
+        paddingHorizontal:
+            SPACING.medium,
+        paddingBottom:
+            SPACING.medium,
     },
 
     serviceCard: {
         borderTopWidth: 1,
-        borderTopColor: '#EEEEEE',
-        paddingVertical: SPACING.medium,
+        borderTopColor:
+            '#EEEEEE',
+        paddingVertical:
+            SPACING.medium,
     },
 
     serviceCardIncomplete: {
-        backgroundColor: '#FFFDF8',
-        marginHorizontal: -SPACING.small,
-        paddingHorizontal: SPACING.small,
-        borderRadius: RADIUS.medium,
+        backgroundColor:
+            '#FFFDF8',
+        marginHorizontal:
+            -SPACING.small,
+        paddingHorizontal:
+            SPACING.small,
+        borderRadius:
+            RADIUS.medium,
     },
 
     serviceHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: SPACING.small,
+        flexDirection:
+            'row',
+        alignItems:
+            'center',
+        marginBottom:
+            SPACING.small,
     },
 
     serviceTitleContainer: {
@@ -1825,27 +2268,43 @@ const styles = StyleSheet.create({
     },
 
     serviceName: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 15,
-        color: COLORS.black,
+        color:
+            COLORS.black,
+    },
+
+    audienceLabel: {
+        fontFamily:
+            FONTS.medium,
+        fontSize: 11,
+        color:
+            COLORS.primary,
+        marginTop: 3,
     },
 
     requiredLabel: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 11,
-        color: '#C77700',
+        color:
+            '#C77700',
         marginTop: 3,
     },
 
     completedLabel: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 11,
-        color: COLORS.primary,
+        color:
+            COLORS.primary,
         marginTop: 3,
     },
 
     fieldsRow: {
-        flexDirection: 'row',
+        flexDirection:
+            'row',
         gap: 10,
     },
 
@@ -1854,43 +2313,59 @@ const styles = StyleSheet.create({
     },
 
     fieldLabel: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 12,
-        color: COLORS.textSecondary,
+        color:
+            COLORS.textSecondary,
         marginBottom: 5,
     },
 
     inputWithPrefix: {
         height: 46,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: COLORS.white,
+        flexDirection:
+            'row',
+        alignItems:
+            'center',
+        backgroundColor:
+            COLORS.white,
         borderWidth: 1,
-        borderColor: '#D7D7D7',
-        borderRadius: RADIUS.medium,
+        borderColor:
+            '#D7D7D7',
+        borderRadius:
+            RADIUS.medium,
     },
 
     inputWithSuffix: {
         height: 46,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: COLORS.white,
+        flexDirection:
+            'row',
+        alignItems:
+            'center',
+        backgroundColor:
+            COLORS.white,
         borderWidth: 1,
-        borderColor: '#D7D7D7',
-        borderRadius: RADIUS.medium,
+        borderColor:
+            '#D7D7D7',
+        borderRadius:
+            RADIUS.medium,
     },
 
     prefix: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 14,
-        color: COLORS.textSecondary,
+        color:
+            COLORS.textSecondary,
         marginLeft: 12,
     },
 
     suffix: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 12,
-        color: COLORS.textSecondary,
+        color:
+            COLORS.textSecondary,
         marginRight: 10,
     },
 
@@ -1898,102 +2373,141 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 44,
         paddingHorizontal: 8,
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 14,
-        color: COLORS.black,
+        color:
+            COLORS.black,
     },
 
     categoryBulkContainer: {
         borderTopWidth: 1,
-        borderTopColor: '#EEEEEE',
-        paddingTop: SPACING.medium,
+        borderTopColor:
+            '#EEEEEE',
+        paddingTop:
+            SPACING.medium,
         marginTop: 4,
     },
 
     categoryBulkLabel: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 12,
-        color: COLORS.textSecondary,
+        color:
+            COLORS.textSecondary,
         marginBottom: 7,
     },
 
     categoryBulkRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection:
+            'row',
+        alignItems:
+            'center',
     },
 
     categoryDurationInput: {
         width: 65,
         height: 40,
-        backgroundColor: COLORS.white,
+        backgroundColor:
+            COLORS.white,
         borderWidth: 1,
-        borderColor: '#D5D5D5',
-        borderRadius: RADIUS.medium,
-        textAlign: 'center',
-        fontFamily: FONTS.medium,
+        borderColor:
+            '#D5D5D5',
+        borderRadius:
+            RADIUS.medium,
+        textAlign:
+            'center',
+        fontFamily:
+            FONTS.medium,
         fontSize: 13,
-        color: COLORS.black,
+        color:
+            COLORS.black,
     },
 
     categoryMinutes: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 12,
-        color: COLORS.textSecondary,
+        color:
+            COLORS.textSecondary,
         marginHorizontal: 7,
     },
 
     categoryApplyButton: {
         height: 40,
         paddingHorizontal: 15,
-        borderRadius: RADIUS.medium,
-        backgroundColor: '#E8F6F4',
-        justifyContent: 'center',
-        alignItems: 'center',
+        borderRadius:
+            RADIUS.medium,
+        backgroundColor:
+            '#E8F6F4',
+        justifyContent:
+            'center',
+        alignItems:
+            'center',
     },
 
     categoryApplyText: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 12,
-        color: COLORS.primary,
+        color:
+            COLORS.primary,
     },
 
     infoCard: {
-        backgroundColor: COLORS.white,
-        borderRadius: RADIUS.large,
-        padding: SPACING.medium,
-        marginTop: SPACING.small,
+        backgroundColor:
+            COLORS.white,
+        borderRadius:
+            RADIUS.large,
+        padding:
+            SPACING.medium,
+        marginTop:
+            SPACING.small,
         borderWidth: 1,
-        borderColor: '#E5E5E5',
+        borderColor:
+            '#E5E5E5',
     },
 
     infoTitle: {
-        fontFamily: FONTS.bold,
+        fontFamily:
+            FONTS.bold,
         fontSize: 14,
-        color: COLORS.black,
+        color:
+            COLORS.black,
         marginBottom: 6,
     },
 
     infoText: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 12,
         lineHeight: 18,
-        color: COLORS.textSecondary,
+        color:
+            COLORS.textSecondary,
     },
 
     footer: {
-        backgroundColor: COLORS.white,
-        paddingHorizontal: SPACING.large,
-        paddingTop: SPACING.small,
-        paddingBottom: SPACING.medium,
+        backgroundColor:
+            COLORS.white,
+        paddingHorizontal:
+            SPACING.large,
+        paddingTop:
+            SPACING.small,
+        paddingBottom:
+            SPACING.medium,
         borderTopWidth: 1,
-        borderTopColor: '#EEEEEE',
+        borderTopColor:
+            '#EEEEEE',
     },
 
     footerWarning: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 12,
-        color: '#C77700',
-        textAlign: 'center',
+        color:
+            '#C77700',
+        textAlign:
+            'center',
         marginBottom: 8,
     },
 
@@ -2003,91 +2517,126 @@ const styles = StyleSheet.create({
 
     loadingContainer: {
         flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: SPACING.large,
+        alignItems:
+            'center',
+        justifyContent:
+            'center',
+        paddingHorizontal:
+            SPACING.large,
     },
 
     loadingText: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 14,
-        color: COLORS.textSecondary,
-        marginTop: SPACING.medium,
+        color:
+            COLORS.textSecondary,
+        marginTop:
+            SPACING.medium,
     },
 
     errorContainer: {
         flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: SPACING.large,
+        alignItems:
+            'center',
+        justifyContent:
+            'center',
+        paddingHorizontal:
+            SPACING.large,
     },
 
     errorTitle: {
-        fontFamily: FONTS.bold,
+        fontFamily:
+            FONTS.bold,
         fontSize: 18,
-        color: COLORS.black,
-        textAlign: 'center',
+        color:
+            COLORS.black,
+        textAlign:
+            'center',
     },
 
     errorText: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 14,
-        color: COLORS.textSecondary,
-        textAlign: 'center',
+        color:
+            COLORS.textSecondary,
+        textAlign:
+            'center',
         marginTop: 8,
     },
 
     errorButton: {
-        marginTop: SPACING.large,
+        marginTop:
+            SPACING.large,
         paddingHorizontal: 20,
         paddingVertical: 12,
-        borderRadius: RADIUS.medium,
-        backgroundColor: COLORS.primary,
+        borderRadius:
+            RADIUS.medium,
+        backgroundColor:
+            COLORS.primary,
     },
 
     errorButtonText: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 14,
-        color: COLORS.white,
+        color:
+            COLORS.white,
     },
 
     emptyContainer: {
-        backgroundColor: COLORS.white,
-        borderRadius: RADIUS.large,
-        padding: SPACING.large,
-        alignItems: 'center',
-        marginBottom: SPACING.medium,
+        backgroundColor:
+            COLORS.white,
+        borderRadius:
+            RADIUS.large,
+        padding:
+            SPACING.large,
+        alignItems:
+            'center',
+        marginBottom:
+            SPACING.medium,
     },
 
     emptyTitle: {
-        fontFamily: FONTS.bold,
+        fontFamily:
+            FONTS.bold,
         fontSize: 16,
-        color: COLORS.black,
+        color:
+            COLORS.black,
     },
 
     emptyText: {
-        fontFamily: FONTS.regular,
+        fontFamily:
+            FONTS.regular,
         fontSize: 13,
-        color: COLORS.textSecondary,
-        textAlign: 'center',
+        color:
+            COLORS.textSecondary,
+        textAlign:
+            'center',
         marginTop: 6,
     },
 
     goBackButton: {
-        marginTop: SPACING.medium,
+        marginTop:
+            SPACING.medium,
         paddingHorizontal: 18,
         paddingVertical: 10,
-        borderRadius: RADIUS.medium,
-        backgroundColor: COLORS.primary,
+        borderRadius:
+            RADIUS.medium,
+        backgroundColor:
+            COLORS.primary,
     },
 
     goBackButtonText: {
-        fontFamily: FONTS.medium,
+        fontFamily:
+            FONTS.medium,
         fontSize: 13,
-        color: COLORS.white,
+        color:
+            COLORS.white,
     },
+
 });
 
 
 export default ConfigureSalonServices;
-

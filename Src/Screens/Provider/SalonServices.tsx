@@ -29,7 +29,7 @@ import {
 } from '../../constants/constants';
 
 import {
-  useSalonRegistration,
+  useSalonRegistration, SalonServiceSelection
 } from '../../context/SalonRegistrationContext';
 
 import {
@@ -73,12 +73,17 @@ type Subcategory = {
   audiences?: ServiceAudience[];
 };
 
-type SalonServiceSelection = {
-  categoryId: string;
-  categoryName?: string;
-  subcategoryId: string;
-  subcategoryName?: string;
-};
+// type SalonServiceSelection = {
+//   // Audience is part of the selection identity.
+//   // This is important because the same subcategory can exist
+//   // for both Female and Male, but the salon must select each
+//   // audience independently.
+//   audience: ServiceAudience;
+//   categoryId: string;
+//   categoryName: string;
+//   subcategoryId: string;
+//   subcategoryName: string;
+// };
 
 type AudienceTab = {
   key: ServiceAudience;
@@ -205,18 +210,101 @@ export default function SalonServices({
   // CATEGORIES
   // ==========================================================
 
-  const categories: Category[] = Array.isArray(
-  categoryResponse?.categories?.categories,
-)
-  ? categoryResponse.categories.categories
-  : [];
+ // ==========================================================
+// CATEGORIES
+//
+// Deduplicate category records returned by AppSync.
+// categoryId is the unique identity of a category.
+// ==========================================================
 
-const subcategories: Subcategory[] = Array.isArray(
-  subcategoryResponse?.subcategories?.subcategories,
-)
-  ? subcategoryResponse.subcategories.subcategories
-  : [];
+const categories: Category[] = useMemo(() => {
+  const rawCategories: Category[] =
+    Array.isArray(
+      categoryResponse?.categories?.categories,
+    )
+      ? categoryResponse.categories.categories
+      : [];
 
+  const uniqueCategories =
+    new Map<string, Category>();
+
+  rawCategories.forEach(
+    category => {
+      if (
+        category?.categoryId &&
+        !uniqueCategories.has(
+          category.categoryId,
+        )
+      ) {
+        uniqueCategories.set(
+          category.categoryId,
+          category,
+        );
+      }
+    },
+  );
+
+  return Array.from(
+    uniqueCategories.values(),
+  );
+}, [
+  categoryResponse,
+]);
+
+// ==========================================================
+// SUBCATEGORIES
+//
+// Deduplicate using categoryId + subcategoryId.
+// This also protects us if the same subcategory ID
+// accidentally appears more than once in the API response.
+// ==========================================================
+
+const subcategories: Subcategory[] =
+  useMemo(() => {
+    const rawSubcategories: Subcategory[] =
+      Array.isArray(
+        subcategoryResponse?.subcategories?.subcategories,
+      )
+        ? subcategoryResponse.subcategories.subcategories
+        : [];
+
+    const uniqueSubcategories =
+      new Map<
+        string,
+        Subcategory
+      >();
+
+    rawSubcategories.forEach(
+      subcategory => {
+        if (
+          !subcategory?.categoryId ||
+          !subcategory?.subcategoryId
+        ) {
+          return;
+        }
+
+        const uniqueKey =
+          `${subcategory.categoryId}-${subcategory.subcategoryId}`;
+
+        if (
+          !uniqueSubcategories.has(
+            uniqueKey,
+          )
+        ) {
+          uniqueSubcategories.set(
+            uniqueKey,
+            subcategory,
+          );
+        }
+      },
+    );
+
+    return Array.from(
+      uniqueSubcategories.values(),
+    );
+  }, [
+    subcategoryResponse,
+  ]);
 
   // ==========================================================
   // SALON TARGET AUDIENCES
@@ -228,15 +316,15 @@ const subcategories: Subcategory[] = Array.isArray(
   //
   // Only these tabs will be displayed.
   // ==========================================================
-console.log(
-  'CATEGORY RESPONSE:',
-  JSON.stringify(categoryResponse, null, 2),
-);
+  console.log(
+    'CATEGORY RESPONSE:',
+    JSON.stringify(categoryResponse, null, 2),
+  );
 
-console.log(
-  'SUBCATEGORY RESPONSE:',
-  JSON.stringify(subcategoryResponse, null, 2),
-);
+  console.log(
+    'SUBCATEGORY RESPONSE:',
+    JSON.stringify(subcategoryResponse, null, 2),
+  );
 
   const salonAudiences: ServiceAudience[] =
     useMemo(() => {
@@ -285,24 +373,65 @@ console.log(
 
   const activeAudience =
     selectedAudience &&
-    salonAudiences.includes(
-      selectedAudience,
-    )
+      salonAudiences.includes(
+        selectedAudience,
+      )
       ? selectedAudience
       : availableAudienceTabs[0]
-          ?.key || null;
+        ?.key || null;
 
   // ==========================================================
   // CURRENT SERVICE SELECTIONS
   // ==========================================================
 
-  const selectedServiceSelections:
-    SalonServiceSelection[] =
-    Array.isArray(
-      data.serviceSelections,
-    )
-      ? data.serviceSelections
-      : [];
+  // ==========================================================
+  // CURRENT SERVICE SELECTIONS
+  //
+  // Deduplicate using:
+  // audience + category + subcategory
+  // ==========================================================
+
+  const selectedServiceSelections: SalonServiceSelection[] =
+    useMemo(() => {
+      if (!Array.isArray(data?.serviceSelections)) {
+        return [];
+      }
+
+      const uniqueSelections =
+        new Map<
+          string,
+          SalonServiceSelection
+        >();
+
+      data.serviceSelections.forEach(
+        selection => {
+          if (
+            !selection ||
+            !selection.audience ||
+            !selection.categoryId ||
+            !selection.subcategoryId
+          ) {
+            return;
+          }
+
+          const key =
+            `${selection.audience}-${selection.categoryId}-${selection.subcategoryId}`;
+
+          if (!uniqueSelections.has(key)) {
+            uniqueSelections.set(
+              key,
+              selection,
+            );
+          }
+        },
+      );
+
+      return Array.from(
+        uniqueSelections.values(),
+      );
+    }, [
+      data?.serviceSelections,
+    ]);
 
   // ==========================================================
   // FILTER SUBCATEGORIES BY AUDIENCE
@@ -375,10 +504,46 @@ console.log(
   // SORTED SELECTED SERVICES
   // ==========================================================
 
+  const normalizedSelectedServices =
+    useMemo(() => {
+      return selectedServiceSelections.map(
+        selection => {
+          const category =
+            categories.find(
+              item =>
+                item.categoryId === selection.categoryId,
+            );
+
+          const subcategory =
+            subcategories.find(
+              item =>
+                item.categoryId === selection.categoryId &&
+                item.subcategoryId === selection.subcategoryId,
+            );
+
+          return {
+            ...selection,
+            categoryName:
+              selection.categoryName ||
+              category?.name ||
+              selection.categoryId,
+            subcategoryName:
+              selection.subcategoryName ||
+              subcategory?.name ||
+              selection.subcategoryId,
+          };
+        },
+      );
+    }, [
+      selectedServiceSelections,
+      categories,
+      subcategories,
+    ]);
+
   const sortedSelectedServices =
     useMemo(() => {
       return [
-        ...selectedServiceSelections,
+        ...normalizedSelectedServices,
       ].sort((a, b) => {
         const categoryCompare =
           (
@@ -410,7 +575,7 @@ console.log(
         );
       });
     }, [
-      selectedServiceSelections,
+      normalizedSelectedServices,
     ]);
 
   // ==========================================================
@@ -418,15 +583,15 @@ console.log(
   // ==========================================================
 
   const isSelected = (
+    audience: ServiceAudience,
     categoryId: string,
     subcategoryId: string,
   ) => {
     return selectedServiceSelections.some(
       selection =>
-        selection.categoryId ===
-          categoryId &&
-        selection.subcategoryId ===
-          subcategoryId,
+        selection.audience === audience &&
+        selection.categoryId === categoryId &&
+        selection.subcategoryId === subcategoryId,
     );
   };
 
@@ -452,11 +617,18 @@ console.log(
   const toggleCategory = (
     categoryId: string,
   ) => {
+    if (!activeAudience) {
+      return;
+    }
+
+    const key =
+      `${activeAudience}-${categoryId}`;
+
     setOpenCategories(
       previous => ({
         ...previous,
-        [categoryId]:
-          !previous[categoryId],
+        [key]:
+          !previous[key],
       }),
     );
   };
@@ -492,7 +664,7 @@ console.log(
 
     if (
       categorySubcategories.length ===
-        0 ||
+      0 ||
       !activeAudience
     ) {
       return;
@@ -501,12 +673,11 @@ console.log(
     const selectedCategoryCount =
       selectedServiceSelections.filter(
         selection =>
-          selection.categoryId ===
-            category.categoryId &&
+          selection.audience === activeAudience &&
+          selection.categoryId === category.categoryId &&
           categorySubcategories.some(
             subcategory =>
-              subcategory.subcategoryId ===
-              selection.subcategoryId,
+              subcategory.subcategoryId === selection.subcategoryId,
           ),
       ).length;
 
@@ -531,8 +702,10 @@ console.log(
         serviceSelections:
           selectedServiceSelections.filter(
             selection =>
-              !audienceSubcategoryIds.has(
-                selection.subcategoryId,
+              !(
+                selection.audience === activeAudience &&
+                selection.categoryId === category.categoryId &&
+                audienceSubcategoryIds.has(selection.subcategoryId)
               ),
           ),
       });
@@ -546,10 +719,16 @@ console.log(
 
     const selectedIds =
       new Set(
-        selectedServiceSelections.map(
-          selection =>
-            selection.subcategoryId,
-        ),
+        selectedServiceSelections
+          .filter(
+            selection =>
+              selection.audience === activeAudience &&
+              selection.categoryId === category.categoryId,
+          )
+          .map(
+            selection =>
+              selection.subcategoryId,
+          ),
       );
 
     const newSelections =
@@ -562,25 +741,33 @@ console.log(
         )
         .map(
           subcategory => ({
-            categoryId:
-              category.categoryId,
-
-            categoryName:
-              category.name,
-
-            subcategoryId:
-              subcategory.subcategoryId,
-
-            subcategoryName:
-              subcategory.name,
+            audience: activeAudience,
+            categoryId: category.categoryId,
+            categoryName: category.name,
+            subcategoryId: subcategory.subcategoryId,
+            subcategoryName: subcategory.name,
           }),
         );
 
+    const mergedSelections = [
+      ...selectedServiceSelections,
+      ...newSelections,
+    ];
+
+    const uniqueSelections =
+      Array.from(
+        new Map(
+          mergedSelections.map(
+            selection => [
+              `${selection.audience}-${selection.categoryId}-${selection.subcategoryId}`,
+              selection,
+            ],
+          ),
+        ).values(),
+      );
+
     updateData({
-      serviceSelections: [
-        ...selectedServiceSelections,
-        ...newSelections,
-      ],
+      serviceSelections: uniqueSelections,
     });
   };
 
@@ -607,6 +794,8 @@ console.log(
     const selectedCount =
       selectedServiceSelections.filter(
         selection =>
+          selection.audience === activeAudience &&
+          selection.categoryId === categoryId &&
           categorySubcategoryIds.has(
             selection.subcategoryId,
           ),
@@ -620,14 +809,14 @@ console.log(
 
       allSelected:
         categorySubcategories.length >
-          0 &&
+        0 &&
         selectedCount ===
-          categorySubcategories.length,
+        categorySubcategories.length,
 
       partiallySelected:
         selectedCount > 0 &&
         selectedCount <
-          categorySubcategories.length,
+        categorySubcategories.length,
     };
   };
 
@@ -639,8 +828,13 @@ console.log(
     category: Category,
     subcategory: Subcategory,
   ) => {
+    if (!activeAudience) {
+      return;
+    }
+
     const alreadySelected =
       isSelected(
+        activeAudience,
         category.categoryId,
         subcategory.subcategoryId,
       );
@@ -649,7 +843,7 @@ console.log(
       SalonServiceSelection[];
 
     // ========================================================
-    // REMOVE
+    // REMOVE ONLY FOR THE ACTIVE AUDIENCE
     // ========================================================
 
     if (alreadySelected) {
@@ -657,42 +851,30 @@ console.log(
         selectedServiceSelections.filter(
           selection =>
             !(
-              selection.categoryId ===
-                category.categoryId &&
-              selection.subcategoryId ===
-                subcategory.subcategoryId
+              selection.audience === activeAudience &&
+              selection.categoryId === category.categoryId &&
+              selection.subcategoryId === subcategory.subcategoryId
             ),
         );
     } else {
       // ======================================================
-      // ADD
+      // ADD ONLY FOR THE ACTIVE AUDIENCE
       // ======================================================
 
       updatedSelections = [
         ...selectedServiceSelections,
         {
-          categoryId:
-            category.categoryId,
-
-          categoryName:
-            category.name,
-
-          subcategoryId:
-            subcategory.subcategoryId,
-
-          subcategoryName:
-            subcategory.name,
+          audience: activeAudience,
+          categoryId: category.categoryId,
+          categoryName: category.name,
+          subcategoryId: subcategory.subcategoryId,
+          subcategoryName: subcategory.name,
         },
       ];
     }
 
-    // ========================================================
-    // SAVE
-    // ========================================================
-
     updateData({
-      serviceSelections:
-        updatedSelections,
+      serviceSelections: updatedSelections,
     });
   };
 
@@ -709,7 +891,7 @@ console.log(
     if (
       !activeAudience &&
       availableAudienceTabs.length >
-        0
+      0
     ) {
       setSelectedAudience(
         availableAudienceTabs[0].key,
@@ -763,32 +945,33 @@ console.log(
       setSubmitting(true);
 
       // ======================================================
-      // CLEAN SELECTIONS
+      // IMPORTANT:
+      // Keep the complete UI selection in registration context.
       //
-      // Backend expects:
+      // The previous code replaced every selection with only:
+      //   { categoryId, subcategoryId }
       //
-      // serviceSelections: [
-      //   {
-      //     categoryId,
-      //     subcategoryId
-      //   }
-      // ]
+      // That removed categoryName/subcategoryName. After
+      // navigation the UI therefore had no name to display and
+      // fell back to "Selected service".
+      //
+      // The backend payload should be mapped to IDs at the
+      // mutation boundary, not by destroying the UI state here.
       // ======================================================
 
-      const cleanedSelections =
+      const preservedSelections =
         selectedServiceSelections.map(
           selection => ({
-            categoryId:
-              selection.categoryId,
-
-            subcategoryId:
-              selection.subcategoryId,
+            audience: selection.audience,
+            categoryId: selection.categoryId,
+            categoryName: selection.categoryName,
+            subcategoryId: selection.subcategoryId,
+            subcategoryName: selection.subcategoryName,
           }),
         );
 
       updateData({
-        serviceSelections:
-          cleanedSelections,
+        serviceSelections: preservedSelections,
       });
 
       await new Promise(
@@ -878,8 +1061,8 @@ console.log(
         ================================================== */}
 
         {!categoriesLoading &&
-        !subcategoriesLoading &&
-        salonAudiences.length ===
+          !subcategoriesLoading &&
+          salonAudiences.length ===
           0 ? (
           <View
             style={
@@ -941,11 +1124,11 @@ console.log(
         ================================================== */}
 
         {!categoriesLoading &&
-        !subcategoriesLoading &&
-        (
-          categoriesError ||
-          subcategoriesError
-        ) ? (
+          !subcategoriesLoading &&
+          (
+            categoriesError ||
+            subcategoriesError
+          ) ? (
           <View
             style={
               styles.catalogError
@@ -994,10 +1177,10 @@ console.log(
         ================================================== */}
 
         {!categoriesLoading &&
-        !subcategoriesLoading &&
-        !categoriesError &&
-        !subcategoriesError &&
-        categories.length > 0 ? (
+          !subcategoriesLoading &&
+          !categoriesError &&
+          !subcategoriesError &&
+          categories.length > 0 ? (
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={
@@ -1006,8 +1189,8 @@ console.log(
             style={[
               styles.serviceSelector,
               selectedServiceSelections.length ===
-                0 &&
-                styles.serviceSelectorRequired,
+              0 &&
+              styles.serviceSelectorRequired,
             ]}
           >
             <View
@@ -1029,13 +1212,12 @@ console.log(
                 }
               >
                 {selectedServiceSelections.length >
-                0
-                  ? `${selectedServiceSelections.length} ${
-                      selectedServiceSelections.length ===
-                      1
-                        ? 'subcategory'
-                        : 'subcategories'
-                    } selected`
+                  0
+                  ? `${selectedServiceSelections.length} ${selectedServiceSelections.length ===
+                    1
+                    ? 'selection'
+                    : 'selections'
+                  } selected`
                   : 'Required • Select at least one'}
               </Text>
             </View>
@@ -1055,8 +1237,8 @@ console.log(
         ================================================== */}
 
         {!categoriesLoading &&
-        !subcategoriesLoading &&
-        sortedSelectedServices.length >
+          !subcategoriesLoading &&
+          sortedSelectedServices.length >
           0 ? (
           <View
             style={
@@ -1100,13 +1282,13 @@ console.log(
               showAllSelectedServices
                 ? sortedSelectedServices
                 : sortedSelectedServices.slice(
-                    0,
-                    6,
-                  )
+                  0,
+                  6,
+                )
             ).map(
               selection => (
                 <View
-                  key={`${selection.categoryId}-${selection.subcategoryId}`}
+                  key={`${selection.audience}-${selection.categoryId}-${selection.subcategoryId}`}
                   style={
                     styles.selectedServiceChip
                   }
@@ -1127,28 +1309,27 @@ console.log(
                         styles.selectedServiceText
                       }
                     >
-                      {selection.subcategoryName ||
-                        'Selected service'}
+                      {selection.subcategoryName}
                     </Text>
 
-                    {!!selection.categoryName ? (
-                      <Text
-                        style={
-                          styles.selectedServiceCategory
-                        }
-                      >
-                        {
-                          selection.categoryName
-                        }
-                      </Text>
-                    ) : null}
+                    <Text
+                      style={
+                        styles.selectedServiceCategory
+                      }
+                    >
+                      {selection.categoryName} • {
+                        AUDIENCE_TABS.find(
+                          tab => tab.key === selection.audience,
+                        )?.label || selection.audience
+                      }
+                    </Text>
                   </View>
                 </View>
               ),
             )}
 
             {sortedSelectedServices.length >
-            6 ? (
+              6 ? (
               <TouchableOpacity
                 activeOpacity={0.75}
                 onPress={() =>
@@ -1168,10 +1349,9 @@ console.log(
                 >
                   {showAllSelectedServices
                     ? 'Show less'
-                    : `+ ${
-                        sortedSelectedServices.length -
-                        6
-                      } more selected`}
+                    : `+ ${sortedSelectedServices.length -
+                    6
+                    } more selected`}
                 </Text>
 
                 <Text
@@ -1193,10 +1373,10 @@ console.log(
         ================================================== */}
 
         {!categoriesLoading &&
-        !subcategoriesLoading &&
-        !categoriesError &&
-        !subcategoriesError &&
-        selectedServiceSelections.length ===
+          !subcategoriesLoading &&
+          !categoriesError &&
+          !subcategoriesError &&
+          selectedServiceSelections.length ===
           0 ? (
           <Text
             style={
@@ -1367,7 +1547,7 @@ console.log(
             ================================================= */}
 
             {availableAudienceTabs.length >
-            0 ? (
+              0 ? (
               <View
                 style={
                   styles.audienceTabsContainer
@@ -1399,14 +1579,14 @@ console.log(
                         style={[
                           styles.audienceTab,
                           isActive &&
-                            styles.audienceTabActive,
+                          styles.audienceTabActive,
                         ]}
                       >
                         <Text
                           style={[
                             styles.audienceTabText,
                             isActive &&
-                              styles.audienceTabTextActive,
+                            styles.audienceTabTextActive,
                           ]}
                         >
                           {tab.label}
@@ -1416,7 +1596,7 @@ console.log(
                           style={[
                             styles.audienceTabCount,
                             isActive &&
-                              styles.audienceTabCountActive,
+                            styles.audienceTabCountActive,
                           ]}
                         >
                           {
@@ -1479,12 +1659,12 @@ console.log(
                     }
                   >
                     {activeAudience ===
-                    'FEMALE'
+                      'FEMALE'
                       ? 'W'
                       : activeAudience ===
                         'MALE'
-                      ? 'M'
-                      : 'K'}
+                        ? 'M'
+                        : 'K'}
                   </Text>
                 </View>
               </View>
@@ -1508,14 +1688,14 @@ console.log(
                   selectedServiceSelections.length
                 }{' '}
                 {selectedServiceSelections.length ===
-                1
+                  1
                   ? 'subcategory'
                   : 'subcategories'}{' '}
                 selected
               </Text>
 
               {selectedServiceSelections.length ===
-              0 ? (
+                0 ? (
                 <Text
                   style={
                     styles.modalRequiredText
@@ -1543,7 +1723,7 @@ console.log(
               keyboardShouldPersistTaps="handled"
             >
               {visibleCategories.length ===
-              0 ? (
+                0 ? (
                 <View
                   style={
                     styles.emptyAudienceState
@@ -1589,9 +1769,12 @@ console.log(
                         category.categoryId,
                       );
 
+                    const categoryOpenKey =
+                      `${activeAudience}-${category.categoryId}`;
+
                     const isOpen =
                       !!openCategories[
-                        category.categoryId
+                      categoryOpenKey
                       ];
 
                     const categorySelectionState =
@@ -1610,9 +1793,7 @@ console.log(
 
                     return (
                       <View
-                        key={
-                          category.categoryId
-                        }
+                        key={`${activeAudience}-${category.categoryId}`}
                         style={
                           styles.modalCategory
                         }
@@ -1625,7 +1806,7 @@ console.log(
                           style={[
                             styles.modalCategoryHeader,
                             isOpen &&
-                              styles.modalCategoryHeaderOpen,
+                            styles.modalCategoryHeaderOpen,
                           ]}
                         >
                           <View
@@ -1651,12 +1832,12 @@ console.log(
                               style={[
                                 styles.categoryCheckbox,
                                 categorySelected &&
-                                  styles.categoryCheckboxSelected,
+                                styles.categoryCheckboxSelected,
                                 categoryPartial &&
-                                  styles.categoryCheckboxPartial,
+                                styles.categoryCheckboxPartial,
                                 categorySubcategories.length ===
-                                  0 &&
-                                  styles.categoryCheckboxDisabled,
+                                0 &&
+                                styles.categoryCheckboxDisabled,
                               ]}
                             >
                               {categorySelected ? (
@@ -1732,12 +1913,12 @@ console.log(
                                   categorySubcategories.length
                                 }{' '}
                                 {categorySubcategories.length ===
-                                1
+                                  1
                                   ? 'subcategory'
                                   : 'subcategories'}
 
                                 {selectedCount >
-                                0
+                                  0
                                   ? ` • ${selectedCount} selected`
                                   : ''}
                               </Text>
@@ -1782,7 +1963,7 @@ console.log(
                             }
                           >
                             {categorySubcategories.length ===
-                            0 ? (
+                              0 ? (
                               <Text
                                 style={
                                   styles.noSubcategoryText
@@ -1812,16 +1993,17 @@ console.log(
                                 .map(
                                   subcategory => {
                                     const selected =
-                                      isSelected(
-                                        category.categoryId,
-                                        subcategory.subcategoryId,
-                                      );
+                                      activeAudience
+                                        ? isSelected(
+                                          activeAudience,
+                                          category.categoryId,
+                                          subcategory.subcategoryId,
+                                        )
+                                        : false;
 
                                     return (
                                       <TouchableOpacity
-                                        key={
-                                          subcategory.subcategoryId
-                                        }
+                                        key={`${activeAudience}-${category.categoryId}-${subcategory.subcategoryId}`}
                                         activeOpacity={
                                           0.8
                                         }
@@ -1834,7 +2016,7 @@ console.log(
                                         style={[
                                           styles.modalSubcategoryRow,
                                           selected &&
-                                            styles.modalSubcategoryRowSelected,
+                                          styles.modalSubcategoryRowSelected,
                                         ]}
                                       >
                                         {/* CHECKBOX */}
@@ -1843,7 +2025,7 @@ console.log(
                                           style={[
                                             styles.checkbox,
                                             selected &&
-                                              styles.checkboxSelected,
+                                            styles.checkboxSelected,
                                           ]}
                                         >
                                           {selected ? (
@@ -1928,8 +2110,8 @@ console.log(
                 style={[
                   styles.modalDoneButton,
                   selectedServiceSelections.length ===
-                    0 &&
-                    styles.modalDoneButtonDisabled,
+                  0 &&
+                  styles.modalDoneButtonDisabled,
                 ]}
               >
                 <Text
