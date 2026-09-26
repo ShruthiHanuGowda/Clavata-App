@@ -308,12 +308,152 @@ export const GET_BOOKING = gql`
 //     }
 //   }
 // `;
+// export const GET_NEARBY_SALONS = gql`
+//   query NearbySalons(
+//     $latitude: Float!
+//     $longitude: Float!
+//     $radius: Float!
+//     $search: String
+//     $audience: ServiceAudience
+//     $categoryId: ID
+//     $subcategoryIds: [ID!]
+//     $minPrice: Float
+//     $maxPrice: Float
+//   ) {
+//     nearbySalons(
+//       latitude: $latitude
+//       longitude: $longitude
+//       radius: $radius
+//       search: $search
+//       audience: $audience
+//       categoryId: $categoryId
+//       subcategoryIds: $subcategoryIds
+//       minPrice: $minPrice
+//       maxPrice: $maxPrice
+//     ) {
+//       salonId
+//       salonName
+//       averageRating
+//       totalReviews
+
+//       logoUrl
+//       coverImageUrl
+//       galleryImages
+
+//       logoMedia {
+//         imageId
+//         salonId
+//         mediaType
+//         key
+//         objectUrl
+//         status
+//         uploadedAt
+//         approvedAt
+//         approvedBy
+//         rejectedAt
+//         rejectedBy
+//         rejectionReason
+//       }
+
+//       coverMedia {
+//         imageId
+//         salonId
+//         mediaType
+//         key
+//         objectUrl
+//         status
+//         uploadedAt
+//         approvedAt
+//         approvedBy
+//         rejectedAt
+//         rejectedBy
+//         rejectionReason
+//       }
+
+//       galleryMedia {
+//         imageId
+//         salonId
+//         mediaType
+//         key
+//         objectUrl
+//         status
+//         uploadedAt
+//         approvedAt
+//         approvedBy
+//         rejectedAt
+//         rejectedBy
+//         rejectionReason
+//       }
+
+//       distance
+//       salonStatus
+//       minServicePrice
+
+//       matchingServices {
+//         serviceId
+//         name
+//         category
+//         categoryId
+//         subcategoryId
+//         subcategoryName
+//         audience
+//         price
+//       }
+
+//       businessHours {
+//         MONDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         TUESDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         WEDNESDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         THURSDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         FRIDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         SATURDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//         SUNDAY {
+//           open
+//           close
+//           isOpen
+//         }
+//       }
+
+//       address {
+//         addressLine
+//         city
+//         state
+//         pincode
+//       }
+//     }
+//   }
+// `;
 export const GET_NEARBY_SALONS = gql`
   query NearbySalons(
     $latitude: Float!
     $longitude: Float!
     $radius: Float!
     $search: String
+    $audience: [ServiceAudience!]
     $categoryId: ID
     $subcategoryIds: [ID!]
     $minPrice: Float
@@ -324,6 +464,7 @@ export const GET_NEARBY_SALONS = gql`
       longitude: $longitude
       radius: $radius
       search: $search
+      audience: $audience
       categoryId: $categoryId
       subcategoryIds: $subcategoryIds
       minPrice: $minPrice
@@ -394,6 +535,7 @@ export const GET_NEARBY_SALONS = gql`
         categoryId
         subcategoryId
         subcategoryName
+        audience
         price
       }
 
@@ -2090,6 +2232,44 @@ export const GET_BUSINESS_TYPES = gql`
         createdAt
         updatedAt
       }
+    }
+  }
+`;
+
+export const GET_ACTIVE_CATEGORIES = gql`
+  query GetActiveCategories {
+    categories(status: ACTIVE) {
+      success
+      message
+
+      categories {
+        categoryId
+        name
+        description
+        servicesCount
+        status
+      }
+
+      totalCount
+    }
+  }
+`;
+
+export const GET_ACTIVE_SUBCATEGORIES = gql`
+  query GetActiveSubcategories {
+    subcategories(status: ACTIVE) {
+      success
+      message
+      subcategories {
+        subcategoryId
+        categoryId
+        name
+        description
+        servicesCount
+        status
+        audience
+      }
+      totalCount
     }
   }
 `;

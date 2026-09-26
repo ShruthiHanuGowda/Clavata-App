@@ -26,57 +26,19 @@ import {
   gql,
 } from '@apollo/client';
 
-// ============================================================
-// GRAPHQL
-// ============================================================
-
-const GET_ACTIVE_CATEGORIES = gql`
-  query GetActiveCategories {
-    categories(status: ACTIVE) {
-      success
-      message
-
-      categories {
-        categoryId
-        name
-        description
-        servicesCount
-        status
-      }
-
-      totalCount
-    }
-  }
-`;
-
-const GET_ACTIVE_SUBCATEGORIES = gql`
-  query GetActiveSubcategories(
-    $categoryId: ID
-  ) {
-    subcategories(
-      categoryId: $categoryId
-      status: ACTIVE
-    ) {
-      success
-      message
-
-      subcategories {
-        subcategoryId
-        categoryId
-        name
-        description
-        servicesCount
-        status
-      }
-
-      totalCount
-    }
-  }
-`;
+import {
+  GET_ACTIVE_CATEGORIES,
+  GET_ACTIVE_SUBCATEGORIES
+} from '../../../graphql/queries';
 
 // ============================================================
 // TYPES
 // ============================================================
+
+type ServiceAudience =
+  | 'FEMALE'
+  | 'MALE'
+  | 'KIDS';
 
 type Category = {
   categoryId: string;
@@ -93,6 +55,20 @@ type Subcategory = {
   description?: string | null;
   servicesCount: number;
   status: 'ACTIVE' | 'INACTIVE';
+
+  /**
+   * Audience(s) for which this service is available.
+   *
+   * Examples:
+   * ['FEMALE']
+   * ['MALE']
+   * ['KIDS']
+   * ['FEMALE', 'MALE']
+   * ['FEMALE', 'MALE', 'KIDS']
+   */
+  audience: ServiceAudience[];
+
+  businessTypeIds?: string[];
 };
 
 type GetActiveCategoriesResponse = {
@@ -129,6 +105,8 @@ type Props = {
   selectedCategory?: string;
 
   selectedSubcategoryIds?: string[];
+
+  selectedAudiences?: ServiceAudience[];
 };
 
 // ============================================================
@@ -176,15 +154,44 @@ const getCategoryIcon = (
   categoryName: string,
 ) => {
   const normalizedName =
-    normalizeCategoryName(
-      categoryName,
-    );
+    normalizeCategoryName(categoryName);
 
   return (
-    categoryIcons[
-      normalizedName
-    ] ||
+    categoryIcons[normalizedName] ||
     fallbackIcon
+  );
+};
+
+// ============================================================
+// AUDIENCE MATCHING
+//
+// A subcategory is available when ANY of the selected
+// customer audiences is present in the subcategory audience.
+// ============================================================
+
+const matchesSelectedAudiences = (
+  subcategory: Subcategory,
+  selectedAudiences: ServiceAudience[],
+): boolean => {
+  if (
+    !Array.isArray(selectedAudiences) ||
+    selectedAudiences.length === 0
+  ) {
+    return false;
+  }
+
+  if (
+    !Array.isArray(subcategory?.audience) ||
+    subcategory.audience.length === 0
+  ) {
+    return false;
+  }
+
+  return selectedAudiences.some(
+    selectedAudience =>
+      subcategory.audience.includes(
+        selectedAudience,
+      ),
   );
 };
 
@@ -197,8 +204,8 @@ export default function ServiceChips({
   selectedCategoryId = '',
   selectedCategory = '',
   selectedSubcategoryIds = [],
+  selectedAudiences = [],
 }: Props) {
-
   // ==========================================================
   // CATEGORIES QUERY
   // ==========================================================
@@ -215,6 +222,73 @@ export default function ServiceChips({
       },
     );
 
+  console.log("GET_ACTIVE_CATEGORIES", data)
+
+  // ==========================================================
+  // ALL SUBCATEGORIES QUERY
+  //
+  // IMPORTANT:
+  // We intentionally do NOT pass categoryId here.
+  //
+  // We need all active subcategories so we can determine
+  // which categories support the selected audience.
+  // ==========================================================
+
+const {
+  data: subcategoryData,
+  loading: subcategoriesLoading,
+  error: subcategoriesError,
+} = useQuery<GetActiveSubcategoriesResponse>(
+  GET_ACTIVE_SUBCATEGORIES,
+  {
+    fetchPolicy: 'network-only',
+  },
+);
+
+  console.log(
+    '========== SUBCATEGORY QUERY =========='
+  );
+
+  console.log(
+    'SUBCATEGORY DATA:',
+    JSON.stringify(
+      subcategoryData,
+      null,
+      2,
+    ),
+  );
+console.log(
+  'SUBCATEGORY ERROR:',
+  subcategoriesError
+    ? JSON.stringify(
+        subcategoriesError,
+        null,
+        2,
+      )
+    : null,
+);
+  console.log(
+    'ALL SUBCATEGORIES:',
+    JSON.stringify(
+      subcategoryData?.subcategories?.subcategories,
+      null,
+      2,
+    ),
+  );
+
+  console.log(
+    'ALL SUBCATEGORIES:',
+    JSON.stringify(
+      subcategoryData?.subcategories?.subcategories,
+      null,
+      2,
+    ),
+  );
+
+  console.log(
+    'SELECTED AUDIENCES:',
+    selectedAudiences,
+  );
   // ==========================================================
   // CATEGORY STATE
   // ==========================================================
@@ -226,6 +300,13 @@ export default function ServiceChips({
 
   // ==========================================================
   // SUBCATEGORY CACHE
+  //
+  // {
+  //   categoryId: [
+  //     subcategory,
+  //     subcategory
+  //   ]
+  // }
   // ==========================================================
 
   const [
@@ -245,7 +326,11 @@ export default function ServiceChips({
     setInternalSelectedSubcategoryIds,
   ] =
     useState<string[]>(
-      selectedSubcategoryIds || [],
+      Array.isArray(
+        selectedSubcategoryIds,
+      )
+        ? selectedSubcategoryIds
+        : [],
     );
 
   // ==========================================================
@@ -275,40 +360,48 @@ export default function ServiceChips({
     useState<string[]>([]);
 
   // ==========================================================
-  // SUBCATEGORY QUERY
+  // NORMALIZED SELECTED AUDIENCES
+  // ==========================================================
+
+  const normalizedSelectedAudiences =
+    useMemo(() => {
+      if (
+        !Array.isArray(
+          selectedAudiences,
+        )
+      ) {
+        return [];
+      }
+
+      return Array.from(
+        new Set(
+          selectedAudiences.filter(
+            audience =>
+              audience ===
+              'FEMALE' ||
+              audience ===
+              'MALE' ||
+              audience ===
+              'KIDS',
+          ),
+        ),
+      );
+    }, [
+      selectedAudiences,
+    ]);
+
+  // ==========================================================
+  // ACTIVE CATEGORY ID
   // ==========================================================
 
   const activeCategoryId =
     activeCategory?.categoryId || '';
-
-  const {
-    data:
-      subcategoryData,
-    loading:
-      subcategoriesLoading,
-  } =
-    useQuery<GetActiveSubcategoriesResponse>(
-      GET_ACTIVE_SUBCATEGORIES,
-      {
-        variables: {
-          categoryId:
-            activeCategoryId || null,
-        },
-
-        skip:
-          !activeCategoryId,
-
-        fetchPolicy:
-          'cache-and-network',
-      },
-    );
 
   // ==========================================================
   // UPDATE CATEGORIES
   // ==========================================================
 
   useEffect(() => {
-
     const apiCategories =
       data?.categories?.categories;
 
@@ -325,49 +418,28 @@ export default function ServiceChips({
         item =>
           item &&
           item.status ===
-            'ACTIVE' &&
+          'ACTIVE' &&
           typeof item.name ===
-            'string' &&
+          'string' &&
           item.name.trim().length >
-            0,
+          0,
       );
 
     setCategories(
       activeCategories,
     );
-
   }, [data]);
 
   // ==========================================================
-  // SYNC PARENT SELECTION
+  // STORE ALL SUBCATEGORIES
+  //
+  // This is the important fix.
+  //
+  // We receive ALL active subcategories from GraphQL and
+  // group them by categoryId.
   // ==========================================================
 
   useEffect(() => {
-
-    setInternalSelectedSubcategoryIds(
-      Array.isArray(
-        selectedSubcategoryIds,
-      )
-        ? selectedSubcategoryIds
-        : [],
-    );
-
-  }, [
-    selectedSubcategoryIds,
-  ]);
-
-  // ==========================================================
-  // STORE SUBCATEGORIES
-  // ==========================================================
-
-  useEffect(() => {
-
-    if (
-      !activeCategoryId
-    ) {
-      return;
-    }
-
     const apiSubcategories =
       subcategoryData
         ?.subcategories
@@ -381,47 +453,214 @@ export default function ServiceChips({
       return;
     }
 
-    const activeSubcategories =
-      apiSubcategories.filter(
-        item =>
-          item &&
-          item.status ===
-            'ACTIVE' &&
-          item.categoryId ===
-            activeCategoryId &&
-          typeof item.name ===
-            'string' &&
-          item.name.trim().length >
-            0,
+    const grouped =
+      apiSubcategories.reduce<
+        Record<string, Subcategory[]>
+      >(
+        (
+          result,
+          item,
+        ) => {
+          if (
+            !item ||
+            item.status !==
+            'ACTIVE' ||
+            typeof item.categoryId !==
+            'string' ||
+            typeof item.name !==
+            'string' ||
+            item.name.trim().length ===
+            0
+          ) {
+            return result;
+          }
+
+          if (
+            !Array.isArray(
+              item.audience,
+            )
+          ) {
+            return result;
+          }
+
+          const categoryId =
+            String(
+              item.categoryId,
+            );
+
+          if (
+            !result[
+            categoryId
+            ]
+          ) {
+            result[
+              categoryId
+            ] = [];
+          }
+
+          result[
+            categoryId
+          ].push(item);
+
+          return result;
+        },
+        {},
       );
 
     setSubcategoriesByCategory(
-      previous => ({
-        ...previous,
-
-        [activeCategoryId]:
-          activeSubcategories,
-      }),
+      grouped,
     );
-
   }, [
     subcategoryData,
-    activeCategoryId,
+  ]);
+
+  // ==========================================================
+  // SYNC PARENT SELECTION
+  // ==========================================================
+
+  useEffect(() => {
+    setInternalSelectedSubcategoryIds(
+      Array.isArray(
+        selectedSubcategoryIds,
+      )
+        ? selectedSubcategoryIds
+        : [],
+    );
+  }, [
+    selectedSubcategoryIds,
+  ]);
+
+  // ==========================================================
+  // AUDIENCE CHANGE
+  //
+  // Remove selected subcategories that are no longer valid
+  // for the selected audience combination.
+  // ==========================================================
+
+  useEffect(() => {
+    if (
+      normalizedSelectedAudiences.length ===
+      0
+    ) {
+      setInternalSelectedSubcategoryIds(
+        [],
+      );
+
+      setModalSelectedSubcategoryIds(
+        [],
+      );
+
+      setActiveCategory(
+        null,
+      );
+
+      setModalVisible(
+        false,
+      );
+
+      return;
+    }
+
+    setInternalSelectedSubcategoryIds(
+      previous => {
+        if (
+          previous.length ===
+          0
+        ) {
+          return previous;
+        }
+
+        let changed =
+          false;
+
+        const next =
+          previous.filter(
+            subcategoryId => {
+              let found =
+                false;
+
+              Object.values(
+                subcategoriesByCategory,
+              ).forEach(
+                subcategories => {
+                  const subcategory =
+                    subcategories.find(
+                      item =>
+                        item.subcategoryId ===
+                        subcategoryId,
+                    );
+
+                  if (
+                    subcategory
+                  ) {
+                    found =
+                      matchesSelectedAudiences(
+                        subcategory,
+                        normalizedSelectedAudiences,
+                      );
+                  }
+                },
+              );
+
+              if (
+                !found
+              ) {
+                changed =
+                  true;
+
+                return false;
+              }
+
+              return true;
+            },
+          );
+
+        return changed
+          ? next
+          : previous;
+      },
+    );
+  }, [
+    normalizedSelectedAudiences,
+    subcategoriesByCategory,
   ]);
 
   // ==========================================================
   // DISPLAY CATEGORIES
+  //
+  // ONLY categories having at least one subcategory matching
+  // the selected audience(s) are displayed.
+  //
+  // Example:
+  //
+  // Female selected
+  //   ↓
+  // Hair has FEMALE service
+  // Face has FEMALE service
+  // Barber only has MALE
+  //   ↓
+  // Show Hair + Face
+  // Hide Barber
+  //
+  // Female + Kids
+  //   ↓
+  // Show categories having FEMALE OR KIDS.
   // ==========================================================
 
   const displayCategories =
     useMemo(() => {
+      if (
+        normalizedSelectedAudiences.length ===
+        0
+      ) {
+        return [];
+      }
 
       const seen =
         new Set<string>();
 
       return categories.filter(
         category => {
-
           const normalized =
             normalizeCategoryName(
               category.name,
@@ -435,6 +674,26 @@ export default function ServiceChips({
             return false;
           }
 
+          const categorySubcategories =
+            subcategoriesByCategory[
+            category.categoryId
+            ] ?? [];
+
+          const hasMatchingSubcategory =
+            categorySubcategories.some(
+              subcategory =>
+                matchesSelectedAudiences(
+                  subcategory,
+                  normalizedSelectedAudiences,
+                ),
+            );
+
+          if (
+            !hasMatchingSubcategory
+          ) {
+            return false;
+          }
+
           seen.add(
             normalized,
           );
@@ -442,21 +701,46 @@ export default function ServiceChips({
           return true;
         },
       );
-
-    }, [categories]);
+    }, [
+      categories,
+      subcategoriesByCategory,
+      normalizedSelectedAudiences,
+    ]);
 
   // ==========================================================
   // CURRENT SUBCATEGORIES
+  //
+  // Only subcategories matching the selected audience(s)
+  // are displayed inside the category modal.
   // ==========================================================
 
   const currentSubcategories =
-    activeCategoryId
-      ? (
-          subcategoriesByCategory[
-            activeCategoryId
-          ] || []
-        )
-      : [];
+    useMemo(() => {
+      if (
+        !activeCategoryId ||
+        normalizedSelectedAudiences.length ===
+        0
+      ) {
+        return [];
+      }
+
+      const subcategories =
+        subcategoriesByCategory[
+        activeCategoryId
+        ] || [];
+
+      return subcategories.filter(
+        subcategory =>
+          matchesSelectedAudiences(
+            subcategory,
+            normalizedSelectedAudiences,
+          ),
+      );
+    }, [
+      activeCategoryId,
+      subcategoriesByCategory,
+      normalizedSelectedAudiences,
+    ]);
 
   // ==========================================================
   // GET SELECTED COUNT
@@ -465,10 +749,9 @@ export default function ServiceChips({
   const getSelectedCount = (
     categoryId: string,
   ): number => {
-
     const categorySubcategories =
       subcategoriesByCategory[
-        categoryId
+      categoryId
       ] || [];
 
     if (
@@ -480,10 +763,18 @@ export default function ServiceChips({
 
     const categorySubcategoryIds =
       new Set(
-        categorySubcategories.map(
-          subcategory =>
-            subcategory.subcategoryId,
-        ),
+        categorySubcategories
+          .filter(
+            subcategory =>
+              matchesSelectedAudiences(
+                subcategory,
+                normalizedSelectedAudiences,
+              ),
+          )
+          .map(
+            subcategory =>
+              subcategory.subcategoryId,
+          ),
       );
 
     return internalSelectedSubcategoryIds.filter(
@@ -496,23 +787,17 @@ export default function ServiceChips({
 
   // ==========================================================
   // CLEAR CATEGORY
-  //
-  // NEW
-  //
-  // This completely removes the selected category and all
-  // subcategory selections belonging to that category.
   // ==========================================================
 
   const clearCategory = (
     category: Category,
   ) => {
-
     const categoryId =
       category.categoryId;
 
     const categorySubcategories =
       subcategoriesByCategory[
-        categoryId
+      categoryId
       ] || [];
 
     const categorySubcategoryIds =
@@ -539,13 +824,13 @@ export default function ServiceChips({
       [],
     );
 
-    setActiveCategory(null);
+    setActiveCategory(
+      null,
+    );
 
-    setModalVisible(false);
-
-    // --------------------------------------------------------
-    // Tell HomeScreenPage that there is NO selected category.
-    // --------------------------------------------------------
+    setModalVisible(
+      false,
+    );
 
     onSelect({
       categoryId: '',
@@ -556,21 +841,20 @@ export default function ServiceChips({
 
   // ==========================================================
   // OPEN CATEGORY POPUP / TOGGLE CATEGORY
-  //
-  // NEW BEHAVIOR:
-  //
-  // 1. First tap on category -> opens services popup.
-  // 2. Category already selected + tap again -> unselects it.
-  //
-  // This allows the user to remove a category completely.
   // ==========================================================
 
   const handleCategorySelect = (
     category: Category,
   ) => {
-
     if (
       !category?.categoryId
+    ) {
+      return;
+    }
+
+    if (
+      normalizedSelectedAudiences.length ===
+      0
     ) {
       return;
     }
@@ -582,7 +866,7 @@ export default function ServiceChips({
       Boolean(
         selectedCategoryId &&
         selectedCategoryId ===
-          categoryId,
+        categoryId,
       ) ||
       Boolean(
         !selectedCategoryId &&
@@ -590,16 +874,14 @@ export default function ServiceChips({
         normalizeCategoryName(
           selectedCategory,
         ) ===
-          normalizeCategoryName(
-            category.name,
-          ),
+        normalizeCategoryName(
+          category.name,
+        ),
       );
 
-    // --------------------------------------------------------
-    // CATEGORY IS ALREADY SELECTED
-    //
-    // Tapping it again means UNSELECT.
-    // --------------------------------------------------------
+    // ========================================================
+    // CATEGORY ALREADY SELECTED
+    // ========================================================
 
     if (
       isCurrentlySelected
@@ -611,30 +893,26 @@ export default function ServiceChips({
       return;
     }
 
-    // --------------------------------------------------------
-    // CATEGORY IS NOT SELECTED
-    //
-    // Open the services popup.
-    // --------------------------------------------------------
+    // ========================================================
+    // OPEN CATEGORY
+    // ========================================================
 
     const existingSubcategories =
       subcategoriesByCategory[
-        categoryId
+      categoryId
       ] || [];
-
-    const categorySubcategoryIds =
-      new Set(
-        existingSubcategories.map(
-          item =>
-            item.subcategoryId,
-        ),
-      );
 
     const selectedForCategory =
       internalSelectedSubcategoryIds.filter(
         id =>
-          categorySubcategoryIds.has(
-            id,
+          existingSubcategories.some(
+            subcategory =>
+              subcategory.subcategoryId ===
+              id &&
+              matchesSelectedAudiences(
+                subcategory,
+                normalizedSelectedAudiences,
+              ),
           ),
       );
 
@@ -646,7 +924,9 @@ export default function ServiceChips({
       selectedForCategory,
     );
 
-    setModalVisible(true);
+    setModalVisible(
+      true,
+    );
   };
 
   // ==========================================================
@@ -656,16 +936,27 @@ export default function ServiceChips({
   const handleSubcategoryToggle = (
     subcategoryId: string,
   ) => {
-
     if (
       !subcategoryId
     ) {
       return;
     }
 
+    const currentSubcategory =
+      currentSubcategories.find(
+        item =>
+          item.subcategoryId ===
+          subcategoryId,
+      );
+
+    if (
+      !currentSubcategory
+    ) {
+      return;
+    }
+
     setModalSelectedSubcategoryIds(
       previous => {
-
         if (
           previous.includes(
             subcategoryId,
@@ -688,28 +979,16 @@ export default function ServiceChips({
 
   // ==========================================================
   // DONE
-  //
-  // IMPORTANT:
-  //
-  // Even when ZERO subcategories are selected, we still send
-  // the categoryId to HomeScreenPage.
-  //
-  // Therefore:
-  //
-  // category + no service
-  //       ↓
-  // categoryId = selected category
-  // subcategoryIds = []
-  //
-  // HomeScreenPage can then request category-only salons.
   // ==========================================================
 
   const handleDone = () => {
-
     if (
       !activeCategory
     ) {
-      setModalVisible(false);
+      setModalVisible(
+        false,
+      );
+
       return;
     }
 
@@ -718,7 +997,7 @@ export default function ServiceChips({
 
     const currentCategorySubcategories =
       subcategoriesByCategory[
-        categoryId
+      categoryId
       ] || [];
 
     const currentCategorySubcategoryIds =
@@ -729,9 +1008,9 @@ export default function ServiceChips({
         ),
       );
 
-    // --------------------------------------------------------
-    // Keep selections from OTHER categories
-    // --------------------------------------------------------
+    // ========================================================
+    // KEEP OTHER CATEGORY SELECTIONS
+    // ========================================================
 
     const selectionsFromOtherCategories =
       internalSelectedSubcategoryIds.filter(
@@ -741,35 +1020,43 @@ export default function ServiceChips({
           ),
       );
 
-    // --------------------------------------------------------
-    // Add current category selections
-    //
-    // This can legitimately be an EMPTY array.
-    // --------------------------------------------------------
+    // ========================================================
+    // ONLY KEEP VALID AUDIENCE SELECTIONS
+    // ========================================================
+
+    const validModalSelections =
+      modalSelectedSubcategoryIds.filter(
+        id =>
+          currentSubcategories.some(
+            subcategory =>
+              subcategory.subcategoryId ===
+              id,
+          ),
+      );
+
+    // ========================================================
+    // COMBINE
+    // ========================================================
 
     const nextSelectedIds = [
       ...selectionsFromOtherCategories,
-      ...modalSelectedSubcategoryIds,
+      ...validModalSelections,
     ];
 
+    const uniqueSelectedIds =
+      Array.from(
+        new Set(
+          nextSelectedIds,
+        ),
+      );
+
     setInternalSelectedSubcategoryIds(
-      nextSelectedIds,
+      uniqueSelectedIds,
     );
 
-    // --------------------------------------------------------
-    // ALWAYS send category.
-    //
-    // If no services are selected:
-    //
-    // {
-    //   categoryId: "CAT#...",
-    //   category: "Hair",
-    //   subcategoryIds: []
-    // }
-    //
-    // This is exactly what HomeScreenPage needs for
-    // category-only filtering.
-    // --------------------------------------------------------
+    // ========================================================
+    // SEND TO HOMESCREEN
+    // ========================================================
 
     onSelect({
       categoryId:
@@ -779,31 +1066,40 @@ export default function ServiceChips({
         activeCategory.name.trim(),
 
       subcategoryIds:
-        nextSelectedIds,
+        uniqueSelectedIds,
     });
 
-    setModalVisible(false);
+    setModalVisible(
+      false,
+    );
   };
 
   // ==========================================================
-  // CLOSE POPUP WITHOUT APPLYING
+  // CANCEL
   // ==========================================================
 
   const handleCancel = () => {
-
-    setModalVisible(false);
+    setModalVisible(
+      false,
+    );
   };
 
   // ==========================================================
-  // LOADING CATEGORIES
+  // LOADING
+  //
+  // Wait for BOTH category and subcategory information before
+  // deciding that there are no categories.
   // ==========================================================
 
-  if (
-    categoriesLoading &&
-    displayCategories.length ===
-      0
-  ) {
+  const initialLoading =
+    categoriesLoading ||
+    subcategoriesLoading;
 
+  if (
+    initialLoading &&
+    displayCategories.length ===
+    0
+  ) {
     return (
       <View
         style={
@@ -827,6 +1123,17 @@ export default function ServiceChips({
   }
 
   // ==========================================================
+  // NO AUDIENCE
+  // ==========================================================
+
+  if (
+    normalizedSelectedAudiences.length ===
+    0
+  ) {
+    return null;
+  }
+
+  // ==========================================================
   // RENDER
   // ==========================================================
 
@@ -836,7 +1143,6 @@ export default function ServiceChips({
         styles.wrapper
       }
     >
-
       {/* ================================================== */}
       {/* CATEGORY GRID */}
       {/* ================================================== */}
@@ -846,10 +1152,8 @@ export default function ServiceChips({
           styles.grid
         }
       >
-
         {displayCategories.map(
           item => {
-
             const categoryName =
               item.name.trim();
 
@@ -859,20 +1163,20 @@ export default function ServiceChips({
               );
 
             const isSelected =
-              (
+              Boolean(
                 selectedCategoryId &&
                 selectedCategoryId ===
-                  item.categoryId
+                item.categoryId,
               ) ||
-              (
+              Boolean(
                 !selectedCategoryId &&
                 selectedCategory &&
                 normalizeCategoryName(
                   selectedCategory,
                 ) ===
-                  normalizeCategoryName(
-                    categoryName,
-                  )
+                normalizeCategoryName(
+                  categoryName,
+                ),
               );
 
             const icon =
@@ -896,20 +1200,18 @@ export default function ServiceChips({
                 style={[
                   styles.card,
                   isSelected &&
-                    styles.cardSelected,
+                  styles.cardSelected,
                 ]}
               >
-
                 {/* IMAGE */}
 
                 <View
                   style={[
                     styles.imageContainer,
                     isSelected &&
-                      styles.imageContainerSelected,
+                    styles.imageContainerSelected,
                   ]}
                 >
-
                   <Image
                     source={
                       icon
@@ -919,7 +1221,6 @@ export default function ServiceChips({
                     }
                     resizeMode="contain"
                   />
-
                 </View>
 
                 {/* NAME */}
@@ -932,7 +1233,7 @@ export default function ServiceChips({
                   style={[
                     styles.name,
                     isSelected &&
-                      styles.nameSelected,
+                    styles.nameSelected,
                   ]}
                 >
                   {
@@ -940,13 +1241,11 @@ export default function ServiceChips({
                   }
                 </Text>
 
-                {/* ================================================= */}
                 {/* CHECK */}
-                {/* ================================================= */}
 
                 {isSelected &&
                   selectedCount ===
-                    0 && (
+                  0 && (
                     <View
                       style={
                         styles.checkContainer
@@ -962,34 +1261,30 @@ export default function ServiceChips({
                     </View>
                   )}
 
-                {/* ================================================= */}
                 {/* BADGE */}
-                {/* ================================================= */}
 
                 {selectedCount >
                   0 && (
-                  <View
-                    style={
-                      styles.countBadge
-                    }
-                  >
-                    <Text
+                    <View
                       style={
-                        styles.countBadgeText
+                        styles.countBadge
                       }
                     >
-                      {
-                        selectedCount
-                      }
-                    </Text>
-                  </View>
-                )}
-
+                      <Text
+                        style={
+                          styles.countBadgeText
+                        }
+                      >
+                        {
+                          selectedCount
+                        }
+                      </Text>
+                    </View>
+                  )}
               </TouchableOpacity>
             );
           },
         )}
-
       </View>
 
       {/* ================================================== */}
@@ -1006,7 +1301,6 @@ export default function ServiceChips({
           handleCancel
         }
       >
-
         {/* BACKDROP */}
 
         <Pressable
@@ -1017,10 +1311,7 @@ export default function ServiceChips({
             handleCancel
           }
         >
-
-          {/* ================================================= */}
           {/* MODAL CARD */}
-          {/* ================================================= */}
 
           <Pressable
             style={
@@ -1030,7 +1321,6 @@ export default function ServiceChips({
               event.stopPropagation()
             }
           >
-
             {/* HEADER */}
 
             <View
@@ -1038,13 +1328,11 @@ export default function ServiceChips({
                 styles.modalHeader
               }
             >
-
               <View
                 style={
                   styles.modalTitleContainer
                 }
               >
-
                 {activeCategory && (
                   <View
                     style={
@@ -1081,7 +1369,6 @@ export default function ServiceChips({
                     Select one or more services
                   </Text>
                 </View>
-
               </View>
 
               <TouchableOpacity
@@ -1103,7 +1390,54 @@ export default function ServiceChips({
                   ×
                 </Text>
               </TouchableOpacity>
+            </View>
 
+            {/* ================================================= */}
+            {/* AUDIENCE INFORMATION */}
+            {/* ================================================= */}
+
+            <View
+              style={
+                styles.audienceInfo
+              }
+            >
+              <Text
+                style={
+                  styles.audienceInfoLabel
+                }
+              >
+                Services for
+              </Text>
+
+              <Text
+                style={
+                  styles.audienceInfoValue
+                }
+              >
+                {normalizedSelectedAudiences
+                  .map(
+                    audience => {
+                      if (
+                        audience ===
+                        'FEMALE'
+                      ) {
+                        return 'Female';
+                      }
+
+                      if (
+                        audience ===
+                        'MALE'
+                      ) {
+                        return 'Male';
+                      }
+
+                      return 'Kids';
+                    },
+                  )
+                  .join(
+                    ', ',
+                  )}
+              </Text>
             </View>
 
             {/* ================================================= */}
@@ -1112,7 +1446,7 @@ export default function ServiceChips({
 
             {subcategoriesLoading &&
               currentSubcategories.length ===
-                0 && (
+              0 && (
                 <View
                   style={
                     styles.modalLoading
@@ -1141,7 +1475,7 @@ export default function ServiceChips({
 
             {!subcategoriesLoading &&
               currentSubcategories.length >
-                0 && (
+              0 && (
                 <ScrollView
                   style={
                     styles.subcategoryList
@@ -1153,10 +1487,8 @@ export default function ServiceChips({
                     false
                   }
                 >
-
                   {currentSubcategories.map(
                     subcategory => {
-
                       const isSelected =
                         modalSelectedSubcategoryIds.includes(
                           subcategory.subcategoryId,
@@ -1178,21 +1510,19 @@ export default function ServiceChips({
                           style={[
                             styles.subcategoryRow,
                             isSelected &&
-                              styles.subcategoryRowSelected,
+                            styles.subcategoryRowSelected,
                           ]}
                         >
-
                           <View
                             style={
                               styles.subcategoryTextContainer
                             }
                           >
-
                             <Text
                               style={[
                                 styles.subcategoryName,
                                 isSelected &&
-                                  styles.subcategoryNameSelected,
+                                styles.subcategoryNameSelected,
                               ]}
                             >
                               {
@@ -1208,7 +1538,7 @@ export default function ServiceChips({
                                 style={[
                                   styles.subcategoryDescription,
                                   isSelected &&
-                                    styles.subcategoryDescriptionSelected,
+                                  styles.subcategoryDescriptionSelected,
                                 ]}
                               >
                                 {
@@ -1216,7 +1546,6 @@ export default function ServiceChips({
                                 }
                               </Text>
                             )}
-
                           </View>
 
                           {/* CHECKBOX */}
@@ -1225,10 +1554,9 @@ export default function ServiceChips({
                             style={[
                               styles.checkbox,
                               isSelected &&
-                                styles.checkboxSelected,
+                              styles.checkboxSelected,
                             ]}
                           >
-
                             {isSelected && (
                               <Text
                                 style={
@@ -1238,24 +1566,21 @@ export default function ServiceChips({
                                 ✓
                               </Text>
                             )}
-
                           </View>
-
                         </TouchableOpacity>
                       );
                     },
                   )}
-
                 </ScrollView>
               )}
 
             {/* ================================================= */}
-            {/* NO SUBCATEGORIES */}
+            {/* NO MATCHING SERVICES */}
             {/* ================================================= */}
 
             {!subcategoriesLoading &&
               currentSubcategories.length ===
-                0 && (
+              0 && (
                 <View
                   style={
                     styles.noSubcategoriesContainer
@@ -1266,7 +1591,8 @@ export default function ServiceChips({
                       styles.noSubcategoriesText
                     }
                   >
-                    No services available
+                    No services available for the selected
+                    audience
                   </Text>
                 </View>
               )}
@@ -1280,14 +1606,20 @@ export default function ServiceChips({
                 styles.modalFooter
               }
             >
-
               <Text
                 style={
                   styles.footerSelectedText
                 }
               >
                 {
-                  modalSelectedSubcategoryIds.length
+                  modalSelectedSubcategoryIds.filter(
+                    id =>
+                      currentSubcategories.some(
+                        subcategory =>
+                          subcategory.subcategoryId ===
+                          id,
+                      ),
+                  ).length
                 }{' '}
                 selected
               </Text>
@@ -1303,7 +1635,6 @@ export default function ServiceChips({
                   styles.doneButton
                 }
               >
-
                 <Text
                   style={
                     styles.doneButtonText
@@ -1311,17 +1642,11 @@ export default function ServiceChips({
                 >
                   Done
                 </Text>
-
               </TouchableOpacity>
-
             </View>
-
           </Pressable>
-
         </Pressable>
-
       </Modal>
-
     </View>
   );
 }
@@ -1332,21 +1657,17 @@ export default function ServiceChips({
 
 const styles =
   StyleSheet.create({
-
     wrapper: {
       paddingHorizontal:
         SPACING.xl,
-
       marginBottom:
         SPACING.medium,
     },
 
     loadingContainer: {
       height: 68,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
@@ -1354,86 +1675,61 @@ const styles =
     grid: {
       flexDirection:
         'row',
-
       flexWrap:
         'wrap',
-
       justifyContent:
         'space-between',
-
       rowGap: 7,
     },
 
     card: {
       width:
         '23.5%',
-
       height: 68,
-
       borderRadius: 12,
-
       backgroundColor:
         COLORS.white,
-
       borderWidth: 1,
-
       borderColor:
         '#EAEAEA',
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
-
       position:
         'relative',
-
       shadowColor:
         COLORS.black,
-
       shadowOffset: {
         width: 0,
         height: 1,
       },
-
       shadowOpacity:
         0.025,
-
       shadowRadius: 3,
-
       elevation: 1,
     },
 
     cardSelected: {
       backgroundColor:
         COLORS.themeColor,
-
       borderColor:
         COLORS.themeColor,
-
       shadowOpacity:
         0.10,
-
       elevation: 2,
     },
 
     imageContainer: {
       width: 36,
-
       height: 36,
-
       borderRadius: 10,
-
       backgroundColor:
         '#F7F7F7',
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
-
       marginBottom: 2,
     },
 
@@ -1444,29 +1740,22 @@ const styles =
 
     image: {
       width: 34,
-
       height: 34,
     },
 
     name: {
       width:
         '90%',
-
       fontSize:
         9.5,
-
       lineHeight:
         11,
-
       color:
         '#222222',
-
       fontWeight:
         '600',
-
       textAlign:
         'center',
-
       letterSpacing:
         -0.1,
     },
@@ -1474,7 +1763,6 @@ const styles =
     nameSelected: {
       color:
         COLORS.white,
-
       fontWeight:
         '700',
     },
@@ -1482,28 +1770,18 @@ const styles =
     checkContainer: {
       position:
         'absolute',
-
       top: 4,
-
       right: 4,
-
       width: 14,
-
       height: 14,
-
       borderRadius: 7,
-
       backgroundColor:
         COLORS.themeColor,
-
       borderWidth: 1,
-
       borderColor:
         COLORS.white,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
@@ -1511,11 +1789,8 @@ const styles =
     check: {
       color:
         COLORS.white,
-
       fontSize: 8,
-
       lineHeight: 9,
-
       fontWeight:
         '900',
     },
@@ -1523,30 +1798,19 @@ const styles =
     countBadge: {
       position:
         'absolute',
-
       top: 3,
-
       right: 3,
-
       minWidth: 17,
-
       height: 17,
-
       paddingHorizontal: 4,
-
       borderRadius: 9,
-
       backgroundColor:
         COLORS.white,
-
       borderWidth: 1,
-
       borderColor:
         COLORS.black,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
@@ -1554,84 +1818,59 @@ const styles =
     countBadgeText: {
       color:
         COLORS.black,
-
       fontSize: 9,
-
       lineHeight: 10,
-
       fontWeight:
         '800',
-
       textAlign:
         'center',
     },
 
     modalBackdrop: {
       flex: 1,
-
       backgroundColor:
         'rgba(0,0,0,0.45)',
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
-
       paddingHorizontal: 20,
     },
 
     modalCard: {
       width:
         '100%',
-
       maxWidth: 430,
-
       maxHeight:
         '75%',
-
       backgroundColor:
         COLORS.white,
-
       borderRadius: 20,
-
       overflow:
         'hidden',
-
       shadowColor:
         COLORS.black,
-
       shadowOffset: {
         width: 0,
         height: 5,
       },
-
       shadowOpacity:
         0.20,
-
       shadowRadius: 12,
-
       elevation: 10,
     },
 
     modalHeader: {
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       justifyContent:
         'space-between',
-
       paddingHorizontal: 18,
-
       paddingTop: 17,
-
       paddingBottom: 14,
-
       borderBottomWidth: 1,
-
       borderBottomColor:
         '#EEEEEE',
     },
@@ -1639,114 +1878,116 @@ const styles =
     modalTitleContainer: {
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       flex: 1,
     },
 
     modalIconContainer: {
       width: 42,
-
       height: 42,
-
       borderRadius: 12,
-
       backgroundColor:
         '#F7F7F7',
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
-
       marginRight: 10,
     },
 
     modalIcon: {
       width: 34,
-
       height: 34,
     },
 
     modalTitle: {
       fontSize: 16,
-
       fontWeight:
         '800',
-
       color:
         '#222222',
     },
 
     modalSubtitle: {
       marginTop: 2,
-
       fontSize: 10.5,
-
       color:
         '#777777',
-
       fontWeight:
         '500',
     },
 
-    closeButton: {
-      width: 32,
-
-      height: 32,
-
-      borderRadius: 16,
-
+    audienceInfo: {
+      paddingHorizontal: 18,
+      paddingVertical: 10,
       backgroundColor:
-        '#F5F5F5',
-
+        '#F8F8F8',
+      borderBottomWidth: 1,
+      borderBottomColor:
+        '#EEEEEE',
+      flexDirection:
+        'row',
       alignItems:
         'center',
+    },
 
+    audienceInfoLabel: {
+      fontSize: 10,
+      color:
+        '#777777',
+      fontWeight:
+        '600',
+      marginRight: 5,
+    },
+
+    audienceInfoValue: {
+      fontSize: 10,
+      color:
+        COLORS.themeColor,
+      fontWeight:
+        '800',
+      flex: 1,
+    },
+
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor:
+        '#F5F5F5',
+      alignItems:
+        'center',
       justifyContent:
         'center',
-
       marginLeft: 10,
     },
 
     closeButtonText: {
       fontSize: 23,
-
       lineHeight: 25,
-
       color:
         '#555555',
-
       fontWeight:
         '400',
-
       marginTop: -2,
     },
 
     modalLoading: {
       minHeight: 120,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
-
       flexDirection:
         'row',
-
       gap: 8,
     },
 
     loadingText: {
       fontSize: 11,
-
       color:
         '#777777',
-
       fontWeight:
         '500',
     },
@@ -1758,33 +1999,23 @@ const styles =
 
     subcategoryListContent: {
       paddingHorizontal: 14,
-
       paddingVertical: 12,
-
       gap: 8,
     },
 
     subcategoryRow: {
       minHeight: 55,
-
       borderRadius: 12,
-
       borderWidth: 1,
-
       borderColor:
         '#E6E6E6',
-
       backgroundColor:
         COLORS.white,
-
       paddingHorizontal: 13,
-
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       justifyContent:
         'space-between',
     },
@@ -1792,23 +2023,19 @@ const styles =
     subcategoryRowSelected: {
       backgroundColor:
         COLORS.themeColor,
-
       borderColor:
         COLORS.themeColor,
     },
 
     subcategoryTextContainer: {
       flex: 1,
-
       paddingRight: 10,
     },
 
     subcategoryName: {
       fontSize: 12.5,
-
       color:
         '#222222',
-
       fontWeight:
         '700',
     },
@@ -1820,12 +2047,9 @@ const styles =
 
     subcategoryDescription: {
       marginTop: 2,
-
       fontSize: 9.5,
-
       color:
         '#888888',
-
       fontWeight:
         '500',
     },
@@ -1837,22 +2061,15 @@ const styles =
 
     checkbox: {
       width: 22,
-
       height: 22,
-
       borderRadius: 7,
-
       borderWidth: 1.5,
-
       borderColor:
         '#D0D0D0',
-
       backgroundColor:
         COLORS.white,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
@@ -1860,7 +2077,6 @@ const styles =
     checkboxSelected: {
       backgroundColor:
         COLORS.themeColor,
-
       borderColor:
         COLORS.white,
     },
@@ -1868,95 +2084,72 @@ const styles =
     checkboxCheck: {
       color:
         COLORS.white,
-
       fontSize: 13,
-
       lineHeight: 15,
-
       fontWeight:
         '900',
     },
 
     noSubcategoriesContainer: {
       minHeight: 120,
-
+      paddingHorizontal: 25,
       alignItems:
         'center',
-
       justifyContent:
         'center',
     },
 
     noSubcategoriesText: {
       fontSize: 11,
-
       color:
         '#888888',
-
       paddingVertical: 8,
+      textAlign:
+        'center',
     },
 
     modalFooter: {
       minHeight: 65,
-
       paddingHorizontal: 16,
-
       flexDirection:
         'row',
-
       alignItems:
         'center',
-
       justifyContent:
         'space-between',
-
       borderTopWidth: 1,
-
       borderTopColor:
         '#EEEEEE',
-
       backgroundColor:
         COLORS.white,
     },
 
     footerSelectedText: {
       fontSize: 11,
-
       color:
         '#666666',
-
       fontWeight:
         '600',
     },
 
     doneButton: {
       minWidth: 90,
-
       height: 40,
-
       borderRadius: 20,
-
       backgroundColor:
         COLORS.themeColor,
-
       alignItems:
         'center',
-
       justifyContent:
         'center',
-
       paddingHorizontal: 20,
     },
 
     doneButtonText: {
       color:
         COLORS.white,
-
       fontSize: 12,
-
       fontWeight:
         '800',
     },
-
   });
-
