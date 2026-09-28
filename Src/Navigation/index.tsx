@@ -44,6 +44,7 @@ import SalonOffersScreen from '../Screens/SalonTabs/Profile/SalonOffersScreen';
 import CreateOfferScreen from '../Screens/SalonTabs/Profile/CreateOfferScreen';
 import OfferDetailsScreen from '../Screens/CustomerTabs/Offer/OfferDetailsScreen';
 import SalonInformation from '../Screens/SalonTabs/Profile/SalonInformation';
+import SalonSearchResults from '../Screens/CustomerTabs/Home/SalonSearchResults';
 // import CustomerLocationScreen from '../Screens/CustomerTabs/Home/CustomerLocationScreen';
 
 function RootScreenStack() {
@@ -98,6 +99,7 @@ export function HomeScreenStack() {
         component={ClavataMatch}
       />
       <HomeStack.Screen name="HomeScreen" component={HomeScreenPage} />
+      <HomeStack.Screen name="SalonSearchResults" component={SalonSearchResults} />
       <HomeStack.Screen
         name="SalonDetails"
         component={SalonDetailsScreen}
@@ -145,7 +147,7 @@ export function ExploreStack() {
         name="BookingSummary"
         component={BookingSummaryScreen}
       />
-        <ExploreStackNavigator.Screen
+      <ExploreStackNavigator.Screen
         name="BookingRequestSent"
         component={BookingRequestSent} />
       <ExploreStackNavigator.Screen
@@ -263,7 +265,7 @@ export function SalonProfileStack() {
         name="StaffManagementScreen"
         component={StaffManagementScreen}
       />
-       <SalonProfilePlaceStack.Screen
+      <SalonProfilePlaceStack.Screen
         name="SalonInformation"
         component={SalonInformation}
       />

@@ -30,6 +30,7 @@ import Settings from '../Screens/CustomerTabs/Profile/Settings';
 import Notifications from '../Screens/CustomerTabs/Profile/Notifications';
 import HelpSupport from '../Screens/CustomerTabs/Profile/HelpSupport';
 import PrivacyPolicy from '../Screens/CustomerTabs/Profile/PrivacyPolicy';
+import SalonSearchResults from '../Screens/CustomerTabs/Home/SalonSearchResults';
 
 type BookingStackWebParamList = {
   explore: undefined;
@@ -66,7 +67,10 @@ export function HomeScreenStackWeb() {
         name="HomeScreen"
         component={HomeScreenPage}
       />
-
+      <HomeStack.Screen
+        name="SalonSearchResults"
+        component={SalonSearchResults}
+      />
       <HomeStack.Screen
         name="SalonDetails"
         component={SalonDetailsScreen}

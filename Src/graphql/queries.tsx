@@ -2267,7 +2267,7 @@ export const GET_ACTIVE_SUBCATEGORIES = gql`
         description
         servicesCount
         status
-        audience
+        audiences
       }
       totalCount
     }

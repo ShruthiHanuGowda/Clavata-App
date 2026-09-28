@@ -119,6 +119,7 @@ export type HomeStackParamList = {
     maxBudget?: number;
     distance?: number;
   };
+  SalonSearchResults: undefined;
 };
 
 export type WalletStackParamList = {

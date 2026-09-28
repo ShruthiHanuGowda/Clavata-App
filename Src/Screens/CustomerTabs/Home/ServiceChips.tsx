@@ -5,16 +5,18 @@ import React, {
 } from 'react';
 
 import {
-  View,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  Image,
   ActivityIndicator,
-  ScrollView,
+  Image,
   Modal,
   Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+
+import { useQuery } from '@apollo/client';
 
 import {
   COLORS,
@@ -22,18 +24,9 @@ import {
 } from '../../../constants/constants';
 
 import {
-  useQuery,
-  gql,
-} from '@apollo/client';
-
-import {
   GET_ACTIVE_CATEGORIES,
-  GET_ACTIVE_SUBCATEGORIES
+  GET_ACTIVE_SUBCATEGORIES,
 } from '../../../graphql/queries';
-
-// ============================================================
-// TYPES
-// ============================================================
 
 type ServiceAudience =
   | 'FEMALE'
@@ -56,17 +49,13 @@ type Subcategory = {
   servicesCount: number;
   status: 'ACTIVE' | 'INACTIVE';
 
-  /**
-   * Audience(s) for which this service is available.
+  /*
+   * IMPORTANT:
+   * GraphQL now exposes:
    *
-   * Examples:
-   * ['FEMALE']
-   * ['MALE']
-   * ['KIDS']
-   * ['FEMALE', 'MALE']
-   * ['FEMALE', 'MALE', 'KIDS']
+   * audiences: [ServiceAudience!]!
    */
-  audience: ServiceAudience[];
+  audiences: ServiceAudience[];
 
   businessTypeIds?: string[];
 };
@@ -89,10 +78,6 @@ type GetActiveSubcategoriesResponse = {
   };
 };
 
-// ============================================================
-// PROPS
-// ============================================================
-
 type Props = {
   onSelect: (selection: {
     categoryId: string;
@@ -109,11 +94,9 @@ type Props = {
   selectedAudiences?: ServiceAudience[];
 };
 
-// ============================================================
-// ICON MAP
-//
-// KEEP THESE EXACTLY AS THEY ARE
-// ============================================================
+/* =========================================================
+   CATEGORY ICONS
+========================================================= */
 
 const categoryIcons: Record<string, any> = {
   hair: require('../../../assets/3d/hair.png'),
@@ -130,25 +113,47 @@ const categoryIcons: Record<string, any> = {
   "men's grooming": require('../../../assets/3d/mens_grooming.png'),
 };
 
-// ============================================================
-// FALLBACK ICON
-// ============================================================
-
 const fallbackIcon =
   require('../../../assets/3d/hair.png');
 
-// ============================================================
-// HELPERS
-// ============================================================
+/* =========================================================
+   HELPERS
+========================================================= */
 
 const normalizeCategoryName = (
   value: string,
-): string => {
-  return value
+): string =>
+  value
     .trim()
     .toLowerCase()
     .replace(/\s+/g, ' ');
+
+/* =========================================================
+   NORMALIZE AUDIENCES
+========================================================= */
+
+const normalizeAudienceList = (
+  value: unknown,
+): ServiceAudience[] => {
+  const values = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? [value]
+      : [];
+
+  return values.filter(
+    (
+      item,
+    ): item is ServiceAudience =>
+      item === 'FEMALE' ||
+      item === 'MALE' ||
+      item === 'KIDS',
+  );
 };
+
+/* =========================================================
+   CATEGORY ICON
+========================================================= */
 
 const getCategoryIcon = (
   categoryName: string,
@@ -162,13 +167,24 @@ const getCategoryIcon = (
   );
 };
 
-// ============================================================
-// AUDIENCE MATCHING
-//
-// A subcategory is available when ANY of the selected
-// customer audiences is present in the subcategory audience.
-// ============================================================
+/* =========================================================
+   MATCH SELECTED AUDIENCES
+========================================================= */
 
+/**
+ * OR behaviour:
+ *
+ * Female selected
+ * → show Female services
+ *
+ * Female + Kids selected
+ * → show services supporting Female OR Kids
+ *
+ * A subcategory supporting:
+ * FEMALE + KIDS
+ *
+ * will appear under both audience sections.
+ */
 const matchesSelectedAudiences = (
   subcategory: Subcategory,
   selectedAudiences: ServiceAudience[],
@@ -180,162 +196,123 @@ const matchesSelectedAudiences = (
     return false;
   }
 
+  /*
+   * IMPORTANT:
+   *
+   * GraphQL field is now:
+   *
+   * audiences
+   *
+   * NOT:
+   *
+   * audience
+   */
+  const subcategoryAudiences =
+    normalizeAudienceList(
+      subcategory?.audiences,
+    );
+
   if (
-    !Array.isArray(subcategory?.audience) ||
-    subcategory.audience.length === 0
+    subcategoryAudiences.length === 0
   ) {
     return false;
   }
 
   return selectedAudiences.some(
     selectedAudience =>
-      subcategory.audience.includes(
+      subcategoryAudiences.includes(
         selectedAudience,
       ),
   );
 };
 
-// ============================================================
-// COMPONENT
-// ============================================================
+/* =========================================================
+   AUDIENCE LABEL
+========================================================= */
 
-export default function ServiceChips({
+const getAudienceLabel = (
+  audience: ServiceAudience,
+): string => {
+  switch (audience) {
+    case 'FEMALE':
+      return 'Female';
+
+    case 'MALE':
+      return 'Male';
+
+    case 'KIDS':
+      return 'Kids';
+
+    default:
+      return '';
+  }
+};
+
+/* =========================================================
+   COMPONENT
+========================================================= */
+
+const ServiceChips: React.FC<Props> = ({
   onSelect,
-  selectedCategoryId = '',
-  selectedCategory = '',
-  selectedSubcategoryIds = [],
-  selectedAudiences = [],
-}: Props) {
-  // ==========================================================
-  // CATEGORIES QUERY
-  // ==========================================================
+  selectedCategoryId,
+  selectedCategory,
+  selectedSubcategoryIds,
+  selectedAudiences,
+}) => {
+  /* =======================================================
+     GRAPHQL
+  ======================================================= */
 
   const {
     data,
     loading: categoriesLoading,
+    error: categoriesError,
   } =
     useQuery<GetActiveCategoriesResponse>(
       GET_ACTIVE_CATEGORIES,
       {
-        fetchPolicy:
-          'cache-and-network',
+        fetchPolicy: 'cache-and-network',
       },
     );
 
-  console.log("GET_ACTIVE_CATEGORIES", data)
+  const {
+    data: subcategoryData,
+    loading: subcategoriesLoading,
+    error: subcategoriesError,
+  } =
+    useQuery<GetActiveSubcategoriesResponse>(
+      GET_ACTIVE_SUBCATEGORIES,
+      {
+        fetchPolicy: 'network-only',
+      },
+    );
 
-  // ==========================================================
-  // ALL SUBCATEGORIES QUERY
-  //
-  // IMPORTANT:
-  // We intentionally do NOT pass categoryId here.
-  //
-  // We need all active subcategories so we can determine
-  // which categories support the selected audience.
-  // ==========================================================
-
-const {
-  data: subcategoryData,
-  loading: subcategoriesLoading,
-  error: subcategoriesError,
-} = useQuery<GetActiveSubcategoriesResponse>(
-  GET_ACTIVE_SUBCATEGORIES,
-  {
-    fetchPolicy: 'network-only',
-  },
-);
-
-  console.log(
-    '========== SUBCATEGORY QUERY =========='
-  );
-
-  console.log(
-    'SUBCATEGORY DATA:',
-    JSON.stringify(
-      subcategoryData,
-      null,
-      2,
-    ),
-  );
-console.log(
-  'SUBCATEGORY ERROR:',
-  subcategoriesError
-    ? JSON.stringify(
-        subcategoriesError,
-        null,
-        2,
-      )
-    : null,
-);
-  console.log(
-    'ALL SUBCATEGORIES:',
-    JSON.stringify(
-      subcategoryData?.subcategories?.subcategories,
-      null,
-      2,
-    ),
-  );
-
-  console.log(
-    'ALL SUBCATEGORIES:',
-    JSON.stringify(
-      subcategoryData?.subcategories?.subcategories,
-      null,
-      2,
-    ),
-  );
-
-  console.log(
-    'SELECTED AUDIENCES:',
-    selectedAudiences,
-  );
-  // ==========================================================
-  // CATEGORY STATE
-  // ==========================================================
+  /* =======================================================
+     STATE
+  ======================================================= */
 
   const [
     categories,
     setCategories,
   ] = useState<Category[]>([]);
 
-  // ==========================================================
-  // SUBCATEGORY CACHE
-  //
-  // {
-  //   categoryId: [
-  //     subcategory,
-  //     subcategory
-  //   ]
-  // }
-  // ==========================================================
-
   const [
     subcategoriesByCategory,
     setSubcategoriesByCategory,
-  ] =
-    useState<
-      Record<string, Subcategory[]>
-    >({});
-
-  // ==========================================================
-  // SELECTED SUBCATEGORIES
-  // ==========================================================
+  ] = useState<
+    Record<string, Subcategory[]>
+  >({});
 
   const [
     internalSelectedSubcategoryIds,
     setInternalSelectedSubcategoryIds,
-  ] =
-    useState<string[]>(
-      Array.isArray(
-        selectedSubcategoryIds,
-      )
-        ? selectedSubcategoryIds
-        : [],
-    );
-
-  // ==========================================================
-  // POPUP STATE
-  // ==========================================================
+  ] = useState<string[]>(
+    Array.isArray(
+      selectedSubcategoryIds,
+    )
+      ? selectedSubcategoryIds
+      : [],
+  );
 
   const [
     modalVisible,
@@ -349,19 +326,14 @@ console.log(
     null,
   );
 
-  // ==========================================================
-  // TEMPORARY SELECTION INSIDE POPUP
-  // ==========================================================
-
   const [
     modalSelectedSubcategoryIds,
     setModalSelectedSubcategoryIds,
-  ] =
-    useState<string[]>([]);
+  ] = useState<string[]>([]);
 
-  // ==========================================================
-  // NORMALIZED SELECTED AUDIENCES
-  // ==========================================================
+  /* =======================================================
+     NORMALIZED AUDIENCES
+  ======================================================= */
 
   const normalizedSelectedAudiences =
     useMemo(() => {
@@ -377,39 +349,33 @@ console.log(
         new Set(
           selectedAudiences.filter(
             audience =>
-              audience ===
-              'FEMALE' ||
-              audience ===
-              'MALE' ||
-              audience ===
-              'KIDS',
+              audience === 'FEMALE' ||
+              audience === 'MALE' ||
+              audience === 'KIDS',
           ),
         ),
       );
-    }, [
-      selectedAudiences,
-    ]);
+    }, [selectedAudiences]);
 
-  // ==========================================================
-  // ACTIVE CATEGORY ID
-  // ==========================================================
+  /* =======================================================
+     ACTIVE CATEGORY ID
+  ======================================================= */
 
   const activeCategoryId =
     activeCategory?.categoryId || '';
 
-  // ==========================================================
-  // UPDATE CATEGORIES
-  // ==========================================================
+  /* =======================================================
+     CATEGORY DATA
+  ======================================================= */
 
   useEffect(() => {
     const apiCategories =
       data?.categories?.categories;
 
     if (
-      !Array.isArray(
-        apiCategories,
-      )
+      !Array.isArray(apiCategories)
     ) {
+      setCategories([]);
       return;
     }
 
@@ -417,27 +383,40 @@ console.log(
       apiCategories.filter(
         item =>
           item &&
-          item.status ===
-          'ACTIVE' &&
-          typeof item.name ===
-          'string' &&
-          item.name.trim().length >
-          0,
+          item.status === 'ACTIVE' &&
+          typeof item.name === 'string' &&
+          item.name.trim().length > 0 &&
+          typeof item.categoryId === 'string' &&
+          item.categoryId.trim().length > 0,
       );
 
-    setCategories(
-      activeCategories,
+    setCategories(activeCategories);
+
+    console.log(
+      '========================================',
+    );
+
+    console.log(
+      'SERVICE CHIPS - ACTIVE CATEGORIES',
+    );
+
+    console.log(
+      activeCategories.map(
+        item => ({
+          id: item.categoryId,
+          name: item.name,
+        }),
+      ),
+    );
+
+    console.log(
+      '========================================',
     );
   }, [data]);
 
-  // ==========================================================
-  // STORE ALL SUBCATEGORIES
-  //
-  // This is the important fix.
-  //
-  // We receive ALL active subcategories from GraphQL and
-  // group them by categoryId.
-  // ==========================================================
+  /* =======================================================
+     SUBCATEGORY DATA
+  ======================================================= */
 
   useEffect(() => {
     const apiSubcategories =
@@ -445,11 +424,32 @@ console.log(
         ?.subcategories
         ?.subcategories;
 
+    console.log(
+      '========================================',
+    );
+
+    console.log(
+      'SERVICE CHIPS - RAW SUBCATEGORIES',
+    );
+
+    console.log(
+      JSON.stringify(
+        apiSubcategories,
+        null,
+        2,
+      ),
+    );
+
+    console.log(
+      '========================================',
+    );
+
     if (
       !Array.isArray(
         apiSubcategories,
       )
     ) {
+      setSubcategoriesByCategory({});
       return;
     }
 
@@ -463,22 +463,12 @@ console.log(
         ) => {
           if (
             !item ||
-            item.status !==
-            'ACTIVE' ||
+            item.status !== 'ACTIVE' ||
             typeof item.categoryId !==
-            'string' ||
+              'string' ||
             typeof item.name !==
-            'string' ||
-            item.name.trim().length ===
-            0
-          ) {
-            return result;
-          }
-
-          if (
-            !Array.isArray(
-              item.audience,
-            )
+              'string' ||
+            item.name.trim().length === 0
           ) {
             return result;
           }
@@ -486,56 +476,118 @@ console.log(
           const categoryId =
             String(
               item.categoryId,
-            );
+            ).trim();
 
-          if (
-            !result[
-            categoryId
-            ]
-          ) {
-            result[
-              categoryId
-            ] = [];
+          if (!categoryId) {
+            return result;
           }
 
-          result[
-            categoryId
-          ].push(item);
+          /*
+           * IMPORTANT:
+           *
+           * Read GraphQL `audiences`.
+           */
+          const normalizedAudiences =
+            normalizeAudienceList(
+              item.audiences,
+            );
+
+          console.log(
+            'SUBCATEGORY:',
+            item.name,
+            'SUBCATEGORY ID:',
+            item.subcategoryId,
+            'CATEGORY ID:',
+            categoryId,
+            'RAW AUDIENCES:',
+            item.audiences,
+            'NORMALIZED AUDIENCES:',
+            normalizedAudiences,
+          );
+
+          if (
+            normalizedAudiences.length === 0
+          ) {
+            console.warn(
+              'SUBCATEGORY HAS NO VALID AUDIENCES:',
+              item.name,
+              item.audiences,
+            );
+
+            return result;
+          }
+
+          if (
+            !result[categoryId]
+          ) {
+            result[categoryId] = [];
+          }
+
+          result[categoryId].push({
+            ...item,
+
+            categoryId,
+
+            /*
+             * IMPORTANT:
+             *
+             * Store as `audiences`.
+             */
+            audiences:
+              normalizedAudiences,
+          });
 
           return result;
         },
         {},
       );
 
+    console.log(
+      '========================================',
+    );
+
+    console.log(
+      'GROUPED SUBCATEGORIES',
+    );
+
+    console.log(
+      JSON.stringify(
+        grouped,
+        null,
+        2,
+      ),
+    );
+
+    console.log(
+      '========================================',
+    );
+
     setSubcategoriesByCategory(
       grouped,
     );
-  }, [
-    subcategoryData,
-  ]);
+  }, [subcategoryData]);
 
-  // ==========================================================
-  // SYNC PARENT SELECTION
-  // ==========================================================
+  /* =======================================================
+     SYNC SELECTED SUBCATEGORIES
+  ======================================================= */
 
   useEffect(() => {
-    setInternalSelectedSubcategoryIds(
+    const nextIds =
       Array.isArray(
         selectedSubcategoryIds,
       )
         ? selectedSubcategoryIds
-        : [],
-    );
-  }, [
-    selectedSubcategoryIds,
-  ]);
+        : [];
 
-  // ==========================================================
-  // AUDIENCE CHANGE
-  //
-  // Remove selected subcategories that are no longer valid
-  // for the selected audience combination.
-  // ==========================================================
+    setInternalSelectedSubcategoryIds(
+      nextIds,
+    );
+  }, [selectedSubcategoryIds]);
+
+  /* =======================================================
+     CLEAR INVALID SELECTIONS WHEN
+     AUDIENCE CHANGES
+  ======================================================= */
 
   useEffect(() => {
     if (
@@ -550,74 +602,46 @@ console.log(
         [],
       );
 
-      setActiveCategory(
-        null,
-      );
-
-      setModalVisible(
-        false,
-      );
+      setActiveCategory(null);
+      setModalVisible(false);
 
       return;
     }
 
     setInternalSelectedSubcategoryIds(
-      previous => {
-        if (
-          previous.length ===
-          0
-        ) {
-          return previous;
-        }
+      previousIds => {
+        const validIds =
+          new Set<string>();
 
-        let changed =
-          false;
+        Object.values(
+          subcategoriesByCategory,
+        ).forEach(
+          subcategories => {
+            subcategories.forEach(
+              subcategory => {
+                if (
+                  matchesSelectedAudiences(
+                    subcategory,
+                    normalizedSelectedAudiences,
+                  )
+                ) {
+                  validIds.add(
+                    String(
+                      subcategory.subcategoryId,
+                    ),
+                  );
+                }
+              },
+            );
+          },
+        );
 
-        const next =
-          previous.filter(
-            subcategoryId => {
-              let found =
-                false;
-
-              Object.values(
-                subcategoriesByCategory,
-              ).forEach(
-                subcategories => {
-                  const subcategory =
-                    subcategories.find(
-                      item =>
-                        item.subcategoryId ===
-                        subcategoryId,
-                    );
-
-                  if (
-                    subcategory
-                  ) {
-                    found =
-                      matchesSelectedAudiences(
-                        subcategory,
-                        normalizedSelectedAudiences,
-                      );
-                  }
-                },
-              );
-
-              if (
-                !found
-              ) {
-                changed =
-                  true;
-
-                return false;
-              }
-
-              return true;
-            },
-          );
-
-        return changed
-          ? next
-          : previous;
+        return previousIds.filter(
+          id =>
+            validIds.has(
+              String(id),
+            ),
+        );
       },
     );
   }, [
@@ -625,27 +649,9 @@ console.log(
     subcategoriesByCategory,
   ]);
 
-  // ==========================================================
-  // DISPLAY CATEGORIES
-  //
-  // ONLY categories having at least one subcategory matching
-  // the selected audience(s) are displayed.
-  //
-  // Example:
-  //
-  // Female selected
-  //   ↓
-  // Hair has FEMALE service
-  // Face has FEMALE service
-  // Barber only has MALE
-  //   ↓
-  // Show Hair + Face
-  // Hide Barber
-  //
-  // Female + Kids
-  //   ↓
-  // Show categories having FEMALE OR KIDS.
-  // ==========================================================
+  /* =======================================================
+     DISPLAY CATEGORIES
+  ======================================================= */
 
   const displayCategories =
     useMemo(() => {
@@ -659,75 +665,104 @@ console.log(
       const seen =
         new Set<string>();
 
-      return categories.filter(
-        category => {
-          const normalized =
-            normalizeCategoryName(
+      const result =
+        categories.filter(
+          category => {
+            const categoryId =
+              String(
+                category.categoryId ?? '',
+              ).trim();
+
+            const normalizedName =
+              normalizeCategoryName(
+                category.name,
+              );
+
+            if (
+              !categoryId ||
+              seen.has(
+                normalizedName,
+              )
+            ) {
+              return false;
+            }
+
+            const categorySubcategories =
+              subcategoriesByCategory[
+                categoryId
+              ] ?? [];
+
+            const hasMatchingSubcategory =
+              categorySubcategories.some(
+                subcategory =>
+                  matchesSelectedAudiences(
+                    subcategory,
+                    normalizedSelectedAudiences,
+                  ),
+              );
+
+            console.log(
+              'CATEGORY CHECK:',
               category.name,
+              'CATEGORY ID:',
+              categoryId,
+              'SELECTED AUDIENCES:',
+              normalizedSelectedAudiences,
+              'SUBCATEGORY COUNT:',
+              categorySubcategories.length,
+              'MATCH:',
+              hasMatchingSubcategory,
             );
 
-          if (
-            seen.has(
-              normalized,
-            )
-          ) {
-            return false;
-          }
+            if (
+              !hasMatchingSubcategory
+            ) {
+              return false;
+            }
 
-          const categorySubcategories =
-            subcategoriesByCategory[
-            category.categoryId
-            ] ?? [];
-
-          const hasMatchingSubcategory =
-            categorySubcategories.some(
-              subcategory =>
-                matchesSelectedAudiences(
-                  subcategory,
-                  normalizedSelectedAudiences,
-                ),
+            seen.add(
+              normalizedName,
             );
 
-          if (
-            !hasMatchingSubcategory
-          ) {
-            return false;
-          }
+            return true;
+          },
+        );
 
-          seen.add(
-            normalized,
-          );
-
-          return true;
-        },
+      console.log(
+        'DISPLAY CATEGORIES:',
+        result.map(
+          category => ({
+            id: category.categoryId,
+            name: category.name,
+          }),
+        ),
       );
+
+      return result;
     }, [
       categories,
       subcategoriesByCategory,
       normalizedSelectedAudiences,
     ]);
 
-  // ==========================================================
-  // CURRENT SUBCATEGORIES
-  //
-  // Only subcategories matching the selected audience(s)
-  // are displayed inside the category modal.
-  // ==========================================================
+  /* =======================================================
+     CURRENT SUBCATEGORIES
+  ======================================================= */
 
   const currentSubcategories =
     useMemo(() => {
       if (
         !activeCategoryId ||
         normalizedSelectedAudiences.length ===
-        0
+          0
       ) {
         return [];
       }
 
       const subcategories =
         subcategoriesByCategory[
-        activeCategoryId
-        ] || [];
+          activeCategoryId
+        ] ?? [];
 
       return subcategories.filter(
         subcategory =>
@@ -742,26 +777,54 @@ console.log(
       normalizedSelectedAudiences,
     ]);
 
-  // ==========================================================
-  // GET SELECTED COUNT
-  // ==========================================================
+  /* =======================================================
+     GROUP CURRENT SUBCATEGORIES BY AUDIENCE
+  ======================================================= */
+
+  const subcategoriesByAudience =
+    useMemo(() => {
+      const result: Record<
+        ServiceAudience,
+        Subcategory[]
+      > = {
+        FEMALE: [],
+        MALE: [],
+        KIDS: [],
+      };
+
+      normalizedSelectedAudiences.forEach(
+        audience => {
+          result[audience] =
+            currentSubcategories.filter(
+              subcategory =>
+                normalizeAudienceList(
+                  subcategory.audiences,
+                ).includes(
+                  audience,
+                ),
+            );
+        },
+      );
+
+      return result;
+    }, [
+      currentSubcategories,
+      normalizedSelectedAudiences,
+    ]);
+
+  /* =======================================================
+     SELECTED COUNT
+  ======================================================= */
 
   const getSelectedCount = (
     categoryId: string,
-  ): number => {
+  ) => {
     const categorySubcategories =
       subcategoriesByCategory[
-      categoryId
-      ] || [];
+        categoryId
+      ] ?? [];
 
-    if (
-      categorySubcategories.length ===
-      0
-    ) {
-      return 0;
-    }
-
-    const categorySubcategoryIds =
+    const validIds =
       new Set(
         categorySubcategories
           .filter(
@@ -773,146 +836,112 @@ console.log(
           )
           .map(
             subcategory =>
-              subcategory.subcategoryId,
+              String(
+                subcategory.subcategoryId,
+              ),
           ),
       );
 
     return internalSelectedSubcategoryIds.filter(
-      subcategoryId =>
-        categorySubcategoryIds.has(
-          subcategoryId,
+      id =>
+        validIds.has(
+          String(id),
         ),
     ).length;
   };
 
-  // ==========================================================
-  // CLEAR CATEGORY
-  // ==========================================================
+  /* =======================================================
+     CLEAR CATEGORY
+  ======================================================= */
 
   const clearCategory = (
     category: Category,
   ) => {
     const categoryId =
-      category.categoryId;
+      String(
+        category.categoryId,
+      ).trim();
 
     const categorySubcategories =
       subcategoriesByCategory[
-      categoryId
-      ] || [];
+        categoryId
+      ] ?? [];
 
     const categorySubcategoryIds =
       new Set(
         categorySubcategories.map(
-          item =>
-            item.subcategoryId,
+          subcategory =>
+            String(
+              subcategory.subcategoryId,
+            ),
         ),
       );
 
-    const remainingSubcategoryIds =
+    const remainingIds =
       internalSelectedSubcategoryIds.filter(
         id =>
           !categorySubcategoryIds.has(
-            id,
+            String(id),
           ),
       );
 
     setInternalSelectedSubcategoryIds(
-      remainingSubcategoryIds,
-    );
-
-    setModalSelectedSubcategoryIds(
-      [],
-    );
-
-    setActiveCategory(
-      null,
-    );
-
-    setModalVisible(
-      false,
+      remainingIds,
     );
 
     onSelect({
       categoryId: '',
       category: '',
-      subcategoryIds: [],
+      subcategoryIds:
+        remainingIds,
     });
   };
 
-  // ==========================================================
-  // OPEN CATEGORY POPUP / TOGGLE CATEGORY
-  // ==========================================================
+  /* =======================================================
+     CATEGORY SELECT
+  ======================================================= */
 
   const handleCategorySelect = (
     category: Category,
   ) => {
-    if (
-      !category?.categoryId
-    ) {
-      return;
-    }
-
-    if (
-      normalizedSelectedAudiences.length ===
-      0
-    ) {
-      return;
-    }
-
-    const categoryId =
-      category.categoryId;
-
-    const isCurrentlySelected =
-      Boolean(
-        selectedCategoryId &&
-        selectedCategoryId ===
-        categoryId,
-      ) ||
-      Boolean(
-        !selectedCategoryId &&
-        selectedCategory &&
-        normalizeCategoryName(
-          selectedCategory,
-        ) ===
-        normalizeCategoryName(
-          category.name,
-        ),
+    const selectedCount =
+      getSelectedCount(
+        category.categoryId,
       );
 
-    // ========================================================
-    // CATEGORY ALREADY SELECTED
-    // ========================================================
-
-    if (
-      isCurrentlySelected
-    ) {
-      clearCategory(
-        category,
-      );
-
+    if (selectedCount > 0) {
+      clearCategory(category);
       return;
     }
 
-    // ========================================================
-    // OPEN CATEGORY
-    // ========================================================
-
-    const existingSubcategories =
+    const categorySubcategories =
       subcategoriesByCategory[
-      categoryId
-      ] || [];
+        category.categoryId
+      ] ?? [];
 
-    const selectedForCategory =
-      internalSelectedSubcategoryIds.filter(
-        id =>
-          existingSubcategories.some(
+    const validCategoryIds =
+      new Set(
+        categorySubcategories
+          .filter(
             subcategory =>
-              subcategory.subcategoryId ===
-              id &&
               matchesSelectedAudiences(
                 subcategory,
                 normalizedSelectedAudiences,
               ),
+          )
+          .map(
+            subcategory =>
+              String(
+                subcategory.subcategoryId,
+              ),
+          ),
+      );
+
+    const alreadySelectedForCategory =
+      internalSelectedSubcategoryIds.filter(
+        id =>
+          validCategoryIds.has(
+            String(id),
           ),
       );
 
@@ -921,146 +950,133 @@ console.log(
     );
 
     setModalSelectedSubcategoryIds(
-      selectedForCategory,
+      alreadySelectedForCategory,
     );
 
-    setModalVisible(
-      true,
-    );
+    setModalVisible(true);
   };
 
-  // ==========================================================
-  // TOGGLE SUBCATEGORY
-  // ==========================================================
+  /* =======================================================
+     SUBCATEGORY TOGGLE
+  ======================================================= */
 
   const handleSubcategoryToggle = (
     subcategoryId: string,
   ) => {
-    if (
-      !subcategoryId
-    ) {
-      return;
-    }
-
-    const currentSubcategory =
-      currentSubcategories.find(
-        item =>
-          item.subcategoryId ===
-          subcategoryId,
+    const normalizedId =
+      String(
+        subcategoryId,
       );
-
-    if (
-      !currentSubcategory
-    ) {
-      return;
-    }
 
     setModalSelectedSubcategoryIds(
       previous => {
         if (
-          previous.includes(
-            subcategoryId,
+          previous.some(
+            id =>
+              String(id) ===
+              normalizedId,
           )
         ) {
           return previous.filter(
             id =>
-              id !==
-              subcategoryId,
+              String(id) !==
+              normalizedId,
           );
         }
 
         return [
           ...previous,
-          subcategoryId,
+          normalizedId,
         ];
       },
     );
   };
 
-  // ==========================================================
-  // DONE
-  // ==========================================================
+  /* =======================================================
+     DONE
+  ======================================================= */
 
   const handleDone = () => {
-    if (
-      !activeCategory
-    ) {
-      setModalVisible(
-        false,
-      );
-
+    if (!activeCategory) {
+      setModalVisible(false);
       return;
     }
 
-    const categoryId =
-      activeCategory.categoryId;
+    const activeCategoryId =
+      String(
+        activeCategory.categoryId,
+      ).trim();
 
     const currentCategorySubcategories =
       subcategoriesByCategory[
-      categoryId
-      ] || [];
+        activeCategoryId
+      ] ?? [];
 
-    const currentCategorySubcategoryIds =
+    const validCurrentIds =
       new Set(
-        currentCategorySubcategories.map(
-          item =>
-            item.subcategoryId,
-        ),
-      );
-
-    // ========================================================
-    // KEEP OTHER CATEGORY SELECTIONS
-    // ========================================================
-
-    const selectionsFromOtherCategories =
-      internalSelectedSubcategoryIds.filter(
-        id =>
-          !currentCategorySubcategoryIds.has(
-            id,
+        currentCategorySubcategories
+          .filter(
+            subcategory =>
+              matchesSelectedAudiences(
+                subcategory,
+                normalizedSelectedAudiences,
+              ),
+          )
+          .map(
+            subcategory =>
+              String(
+                subcategory.subcategoryId,
+              ),
           ),
       );
 
-    // ========================================================
-    // ONLY KEEP VALID AUDIENCE SELECTIONS
-    // ========================================================
+    /*
+     * Keep selections belonging to
+     * other categories.
+     */
+    const otherCategorySelections =
+      internalSelectedSubcategoryIds.filter(
+        id =>
+          !validCurrentIds.has(
+            String(id),
+          ),
+      );
 
+    /*
+     * Keep only valid selections from
+     * the current category.
+     */
     const validModalSelections =
       modalSelectedSubcategoryIds.filter(
         id =>
-          currentSubcategories.some(
-            subcategory =>
-              subcategory.subcategoryId ===
-              id,
+          validCurrentIds.has(
+            String(id),
           ),
       );
 
-    // ========================================================
-    // COMBINE
-    // ========================================================
-
-    const nextSelectedIds = [
-      ...selectionsFromOtherCategories,
-      ...validModalSelections,
-    ];
-
+    /*
+     * Remove duplicate subcategory IDs.
+     *
+     * This is important because a subcategory
+     * supporting both Female and Kids appears
+     * under both headings but must remain
+     * one selected ID.
+     */
     const uniqueSelectedIds =
       Array.from(
-        new Set(
-          nextSelectedIds,
-        ),
+        new Set([
+          ...otherCategorySelections,
+          ...validModalSelections,
+        ]),
       );
 
     setInternalSelectedSubcategoryIds(
       uniqueSelectedIds,
     );
 
-    // ========================================================
-    // SEND TO HOMESCREEN
-    // ========================================================
-
     onSelect({
       categoryId:
-        activeCategory.categoryId,
+        activeCategoryId,
 
       category:
         activeCategory.name.trim(),
@@ -1069,62 +1085,34 @@ console.log(
         uniqueSelectedIds,
     });
 
-    setModalVisible(
-      false,
-    );
+    setModalVisible(false);
   };
 
-  // ==========================================================
-  // CANCEL
-  // ==========================================================
+  /* =======================================================
+     CLOSE MODAL
+  ======================================================= */
 
-  const handleCancel = () => {
-    setModalVisible(
-      false,
+  const handleCloseModal = () => {
+    setModalVisible(false);
+
+    setModalSelectedSubcategoryIds(
+      [],
     );
+
+    setActiveCategory(null);
   };
 
-  // ==========================================================
-  // LOADING
-  //
-  // Wait for BOTH category and subcategory information before
-  // deciding that there are no categories.
-  // ==========================================================
+  /* =======================================================
+     LOADING
+  ======================================================= */
 
-  const initialLoading =
+  const loading =
     categoriesLoading ||
     subcategoriesLoading;
 
-  if (
-    initialLoading &&
-    displayCategories.length ===
-    0
-  ) {
-    return (
-      <View
-        style={
-          styles.wrapper
-        }
-      >
-        <View
-          style={
-            styles.loadingContainer
-          }
-        >
-          <ActivityIndicator
-            size="small"
-            color={
-              COLORS.black
-            }
-          />
-        </View>
-      </View>
-    );
-  }
-
-  // ==========================================================
-  // NO AUDIENCE
-  // ==========================================================
+  /* =======================================================
+     NO AUDIENCE
+  ======================================================= */
 
   if (
     normalizedSelectedAudiences.length ===
@@ -1133,138 +1121,155 @@ console.log(
     return null;
   }
 
-  // ==========================================================
-  // RENDER
-  // ==========================================================
+  /* =======================================================
+     ERROR LOGGING
+  ======================================================= */
+
+  if (categoriesError) {
+    console.warn(
+      'GET_ACTIVE_CATEGORIES ERROR:',
+      categoriesError,
+    );
+  }
+
+  if (subcategoriesError) {
+    console.warn(
+      'GET_ACTIVE_SUBCATEGORIES ERROR:',
+      subcategoriesError,
+    );
+  }
+
+  /* =======================================================
+     RENDER
+  ======================================================= */
 
   return (
-    <View
-      style={
-        styles.wrapper
-      }
-    >
-      {/* ================================================== */}
-      {/* CATEGORY GRID */}
-      {/* ================================================== */}
+    <View style={styles.container}>
 
-      <View
-        style={
-          styles.grid
-        }
-      >
-        {displayCategories.map(
-          item => {
-            const categoryName =
-              item.name.trim();
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
-            const selectedCount =
-              getSelectedCount(
-                item.categoryId,
-              );
+      <View style={styles.headerRow}>
+        {/* <Text style={styles.title}>
+          Choose a Service
+        </Text> */}
 
-            const isSelected =
-              Boolean(
-                selectedCategoryId &&
-                selectedCategoryId ===
-                item.categoryId,
-              ) ||
-              Boolean(
-                !selectedCategoryId &&
-                selectedCategory &&
-                normalizeCategoryName(
-                  selectedCategory,
-                ) ===
-                normalizeCategoryName(
-                  categoryName,
-                ),
-              );
+        <Text style={styles.subtitle}>
+          {normalizedSelectedAudiences
+            .map(
+              getAudienceLabel,
+            )
+            .join(', ')}
+        </Text>
+      </View>
 
-            const icon =
-              getCategoryIcon(
-                categoryName,
-              );
+      {/* =================================================
+          LOADING
+      ================================================= */}
 
-            return (
-              <TouchableOpacity
-                key={
-                  item.categoryId
-                }
-                activeOpacity={
-                  0.85
-                }
-                onPress={() =>
-                  handleCategorySelect(
-                    item,
-                  )
-                }
-                style={[
-                  styles.card,
-                  isSelected &&
-                  styles.cardSelected,
-                ]}
-              >
-                {/* IMAGE */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator
+            size="small"
+            color={
+              COLORS.themeColor
+            }
+          />
 
-                <View
-                  style={[
-                    styles.imageContainer,
-                    isSelected &&
-                    styles.imageContainerSelected,
-                  ]}
-                >
-                  <Image
-                    source={
-                      icon
-                    }
-                    style={
-                      styles.image
-                    }
-                    resizeMode="contain"
-                  />
-                </View>
+          <Text
+            style={
+              styles.loadingText
+            }
+          >
+            Loading services...
+          </Text>
+        </View>
+      ) : displayCategories.length ===
+        0 ? (
+        <View
+          style={
+            styles.emptyContainer
+          }
+        >
+          <Text
+            style={
+              styles.emptyText
+            }
+          >
+            No services available for the
+            selected audience.
+          </Text>
+        </View>
+      ) : (
+        /* ===============================================
+           CATEGORY GRID
+        =============================================== */
 
-                {/* NAME */}
+        <View style={styles.categoryGrid}>
+          {displayCategories.map(
+            category => {
+              const selectedCount =
+                getSelectedCount(
+                  category.categoryId,
+                );
 
-                <Text
-                  numberOfLines={
-                    1
+              const isSelected =
+                selectedCount > 0;
+
+              return (
+                <TouchableOpacity
+                  key={
+                    category.categoryId
                   }
-                  ellipsizeMode="tail"
+                  activeOpacity={0.8}
                   style={[
-                    styles.name,
+                    styles.categoryCard,
                     isSelected &&
-                    styles.nameSelected,
+                      styles.categoryCardSelected,
                   ]}
-                >
-                  {
-                    categoryName
+                  onPress={() =>
+                    handleCategorySelect(
+                      category,
+                    )
                   }
-                </Text>
+                >
+                  {/* ICON */}
 
-                {/* CHECK */}
-
-                {isSelected &&
-                  selectedCount ===
-                  0 && (
-                    <View
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      isSelected &&
+                        styles.iconContainerSelected,
+                    ]}
+                  >
+                    <Image
+                      source={getCategoryIcon(
+                        category.name,
+                      )}
                       style={
-                        styles.checkContainer
+                        styles.categoryIcon
                       }
-                    >
-                      <Text
-                        style={
-                          styles.check
-                        }
-                      >
-                        ✓
-                      </Text>
-                    </View>
-                  )}
+                      resizeMode="contain"
+                    />
+                  </View>
 
-                {/* BADGE */}
+                  {/* NAME */}
 
-                {selectedCount >
-                  0 && (
+                  <Text
+                    numberOfLines={2}
+                    style={[
+                      styles.categoryName,
+                      isSelected &&
+                        styles.categoryNameSelected,
+                    ]}
+                  >
+                    {category.name}
+                  </Text>
+
+                  {/* SELECTED COUNT */}
+
+                  {selectedCount > 0 && (
                     <View
                       style={
                         styles.countBadge
@@ -1275,53 +1280,52 @@ console.log(
                           styles.countBadgeText
                         }
                       >
-                        {
-                          selectedCount
-                        }
+                        {selectedCount}
                       </Text>
                     </View>
                   )}
-              </TouchableOpacity>
-            );
-          },
-        )}
-      </View>
+                </TouchableOpacity>
+              );
+            },
+          )}
+        </View>
+      )}
 
-      {/* ================================================== */}
-      {/* SUBCATEGORY POPUP */}
-      {/* ================================================== */}
+      {/* =================================================
+          SUBCATEGORY MODAL
+      ================================================= */}
 
       <Modal
-        visible={
-          modalVisible
-        }
+        visible={modalVisible}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={
-          handleCancel
+          handleCloseModal
         }
       >
-        {/* BACKDROP */}
-
-        <Pressable
+        <View
           style={
-            styles.modalBackdrop
-          }
-          onPress={
-            handleCancel
+            styles.modalOverlay
           }
         >
-          {/* MODAL CARD */}
-
           <Pressable
             style={
-              styles.modalCard
+              styles.modalBackgroundPressable
             }
-            onPress={event =>
-              event.stopPropagation()
+            onPress={
+              handleCloseModal
+            }
+          />
+
+          <View
+            style={
+              styles.modalContainer
             }
           >
-            {/* HEADER */}
+
+            {/* =========================================
+                MODAL HEADER
+            ========================================= */}
 
             <View
               style={
@@ -1333,53 +1337,30 @@ console.log(
                   styles.modalTitleContainer
                 }
               >
-                {activeCategory && (
-                  <View
-                    style={
-                      styles.modalIconContainer
-                    }
-                  >
-                    <Image
-                      source={getCategoryIcon(
-                        activeCategory.name,
-                      )}
-                      style={
-                        styles.modalIcon
-                      }
-                      resizeMode="contain"
-                    />
-                  </View>
-                )}
+                <Text
+                  style={
+                    styles.modalTitle
+                  }
+                >
+                  {activeCategory?.name ||
+                    'Select Services'}
+                </Text>
 
-                <View>
-                  <Text
-                    style={
-                      styles.modalTitle
-                    }
-                  >
-                    {activeCategory?.name ||
-                      'Select services'}
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.modalSubtitle
-                    }
-                  >
-                    Select one or more services
-                  </Text>
-                </View>
+                <Text
+                  style={
+                    styles.modalSubtitle
+                  }
+                >
+                  Select one or more services
+                </Text>
               </View>
 
               <TouchableOpacity
-                activeOpacity={
-                  0.7
-                }
-                onPress={
-                  handleCancel
-                }
                 style={
                   styles.closeButton
+                }
+                onPress={
+                  handleCloseModal
                 }
               >
                 <Text
@@ -1392,9 +1373,9 @@ console.log(
               </TouchableOpacity>
             </View>
 
-            {/* ================================================= */}
-            {/* AUDIENCE INFORMATION */}
-            {/* ================================================= */}
+            {/* =========================================
+                SELECTED AUDIENCES
+            ========================================= */}
 
             <View
               style={
@@ -1409,230 +1390,254 @@ console.log(
                 Services for
               </Text>
 
-              <Text
+              <View
                 style={
-                  styles.audienceInfoValue
+                  styles.audiencePills
                 }
               >
-                {normalizedSelectedAudiences
-                  .map(
-                    audience => {
-                      if (
-                        audience ===
-                        'FEMALE'
-                      ) {
-                        return 'Female';
+                {normalizedSelectedAudiences.map(
+                  audience => (
+                    <View
+                      key={audience}
+                      style={
+                        styles.audiencePill
                       }
-
-                      if (
-                        audience ===
-                        'MALE'
-                      ) {
-                        return 'Male';
-                      }
-
-                      return 'Kids';
-                    },
-                  )
-                  .join(
-                    ', ',
-                  )}
-              </Text>
+                    >
+                      <Text
+                        style={
+                          styles.audiencePillText
+                        }
+                      >
+                        {getAudienceLabel(
+                          audience,
+                        )}
+                      </Text>
+                    </View>
+                  ),
+                )}
+              </View>
             </View>
 
-            {/* ================================================= */}
-            {/* LOADING */}
-            {/* ================================================= */}
+            {/* =========================================
+                GROUPED SUBCATEGORY LIST
+            ========================================= */}
 
-            {subcategoriesLoading &&
-              currentSubcategories.length ===
-              0 && (
-                <View
+            {currentSubcategories.length ===
+            0 ? (
+              <View
+                style={
+                  styles.modalEmptyContainer
+                }
+              >
+                <Text
                   style={
-                    styles.modalLoading
+                    styles.modalEmptyText
                   }
                 >
-                  <ActivityIndicator
-                    size="small"
-                    color={
-                      COLORS.themeColor
+                  No services available for the
+                  selected audience.
+                </Text>
+              </View>
+            ) : (
+              <ScrollView
+                style={
+                  styles.subcategoryScroll
+                }
+                contentContainerStyle={
+                  styles.subcategoryContent
+                }
+                showsVerticalScrollIndicator={
+                  false
+                }
+              >
+                {normalizedSelectedAudiences.map(
+                  audience => {
+                    const audienceSubcategories =
+                      subcategoriesByAudience[
+                        audience
+                      ] ?? [];
+
+                    if (
+                      audienceSubcategories.length ===
+                      0
+                    ) {
+                      return null;
                     }
-                  />
 
-                  <Text
-                    style={
-                      styles.loadingText
-                    }
-                  >
-                    Loading services...
-                  </Text>
-                </View>
-              )}
+                    return (
+                      <View
+                        key={audience}
+                        style={
+                          styles.audienceSection
+                        }
+                      >
 
-            {/* ================================================= */}
-            {/* SUBCATEGORY LIST */}
-            {/* ================================================= */}
+                        {/* =================================
+                            AUDIENCE HEADING
+                        ================================= */}
 
-            {!subcategoriesLoading &&
-              currentSubcategories.length >
-              0 && (
-                <ScrollView
-                  style={
-                    styles.subcategoryList
-                  }
-                  contentContainerStyle={
-                    styles.subcategoryListContent
-                  }
-                  showsVerticalScrollIndicator={
-                    false
-                  }
-                >
-                  {currentSubcategories.map(
-                    subcategory => {
-                      const isSelected =
-                        modalSelectedSubcategoryIds.includes(
-                          subcategory.subcategoryId,
-                        );
-
-                      return (
-                        <TouchableOpacity
-                          key={
-                            subcategory.subcategoryId
+                        <View
+                          style={
+                            styles.audienceSectionHeader
                           }
-                          activeOpacity={
-                            0.85
-                          }
-                          onPress={() =>
-                            handleSubcategoryToggle(
-                              subcategory.subcategoryId,
-                            )
-                          }
-                          style={[
-                            styles.subcategoryRow,
-                            isSelected &&
-                            styles.subcategoryRowSelected,
-                          ]}
                         >
                           <View
                             style={
-                              styles.subcategoryTextContainer
+                              styles.audienceHeadingLine
+                            }
+                          />
+
+                          <Text
+                            style={
+                              styles.audienceSectionTitle
                             }
                           >
-                            <Text
-                              style={[
-                                styles.subcategoryName,
-                                isSelected &&
-                                styles.subcategoryNameSelected,
-                              ]}
-                            >
-                              {
-                                subcategory.name
-                              }
-                            </Text>
-
-                            {subcategory.description && (
-                              <Text
-                                numberOfLines={
-                                  1
-                                }
-                                style={[
-                                  styles.subcategoryDescription,
-                                  isSelected &&
-                                  styles.subcategoryDescriptionSelected,
-                                ]}
-                              >
-                                {
-                                  subcategory.description
-                                }
-                              </Text>
+                            {getAudienceLabel(
+                              audience,
                             )}
-                          </View>
-
-                          {/* CHECKBOX */}
+                          </Text>
 
                           <View
-                            style={[
-                              styles.checkbox,
-                              isSelected &&
-                              styles.checkboxSelected,
-                            ]}
-                          >
-                            {isSelected && (
-                              <Text
-                                style={
-                                  styles.checkboxCheck
+                            style={
+                              styles.audienceHeadingLine
+                            }
+                          />
+                        </View>
+
+                        {/* =================================
+                            AUDIENCE SUBCATEGORIES
+                        ================================= */}
+
+                        {audienceSubcategories.map(
+                          subcategory => {
+                            const id =
+                              String(
+                                subcategory.subcategoryId,
+                              );
+
+                            const selected =
+                              modalSelectedSubcategoryIds.some(
+                                selectedId =>
+                                  String(
+                                    selectedId,
+                                  ) === id,
+                              );
+
+                            return (
+                              <TouchableOpacity
+                                key={`${audience}-${id}`}
+                                activeOpacity={0.8}
+                                style={[
+                                  styles.subcategoryRow,
+                                  selected &&
+                                    styles.subcategoryRowSelected,
+                                ]}
+                                onPress={() =>
+                                  handleSubcategoryToggle(
+                                    id,
+                                  )
                                 }
                               >
-                                ✓
-                              </Text>
-                            )}
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    },
-                  )}
-                </ScrollView>
-              )}
 
-            {/* ================================================= */}
-            {/* NO MATCHING SERVICES */}
-            {/* ================================================= */}
+                                {/* CHECKBOX */}
 
-            {!subcategoriesLoading &&
-              currentSubcategories.length ===
-              0 && (
-                <View
-                  style={
-                    styles.noSubcategoriesContainer
-                  }
-                >
-                  <Text
-                    style={
-                      styles.noSubcategoriesText
-                    }
-                  >
-                    No services available for the selected
-                    audience
-                  </Text>
-                </View>
-              )}
+                                <View
+                                  style={[
+                                    styles.checkbox,
+                                    selected &&
+                                      styles.checkboxSelected,
+                                  ]}
+                                >
+                                  {selected && (
+                                    <Text
+                                      style={
+                                        styles.checkmark
+                                      }
+                                    >
+                                      ✓
+                                    </Text>
+                                  )}
+                                </View>
 
-            {/* ================================================= */}
-            {/* FOOTER */}
-            {/* ================================================= */}
+                                {/* TEXT */}
+
+                                <View
+                                  style={
+                                    styles.subcategoryTextContainer
+                                  }
+                                >
+                                  <Text
+                                    style={[
+                                      styles.subcategoryName,
+                                      selected &&
+                                        styles.subcategoryNameSelected,
+                                    ]}
+                                  >
+                                    {
+                                      subcategory.name
+                                    }
+                                  </Text>
+
+                                  {subcategory.description ? (
+                                    <Text
+                                      numberOfLines={
+                                        2
+                                      }
+                                      style={
+                                        styles.subcategoryDescription
+                                      }
+                                    >
+                                      {
+                                        subcategory.description
+                                      }
+                                    </Text>
+                                  ) : null}
+                                </View>
+                              </TouchableOpacity>
+                            );
+                          },
+                        )}
+                      </View>
+                    );
+                  },
+                )}
+              </ScrollView>
+            )}
+
+            {/* =========================================
+                MODAL FOOTER
+            ========================================= */}
 
             <View
               style={
                 styles.modalFooter
               }
             >
-              <Text
+              <TouchableOpacity
+                activeOpacity={0.85}
                 style={
-                  styles.footerSelectedText
+                  styles.cancelButton
+                }
+                onPress={
+                  handleCloseModal
                 }
               >
-                {
-                  modalSelectedSubcategoryIds.filter(
-                    id =>
-                      currentSubcategories.some(
-                        subcategory =>
-                          subcategory.subcategoryId ===
-                          id,
-                      ),
-                  ).length
-                }{' '}
-                selected
-              </Text>
+                <Text
+                  style={
+                    styles.cancelButtonText
+                  }
+                >
+                  Cancel
+                </Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
-                activeOpacity={
-                  0.85
+                activeOpacity={0.85}
+                style={
+                  styles.doneButton
                 }
                 onPress={
                   handleDone
-                }
-                style={
-                  styles.doneButton
                 }
               >
                 <Text
@@ -1644,512 +1649,450 @@ console.log(
                 </Text>
               </TouchableOpacity>
             </View>
-          </Pressable>
-        </Pressable>
+
+          </View>
+        </View>
       </Modal>
     </View>
   );
-}
+};
 
-// ============================================================
-// STYLES
-// ============================================================
+/* =========================================================
+   STYLES
+========================================================= */
 
-const styles =
-  StyleSheet.create({
-    wrapper: {
-      paddingHorizontal:
-        SPACING.xl,
-      marginBottom:
-        SPACING.medium,
-    },
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+    marginTop:
+      SPACING?.small ?? 8,
+  },
 
-    loadingContainer: {
-      height: 68,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-    },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent:
+      'space-between',
+    marginBottom:
+      SPACING?.medium ?? 12,
+  },
 
-    grid: {
-      flexDirection:
-        'row',
-      flexWrap:
-        'wrap',
-      justifyContent:
-        'space-between',
-      rowGap: 7,
-    },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
 
-    card: {
-      width:
-        '23.5%',
-      height: 68,
-      borderRadius: 12,
-      backgroundColor:
-        COLORS.white,
-      borderWidth: 1,
-      borderColor:
-        '#EAEAEA',
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      position:
-        'relative',
-      shadowColor:
-        COLORS.black,
-      shadowOffset: {
-        width: 0,
-        height: 1,
-      },
-      shadowOpacity:
-        0.025,
-      shadowRadius: 3,
-      elevation: 1,
-    },
+  subtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.themeColor,
+  },
 
-    cardSelected: {
-      backgroundColor:
-        COLORS.themeColor,
-      borderColor:
-        COLORS.themeColor,
-      shadowOpacity:
-        0.10,
-      elevation: 2,
-    },
+  loadingContainer: {
+    minHeight: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-    imageContainer: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      backgroundColor:
-        '#F7F7F7',
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      marginBottom: 2,
-    },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 13,
+    color:
+      COLORS.textSecondary,
+  },
 
-    imageContainerSelected: {
-      backgroundColor:
-        COLORS.white,
-    },
+  emptyContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-    image: {
-      width: 34,
-      height: 34,
-    },
+  emptyText: {
+    textAlign: 'center',
+    fontSize: 14,
+    color:
+      COLORS.textSecondary,
+  },
 
-    name: {
-      width:
-        '90%',
-      fontSize:
-        9.5,
-      lineHeight:
-        11,
-      color:
-        '#222222',
-      fontWeight:
-        '600',
-      textAlign:
-        'center',
-      letterSpacing:
-        -0.1,
-    },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent:
+      'flex-start',
+  },
 
-    nameSelected: {
-      color:
-        COLORS.white,
-      fontWeight:
-        '700',
-    },
+  categoryCard: {
+    width: '23%',
+    marginHorizontal: '1%',
+    marginBottom: 14,
+    minHeight: 105,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    backgroundColor:
+      COLORS.background,
+    borderWidth: 1,
+    borderColor:
+      COLORS.border ||
+      'rgba(0,0,0,0.08)',
+    position: 'relative',
+  },
 
-    checkContainer: {
-      position:
-        'absolute',
-      top: 4,
-      right: 4,
-      width: 14,
-      height: 14,
-      borderRadius: 7,
-      backgroundColor:
-        COLORS.themeColor,
-      borderWidth: 1,
-      borderColor:
-        COLORS.white,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-    },
+  categoryCardSelected: {
+    borderColor:
+      COLORS.themeColor,
+    backgroundColor:
+      COLORS.themeColor + '12',
+  },
 
-    check: {
-      color:
-        COLORS.white,
-      fontSize: 8,
-      lineHeight: 9,
-      fontWeight:
-        '900',
-    },
+  iconContainer: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 7,
+    backgroundColor:
+      COLORS.themeColor + '12',
+  },
 
-    countBadge: {
-      position:
-        'absolute',
-      top: 3,
-      right: 3,
-      minWidth: 17,
-      height: 17,
-      paddingHorizontal: 4,
-      borderRadius: 9,
-      backgroundColor:
-        COLORS.white,
-      borderWidth: 1,
-      borderColor:
-        COLORS.black,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-    },
+  iconContainerSelected: {
+    backgroundColor:
+      COLORS.themeColor + '20',
+  },
 
-    countBadgeText: {
-      color:
-        COLORS.black,
-      fontSize: 9,
-      lineHeight: 10,
-      fontWeight:
-        '800',
-      textAlign:
-        'center',
-    },
+  categoryIcon: {
+    width: 44,
+    height: 44,
+  },
 
-    modalBackdrop: {
-      flex: 1,
-      backgroundColor:
-        'rgba(0,0,0,0.45)',
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      paddingHorizontal: 20,
-    },
+  categoryName: {
+    textAlign: 'center',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
 
-    modalCard: {
-      width:
-        '100%',
-      maxWidth: 430,
-      maxHeight:
-        '75%',
-      backgroundColor:
-        COLORS.white,
-      borderRadius: 20,
-      overflow:
-        'hidden',
-      shadowColor:
-        COLORS.black,
-      shadowOffset: {
-        width: 0,
-        height: 5,
-      },
-      shadowOpacity:
-        0.20,
-      shadowRadius: 12,
-      elevation: 10,
-    },
+  categoryNameSelected: {
+    color:
+      COLORS.themeColor,
+    fontWeight: '700',
+  },
 
-    modalHeader: {
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-      justifyContent:
-        'space-between',
-      paddingHorizontal: 18,
-      paddingTop: 17,
-      paddingBottom: 14,
-      borderBottomWidth: 1,
-      borderBottomColor:
-        '#EEEEEE',
-    },
+  countBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    minWidth: 21,
+    height: 21,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+    backgroundColor:
+      COLORS.themeColor,
+  },
 
-    modalTitleContainer: {
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-      flex: 1,
-    },
+  countBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
 
-    modalIconContainer: {
-      width: 42,
-      height: 42,
-      borderRadius: 12,
-      backgroundColor:
-        '#F7F7F7',
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      marginRight: 10,
-    },
+  /* =====================================================
+     MODAL
+  ===================================================== */
 
-    modalIcon: {
-      width: 34,
-      height: 34,
-    },
+  modalOverlay: {
+    flex: 1,
+    justifyContent:
+      'flex-end',
+  },
 
-    modalTitle: {
-      fontSize: 16,
-      fontWeight:
-        '800',
-      color:
-        '#222222',
-    },
+  modalBackgroundPressable: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor:
+      'rgba(0,0,0,0.45)',
+  },
 
-    modalSubtitle: {
-      marginTop: 2,
-      fontSize: 10.5,
-      color:
-        '#777777',
-      fontWeight:
-        '500',
-    },
+  modalContainer: {
+    width: '100%',
+    maxHeight: '82%',
+    backgroundColor:
+      COLORS.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+  },
 
-    audienceInfo: {
-      paddingHorizontal: 18,
-      paddingVertical: 10,
-      backgroundColor:
-        '#F8F8F8',
-      borderBottomWidth: 1,
-      borderBottomColor:
-        '#EEEEEE',
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-    },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent:
+      'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 12,
+  },
 
-    audienceInfoLabel: {
-      fontSize: 10,
-      color:
-        '#777777',
-      fontWeight:
-        '600',
-      marginRight: 5,
-    },
+  modalTitleContainer: {
+    flex: 1,
+    paddingRight: 12,
+  },
 
-    audienceInfoValue: {
-      fontSize: 10,
-      color:
-        COLORS.themeColor,
-      fontWeight:
-        '800',
-      flex: 1,
-    },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
 
-    closeButton: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor:
-        '#F5F5F5',
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      marginLeft: 10,
-    },
+  modalSubtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    color:
+      COLORS.textSecondary,
+  },
 
-    closeButtonText: {
-      fontSize: 23,
-      lineHeight: 25,
-      color:
-        '#555555',
-      fontWeight:
-        '400',
-      marginTop: -2,
-    },
+  closeButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor:
+      COLORS.themeColor + '12',
+  },
 
-    modalLoading: {
-      minHeight: 120,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      flexDirection:
-        'row',
-      gap: 8,
-    },
+  closeButtonText: {
+    color:
+      COLORS.themeColor,
+    fontSize: 27,
+    lineHeight: 30,
+    fontWeight: '400',
+  },
 
-    loadingText: {
-      fontSize: 11,
-      color:
-        '#777777',
-      fontWeight:
-        '500',
-    },
+  /* =====================================================
+     AUDIENCE INFO
+  ===================================================== */
 
-    subcategoryList: {
-      maxHeight:
-        380,
-    },
+  audienceInfo: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
 
-    subcategoryListContent: {
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      gap: 8,
-    },
+  audienceInfoLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color:
+      COLORS.textSecondary,
+    marginBottom: 7,
+  },
 
-    subcategoryRow: {
-      minHeight: 55,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor:
-        '#E6E6E6',
-      backgroundColor:
-        COLORS.white,
-      paddingHorizontal: 13,
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-      justifyContent:
-        'space-between',
-    },
+  audiencePills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
 
-    subcategoryRowSelected: {
-      backgroundColor:
-        COLORS.themeColor,
-      borderColor:
-        COLORS.themeColor,
-    },
+  audiencePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginRight: 7,
+    marginBottom: 5,
+    backgroundColor:
+      COLORS.themeColor + '15',
+  },
 
-    subcategoryTextContainer: {
-      flex: 1,
-      paddingRight: 10,
-    },
+  audiencePillText: {
+    color:
+      COLORS.themeColor,
+    fontSize: 12,
+    fontWeight: '700',
+  },
 
-    subcategoryName: {
-      fontSize: 12.5,
-      color:
-        '#222222',
-      fontWeight:
-        '700',
-    },
+  /* =====================================================
+     GROUPED AUDIENCE SECTIONS
+  ===================================================== */
 
-    subcategoryNameSelected: {
-      color:
-        COLORS.white,
-    },
+  audienceSection: {
+    marginBottom: 18,
+  },
 
-    subcategoryDescription: {
-      marginTop: 2,
-      fontSize: 9.5,
-      color:
-        '#888888',
-      fontWeight:
-        '500',
-    },
+  audienceSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
 
-    subcategoryDescriptionSelected: {
-      color:
-        'rgba(255,255,255,0.85)',
-    },
+  audienceHeadingLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor:
+      COLORS.themeColor + '35',
+  },
 
-    checkbox: {
-      width: 22,
-      height: 22,
-      borderRadius: 7,
-      borderWidth: 1.5,
-      borderColor:
-        '#D0D0D0',
-      backgroundColor:
-        COLORS.white,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-    },
+  audienceSectionTitle: {
+    marginHorizontal: 12,
+    fontSize: 16,
+    fontWeight: '800',
+    color:
+      COLORS.themeColor,
+  },
 
-    checkboxSelected: {
-      backgroundColor:
-        COLORS.themeColor,
-      borderColor:
-        COLORS.white,
-    },
+  /* =====================================================
+     SUBCATEGORIES
+  ===================================================== */
 
-    checkboxCheck: {
-      color:
-        COLORS.white,
-      fontSize: 13,
-      lineHeight: 15,
-      fontWeight:
-        '900',
-    },
+  subcategoryScroll: {
+    flexGrow: 0,
+  },
 
-    noSubcategoriesContainer: {
-      minHeight: 120,
-      paddingHorizontal: 25,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-    },
+  subcategoryContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
 
-    noSubcategoriesText: {
-      fontSize: 11,
-      color:
-        '#888888',
-      paddingVertical: 8,
-      textAlign:
-        'center',
-    },
+  subcategoryRow: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor:
+      COLORS.border ||
+      'rgba(0,0,0,0.08)',
+    backgroundColor:
+      COLORS.background,
+  },
 
-    modalFooter: {
-      minHeight: 65,
-      paddingHorizontal: 16,
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-      justifyContent:
-        'space-between',
-      borderTopWidth: 1,
-      borderTopColor:
-        '#EEEEEE',
-      backgroundColor:
-        COLORS.white,
-    },
+  subcategoryRowSelected: {
+    borderColor:
+      COLORS.themeColor,
+    backgroundColor:
+      COLORS.themeColor + '10',
+  },
 
-    footerSelectedText: {
-      fontSize: 11,
-      color:
-        '#666666',
-      fontWeight:
-        '600',
-    },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor:
+      COLORS.textSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
 
-    doneButton: {
-      minWidth: 90,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor:
-        COLORS.themeColor,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      paddingHorizontal: 20,
-    },
+  checkboxSelected: {
+    backgroundColor:
+      COLORS.themeColor,
+    borderColor:
+      COLORS.themeColor,
+  },
 
-    doneButtonText: {
-      color:
-        COLORS.white,
-      fontSize: 12,
-      fontWeight:
-        '800',
-    },
-  });
+  checkmark: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+
+  subcategoryTextContainer: {
+    flex: 1,
+  },
+
+  subcategoryName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+
+  subcategoryNameSelected: {
+    color:
+      COLORS.themeColor,
+    fontWeight: '700',
+  },
+
+  subcategoryDescription: {
+    marginTop: 3,
+    fontSize: 11,
+    lineHeight: 15,
+    color:
+      COLORS.textSecondary,
+  },
+
+  modalEmptyContainer: {
+    paddingHorizontal: 25,
+    paddingVertical: 35,
+    alignItems: 'center',
+  },
+
+  modalEmptyText: {
+    textAlign: 'center',
+    fontSize: 14,
+    color:
+      COLORS.textSecondary,
+  },
+
+  /* =====================================================
+     FOOTER
+  ===================================================== */
+
+  modalFooter: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor:
+      COLORS.border ||
+      'rgba(0,0,0,0.08)',
+  },
+
+  cancelButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor:
+      COLORS.themeColor,
+  },
+
+  cancelButtonText: {
+    color:
+      COLORS.themeColor,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  doneButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+    backgroundColor:
+      COLORS.themeColor,
+  },
+
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+});
+
+export default ServiceChips;
