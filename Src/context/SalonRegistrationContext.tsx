@@ -5,6 +5,41 @@ import React, {
 } from 'react';
 
 // =====================================================
+// KYC DOCUMENT TYPE
+// =====================================================
+
+export type KycDocumentType =
+    | 'PAN'
+    | 'AADHAAR'
+    | 'SHOP_ESTABLISHMENT'
+    | 'GST'
+    | 'UDYAM';
+
+// =====================================================
+// KYC DOCUMENT
+// =====================================================
+
+export type KycDocument = {
+    uri: string;
+
+    name: string;
+
+    type?: string | null;
+
+    size?: number | null;
+
+    // ===================================================
+    // KYC S3 UPLOAD INFORMATION
+    // ===================================================
+
+    uploadId?: string;
+
+    s3Key?: string;
+
+    documentType?: KycDocumentType;
+};
+
+// =====================================================
 // BUSINESS HOURS
 // =====================================================
 
@@ -82,6 +117,7 @@ export const DEFAULT_BUSINESS_HOURS: BusinessHours = {
 
 const createDefaultBusinessHours =
     (): BusinessHours => ({
+
         MONDAY: {
             ...DEFAULT_BUSINESS_HOURS.MONDAY,
         },
@@ -147,18 +183,6 @@ export type BusinessDocument = {
 // =====================================================
 // SERVICE MODE
 // =====================================================
-//
-// SALON_ONLY
-//     Service is provided only at the salon.
-//
-// HOME_ONLY
-//     Service is provided only at customer's home.
-//
-// SALON_AND_HOME
-//     Service is provided both at the salon and
-//     at customer's home.
-//
-// =====================================================
 
 export type ServiceMode =
     | 'SALON_ONLY'
@@ -168,28 +192,6 @@ export type ServiceMode =
 // =====================================================
 // SERVICE AUDIENCE
 // =====================================================
-//
-// Defines WHO the salon/business provides services to.
-//
-// FEMALE
-//     Services for women.
-//
-// MALE
-//     Services for men.
-//
-// KIDS
-//     Services for children.
-//
-// Multiple values can be selected.
-//
-// Example:
-//
-// [
-//     'FEMALE',
-//     'MALE'
-// ]
-//
-// =====================================================
 
 export type ServiceAudience =
     | 'FEMALE'
@@ -198,15 +200,6 @@ export type ServiceAudience =
 
 // =====================================================
 // SALON SERVICE SELECTION
-// =====================================================
-//
-// These are the services selected from Clavata's
-// master service catalog.
-//
-// IMPORTANT:
-//
-// Price and duration belong to the SALON's offering.
-//
 // =====================================================
 
 export type SalonServiceSelection = {
@@ -227,18 +220,6 @@ export type SalonServiceSelection = {
 
 // =====================================================
 // SERVICE-SPECIFIC MODE
-// =====================================================
-//
-// The key is the subcategory/service ID.
-//
-// Example:
-//
-// {
-//     "service-id-1": "SALON_AND_HOME",
-//     "service-id-2": "SALON_ONLY",
-//     "service-id-3": "HOME_ONLY"
-// }
-//
 // =====================================================
 
 export type ServiceSpecificModes = Record<
@@ -273,88 +254,21 @@ export type SalonRegistrationData = {
     // ===================================================
     // BUSINESS TYPE
     // ===================================================
-    //
-    // businessTypeId
-    //     Primary/first selected business type.
-    //
-    // Kept for backward compatibility with the existing
-    // backend/register flow that currently expects a
-    // single businessTypeId.
-    //
-    // Example:
-    //
-    // businessTypeId: "beauty-salon-id"
-    //
-    // ===================================================
 
     businessTypeId: string;
 
-    // ===================================================
-    // MULTIPLE BUSINESS TYPES
-    // ===================================================
-    //
-    // Contains ALL business types selected by the salon.
-    //
-    // Example:
-    //
-    // [
-    //     "beauty-salon-id",
-    //     "barber-id",
-    //     "spa-wellness-id"
-    // ]
-    //
-    // This is used later by SalonServices to determine
-    // which categories/subcategories are available for
-    // the salon.
-    //
-    // ===================================================
-
     businessTypeIds: string[];
-
-    // ===================================================
-    // BUSINESS TYPE NAMES
-    // ===================================================
-    //
-    // Contains the selected business type names as a
-    // comma-separated string.
-    //
-    // Example:
-    //
-    // "Beauty Salon, Barber"
-    //
-    // ===================================================
 
     businessType: string;
 
     // ===================================================
     // SERVICE AUDIENCE
     // ===================================================
-    //
-    // Defines whether the business provides services for:
-    //
-    // FEMALE
-    // MALE
-    // KIDS
-    //
-    // Multiple selections are allowed.
-    //
-    // Example:
-    //
-    // ['FEMALE', 'MALE']
-    //
-    // ===================================================
 
     targetAudiences: ServiceAudience[];
 
     // ===================================================
     // SERVICE AVAILABILITY
-    // ===================================================
-    //
-    // General/default service availability.
-    //
-    // The salon can later customize availability
-    // individually using serviceSpecificModes.
-    //
     // ===================================================
 
     serviceMode: ServiceMode;
@@ -410,25 +324,36 @@ export type SalonRegistrationData = {
     accountHolderName: string;
 
     // ===================================================
-    // DOCUMENTS
+    // GENERAL BUSINESS DOCUMENTS
     // ===================================================
 
     businessDocuments: BusinessDocument[];
 
     // ===================================================
-    // CLAVATA SERVICE SELECTIONS
+    // KYC DOCUMENTS
     // ===================================================
+
+    panDocument?: KycDocument | null;
+
+    aadhaarDocument?: KycDocument | null;
+
+    shopEstablishmentDocument?: KycDocument | null;
+
+    gstDocument?: KycDocument | null;
+
+    udyamDocument?: KycDocument | null;
+
+    // ===================================================
+    // KYC S3 UPLOAD ID
     //
-    // Contains:
-    //
-    // audience
-    // categoryId
-    // categoryName
-    // subcategoryId
-    // subcategoryName
-    // price
-    // durationMinutes
-    //
+    // One uploadId is used for all documents belonging
+    // to this salon registration.
+    // ===================================================
+
+    kycUploadId: string;
+
+    // ===================================================
+    // CLAVATA SERVICE SELECTIONS
     // ===================================================
 
     serviceSelections: SalonServiceSelection[];
@@ -490,31 +415,17 @@ const createInitialData =
         email: '',
 
         // =================================================
-        // PRIMARY BUSINESS TYPE
+        // BUSINESS TYPE
         // =================================================
 
         businessTypeId: '',
 
-        // =================================================
-        // ALL SELECTED BUSINESS TYPES
-        // =================================================
-
         businessTypeIds: [],
-
-        // =================================================
-        // BUSINESS TYPE NAMES
-        // =================================================
 
         businessType: '',
 
         // =================================================
         // SERVICE AUDIENCE
-        // =================================================
-        //
-        // Initially empty.
-        //
-        // SalonRegistrationScreen will set this.
-        //
         // =================================================
 
         targetAudiences: [],
@@ -524,10 +435,6 @@ const createInitialData =
         // =================================================
 
         serviceMode: 'SALON_ONLY',
-
-        // =================================================
-        // SERVICE-SPECIFIC MODES
-        // =================================================
 
         serviceSpecificModes: {},
 
@@ -548,7 +455,7 @@ const createInitialData =
         longitude: undefined,
 
         // =================================================
-        // KYC - OWNER
+        // KYC
         // =================================================
 
         panNumber: '',
@@ -556,7 +463,7 @@ const createInitialData =
         aadhaarNumber: '',
 
         // =================================================
-        // KYB - BUSINESS
+        // KYB
         // =================================================
 
         gstNumber: '',
@@ -580,39 +487,33 @@ const createInitialData =
         accountHolderName: '',
 
         // =================================================
-        // DOCUMENTS
+        // GENERAL DOCUMENTS
         // =================================================
 
         businessDocuments: [],
 
         // =================================================
-        // CLAVATA SERVICE SELECTIONS
+        // KYC DOCUMENTS
         // =================================================
-        //
-        // Initially empty.
-        //
-        // SalonServices.tsx will add:
-        //
-        // {
-        //     audience,
-        //     categoryId,
-        //     categoryName,
-        //     subcategoryId,
-        //     subcategoryName
-        // }
-        //
-        // ConfigureSalonServices.tsx will then add:
-        //
-        // {
-        //     audience,
-        //     categoryId,
-        //     categoryName,
-        //     subcategoryId,
-        //     subcategoryName,
-        //     price,
-        //     durationMinutes
-        // }
-        //
+
+        panDocument: null,
+
+        aadhaarDocument: null,
+
+        shopEstablishmentDocument: null,
+
+        gstDocument: null,
+
+        udyamDocument: null,
+
+        // =================================================
+        // KYC S3 UPLOAD
+        // =================================================
+
+        kycUploadId: '',
+
+        // =================================================
+        // SERVICE SELECTIONS
         // =================================================
 
         serviceSelections: [],
@@ -665,9 +566,9 @@ type SalonRegistrationContextType = {
 // =====================================================
 
 const SalonRegistrationContext =
-    createContext<SalonRegistrationContextType | null>(
-        null,
-    );
+    createContext<
+        SalonRegistrationContextType | null
+    >(null);
 
 // =====================================================
 // PROVIDER
