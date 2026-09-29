@@ -148,18 +148,17 @@ export default function SalonKYCScreen({
     }
 
     // ========================================================
-    // BUSINESS DOCUMENT
+    // SHOP & ESTABLISHMENT VALIDATION
+    //
+    // This is the required salon business registration
+    // detail for applicable physical establishments.
     // ========================================================
 
-    if (
-      !cleanGST &&
-      !cleanShop &&
-      !cleanUdyam
-    ) {
+    if (!cleanShop) {
 
       Alert.alert(
-        'Business verification required',
-        'Please provide at least one business registration detail such as GSTIN, Shop & Establishment number, or Udyam number.',
+        'Salon registration required',
+        'Please enter your Shop & Establishment registration number.',
       );
 
       return;
@@ -179,6 +178,12 @@ export default function SalonKYCScreen({
 
       // ======================================================
       // SAVE KYC INFORMATION
+      //
+      // PAN, Aadhaar, GSTIN, Shop & Establishment and Udyam
+      // are all saved in the salon registration data.
+      //
+      // Cashfree verification is NOT triggered here.
+      // Admin will initiate verification later.
       // ======================================================
 
       updateData({
@@ -230,7 +235,7 @@ export default function SalonKYCScreen({
       );
 
       // ======================================================
-      // GO TO SERVICES
+      // GO TO SALON REVIEW
       //
       // Services are now a completely separate screen.
       // ======================================================
@@ -401,9 +406,40 @@ export default function SalonKYCScreen({
           <Text
             style={styles.sectionSubtitle}
           >
-            Provide whichever business registration details
-            apply to your salon.
+            Shop & Establishment registration is required for
+            applicable physical salon establishments. GSTIN and
+            Udyam registration can be provided if applicable.
           </Text>
+
+          {/* SHOP & ESTABLISHMENT */}
+
+          <View
+            style={styles.field}
+          >
+
+            <Text
+              style={styles.label}
+            >
+              Shop & Establishment Number *
+            </Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Enter registration number"
+              placeholderTextColor={
+                COLORS.textMuted
+              }
+              value={
+                shopEstablishmentNumber
+              }
+              onChangeText={
+                setShopEstablishmentNumber
+              }
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+
+          </View>
 
           {/* GST */}
 
@@ -419,7 +455,7 @@ export default function SalonKYCScreen({
 
             <TextInput
               style={styles.input}
-              placeholder="Optional"
+              placeholder="Optional / If applicable"
               placeholderTextColor={
                 COLORS.textMuted
               }
@@ -436,36 +472,6 @@ export default function SalonKYCScreen({
                   )
               }
               maxLength={15}
-              autoCapitalize="characters"
-              autoCorrect={false}
-            />
-
-          </View>
-
-          {/* SHOP */}
-
-          <View
-            style={styles.field}
-          >
-
-            <Text
-              style={styles.label}
-            >
-              Shop & Establishment Number
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Optional"
-              placeholderTextColor={
-                COLORS.textMuted
-              }
-              value={
-                shopEstablishmentNumber
-              }
-              onChangeText={
-                setShopEstablishmentNumber
-              }
               autoCapitalize="characters"
               autoCorrect={false}
             />
@@ -537,14 +543,21 @@ export default function SalonKYCScreen({
           <Text
             style={styles.infoText}
           >
-            4. Your KYC/business verification will be processed.
+            4. Clavata will review your salon business information.
           </Text>
 
           <Text
             style={styles.infoText}
           >
-            5. Your salon will remain pending until verification
-            and approval are completed.
+            5. Admin may send the owner PAN and Aadhaar details for
+            verification.
+          </Text>
+
+          <Text
+            style={styles.infoText}
+          >
+            6. Your salon will remain pending until verification
+            and Clavata approval are completed.
           </Text>
 
         </View>
@@ -598,6 +611,7 @@ const styles =
 
     container: {
       flex: 1,
+
       backgroundColor:
         COLORS.background,
     },

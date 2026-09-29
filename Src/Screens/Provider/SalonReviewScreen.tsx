@@ -1,18 +1,15 @@
 import React, {
-  useCallback,
   useMemo,
-  useState,
 } from 'react';
 
 import {
-  ActivityIndicator,
-  Alert,
   SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
+  Text,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 
 import {
@@ -26,57 +23,43 @@ import {
 } from '../../components';
 
 import {
-  useSalonRegistration,
-} from '../../context/SalonRegistrationContext';
-
-import {
-  COLORS,
-  FONTS,
-  SPACING,
-  RADIUS,
-} from '../../constants/constants';
-
-import {
   REGISTER_SALON_PARTNER,
+  GET_BUSINESS_TYPES,
   GET_CLAVATA_CATEGORIES,
   GET_CLAVATA_SUBCATEGORIES,
 } from '../../graphql/queries';
 
+import {
+  useSalonRegistration,
+} from '../../context/SalonRegistrationContext';
 
-/*
- * =====================================================
- * TYPES
- * =====================================================
- */
+import {
+  useUser,
+} from '../../context/UserContext';
+
+import {
+  COLORS,
+  FONTS,
+  FONT_SIZES,
+  SPACING,
+  RADIUS,
+} from '../../constants/constants';
+
+
+// ============================================================
+// TYPES
+// ============================================================
 
 type Audience =
   | 'FEMALE'
   | 'MALE'
   | 'KIDS';
 
-
-type RegisterSalonPartnerResponse = {
-  registerSalonPartner: {
-    success: boolean;
-    message: string;
-    salonId: string;
-  };
+type BusinessType = {
+  businessTypeId: string;
+  name: string;
+  status?: string;
 };
-
-
-type ReviewServiceSelection = {
-  audience: Audience;
-
-  categoryId: string;
-  categoryName?: string;
-
-  subcategoryId: string;
-  subcategoryName?: string;
-
-  price?: number;
-  durationMinutes?: number;
-};
-
 
 type Category = {
   categoryId: string;
@@ -85,7 +68,6 @@ type Category = {
   servicesCount: number;
   status: string;
 };
-
 
 type Subcategory = {
   subcategoryId: string;
@@ -96,30 +78,35 @@ type Subcategory = {
   status: string;
 };
 
+type ReviewServiceSelection = {
+  audience: Audience;
+  categoryId: string;
+  categoryName?: string;
+  subcategoryId: string;
+  subcategoryName?: string;
+  price?: number;
+  durationMinutes?: number;
+};
+
+type RegisterSalonPartnerResponse = {
+  registerSalonPartner: {
+    success: boolean;
+    message: string;
+    salonId: string;
+  };
+};
 
 type RegisterSalonPartnerVariables = {
   input: {
     userId: string;
     phoneNumber: string;
+
     salonName: string;
     ownerName: string;
     email: string;
 
-    /*
-     * Primary business type.
-     *
-     * Kept for backward compatibility.
-     */
     businessTypeId: string;
-
-    /*
-     * All business types selected by the salon.
-     */
     businessTypeIds: string[];
-
-    /*
-     * Business type display name.
-     */
     businessType: string;
 
     targetAudiences: Audience[];
@@ -163,11 +150,9 @@ type RegisterSalonPartnerVariables = {
 };
 
 
-/*
- * =====================================================
- * AUDIENCE CONFIG
- * =====================================================
- */
+// ============================================================
+// AUDIENCE ORDER
+// ============================================================
 
 const AUDIENCE_ORDER: Audience[] = [
   'FEMALE',
@@ -176,12 +161,14 @@ const AUDIENCE_ORDER: Audience[] = [
 ];
 
 
+// ============================================================
+// AUDIENCE LABEL
+// ============================================================
+
 const getAudienceLabel = (
-  audience: string,
-): string => {
-
+  audience: Audience,
+) => {
   switch (audience) {
-
     case 'FEMALE':
       return 'Female';
 
@@ -193,320 +180,380 @@ const getAudienceLabel = (
 
     default:
       return audience;
-
   }
 };
 
 
-/*
- * =====================================================
- * SCREEN
- * =====================================================
- */
+// ============================================================
+// BUSINESS TYPE HELPERS
+// ============================================================
 
-const SalonReviewScreen = ({
+const getBusinessTypeId = (
+  item: any,
+): string => {
+  return String(
+    item?.businessTypeId ??
+    item?.id ??
+    '',
+  ).trim();
+};
+
+const getBusinessTypeName = (
+  item: any,
+): string => {
+  return String(
+    item?.name ??
+    item?.businessType ??
+    item?.label ??
+    '',
+  ).trim();
+};
+
+
+// ============================================================
+// SCREEN
+// ============================================================
+
+export default function SalonReviewScreen({
   navigation,
-}: any) => {
+}: any) {
 
   const {
     data,
+    reset,
   } = useSalonRegistration();
 
+  const {
+    currentUser,
+    setCurrentUser,
+  } = useUser();
+
+  // ==========================================================
+  // REGISTER SALON
+  // ==========================================================
 
   const [
-    submitting,
-    setSubmitting,
-  ] = useState(false);
+    registerSalonPartner,
+    {
+      loading,
+    },
+  ] = useMutation<
+    RegisterSalonPartnerResponse,
+    RegisterSalonPartnerVariables
+  >(
+    REGISTER_SALON_PARTNER,
+  );
 
 
-  /*
-   * ---------------------------------------------------
-   * MASTER CATEGORIES
-   * ---------------------------------------------------
-   */
+  // ==========================================================
+  // GET BUSINESS TYPES
+  // ==========================================================
 
   const {
-    data: categoryResponse,
-    loading: categoriesLoading,
+    data: businessTypesData,
+    loading: businessTypesLoading,
   } = useQuery(
-    GET_CLAVATA_CATEGORIES,
+    GET_BUSINESS_TYPES,
     {
-      fetchPolicy: 'network-only',
+      variables: {
+        status: 'ACTIVE',
+      },
+
+      fetchPolicy:
+        'network-only',
+
+      notifyOnNetworkStatusChange:
+        true,
+
+      onError: error => {
+        console.log(
+          '[SalonReview] GET_BUSINESS_TYPES error:',
+          error,
+        );
+      },
     },
   );
 
 
-  /*
-   * ---------------------------------------------------
-   * MASTER SUBCATEGORIES
-   * ---------------------------------------------------
-   */
+  // ==========================================================
+  // BUSINESS TYPE MASTER
+  // ==========================================================
+
+  const businessTypes: any[] =
+    businessTypesData
+      ?.businessTypes
+      ?.businessTypes ??
+    [];
+
+
+  // ==========================================================
+  // SELECTED BUSINESS TYPE IDS
+  // ==========================================================
+
+  const selectedBusinessTypeIds =
+    useMemo(() => {
+
+      const ids =
+        Array.isArray(
+          (data as any)?.businessTypeIds,
+        )
+          ? (data as any).businessTypeIds
+          : (data as any)?.businessTypeId
+            ? [
+              (data as any)
+                .businessTypeId,
+            ]
+            : [];
+
+      return ids
+        .map(
+          (id: any) =>
+            String(
+              id ?? '',
+            ).trim(),
+        )
+        .filter(Boolean);
+
+    }, [
+      (data as any)?.businessTypeIds,
+      (data as any)?.businessTypeId,
+    ]);
+
+
+  // ==========================================================
+  // SELECTED BUSINESS TYPE NAMES
+  // ==========================================================
+
+  const selectedBusinessTypes =
+    useMemo(() => {
+
+      return selectedBusinessTypeIds.map(
+        (businessTypeId: string) => {
+
+          const matched =
+            businessTypes.find(
+              item =>
+                getBusinessTypeId(
+                  item,
+                ) ===
+                businessTypeId,
+            );
+
+          return {
+            businessTypeId,
+
+            name:
+              getBusinessTypeName(
+                matched,
+              ) ||
+              businessTypeId,
+          };
+        },
+      );
+
+    }, [
+      selectedBusinessTypeIds,
+      businessTypes,
+    ]);
+
+
+  // ==========================================================
+  // BUSINESS TYPE DISPLAY LABEL
+  // ==========================================================
+
+  const selectedBusinessTypeLabel =
+    useMemo(() => {
+
+      if (
+        selectedBusinessTypes.length ===
+        0
+      ) {
+        return (
+          data.businessType ||
+          'Not provided'
+        );
+      }
+
+      return selectedBusinessTypes
+        .map(
+          (item: { name: any; }) =>
+            item.name,
+        )
+        .join(', ');
+
+    }, [
+      selectedBusinessTypes,
+      data.businessType,
+    ]);
+
+
+  // ==========================================================
+  // DEBUG
+  // ==========================================================
+
+  console.log(
+    '[SalonReview] SELECTED BUSINESS TYPE IDS:',
+    selectedBusinessTypeIds,
+  );
+
+  console.log(
+    '[SalonReview] SELECTED BUSINESS TYPE NAMES:',
+    selectedBusinessTypes,
+  );
+
+
+  // ==========================================================
+  // GET CATEGORIES
+  // ==========================================================
+
+  const {
+    data: categoryResponse,
+    loading:
+    categoriesLoading,
+  } = useQuery(
+    GET_CLAVATA_CATEGORIES,
+    {
+      fetchPolicy:
+        'network-only',
+    },
+  );
+
+
+  // ==========================================================
+  // GET SUBCATEGORIES
+  // ==========================================================
 
   const {
     data: subcategoryResponse,
-    loading: subcategoriesLoading,
+    loading:
+    subcategoriesLoading,
   } = useQuery(
     GET_CLAVATA_SUBCATEGORIES,
     {
-      fetchPolicy: 'network-only',
+      fetchPolicy:
+        'network-only',
     },
   );
 
 
   const categories: Category[] =
-    categoryResponse?.categories?.categories || [];
+    categoryResponse
+      ?.categories
+      ?.categories ??
+    [];
 
 
   const subcategories: Subcategory[] =
-    subcategoryResponse?.subcategories?.subcategories || [];
+    subcategoryResponse
+      ?.subcategories
+      ?.subcategories ??
+    [];
 
 
-  /*
-   * ---------------------------------------------------
-   * SERVICE SELECTIONS
-   * ---------------------------------------------------
-   */
+  // ==========================================================
+  // RESOLVE CATEGORY NAME
+  // ==========================================================
 
-  const serviceSelections: ReviewServiceSelection[] =
-    data.serviceSelections || [];
+  const getCategoryName = (
+    categoryId: string,
+  ) => {
 
-
-  /*
-   * ---------------------------------------------------
-   * SELECTED AUDIENCES
-   * ---------------------------------------------------
-   */
-
-  const selectedAudiences: Audience[] =
-    data.targetAudiences || [];
-
-
-  /*
-   * ---------------------------------------------------
-   * SELECTED BUSINESS TYPES
-   * ---------------------------------------------------
-   *
-   * Multiple business types are supported.
-   *
-   * Example:
-   *
-   * businessTypeIds:
-   * [
-   *   "BEAUTY_SALON_ID",
-   *   "BARBER_ID"
-   * ]
-   *
-   * businessTypeId remains the primary/first ID.
-   * ---------------------------------------------------
-   */
-
-  const selectedBusinessTypeIds: string[] =
-    useMemo(() => {
-
-      const ids = Array.isArray(
-        data.businessTypeIds,
-      )
-        ? data.businessTypeIds
-        : [];
-
-      const normalizedIds =
-        ids
-          .map(
-            id =>
-              String(
-                id ?? '',
-              ).trim(),
-          )
-          .filter(
-            Boolean,
-          );
-
-
-      /*
-       * Backward compatibility:
-       *
-       * If businessTypeIds is not available
-       * but businessTypeId exists, use the
-       * primary ID as the only selected type.
-       */
-
-      if (
-        normalizedIds.length === 0 &&
-        data.businessTypeId
-      ) {
-
-        const primaryId =
+    const category =
+      categories.find(
+        item =>
           String(
-            data.businessTypeId,
-          ).trim();
-
-
-        if (primaryId) {
-          return [primaryId];
-        }
-
-      }
-
-
-      /*
-       * Remove duplicates while preserving
-       * selection order.
-       */
-
-      return Array.from(
-        new Set(
-          normalizedIds,
-        ),
+            item.categoryId,
+          ).trim() ===
+          String(
+            categoryId,
+          ).trim(),
       );
 
-    }, [
-      data.businessTypeIds,
-      data.businessTypeId,
-    ]);
+    return (
+      category?.name ||
+      ''
+    );
+  };
 
 
-  /*
-   * ---------------------------------------------------
-   * GROUP SERVICES
-   *
-   * Audience
-   *    ↓
-   * Category
-   *    ↓
-   * Services
-   * ---------------------------------------------------
-   */
+  // ==========================================================
+  // RESOLVE SUBCATEGORY NAME
+  // ==========================================================
 
-  const groupedServicesByAudience =
+  const getSubcategoryName = (
+    subcategoryId: string,
+  ) => {
+
+    const subcategory =
+      subcategories.find(
+        item =>
+          String(
+            item.subcategoryId,
+          ).trim() ===
+          String(
+            subcategoryId,
+          ).trim(),
+      );
+
+    return (
+      subcategory?.name ||
+      ''
+    );
+  };
+
+
+  // ==========================================================
+  // SERVICE SELECTIONS
+  // ==========================================================
+
+  const selectedServiceSelections:
+    ReviewServiceSelection[] =
     useMemo(() => {
 
-      const grouped: Record<
-        Audience,
-        {
-          categoryId: string;
-          categoryName: string;
-          services: Array<{
-            subcategoryId: string;
-            subcategoryName: string;
-            price?: number;
-            durationMinutes?: number;
-          }>;
-        }[]
-      > = {
-        FEMALE: [],
-        MALE: [],
-        KIDS: [],
-      };
+      if (
+        !Array.isArray(
+          data?.serviceSelections,
+        )
+      ) {
+        return [];
+      }
 
+      return data
+        .serviceSelections
+        .filter(
+          (
+            selection: any,
+          ) =>
+            selection &&
+            selection.audience &&
+            selection.categoryId &&
+            selection.subcategoryId,
+        )
+        .map(
+          (
+            selection: any,
+          ) => {
 
-      serviceSelections.forEach(
-        selection => {
-
-          /*
-           * Ignore selections without audience.
-           */
-
-          if (
-            !selection.audience ||
-            !AUDIENCE_ORDER.includes(
-              selection.audience,
-            )
-          ) {
-            return;
-          }
-
-
-          const audience =
-            selection.audience;
-
-
-          /*
-           * Resolve category.
-           */
-
-          const category =
-            categories.find(
-              item =>
-                item.categoryId ===
+            const categoryName =
+              selection.categoryName ||
+              getCategoryName(
                 selection.categoryId,
-            );
+              );
 
-
-          /*
-           * Resolve subcategory.
-           */
-
-          const subcategory =
-            subcategories.find(
-              item =>
-                item.subcategoryId ===
+            const subcategoryName =
+              selection.subcategoryName ||
+              getSubcategoryName(
                 selection.subcategoryId,
-            );
+              );
 
+            return {
+              audience:
+                selection.audience,
 
-          const categoryName =
-            selection.categoryName ||
-            category?.name ||
-            'Category';
-
-
-          const subcategoryName =
-            selection.subcategoryName ||
-            subcategory?.name ||
-            'Service';
-
-
-          /*
-           * Find existing category
-           * inside this audience.
-           */
-
-          let categoryGroup =
-            grouped[audience].find(
-              item =>
-                item.categoryId ===
-                selection.categoryId,
-            );
-
-
-          /*
-           * Create category group.
-           */
-
-          if (!categoryGroup) {
-
-            categoryGroup = {
               categoryId:
                 selection.categoryId,
 
               categoryName,
-
-              services: [],
-            };
-
-
-            grouped[audience].push(
-              categoryGroup,
-            );
-
-          }
-
-
-          /*
-           * Prevent duplicate services.
-           */
-
-          const alreadyExists =
-            categoryGroup.services.some(
-              service =>
-                service.subcategoryId ===
-                selection.subcategoryId,
-            );
-
-
-          if (!alreadyExists) {
-
-            categoryGroup.services.push({
 
               subcategoryId:
                 selection.subcategoryId,
@@ -517,1312 +564,1224 @@ const SalonReviewScreen = ({
                 selection.price,
 
               durationMinutes:
-                selection.durationMinutes,
-
-            });
-
-          }
-
-        },
-      );
-
-
-      /*
-       * Sort every audience.
-       */
-
-      AUDIENCE_ORDER.forEach(
-        audience => {
-
-          grouped[audience].forEach(
-            category => {
-
-              category.services.sort(
-                (a, b) =>
-                  a.subcategoryName.localeCompare(
-                    b.subcategoryName,
-                    undefined,
-                    {
-                      sensitivity: 'base',
-                    },
-                  ),
-              );
-
-            },
-          );
-
-
-          grouped[audience].sort(
-            (a, b) =>
-              a.categoryName.localeCompare(
-                b.categoryName,
-                undefined,
-                {
-                  sensitivity: 'base',
-                },
-              ),
-          );
-
-        },
-      );
-
-
-      return grouped;
+                selection.durationMinutes ??
+                selection.duration,
+            };
+          },
+        );
 
     }, [
-      serviceSelections,
+      data?.serviceSelections,
       categories,
       subcategories,
     ]);
 
 
-  /*
-   * ---------------------------------------------------
-   * REGISTER MUTATION
-   * ---------------------------------------------------
-   */
+  // ==========================================================
+  // GROUP SERVICES BY AUDIENCE
+  // ==========================================================
 
-  const [
-    registerSalonPartner,
-  ] = useMutation<
-    RegisterSalonPartnerResponse,
-    RegisterSalonPartnerVariables
-  >(
-    REGISTER_SALON_PARTNER,
-  );
+  const groupedServices =
+    useMemo(() => {
 
+      const groups:
+        Record<
+          Audience,
+          ReviewServiceSelection[]
+        > = {
+        FEMALE: [],
+        MALE: [],
+        KIDS: [],
+      };
 
-  /*
-   * ===================================================
-   * EDIT HANDLERS
-   * ===================================================
-   */
+      selectedServiceSelections.forEach(
+        selection => {
 
-  const handleEditSalonInformation =
-    () => {
-
-      navigation.navigate(
-        'SalonInformation',
+          if (
+            groups[
+            selection.audience
+            ]
+          ) {
+            groups[
+              selection.audience
+            ].push(
+              selection,
+            );
+          }
+        },
       );
 
-    };
+      return groups;
+
+    }, [
+      selectedServiceSelections,
+    ]);
 
 
-  const handleEditAddress =
-    () => {
+  // ==========================================================
+  // SUBMIT
+  // ==========================================================
 
-      navigation.navigate(
-        'SalonAddress',
+  const onSubmit = async () => {
+
+    // --------------------------------------------------------
+    // USER CHECK
+    // --------------------------------------------------------
+
+    if (
+      !currentUser?.userId
+    ) {
+
+      Alert.alert(
+        'Session Expired',
+        'Please sign in again.',
       );
 
-    };
+      return;
+    }
 
 
-  const handleEditBusinessHours =
-    () => {
+    // --------------------------------------------------------
+    // USER DATA CHECK
+    // --------------------------------------------------------
 
-      navigation.navigate(
-        'SalonBusinessHours',
+    if (!data.userId) {
+
+      Alert.alert(
+        'Registration Error',
+        'User information is missing. Please restart registration.',
       );
 
-    };
+      return;
+    }
 
 
-  const handleEditServices =
-    () => {
+    // --------------------------------------------------------
+    // SALON NAME
+    // --------------------------------------------------------
 
-      navigation.navigate(
-        'SalonServices',
+    if (!data.salonName) {
+
+      Alert.alert(
+        'Registration Error',
+        'Salon name is missing.',
       );
 
-    };
+      return;
+    }
 
 
-  const handleEditKYC =
-    () => {
+    // --------------------------------------------------------
+    // OWNER NAME
+    // --------------------------------------------------------
 
-      navigation.navigate(
-        'SalonKYC',
+    if (!data.ownerName) {
+
+      Alert.alert(
+        'Registration Error',
+        'Owner name is missing.',
       );
 
-    };
+      return;
+    }
 
 
-  const handleEditAudience =
-    () => {
+    // --------------------------------------------------------
+    // EMAIL
+    // --------------------------------------------------------
 
-      navigation.navigate(
-        'SalonInformation',
+    if (!data.email) {
+
+      Alert.alert(
+        'Registration Error',
+        'Email address is missing.',
       );
 
-    };
+      return;
+    }
 
 
-  /*
-   * ===================================================
-   * SUBMIT
-   * ===================================================
-   */
+    // --------------------------------------------------------
+    // BUSINESS TYPE
+    // --------------------------------------------------------
 
-  const handleSubmit =
-  useCallback(
-    async () => {
+    const normalizedBusinessTypeIds =
+      selectedBusinessTypeIds
+        .map(
+          (id: any) =>
+            String(
+              id,
+            ).trim(),
+        )
+        .filter(Boolean);
 
-      if (submitting) {
-        return;
-      }
+
+    const primaryBusinessTypeId =
+      normalizedBusinessTypeIds[0] ||
+      String(
+        (data as any)
+          ?.businessTypeId ??
+        '',
+      ).trim();
 
 
-      /*
-       * ---------------------------------------------
-       * BASIC VALIDATION
-       * ---------------------------------------------
-       */
+    if (
+      normalizedBusinessTypeIds.length ===
+      0 ||
+      !primaryBusinessTypeId
+    ) {
 
-      if (!data.userId) {
+      Alert.alert(
+        'Business Type Required',
+        'Please select at least one business type.',
+      );
 
-        Alert.alert(
-          'Registration Error',
-          'User ID is missing. Please sign in again.',
+      return;
+    }
+
+
+    // --------------------------------------------------------
+    // BUSINESS TYPE NAME
+    // --------------------------------------------------------
+
+    const businessTypeName =
+      selectedBusinessTypeLabel
+        .trim();
+
+
+    if (!businessTypeName) {
+
+      Alert.alert(
+        'Business Type Required',
+        'Business type information is missing.',
+      );
+
+      return;
+    }
+
+
+    // --------------------------------------------------------
+    // TARGET AUDIENCE
+    // --------------------------------------------------------
+
+    const targetAudiences =
+      Array.isArray(
+        data.targetAudiences,
+      )
+        ? data.targetAudiences.filter(
+          (
+            audience: any,
+          ): audience is Audience =>
+            audience ===
+            'FEMALE' ||
+            audience ===
+            'MALE' ||
+            audience ===
+            'KIDS',
+        )
+        : [];
+
+
+    if (
+      targetAudiences.length ===
+      0
+    ) {
+
+      Alert.alert(
+        'Customer Type Required',
+        'Please select who your business serves.',
+      );
+
+      return;
+    }
+
+
+    // --------------------------------------------------------
+    // ADDRESS
+    // --------------------------------------------------------
+
+    if (
+      !data.addressLine ||
+      !data.city ||
+      !data.state ||
+      !data.pincode
+    ) {
+
+      Alert.alert(
+        'Address Required',
+        'Please complete your business address.',
+      );
+
+      return;
+    }
+
+
+    // --------------------------------------------------------
+    // BUSINESS HOURS
+    // --------------------------------------------------------
+
+    if (
+      !data.businessHours ||
+      Object.keys(
+        data.businessHours,
+      ).length === 0
+    ) {
+
+      Alert.alert(
+        'Business Hours Required',
+        'Please provide your business hours.',
+      );
+
+      return;
+    }
+
+
+    // --------------------------------------------------------
+    // PAN
+    // --------------------------------------------------------
+
+    const cleanPAN =
+      String(
+        data.panNumber ||
+        '',
+      )
+        .trim()
+        .toUpperCase();
+
+
+    if (
+      !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(
+        cleanPAN,
+      )
+    ) {
+
+      Alert.alert(
+        'PAN Required',
+        'Please provide a valid PAN number.',
+      );
+
+      return;
+    }
+
+
+    // --------------------------------------------------------
+    // AADHAAR
+    // --------------------------------------------------------
+
+    const cleanAadhaar =
+      String(
+        data.aadhaarNumber ||
+        '',
+      )
+        .replace(
+          /\D/g,
+          '',
         );
 
-        return;
 
-      }
+    if (
+      !/^\d{12}$/.test(
+        cleanAadhaar,
+      )
+    ) {
 
+      Alert.alert(
+        'Aadhaar Required',
+        'Please provide a valid 12-digit Aadhaar number.',
+      );
 
-      if (!data.phoneNumber) {
+      return;
+    }
 
-        Alert.alert(
-          'Missing Information',
-          'Phone number is missing.',
-        );
 
-        return;
+    // --------------------------------------------------------
+    // SHOP & ESTABLISHMENT
+    // REQUIRED
+    // --------------------------------------------------------
 
-      }
+    const cleanShop =
+      String(
+        data.shopEstablishmentNumber ||
+        '',
+      ).trim();
+
 
+    if (!cleanShop) {
+
+      Alert.alert(
+        'Salon Registration Required',
+        'Please provide your Shop & Establishment registration number.',
+      );
 
-      if (!data.salonName) {
+      return;
+    }
 
-        Alert.alert(
-          'Missing Information',
-          'Please enter the salon name.',
-        );
 
-        return;
+    // --------------------------------------------------------
+    // SERVICES
+    // --------------------------------------------------------
 
-      }
+    if (
+      selectedServiceSelections.length ===
+      0
+    ) {
 
+      Alert.alert(
+        'Services Required',
+        'Please select at least one service category and subcategory.',
+      );
 
-      if (!data.ownerName) {
+      return;
+    }
 
-        Alert.alert(
-          'Missing Information',
-          'Please enter the owner name.',
-        );
 
-        return;
+    // --------------------------------------------------------
+    // VALIDATE SERVICES
+    // --------------------------------------------------------
 
-      }
+    const invalidService =
+      selectedServiceSelections.find(
+        selection =>
+          !selection.audience ||
+          !selection.categoryId ||
+          !selection.subcategoryId ||
+          !selection.price ||
+          Number(
+            selection.price,
+          ) <= 0 ||
+          !selection.durationMinutes ||
+          Number(
+            selection.durationMinutes,
+          ) <= 0,
+      );
 
 
-      if (!data.email) {
+    if (invalidService) {
 
-        Alert.alert(
-          'Missing Information',
-          'Please provide the business email.',
-        );
+      Alert.alert(
+        'Invalid Service',
+        'Every selected service must have an audience, category, subcategory, price, and duration.',
+      );
 
-        return;
+      return;
+    }
 
-      }
 
+    // --------------------------------------------------------
+    // SUBMIT
+    // --------------------------------------------------------
 
-      /*
-       * ---------------------------------------------
-       * BUSINESS TYPE VALIDATION
-       * ---------------------------------------------
-       *
-       * GraphQL requires:
-       *
-       * businessTypeId: ID!
-       * businessTypeIds: [ID!]!
-       * businessType: String!
-       *
-       */
+    try {
 
-      const primaryBusinessTypeId =
-        String(
-          data.businessTypeId ?? '',
-        ).trim();
+      console.log(
+        '==========================================',
+      );
 
-
-      const businessTypeIds =
-        selectedBusinessTypeIds;
-
-
-      if (!primaryBusinessTypeId) {
-
-        console.error(
-          'BUSINESS TYPE ID IS MISSING:',
-          data.businessTypeId,
-        );
-
-        Alert.alert(
-          'Business Type Required',
-          'Please select a business type for your salon.',
-        );
-
-        return;
-
-      }
-
-
-      if (
-        businessTypeIds.length === 0
-      ) {
-
-        console.error(
-          'BUSINESS TYPE IDS ARE MISSING:',
-          data.businessTypeIds,
-        );
-
-        Alert.alert(
-          'Business Type Required',
-          'Please select at least one business type for your salon.',
-        );
-
-        return;
-
-      }
-
-
-      /*
-       * Make sure the primary business type
-       * is included in the complete list.
-       */
-
-      const normalizedBusinessTypeIds =
-        Array.from(
-          new Set([
-            primaryBusinessTypeId,
-            ...businessTypeIds,
-          ]),
-        );
-
-
-      if (!data.businessType) {
-
-        Alert.alert(
-          'Business Type Required',
-          'Please select a business type for your salon.',
-        );
-
-        return;
-
-      }
-
-
-      /*
-       * ---------------------------------------------
-       * AUDIENCE VALIDATION
-       * ---------------------------------------------
-       */
-
-      if (
-        !data.targetAudiences ||
-        data.targetAudiences.length === 0
-      ) {
-
-        Alert.alert(
-          'Service Audience Required',
-          'Please select at least one audience: Female, Male, or Kids.',
-        );
-
-        return;
-
-      }
-
-
-      /*
-       * ---------------------------------------------
-       * ADDRESS VALIDATION
-       * ---------------------------------------------
-       */
-
-      if (
-        !data.addressLine ||
-        !data.city ||
-        !data.state ||
-        !data.pincode
-      ) {
-
-        Alert.alert(
-          'Missing Address',
-          'Please complete the salon address.',
-        );
-
-        return;
-
-      }
-
-
-      /*
-       * ---------------------------------------------
-       * BUSINESS HOURS
-       * ---------------------------------------------
-       */
-
-      if (
-        !data.businessHours ||
-        Object.keys(
-          data.businessHours,
-        ).length === 0
-      ) {
-
-        Alert.alert(
-          'Missing Business Hours',
-          'Please provide your business hours.',
-        );
-
-        return;
-
-      }
-
-
-      /*
-       * ---------------------------------------------
-       * KYC
-       * ---------------------------------------------
-       */
-
-      if (!data.panNumber) {
-
-        Alert.alert(
-          'Missing PAN',
-          'Please provide your PAN number.',
-        );
-
-        return;
-
-      }
-
-
-      if (!data.aadhaarNumber) {
-
-        Alert.alert(
-          'Missing Aadhaar',
-          'Please provide your Aadhaar number.',
-        );
-
-        return;
-
-      }
-
-
-      if (
-        !data.gstNumber &&
-        !data.shopEstablishmentNumber &&
-        !data.udyamNumber
-      ) {
-
-        Alert.alert(
-          'Business Verification Required',
-          'Please provide GST, Shop Establishment Number, or Udyam Number.',
-        );
-
-        return;
-
-      }
-
-
-      /*
-       * ---------------------------------------------
-       * SERVICE VALIDATION
-       * ---------------------------------------------
-       */
-
-      if (
-        !serviceSelections ||
-        serviceSelections.length === 0
-      ) {
-
-        Alert.alert(
-          'Services Required',
-          'Please select at least one service for your salon.',
-        );
-
-        return;
-
-      }
-
-
-      /*
-       * ---------------------------------------------
-       * VALID SERVICE SELECTIONS
-       * ---------------------------------------------
-       */
-
-      const validServiceSelections =
-        serviceSelections.filter(
-          selection =>
-            Boolean(
+      console.log(
+        'SUBMITTING SALON REGISTRATION',
+      );
+
+      console.log(
+        'BUSINESS TYPE IDS:',
+        normalizedBusinessTypeIds,
+      );
+
+      console.log(
+        'BUSINESS TYPE NAME:',
+        businessTypeName,
+      );
+
+      console.log(
+        'TARGET AUDIENCES:',
+        targetAudiences,
+      );
+
+      console.log(
+        'SERVICES:',
+        JSON.stringify(
+          selectedServiceSelections,
+          null,
+          2,
+        ),
+      );
+
+      console.log(
+        '==========================================',
+      );
+
+
+      // ------------------------------------------------------
+      // SERVICE PAYLOAD
+      // ------------------------------------------------------
+
+      const serviceSelections =
+        selectedServiceSelections.map(
+          selection => ({
+
+            audience:
               selection.audience,
-            ) &&
-            Boolean(
+
+            categoryId:
               selection.categoryId,
-            ) &&
-            Boolean(
+
+            subcategoryId:
               selection.subcategoryId,
-            ),
-        );
 
-
-      if (
-        validServiceSelections.length ===
-        0
-      ) {
-
-        Alert.alert(
-          'Services Required',
-          'Please select at least one valid audience and service.',
-        );
-
-        return;
-
-      }
-
-
-      /*
-       * ---------------------------------------------
-       * PRICE + DURATION
-       * ---------------------------------------------
-       */
-
-      const incompleteServices =
-        validServiceSelections.filter(
-          selection => {
-
-            const price =
+            price:
               Number(
                 selection.price,
-              );
+              ),
 
-            const duration =
+            duration:
               Number(
                 selection.durationMinutes,
-              );
+              ),
 
-
-            return (
-              !Number.isFinite(price) ||
-              price <= 0 ||
-              !Number.isFinite(duration) ||
-              duration <= 0
-            );
-
-          },
+          }),
         );
 
 
-      if (
-        incompleteServices.length > 0
-      ) {
+      // ------------------------------------------------------
+      // REGISTER SALON
+      // ------------------------------------------------------
 
-        Alert.alert(
-          'Service Details Required',
-          'Please provide a valid price and duration for every selected service.',
-        );
+      const response =
+        await registerSalonPartner({
 
-        return;
+          variables: {
 
-      }
+            input: {
 
+              userId:
+                currentUser.userId,
 
-      /*
-       * ---------------------------------------------
-       * SUBMIT
-       * ---------------------------------------------
-       */
+              phoneNumber:
+                currentUser.phoneNumber ||
+                data.phoneNumber ||
+                '',
 
-      try {
+              salonName:
+                data.salonName,
 
-        setSubmitting(true);
+              ownerName:
+                data.ownerName,
 
+              email:
+                data.email,
 
-        /*
-         * -----------------------------------------
-         * FINAL REQUIRED ID CHECK
-         * -----------------------------------------
-         */
+              businessTypeId:
+                primaryBusinessTypeId,
 
-        const userId =
-          String(
-            data.userId,
-          ).trim();
+              businessTypeIds:
+                normalizedBusinessTypeIds,
 
-        const businessTypeId =
-          String(
-            data.businessTypeId,
-          ).trim();
+              businessType:
+                businessTypeName,
 
+              targetAudiences:
+                targetAudiences,
 
-        if (!userId) {
+              address: {
 
-          Alert.alert(
-            'Registration Error',
-            'User ID is missing. Please sign in again.',
-          );
+                addressLine:
+                  data.addressLine,
 
-          return;
+                city:
+                  data.city,
 
-        }
+                state:
+                  data.state,
 
-
-        if (!businessTypeId) {
-
-          Alert.alert(
-            'Business Type Required',
-            'Business type ID is missing. Please select your business type again.',
-          );
-
-          return;
-
-        }
-
-
-        if (
-          normalizedBusinessTypeIds.length ===
-          0
-        ) {
-
-          Alert.alert(
-            'Business Type Required',
-            'Please select at least one business type.',
-          );
-
-          return;
-
-        }
-
-
-        /*
-         * -----------------------------------------
-         * GRAPHQL INPUT
-         * -----------------------------------------
-         */
-
-        const input: RegisterSalonPartnerVariables['input'] = {
-
-          /*
-           * REQUIRED USER ID
-           */
-
-          userId:
-
-
-            userId,
-
-
-          /*
-           * REQUIRED PHONE
-           */
-
-          phoneNumber:
-            data.phoneNumber,
-
-
-          /*
-           * REQUIRED SALON NAME
-           */
-
-          salonName:
-            data.salonName,
-
-
-          /*
-           * REQUIRED OWNER NAME
-           */
-
-          ownerName:
-            data.ownerName,
-
-
-          /*
-           * REQUIRED EMAIL
-           */
-
-          email:
-            data.email,
-
-
-          /*
-           * -----------------------------------------
-           * PRIMARY BUSINESS TYPE ID
-           * -----------------------------------------
-           */
-
-          businessTypeId:
-
-
-            businessTypeId,
-
-
-          /*
-           * -----------------------------------------
-           * ALL SELECTED BUSINESS TYPE IDS
-           * -----------------------------------------
-           *
-           * IMPORTANT:
-           *
-           * This is required by the updated
-           * RegisterSalonPartnerInput schema.
-           */
-
-          businessTypeIds:
-            normalizedBusinessTypeIds,
-
-
-          /*
-           * REQUIRED BUSINESS TYPE NAME
-           */
-
-          businessType:
-            data.businessType,
-
-
-          /*
-           * -----------------------------------------
-           * AUDIENCES
-           * -----------------------------------------
-           */
-
-          targetAudiences:
-            data.targetAudiences,
-
-
-          /*
-           * -----------------------------------------
-           * ADDRESS
-           * -----------------------------------------
-           */
-
-          address: {
-
-            addressLine:
-              data.addressLine,
-
-            city:
-              data.city,
-
-            state:
-              data.state,
-
-            pincode:
-              data.pincode,
-
-          },
-
-
-          /*
-           * -----------------------------------------
-           * BUSINESS HOURS
-           * -----------------------------------------
-           */
-
-          businessHours:
-            data.businessHours,
-
-
-          /*
-           * -----------------------------------------
-           * LOCATION
-           * -----------------------------------------
-           */
-
-          latitude:
-            data.latitude ??
-            undefined,
-
-          longitude:
-            data.longitude ??
-            undefined,
-
-
-          /*
-           * -----------------------------------------
-           * KYC / BUSINESS DOCUMENTS
-           * -----------------------------------------
-           */
-
-          gstNumber:
-            data.gstNumber ||
-            undefined,
-
-          panNumber:
-            data.panNumber ||
-            undefined,
-
-          aadhaarNumber:
-            data.aadhaarNumber ||
-            undefined,
-
-          shopEstablishmentNumber:
-            data.shopEstablishmentNumber ||
-            undefined,
-
-          udyamNumber:
-            data.udyamNumber ||
-            undefined,
-
-
-          /*
-           * -----------------------------------------
-           * BANK DETAILS
-           * -----------------------------------------
-           */
-
-          bankAccount:
-            data.bankAccount ||
-            undefined,
-
-          ifsc:
-            data.ifsc ||
-            undefined,
-
-
-          /*
-           * -----------------------------------------
-           * AUDIENCE-SPECIFIC SERVICES
-           * -----------------------------------------
-           *
-           * GraphQL input intentionally sends IDs
-           * rather than category/subcategory names.
-           *
-           * The backend should resolve the names
-           * from the master Category/Subcategory
-           * tables before storing the selections.
-           */
-
-          serviceSelections:
-            validServiceSelections.map(
-              selection => ({
-
-                audience:
-                  selection.audience,
-
-                categoryId:
-                  selection.categoryId,
-
-                subcategoryId:
-                  selection.subcategoryId,
-
-                price:
-                  Number(
-                    selection.price,
-                  ),
-
-                duration:
-                  Number(
-                    selection.durationMinutes,
-                  ),
-
-              }),
-            ),
-
-        };
-
-
-        /*
-         * ---------------------------------------------
-         * DEBUG LOG
-         * ---------------------------------------------
-         */
-
-        console.log(
-          '======================================',
-        );
-
-        console.log(
-          'Submitting salon registration',
-        );
-
-        console.log(
-          'USER ID:',
-          input.userId,
-        );
-
-        console.log(
-          'PRIMARY BUSINESS TYPE ID:',
-          input.businessTypeId,
-        );
-
-        console.log(
-          'ALL BUSINESS TYPE IDS:',
-          input.businessTypeIds,
-        );
-
-        console.log(
-          'BUSINESS TYPE:',
-          input.businessType,
-        );
-
-        console.log(
-          'PHONE:',
-          input.phoneNumber,
-        );
-
-        console.log(
-          'SALON NAME:',
-          input.salonName,
-        );
-
-        console.log(
-          'TARGET AUDIENCES:',
-          input.targetAudiences,
-        );
-
-        console.log(
-          'SERVICE COUNT:',
-          input.serviceSelections.length,
-        );
-
-        console.log(
-          'FULL REGISTRATION INPUT:',
-        );
-
-        console.log(
-          JSON.stringify(
-            input,
-            null,
-            2,
-          ),
-        );
-
-        console.log(
-          '======================================',
-        );
-
-
-        /*
-         * ---------------------------------------------
-         * GRAPHQL MUTATION
-         * ---------------------------------------------
-         */
-
-        const result =
-          await registerSalonPartner({
-
-            variables: {
-              input,
-            },
-
-          });
-
-
-        /*
-         * ---------------------------------------------
-         * RESPONSE
-         * ---------------------------------------------
-         */
-
-        const response =
-          result.data
-            ?.registerSalonPartner;
-
-
-        if (
-          !response?.success
-        ) {
-
-          throw new Error(
-            response?.message ||
-            'Unable to submit salon registration.',
-          );
-
-        }
-
-
-        /*
-         * ---------------------------------------------
-         * SUCCESS
-         * ---------------------------------------------
-         */
-
-        Alert.alert(
-          'Registration Submitted',
-          response.message ||
-          'Your salon registration has been submitted successfully.',
-          [
-            {
-
-              text: 'OK',
-
-              onPress: () => {
-
-                navigation.navigate(
-                  'SalonSuccess',
-                  {
-
-                    salonId:
-                      response.salonId,
-
-                    salonName:
-                      data.salonName,
-
-                  },
-
-                );
+                pincode:
+                  data.pincode,
 
               },
 
+              businessHours:
+                data.businessHours,
+
+              latitude:
+                data.latitude,
+
+              longitude:
+                data.longitude,
+
+              gstNumber:
+                data.gstNumber ||
+                '',
+
+              panNumber:
+                cleanPAN,
+
+              aadhaarNumber:
+                cleanAadhaar,
+
+              shopEstablishmentNumber:
+                cleanShop,
+
+              udyamNumber:
+                data.udyamNumber ||
+                '',
+
+              bankAccount:
+                data.bankAccount ||
+                '',
+
+              ifsc:
+                data.ifsc ||
+                '',
+
+              serviceSelections:
+                serviceSelections,
+
             },
 
-          ],
-        );
+          },
+
+        });
 
 
-      } catch (error: unknown) {
+      console.log(
+        '==========================================',
+      );
 
-        console.error(
-          'Salon registration error:',
-          error,
-        );
+      console.log(
+        'REGISTER SALON RESPONSE:',
+      );
+
+      console.log(
+        JSON.stringify(
+          response.data,
+          null,
+          2,
+        ),
+      );
+
+      console.log(
+        '==========================================',
+      );
 
 
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Something went wrong while submitting your registration.';
+      const result =
+        response.data
+          ?.registerSalonPartner;
 
 
-        console.error(
-          'Salon registration error message:',
-          errorMessage,
-        );
+      // ------------------------------------------------------
+      // BACKEND FAILURE
+      // ------------------------------------------------------
 
+      if (
+        !result?.success
+      ) {
 
         Alert.alert(
           'Registration Failed',
-          errorMessage,
+          result?.message ||
+          'Unable to register your business.',
         );
 
-
-      } finally {
-
-        setSubmitting(false);
-
+        return;
       }
 
-    },
-    [
-      data,
-      serviceSelections,
-      submitting,
-      registerSalonPartner,
-      navigation,
-      selectedBusinessTypeIds,
-    ],
-  );
+
+      // ------------------------------------------------------
+      // SALON ID
+      // ------------------------------------------------------
+
+      const salonId =
+        result?.salonId;
 
 
-  /*
-   * ===================================================
-   * MASKED VALUES
-   * ===================================================
-   */
+      if (!salonId) {
 
-  const maskedAadhaar =
-    data.aadhaarNumber
-      ? `XXXX XXXX ${data.aadhaarNumber.slice(-4)}`
-      : 'Not provided';
+        Alert.alert(
+          'Registration Error',
+          'Salon was created, but the business ID was not returned by the server.',
+        );
 
-
-  const maskedBankAccount =
-    data.bankAccount
-      ? `XXXXXX${data.bankAccount.slice(-4)}`
-      : 'Not provided';
+        return;
+      }
 
 
-  /*
-   * ===================================================
-   * RENDER
-   * ===================================================
-   */
+      // ------------------------------------------------------
+      // UPDATE USER
+      // ------------------------------------------------------
+
+      const existingRoles =
+        currentUser.roles || {
+          customer: false,
+          businessPartner: false,
+        };
+
+
+      const updatedUser = {
+
+        ...currentUser,
+
+        activeRole:
+          'PROVIDER',
+
+        providerStatus:
+          'PENDING',
+
+        salonId:
+          salonId,
+
+        roles: {
+
+          ...existingRoles,
+
+          businessPartner:
+            true,
+
+        },
+
+      };
+
+
+      setCurrentUser(
+        updatedUser,
+      );
+
+
+      // ------------------------------------------------------
+      // RESET
+      // ------------------------------------------------------
+
+      reset();
+
+
+      // ------------------------------------------------------
+      // NAVIGATE
+      // ------------------------------------------------------
+
+      navigation.navigate(
+        'BecomePartner',
+        {
+          screen:
+            'SalonPendingVerification',
+        },
+      );
+
+    } catch (
+    error: any
+    ) {
+
+      console.error(
+        '==========================================',
+      );
+
+      console.error(
+        'REGISTER SALON ERROR',
+      );
+
+      console.error(
+        error,
+      );
+
+      console.error(
+        'MESSAGE:',
+        error?.message,
+      );
+
+      console.error(
+        'GRAPHQL ERRORS:',
+        error?.graphQLErrors,
+      );
+
+      console.error(
+        'NETWORK ERROR:',
+        error?.networkError,
+      );
+
+      console.error(
+        '==========================================',
+      );
+
+
+      Alert.alert(
+        'Registration Failed',
+        error?.message ||
+        'Something went wrong while registering the business.',
+      );
+    }
+  };
+
+
+  // ==========================================================
+  // UI
+  // ==========================================================
 
   return (
     <SafeAreaView
-      style={styles.container}
+      style={
+        styles.container
+      }
     >
 
       <Header
-        headerTitle="Review & Submit"
-        backBtn={() =>
-          navigation.goBack()
-        }
+        headerTitle="Review Details"
       />
-
 
       <ScrollView
         contentContainerStyle={
-          styles.contentContainer
+          styles.content
         }
         showsVerticalScrollIndicator={
           false
         }
       >
 
-        {/* =================================================
-            SALON INFORMATION
-        ================================================= */}
+        {/* ====================================================
+            HEADER
+        ==================================================== */}
 
         <View
-          style={styles.section}
+          style={
+            styles.header
+          }
         >
 
+          <Text
+            style={
+              styles.title
+            }
+          >
+            Review your details
+          </Text>
+
+          <Text
+            style={
+              styles.subtitle
+            }
+          >
+            Please check everything before submitting your business registration.
+          </Text>
+
+        </View>
+
+
+        {/* ====================================================
+            BASIC DETAILS
+        ==================================================== */}
+
+        <View
+          style={
+            styles.card
+          }
+        >
+
+          <DetailRow
+            label="Salon"
+            value={
+              data.salonName
+            }
+          />
+
+          <DetailRow
+            label="Owner"
+            value={
+              data.ownerName
+            }
+          />
+
+          <DetailRow
+            label="Email"
+            value={
+              data.email
+            }
+          />
+
+
+          {/* ==================================================
+              BUSINESS TYPES
+          ================================================== */}
+
           <View
-            style={styles.sectionHeader}
+            style={
+              styles.businessTypeRow
+            }
           >
 
             <Text
-              style={styles.sectionTitle}
+              style={
+                styles.detailLabel
+              }
             >
-              Salon Information
+              Business types
             </Text>
 
 
-            <TouchableOpacity
-              onPress={
-                handleEditSalonInformation
-              }
-            >
+            {businessTypesLoading ? (
+
+              <View
+                style={
+                  styles.businessTypeLoading
+                }
+              >
+
+                <ActivityIndicator
+                  size="small"
+                  color={
+                    COLORS.themeColor
+                  }
+                />
+
+                <Text
+                  style={
+                    styles.businessTypeLoadingText
+                  }
+                >
+                  Loading business types...
+                </Text>
+
+              </View>
+
+            ) : selectedBusinessTypes.length >
+              0 ? (
+
+              <View
+                style={
+                  styles.businessTypeList
+                }
+              >
+
+                {selectedBusinessTypes.map(
+                  (businessType: { businessTypeId: React.Key | null | undefined; name: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; }) => (
+
+                    <View
+                      key={
+                        businessType.businessTypeId
+                      }
+                      style={
+                        styles.businessTypeChip
+                      }
+                    >
+
+                      <Text
+                        style={
+                          styles.businessTypeChipText
+                        }
+                      >
+                        {
+                          businessType.name
+                        }
+                      </Text>
+
+                    </View>
+
+                  ),
+                )}
+
+              </View>
+
+            ) : (
 
               <Text
-                style={styles.editText}
+                style={
+                  styles.detailValue
+                }
               >
-                Edit
+                {
+                  data.businessType ||
+                  'Not provided'
+                }
               </Text>
 
-            </TouchableOpacity>
+            )}
 
           </View>
 
 
-          <View
-            style={styles.card}
+          <DetailRow
+            label="Address"
+            value={
+              `${data.addressLine}, ${data.city}, ${data.state} - ${data.pincode}`
+            }
+          />
+
+
+          <DetailRow
+            label="Customer type"
+            value={
+              Array.isArray(
+                data.targetAudiences,
+              )
+                ? data.targetAudiences
+                  .map(
+                    (
+                      audience: Audience,
+                    ) =>
+                      getAudienceLabel(
+                        audience,
+                      ),
+                  )
+                  .join(', ')
+                : '-'
+            }
+          />
+
+
+          <DetailRow
+            label="GSTIN"
+            value={
+              data.gstNumber ||
+              'Not provided'
+            }
+          />
+
+
+          <DetailRow
+            label="Shop & Establishment"
+            value={
+              data.shopEstablishmentNumber ||
+              '-'
+            }
+          />
+
+
+          <DetailRow
+            label="Udyam"
+            value={
+              data.udyamNumber ||
+              'Not provided'
+            }
+          />
+
+
+          <DetailRow
+            label="PAN"
+            value={
+              data.panNumber ||
+              '-'
+            }
+          />
+
+
+          <DetailRow
+            label="Aadhaar"
+            value={
+              data.aadhaarNumber
+                ? `XXXX XXXX ${String(
+                  data.aadhaarNumber,
+                ).slice(-4)}`
+                : '-'
+            }
+          />
+
+
+          <DetailRow
+            label="Bank account"
+            value={
+              data.bankAccount
+                ? `XXXXXX${String(
+                  data.bankAccount,
+                ).slice(-4)}`
+                : '-'
+            }
+          />
+
+
+          <DetailRow
+            label="IFSC"
+            value={
+              data.ifsc ||
+              '-'
+            }
+            last
+          />
+
+        </View>
+
+
+        {/* ====================================================
+            SERVICES
+        ==================================================== */}
+
+        <View
+          style={
+            styles.sectionCard
+          }
+        >
+
+          <Text
+            style={
+              styles.sectionTitle
+            }
           >
-
-            <ReviewRow
-              label="Salon Name"
-              value={
-                data.salonName ||
-                'Not provided'
-              }
-            />
-
-            <ReviewRow
-              label="Owner Name"
-              value={
-                data.ownerName ||
-                'Not provided'
-              }
-            />
-
-            <ReviewRow
-              label="Email"
-              value={
-                data.email ||
-                'Not provided'
-              }
-            />
-
-            <ReviewRow
-              label="Phone Number"
-              value={
-                data.phoneNumber ||
-                'Not provided'
-              }
-            />
-
-            <ReviewRow
-              label="Business Type"
-              value={
-                data.businessType ||
-                'Not provided'
-              }
-            />
+            Services provided
+          </Text>
 
 
-            {/* ---------------------------------------------
-                SELECTED BUSINESS TYPES
-            --------------------------------------------- */}
+          <Text
+            style={
+              styles.sectionSubtitle
+            }
+          >
+            These are the Clavata services selected for your business.
+          </Text>
+
+
+          {categoriesLoading ||
+            subcategoriesLoading ? (
 
             <View
-              style={[
-                styles.reviewRow,
-                styles.reviewRowLast,
-              ]}
+              style={
+                styles.servicesLoading
+              }
             >
+
+              <ActivityIndicator
+                size="small"
+                color={
+                  COLORS.themeColor
+                }
+              />
 
               <Text
                 style={
-                  styles.reviewLabel
+                  styles.loadingText
                 }
               >
-                Selected Business Types
+                Loading service details...
               </Text>
-
-
-              {selectedBusinessTypeIds.length >
-              0 ? (
-
-                <View
-                  style={
-                    styles.audienceChipContainer
-                  }
-                >
-
-                  {selectedBusinessTypeIds.map(
-                    businessTypeId => (
-
-                      <View
-                        key={
-                          businessTypeId
-                        }
-                        style={
-                          styles.audienceChip
-                        }
-                      >
-
-                        <Text
-                          style={
-                            styles.audienceChipText
-                          }
-                        >
-                          {businessTypeId}
-                        </Text>
-
-                      </View>
-
-                    ),
-                  )}
-
-                </View>
-
-              ) : (
-
-                <Text
-                  style={
-                    styles.notProvidedText
-                  }
-                >
-                  Not provided
-                </Text>
-
-              )}
 
             </View>
 
+          ) : selectedServiceSelections.length ===
+            0 ? (
 
-            {/* ---------------------------------------------
-                SELECTED AUDIENCE
-            --------------------------------------------- */}
-
-            <View
-              style={[
-                styles.reviewRow,
-                styles.reviewRowLast,
-              ]}
+            <Text
+              style={
+                styles.emptyText
+              }
             >
+              No services selected.
+            </Text>
 
-              <View
-                style={
-                  styles.audienceHeader
+          ) : (
+
+            AUDIENCE_ORDER.map(
+              audience => {
+
+                const services =
+                  groupedServices[
+                  audience
+                  ];
+
+                if (
+                  services.length ===
+                  0
+                ) {
+                  return null;
                 }
-              >
 
-                <View
-                  style={
-                    styles.audienceLabelContainer
-                  }
-                >
-
-                  <Text
-                    style={
-                      styles.reviewLabel
-                    }
-                  >
-                    Service Audience
-                  </Text>
-
-
-                  <Text
-                    style={
-                      styles.audienceHelper
-                    }
-                  >
-                    Who your salon provides services to
-                  </Text>
-
-                </View>
-
-
-                <TouchableOpacity
-                  onPress={
-                    handleEditAudience
-                  }
-                >
-
-                  <Text
-                    style={
-                      styles.editText
-                    }
-                  >
-                    Edit
-                  </Text>
-
-                </TouchableOpacity>
-
-              </View>
-
-
-              <View
-                style={
-                  styles.audienceValueContainer
-                }
-              >
-
-                {selectedAudiences.length >
-                0 ? (
+                return (
 
                   <View
+                    key={
+                      audience
+                    }
                     style={
-                      styles.audienceChipContainer
+                      styles.audienceSection
                     }
                   >
 
-                    {selectedAudiences.map(
-                      audience => (
+                    <View
+                      style={
+                        styles.audienceHeader
+                      }
+                    >
+
+                      <Text
+                        style={
+                          styles.audienceTitle
+                        }
+                      >
+                        {
+                          getAudienceLabel(
+                            audience,
+                          )
+                        }
+                      </Text>
+
+                    </View>
+
+
+                    {services.map(
+                      (
+                        service,
+                        index,
+                      ) => (
 
                         <View
-                          key={audience}
+                          key={`${audience}-${service.categoryId}-${service.subcategoryId}-${index}`}
                           style={
-                            styles.audienceChip
+                            styles.serviceItem
                           }
                         >
 
-                          <Text
+                          <View
                             style={
-                              styles.audienceChipText
+                              styles.serviceDot
+                            }
+                          />
+
+
+                          <View
+                            style={
+                              styles.serviceInfo
                             }
                           >
-                            {
-                              getAudienceLabel(
-                                audience,
-                              )
-                            }
-                          </Text>
+
+                            <Text
+                              style={
+                                styles.serviceCategory
+                              }
+                            >
+                              {
+                                service.categoryName ||
+                                service.categoryId
+                              }
+                            </Text>
+
+
+                            <Text
+                              style={
+                                styles.serviceName
+                              }
+                            >
+                              {
+                                service.subcategoryName ||
+                                service.subcategoryId
+                              }
+                            </Text>
+
+                          </View>
+
+
+                          {service.price !==
+                            undefined &&
+                            service.price !==
+                            null ? (
+
+                            <Text
+                              style={
+                                styles.servicePrice
+                              }
+                            >
+                              ₹
+                              {
+                                Number(
+                                  service.price,
+                                ).toFixed(
+                                  0,
+                                )
+                              }
+                            </Text>
+
+                          ) : null}
 
                         </View>
 
@@ -1831,711 +1790,77 @@ const SalonReviewScreen = ({
 
                   </View>
 
-                ) : (
+                );
+              },
+            )
 
-                  <Text
-                    style={
-                      styles.notProvidedText
-                    }
-                  >
-                    Not provided
-                  </Text>
-
-                )}
-
-              </View>
-
-            </View>
-
-          </View>
+          )}
 
         </View>
 
 
-        {/* =================================================
-            ADDRESS
-        ================================================= */}
-
-        <View
-          style={styles.section}
-        >
-
-          <View
-            style={styles.sectionHeader}
-          >
-
-            <Text
-              style={styles.sectionTitle}
-            >
-              Address
-            </Text>
-
-
-            <TouchableOpacity
-              onPress={
-                handleEditAddress
-              }
-            >
-
-              <Text
-                style={styles.editText}
-              >
-                Edit
-              </Text>
-
-            </TouchableOpacity>
-
-          </View>
-
-
-          <View
-            style={styles.card}
-          >
-
-            <ReviewRow
-              label="Address"
-              value={
-                data.addressLine ||
-                'Not provided'
-              }
-            />
-
-            <ReviewRow
-              label="City"
-              value={
-                data.city ||
-                'Not provided'
-              }
-            />
-
-            <ReviewRow
-              label="State"
-              value={
-                data.state ||
-                'Not provided'
-              }
-            />
-
-            <ReviewRow
-              label="Pincode"
-              value={
-                data.pincode ||
-                'Not provided'
-              }
-              last
-            />
-
-          </View>
-
-        </View>
-
-
-        {/* =================================================
-            BUSINESS HOURS
-        ================================================= */}
-
-        <View
-          style={styles.section}
-        >
-
-          <View
-            style={styles.sectionHeader}
-          >
-
-            <Text
-              style={styles.sectionTitle}
-            >
-              Business Hours
-            </Text>
-
-
-            <TouchableOpacity
-              onPress={
-                handleEditBusinessHours
-              }
-            >
-
-              <Text
-                style={styles.editText}
-              >
-                Edit
-              </Text>
-
-            </TouchableOpacity>
-
-          </View>
-
-
-          <View
-            style={styles.card}
-          >
-
-            {data.businessHours &&
-              Object.keys(
-                data.businessHours,
-              ).length > 0 ? (
-
-              Object.entries(
-                data.businessHours,
-              ).map(
-                (
-                  [
-                    day,
-                    hours,
-                  ],
-                ) => (
-
-                  <View
-                    key={day}
-                    style={
-                      styles.hoursRow
-                    }
-                  >
-
-                    <Text
-                      style={
-                        styles.dayText
-                      }
-                    >
-                      {day}
-                    </Text>
-
-
-                    <Text
-                      style={
-                        styles.hoursText
-                      }
-                    >
-
-                      {hours.isOpen
-                        ? `${hours.open || ''} - ${hours.close || ''}`
-                        : 'Closed'}
-
-                    </Text>
-
-                  </View>
-
-                ),
-              )
-
-            ) : (
-
-              <Text
-                style={
-                  styles.emptyText
-                }
-              >
-                Business hours not provided
-              </Text>
-
-            )}
-
-          </View>
-
-        </View>
-
-
-        {/* =================================================
-            SERVICES BY AUDIENCE
-        ================================================= */}
-
-        <View
-          style={styles.section}
-        >
-
-          <View
-            style={styles.sectionHeader}
-          >
-
-            <Text
-              style={styles.sectionTitle}
-            >
-              Services provided by your salon
-            </Text>
-
-
-            <TouchableOpacity
-              onPress={
-                handleEditServices
-              }
-            >
-
-              <Text
-                style={styles.editText}
-              >
-                Edit
-              </Text>
-
-            </TouchableOpacity>
-
-          </View>
-
-
-          <View
-            style={styles.card}
-          >
-
-            {(
-              categoriesLoading ||
-              subcategoriesLoading
-            ) ? (
-
-              <View
-                style={
-                  styles.servicesLoading
-                }
-              >
-
-                <ActivityIndicator
-                  size="small"
-                  color={
-                    COLORS.themeColor ||
-                    '#000000'
-                  }
-                />
-
-
-                <Text
-                  style={
-                    styles.loadingText
-                  }
-                >
-                  Loading selected services...
-                </Text>
-
-              </View>
-
-            ) : serviceSelections.length ===
-              0 ? (
-
-              <Text
-                style={
-                  styles.emptyText
-                }
-              >
-                No services selected
-              </Text>
-
-            ) : (
-
-              AUDIENCE_ORDER
-                .filter(
-                  audience =>
-                    selectedAudiences.includes(
-                      audience,
-                    ),
-                )
-                .map(
-                  audience => {
-
-                    const audienceCategories =
-                      groupedServicesByAudience[
-                        audience
-                      ];
-
-
-                    if (
-                      audienceCategories.length ===
-                      0
-                    ) {
-
-                      return (
-                        <View
-                          key={audience}
-                          style={
-                            styles.audienceSection
-                          }
-                        >
-
-                          <View
-                            style={
-                              styles.audienceTitleContainer
-                            }
-                          >
-
-                            <Text
-                              style={
-                                styles.audienceTitle
-                              }
-                            >
-                              {
-                                getAudienceLabel(
-                                  audience,
-                                )
-                              }
-                            </Text>
-
-                          </View>
-
-
-                          <Text
-                            style={
-                              styles.noAudienceServices
-                            }
-                          >
-                            No services selected for this audience.
-                          </Text>
-
-                        </View>
-                      );
-
-                    }
-
-
-                    return (
-                      <View
-                        key={audience}
-                        style={
-                          styles.audienceSection
-                        }
-                      >
-
-                        <View
-                          style={
-                            styles.audienceTitleContainer
-                          }
-                        >
-
-                          <Text
-                            style={
-                              styles.audienceTitle
-                            }
-                          >
-                            {
-                              getAudienceLabel(
-                                audience,
-                              )
-                            }
-                          </Text>
-
-
-                          <View
-                            style={
-                              styles.audienceBadge
-                            }
-                          >
-
-                            <Text
-                              style={
-                                styles.audienceBadgeText
-                              }
-                            >
-                              Audience
-                            </Text>
-
-                          </View>
-
-                        </View>
-
-
-                        {audienceCategories.map(
-                          category => (
-
-                            <View
-                              key={
-                                `${audience}-${category.categoryId}`
-                              }
-                              style={
-                                styles.serviceCategory
-                              }
-                            >
-
-                              <Text
-                                style={
-                                  styles.categoryName
-                                }
-                              >
-                                {
-                                  category.categoryName
-                                }
-                              </Text>
-
-
-                              <View
-                                style={
-                                  styles.serviceList
-                                }
-                              >
-
-                                {category.services.map(
-                                  service => (
-
-                                    <View
-                                      key={
-                                        `${audience}-${category.categoryId}-${service.subcategoryId}`
-                                      }
-                                      style={
-                                        styles.serviceItem
-                                      }
-                                    >
-
-                                      <View
-                                        style={
-                                          styles.serviceDot
-                                        }
-                                      />
-
-
-                                      <View
-                                        style={
-                                          styles.serviceContent
-                                        }
-                                      >
-
-                                        <Text
-                                          style={
-                                            styles.serviceName
-                                          }
-                                        >
-                                          {
-                                            service.subcategoryName
-                                          }
-                                        </Text>
-
-
-                                        <View
-                                          style={
-                                            styles.serviceDetails
-                                          }
-                                        >
-
-                                          <Text
-                                            style={
-                                              styles.serviceDetailText
-                                            }
-                                          >
-                                            {
-                                              typeof service.price ===
-                                                'number' &&
-                                              service.price > 0
-                                                ? `₹${service.price}`
-                                                : 'Price not set'
-                                            }
-                                          </Text>
-
-
-                                          <Text
-                                            style={
-                                              styles.serviceSeparator
-                                            }
-                                          >
-                                            •
-                                          </Text>
-
-
-                                          <Text
-                                            style={
-                                              styles.serviceDetailText
-                                            }
-                                          >
-                                            {
-                                              typeof service.durationMinutes ===
-                                                'number' &&
-                                              service.durationMinutes > 0
-                                                ? `${service.durationMinutes} min`
-                                                : 'Duration not set'
-                                            }
-                                          </Text>
-
-                                        </View>
-
-                                      </View>
-
-                                    </View>
-
-                                  ),
-                                )}
-
-                              </View>
-
-                            </View>
-
-                          ),
-                        )}
-
-                      </View>
-                    );
-
-                  },
-                )
-
-            )}
-
-          </View>
-
-        </View>
-
-
-        {/* =================================================
-            KYC
-        ================================================= */}
-
-        <View
-          style={styles.section}
-        >
-
-          <View
-            style={styles.sectionHeader}
-          >
-
-            <Text
-              style={styles.sectionTitle}
-            >
-              KYC & Verification
-            </Text>
-
-
-            <TouchableOpacity
-              onPress={
-                handleEditKYC
-              }
-            >
-
-              <Text
-                style={styles.editText}
-              >
-                Edit
-              </Text>
-
-            </TouchableOpacity>
-
-          </View>
-
-
-          <View
-            style={styles.card}
-          >
-
-            <ReviewRow
-              label="PAN Number"
-              value={
-                data.panNumber ||
-                'Not provided'
-              }
-            />
-
-            <ReviewRow
-              label="Aadhaar Number"
-              value={
-                maskedAadhaar
-              }
-            />
-
-            <ReviewRow
-              label="GST Number"
-              value={
-                data.gstNumber ||
-                'Not provided'
-              }
-            />
-
-            <ReviewRow
-              label="Shop Establishment Number"
-              value={
-                data.shopEstablishmentNumber ||
-                'Not provided'
-              }
-            />
-
-            <ReviewRow
-              label="Udyam Number"
-              value={
-                data.udyamNumber ||
-                'Not provided'
-              }
-            />
-
-            <ReviewRow
-              label="Bank Account"
-              value={
-                maskedBankAccount
-              }
-            />
-
-            <ReviewRow
-              label="IFSC"
-              value={
-                data.ifsc ||
-                'Not provided'
-              }
-              last
-            />
-
-          </View>
-
-        </View>
-
-
-        {/* =================================================
-            VERIFICATION NOTICE
-        ================================================= */}
+        {/* ====================================================
+            VERIFICATION
+        ==================================================== */}
 
         <View
           style={
-            styles.verificationNotice
+            styles.notice
           }
         >
 
           <Text
             style={
-              styles.verificationTitle
+              styles.noticeTitle
             }
           >
-            Verification Required
+            Verification
           </Text>
 
 
           <Text
             style={
-              styles.verificationText
+              styles.noticeText
             }
           >
-            Your salon registration will be
-            reviewed by Clavata. Your salon
-            will become active only after the
-            required verification and approval
-            are completed.
+            After submission, your business registration will be reviewed. Provider access will be activated only after the required verification and approval process is completed.
           </Text>
 
         </View>
 
 
-        {/* =================================================
+        {/* ====================================================
             SUBMIT
-        ================================================= */}
+        ==================================================== */}
 
-        <View
-          style={
-            styles.submitContainer
-          }
+        <DButton
+          style={[
+            styles.button,
+            {
+              backgroundColor: COLORS.themeColor,
+            },
+            loading && styles.buttonDisabled,
+          ]}
+          onPress={onSubmit}
+          disabled={loading}
         >
+          {loading ? (
+            <View style={styles.loadingContent}>
+              <ActivityIndicator
+                size="small"
+                color={COLORS.white}
+              />
 
-          <DButton
-            style={
-              styles.submitButtonStyle
-            }
-            onPress={
-              handleSubmit
-            }
-            disabled={
-              submitting
-            }
-            loading={
-              submitting
-            }
-          >
-
-            <Text
-              style={
-                styles.submitButtonText
-              }
-            >
+              <Text style={styles.buttonText}>
+                Submitting...
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.buttonText}>
               Submit Registration
             </Text>
-
-          </DButton>
-
-        </View>
+          )}
+        </DButton>
 
 
         <View
@@ -2548,742 +1873,552 @@ const SalonReviewScreen = ({
 
     </SafeAreaView>
   );
-};
+}
 
 
-/*
- * =====================================================
- * REVIEW ROW
- * =====================================================
- */
+// ============================================================
+// DETAIL ROW
+// ============================================================
 
-type ReviewRowProps = {
-  label: string;
-  value: string;
-  last?: boolean;
-};
-
-
-const ReviewRow = ({
+function DetailRow({
   label,
   value,
   last = false,
-}: ReviewRowProps) => {
+}: {
+  label: string;
+  value: string;
+  last?: boolean;
+}) {
 
   return (
+
     <View
       style={[
-        styles.reviewRow,
-        last &&
-        styles.reviewRowLast,
+        styles.detailRow,
+        !last &&
+        styles.detailBorder,
       ]}
     >
 
       <Text
         style={
-          styles.reviewLabel
+          styles.detailLabel
         }
       >
-        {label}
+        {
+          label
+        }
       </Text>
 
 
       <Text
         style={
-          styles.reviewValue
+          styles.detailValue
         }
       >
-        {value}
+        {
+          value ||
+          '-'
+        }
       </Text>
 
     </View>
+
   );
-};
+}
 
 
-/*
- * =====================================================
- * STYLES
- * =====================================================
- */
+// ============================================================
+// STYLES
+// ============================================================
 
-const styles = StyleSheet.create({
+const styles =
+  StyleSheet.create({
 
-  container: {
-    flex: 1,
+    container: {
+      flex: 1,
 
-    backgroundColor:
-      COLORS.background ||
-      '#FFFFFF',
-  },
+      backgroundColor:
+        COLORS.background,
+    },
 
+    content: {
+      paddingHorizontal:
+        SPACING.xxl,
 
-  contentContainer: {
-    paddingHorizontal:
-      SPACING.large,
+      paddingTop:
+        SPACING.xxl,
 
-    paddingTop:
-      SPACING.medium,
+      paddingBottom:
+        SPACING.xxxl,
+    },
 
-    paddingBottom:
-      SPACING.huge,
-  },
+    header: {
+      marginBottom:
+        SPACING.xxl,
+    },
 
+    title: {
+      fontFamily:
+        FONTS.semiBold,
 
-  section: {
-    marginBottom:
-      SPACING.large,
-  },
+      fontSize:
+        FONT_SIZES.title,
 
+      lineHeight:
+        FONT_SIZES.title + 5,
 
-  sectionHeader: {
-    flexDirection:
-      'row',
+      color:
+        COLORS.text,
 
-    alignItems:
-      'center',
+      textAlign:
+        'center',
 
-    justifyContent:
-      'space-between',
+      letterSpacing:
+        -0.2,
+    },
 
-    marginBottom:
-      SPACING.small,
-  },
+    subtitle: {
+      marginTop:
+        SPACING.small,
 
+      fontFamily:
+        FONTS.regular,
 
-  sectionTitle: {
-    fontFamily:
-      FONTS.semiBold ||
-      FONTS.bold,
+      fontSize:
+        FONT_SIZES.small,
 
-    fontSize: 17,
+      lineHeight:
+        FONT_SIZES.small + 7,
 
-    color:
-      COLORS.text ||
-      '#111111',
+      color:
+        COLORS.textSecondary,
 
-    flex: 1,
-  },
+      textAlign:
+        'center',
+    },
 
+    card: {
+      backgroundColor:
+        COLORS.surface,
 
-  editText: {
-    fontFamily:
-      FONTS.semiBold ||
-      FONTS.bold,
+      borderWidth: 1,
 
-    fontSize: 14,
+      borderColor:
+        COLORS.border,
 
-    color:
-      COLORS.themeColor ||
-      '#000000',
-  },
+      borderRadius:
+        RADIUS.large,
 
+      paddingHorizontal:
+        SPACING.xl,
+    },
 
-  card: {
-    backgroundColor:
-      COLORS.white ||
-      '#FFFFFF',
+    detailRow: {
+      paddingVertical:
+        SPACING.large,
+    },
 
-    borderRadius:
-      RADIUS.medium,
+    detailBorder: {
+      borderBottomWidth: 1,
 
-    paddingHorizontal:
-      SPACING.medium,
+      borderBottomColor:
+        COLORS.border,
+    },
 
-    paddingVertical:
-      SPACING.small,
+    detailLabel: {
+      fontFamily:
+        FONTS.semiBold,
 
-    borderWidth: 1,
+      fontSize:
+        FONT_SIZES.small,
 
-    borderColor:
-      COLORS.border ||
-      '#E5E5E5',
-  },
+      color:
+        COLORS.textSecondary,
 
+      marginBottom:
+        SPACING.xs,
+    },
 
-  reviewRow: {
-    paddingVertical:
-      SPACING.medium,
+    detailValue: {
+      fontFamily:
+        FONTS.regular,
 
-    borderBottomWidth: 1,
+      fontSize:
+        FONT_SIZES.body,
 
-    borderBottomColor:
-      COLORS.border ||
-      '#E5E5E5',
-  },
+      lineHeight:
+        FONT_SIZES.body + 6,
 
+      color:
+        COLORS.text,
+    },
 
-  reviewRowLast: {
-    borderBottomWidth: 0,
-  },
+    businessTypeRow: {
+      paddingVertical:
+        SPACING.large,
 
+      borderBottomWidth: 1,
 
-  reviewLabel: {
-    fontFamily:
-      FONTS.regular,
+      borderBottomColor:
+        COLORS.border,
+    },
 
-    fontSize: 12,
+    businessTypeList: {
+      flexDirection:
+        'row',
 
-    color:
-      COLORS.textSecondary ||
-      '#777777',
+      flexWrap:
+        'wrap',
 
-    marginBottom: 4,
-  },
+      gap: 8,
 
+      marginTop:
+        SPACING.xs,
+    },
 
-  reviewValue: {
-    fontFamily:
-      FONTS.medium ||
-      FONTS.regular,
+    businessTypeChip: {
+      backgroundColor:
+        COLORS.themeColor,
 
-    fontSize: 15,
+      borderRadius:
+        RADIUS.medium,
 
-    color:
-      COLORS.text ||
-      '#111111',
-  },
+      paddingHorizontal:
+        SPACING.medium,
 
+      paddingVertical:
+        SPACING.small,
+    },
 
-  /*
-   * ===================================================
-   * AUDIENCE
-   * ===================================================
-   */
+    businessTypeChipText: {
+      fontFamily:
+        FONTS.semiBold,
 
-  audienceHeader: {
-    flexDirection:
-      'row',
+      fontSize:
+        FONT_SIZES.small,
 
-    alignItems:
-      'flex-start',
+      color:
+        COLORS.white,
+    },
 
-    justifyContent:
-      'space-between',
-  },
+    businessTypeLoading: {
+      flexDirection:
+        'row',
 
+      alignItems:
+        'center',
 
-  audienceLabelContainer: {
-    flex: 1,
+      marginTop:
+        SPACING.xs,
+    },
 
-    paddingRight: 12,
-  },
+    businessTypeLoadingText: {
+      marginLeft:
+        SPACING.small,
 
+      fontFamily:
+        FONTS.regular,
 
-  audienceHelper: {
-    fontFamily:
-      FONTS.regular,
+      fontSize:
+        FONT_SIZES.small,
 
-    fontSize: 11,
+      color:
+        COLORS.textSecondary,
+    },
 
-    color:
-      COLORS.textSecondary ||
-      '#888888',
+    sectionCard: {
+      marginTop:
+        SPACING.xl,
 
-    marginTop: 1,
-  },
+      backgroundColor:
+        COLORS.surface,
 
+      borderWidth: 1,
 
-  audienceValueContainer: {
-    marginTop:
-      SPACING.small,
-  },
+      borderColor:
+        COLORS.border,
 
+      borderRadius:
+        RADIUS.large,
 
-  audienceChipContainer: {
-    flexDirection:
-      'row',
+      padding:
+        SPACING.xl,
+    },
 
-    flexWrap:
-      'wrap',
+    sectionTitle: {
+      fontFamily:
+        FONTS.semiBold,
 
-    gap: 8,
-  },
+      fontSize:
+        FONT_SIZES.body,
 
+      color:
+        COLORS.text,
 
-  audienceChip: {
-    paddingHorizontal: 12,
+      marginBottom:
+        SPACING.xs,
+    },
 
-    paddingVertical: 7,
+    sectionSubtitle: {
+      fontFamily:
+        FONTS.regular,
 
-    borderRadius: 20,
+      fontSize:
+        FONT_SIZES.small,
 
-    backgroundColor:
-      COLORS.themeColor
-        ? `${COLORS.themeColor}15`
-        : '#F5F5F5',
+      lineHeight:
+        FONT_SIZES.small + 7,
 
-    borderWidth: 1,
+      color:
+        COLORS.textSecondary,
 
-    borderColor:
-      COLORS.themeColor ||
-      '#000000',
-  },
+      marginBottom:
+        SPACING.large,
+    },
 
+    servicesLoading: {
+      flexDirection:
+        'row',
 
-  audienceChipText: {
-    fontFamily:
-      FONTS.medium ||
-      FONTS.regular,
+      alignItems:
+        'center',
 
-    fontSize: 13,
+      paddingVertical:
+        SPACING.medium,
+    },
 
-    color:
-      COLORS.themeColor ||
-      '#000000',
-  },
+    loadingText: {
+      marginLeft:
+        SPACING.small,
 
+      fontFamily:
+        FONTS.regular,
 
-  notProvidedText: {
-    fontFamily:
-      FONTS.regular,
+      fontSize:
+        FONT_SIZES.small,
 
-    fontSize: 14,
+      color:
+        COLORS.textSecondary,
+    },
 
-    color:
-      COLORS.textSecondary ||
-      '#777777',
-  },
+    emptyText: {
+      fontFamily:
+        FONTS.regular,
 
+      fontSize:
+        FONT_SIZES.small,
 
-  /*
-   * ===================================================
-   * AUDIENCE-SPECIFIC SERVICE SECTION
-   * ===================================================
-   */
+      color:
+        COLORS.textSecondary,
 
-  audienceSection: {
-    marginTop:
-      SPACING.small,
+      paddingVertical:
+        SPACING.medium,
+    },
 
-    marginBottom:
-      SPACING.medium,
+    audienceSection: {
+      marginBottom:
+        SPACING.large,
+    },
 
-    borderWidth: 1,
+    audienceHeader: {
+      backgroundColor:
+        COLORS.themeColor,
 
-    borderColor:
-      COLORS.border ||
-      '#E5E5E5',
+      borderRadius:
+        RADIUS.medium,
 
-    borderRadius:
-      RADIUS.medium,
+      paddingHorizontal:
+        SPACING.medium,
 
-    overflow: 'hidden',
+      paddingVertical:
+        SPACING.small,
 
-    backgroundColor:
-      '#FFFFFF',
-  },
+      marginBottom:
+        SPACING.small,
+    },
 
+    audienceTitle: {
+      fontFamily:
+        FONTS.semiBold,
 
-  audienceTitleContainer: {
-    flexDirection:
-      'row',
+      fontSize:
+        FONT_SIZES.small,
 
-    alignItems:
-      'center',
+      color:
+        COLORS.white,
+    },
 
-    justifyContent:
-      'space-between',
+    serviceItem: {
+      flexDirection:
+        'row',
 
-    paddingHorizontal:
-      SPACING.medium,
+      alignItems:
+        'center',
 
-    paddingVertical:
-      SPACING.medium,
+      paddingVertical:
+        SPACING.small,
 
-    backgroundColor:
-      COLORS.themeColor
-        ? `${COLORS.themeColor}15`
-        : '#F5F5F5',
+      borderBottomWidth:
+        1,
 
-    borderBottomWidth: 1,
+      borderBottomColor:
+        COLORS.border,
+    },
 
-    borderBottomColor:
-      COLORS.border ||
-      '#E5E5E5',
-  },
+    serviceDot: {
+      width: 7,
 
+      height: 7,
 
-  audienceTitle: {
-    fontFamily:
-      FONTS.bold ||
-      FONTS.semiBold,
+      borderRadius: 4,
 
-    fontSize: 16,
+      backgroundColor:
+        COLORS.themeColor,
 
-    color:
-      COLORS.themeColor ||
-      '#000000',
-  },
+      marginRight:
+        SPACING.small,
+    },
 
+    serviceInfo: {
+      flex: 1,
+    },
 
-  audienceBadge: {
-    paddingHorizontal: 9,
+    serviceCategory: {
+      fontFamily:
+        FONTS.semiBold,
 
-    paddingVertical: 4,
+      fontSize:
+        FONT_SIZES.small,
 
-    borderRadius: 12,
+      color:
+        COLORS.text,
+    },
 
-    backgroundColor:
-      COLORS.themeColor ||
-      '#000000',
-  },
+    serviceName: {
+      marginTop:
+        2,
 
+      fontFamily:
+        FONTS.regular,
 
-  audienceBadgeText: {
-    fontFamily:
-      FONTS.medium ||
-      FONTS.regular,
+      fontSize:
+        FONT_SIZES.small,
 
-    fontSize: 10,
+      color:
+        COLORS.textSecondary,
+    },
 
-    color:
-      '#FFFFFF',
-  },
+    servicePrice: {
+      fontFamily:
+        FONTS.semiBold,
 
+      fontSize:
+        FONT_SIZES.small,
 
-  noAudienceServices: {
-    fontFamily:
-      FONTS.regular,
+      color:
+        COLORS.themeColor,
 
-    fontSize: 13,
+      marginLeft:
+        SPACING.small,
+    },
 
-    color:
-      COLORS.textSecondary ||
-      '#777777',
+    notice: {
+      marginTop:
+        SPACING.xl,
 
-    padding:
-      SPACING.medium,
-  },
+      padding:
+        SPACING.large,
 
+      borderRadius:
+        RADIUS.medium,
 
-  serviceCategory: {
-    paddingHorizontal:
-      SPACING.medium,
+      backgroundColor:
+        '#F5F7FA',
 
-    paddingVertical:
-      SPACING.medium,
+      borderWidth: 1,
 
-    borderBottomWidth: 1,
+      borderColor:
+        COLORS.border,
+    },
 
-    borderBottomColor:
-      COLORS.border ||
-      '#E5E5E5',
-  },
+    noticeTitle: {
+      fontFamily:
+        FONTS.semiBold,
 
+      fontSize:
+        FONT_SIZES.small,
 
-  categoryName: {
-    fontFamily:
-      FONTS.semiBold ||
-      FONTS.bold,
+      color:
+        COLORS.text,
 
-    fontSize: 14,
+      marginBottom:
+        SPACING.xs,
+    },
 
-    color:
-      COLORS.text ||
-      '#111111',
+    noticeText: {
+      fontFamily:
+        FONTS.regular,
 
-    marginBottom:
-      SPACING.small,
-  },
+      fontSize:
+        FONT_SIZES.small,
 
+      lineHeight:
+        FONT_SIZES.small + 7,
 
-  serviceList: {
-    gap: 7,
-  },
+      color:
+        COLORS.textSecondary,
+    },
 
+    button: {
+      width:
+        '100%',
 
-  serviceItem: {
-    flexDirection:
-      'row',
+      height:
+        54,
 
-    alignItems:
-      'flex-start',
+      borderRadius:
+        RADIUS.medium,
 
-    paddingVertical: 5,
-  },
+      marginTop:
+        SPACING.xl,
+    },
 
+    buttonDisabled: {
+      opacity:
+        0.7,
+    },
 
-  serviceDot: {
-    width: 6,
+    buttonText: {
+      color:
+        COLORS.white,
 
-    height: 6,
+      fontFamily:
+        FONTS.semiBold,
 
-    borderRadius: 3,
+      fontSize:
+        FONT_SIZES.body,
 
-    backgroundColor:
-      COLORS.themeColor ||
-      '#000000',
+      textAlign:
+        'center',
+    },
 
-    marginRight:
-      SPACING.small,
+    loadingContent: {
+      flexDirection:
+        'row',
 
-    marginTop: 7,
-  },
+      alignItems:
+        'center',
 
+      justifyContent:
+        'center',
 
-  serviceContent: {
-    flex: 1,
-  },
+      gap: 10,
+    },
 
+    bottomSpacing: {
+      height:
+        SPACING.huge,
+    },
 
-  serviceName: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 14,
-
-    color:
-      COLORS.text ||
-      '#333333',
-  },
-
-
-  serviceDetails: {
-    flexDirection:
-      'row',
-
-    alignItems:
-      'center',
-
-    marginTop: 3,
-  },
-
-
-  serviceDetailText: {
-    fontFamily:
-      FONTS.medium ||
-      FONTS.regular,
-
-    fontSize: 12,
-
-    color:
-      COLORS.textSecondary ||
-      '#777777',
-  },
-
-
-  serviceSeparator: {
-    marginHorizontal: 7,
-
-    fontSize: 12,
-
-    color:
-      COLORS.textSecondary ||
-      '#999999',
-  },
-
-
-  /*
-   * ===================================================
-   * HOURS
-   * ===================================================
-   */
-
-  hoursRow: {
-    flexDirection:
-      'row',
-
-    justifyContent:
-      'space-between',
-
-    alignItems:
-      'center',
-
-    paddingVertical:
-      SPACING.medium,
-
-    borderBottomWidth: 1,
-
-    borderBottomColor:
-      COLORS.border ||
-      '#E5E5E5',
-  },
-
-
-  dayText: {
-    fontFamily:
-      FONTS.medium ||
-      FONTS.regular,
-
-    fontSize: 14,
-
-    color:
-      COLORS.text ||
-      '#111111',
-
-    textTransform:
-      'capitalize',
-  },
-
-
-  hoursText: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 14,
-
-    color:
-      COLORS.textSecondary ||
-      '#666666',
-  },
-
-
-  emptyText: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 14,
-
-    color:
-      COLORS.textSecondary ||
-      '#777777',
-
-    paddingVertical:
-      SPACING.medium,
-  },
-
-
-  servicesLoading: {
-    flexDirection:
-      'row',
-
-    alignItems:
-      'center',
-
-    paddingVertical:
-      SPACING.medium,
-  },
-
-
-  loadingText: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 14,
-
-    color:
-      COLORS.textSecondary ||
-      '#777777',
-
-    marginLeft:
-      SPACING.small,
-  },
-
-
-  /*
-   * ===================================================
-   * KYC
-   * ===================================================
-   */
-
-  verificationNotice: {
-    backgroundColor:
-      '#F5F7FA',
-
-    borderRadius:
-      RADIUS.medium,
-
-    padding:
-      SPACING.medium,
-
-    marginBottom:
-      SPACING.large,
-
-    borderWidth: 1,
-
-    borderColor:
-      COLORS.border ||
-      '#E5E5E5',
-  },
-
-
-  verificationTitle: {
-    fontFamily:
-      FONTS.semiBold ||
-      FONTS.bold,
-
-    fontSize: 15,
-
-    color:
-      COLORS.text ||
-      '#111111',
-
-    marginBottom:
-      SPACING.small,
-  },
-
-
-  verificationText: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 13,
-
-    lineHeight: 20,
-
-    color:
-      COLORS.textSecondary ||
-      '#666666',
-  },
-
-
-  /*
-   * ===================================================
-   * SUBMIT
-   * ===================================================
-   */
-
-  submitContainer: {
-    width: '100%',
-
-    paddingHorizontal: 20,
-
-    paddingBottom: 24,
-  },
-
-
-  submitButtonStyle: {
-    width: '100%',
-
-    minHeight: 56,
-
-    borderRadius: 14,
-
-    justifyContent:
-      'center',
-
-    alignItems:
-      'center',
-
-    backgroundColor:
-      COLORS.themeColor ||
-      '#000000',
-  },
-
-
-  submitButtonText: {
-    fontFamily:
-      FONTS.semiBold ||
-      FONTS.bold,
-
-    fontSize: 16,
-
-    color:
-      '#FFFFFF',
-
-    textAlign:
-      'center',
-  },
-
-
-  bottomSpacing: {
-    height:
-      SPACING.huge,
-  },
-
-});
-
-
-export default SalonReviewScreen;
-
+  });
