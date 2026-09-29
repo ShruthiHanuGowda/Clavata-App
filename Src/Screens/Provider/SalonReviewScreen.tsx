@@ -104,6 +104,22 @@ type RegisterSalonPartnerVariables = {
     salonName: string;
     ownerName: string;
     email: string;
+
+    /*
+     * Primary business type.
+     *
+     * Kept for backward compatibility.
+     */
+    businessTypeId: string;
+
+    /*
+     * All business types selected by the salon.
+     */
+    businessTypeIds: string[];
+
+    /*
+     * Business type display name.
+     */
     businessType: string;
 
     targetAudiences: Audience[];
@@ -124,9 +140,15 @@ type RegisterSalonPartnerVariables = {
       }
     >;
 
+    latitude?: number;
+    longitude?: number;
+
     gstNumber?: string;
     panNumber?: string;
     aadhaarNumber?: string;
+    shopEstablishmentNumber?: string;
+    udyamNumber?: string;
+
     bankAccount?: string;
     ifsc?: string;
 
@@ -243,24 +265,6 @@ const SalonReviewScreen = ({
    * ---------------------------------------------------
    * SERVICE SELECTIONS
    * ---------------------------------------------------
-   *
-   * IMPORTANT:
-   *
-   * Every service selection must contain:
-   *
-   * audience: 'FEMALE' | 'MALE' | 'KIDS'
-   *
-   * Example:
-   *
-   * {
-   *   audience: 'FEMALE',
-   *   categoryId: '1',
-   *   subcategoryId: '10',
-   *   price: 500,
-   *   durationMinutes: 45
-   * }
-   *
-   * ---------------------------------------------------
    */
 
   const serviceSelections: ReviewServiceSelection[] =
@@ -275,6 +279,90 @@ const SalonReviewScreen = ({
 
   const selectedAudiences: Audience[] =
     data.targetAudiences || [];
+
+
+  /*
+   * ---------------------------------------------------
+   * SELECTED BUSINESS TYPES
+   * ---------------------------------------------------
+   *
+   * Multiple business types are supported.
+   *
+   * Example:
+   *
+   * businessTypeIds:
+   * [
+   *   "BEAUTY_SALON_ID",
+   *   "BARBER_ID"
+   * ]
+   *
+   * businessTypeId remains the primary/first ID.
+   * ---------------------------------------------------
+   */
+
+  const selectedBusinessTypeIds: string[] =
+    useMemo(() => {
+
+      const ids = Array.isArray(
+        data.businessTypeIds,
+      )
+        ? data.businessTypeIds
+        : [];
+
+      const normalizedIds =
+        ids
+          .map(
+            id =>
+              String(
+                id ?? '',
+              ).trim(),
+          )
+          .filter(
+            Boolean,
+          );
+
+
+      /*
+       * Backward compatibility:
+       *
+       * If businessTypeIds is not available
+       * but businessTypeId exists, use the
+       * primary ID as the only selected type.
+       */
+
+      if (
+        normalizedIds.length === 0 &&
+        data.businessTypeId
+      ) {
+
+        const primaryId =
+          String(
+            data.businessTypeId,
+          ).trim();
+
+
+        if (primaryId) {
+          return [primaryId];
+        }
+
+      }
+
+
+      /*
+       * Remove duplicates while preserving
+       * selection order.
+       */
+
+      return Array.from(
+        new Set(
+          normalizedIds,
+        ),
+      );
+
+    }, [
+      data.businessTypeIds,
+      data.businessTypeId,
+    ]);
 
 
   /*
@@ -659,11 +747,22 @@ const SalonReviewScreen = ({
        * GraphQL requires:
        *
        * businessTypeId: ID!
+       * businessTypeIds: [ID!]!
        * businessType: String!
        *
        */
 
-      if (!data.businessTypeId) {
+      const primaryBusinessTypeId =
+        String(
+          data.businessTypeId ?? '',
+        ).trim();
+
+
+      const businessTypeIds =
+        selectedBusinessTypeIds;
+
+
+      if (!primaryBusinessTypeId) {
 
         console.error(
           'BUSINESS TYPE ID IS MISSING:',
@@ -678,6 +777,39 @@ const SalonReviewScreen = ({
         return;
 
       }
+
+
+      if (
+        businessTypeIds.length === 0
+      ) {
+
+        console.error(
+          'BUSINESS TYPE IDS ARE MISSING:',
+          data.businessTypeIds,
+        );
+
+        Alert.alert(
+          'Business Type Required',
+          'Please select at least one business type for your salon.',
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Make sure the primary business type
+       * is included in the complete list.
+       */
+
+      const normalizedBusinessTypeIds =
+        Array.from(
+          new Set([
+            primaryBusinessTypeId,
+            ...businessTypeIds,
+          ]),
+        );
 
 
       if (!data.businessType) {
@@ -960,13 +1092,28 @@ const SalonReviewScreen = ({
         }
 
 
+        if (
+          normalizedBusinessTypeIds.length ===
+          0
+        ) {
+
+          Alert.alert(
+            'Business Type Required',
+            'Please select at least one business type.',
+          );
+
+          return;
+
+        }
+
+
         /*
          * -----------------------------------------
          * GRAPHQL INPUT
          * -----------------------------------------
          */
 
-        const input = {
+        const input: RegisterSalonPartnerVariables['input'] = {
 
           /*
            * REQUIRED USER ID
@@ -1011,17 +1158,30 @@ const SalonReviewScreen = ({
 
 
           /*
-           * REQUIRED BUSINESS TYPE ID
-           *
-           * IMPORTANT:
-           * This was missing from your
-           * previous code.
+           * -----------------------------------------
+           * PRIMARY BUSINESS TYPE ID
+           * -----------------------------------------
            */
 
           businessTypeId:
 
 
             businessTypeId,
+
+
+          /*
+           * -----------------------------------------
+           * ALL SELECTED BUSINESS TYPE IDS
+           * -----------------------------------------
+           *
+           * IMPORTANT:
+           *
+           * This is required by the updated
+           * RegisterSalonPartnerInput schema.
+           */
+
+          businessTypeIds:
+            normalizedBusinessTypeIds,
 
 
           /*
@@ -1136,6 +1296,13 @@ const SalonReviewScreen = ({
            * -----------------------------------------
            * AUDIENCE-SPECIFIC SERVICES
            * -----------------------------------------
+           *
+           * GraphQL input intentionally sends IDs
+           * rather than category/subcategory names.
+           *
+           * The backend should resolve the names
+           * from the master Category/Subcategory
+           * tables before storing the selections.
            */
 
           serviceSelections:
@@ -1187,8 +1354,13 @@ const SalonReviewScreen = ({
         );
 
         console.log(
-          'BUSINESS TYPE ID:',
+          'PRIMARY BUSINESS TYPE ID:',
           input.businessTypeId,
+        );
+
+        console.log(
+          'ALL BUSINESS TYPE IDS:',
+          input.businessTypeIds,
         );
 
         console.log(
@@ -1204,6 +1376,11 @@ const SalonReviewScreen = ({
         console.log(
           'SALON NAME:',
           input.salonName,
+        );
+
+        console.log(
+          'TARGET AUDIENCES:',
+          input.targetAudiences,
         );
 
         console.log(
@@ -1306,7 +1483,7 @@ const SalonReviewScreen = ({
         );
 
 
-      } catch (error: any) {
+      } catch (error: unknown) {
 
         console.error(
           'Salon registration error:',
@@ -1314,16 +1491,21 @@ const SalonReviewScreen = ({
         );
 
 
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Something went wrong while submitting your registration.';
+
+
         console.error(
           'Salon registration error message:',
-          error?.message,
+          errorMessage,
         );
 
 
         Alert.alert(
           'Registration Failed',
-          error?.message ||
-          'Something went wrong while submitting your registration.',
+          errorMessage,
         );
 
 
@@ -1340,8 +1522,10 @@ const SalonReviewScreen = ({
       submitting,
       registerSalonPartner,
       navigation,
+      selectedBusinessTypeIds,
     ],
   );
+
 
   /*
    * ===================================================
@@ -1468,6 +1652,77 @@ const SalonReviewScreen = ({
                 'Not provided'
               }
             />
+
+
+            {/* ---------------------------------------------
+                SELECTED BUSINESS TYPES
+            --------------------------------------------- */}
+
+            <View
+              style={[
+                styles.reviewRow,
+                styles.reviewRowLast,
+              ]}
+            >
+
+              <Text
+                style={
+                  styles.reviewLabel
+                }
+              >
+                Selected Business Types
+              </Text>
+
+
+              {selectedBusinessTypeIds.length >
+              0 ? (
+
+                <View
+                  style={
+                    styles.audienceChipContainer
+                  }
+                >
+
+                  {selectedBusinessTypeIds.map(
+                    businessTypeId => (
+
+                      <View
+                        key={
+                          businessTypeId
+                        }
+                        style={
+                          styles.audienceChip
+                        }
+                      >
+
+                        <Text
+                          style={
+                            styles.audienceChipText
+                          }
+                        >
+                          {businessTypeId}
+                        </Text>
+
+                      </View>
+
+                    ),
+                  )}
+
+                </View>
+
+              ) : (
+
+                <Text
+                  style={
+                    styles.notProvidedText
+                  }
+                >
+                  Not provided
+                </Text>
+
+              )}
+
+            </View>
 
 
             {/* ---------------------------------------------
@@ -1834,8 +2089,8 @@ const SalonReviewScreen = ({
                 <ActivityIndicator
                   size="small"
                   color={
-                    COLORS.primary ||
-                    '#009D94'
+                    COLORS.themeColor ||
+                    '#000000'
                   }
                 />
 
@@ -1863,12 +2118,6 @@ const SalonReviewScreen = ({
 
             ) : (
 
-              /*
-               * =========================================
-               * AUDIENCE LOOP
-               * =========================================
-               */
-
               AUDIENCE_ORDER
                 .filter(
                   audience =>
@@ -1884,11 +2133,6 @@ const SalonReviewScreen = ({
                         audience
                       ];
 
-
-                    /*
-                     * Audience selected but no
-                     * service assigned to it.
-                     */
 
                     if (
                       audienceCategories.length ===
@@ -1946,10 +2190,6 @@ const SalonReviewScreen = ({
                         }
                       >
 
-                        {/* =================================
-                            AUDIENCE HEADER
-                        ================================= */}
-
                         <View
                           style={
                             styles.audienceTitleContainer
@@ -1987,10 +2227,6 @@ const SalonReviewScreen = ({
 
                         </View>
 
-
-                        {/* =================================
-                            CATEGORY LOOP
-                        ================================= */}
 
                         {audienceCategories.map(
                           category => (
@@ -2438,8 +2674,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
 
     color:
-      COLORS.primary ||
-      '#009D94',
+      COLORS.themeColor ||
+      '#000000',
   },
 
 
@@ -2573,13 +2809,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
 
     backgroundColor:
-      '#E8F7F5',
+      COLORS.themeColor
+        ? `${COLORS.themeColor}15`
+        : '#F5F5F5',
 
     borderWidth: 1,
 
     borderColor:
-      COLORS.primary ||
-      '#009D94',
+      COLORS.themeColor ||
+      '#000000',
   },
 
 
@@ -2591,8 +2829,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
 
     color:
-      COLORS.primary ||
-      '#009D94',
+      COLORS.themeColor ||
+      '#000000',
   },
 
 
@@ -2654,12 +2892,15 @@ const styles = StyleSheet.create({
       SPACING.medium,
 
     backgroundColor:
-      '#E8F7F5',
+      COLORS.themeColor
+        ? `${COLORS.themeColor}15`
+        : '#F5F5F5',
 
     borderBottomWidth: 1,
 
     borderBottomColor:
-      '#D5EFEC',
+      COLORS.border ||
+      '#E5E5E5',
   },
 
 
@@ -2671,8 +2912,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
 
     color:
-      COLORS.primary ||
-      '#009D94',
+      COLORS.themeColor ||
+      '#000000',
   },
 
 
@@ -2684,8 +2925,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
 
     backgroundColor:
-      COLORS.primary ||
-      '#009D94',
+      COLORS.themeColor ||
+      '#000000',
   },
 
 
@@ -2771,8 +3012,8 @@ const styles = StyleSheet.create({
     borderRadius: 3,
 
     backgroundColor:
-      COLORS.primary ||
-      '#009D94',
+      COLORS.themeColor ||
+      '#000000',
 
     marginRight:
       SPACING.small,
@@ -3017,7 +3258,7 @@ const styles = StyleSheet.create({
 
     backgroundColor:
       COLORS.themeColor ||
-      '#009D94',
+      '#000000',
   },
 
 
@@ -3045,3 +3286,4 @@ const styles = StyleSheet.create({
 
 
 export default SalonReviewScreen;
+

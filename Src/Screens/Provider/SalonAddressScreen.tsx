@@ -955,7 +955,7 @@ export default function SalonAddressScreen({
                     styles.locationMethodTitle
                   }
                 >
-                  Find your salon
+                  Find your business location
                 </Text>
               </View>
             </View>
@@ -981,7 +981,7 @@ export default function SalonAddressScreen({
                 style={
                   styles.searchInput
                 }
-                placeholder="Enter salon address, area or pincode"
+                placeholder="Enter business address, area or pincode"
                 placeholderTextColor={
                   COLORS.textMuted
                 }
@@ -1196,7 +1196,7 @@ export default function SalonAddressScreen({
                 styles.sectionSubtitle
               }
             >
-              These details will be used as your salon's
+              These details will be used as your business
               registered address.
             </Text>
           </View>

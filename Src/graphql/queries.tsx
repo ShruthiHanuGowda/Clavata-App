@@ -453,7 +453,7 @@ export const GET_NEARBY_SALONS = gql`
     $longitude: Float!
     $radius: Float!
     $search: String
-    $audience: [ServiceAudience!]
+    $audiences: [ServiceAudience!]
     $categoryId: ID
     $subcategoryIds: [ID!]
     $minPrice: Float
@@ -464,7 +464,7 @@ export const GET_NEARBY_SALONS = gql`
       longitude: $longitude
       radius: $radius
       search: $search
-      audience: $audience
+      audiences: $audience
       categoryId: $categoryId
       subcategoryIds: $subcategoryIds
       minPrice: $minPrice
@@ -1992,9 +1992,10 @@ export const GET_CLAVATA_SUBCATEGORIES = gql`
         description
         servicesCount
         status
+        audiences
+        businessTypeIds
         createdAt
         updatedAt
-        audiences
       }
     }
   }

@@ -71,6 +71,7 @@ type Subcategory = {
   createdAt: string;
   updatedAt: string;
   audiences?: ServiceAudience[];
+  businessTypeIds?: string[];
 };
 
 // type SalonServiceSelection = {
@@ -385,6 +386,39 @@ const subcategories: Subcategory[] =
   // ==========================================================
 
   // ==========================================================
+  // SALON BUSINESS TYPES
+  //
+  // A salon can select multiple business types during
+  // registration, for example Beauty Salon + Spa & Wellness.
+  // Only subcategories belonging to at least one of those
+  // selected business types should be displayed.
+  //
+  // Keep the singular businessTypeId as a compatibility
+  // fallback for older registration data.
+  // ==========================================================
+
+  const salonBusinessTypeIds =
+    useMemo(() => {
+      const selectedIds =
+        Array.isArray(
+          (data as any)?.businessTypeIds,
+        )
+          ? (data as any).businessTypeIds
+          : (data as any)?.businessTypeId
+            ? [(data as any).businessTypeId]
+            : [];
+
+      return selectedIds
+        .map((id: any) =>
+          String(id ?? '').trim(),
+        )
+        .filter(Boolean);
+    }, [
+      (data as any)?.businessTypeIds,
+      (data as any)?.businessTypeId,
+    ]);
+
+  // ==========================================================
   // CURRENT SERVICE SELECTIONS
   //
   // Deduplicate using:
@@ -434,7 +468,11 @@ const subcategories: Subcategory[] =
     ]);
 
   // ==========================================================
-  // FILTER SUBCATEGORIES BY AUDIENCE
+  // FILTER SUBCATEGORIES BY BUSINESS TYPE + AUDIENCE
+  //
+  // A subcategory must first belong to one of the salon's
+  // selected business types, and then support the active
+  // Female / Male / Kids audience.
   //
   // Subcategory.audiences comes from:
   //
@@ -454,6 +492,51 @@ const subcategories: Subcategory[] =
 
       return subcategories.filter(
         subcategory => {
+          // --------------------------------------------------
+          // BUSINESS TYPE FILTER
+          // --------------------------------------------------
+          // The subcategory must belong to at least one
+          // business type selected by this salon.
+          // --------------------------------------------------
+
+          if (
+            salonBusinessTypeIds.length === 0
+          ) {
+            return false;
+          }
+
+          if (
+            !Array.isArray(
+              subcategory.businessTypeIds,
+            ) ||
+            subcategory.businessTypeIds.length === 0
+          ) {
+            return false;
+          }
+
+          const normalizedSubcategoryBusinessTypeIds =
+            subcategory.businessTypeIds
+              .map(id =>
+                String(id ?? '').trim(),
+              )
+              .filter(Boolean);
+
+          const matchesBusinessType =
+            normalizedSubcategoryBusinessTypeIds.some(
+              businessTypeId =>
+                salonBusinessTypeIds.includes(
+                  businessTypeId,
+                ),
+            );
+
+          if (!matchesBusinessType) {
+            return false;
+          }
+
+          // --------------------------------------------------
+          // AUDIENCE FILTER
+          // --------------------------------------------------
+
           if (
             !Array.isArray(
               subcategory.audiences,
@@ -470,6 +553,7 @@ const subcategories: Subcategory[] =
     }, [
       subcategories,
       activeAudience,
+      salonBusinessTypeIds,
     ]);
 
   // ==========================================================
@@ -924,7 +1008,7 @@ const subcategories: Subcategory[] =
     ) {
       Alert.alert(
         'Services required',
-        'Please select at least one service category and subcategory provided by your salon.',
+        'Please select at least one service category and subcategory provided by your business.',
         [
           {
             text: 'Select Services',
@@ -1027,7 +1111,7 @@ const subcategories: Subcategory[] =
       style={styles.container}
     >
       <Header
-        headerTitle="Salon Services"
+        headerTitle="Business Services"
       />
 
       <ScrollView
@@ -1046,14 +1130,14 @@ const subcategories: Subcategory[] =
         <Text
           style={styles.title}
         >
-          Services provided by your salon
+          Services provided by your business
         </Text>
 
         <Text
           style={styles.subtitle}
         >
           Select the services you offer based on
-          the audience your salon serves.
+          the audience your business serves.
         </Text>
 
         {/* ==================================================
@@ -1083,7 +1167,7 @@ const subcategories: Subcategory[] =
               }
             >
               Please go back and select whether
-              your salon provides services for
+              your business provides services for
               Female, Male, or Kids customers.
             </Text>
           </View>
@@ -1405,7 +1489,7 @@ const subcategories: Subcategory[] =
             style={styles.infoText}
           >
             • Services are shown according to
-            the audience selected for your salon.
+            the audience selected for your business.
           </Text>
 
           <Text
@@ -1420,7 +1504,7 @@ const subcategories: Subcategory[] =
           >
             • You can switch between Female, Male,
             and Kids when those audiences are
-            enabled for your salon.
+            enabled for your business.
           </Text>
 
           <Text
@@ -1434,7 +1518,7 @@ const subcategories: Subcategory[] =
             style={styles.infoText}
           >
             • You can edit your service settings
-            later from your salon profile.
+            later from your business profile.
           </Text>
         </View>
 
@@ -1519,7 +1603,7 @@ const subcategories: Subcategory[] =
                   }
                 >
                   Choose services based on your
-                  salon audience
+                  business audience
                 </Text>
               </View>
 
@@ -2099,7 +2183,7 @@ const subcategories: Subcategory[] =
                   ) {
                     Alert.alert(
                       'Services required',
-                      'Please select at least one service category and subcategory provided by your salon.',
+                      'Please select at least one service category and subcategory provided by your business.',
                     );
 
                     return;

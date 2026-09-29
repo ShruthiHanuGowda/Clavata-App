@@ -21,7 +21,6 @@ import { useQuery } from '@apollo/client';
 
 import {
     Header,
-    DButton,
 } from '../../components';
 
 import {
@@ -285,7 +284,7 @@ const ConfigureSalonServices = ({
 
                 const categoryServices =
                     servicesByCategory[
-                        category.categoryId
+                    category.categoryId
                     ] || [];
 
 
@@ -353,7 +352,7 @@ const ConfigureSalonServices = ({
 
                 const validPrice =
                     typeof service.price ===
-                        'number' &&
+                    'number' &&
                     Number.isFinite(
                         service.price,
                     ) &&
@@ -362,7 +361,7 @@ const ConfigureSalonServices = ({
 
                 const validDuration =
                     typeof service.durationMinutes ===
-                        'number' &&
+                    'number' &&
                     Number.isFinite(
                         service.durationMinutes,
                     ) &&
@@ -461,9 +460,9 @@ const ConfigureSalonServices = ({
 
                             if (
                                 service.subcategoryId !==
-                                    subcategoryId ||
+                                subcategoryId ||
                                 service.audience !==
-                                    audience
+                                audience
                             ) {
 
                                 return service;
@@ -509,7 +508,7 @@ const ConfigureSalonServices = ({
                         ...previous,
                         [categoryId]:
                             !previous[
-                                categoryId
+                            categoryId
                             ],
                     }),
                 );
@@ -723,10 +722,9 @@ const ConfigureSalonServices = ({
                  */
                 Alert.alert(
                     'Duration applied',
-                    `${duration} minutes has been applied to ${matchedCount} selected ${
-                        matchedCount === 1
-                            ? 'service'
-                            : 'services'
+                    `${duration} minutes has been applied to ${matchedCount} selected ${matchedCount === 1
+                        ? 'service'
+                        : 'services'
                     } in this category.`,
                 );
 
@@ -775,14 +773,14 @@ const ConfigureSalonServices = ({
 
                     const serviceWord =
                         incompleteServices.length ===
-                        1
+                            1
                             ? 'service'
                             : 'services';
 
 
                     const verb =
                         incompleteServices.length ===
-                        1
+                            1
                             ? 'needs'
                             : 'need';
 
@@ -1098,100 +1096,100 @@ const ConfigureSalonServices = ({
                 {/* ================================================= */}
                 {/* BULK DURATION */}
                 {/* ================================================= */}
-
-                <View
-                    style={
-                        styles.bulkCard
-                    }
-                >
-
-                    <Text
-                        style={
-                            styles.bulkTitle
-                        }
-                    >
-                        Save time
-                    </Text>
-
-
-                    <Text
-                        style={
-                            styles.bulkSubtitle
-                        }
-                    >
-                        If most of your services have the same
-                        duration, apply it to all services at once.
-                    </Text>
-
-
+                {totalCount > 1 && (
                     <View
                         style={
-                            styles.bulkRow
+                            styles.bulkCard
                         }
                     >
 
-                        <TextInput
-                            value={
-                                defaultDuration
-                            }
-                            onChangeText={
-                                value =>
-                                    setDefaultDuration(
-                                        value.replace(
-                                            /[^0-9]/g,
-                                            '',
-                                        ),
-                                    )
-                            }
-                            placeholder="30"
-                            placeholderTextColor={
-                                COLORS.textSecondary
-                            }
-                            keyboardType="number-pad"
+                        <Text
                             style={
-                                styles.bulkInput
+                                styles.bulkTitle
                             }
-                            maxLength={
-                                3
-                            }
-                        />
+                        >
+                            Save time
+                        </Text>
 
 
                         <Text
                             style={
-                                styles.minutesText
+                                styles.bulkSubtitle
                             }
                         >
-                            min
+                            If most of your services have the same
+                            duration, apply it to all services at once.
                         </Text>
 
 
-                        <TouchableOpacity
+                        <View
                             style={
-                                styles.applyButton
-                            }
-                            onPress={
-                                applyDurationToAll
-                            }
-                            activeOpacity={
-                                0.7
+                                styles.bulkRow
                             }
                         >
 
+                            <TextInput
+                                value={
+                                    defaultDuration
+                                }
+                                onChangeText={
+                                    value =>
+                                        setDefaultDuration(
+                                            value.replace(
+                                                /[^0-9]/g,
+                                                '',
+                                            ),
+                                        )
+                                }
+                                placeholder="30"
+                                placeholderTextColor={
+                                    COLORS.textSecondary
+                                }
+                                keyboardType="number-pad"
+                                style={
+                                    styles.bulkInput
+                                }
+                                maxLength={
+                                    3
+                                }
+                            />
+
+
                             <Text
                                 style={
-                                    styles.applyButtonText
+                                    styles.minutesText
                                 }
                             >
-                                Apply to all
+                                min
                             </Text>
 
-                        </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={
+                                    styles.applyButton
+                                }
+                                onPress={
+                                    applyDurationToAll
+                                }
+                                activeOpacity={
+                                    0.7
+                                }
+                            >
+
+                                <Text
+                                    style={
+                                        styles.applyButtonText
+                                    }
+                                >
+                                    Apply to all
+                                </Text>
+
+                            </TouchableOpacity>
+
+                        </View>
 
                     </View>
-
-                </View>
-
+                )}
 
                 {/* ================================================= */}
                 {/* SEARCH */}
@@ -1286,7 +1284,7 @@ const ConfigureSalonServices = ({
 
                         const categoryServices =
                             servicesByCategory[
-                                category.categoryId
+                            category.categoryId
                             ] || [];
 
 
@@ -1347,7 +1345,7 @@ const ConfigureSalonServices = ({
 
                         const isOpen =
                             expandedCategories[
-                                category.categoryId
+                            category.categoryId
                             ] ?? true;
 
 
@@ -1507,7 +1505,7 @@ const ConfigureSalonServices = ({
                                                                 >
                                                                     {
                                                                         service.audience ===
-                                                                        'FEMALE'
+                                                                            'FEMALE'
                                                                             ? 'Women'
                                                                             : service.audience ===
                                                                                 'MALE'
@@ -1745,11 +1743,7 @@ const ConfigureSalonServices = ({
                             styles.infoText
                         }
                     >
-                        Your service prices and durations can
-                        be changed later from your salon profile.
-                        You can also configure whether each
-                        service is available at your salon,
-                        at the customer's home, or both.
+                        You can add, remove, or edit your services anytime from your business profile, including service prices and durations.
                     </Text>
 
                 </View>
@@ -1792,7 +1786,9 @@ const ConfigureSalonServices = ({
                 )}
 
 
-                <DButton
+                {/* FULL WIDTH THEME COLOR CONTINUE BUTTON */}
+
+                <TouchableOpacity
                     onPress={
                         handleContinue
                     }
@@ -1800,12 +1796,41 @@ const ConfigureSalonServices = ({
                         !allConfigured ||
                         saving
                     }
-                    loading={
-                        saving
+                    activeOpacity={
+                        0.8
                     }
+                    style={[
+                        styles.continueButton,
+                        (
+                            !allConfigured ||
+                            saving
+                        ) &&
+                        styles.continueButtonDisabled,
+                    ]}
                 >
-                    Continue
-                </DButton>
+
+                    {saving ? (
+
+                        <ActivityIndicator
+                            size="small"
+                            color={
+                                COLORS.white
+                            }
+                        />
+
+                    ) : (
+
+                        <Text
+                            style={
+                                styles.continueButtonText
+                            }
+                        >
+                            Continue
+                        </Text>
+
+                    )}
+
+                </TouchableOpacity>
 
             </View>
 
@@ -2036,7 +2061,7 @@ const styles = StyleSheet.create({
     progressFill: {
         height: '100%',
         backgroundColor:
-            COLORS.primary,
+            COLORS.themeColor,
         borderRadius: 10,
     },
 
@@ -2136,7 +2161,7 @@ const styles = StyleSheet.create({
         borderRadius:
             RADIUS.medium,
         backgroundColor:
-            COLORS.primary,
+            COLORS.themeColor,
         justifyContent:
             'center',
         alignItems:
@@ -2509,6 +2534,31 @@ const styles = StyleSheet.create({
         textAlign:
             'center',
         marginBottom: 8,
+    },
+
+    continueButton: {
+        width: '100%',
+        minHeight: 50,
+        borderRadius:
+            RADIUS.medium,
+        backgroundColor:
+            COLORS.themeColor,
+        alignItems:
+            'center',
+        justifyContent:
+            'center',
+    },
+
+    continueButtonDisabled: {
+        opacity: 0.5,
+    },
+
+    continueButtonText: {
+        fontFamily:
+            FONTS.bold,
+        fontSize: 15,
+        color:
+            COLORS.white,
     },
 
     bottomSpace: {

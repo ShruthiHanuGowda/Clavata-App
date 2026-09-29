@@ -708,7 +708,7 @@ export default function HomeScreenPage() {
               ? cleanSearch
               : '',
 
-          audience:
+          audiences:
             selectedAudiences,
 
           categoryId:

@@ -50,7 +50,11 @@ type NearbySalonService = {
     categoryId?: string;
     subcategoryId?: string;
     subcategoryName?: string;
+
+    // Singular is correct here because one service
+    // has one audience.
     audience?: ServiceAudience;
+
     price: number;
 };
 
@@ -65,10 +69,12 @@ type Salon = {
     address: any;
     price?: number;
     image: string;
+
     salonStatus?:
-    | 'OPEN'
-    | 'CLOSED'
-    | 'TEMPORARILY_CLOSED';
+        | 'OPEN'
+        | 'CLOSED'
+        | 'TEMPORARILY_CLOSED';
+
     businessHours?: any;
     minServicePrice?: number;
     matchingServices?: NearbySalonService[];
@@ -81,7 +87,9 @@ type SearchParams = {
 
     search?: string;
 
-    audience?: ServiceAudience[];
+    // IMPORTANT:
+    // nearbySalons accepts plural audiences.
+    audiences?: ServiceAudience[];
 
     categoryId?: string;
 
@@ -141,9 +149,9 @@ export default function SalonSearchResults() {
                 setLoading(true);
                 setErrorMessage('');
 
-                // ----------------------------------------------------
-                // NORMALIZE
-                // ----------------------------------------------------
+                // ------------------------------------------------
+                // NORMALIZE LOCATION
+                // ------------------------------------------------
 
                 const latitude =
                     Number(
@@ -160,17 +168,29 @@ export default function SalonSearchResults() {
                         params.radius || 10,
                     );
 
+                // ------------------------------------------------
+                // NORMALIZE SEARCH
+                // ------------------------------------------------
+
                 const cleanSearch =
                     String(
                         params.search ||
                         '',
                     ).trim();
 
+                // ------------------------------------------------
+                // NORMALIZE CATEGORY
+                // ------------------------------------------------
+
                 const categoryId =
                     String(
                         params.categoryId ||
                         '',
                     ).trim();
+
+                // ------------------------------------------------
+                // NORMALIZE SUBCATEGORIES
+                // ------------------------------------------------
 
                 const subcategoryIds =
                     Array.from(
@@ -179,23 +199,38 @@ export default function SalonSearchResults() {
                                 params.subcategoryIds,
                             )
                                 ? params.subcategoryIds
-                                    .map(id =>
-                                        String(
-                                            id ?? '',
-                                        ).trim(),
+                                    .map(
+                                        id =>
+                                            String(
+                                                id ?? '',
+                                            ).trim(),
                                     )
-                                    .filter(Boolean)
+                                    .filter(
+                                        Boolean,
+                                    )
                                 : [],
                         ),
                     );
+
+                // ------------------------------------------------
+                // NORMALIZE AUDIENCES
+                // ------------------------------------------------
+                //
+                // IMPORTANT:
+                // Route parameter is now `audiences`
+                // because nearbySalons expects:
+                //
+                // audiences: [ServiceAudience!]
+                //
+                // ------------------------------------------------
 
                 const audiences =
                     Array.from(
                         new Set(
                             Array.isArray(
-                                params.audience,
+                                params.audiences,
                             )
-                                ? params.audience.filter(
+                                ? params.audiences.filter(
                                     audience =>
                                         audience ===
                                         'FEMALE' ||
@@ -208,12 +243,12 @@ export default function SalonSearchResults() {
                         ),
                     );
 
-                // ----------------------------------------------------
+                // ------------------------------------------------
                 // SEARCH MODE
                 //
                 // If customer searched text,
                 // use search instead of category.
-                // ----------------------------------------------------
+                // ------------------------------------------------
 
                 const finalSearch =
                     cleanSearch.length > 0
@@ -232,9 +267,9 @@ export default function SalonSearchResults() {
                         ? subcategoryIds
                         : null;
 
-                // ----------------------------------------------------
+                // ------------------------------------------------
                 // PRICE
-                // ----------------------------------------------------
+                // ------------------------------------------------
 
                 const hasPriceFilter =
                     cleanSearch.length === 0 &&
@@ -256,9 +291,9 @@ export default function SalonSearchResults() {
                         )
                         : null;
 
-                // ----------------------------------------------------
+                // ------------------------------------------------
                 // VALIDATE LOCATION
-                // ----------------------------------------------------
+                // ------------------------------------------------
 
                 if (
                     !Number.isFinite(
@@ -277,9 +312,22 @@ export default function SalonSearchResults() {
                     return;
                 }
 
-                // ----------------------------------------------------
+                // ------------------------------------------------
                 // GRAPHQL VARIABLES
-                // ----------------------------------------------------
+                // ------------------------------------------------
+                //
+                // IMPORTANT:
+                // `audiences`, NOT `audience`.
+                //
+                // This must match:
+                //
+                // $audiences: [ServiceAudience!]
+                //
+                // and:
+                //
+                // audiences: $audiences
+                //
+                // ------------------------------------------------
 
                 const variables = {
                     latitude,
@@ -295,7 +343,7 @@ export default function SalonSearchResults() {
                     search:
                         finalSearch,
 
-                    audience:
+                    audiences:
                         audiences.length > 0
                             ? audiences
                             : null,
@@ -331,9 +379,9 @@ export default function SalonSearchResults() {
                     '========================================',
                 );
 
-                // ----------------------------------------------------
+                // ------------------------------------------------
                 // API
-                // ----------------------------------------------------
+                // ------------------------------------------------
 
                 const response =
                     await client.query({
@@ -350,9 +398,9 @@ export default function SalonSearchResults() {
                     response?.data
                         ?.nearbySalons || [];
 
-                // ----------------------------------------------------
+                // ------------------------------------------------
                 // FORMAT SALONS
-                // ----------------------------------------------------
+                // ------------------------------------------------
 
                 const formatted: Salon[] =
                     nearbySalons.map(
@@ -365,9 +413,9 @@ export default function SalonSearchResults() {
                                     0,
                                 );
 
-                            // ----------------------------------------------
+                            // ------------------------------------
                             // MATCHING SERVICES
-                            // ----------------------------------------------
+                            // ------------------------------------
 
                             const matchingServices:
                                 NearbySalonService[] =
@@ -406,6 +454,7 @@ export default function SalonSearchResults() {
                                                     service?.subcategoryName ??
                                                     undefined,
 
+                                                // Singular is correct.
                                                 audience:
                                                     service?.audience ??
                                                     undefined,
@@ -428,9 +477,9 @@ export default function SalonSearchResults() {
                                         )
                                     : [];
 
-                            // ----------------------------------------------
+                            // ------------------------------------
                             // SERVICE PRICES
-                            // ----------------------------------------------
+                            // ------------------------------------
 
                             const servicePrices =
                                 matchingServices
@@ -448,9 +497,9 @@ export default function SalonSearchResults() {
                                             price >= 0,
                                     );
 
-                            // ----------------------------------------------
+                            // ------------------------------------
                             // BACKEND PRICES
-                            // ----------------------------------------------
+                            // ------------------------------------
 
                             const backendPriceCandidates =
                                 [
@@ -465,7 +514,9 @@ export default function SalonSearchResults() {
                                 backendPriceCandidates
                                     .map(
                                         value =>
-                                            Number(value),
+                                            Number(
+                                                value,
+                                            ),
                                     )
                                     .filter(
                                         price =>
@@ -475,9 +526,9 @@ export default function SalonSearchResults() {
                                             price >= 0,
                                     );
 
-                            // ----------------------------------------------
+                            // ------------------------------------
                             // FINAL PRICE
-                            // ----------------------------------------------
+                            // ------------------------------------
 
                             let minServicePrice:
                                 | number
@@ -578,7 +629,7 @@ export default function SalonSearchResults() {
                     formatted,
                 );
             } catch (
-            error: any
+                error: any
             ) {
                 console.log(
                     '❌ SALON RESULTS ERROR:',
@@ -611,6 +662,7 @@ export default function SalonSearchResults() {
 
     useEffect(() => {
         loadSalons();
+
         // Search must execute only
         // when this page opens.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -647,7 +699,7 @@ export default function SalonSearchResults() {
     const audienceLabel =
         useMemo(() => {
             return (
-                params.audience
+                params.audiences
                     ?.map(
                         audience => {
                             if (
@@ -671,7 +723,7 @@ export default function SalonSearchResults() {
                 'All'
             );
         }, [
-            params.audience,
+            params.audiences,
         ]);
 
     // ==========================================================
@@ -702,8 +754,8 @@ export default function SalonSearchResults() {
             }
         >
             {/* ====================================================
-          HEADER
-      ==================================================== */}
+                HEADER
+            ==================================================== */}
 
             <View
                 style={
@@ -763,8 +815,8 @@ export default function SalonSearchResults() {
             </View>
 
             {/* ====================================================
-          SEARCH SUMMARY
-      ==================================================== */}
+                SEARCH SUMMARY
+            ==================================================== */}
 
             <View
                 style={
@@ -867,8 +919,8 @@ export default function SalonSearchResults() {
             </View>
 
             {/* ====================================================
-          LIST
-      ==================================================== */}
+                LIST
+            ==================================================== */}
 
             <FlatList
                 data={salons}

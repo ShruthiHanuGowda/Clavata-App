@@ -189,14 +189,6 @@ export type ServiceMode =
 //     'MALE'
 // ]
 //
-// or:
-//
-// [
-//     'FEMALE',
-//     'MALE',
-//     'KIDS'
-// ]
-//
 // =====================================================
 
 export type ServiceAudience =
@@ -215,29 +207,21 @@ export type ServiceAudience =
 //
 // Price and duration belong to the SALON's offering.
 //
-// Example:
-//
-// {
-//     categoryId: 'hair-category-id',
-//     subcategoryId: 'haircut-subcategory-id',
-//     price: 500,
-//     durationMinutes: 30
-// }
-//
-// Price and duration are optional while the salon is
-// still configuring services during registration.
-//
-// Before final registration submission, both values
-// must be present and greater than zero.
-//
 // =====================================================
+
 export type SalonServiceSelection = {
-    audience: 'FEMALE' | 'MALE' | 'KIDS';
+    audience: ServiceAudience;
+
     categoryId: string;
+
     categoryName: string;
+
     subcategoryId: string;
+
     subcategoryName: string;
+
     price?: number;
+
     durationMinutes?: number;
 };
 
@@ -254,9 +238,6 @@ export type SalonServiceSelection = {
 //     "service-id-2": "SALON_ONLY",
 //     "service-id-3": "HOME_ONLY"
 // }
-//
-// This allows the salon to configure home-service
-// availability individually for each service later.
 //
 // =====================================================
 
@@ -288,7 +269,61 @@ export type SalonRegistrationData = {
     ownerName: string;
 
     email: string;
+
+    // ===================================================
+    // BUSINESS TYPE
+    // ===================================================
+    //
+    // businessTypeId
+    //     Primary/first selected business type.
+    //
+    // Kept for backward compatibility with the existing
+    // backend/register flow that currently expects a
+    // single businessTypeId.
+    //
+    // Example:
+    //
+    // businessTypeId: "beauty-salon-id"
+    //
+    // ===================================================
+
     businessTypeId: string;
+
+    // ===================================================
+    // MULTIPLE BUSINESS TYPES
+    // ===================================================
+    //
+    // Contains ALL business types selected by the salon.
+    //
+    // Example:
+    //
+    // [
+    //     "beauty-salon-id",
+    //     "barber-id",
+    //     "spa-wellness-id"
+    // ]
+    //
+    // This is used later by SalonServices to determine
+    // which categories/subcategories are available for
+    // the salon.
+    //
+    // ===================================================
+
+    businessTypeIds: string[];
+
+    // ===================================================
+    // BUSINESS TYPE NAMES
+    // ===================================================
+    //
+    // Contains the selected business type names as a
+    // comma-separated string.
+    //
+    // Example:
+    //
+    // "Beauty Salon, Barber"
+    //
+    // ===================================================
+
     businessType: string;
 
     // ===================================================
@@ -386,8 +421,11 @@ export type SalonRegistrationData = {
     //
     // Contains:
     //
+    // audience
     // categoryId
+    // categoryName
     // subcategoryId
+    // subcategoryName
     // price
     // durationMinutes
     //
@@ -450,7 +488,23 @@ const createInitialData =
         ownerName: '',
 
         email: '',
+
+        // =================================================
+        // PRIMARY BUSINESS TYPE
+        // =================================================
+
         businessTypeId: '',
+
+        // =================================================
+        // ALL SELECTED BUSINESS TYPES
+        // =================================================
+
+        businessTypeIds: [],
+
+        // =================================================
+        // BUSINESS TYPE NAMES
+        // =================================================
+
         businessType: '',
 
         // =================================================
@@ -460,13 +514,6 @@ const createInitialData =
         // Initially empty.
         //
         // SalonRegistrationScreen will set this.
-        //
-        // Example:
-        //
-        // [
-        //     'FEMALE',
-        //     'MALE'
-        // ]
         //
         // =================================================
 
@@ -480,16 +527,6 @@ const createInitialData =
 
         // =================================================
         // SERVICE-SPECIFIC MODES
-        // =================================================
-        //
-        // Empty during registration.
-        //
-        // Later this can contain:
-        //
-        // {
-        //     "service-id": "HOME_ONLY"
-        // }
-        //
         // =================================================
 
         serviceSpecificModes: {},
@@ -557,15 +594,21 @@ const createInitialData =
         // SalonServices.tsx will add:
         //
         // {
+        //     audience,
         //     categoryId,
-        //     subcategoryId
+        //     categoryName,
+        //     subcategoryId,
+        //     subcategoryName
         // }
         //
         // ConfigureSalonServices.tsx will then add:
         //
         // {
+        //     audience,
         //     categoryId,
+        //     categoryName,
         //     subcategoryId,
+        //     subcategoryName,
         //     price,
         //     durationMinutes
         // }
