@@ -99,22 +99,18 @@ type Props = {
 ========================================================= */
 
 const categoryIcons: Record<string, any> = {
-  hair: require('../../../assets/3d/hair.png'),
-  face: require('../../../assets/3d/face.png'),
-  skin: require('../../../assets/3d/skin.png'),
-  nails: require('../../../assets/3d/nails.png'),
-  makeup: require('../../../assets/3d/makeup.png'),
-  beard: require('../../../assets/3d/beard.png'),
-  spa: require('../../../assets/3d/spa.png'),
-  massage: require('../../../assets/3d/massage.png'),
-  waxing: require('../../../assets/3d/waxing.png'),
-  threading: require('../../../assets/3d/threading.png'),
-  bridal: require('../../../assets/3d/bridal.png'),
-  "men's grooming": require('../../../assets/3d/mens_grooming.png'),
+  "hair & styling": require('../../../assets/category/Hair&styling.png'),
+  "facials & skin": require('../../../assets/category/Facials&skin.png'),
+  "hair color & treatments": require('../../../assets/category/Haircolor&treatments.png'),
+  "nails, hands & feet": require('../../../assets/category/NailsHand&feet.png'),
+  makeup: require('../../../assets/category/Makeup.png'),
+  waxing: require('../../../assets/category/Waxing.png'),
+  threading: require('../../../assets/category/Threading.png'),
+  bridal: require('../../../assets/category/BridalIcon.png'),
 };
 
 const fallbackIcon =
-  require('../../../assets/3d/hair.png');
+  require('../../../assets/category/Hair&styling.png');
 
 /* =========================================================
    HELPERS
@@ -1734,7 +1730,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 5,
     backgroundColor:
-      COLORS.background,
+      COLORS.white,
     borderWidth: 1,
     borderColor:
       COLORS.border ||
@@ -1750,24 +1746,24 @@ const styles = StyleSheet.create({
   },
 
   iconContainer: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 90,
+    height: 90,
+    // borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 7,
-    backgroundColor:
-      COLORS.themeColor + '12',
+    marginBottom: 8,
+    // backgroundColor:
+    //   COLORS.themeColor + '12',
   },
 
   iconContainerSelected: {
-    backgroundColor:
-      COLORS.themeColor + '20',
+    // backgroundColor:
+    //   COLORS.themeColor + '20',
   },
 
   categoryIcon: {
-    width: 44,
-    height: 44,
+    width: 90,
+    height: 90,
   },
 
   categoryName: {
