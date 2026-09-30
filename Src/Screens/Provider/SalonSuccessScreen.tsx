@@ -92,13 +92,13 @@ export default function SalonSuccessScreen({
                 <Text
                     style={styles.message}
                 >
-                    Your salon registration has been submitted successfully.
+                    Your business registration has been submitted successfully.
                 </Text>
 
                 <Text
                     style={styles.pendingMessage}
                 >
-                    Our team will review your KYC details. You will be notified once your salon has been verified.
+                    Our team will review your KYC details. You will be notified once your business has been verified.
                 </Text>
             </View>
 

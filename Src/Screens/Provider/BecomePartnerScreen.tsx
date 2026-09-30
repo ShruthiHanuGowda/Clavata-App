@@ -136,7 +136,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             </View>
 
             <Text style={styles.itemText}>
-              List your salon
+              List your business
             </Text>
 
           </View>

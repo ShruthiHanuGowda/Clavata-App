@@ -1,6 +1,4 @@
-import React, {
-  useState,
-} from 'react';
+import React, { useState } from 'react';
 
 import {
   Alert,
@@ -14,10 +12,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
-import {
-  Header,
-  DButton,
-} from '../../components';
+import { Header, DButton } from '../../components';
 
 import {
   COLORS,
@@ -32,8 +27,13 @@ import {
 
 import {
   pick,
+  keepLocalCopy,
   types,
 } from '@react-native-documents/picker';
+
+import RNFS from 'react-native-fs';
+
+import ReactNativeBlobUtil from 'react-native-blob-util';
 
 import {
   gql,
@@ -62,7 +62,7 @@ const GENERATE_KYC_DOCUMENT_UPLOAD_URL = gql`
 `;
 
 // ============================================================
-// DOCUMENT TYPE
+// TYPES
 // ============================================================
 
 type KycDocumentType =
@@ -74,24 +74,14 @@ type KycDocumentType =
 
 type KycDocument = {
   uri: string;
+  localUri?: string;
   name: string;
   type?: string | null;
   size?: number | null;
-
-  // ==========================================================
-  // S3 UPLOAD INFORMATION
-  // ==========================================================
-
   uploadId?: string;
-
   s3Key?: string;
-
   documentType?: KycDocumentType;
 };
-
-// ============================================================
-// UPLOAD RESPONSE
-// ============================================================
 
 type GenerateKycDocumentUploadUrlResponse = {
   generateKycDocumentUploadUrl: {
@@ -105,97 +95,101 @@ type GenerateKycDocumentUploadUrlResponse = {
 };
 
 // ============================================================
-// SCREEN
+// COMPONENT
 // ============================================================
 
-export default function SalonKYCScreen({
+const SalonKYCScreen = ({
   navigation,
-}: any) {
-
+}: any) => {
   const {
     data,
     updateData,
   } = useSalonRegistration();
 
   // ==========================================================
-  // GRAPHQL
+  // GRAPHQL MUTATION
   // ==========================================================
 
   const [
     generateKycDocumentUploadUrl,
-  ] =
-    useMutation<
-      GenerateKycDocumentUploadUrlResponse
-    >(
-      GENERATE_KYC_DOCUMENT_UPLOAD_URL,
-    );
+  ] = useMutation<
+    GenerateKycDocumentUploadUrlResponse
+  >(
+    GENERATE_KYC_DOCUMENT_UPLOAD_URL,
+  );
 
   // ==========================================================
-  // KYC STATE
+  // STATE
   // ==========================================================
 
   const [
     panNumber,
     setPanNumber,
-  ] = useState('');
+  ] = useState(
+    data?.panNumber || '',
+  );
 
   const [
     aadhaarNumber,
     setAadhaarNumber,
-  ] = useState('');
+  ] = useState(
+    data?.aadhaarNumber || '',
+  );
 
   const [
     gstNumber,
     setGstNumber,
-  ] = useState('');
+  ] = useState(
+    data?.gstNumber || '',
+  );
 
   const [
     shopEstablishmentNumber,
     setShopEstablishmentNumber,
-  ] = useState('');
+  ] = useState(
+    data?.shopEstablishmentNumber || '',
+  );
 
   const [
     udyamNumber,
     setUdyamNumber,
-  ] = useState('');
-
-  // ==========================================================
-  // DOCUMENT STATE
-  // ==========================================================
+  ] = useState(
+    data?.udyamNumber || '',
+  );
 
   const [
     panDocument,
     setPanDocument,
   ] = useState<KycDocument | null>(
-    null,
+    data?.panDocument || null,
   );
 
   const [
     aadhaarDocument,
     setAadhaarDocument,
   ] = useState<KycDocument | null>(
-    null,
+    data?.aadhaarDocument || null,
   );
 
   const [
     shopEstablishmentDocument,
     setShopEstablishmentDocument,
   ] = useState<KycDocument | null>(
-    null,
+    data?.shopEstablishmentDocument || null,
   );
 
   const [
     gstDocument,
     setGstDocument,
   ] = useState<KycDocument | null>(
-    null,
+    data?.gstDocument || null,
   );
 
   const [
     udyamDocument,
     setUdyamDocument,
   ] = useState<KycDocument | null>(
-    null,
+    data?.udyamDocument || null,
   );
 
   const [
@@ -206,205 +200,415 @@ export default function SalonKYCScreen({
   const [
     pickingDocument,
     setPickingDocument,
-  ] = useState<string | null>(
-    null,
-  );
+  ] = useState(false);
 
   // ==========================================================
-  // GENERATE UPLOAD ID
-  //
-  // One uploadId is used for the complete registration.
-  //
+  // CREATE UPLOAD ID
   // ==========================================================
 
-  const createUploadId =
-    () => {
+  const createUploadId = () => {
+    const timestamp =
+      Date.now().toString(36);
 
-      const timestamp =
-        Date.now().toString(36);
+    const randomPart =
+      Math.random()
+        .toString(36)
+        .substring(2, 12);
 
-      const randomPart =
-        Math.random()
-          .toString(36)
-          .substring(2, 12);
-
-      return `REG-${timestamp}-${randomPart}`;
-    };
+    return `REG-${timestamp}-${randomPart}`;
+  };
 
   // ==========================================================
   // CONTENT TYPE
   // ==========================================================
 
-  const getContentType =
-    (
-      document: KycDocument,
-    ): string => {
+  const getContentType = (
+    fileName: string,
+    providedType?: string | null,
+  ): string => {
+    if (
+      providedType &&
+      providedType.trim()
+    ) {
+      return providedType
+        .trim()
+        .toLowerCase();
+    }
 
-      const existingType =
-        document.type
-          ?.trim()
-          .toLowerCase();
+    const extension =
+      fileName
+        .split('.')
+        .pop()
+        ?.toLowerCase();
+
+    switch (extension) {
+      case 'pdf':
+        return 'application/pdf';
+
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+
+      case 'png':
+        return 'image/png';
+
+      case 'webp':
+        return 'image/webp';
+
+      default:
+        return 'application/octet-stream';
+    }
+  };
+
+  // ==========================================================
+  // LOCAL FILE PATH
+  // ==========================================================
+
+  const getLocalFilePath = (
+    fileUri: string,
+  ): string => {
+    if (!fileUri) {
+      return '';
+    }
+
+    if (
+      fileUri.startsWith('file://')
+    ) {
+      return fileUri.substring(7);
+    }
+
+    return fileUri;
+  };
+
+  // ==========================================================
+  // PICK KYC DOCUMENT
+  // ==========================================================
+
+  const pickKycDocument = async (
+    documentType: KycDocumentType,
+  ) => {
+    try {
+      setPickingDocument(true);
+
+      const result = await pick({
+        type: [
+          types.pdf,
+          types.images,
+        ],
+        allowMultiSelection: false,
+      });
 
       if (
-        existingType &&
-        (
-          existingType ===
-          'application/pdf' ||
-          existingType ===
-          'image/jpeg' ||
-          existingType ===
-          'image/png' ||
-          existingType ===
-          'image/webp'
-        )
+        !result ||
+        result.length === 0
       ) {
-        return existingType;
+        return;
       }
+
+      const selected =
+        result[0];
 
       const fileName =
-        document.name
-          ?.toLowerCase() || '';
-
-      if (
-        fileName.endsWith(
-          '.pdf',
-        )
-      ) {
-        return 'application/pdf';
-      }
-
-      if (
-        fileName.endsWith(
-          '.jpg',
-        ) ||
-        fileName.endsWith(
-          '.jpeg',
-        )
-      ) {
-        return 'image/jpeg';
-      }
-
-      if (
-        fileName.endsWith(
-          '.png',
-        )
-      ) {
-        return 'image/png';
-      }
-
-      if (
-        fileName.endsWith(
-          '.webp',
-        )
-      ) {
-        return 'image/webp';
-      }
-
-      return '';
-    };
-
-  // ==========================================================
-  // UPLOAD FILE TO S3
-  // ==========================================================
-
-  const uploadDocumentToS3 =
-    async (
-      document: KycDocument,
-      documentType: KycDocumentType,
-      uploadId: string,
-    ): Promise<KycDocument> => {
-
-      // ========================================================
-      // VALIDATE LOCAL FILE
-      // ========================================================
-
-      if (!document.uri) {
-        throw new Error(
-          `${documentType} document URI is missing.`,
-        );
-      }
-
-      const contentType =
-        getContentType(
-          document,
-        );
-
-      if (!contentType) {
-        throw new Error(
-          `${document.name} has an unsupported file type. Please select a PDF, JPG, JPEG, PNG or WEBP file.`,
-        );
-      }
-
-      const fileSize =
-        Number(
-          document.size || 0,
-        );
-
-      if (
-        !Number.isFinite(
-          fileSize,
-        ) ||
-        fileSize <= 0
-      ) {
-        throw new Error(
-          `${document.name} has an invalid file size.`,
-        );
-      }
-
-      // ========================================================
-      // MAX FILE SIZE
-      //
-      // Keep this aligned with Lambda:
-      // KYC_MAX_FILE_SIZE_BYTES=10485760
-      //
-      // ========================================================
-
-      const MAX_FILE_SIZE =
-        10 * 1024 * 1024;
-
-      if (
-        fileSize >
-        MAX_FILE_SIZE
-      ) {
-        throw new Error(
-          `${document.name} is larger than 10 MB.`,
-        );
-      }
-
-      // ========================================================
-      // GENERATE PRESIGNED URL
-      // ========================================================
+        selected.name ||
+        `${documentType.toLowerCase()}-document`;
 
       console.log(
         '======================================',
       );
 
       console.log(
-        'GENERATING KYC UPLOAD URL',
+        '📄 SELECTED DOCUMENT:',
+        {
+          documentType,
+          uri: selected.uri,
+          name: selected.name,
+          type: selected.type,
+          size: selected.size,
+        },
+      );
+
+      // ======================================================
+      // COPY CONTENT URI TO APP CACHE
+      // ======================================================
+
+      const localCopy =
+        await keepLocalCopy({
+          files: [
+            {
+              uri: selected.uri,
+              fileName,
+            },
+          ],
+          destination: 'cachesDirectory',
+        });
+
+      const copiedFile =
+        localCopy[0];
+
+      if (
+        copiedFile.status !== 'success' ||
+        !copiedFile.localUri
+      ) {
+        throw new Error(
+          'Unable to create a local copy of the selected document.',
+        );
+      }
+
+      console.log(
+        '📂 LOCAL COPY:',
+        copiedFile.localUri,
+      );
+
+      const localPath =
+        getLocalFilePath(
+          copiedFile.localUri,
+        );
+
+      console.log(
+        '📂 NORMALIZED LOCAL PATH:',
+        localPath,
+      );
+
+      if (!localPath) {
+        throw new Error(
+          'Unable to determine the local file path.',
+        );
+      }
+
+      // ======================================================
+      // VERIFY LOCAL FILE
+      // ======================================================
+
+      const exists =
+        await RNFS.exists(
+          localPath,
+        );
+
+      console.log(
+        '📂 LOCAL FILE EXISTS:',
+        exists,
+      );
+
+      if (!exists) {
+        throw new Error(
+          'The selected document could not be accessed after copying it.',
+        );
+      }
+
+      const stat =
+        await RNFS.stat(
+          localPath,
+        );
+
+      console.log(
+        '📂 LOCAL FILE SIZE:',
+        stat.size,
+      );
+
+      if (
+        !Number(stat.size) ||
+        Number(stat.size) <= 0
+      ) {
+        throw new Error(
+          'The selected document is empty.',
+        );
+      }
+
+      if (
+        Number(stat.size) >
+        10 * 1024 * 1024
+      ) {
+        throw new Error(
+          `${fileName} is larger than the 10 MB limit.`,
+        );
+      }
+
+      // ======================================================
+      // IMPORTANT
+      //
+      // A newly selected document intentionally does NOT
+      // contain the old s3Key.
+      //
+      // This tells handleContinue() that this is a new file
+      // and it must be uploaded.
+      // ======================================================
+
+      const selectedDocument: KycDocument = {
+        uri: selected.uri,
+
+        localUri:
+          copiedFile.localUri,
+
+        name: fileName,
+
+        type: selected.type,
+
+        size:
+          selected.size ??
+          Number(stat.size),
+
+        documentType,
+
+        // Intentionally no s3Key here.
+        // The newly selected file must be uploaded.
+      };
+
+      // ======================================================
+      // STORE AGAINST EXACT DOCUMENT TYPE
+      // ======================================================
+
+      switch (documentType) {
+        case 'PAN':
+          setPanDocument(
+            selectedDocument,
+          );
+          break;
+
+        case 'AADHAAR':
+          setAadhaarDocument(
+            selectedDocument,
+          );
+          break;
+
+        case 'SHOP_ESTABLISHMENT':
+          setShopEstablishmentDocument(
+            selectedDocument,
+          );
+          break;
+
+        case 'GST':
+          setGstDocument(
+            selectedDocument,
+          );
+          break;
+
+        case 'UDYAM':
+          setUdyamDocument(
+            selectedDocument,
+          );
+          break;
+      }
+
+      console.log(
+        '======================================',
       );
 
       console.log(
-        'Document type:',
+        `🔄 ${documentType} document selected/replaced.`,
+      );
+
+      console.log(
+        '🔄 Existing S3 key cleared for this document.',
+      );
+
+      console.log(
+        '======================================',
+      );
+
+    } catch (error: any) {
+      if (
+        error?.code ===
+        'DOCUMENT_PICKER_CANCELED'
+      ) {
+        return;
+      }
+
+      console.error(
+        '❌ DOCUMENT PICK ERROR:',
+        error,
+      );
+
+      Alert.alert(
+        'Unable to select document',
+        error?.message ||
+        'Please try again.',
+      );
+    } finally {
+      setPickingDocument(false);
+    }
+  };
+
+  // ==========================================================
+  // UPLOAD DOCUMENT TO S3
+  // ==========================================================
+
+  const uploadDocumentToS3 = async (
+    document: KycDocument,
+    documentType: KycDocumentType,
+    uploadId: string,
+  ): Promise<KycDocument> => {
+    try {
+      // ======================================================
+      // IMPORTANT:
+      //
+      // If this document already has an S3 key, it has already
+      // been uploaded successfully.
+      //
+      // Do NOT generate another presigned URL.
+      // Do NOT upload it again.
+      // ======================================================
+
+      if (document.s3Key) {
+        console.log(
+          '======================================',
+        );
+
+        console.log(
+          `⏭️ ${documentType} ALREADY UPLOADED`,
+        );
+
+        console.log(
+          '⏭️ EXISTING S3 KEY:',
+          document.s3Key,
+        );
+
+        console.log(
+          '⏭️ SKIPPING S3 UPLOAD',
+        );
+
+        console.log(
+          '======================================',
+        );
+
+        return {
+          ...document,
+          uploadId:
+            document.uploadId ||
+            uploadId,
+          documentType,
+        };
+      }
+
+      console.log(
+        '======================================',
+      );
+
+      console.log(
+        '📤 STARTING S3 KYC UPLOAD',
+      );
+
+      console.log(
+        '📄 DOCUMENT TYPE:',
         documentType,
       );
 
       console.log(
-        'File name:',
+        '📄 FILE NAME:',
         document.name,
       );
 
       console.log(
-        'Content type:',
-        contentType,
+        '📄 ORIGINAL URI:',
+        document.uri,
       );
 
       console.log(
-        'File size:',
-        fileSize,
+        '📄 LOCAL URI:',
+        document.localUri,
       );
 
       console.log(
-        'Upload ID:',
+        '🆔 UPLOAD ID:',
         uploadId,
       );
 
@@ -412,7 +616,142 @@ export default function SalonKYCScreen({
         '======================================',
       );
 
-      const result =
+      // ======================================================
+      // REQUIRE LOCAL COPY
+      // ======================================================
+
+      if (!document.localUri) {
+        throw new Error(
+          `No local cached file available for ${document.name}. Please select the document again.`,
+        );
+      }
+
+      // ======================================================
+      // LOCAL FILE PATH
+      // ======================================================
+
+      const filePath =
+        getLocalFilePath(
+          document.localUri,
+        );
+
+      console.log(
+        '📂 FINAL LOCAL FILE PATH:',
+        filePath,
+      );
+
+      if (!filePath) {
+        throw new Error(
+          `Invalid local file path for ${document.name}.`,
+        );
+      }
+
+      // ======================================================
+      // NEVER ACCEPT REMOTE/CONTENT URI
+      // ======================================================
+
+      if (
+        filePath.startsWith('http://') ||
+        filePath.startsWith('https://') ||
+        filePath.startsWith('content://')
+      ) {
+        throw new Error(
+          `Invalid local file path for ${document.name}. A local filesystem path is required.`,
+        );
+      }
+
+      // ======================================================
+      // VERIFY LOCAL FILE
+      // ======================================================
+
+      const fileExists =
+        await RNFS.exists(
+          filePath,
+        );
+
+      console.log(
+        '📂 FILE EXISTS:',
+        fileExists,
+      );
+
+      if (!fileExists) {
+        throw new Error(
+          `Local file does not exist: ${filePath}`,
+        );
+      }
+
+      const stat =
+        await RNFS.stat(
+          filePath,
+        );
+
+      const actualFileSize =
+        Number(stat.size);
+
+      console.log(
+        '📂 ACTUAL FILE SIZE:',
+        actualFileSize,
+      );
+
+      if (
+        !actualFileSize ||
+        actualFileSize <= 0
+      ) {
+        throw new Error(
+          `Local file is empty: ${document.name}`,
+        );
+      }
+
+      if (
+        actualFileSize >
+        10 * 1024 * 1024
+      ) {
+        throw new Error(
+          `${document.name} is larger than the 10 MB limit.`,
+        );
+      }
+
+      // ======================================================
+      // CONTENT TYPE
+      // ======================================================
+
+      const contentType =
+        getContentType(
+          document.name,
+          document.type,
+        );
+
+      console.log(
+        '📄 CONTENT TYPE:',
+        contentType,
+      );
+
+      // ======================================================
+      // GENERATE PRESIGNED URL
+      // ======================================================
+
+      console.log(
+        '🔐 Generating presigned S3 URL...',
+      );
+
+      console.log(
+        '🔐 REQUEST DOCUMENT TYPE:',
+        documentType,
+      );
+
+      console.log(
+        '🔐 REQUEST UPLOAD ID:',
+        uploadId,
+      );
+
+      console.log(
+        '🔐 REQUEST FILE NAME:',
+        document.name,
+      );
+
+      const {
+        data: mutationData,
+      } =
         await generateKycDocumentUploadUrl({
           variables: {
             input: {
@@ -425,144 +764,311 @@ export default function SalonKYCScreen({
 
               contentType,
 
-              fileSize,
+              fileSize:
+                actualFileSize,
             },
           },
         });
 
       const response =
-        result?.data
+        mutationData
           ?.generateKycDocumentUploadUrl;
 
-      if (!response) {
-        throw new Error(
-          'No response was received while generating the KYC upload URL.',
-        );
-      }
-
-      if (
-        !response.success
-      ) {
-        throw new Error(
-          response.message ||
-          'Unable to generate the KYC upload URL.',
-        );
-      }
-
-      if (
-        !response.uploadUrl
-      ) {
-        throw new Error(
-          'KYC upload URL was not returned by the server.',
-        );
-      }
-
-      if (
-        !response.key
-      ) {
-        throw new Error(
-          'KYC S3 key was not returned by the server.',
-        );
-      }
-
-      // ========================================================
-      // READ LOCAL FILE
-      // ========================================================
-
-      const fileResponse =
-        await fetch(
-          document.uri,
-        );
-
-      if (
-        !fileResponse.ok
-      ) {
-        throw new Error(
-          `Unable to read ${document.name} from the device.`,
-        );
-      }
-
-      const fileBlob =
-        await fileResponse.blob();
-
-      // ========================================================
-      // UPLOAD TO S3
-      //
-      // IMPORTANT:
-      //
-      // Lambda presigns only ContentType.
-      //
-      // Do NOT send x-amz-meta-* headers here because they are
-      // not part of the signed PutObjectCommand.
-      //
-      // ========================================================
-
       console.log(
-        'Uploading KYC document to S3:',
-        response.key,
+        '🔐 PRESIGNED URL RESPONSE:',
+        {
+          success:
+            response?.success,
+
+          key:
+            response?.key,
+
+          contentType:
+            response?.contentType,
+
+          expiresIn:
+            response?.expiresIn,
+
+          hasUploadUrl:
+            !!response?.uploadUrl,
+        },
       );
 
-      const uploadResponse =
-        await fetch(
-          response.uploadUrl,
+      if (!response?.success) {
+        throw new Error(
+          response?.message ||
+          `Failed to generate upload URL for ${document.name}`,
+        );
+      }
+
+      if (!response.uploadUrl) {
+        throw new Error(
+          `No upload URL returned for ${document.name}`,
+        );
+      }
+
+      if (!response.key) {
+        throw new Error(
+          `No S3 key returned for ${document.name}`,
+        );
+      }
+
+      // ======================================================
+      // VERIFY DOCUMENT TYPE IN S3 KEY
+      // ======================================================
+
+      const keyParts =
+        String(response.key)
+          .split('/')
+          .filter(Boolean);
+
+      const returnedDocumentType =
+        keyParts[3] || '';
+
+      console.log(
+        '🔎 S3 KEY DOCUMENT TYPE:',
+        {
+          requested:
+            documentType,
+
+          returned:
+            returnedDocumentType,
+
+          key:
+            response.key,
+        },
+      );
+
+      if (
+        returnedDocumentType !==
+        documentType
+      ) {
+        console.error(
+          '❌ S3 KEY DOCUMENT TYPE MISMATCH',
           {
-            method: 'PUT',
+            documentType,
 
-            headers: {
-              'Content-Type':
-                contentType,
-            },
+            returnedDocumentType,
 
-            body:
-              fileBlob,
+            returnedKey:
+              response.key,
+
+            uploadId,
+
+            fileName:
+              document.name,
           },
         );
 
-      if (
-        !uploadResponse.ok
-      ) {
-
-        let uploadError =
-          '';
-
-        try {
-
-          uploadError =
-            await uploadResponse.text();
-
-        } catch {
-          uploadError =
-            '';
-        }
-
-        console.error(
-          '❌ S3 KYC UPLOAD FAILED:',
-          uploadResponse.status,
-          uploadError,
-        );
-
         throw new Error(
-          `Unable to upload ${document.name} to storage. HTTP ${uploadResponse.status}.`,
+          `S3 returned an incorrect document path for ${document.name}. Expected ${documentType} folder but received ${returnedDocumentType || 'unknown'}.`,
         );
       }
 
       console.log(
-        '✅ KYC DOCUMENT UPLOADED:',
+        '✅ S3 DOCUMENT TYPE VERIFIED:',
+        documentType,
+      );
+
+      console.log(
+        '☁️ S3 KEY:',
         response.key,
       );
 
-      // ========================================================
-      // RETURN DOCUMENT WITH S3 INFORMATION
-      // ========================================================
+      // ======================================================
+      // UPLOAD CONTENT TYPE
+      // ======================================================
+
+      const uploadContentType =
+        response.contentType ||
+        contentType;
+
+      console.log(
+        '☁️ S3 UPLOAD CONTENT TYPE:',
+        uploadContentType,
+      );
+
+      // ======================================================
+      // DIRECT S3 PUT
+      // ======================================================
+
+      console.log(
+        '☁️ STARTING DIRECT S3 PUT...',
+      );
+
+      console.log(
+        '☁️ FILE:',
+        filePath,
+      );
+
+      console.log(
+        '☁️ FILE SIZE:',
+        actualFileSize,
+      );
+
+      console.log(
+        '☁️ CONTENT TYPE:',
+        uploadContentType,
+      );
+
+      const uploadTask =
+        ReactNativeBlobUtil
+          .config({
+            fileCache: false,
+
+            followRedirect: true,
+
+            timeout: 120000,
+          })
+          .fetch(
+            'PUT',
+
+            response.uploadUrl,
+
+            {
+              'Content-Type':
+                uploadContentType,
+            },
+
+            ReactNativeBlobUtil.wrap(
+              filePath,
+            ),
+          );
+
+      const uploadResponse =
+        await uploadTask.uploadProgress(
+          {
+            interval: 250,
+          },
+
+          (
+            written,
+            total,
+          ) => {
+            const percentage =
+              total > 0
+                ? Math.min(
+                  100,
+
+                  Math.round(
+                    (written /
+                      total) *
+                    100,
+                  ),
+                )
+                : 0;
+
+            console.log(
+              `☁️ S3 KYC UPLOAD PROGRESS: ${percentage}% (${written}/${total})`,
+            );
+          },
+        );
+
+      // ======================================================
+      // S3 RESPONSE
+      // ======================================================
+
+      const uploadInfo =
+        uploadResponse.info();
+
+      console.log(
+        '======================================',
+      );
+
+      console.log(
+        '☁️ S3 UPLOAD RESPONSE',
+      );
+
+      console.log(
+        '☁️ STATUS:',
+        uploadInfo.status,
+      );
+
+      console.log(
+        '☁️ HEADERS:',
+        uploadInfo.headers,
+      );
+
+      // ======================================================
+      // RESPONSE BODY
+      // ======================================================
+
+      let responseBody: any = '';
+
+      try {
+        responseBody =
+          uploadResponse.text();
+      } catch {
+        responseBody = '';
+      }
+
+      console.log(
+        '☁️ RESPONSE BODY:',
+        responseBody,
+      );
+
+      console.log(
+        '======================================',
+      );
+
+      // ======================================================
+      // CHECK HTTP STATUS
+      // ======================================================
+
+      if (
+        uploadInfo.status < 200 ||
+        uploadInfo.status >= 300
+      ) {
+        console.error(
+          '❌ S3 UPLOAD FAILED:',
+          {
+            status:
+              uploadInfo.status,
+
+            body:
+              responseBody,
+          },
+        );
+
+        throw new Error(
+          `S3 upload failed for ${document.name}. HTTP ${uploadInfo.status}${responseBody ? `: ${responseBody}` : ''}`,
+        );
+      }
+
+      // ======================================================
+      // SUCCESS
+      // ======================================================
+
+      console.log(
+        '======================================',
+      );
+
+      console.log(
+        `✅ S3 UPLOAD SUCCESS: ${document.name}`,
+      );
+
+      console.log(
+        '✅ DOCUMENT TYPE:',
+        documentType,
+      );
+
+      console.log(
+        '✅ S3 KEY:',
+        response.key,
+      );
+
+      console.log(
+        '======================================',
+      );
 
       return {
         ...document,
 
         type:
-          contentType,
+          uploadContentType,
 
         size:
-          fileSize,
+          actualFileSize,
 
         uploadId,
 
@@ -570,185 +1076,137 @@ export default function SalonKYCScreen({
           response.key,
 
         documentType,
+
+        localUri:
+          filePath,
       };
-    };
-
-  // ==========================================================
-  // DOCUMENT PICKER
-  // ==========================================================
-
-  const pickKycDocument = async (
-    documentType:
-      | 'PAN'
-      | 'AADHAAR'
-      | 'SHOP'
-      | 'GST'
-      | 'UDYAM',
-  ) => {
-
-    try {
-
-      setPickingDocument(
-        documentType,
-      );
-
-      const result =
-        await pick({
-          type: [
-            types.pdf,
-            types.images,
-          ],
-          allowMultiSelection:
-            false,
-        });
-
-      const selected =
-        result?.[0];
-
-      if (!selected) {
-        return;
-      }
-
-      const document: KycDocument = {
-        uri:
-          selected.uri,
-
-        name:
-          selected.name ||
-          `${documentType.toLowerCase()}-document`,
-
-        type:
-          selected.type,
-
-        size:
-          selected.size,
-      };
-
-      if (
-        documentType === 'PAN'
-      ) {
-
-        setPanDocument(
-          document,
-        );
-
-      } else if (
-        documentType === 'AADHAAR'
-      ) {
-
-        setAadhaarDocument(
-          document,
-        );
-
-      } else if (
-        documentType === 'SHOP'
-      ) {
-
-        setShopEstablishmentDocument(
-          document,
-        );
-
-      } else if (
-        documentType === 'GST'
-      ) {
-
-        setGstDocument(
-          document,
-        );
-
-      } else if (
-        documentType === 'UDYAM'
-      ) {
-
-        setUdyamDocument(
-          document,
-        );
-      }
 
     } catch (error: any) {
-
-      // User cancelled the picker.
-      if (
-        error?.code ===
-        'DOCUMENT_PICKER_CANCELED'
-      ) {
-        return;
-      }
+      console.error(
+        '======================================',
+      );
 
       console.error(
-        'KYC DOCUMENT PICK ERROR:',
+        '❌ S3 KYC BINARY UPLOAD ERROR:',
         error,
       );
 
-      Alert.alert(
-        'Unable to select document',
-        'Something went wrong while selecting the document. Please try again.',
+      console.error(
+        '❌ MESSAGE:',
+        error?.message,
       );
 
-    } finally {
+      console.error(
+        '❌ DESCRIPTION:',
+        error?.description,
+      );
 
-      setPickingDocument(
-        null,
+      console.error(
+        '❌ DOCUMENT TYPE:',
+        documentType,
+      );
+
+      console.error(
+        '❌ UPLOAD ID:',
+        uploadId,
+      );
+
+      console.error(
+        '❌ FILE NAME:',
+        document.name,
+      );
+
+      console.error(
+        '❌ FILE PATH:',
+        document.localUri,
+      );
+
+      let fileExists = false;
+
+      try {
+        if (
+          document.localUri
+        ) {
+          const errorFilePath =
+            getLocalFilePath(
+              document.localUri,
+            );
+
+          if (
+            !errorFilePath.startsWith(
+              'http://',
+            ) &&
+            !errorFilePath.startsWith(
+              'https://',
+            ) &&
+            !errorFilePath.startsWith(
+              'content://',
+            )
+          ) {
+            fileExists =
+              await RNFS.exists(
+                errorFilePath,
+              );
+          }
+        }
+      } catch {
+        fileExists = false;
+      }
+
+      console.error(
+        '❌ FILE EXISTS:',
+        fileExists,
+      );
+
+      console.error(
+        '======================================',
+      );
+
+      throw new Error(
+        `Unable to upload ${document.name} to document storage. ${error?.message ||
+        'Unknown upload error'
+        }`,
       );
     }
   };
 
   // ==========================================================
-  // DOCUMENT BUTTON
+  // DOCUMENT PICKER BUTTON
   // ==========================================================
 
   const renderDocumentPicker = (
     label: string,
     document: KycDocument | null,
-    documentType:
-      | 'PAN'
-      | 'AADHAAR'
-      | 'SHOP'
-      | 'GST'
-      | 'UDYAM',
-    required: boolean = false,
+    documentType: KycDocumentType,
+    required = false,
   ) => {
-
-    const isPicking =
-      pickingDocument ===
-      documentType;
-
     return (
       <View
-        style={styles.documentContainer}
+        style={
+          styles.documentPickerContainer
+        }
       >
-
         <View
-          style={styles.documentHeader}
+          style={
+            styles.documentPickerHeader
+          }
         >
-
           <Text
-            style={styles.documentLabel}
+            style={
+              styles.documentLabel
+            }
           >
             {label}
-            {required
-              ? ' *'
-              : ''}
+            {required ? ' *' : ''}
           </Text>
-
-          {document && (
-            <Text
-              style={
-                styles.documentSelected
-              }
-            >
-              Selected
-            </Text>
-          )}
-
         </View>
 
         <TouchableOpacity
-          activeOpacity={0.8}
           style={[
-            styles.uploadButton,
+            styles.documentPickerButton,
+
             document &&
-            styles.uploadButtonSelected,
+            styles.documentPickerButtonSelected,
           ]}
           onPress={() =>
             pickKycDocument(
@@ -756,65 +1214,95 @@ export default function SalonKYCScreen({
             )
           }
           disabled={
-            isPicking ||
+            pickingDocument ||
             submitting
           }
         >
-
-          {isPicking ? (
-
-            <ActivityIndicator
-              size="small"
-              color={
-                COLORS.themeColor
+          {document ? (
+            <View
+              style={
+                styles.documentSelectedContent
               }
-            />
+            >
+              <Text
+                style={
+                  styles.documentSelectedIcon
+                }
+              >
+                ✓
+              </Text>
 
+              <View
+                style={
+                  styles.documentSelectedTextContainer
+                }
+              >
+                <Text
+                  style={
+                    styles.documentSelectedText
+                  }
+                  numberOfLines={1}
+                >
+                  {document.name}
+                </Text>
+
+                <Text
+                  style={
+                    styles.documentSelectedSubText
+                  }
+                >
+                  {document.s3Key
+                    ? 'Document uploaded'
+                    : 'Document selected'}
+                </Text>
+              </View>
+
+              <Text
+                style={
+                  styles.documentChangeText
+                }
+              >
+                Change
+              </Text>
+            </View>
           ) : (
-
-            <Text
+            <View
               style={
-                styles.uploadButtonText
+                styles.documentEmptyContent
               }
             >
-              {document
-                ? 'Change Document'
-                : 'Upload Document'}
-            </Text>
+              <Text
+                style={
+                  styles.documentUploadIcon
+                }
+              >
+                ↑
+              </Text>
 
+              <View
+                style={
+                  styles.documentEmptyTextContainer
+                }
+              >
+                <Text
+                  style={
+                    styles.documentUploadText
+                  }
+                >
+                  Upload document
+                </Text>
+
+                <Text
+                  style={
+                    styles.documentUploadSubText
+                  }
+                >
+                  PDF, JPG, PNG or WEBP
+                </Text>
+              </View>
+            </View>
           )}
-
         </TouchableOpacity>
-
-        {document && (
-
-          <View
-            style={
-              styles.documentInfo
-            }
-          >
-
-            <Text
-              style={
-                styles.documentName
-              }
-              numberOfLines={2}
-            >
-              {document.name}
-            </Text>
-
-            <Text
-              style={
-                styles.documentHint
-              }
-            >
-              PDF or image selected
-            </Text>
-
-          </View>
-
-        )}
-
       </View>
     );
   };
@@ -823,49 +1311,50 @@ export default function SalonKYCScreen({
   // CONTINUE
   // ==========================================================
 
-  const handleContinue =
-    async () => {
+  const handleContinue = async () => {
+    try {
+      setSubmitting(true);
 
-      // ========================================================
+      // ======================================================
       // CLEAN VALUES
-      // ========================================================
+      // ======================================================
 
-      const cleanPAN =
+      const cleanPan =
         panNumber
           .trim()
           .toUpperCase();
 
       const cleanAadhaar =
-        aadhaarNumber
-          .replace(
-            /\D/g,
-            '',
-          );
+        aadhaarNumber.replace(
+          /\D/g,
+          '',
+        );
 
-      const cleanGST =
+      const cleanGst =
         gstNumber
           .trim()
           .toUpperCase();
 
       const cleanShop =
-        shopEstablishmentNumber
-          .trim();
+        shopEstablishmentNumber.trim();
 
       const cleanUdyam =
         udyamNumber
           .trim()
           .toUpperCase();
 
-      // ========================================================
+      // ======================================================
       // PAN VALIDATION
-      // ========================================================
+      // ======================================================
+
+      const panRegex =
+        /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 
       if (
-        !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(
-          cleanPAN,
+        !panRegex.test(
+          cleanPan,
         )
       ) {
-
         Alert.alert(
           'Invalid PAN',
           'Please enter a valid PAN number.',
@@ -874,30 +1363,18 @@ export default function SalonKYCScreen({
         return;
       }
 
-      // ========================================================
-      // PAN DOCUMENT
-      // ========================================================
-
-      if (!panDocument) {
-
-        Alert.alert(
-          'PAN document required',
-          'Please upload the PAN document before continuing.',
-        );
-
-        return;
-      }
-
-      // ========================================================
+      // ======================================================
       // AADHAAR VALIDATION
-      // ========================================================
+      // ======================================================
+
+      const aadhaarRegex =
+        /^\d{12}$/;
 
       if (
-        !/^\d{12}$/.test(
+        !aadhaarRegex.test(
           cleanAadhaar,
         )
       ) {
-
         Alert.alert(
           'Invalid Aadhaar',
           'Please enter a valid 12-digit Aadhaar number.',
@@ -906,440 +1383,452 @@ export default function SalonKYCScreen({
         return;
       }
 
-      // ========================================================
-      // AADHAAR DOCUMENT
-      // ========================================================
+      // ======================================================
+      // REQUIRED DOCUMENTS
+      // ======================================================
+
+      if (!panDocument) {
+        Alert.alert(
+          'PAN document required',
+          'Please upload your PAN document.',
+        );
+
+        return;
+      }
 
       if (!aadhaarDocument) {
-
         Alert.alert(
           'Aadhaar document required',
-          'Please upload the Aadhaar document before continuing.',
+          'Please upload your Aadhaar document.',
         );
 
         return;
       }
-
-      // ========================================================
-      // SHOP & ESTABLISHMENT
-      // ========================================================
-
-      if (!cleanShop) {
-
-        Alert.alert(
-          'Salon registration required',
-          'Please enter your Shop & Establishment registration number.',
-        );
-
-        return;
-      }
-
-      // ========================================================
-      // SHOP & ESTABLISHMENT DOCUMENT
-      // ========================================================
 
       if (
         !shopEstablishmentDocument
       ) {
-
         Alert.alert(
           'Shop & Establishment document required',
-          'Please upload your Shop & Establishment registration certificate.',
+          'Please upload your Shop & Establishment document.',
         );
 
         return;
       }
 
-      // ========================================================
-      // OPTIONAL DOCUMENT VALIDATION
-      //
-      // If GSTIN is entered, a GST document is required.
-      //
-      // If Udyam number is entered, a Udyam document is required.
-      //
-      // ========================================================
+      // ======================================================
+      // OPTIONAL GST
+      // ======================================================
 
       if (
-        cleanGST &&
+        cleanGst &&
         !gstDocument
       ) {
-
         Alert.alert(
           'GST document required',
-          'You entered a GSTIN. Please upload the GST certificate.',
+          'Please upload your GST certificate because you entered a GSTIN.',
         );
 
         return;
       }
+
+      // ======================================================
+      // OPTIONAL UDYAM
+      // ======================================================
 
       if (
         cleanUdyam &&
         !udyamDocument
       ) {
-
         Alert.alert(
           'Udyam document required',
-          'You entered a Udyam number. Please upload the Udyam certificate.',
+          'Please upload your Udyam certificate because you entered a Udyam number.',
         );
 
         return;
       }
 
-      try {
+      // ======================================================
+      // REUSE EXISTING UPLOAD ID
+      //
+      // If the user comes back from SalonReview, use the
+      // existing KYC upload ID.
+      //
+      // Only create a new one for the first KYC submission.
+      // ======================================================
 
-        setSubmitting(true);
+      const existingUploadId =
+        data?.kycUploadId ||
+        panDocument?.uploadId ||
+        aadhaarDocument?.uploadId ||
+        shopEstablishmentDocument?.uploadId ||
+        gstDocument?.uploadId ||
+        udyamDocument?.uploadId;
 
-        // ======================================================
-        // CREATE ONE UPLOAD ID FOR THIS REGISTRATION
-        // ======================================================
+      const uploadId =
+        existingUploadId ||
+        createUploadId();
 
-        const uploadId =
-          createUploadId();
+      console.log(
+        '======================================',
+      );
 
-        console.log(
-          '======================================',
-        );
+      console.log(
+        '🚀 STARTING KYC DOCUMENT PROCESSING',
+      );
 
-        console.log(
-          'STARTING KYC DOCUMENT UPLOAD',
-        );
+      console.log(
+        '🆔 KYC UPLOAD ID:',
+        uploadId,
+      );
 
-        console.log(
-          'KYC uploadId:',
+      console.log(
+        '📌 EXISTING KYC UPLOAD ID:',
+        existingUploadId || 'NONE - NEW KYC',
+      );
+
+      console.log(
+        '======================================',
+      );
+
+      // ======================================================
+      // UPLOAD PAN
+      //
+      // If s3Key exists, uploadDocumentToS3() skips it.
+      // If user changed the file, s3Key is absent and it
+      // uploads the new document.
+      // ======================================================
+
+      console.log(
+        '🔵 PROCESSING PAN...',
+      );
+
+      const uploadedPanDocument =
+        await uploadDocumentToS3(
+          {
+            ...panDocument,
+            documentType: 'PAN',
+          },
+          'PAN',
           uploadId,
         );
 
+      // ======================================================
+      // UPLOAD AADHAAR
+      // ======================================================
+
+      console.log(
+        '🟢 PROCESSING AADHAAR...',
+      );
+
+      const uploadedAadhaarDocument =
+        await uploadDocumentToS3(
+          {
+            ...aadhaarDocument,
+            documentType: 'AADHAAR',
+          },
+          'AADHAAR',
+          uploadId,
+        );
+
+      // ======================================================
+      // UPLOAD SHOP & ESTABLISHMENT
+      // ======================================================
+
+      console.log(
+        '🟠 PROCESSING SHOP & ESTABLISHMENT...',
+      );
+
+      const uploadedShopDocument =
+        await uploadDocumentToS3(
+          {
+            ...shopEstablishmentDocument,
+            documentType:
+              'SHOP_ESTABLISHMENT',
+          },
+          'SHOP_ESTABLISHMENT',
+          uploadId,
+        );
+
+      // ======================================================
+      // UPLOAD GST IF PROVIDED
+      // ======================================================
+
+      let uploadedGstDocument:
+        | KycDocument
+        | null = null;
+
+      if (
+        cleanGst &&
+        gstDocument
+      ) {
         console.log(
-          '======================================',
+          '🟣 PROCESSING GST...',
         );
 
-        // ======================================================
-        // UPLOAD REQUIRED DOCUMENTS
-        // ======================================================
-
-        const uploadedPanDocument =
+        uploadedGstDocument =
           await uploadDocumentToS3(
-            panDocument,
-            'PAN',
+            {
+              ...gstDocument,
+              documentType: 'GST',
+            },
+            'GST',
             uploadId,
           );
+      }
 
-        const uploadedAadhaarDocument =
+      // ======================================================
+      // UPLOAD UDYAM IF PROVIDED
+      // ======================================================
+
+      let uploadedUdyamDocument:
+        | KycDocument
+        | null = null;
+
+      if (
+        cleanUdyam &&
+        udyamDocument
+      ) {
+        console.log(
+          '🟡 PROCESSING UDYAM...',
+        );
+
+        uploadedUdyamDocument =
           await uploadDocumentToS3(
-            aadhaarDocument,
-            'AADHAAR',
+            {
+              ...udyamDocument,
+              documentType: 'UDYAM',
+            },
+            'UDYAM',
             uploadId,
           );
+      }
 
-        const uploadedShopDocument =
-          await uploadDocumentToS3(
-            shopEstablishmentDocument,
-            'SHOP_ESTABLISHMENT',
-            uploadId,
-          );
+      // ======================================================
+      // SAVE KYC DATA
+      // ======================================================
 
-        // ======================================================
-        // UPLOAD OPTIONAL GST
-        // ======================================================
+      updateData({
+        panNumber:
+          cleanPan,
 
-        let uploadedGstDocument:
-          | KycDocument
-          | null =
-          null;
+        aadhaarNumber:
+          cleanAadhaar,
 
-        if (
-          gstDocument
-        ) {
+        gstNumber:
+          cleanGst,
 
-          uploadedGstDocument =
-            await uploadDocumentToS3(
-              gstDocument,
-              'GST',
-              uploadId,
-            );
-        }
+        shopEstablishmentNumber:
+          cleanShop,
 
-        // ======================================================
-        // UPLOAD OPTIONAL UDYAM
-        // ======================================================
+        udyamNumber:
+          cleanUdyam,
 
-        let uploadedUdyamDocument:
-          | KycDocument
-          | null =
-          null;
+        panDocument:
+          uploadedPanDocument,
 
-        if (
-          udyamDocument
-        ) {
+        aadhaarDocument:
+          uploadedAadhaarDocument,
 
-          uploadedUdyamDocument =
-            await uploadDocumentToS3(
-              udyamDocument,
-              'UDYAM',
-              uploadId,
-            );
-        }
+        shopEstablishmentDocument:
+          uploadedShopDocument,
 
-        // ======================================================
-        // DEVELOPMENT REFERENCE
-        // ======================================================
+        gstDocument:
+          uploadedGstDocument,
 
-        const referenceId =
-          data.kycReferenceId ||
-          `DEV-KYC-${Date.now()}`;
+        udyamDocument:
+          uploadedUdyamDocument,
 
-        // ======================================================
-        // SAVE KYC INFORMATION
-        //
-        // Documents now contain:
-        //
-        // uploadId
-        // s3Key
-        // documentType
-        //
-        // SalonReview will send these to:
-        //
-        // registerSalonPartner
-        //
-        // ======================================================
+        kycUploadId:
+          uploadId,
 
-        updateData({
+        kycStatus:
+          'PENDING',
 
-          panNumber:
-            cleanPAN,
+        kycReferenceId:
+          uploadId,
 
-          aadhaarNumber:
-            cleanAadhaar,
+        kycSubmittedAt:
+          '',
 
-          gstNumber:
-            cleanGST,
+        kycReviewedAt:
+          '',
 
-          shopEstablishmentNumber:
-            cleanShop,
+        kycRejectionReason:
+          '',
 
-          udyamNumber:
-            cleanUdyam,
+        providerStatus:
+          'NOT_REGISTERED',
+      });
 
-          // ====================================================
-          // REQUIRED DOCUMENTS
-          // ====================================================
+      console.log(
+        '======================================',
+      );
 
-          panDocument:
-            uploadedPanDocument,
+      console.log(
+        '✅ KYC DOCUMENT PROCESSING COMPLETE',
+      );
 
-          aadhaarDocument:
-            uploadedAadhaarDocument,
+      console.log(
+        '🆔 KYC UPLOAD ID:',
+        uploadId,
+      );
 
-          shopEstablishmentDocument:
-            uploadedShopDocument,
+      console.log(
+        '📄 PAN S3 KEY:',
+        uploadedPanDocument.s3Key,
+      );
 
-          // ====================================================
-          // OPTIONAL DOCUMENTS
-          // ====================================================
+      console.log(
+        '📄 AADHAAR S3 KEY:',
+        uploadedAadhaarDocument.s3Key,
+      );
 
-          gstDocument:
-            uploadedGstDocument,
+      console.log(
+        '📄 SHOP S3 KEY:',
+        uploadedShopDocument.s3Key,
+      );
 
-          udyamDocument:
-            uploadedUdyamDocument,
-
-          // ====================================================
-          // KYC UPLOAD INFORMATION
-          // ====================================================
-
-          kycUploadId:
-            uploadId,
-
-          kycStatus:
-            'PENDING',
-
-          kycReferenceId:
-            referenceId,
-
-          kycSubmittedAt:
-            '',
-
-          kycReviewedAt:
-            '',
-
-          kycRejectionReason:
-            '',
-
-          providerStatus:
-            'NOT_REGISTERED',
-        });
-
-        // ======================================================
-        // SMALL DELAY FOR UI
-        // ======================================================
-
-        await new Promise(
-          resolve =>
-            setTimeout(
-              resolve,
-              300,
-            ),
-        );
-
-        // ======================================================
-        // GO TO SALON REVIEW
-        // ======================================================
-
-        navigation.navigate(
-          'SalonReview',
-        );
-
-      } catch (error: any) {
-
-        console.error(
-          '======================================',
-        );
-
-        console.error(
-          '❌ KYC UPLOAD / CONTINUE ERROR:',
-          error,
-        );
-
-        console.error(
-          '❌ KYC ERROR MESSAGE:',
-          error?.message,
-        );
-
-        console.error(
-          '======================================',
-        );
-
-        Alert.alert(
-          'Unable to upload documents',
-          error?.message ||
-          'Something went wrong while uploading your KYC documents. Please try again.',
-        );
-
-      } finally {
-
-        setSubmitting(
-          false,
+      if (uploadedGstDocument) {
+        console.log(
+          '📄 GST S3 KEY:',
+          uploadedGstDocument.s3Key,
         );
       }
-    };
+
+      if (uploadedUdyamDocument) {
+        console.log(
+          '📄 UDYAM S3 KEY:',
+          uploadedUdyamDocument.s3Key,
+        );
+      }
+
+      console.log(
+        '======================================',
+      );
+
+      // ======================================================
+      // NAVIGATE
+      // ======================================================
+
+      await new Promise(
+        resolve =>
+          setTimeout(
+            resolve,
+            300,
+          ),
+      );
+
+      navigation.navigate(
+        'SalonReview',
+      );
+
+    } catch (error: any) {
+      console.error(
+        '======================================',
+      );
+
+      console.error(
+        '❌ KYC UPLOAD / CONTINUE ERROR:',
+        error,
+      );
+
+      console.error(
+        '❌ KYC ERROR MESSAGE:',
+        error?.message,
+      );
+
+      console.error(
+        '======================================',
+      );
+
+      Alert.alert(
+        'Unable to upload documents',
+        error?.message ||
+        'Something went wrong while uploading your KYC documents. Please try again.',
+      );
+
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // ==========================================================
-  // RENDER
+  // UI
   // ==========================================================
 
   return (
     <SafeAreaView
-      style={
-        styles.container
-      }
+      style={styles.safeArea}
     >
-
       <Header
         headerTitle="Business Verification"
+        backBtn={() =>
+          navigation.goBack()
+        }
       />
 
       <ScrollView
+        style={styles.container}
         contentContainerStyle={
-          styles.content
+          styles.contentContainer
         }
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={
-          false
-        }
+        showsVerticalScrollIndicator={false}
       >
-
-        {/* ==================================================
-            HEADER
-        ================================================== */}
-
-        <Text
-          style={
-            styles.title
-          }
-        >
-          Verify your salon
+        <Text style={styles.title}>
+          Verify your business
         </Text>
 
-        <Text
-          style={
-            styles.subtitle
-          }
-        >
-          Please provide the required business verification
-          details and upload the supporting documents.
+        <Text style={styles.subtitle}>
+          Complete your business verification
+          to continue with business registration.
         </Text>
 
-        {/* ==================================================
-            OWNER VERIFICATION
-        ================================================== */}
+        {/* OWNER VERIFICATION */}
 
-        <View
-          style={
-            styles.section
-          }
-        >
-
+        <View style={styles.section}>
           <Text
-            style={
-              styles.sectionTitle
-            }
+            style={styles.sectionTitle}
           >
             Owner verification
           </Text>
 
           <Text
-            style={
-              styles.sectionSubtitle
-            }
+            style={styles.sectionSubtitle}
           >
-            These details are used to verify the business
-            owner.
+            These details are required to verify
+            the business owner.
           </Text>
 
           {/* PAN */}
 
-          <View
-            style={
-              styles.field
-            }
+          <Text
+            style={styles.inputLabel}
           >
+            PAN Number *
+          </Text>
 
-            <Text
-              style={
-                styles.label
-              }
-            >
-              PAN Number *
-            </Text>
-
-            <TextInput
-              style={
-                styles.input
-              }
-              placeholder="ABCDE1234F"
-              placeholderTextColor={
-                COLORS.textMuted
-              }
-              value={
-                panNumber
-              }
-              onChangeText={
-                text =>
-                  setPanNumber(
-                    text
-                      .toUpperCase()
-                      .replace(
-                        /[^A-Z0-9]/g,
-                        '',
-                      ),
-                  )
-              }
-              maxLength={10}
-              autoCapitalize="characters"
-              autoCorrect={false}
-            />
-
-          </View>
+          <TextInput
+            value={panNumber}
+            onChangeText={text =>
+              setPanNumber(
+                text
+                  .toUpperCase()
+                  .replace(
+                    /[^A-Z0-9]/g,
+                    '',
+                  ),
+              )
+            }
+            placeholder="Enter PAN number"
+            placeholderTextColor={
+              COLORS.textSecondary
+            }
+            autoCapitalize="characters"
+            maxLength={10}
+            style={styles.input}
+          />
 
           {renderDocumentPicker(
             'PAN Document',
@@ -1350,46 +1839,30 @@ export default function SalonKYCScreen({
 
           {/* AADHAAR */}
 
-          <View
-            style={
-              styles.field
-            }
+          <Text
+            style={styles.inputLabel}
           >
+            Aadhaar Number *
+          </Text>
 
-            <Text
-              style={
-                styles.label
-              }
-            >
-              Aadhaar Number *
-            </Text>
-
-            <TextInput
-              style={
-                styles.input
-              }
-              placeholder="12 digit Aadhaar"
-              placeholderTextColor={
-                COLORS.textMuted
-              }
-              value={
-                aadhaarNumber
-              }
-              onChangeText={
-                text =>
-                  setAadhaarNumber(
-                    text.replace(
-                      /\D/g,
-                      '',
-                    ),
-                  )
-              }
-              keyboardType="number-pad"
-              maxLength={12}
-              secureTextEntry
-            />
-
-          </View>
+          <TextInput
+            value={aadhaarNumber}
+            onChangeText={text =>
+              setAadhaarNumber(
+                text.replace(
+                  /\D/g,
+                  '',
+                ),
+              )
+            }
+            placeholder="Enter 12-digit Aadhaar number"
+            placeholderTextColor={
+              COLORS.textSecondary
+            }
+            keyboardType="number-pad"
+            maxLength={12}
+            style={styles.input}
+          />
 
           {renderDocumentPicker(
             'Aadhaar Document',
@@ -1397,125 +1870,88 @@ export default function SalonKYCScreen({
             'AADHAAR',
             true,
           )}
-
         </View>
 
-        {/* ==================================================
-            BUSINESS VERIFICATION
-        ================================================== */}
+        {/* BUSINESS VERIFICATION */}
 
-        <View
-          style={
-            styles.section
-          }
-        >
-
+        <View style={styles.section}>
           <Text
-            style={
-              styles.sectionTitle
-            }
+            style={styles.sectionTitle}
           >
             Business verification
           </Text>
 
           <Text
-            style={
-              styles.sectionSubtitle
-            }
+            style={styles.sectionSubtitle}
           >
-            Shop & Establishment registration is required for
-            applicable physical salon establishments. GSTIN
-            and Udyam registration can be provided if
-            applicable.
+            Provide your business registration
+            documents.
           </Text>
 
           {/* SHOP & ESTABLISHMENT */}
 
-          <View
-            style={
-              styles.field
-            }
+          <Text
+            style={styles.inputLabel}
           >
+            Shop & Establishment Number
+          </Text>
 
-            <Text
-              style={
-                styles.label
-              }
-            >
-              Shop & Establishment Number *
-            </Text>
-
-            <TextInput
-              style={
-                styles.input
-              }
-              placeholder="Enter registration number"
-              placeholderTextColor={
-                COLORS.textMuted
-              }
-              value={
-                shopEstablishmentNumber
-              }
-              onChangeText={
-                setShopEstablishmentNumber
-              }
-              autoCapitalize="characters"
-              autoCorrect={false}
-            />
-
-          </View>
+          <TextInput
+            value={
+              shopEstablishmentNumber
+            }
+            onChangeText={
+              setShopEstablishmentNumber
+            }
+            placeholder="Enter registration number"
+            placeholderTextColor={
+              COLORS.textSecondary
+            }
+            style={styles.input}
+          />
 
           {renderDocumentPicker(
-            'Shop & Establishment Certificate',
+            'Shop & Establishment Document',
             shopEstablishmentDocument,
-            'SHOP',
+            'SHOP_ESTABLISHMENT',
             true,
           )}
 
           {/* GST */}
 
-          <View
-            style={
-              styles.field
-            }
+          <Text
+            style={styles.inputLabel}
           >
-
+            GSTIN
             <Text
               style={
-                styles.label
+                styles.optionalText
               }
             >
-              GSTIN
+              {' '}
+              (Optional)
             </Text>
+          </Text>
 
-            <TextInput
-              style={
-                styles.input
-              }
-              placeholder="Optional / If applicable"
-              placeholderTextColor={
-                COLORS.textMuted
-              }
-              value={
-                gstNumber
-              }
-              onChangeText={
-                text =>
-                  setGstNumber(
-                    text
-                      .toUpperCase()
-                      .replace(
-                        /[^A-Z0-9]/g,
-                        '',
-                      ),
-                  )
-              }
-              maxLength={15}
-              autoCapitalize="characters"
-              autoCorrect={false}
-            />
-
-          </View>
+          <TextInput
+            value={gstNumber}
+            onChangeText={text =>
+              setGstNumber(
+                text
+                  .toUpperCase()
+                  .replace(
+                    /[^A-Z0-9]/g,
+                    '',
+                  ),
+              )
+            }
+            placeholder="Enter GSTIN if applicable"
+            placeholderTextColor={
+              COLORS.textSecondary
+            }
+            autoCapitalize="characters"
+            style={styles.input}
+          />
 
           {renderDocumentPicker(
             'GST Certificate',
@@ -1526,39 +1962,36 @@ export default function SalonKYCScreen({
 
           {/* UDYAM */}
 
-          <View
-            style={
-              styles.field
-            }
+          <Text
+            style={styles.inputLabel}
           >
-
+            Udyam Registration Number
             <Text
               style={
-                styles.label
+                styles.optionalText
               }
             >
-              Udyam Number
+              {' '}
+              (Optional)
             </Text>
+          </Text>
 
-            <TextInput
-              style={
-                styles.input
-              }
-              placeholder="Optional"
-              placeholderTextColor={
-                COLORS.textMuted
-              }
-              value={
-                udyamNumber
-              }
-              onChangeText={
-                setUdyamNumber
-              }
-              autoCapitalize="characters"
-              autoCorrect={false}
-            />
-
-          </View>
+          <TextInput
+            value={udyamNumber}
+            onChangeText={text =>
+              setUdyamNumber(
+                text
+                  .toUpperCase()
+                  .trim(),
+              )
+            }
+            placeholder="Enter Udyam number if applicable"
+            placeholderTextColor={
+              COLORS.textSecondary
+            }
+            autoCapitalize="characters"
+            style={styles.input}
+          />
 
           {renderDocumentPicker(
             'Udyam Certificate',
@@ -1566,538 +1999,532 @@ export default function SalonKYCScreen({
             'UDYAM',
             false,
           )}
-
         </View>
 
-        {/* ==================================================
-            DOCUMENT INFORMATION
-        ================================================== */}
+        {/* DOCUMENT REQUIREMENTS */}
 
         <View
-          style={
-            styles.infoCard
-          }
+          style={styles.infoCard}
         >
-
           <Text
-            style={
-              styles.infoTitle
-            }
+            style={styles.infoTitle}
           >
             Document requirements
           </Text>
 
           <Text
-            style={
-              styles.infoText
-            }
+            style={styles.infoText}
           >
-            • PAN document is required.
+            • PDF, JPG, PNG or WEBP files are
+            accepted.
           </Text>
 
           <Text
-            style={
-              styles.infoText
-            }
+            style={styles.infoText}
           >
-            • Aadhaar document is required.
+            • Maximum file size is 10 MB.
           </Text>
 
           <Text
-            style={
-              styles.infoText
-            }
+            style={styles.infoText}
           >
-            • Shop & Establishment certificate is required.
+            • PAN, Aadhaar and Shop &
+            Establishment documents are required.
           </Text>
 
           <Text
-            style={
-              styles.infoText
-            }
+            style={styles.infoText}
           >
-            • GST certificate is optional if GSTIN is applicable.
+            • GST and Udyam documents are
+            optional unless the corresponding
+            number is provided.
           </Text>
-
-          <Text
-            style={
-              styles.infoText
-            }
-          >
-            • Udyam certificate is optional.
-          </Text>
-
-          <Text
-            style={
-              styles.infoText
-            }
-          >
-            • Documents will be reviewed by Clavata Admin.
-          </Text>
-
         </View>
 
-        {/* ==================================================
-            INFORMATION
-        ================================================== */}
+        {/* WHAT HAPPENS NEXT */}
 
         <View
-          style={
-            styles.infoCard
-          }
+          style={styles.infoCard}
         >
-
           <Text
-            style={
-              styles.infoTitle
-            }
+            style={styles.infoTitle}
           >
             What happens next?
           </Text>
 
           <Text
-            style={
-              styles.infoText
-            }
+            style={styles.infoText}
           >
-            1. Select the services your salon provides.
+            Your documents will be submitted
+            for verification after you continue.
           </Text>
 
           <Text
-            style={
-              styles.infoText
-            }
+            style={styles.infoText}
           >
-            2. Review all your salon registration information.
+            Your business will remain pending until
+            the verification and approval process
+            is completed.
           </Text>
-
-          <Text
-            style={
-              styles.infoText
-            }
-          >
-            3. Submit the registration.
-          </Text>
-
-          <Text
-            style={
-              styles.infoText
-            }
-          >
-            4. Clavata will review your salon business
-            information and documents.
-          </Text>
-
-          <Text
-            style={
-              styles.infoText
-            }
-          >
-            5. Admin may initiate PAN and Aadhaar verification
-            after reviewing the submitted information.
-          </Text>
-
-          <Text
-            style={
-              styles.infoText
-            }
-          >
-            6. Your salon will remain pending until verification
-            and Clavata approval are completed.
-          </Text>
-
         </View>
 
-        {/* ==================================================
-            CONTINUE
-        ================================================== */}
+        {/* CONTINUE */}
 
-        <DButton
-          style={
-            styles.button
-          }
-          onPress={
-            handleContinue
-          }
-          disabled={
-            submitting
-          }
+        <View
+          style={styles.buttonContainer}
         >
-
           {submitting ? (
-
-            <ActivityIndicator
-              color={
-                COLORS.white
-              }
-            />
-
-          ) : (
-
-            <Text
+            <View
               style={
-                styles.buttonText
+                styles.loadingContainer
               }
             >
+              <ActivityIndicator
+                size="small"
+                color={
+                  COLORS.themeColor
+                }
+              />
+
+              <Text
+                style={
+                  styles.loadingText
+                }
+              >
+                Uploading documents...
+              </Text>
+            </View>
+          ) : (
+            <DButton
+              onPress={handleContinue}
+              disabled={
+                submitting ||
+                pickingDocument
+              }
+              style={{
+                width: '100%',
+                alignSelf: 'stretch',
+                backgroundColor:
+                  COLORS.themeColor,
+              }}
+            >
               Continue
-            </Text>
-
+            </DButton>
           )}
+        </View>
 
-        </DButton>
-
+        <View
+          style={
+            styles.bottomSpacing
+          }
+        />
       </ScrollView>
-
     </SafeAreaView>
   );
-}
+};
 
 // ============================================================
 // STYLES
 // ============================================================
 
-const styles =
-  StyleSheet.create({
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor:
+      COLORS.background,
+  },
 
-    container: {
-      flex: 1,
+  container: {
+    flex: 1,
+  },
 
-      backgroundColor:
-        COLORS.background,
-    },
+  contentContainer: {
+    paddingHorizontal:
+      SPACING.large,
 
-    content: {
-      paddingHorizontal:
-        SPACING.xxl,
+    paddingTop:
+      SPACING.large,
 
-      paddingTop:
-        SPACING.xxl,
+    paddingBottom:
+      SPACING.xl,
+  },
 
-      paddingBottom:
-        SPACING.huge,
-    },
+  title: {
+    fontFamily:
+      FONTS.bold,
 
-    title: {
-      fontFamily:
-        FONTS.bold,
+    fontSize: 26,
 
-      fontSize: 22,
+    color:
+      COLORS.primary,
 
-      color:
-        COLORS.text,
+    marginBottom:
+      SPACING.xs,
+  },
 
-      marginBottom:
-        SPACING.small,
-    },
+  subtitle: {
+    fontFamily:
+      FONTS.regular,
 
-    subtitle: {
-      fontFamily:
-        FONTS.regular,
+    fontSize: 14,
 
-      fontSize: 13,
+    lineHeight: 21,
 
-      lineHeight: 19,
+    color:
+      COLORS.textSecondary,
 
-      color:
-        COLORS.textSecondary,
+    marginBottom:
+      SPACING.xl,
+  },
 
-      marginBottom:
-        SPACING.large,
-    },
+  section: {
+    marginBottom:
+      SPACING.xl,
+  },
 
-    section: {
-      backgroundColor:
-        COLORS.surface,
+  sectionTitle: {
+    fontFamily:
+      FONTS.bold,
 
-      borderWidth: 1,
+    fontSize: 18,
 
-      borderColor:
-        COLORS.border,
+    color:
+      COLORS.primary,
 
-      borderRadius:
-        RADIUS.large,
+    marginBottom:
+      SPACING.xs,
+  },
 
-      padding:
-        SPACING.large,
+  sectionSubtitle: {
+    fontFamily:
+      FONTS.regular,
 
-      marginBottom:
-        SPACING.large,
-    },
+    fontSize: 13,
 
-    sectionTitle: {
-      fontFamily:
-        FONTS.semiBold,
+    lineHeight: 19,
 
-      fontSize: 17,
+    color:
+      COLORS.textSecondary,
 
-      color:
-        COLORS.text,
+    marginBottom:
+      SPACING.large,
+  },
 
-      marginBottom: 4,
-    },
+  inputLabel: {
+    fontFamily:
+      FONTS.medium,
 
-    sectionSubtitle: {
-      fontFamily:
-        FONTS.regular,
+    fontSize: 14,
 
-      fontSize: 12,
+    color:
+      COLORS.primary,
 
-      lineHeight: 17,
+    marginBottom:
+      SPACING.xs,
+  },
 
-      color:
-        COLORS.textSecondary,
+  optionalText: {
+    fontFamily:
+      FONTS.regular,
 
-      marginBottom:
-        SPACING.large,
-    },
+    color:
+      COLORS.textSecondary,
+  },
 
-    field: {
-      marginBottom:
-        SPACING.large,
-    },
+  input: {
+    height: 50,
 
-    label: {
-      fontFamily:
-        FONTS.semiBold,
+    borderWidth: 1,
 
-      fontSize: 13,
+    borderColor:
+      COLORS.border,
 
-      color:
-        COLORS.text,
+    borderRadius:
+      RADIUS.medium,
 
-      marginBottom:
-        SPACING.small,
-    },
+    paddingHorizontal:
+      SPACING.medium,
 
-    input: {
-      height: 52,
+    color:
+      COLORS.primary,
 
-      backgroundColor:
-        COLORS.background,
+    backgroundColor:
+      COLORS.white,
 
-      borderWidth: 1,
+    fontFamily:
+      FONTS.regular,
 
-      borderColor:
-        COLORS.border,
+    fontSize: 15,
 
-      borderRadius:
-        RADIUS.medium,
+    marginBottom:
+      SPACING.medium,
+  },
 
-      paddingHorizontal:
-        SPACING.medium,
+  documentPickerContainer: {
+    marginBottom:
+      SPACING.large,
+  },
 
-      fontFamily:
-        FONTS.regular,
+  documentPickerHeader: {
+    flexDirection: 'row',
 
-      fontSize: 15,
+    alignItems: 'center',
 
-      color:
-        COLORS.text,
-    },
+    marginBottom:
+      SPACING.xs,
+  },
 
-    // ========================================================
-    // DOCUMENT
-    // ========================================================
+  documentLabel: {
+    fontFamily:
+      FONTS.medium,
 
-    documentContainer: {
-      marginBottom:
-        SPACING.large,
-    },
+    fontSize: 14,
 
-    documentHeader: {
-      flexDirection:
-        'row',
+    color:
+      COLORS.primary,
+  },
 
-      alignItems:
-        'center',
+  documentPickerButton: {
+    minHeight: 64,
 
-      justifyContent:
-        'space-between',
+    borderWidth: 1,
 
-      marginBottom:
-        SPACING.small,
-    },
+    borderColor:
+      COLORS.border,
 
-    documentLabel: {
-      fontFamily:
-        FONTS.semiBold,
+    borderRadius:
+      RADIUS.medium,
 
-      fontSize: 13,
+    backgroundColor:
+      COLORS.white,
 
-      color:
-        COLORS.text,
-    },
+    paddingHorizontal:
+      SPACING.medium,
 
-    documentSelected: {
-      fontFamily:
-        FONTS.semiBold,
+    justifyContent:
+      'center',
+  },
 
-      fontSize: 11,
+  documentPickerButtonSelected: {
+    borderColor:
+      COLORS.themeColor,
+  },
 
-      color:
-        COLORS.themeColor,
-    },
+  documentEmptyContent: {
+    flexDirection: 'row',
 
-    uploadButton: {
-      minHeight: 48,
+    alignItems: 'center',
+  },
 
-      borderWidth: 1,
+  documentUploadIcon: {
+    width: 38,
 
-      borderColor:
-        COLORS.themeColor,
+    height: 38,
 
-      borderRadius:
-        RADIUS.medium,
+    borderRadius: 19,
 
-      justifyContent:
-        'center',
+    backgroundColor:
+      COLORS.themeColor,
 
-      alignItems:
-        'center',
+    color:
+      COLORS.white,
 
-      paddingHorizontal:
-        SPACING.medium,
+    textAlign: 'center',
 
-      backgroundColor:
-        COLORS.background,
-    },
+    textAlignVertical: 'center',
 
-    uploadButtonSelected: {
-      backgroundColor:
-        COLORS.surface,
-    },
+    fontSize: 22,
 
-    uploadButtonText: {
-      fontFamily:
-        FONTS.semiBold,
+    fontFamily:
+      FONTS.bold,
 
-      fontSize: 13,
+    marginRight:
+      SPACING.medium,
 
-      color:
-        COLORS.themeColor,
-    },
+    overflow: 'hidden',
+  },
 
-    documentInfo: {
-      marginTop:
-        SPACING.small,
+  documentEmptyTextContainer: {
+    flex: 1,
+  },
 
-      padding:
-        SPACING.medium,
+  documentUploadText: {
+    fontFamily:
+      FONTS.medium,
 
-      borderRadius:
-        RADIUS.medium,
+    fontSize: 14,
 
-      backgroundColor:
-        COLORS.background,
+    color:
+      COLORS.primary,
 
-      borderWidth: 1,
+    marginBottom: 2,
+  },
 
-      borderColor:
-        COLORS.border,
-    },
+  documentUploadSubText: {
+    fontFamily:
+      FONTS.regular,
 
-    documentName: {
-      fontFamily:
-        FONTS.semiBold,
+    fontSize: 12,
 
-      fontSize: 12,
+    color:
+      COLORS.textSecondary,
+  },
 
-      color:
-        COLORS.text,
-    },
+  documentSelectedContent: {
+    flexDirection: 'row',
 
-    documentHint: {
-      fontFamily:
-        FONTS.regular,
+    alignItems: 'center',
+  },
 
-      fontSize: 10,
+  documentSelectedIcon: {
+    width: 34,
 
-      color:
-        COLORS.textMuted,
+    height: 34,
 
-      marginTop: 3,
-    },
+    borderRadius: 17,
 
-    // ========================================================
-    // INFORMATION
-    // ========================================================
+    backgroundColor:
+      COLORS.themeColor,
 
-    infoCard: {
-      backgroundColor:
-        COLORS.surface,
+    color:
+      COLORS.white,
 
-      borderWidth: 1,
+    textAlign: 'center',
 
-      borderColor:
-        COLORS.border,
+    textAlignVertical: 'center',
 
-      borderRadius:
-        RADIUS.large,
+    fontSize: 18,
 
-      padding:
-        SPACING.large,
+    fontFamily:
+      FONTS.bold,
 
-      marginBottom:
-        SPACING.large,
-    },
+    marginRight:
+      SPACING.medium,
 
-    infoTitle: {
-      fontFamily:
-        FONTS.semiBold,
+    overflow: 'hidden',
+  },
 
-      fontSize: 15,
+  documentSelectedTextContainer: {
+    flex: 1,
+  },
 
-      color:
-        COLORS.text,
+  documentSelectedText: {
+    fontFamily:
+      FONTS.medium,
 
-      marginBottom:
-        SPACING.small,
-    },
+    fontSize: 13,
 
-    infoText: {
-      fontFamily:
-        FONTS.regular,
+    color:
+      COLORS.primary,
+  },
 
-      fontSize: 12,
+  documentSelectedSubText: {
+    fontFamily:
+      FONTS.regular,
 
-      lineHeight: 18,
+    fontSize: 11,
 
-      color:
-        COLORS.textSecondary,
+    color:
+      COLORS.textSecondary,
 
-      marginBottom:
-        SPACING.small,
-    },
+    marginTop: 2,
+  },
 
-    // ========================================================
-    // BUTTON
-    // ========================================================
+  documentChangeText: {
+    fontFamily:
+      FONTS.medium,
 
-    button: {
-      width:
-        '100%',
+    fontSize: 12,
 
-      backgroundColor:
-        COLORS.themeColor,
+    color:
+      COLORS.themeColor,
 
-      height:
-        54,
+    marginLeft:
+      SPACING.small,
+  },
 
-      borderRadius:
-        RADIUS.medium,
-    },
+  infoCard: {
+    backgroundColor:
+      COLORS.white,
 
-    buttonText: {
-      color:
-        COLORS.white,
+    borderWidth: 1,
 
-      fontFamily:
-        FONTS.semiBold,
+    borderColor:
+      COLORS.border,
 
-      fontSize: 15,
+    borderRadius:
+      RADIUS.medium,
 
-      textAlign:
-        'center',
-    },
+    padding:
+      SPACING.medium,
 
-  });
+    marginBottom:
+      SPACING.large,
+  },
+
+  infoTitle: {
+    fontFamily:
+      FONTS.bold,
+
+    fontSize: 15,
+
+    color:
+      COLORS.primary,
+
+    marginBottom:
+      SPACING.small,
+  },
+
+  infoText: {
+    fontFamily:
+      FONTS.regular,
+
+    fontSize: 13,
+
+    lineHeight: 20,
+
+    color:
+      COLORS.textSecondary,
+
+    marginBottom:
+      SPACING.xs,
+  },
+
+  buttonContainer: {
+    marginTop:
+      SPACING.small,
+
+    width: '100%',
+  },
+
+  loadingContainer: {
+    height: 50,
+
+    flexDirection: 'row',
+
+    alignItems: 'center',
+
+    justifyContent:
+      'center',
+  },
+
+  loadingText: {
+    marginLeft:
+      SPACING.small,
+
+    fontFamily:
+      FONTS.medium,
+
+    fontSize: 14,
+
+    color:
+      COLORS.themeColor,
+  },
+
+  bottomSpacing: {
+    height:
+      SPACING.xl,
+  },
+});
+
+export default SalonKYCScreen;

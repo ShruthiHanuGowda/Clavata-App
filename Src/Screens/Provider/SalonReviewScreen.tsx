@@ -95,6 +95,32 @@ type ReviewServiceSelection = {
   durationMinutes?: number;
 };
 
+
+// ============================================================
+// IMPORTANT
+// KycDocumentInput MUST MATCH GRAPHQL SCHEMA
+//
+// GraphQL:
+// input KycDocumentInput {
+//   documentType: KycDocumentType!
+//   fileName: String!
+//   contentType: String!
+//   fileSize: Int
+//   s3Key: String!
+// }
+//
+// uploadId is NOT part of KycDocumentInput.
+// ============================================================
+
+type KycDocumentInput = {
+  documentType: KycDocumentType;
+  fileName: string;
+  contentType: string;
+  fileSize?: number;
+  s3Key: string;
+};
+
+
 type RegisterSalonPartnerResponse = {
   registerSalonPartner: {
     success: boolean;
@@ -103,14 +129,6 @@ type RegisterSalonPartnerResponse = {
   };
 };
 
-type KycDocumentInput = {
-  uploadId: string;
-  documentType: KycDocumentType;
-  fileName: string;
-  contentType: string;
-  fileSize?: number;
-  s3Key: string;
-};
 
 type RegisterSalonPartnerVariables = {
   input: {
@@ -261,6 +279,13 @@ const getKycDocumentContentType = (
 };
 
 
+// ------------------------------------------------------------
+// uploadId is still available from the upload flow.
+//
+// IMPORTANT:
+// It is NOT included in KycDocumentInput.
+// ------------------------------------------------------------
+
 const getKycDocumentUploadId = (
   document: any,
 ): string => {
@@ -278,10 +303,18 @@ const getKycDocumentS3Key = (
 
   return String(
     document?.s3Key ??
+    document?.key ??
     '',
   ).trim();
 };
 
+
+// ============================================================
+// VALID KYC DOCUMENT
+//
+// Do NOT require uploadId here because the registration
+// GraphQL input does not contain uploadId.
+// ============================================================
 
 const hasValidKycDocument = (
   document: any,
@@ -293,9 +326,6 @@ const hasValidKycDocument = (
       document,
     ) &&
     getKycDocumentContentType(
-      document,
-    ) &&
-    getKycDocumentUploadId(
       document,
     ) &&
     getKycDocumentS3Key(
@@ -784,283 +814,275 @@ export default function SalonReviewScreen({
 
   // ==========================================================
   // BUILD KYC DOCUMENT PAYLOAD
+  //
+  // IMPORTANT:
+  // uploadId is NOT included here.
+  //
+  // GraphQL KycDocumentInput accepts:
+  // documentType
+  // fileName
+  // contentType
+  // fileSize
+  // s3Key
   // ==========================================================
 
-  const buildKycDocumentPayload = (): KycDocumentInput[] => {
+  const buildKycDocumentPayload =
+    (): KycDocumentInput[] => {
 
-    const documents: KycDocumentInput[] = [];
-
-
-    // --------------------------------------------------------
-    // PAN
-    // --------------------------------------------------------
-
-    if (
-      !hasValidKycDocument(
-        panDocument,
-      )
-    ) {
-
-      throw new Error(
-        'PAN document is missing or has not been uploaded successfully.',
-      );
-    }
+      const documents:
+        KycDocumentInput[] = [];
 
 
-    documents.push({
-      uploadId:
-        getKycDocumentUploadId(
-          panDocument,
-        ),
-
-      documentType:
-        'PAN',
-
-      fileName:
-        getKycDocumentName(
-          panDocument,
-        ),
-
-      contentType:
-        getKycDocumentContentType(
-          panDocument,
-        ),
-
-      ...(panDocument?.size != null
-        ? {
-          fileSize:
-            Number(
-              panDocument.size,
-            ),
-        }
-        : {}),
-
-      s3Key:
-        getKycDocumentS3Key(
-          panDocument,
-        ),
-    });
-
-
-    // --------------------------------------------------------
-    // AADHAAR
-    // --------------------------------------------------------
-
-    if (
-      !hasValidKycDocument(
-        aadhaarDocument,
-      )
-    ) {
-
-      throw new Error(
-        'Aadhaar document is missing or has not been uploaded successfully.',
-      );
-    }
-
-
-    documents.push({
-      uploadId:
-        getKycDocumentUploadId(
-          aadhaarDocument,
-        ),
-
-      documentType:
-        'AADHAAR',
-
-      fileName:
-        getKycDocumentName(
-          aadhaarDocument,
-        ),
-
-      contentType:
-        getKycDocumentContentType(
-          aadhaarDocument,
-        ),
-
-      ...(aadhaarDocument?.size != null
-        ? {
-          fileSize:
-            Number(
-              aadhaarDocument.size,
-            ),
-        }
-        : {}),
-
-      s3Key:
-        getKycDocumentS3Key(
-          aadhaarDocument,
-        ),
-    });
-
-
-    // --------------------------------------------------------
-    // SHOP & ESTABLISHMENT
-    // REQUIRED
-    // --------------------------------------------------------
-
-    if (
-      !hasValidKycDocument(
-        shopEstablishmentDocument,
-      )
-    ) {
-
-      throw new Error(
-        'Shop & Establishment document is missing or has not been uploaded successfully.',
-      );
-    }
-
-
-    documents.push({
-      uploadId:
-        getKycDocumentUploadId(
-          shopEstablishmentDocument,
-        ),
-
-      documentType:
-        'SHOP_ESTABLISHMENT',
-
-      fileName:
-        getKycDocumentName(
-          shopEstablishmentDocument,
-        ),
-
-      contentType:
-        getKycDocumentContentType(
-          shopEstablishmentDocument,
-        ),
-
-      ...(shopEstablishmentDocument?.size != null
-        ? {
-          fileSize:
-            Number(
-              shopEstablishmentDocument.size,
-            ),
-        }
-        : {}),
-
-      s3Key:
-        getKycDocumentS3Key(
-          shopEstablishmentDocument,
-        ),
-    });
-
-
-    // --------------------------------------------------------
-    // GST
-    // OPTIONAL
-    // --------------------------------------------------------
-
-    if (
-      gstDocument
-    ) {
+      // ------------------------------------------------------
+      // PAN
+      // ------------------------------------------------------
 
       if (
         !hasValidKycDocument(
-          gstDocument,
+          panDocument,
         )
       ) {
 
         throw new Error(
-          'GST document information is incomplete. Please upload the GST document again.',
+          'PAN document is missing or has not been uploaded successfully.',
         );
       }
 
 
       documents.push({
-        uploadId:
-          getKycDocumentUploadId(
-            gstDocument,
-          ),
 
         documentType:
-          'GST',
+          'PAN',
 
         fileName:
           getKycDocumentName(
-            gstDocument,
+            panDocument,
           ),
 
         contentType:
           getKycDocumentContentType(
-            gstDocument,
+            panDocument,
           ),
 
-        ...(gstDocument?.size != null
+        ...(panDocument?.size != null
           ? {
             fileSize:
               Number(
-                gstDocument.size,
+                panDocument.size,
               ),
           }
           : {}),
 
         s3Key:
           getKycDocumentS3Key(
-            gstDocument,
+            panDocument,
           ),
       });
-    }
 
 
-    // --------------------------------------------------------
-    // UDYAM
-    // OPTIONAL
-    // --------------------------------------------------------
-
-    if (
-      udyamDocument
-    ) {
+      // ------------------------------------------------------
+      // AADHAAR
+      // ------------------------------------------------------
 
       if (
         !hasValidKycDocument(
-          udyamDocument,
+          aadhaarDocument,
         )
       ) {
 
         throw new Error(
-          'Udyam document information is incomplete. Please upload the Udyam document again.',
+          'Aadhaar document is missing or has not been uploaded successfully.',
         );
       }
 
 
       documents.push({
-        uploadId:
-          getKycDocumentUploadId(
-            udyamDocument,
-          ),
 
         documentType:
-          'UDYAM',
+          'AADHAAR',
 
         fileName:
           getKycDocumentName(
-            udyamDocument,
+            aadhaarDocument,
           ),
 
         contentType:
           getKycDocumentContentType(
-            udyamDocument,
+            aadhaarDocument,
           ),
 
-        ...(udyamDocument?.size != null
+        ...(aadhaarDocument?.size != null
           ? {
             fileSize:
               Number(
-                udyamDocument.size,
+                aadhaarDocument.size,
               ),
           }
           : {}),
 
         s3Key:
           getKycDocumentS3Key(
-            udyamDocument,
+            aadhaarDocument,
           ),
       });
-    }
 
 
-    return documents;
-  };
+      // ------------------------------------------------------
+      // SHOP & ESTABLISHMENT
+      // REQUIRED
+      // ------------------------------------------------------
+
+      if (
+        !hasValidKycDocument(
+          shopEstablishmentDocument,
+        )
+      ) {
+
+        throw new Error(
+          'Shop & Establishment document is missing or has not been uploaded successfully.',
+        );
+      }
+
+
+      documents.push({
+
+        documentType:
+          'SHOP_ESTABLISHMENT',
+
+        fileName:
+          getKycDocumentName(
+            shopEstablishmentDocument,
+          ),
+
+        contentType:
+          getKycDocumentContentType(
+            shopEstablishmentDocument,
+          ),
+
+        ...(shopEstablishmentDocument?.size != null
+          ? {
+            fileSize:
+              Number(
+                shopEstablishmentDocument.size,
+              ),
+          }
+          : {}),
+
+        s3Key:
+          getKycDocumentS3Key(
+            shopEstablishmentDocument,
+          ),
+      });
+
+
+      // ------------------------------------------------------
+      // GST
+      // OPTIONAL
+      // ------------------------------------------------------
+
+      if (
+        gstDocument
+      ) {
+
+        if (
+          !hasValidKycDocument(
+            gstDocument,
+          )
+        ) {
+
+          throw new Error(
+            'GST document information is incomplete. Please upload the GST document again.',
+          );
+        }
+
+
+        documents.push({
+
+          documentType:
+            'GST',
+
+          fileName:
+            getKycDocumentName(
+              gstDocument,
+            ),
+
+          contentType:
+            getKycDocumentContentType(
+              gstDocument,
+            ),
+
+          ...(gstDocument?.size != null
+            ? {
+              fileSize:
+                Number(
+                  gstDocument.size,
+                ),
+            }
+            : {}),
+
+          s3Key:
+            getKycDocumentS3Key(
+              gstDocument,
+            ),
+        });
+      }
+
+
+      // ------------------------------------------------------
+      // UDYAM
+      // OPTIONAL
+      // ------------------------------------------------------
+
+      if (
+        udyamDocument
+      ) {
+
+        if (
+          !hasValidKycDocument(
+            udyamDocument,
+          )
+        ) {
+
+          throw new Error(
+            'Udyam document information is incomplete. Please upload the Udyam document again.',
+          );
+        }
+
+
+        documents.push({
+
+          documentType:
+            'UDYAM',
+
+          fileName:
+            getKycDocumentName(
+              udyamDocument,
+            ),
+
+          contentType:
+            getKycDocumentContentType(
+              udyamDocument,
+            ),
+
+          ...(udyamDocument?.size != null
+            ? {
+              fileSize:
+                Number(
+                  udyamDocument.size,
+                ),
+            }
+            : {}),
+
+          s3Key:
+            getKycDocumentS3Key(
+              udyamDocument,
+            ),
+        });
+      }
+
+
+      return documents;
+    };
 
 
   // ==========================================================
@@ -1464,7 +1486,9 @@ export default function SalonReviewScreen({
     // BUILD KYC DOCUMENTS
     // --------------------------------------------------------
 
-    let kycDocuments: KycDocumentInput[] = [];
+    let kycDocuments:
+      KycDocumentInput[] = [];
+
 
     try {
 
@@ -1472,7 +1496,7 @@ export default function SalonReviewScreen({
         buildKycDocumentPayload();
 
     } catch (
-      error: any
+    error: any
     ) {
 
       console.error(
@@ -1532,12 +1556,38 @@ export default function SalonReviewScreen({
     // --------------------------------------------------------
 
     console.log(
-      '[SalonReview] KYC UPLOAD ID:',
-      (data as any)?.kycUploadId,
+      '[SalonReview] KYC UPLOAD IDS:',
+      {
+        pan:
+          getKycDocumentUploadId(
+            panDocument,
+          ),
+
+        aadhaar:
+          getKycDocumentUploadId(
+            aadhaarDocument,
+          ),
+
+        shopEstablishment:
+          getKycDocumentUploadId(
+            shopEstablishmentDocument,
+          ),
+
+        gst:
+          getKycDocumentUploadId(
+            gstDocument,
+          ),
+
+        udyam:
+          getKycDocumentUploadId(
+            udyamDocument,
+          ),
+      },
     );
 
+
     console.log(
-      '[SalonReview] KYC DOCUMENTS:',
+      '[SalonReview] KYC DOCUMENTS PAYLOAD:',
       JSON.stringify(
         kycDocuments,
         null,
@@ -1546,9 +1596,9 @@ export default function SalonReviewScreen({
     );
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // SUBMIT
-    // --------------------------------------------------------
+    // ========================================================
 
     try {
 
@@ -1655,6 +1705,124 @@ export default function SalonReviewScreen({
 
 
       // ------------------------------------------------------
+      // FINAL REGISTER INPUT
+      // ------------------------------------------------------
+
+      const registerInput = {
+
+        userId:
+          currentUser.userId,
+
+        phoneNumber:
+          currentUser.phoneNumber ||
+          data.phoneNumber ||
+          '',
+
+        salonName:
+          data.salonName,
+
+        ownerName:
+          data.ownerName,
+
+        email:
+          data.email,
+
+        businessTypeId:
+          primaryBusinessTypeId,
+
+        businessTypeIds:
+          normalizedBusinessTypeIds,
+
+        businessType:
+          businessTypeName,
+
+        targetAudiences:
+          targetAudiences,
+
+        address: {
+
+          addressLine:
+            data.addressLine,
+
+          city:
+            data.city,
+
+          state:
+            data.state,
+
+          pincode:
+            data.pincode,
+
+        },
+
+        businessHours:
+          data.businessHours,
+
+        latitude:
+          data.latitude,
+
+        longitude:
+          data.longitude,
+
+        gstNumber:
+          data.gstNumber ||
+          '',
+
+        panNumber:
+          cleanPAN,
+
+        aadhaarNumber:
+          cleanAadhaar,
+
+        shopEstablishmentNumber:
+          cleanShop,
+
+        udyamNumber:
+          data.udyamNumber ||
+          '',
+
+        bankAccount:
+          data.bankAccount ||
+          '',
+
+        ifsc:
+          data.ifsc ||
+          '',
+
+        serviceSelections:
+          serviceSelections,
+
+        // ----------------------------------------------------
+        // IMPORTANT:
+        // No uploadId here.
+        //
+        // Matches:
+        //
+        // input KycDocumentInput {
+        //   documentType: KycDocumentType!
+        //   fileName: String!
+        //   contentType: String!
+        //   fileSize: Int
+        //   s3Key: String!
+        // }
+        // ----------------------------------------------------
+
+        kycDocuments:
+          kycDocuments,
+      };
+
+
+      console.log(
+        '[SalonReview] FINAL REGISTER INPUT:',
+        JSON.stringify(
+          registerInput,
+          null,
+          2,
+        ),
+      );
+
+
+      // ------------------------------------------------------
       // REGISTER SALON
       // ------------------------------------------------------
 
@@ -1663,98 +1831,8 @@ export default function SalonReviewScreen({
 
           variables: {
 
-            input: {
-
-              userId:
-                currentUser.userId,
-
-              phoneNumber:
-                currentUser.phoneNumber ||
-                data.phoneNumber ||
-                '',
-
-              salonName:
-                data.salonName,
-
-              ownerName:
-                data.ownerName,
-
-              email:
-                data.email,
-
-              businessTypeId:
-                primaryBusinessTypeId,
-
-              businessTypeIds:
-                normalizedBusinessTypeIds,
-
-              businessType:
-                businessTypeName,
-
-              targetAudiences:
-                targetAudiences,
-
-              address: {
-
-                addressLine:
-                  data.addressLine,
-
-                city:
-                  data.city,
-
-                state:
-                  data.state,
-
-                pincode:
-                  data.pincode,
-
-              },
-
-              businessHours:
-                data.businessHours,
-
-              latitude:
-                data.latitude,
-
-              longitude:
-                data.longitude,
-
-              gstNumber:
-                data.gstNumber ||
-                '',
-
-              panNumber:
-                cleanPAN,
-
-              aadhaarNumber:
-                cleanAadhaar,
-
-              shopEstablishmentNumber:
-                cleanShop,
-
-              udyamNumber:
-                data.udyamNumber ||
-                '',
-
-              bankAccount:
-                data.bankAccount ||
-                '',
-
-              ifsc:
-                data.ifsc ||
-                '',
-
-              serviceSelections:
-                serviceSelections,
-
-              // ==================================================
-              // KYC DOCUMENTS
-              // ==================================================
-
-              kycDocuments:
-                kycDocuments,
-
-            },
+            input:
+              registerInput,
 
           },
 
@@ -1787,9 +1865,9 @@ export default function SalonReviewScreen({
           ?.registerSalonPartner;
 
 
-      // --------------------------------------------------------
+      // ------------------------------------------------------
       // BACKEND FAILURE
-      // --------------------------------------------------------
+      // ------------------------------------------------------
 
       if (
         !result?.success
@@ -1805,9 +1883,9 @@ export default function SalonReviewScreen({
       }
 
 
-      // --------------------------------------------------------
+      // ------------------------------------------------------
       // SALON ID
-      // --------------------------------------------------------
+      // ------------------------------------------------------
 
       const salonId =
         result?.salonId;
@@ -1824,9 +1902,9 @@ export default function SalonReviewScreen({
       }
 
 
-      // --------------------------------------------------------
+      // ------------------------------------------------------
       // UPDATE USER
-      // --------------------------------------------------------
+      // ------------------------------------------------------
 
       const existingRoles =
         currentUser.roles || {
@@ -1865,27 +1943,26 @@ export default function SalonReviewScreen({
       );
 
 
-      // --------------------------------------------------------
+      // ------------------------------------------------------
       // RESET
-      // --------------------------------------------------------
+      // ------------------------------------------------------
 
       reset();
 
 
-      // --------------------------------------------------------
+      // ------------------------------------------------------
       // NAVIGATE
-      // --------------------------------------------------------
+      // ------------------------------------------------------
 
       navigation.navigate(
-        'BecomePartner',
+        'SalonSuccess',
         {
-          screen:
-            'SalonPendingVerification',
+          salonId,
         },
       );
 
     } catch (
-      error: any
+    error: any
     ) {
 
       console.error(
@@ -1944,6 +2021,7 @@ export default function SalonReviewScreen({
         headerTitle="Review Details"
       />
 
+
       <ScrollView
         contentContainerStyle={
           styles.content
@@ -1970,6 +2048,7 @@ export default function SalonReviewScreen({
           >
             Review your details
           </Text>
+
 
           <Text
             style={
@@ -1999,12 +2078,14 @@ export default function SalonReviewScreen({
             }
           />
 
+
           <DetailRow
             label="Owner"
             value={
               data.ownerName
             }
           />
+
 
           <DetailRow
             label="Email"
@@ -2047,6 +2128,7 @@ export default function SalonReviewScreen({
                     COLORS.themeColor
                   }
                 />
+
 
                 <Text
                   style={
@@ -2196,7 +2278,7 @@ export default function SalonReviewScreen({
           />
 
 
-          <DetailRow
+          {/* <DetailRow
             label="Bank account"
             value={
               data.bankAccount
@@ -2215,7 +2297,7 @@ export default function SalonReviewScreen({
               '-'
             }
             last
-          />
+          /> */}
 
         </View>
 
@@ -2248,33 +2330,29 @@ export default function SalonReviewScreen({
           </Text>
 
 
-          {/* ==================================================
-              PAN
-          ================================================== */}
-
           <KycDocumentRow
             title="PAN document"
-            document={panDocument}
-            uploaded={hasPanDocument}
+            document={
+              panDocument
+            }
+            uploaded={
+              hasPanDocument
+            }
             required
           />
 
-
-          {/* ==================================================
-              AADHAAR
-          ================================================== */}
 
           <KycDocumentRow
             title="Aadhaar document"
-            document={aadhaarDocument}
-            uploaded={hasAadhaarDocument}
+            document={
+              aadhaarDocument
+            }
+            uploaded={
+              hasAadhaarDocument
+            }
             required
           />
 
-
-          {/* ==================================================
-              SHOP & ESTABLISHMENT
-          ================================================== */}
 
           <KycDocumentRow
             title="Shop & Establishment document"
@@ -2287,10 +2365,6 @@ export default function SalonReviewScreen({
             required
           />
 
-
-          {/* ==================================================
-              GST
-          ================================================== */}
 
           <KycDocumentRow
             title="GST document"
@@ -2306,10 +2380,6 @@ export default function SalonReviewScreen({
             }
           />
 
-
-          {/* ==================================================
-              UDYAM
-          ================================================== */}
 
           <KycDocumentRow
             title="Udyam document"
@@ -2370,6 +2440,7 @@ export default function SalonReviewScreen({
                 }
               />
 
+
               <Text
                 style={
                   styles.loadingText
@@ -2401,12 +2472,14 @@ export default function SalonReviewScreen({
                   audience
                   ];
 
+
                 if (
                   services.length ===
                   0
                 ) {
                   return null;
                 }
+
 
                 return (
 
@@ -2596,6 +2669,7 @@ export default function SalonReviewScreen({
                   COLORS.white
                 }
               />
+
 
               <Text
                 style={
@@ -3371,3 +3445,4 @@ const styles =
     },
 
   });
+

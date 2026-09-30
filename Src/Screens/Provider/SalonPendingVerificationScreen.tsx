@@ -66,12 +66,12 @@ export default function SalonPendingVerificationScreen() {
 
         {/* Title */}
         <Text style={styles.title}>
-          Your salon is under review
+          Your business is under review
         </Text>
 
         {/* Description */}
         <Text style={styles.description}>
-          We've received your salon registration and KYC
+          We've received your business registration and KYC
           documents successfully.
         </Text>
 
@@ -93,7 +93,7 @@ export default function SalonPendingVerificationScreen() {
 
             <Text style={styles.infoText}>
               Once your verification is complete, you'll be
-              able to access your salon dashboard and start
+              able to access your business dashboard and start
               managing your services and bookings.
             </Text>
           </View>
@@ -101,7 +101,7 @@ export default function SalonPendingVerificationScreen() {
 
         {/* Bottom Note */}
         <Text style={styles.note}>
-          We'll notify you once your salon has been approved.
+          We'll notify you once your business has been approved.
         </Text>
       </View>
 
