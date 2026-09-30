@@ -461,9 +461,9 @@ const ServiceChips: React.FC<Props> = ({
             !item ||
             item.status !== 'ACTIVE' ||
             typeof item.categoryId !==
-              'string' ||
+            'string' ||
             typeof item.name !==
-              'string' ||
+            'string' ||
             item.name.trim().length === 0
           ) {
             return result;
@@ -685,7 +685,7 @@ const ServiceChips: React.FC<Props> = ({
 
             const categorySubcategories =
               subcategoriesByCategory[
-                categoryId
+              categoryId
               ] ?? [];
 
             const hasMatchingSubcategory =
@@ -750,14 +750,14 @@ const ServiceChips: React.FC<Props> = ({
       if (
         !activeCategoryId ||
         normalizedSelectedAudiences.length ===
-          0
+        0
       ) {
         return [];
       }
 
       const subcategories =
         subcategoriesByCategory[
-          activeCategoryId
+        activeCategoryId
         ] ?? [];
 
       return subcategories.filter(
@@ -817,7 +817,7 @@ const ServiceChips: React.FC<Props> = ({
   ) => {
     const categorySubcategories =
       subcategoriesByCategory[
-        categoryId
+      categoryId
       ] ?? [];
 
     const validIds =
@@ -860,7 +860,7 @@ const ServiceChips: React.FC<Props> = ({
 
     const categorySubcategories =
       subcategoriesByCategory[
-        categoryId
+      categoryId
       ] ?? [];
 
     const categorySubcategoryIds =
@@ -912,7 +912,7 @@ const ServiceChips: React.FC<Props> = ({
 
     const categorySubcategories =
       subcategoriesByCategory[
-        category.categoryId
+      category.categoryId
       ] ?? [];
 
     const validCategoryIds =
@@ -1005,7 +1005,7 @@ const ServiceChips: React.FC<Props> = ({
 
     const currentCategorySubcategories =
       subcategoriesByCategory[
-        activeCategoryId
+      activeCategoryId
       ] ?? [];
 
     const validCurrentIds =
@@ -1222,7 +1222,7 @@ const ServiceChips: React.FC<Props> = ({
                   style={[
                     styles.categoryCard,
                     isSelected &&
-                      styles.categoryCardSelected,
+                    styles.categoryCardSelected,
                   ]}
                   onPress={() =>
                     handleCategorySelect(
@@ -1236,7 +1236,7 @@ const ServiceChips: React.FC<Props> = ({
                     style={[
                       styles.iconContainer,
                       isSelected &&
-                        styles.iconContainerSelected,
+                      styles.iconContainerSelected,
                     ]}
                   >
                     <Image
@@ -1257,7 +1257,7 @@ const ServiceChips: React.FC<Props> = ({
                     style={[
                       styles.categoryName,
                       isSelected &&
-                        styles.categoryNameSelected,
+                      styles.categoryNameSelected,
                     ]}
                   >
                     {category.name}
@@ -1419,7 +1419,7 @@ const ServiceChips: React.FC<Props> = ({
             ========================================= */}
 
             {currentSubcategories.length ===
-            0 ? (
+              0 ? (
               <View
                 style={
                   styles.modalEmptyContainer
@@ -1450,7 +1450,7 @@ const ServiceChips: React.FC<Props> = ({
                   audience => {
                     const audienceSubcategories =
                       subcategoriesByAudience[
-                        audience
+                      audience
                       ] ?? [];
 
                     if (
@@ -1526,7 +1526,7 @@ const ServiceChips: React.FC<Props> = ({
                                 style={[
                                   styles.subcategoryRow,
                                   selected &&
-                                    styles.subcategoryRowSelected,
+                                  styles.subcategoryRowSelected,
                                 ]}
                                 onPress={() =>
                                   handleSubcategoryToggle(
@@ -1541,7 +1541,7 @@ const ServiceChips: React.FC<Props> = ({
                                   style={[
                                     styles.checkbox,
                                     selected &&
-                                      styles.checkboxSelected,
+                                    styles.checkboxSelected,
                                   ]}
                                 >
                                   {selected && (
@@ -1566,7 +1566,7 @@ const ServiceChips: React.FC<Props> = ({
                                     style={[
                                       styles.subcategoryName,
                                       selected &&
-                                        styles.subcategoryNameSelected,
+                                      styles.subcategoryNameSelected,
                                     ]}
                                   >
                                     {
@@ -1717,43 +1717,36 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent:
       'flex-start',
+    // paddingHorizontal: 2,
   },
 
   categoryCard: {
-    width: '23%',
+    width: '22%',
     marginHorizontal: '1%',
-    marginBottom: 14,
-    minHeight: 105,
-    borderRadius: 16,
+    marginBottom: 12,
+    height: 110,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 5,
-    backgroundColor:
-      COLORS.white,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor:
-      COLORS.border ||
-      'rgba(0,0,0,0.08)',
+    borderColor: COLORS.border || 'rgba(0,0,0,0.08)',
     position: 'relative',
   },
 
   categoryCardSelected: {
-    borderColor:
-      COLORS.themeColor,
-    backgroundColor:
-      COLORS.themeColor + '12',
+    borderColor: COLORS.themeColor,
+    backgroundColor: '#FFFFFF',
   },
 
   iconContainer: {
-    width: 90,
-    height: 90,
-    // borderRadius: 29,
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
-    // backgroundColor:
-    //   COLORS.themeColor + '12',
+    marginBottom: 4,
   },
 
   iconContainerSelected: {
@@ -1762,14 +1755,14 @@ const styles = StyleSheet.create({
   },
 
   categoryIcon: {
-    width: 90,
-    height: 90,
+    width: 60,
+    height: 60,
   },
 
   categoryName: {
     textAlign: 'center',
     fontSize: 12,
-    lineHeight: 16,
+    lineHeight: 14,
     fontWeight: '600',
     color: COLORS.primary,
   },
