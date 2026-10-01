@@ -25,8 +25,6 @@ import {
 import {
   REGISTER_SALON_PARTNER,
   GET_BUSINESS_TYPES,
-  GET_CLAVATA_CATEGORIES,
-  GET_CLAVATA_SUBCATEGORIES,
 } from '../../graphql/queries';
 
 import {
@@ -68,39 +66,51 @@ type BusinessType = {
   status?: string;
 };
 
-type Category = {
-  categoryId: string;
-  name: string;
-  description?: string;
-  servicesCount: number;
-  status: string;
-};
 
-type Subcategory = {
-  subcategoryId: string;
-  categoryId: string;
-  name: string;
-  description?: string;
-  servicesCount: number;
-  status: string;
-};
+// ============================================================
+// REVIEW SERVICE
+// ============================================================
+//
+// IMPORTANT:
+//
+// This matches SalonServiceSelection from
+// SalonRegistrationContext.
+//
+// serviceKey is local only.
+// Backend creates the real serviceId.
+//
+// ============================================================
 
 type ReviewServiceSelection = {
+  serviceKey: string;
+
+  businessTypeId?: string;
+
+  name: string;
+
+  description?: string;
+
   audience: Audience;
+
   categoryId: string;
-  categoryName?: string;
+
+  categoryName: string;
+
   subcategoryId: string;
-  subcategoryName?: string;
+
+  subcategoryName: string;
+
   price?: number;
+
   durationMinutes?: number;
 };
 
 
 // ============================================================
-// IMPORTANT
-// KycDocumentInput MUST MATCH GRAPHQL SCHEMA
+// KYC DOCUMENT INPUT
 //
-// GraphQL:
+// MUST MATCH GRAPHQL
+//
 // input KycDocumentInput {
 //   documentType: KycDocumentType!
 //   fileName: String!
@@ -108,8 +118,6 @@ type ReviewServiceSelection = {
 //   fileSize: Int
 //   s3Key: String!
 // }
-//
-// uploadId is NOT part of KycDocumentInput.
 // ============================================================
 
 type KycDocumentInput = {
@@ -121,6 +129,10 @@ type KycDocumentInput = {
 };
 
 
+// ============================================================
+// REGISTER RESPONSE
+// ============================================================
+
 type RegisterSalonPartnerResponse = {
   registerSalonPartner: {
     success: boolean;
@@ -129,6 +141,27 @@ type RegisterSalonPartnerResponse = {
   };
 };
 
+
+// ============================================================
+// REGISTER VARIABLES
+//
+// NEW SERVICE MODEL
+//
+// services:
+// [
+//   {
+//     businessTypeId,
+//     categoryId,
+//     subcategoryId,
+//     name,
+//     description,
+//     audience,
+//     price,
+//     duration
+//   }
+// ]
+//
+// ============================================================
 
 type RegisterSalonPartnerVariables = {
   input: {
@@ -173,10 +206,13 @@ type RegisterSalonPartnerVariables = {
     bankAccount?: string;
     ifsc?: string;
 
-    serviceSelections: Array<{
-      audience: Audience;
+    services: Array<{
+      businessTypeId: string;
       categoryId: string;
       subcategoryId: string;
+      name: string;
+      description: string;
+      audience: Audience;
       price: number;
       duration: number;
     }>;
@@ -279,12 +315,12 @@ const getKycDocumentContentType = (
 };
 
 
-// ------------------------------------------------------------
-// uploadId is still available from the upload flow.
+// ============================================================
+// UPLOAD ID
 //
-// IMPORTANT:
-// It is NOT included in KycDocumentInput.
-// ------------------------------------------------------------
+// Used only for debugging.
+// NOT SENT TO GRAPHQL.
+// ============================================================
 
 const getKycDocumentUploadId = (
   document: any,
@@ -296,6 +332,10 @@ const getKycDocumentUploadId = (
   ).trim();
 };
 
+
+// ============================================================
+// S3 KEY
+// ============================================================
 
 const getKycDocumentS3Key = (
   document: any,
@@ -311,9 +351,6 @@ const getKycDocumentS3Key = (
 
 // ============================================================
 // VALID KYC DOCUMENT
-//
-// Do NOT require uploadId here because the registration
-// GraphQL input does not contain uploadId.
 // ============================================================
 
 const hasValidKycDocument = (
@@ -422,21 +459,18 @@ export default function SalonReviewScreen({
 
       const ids =
         Array.isArray(
-          (data as any)?.businessTypeIds,
+          data.businessTypeIds,
         )
-          ? (data as any).businessTypeIds
-
-          : (data as any)?.businessTypeId
+          ? data.businessTypeIds
+          : data.businessTypeId
             ? [
-              (data as any)
-                .businessTypeId,
+              data.businessTypeId,
             ]
-
             : [];
 
       return ids
         .map(
-          (id: any) =>
+          id =>
             String(
               id ?? '',
             ).trim(),
@@ -444,8 +478,8 @@ export default function SalonReviewScreen({
         .filter(Boolean);
 
     }, [
-      (data as any)?.businessTypeIds,
-      (data as any)?.businessTypeId,
+      data.businessTypeIds,
+      data.businessTypeId,
     ]);
 
 
@@ -457,7 +491,7 @@ export default function SalonReviewScreen({
     useMemo(() => {
 
       return selectedBusinessTypeIds.map(
-        (businessTypeId: string) => {
+        businessTypeId => {
 
           const matched =
             businessTypes.find(
@@ -506,11 +540,7 @@ export default function SalonReviewScreen({
 
       return selectedBusinessTypes
         .map(
-          (
-            item: {
-              name: string;
-            },
-          ) =>
+          item =>
             item.name,
         )
         .join(', ');
@@ -522,7 +552,7 @@ export default function SalonReviewScreen({
 
 
   // ==========================================================
-  // DEBUG
+  // DEBUG BUSINESS TYPES
   // ==========================================================
 
   console.log(
@@ -537,107 +567,25 @@ export default function SalonReviewScreen({
 
 
   // ==========================================================
-  // GET CATEGORIES
-  // ==========================================================
-
-  const {
-    data: categoryResponse,
-    loading:
-    categoriesLoading,
-  } = useQuery(
-    GET_CLAVATA_CATEGORIES,
-    {
-      fetchPolicy:
-        'network-only',
-    },
-  );
-
-
-  // ==========================================================
-  // GET SUBCATEGORIES
-  // ==========================================================
-
-  const {
-    data: subcategoryResponse,
-    loading:
-    subcategoriesLoading,
-  } = useQuery(
-    GET_CLAVATA_SUBCATEGORIES,
-    {
-      fetchPolicy:
-        'network-only',
-    },
-  );
-
-
-  const categories: Category[] =
-    categoryResponse
-      ?.categories
-      ?.categories ??
-    [];
-
-
-  const subcategories: Subcategory[] =
-    subcategoryResponse
-      ?.subcategories
-      ?.subcategories ??
-    [];
-
-
-  // ==========================================================
-  // RESOLVE CATEGORY NAME
-  // ==========================================================
-
-  const getCategoryName = (
-    categoryId: string,
-  ) => {
-
-    const category =
-      categories.find(
-        item =>
-          String(
-            item.categoryId,
-          ).trim() ===
-          String(
-            categoryId,
-          ).trim(),
-      );
-
-    return (
-      category?.name ||
-      ''
-    );
-  };
-
-
-  // ==========================================================
-  // RESOLVE SUBCATEGORY NAME
-  // ==========================================================
-
-  const getSubcategoryName = (
-    subcategoryId: string,
-  ) => {
-
-    const subcategory =
-      subcategories.find(
-        item =>
-          String(
-            item.subcategoryId,
-          ).trim() ===
-          String(
-            subcategoryId,
-          ).trim(),
-      );
-
-    return (
-      subcategory?.name ||
-      ''
-    );
-  };
-
-
-  // ==========================================================
   // SERVICE SELECTIONS
+  // ==========================================================
+  //
+  // Context already contains:
+  //
+  // serviceKey
+  // businessTypeId
+  // name
+  // description
+  // audience
+  // categoryId
+  // categoryName
+  // subcategoryId
+  // subcategoryName
+  // price
+  // durationMinutes
+  //
+  // No catalog lookup is required here.
+  //
   // ==========================================================
 
   const selectedServiceSelections:
@@ -646,70 +594,83 @@ export default function SalonReviewScreen({
 
       if (
         !Array.isArray(
-          data?.serviceSelections,
+          data.serviceSelections,
         )
       ) {
 
         return [];
       }
 
-      return data
-        .serviceSelections
+      return data.serviceSelections
         .filter(
-          (
-            selection: any,
-          ) =>
+          selection =>
             selection &&
+            selection.serviceKey &&
             selection.audience &&
             selection.categoryId &&
             selection.subcategoryId,
         )
         .map(
-          (
-            selection: any,
-          ) => {
+          selection => ({
+            serviceKey:
+              String(
+                selection.serviceKey,
+              ).trim(),
 
-            const categoryName =
-              selection.categoryName ||
-              getCategoryName(
+            businessTypeId:
+              selection.businessTypeId
+                ? String(
+                  selection.businessTypeId,
+                ).trim()
+                : undefined,
+
+            name:
+              String(
+                selection.name ||
+                '',
+              ).trim(),
+
+            description:
+              String(
+                selection.description ||
+                '',
+              ).trim(),
+
+            audience:
+              selection.audience,
+
+            categoryId:
+              String(
                 selection.categoryId,
-              );
+              ).trim(),
 
-            const subcategoryName =
-              selection.subcategoryName ||
-              getSubcategoryName(
+            categoryName:
+              String(
+                selection.categoryName ||
+                '',
+              ).trim(),
+
+            subcategoryId:
+              String(
                 selection.subcategoryId,
-              );
+              ).trim(),
 
-            return {
+            subcategoryName:
+              String(
+                selection.subcategoryName ||
+                '',
+              ).trim(),
 
-              audience:
-                selection.audience,
+            price:
+              selection.price,
 
-              categoryId:
-                selection.categoryId,
-
-              categoryName,
-
-              subcategoryId:
-                selection.subcategoryId,
-
-              subcategoryName,
-
-              price:
-                selection.price,
-
-              durationMinutes:
-                selection.durationMinutes ??
-                selection.duration,
-            };
-          },
+            durationMinutes:
+              selection.durationMinutes,
+          }),
         );
 
     }, [
-      data?.serviceSelections,
-      categories,
-      subcategories,
+      data.serviceSelections,
     ]);
 
 
@@ -738,7 +699,7 @@ export default function SalonReviewScreen({
 
           if (
             groups[
-            selection.audience
+              selection.audience
             ]
           ) {
 
@@ -763,19 +724,19 @@ export default function SalonReviewScreen({
   // ==========================================================
 
   const panDocument =
-    (data as any)?.panDocument;
+    data.panDocument;
 
   const aadhaarDocument =
-    (data as any)?.aadhaarDocument;
+    data.aadhaarDocument;
 
   const shopEstablishmentDocument =
-    (data as any)?.shopEstablishmentDocument;
+    data.shopEstablishmentDocument;
 
   const gstDocument =
-    (data as any)?.gstDocument;
+    data.gstDocument;
 
   const udyamDocument =
-    (data as any)?.udyamDocument;
+    data.udyamDocument;
 
 
   // ==========================================================
@@ -787,24 +748,20 @@ export default function SalonReviewScreen({
       panDocument,
     );
 
-
   const hasAadhaarDocument =
     hasValidKycDocument(
       aadhaarDocument,
     );
-
 
   const hasShopEstablishmentDocument =
     hasValidKycDocument(
       shopEstablishmentDocument,
     );
 
-
   const hasGstDocument =
     hasValidKycDocument(
       gstDocument,
     );
-
 
   const hasUdyamDocument =
     hasValidKycDocument(
@@ -814,16 +771,6 @@ export default function SalonReviewScreen({
 
   // ==========================================================
   // BUILD KYC DOCUMENT PAYLOAD
-  //
-  // IMPORTANT:
-  // uploadId is NOT included here.
-  //
-  // GraphQL KycDocumentInput accepts:
-  // documentType
-  // fileName
-  // contentType
-  // fileSize
-  // s3Key
   // ==========================================================
 
   const buildKycDocumentPayload =
@@ -929,7 +876,6 @@ export default function SalonReviewScreen({
 
       // ------------------------------------------------------
       // SHOP & ESTABLISHMENT
-      // REQUIRED
       // ------------------------------------------------------
 
       if (
@@ -977,7 +923,6 @@ export default function SalonReviewScreen({
 
       // ------------------------------------------------------
       // GST
-      // OPTIONAL
       // ------------------------------------------------------
 
       if (
@@ -1030,7 +975,6 @@ export default function SalonReviewScreen({
 
       // ------------------------------------------------------
       // UDYAM
-      // OPTIONAL
       // ------------------------------------------------------
 
       if (
@@ -1070,7 +1014,7 @@ export default function SalonReviewScreen({
                 Number(
                   udyamDocument.size,
                 ),
-            }
+              }
             : {}),
 
           s3Key:
@@ -1127,7 +1071,12 @@ export default function SalonReviewScreen({
     // SALON NAME
     // --------------------------------------------------------
 
-    if (!data.salonName) {
+    if (
+      !String(
+        data.salonName ||
+        '',
+      ).trim()
+    ) {
 
       Alert.alert(
         'Registration Error',
@@ -1142,7 +1091,12 @@ export default function SalonReviewScreen({
     // OWNER NAME
     // --------------------------------------------------------
 
-    if (!data.ownerName) {
+    if (
+      !String(
+        data.ownerName ||
+        '',
+      ).trim()
+    ) {
 
       Alert.alert(
         'Registration Error',
@@ -1157,7 +1111,12 @@ export default function SalonReviewScreen({
     // EMAIL
     // --------------------------------------------------------
 
-    if (!data.email) {
+    if (
+      !String(
+        data.email ||
+        '',
+      ).trim()
+    ) {
 
       Alert.alert(
         'Registration Error',
@@ -1175,7 +1134,7 @@ export default function SalonReviewScreen({
     const normalizedBusinessTypeIds =
       selectedBusinessTypeIds
         .map(
-          (id: any) =>
+          id =>
             String(
               id,
             ).trim(),
@@ -1186,8 +1145,7 @@ export default function SalonReviewScreen({
     const primaryBusinessTypeId =
       normalizedBusinessTypeIds[0] ||
       String(
-        (data as any)
-          ?.businessTypeId ??
+        data.businessTypeId ||
         '',
       ).trim();
 
@@ -1212,8 +1170,7 @@ export default function SalonReviewScreen({
     // --------------------------------------------------------
 
     const businessTypeName =
-      selectedBusinessTypeLabel
-        .trim();
+      selectedBusinessTypeLabel.trim();
 
 
     if (!businessTypeName) {
@@ -1237,7 +1194,7 @@ export default function SalonReviewScreen({
       )
         ? data.targetAudiences.filter(
           (
-            audience: any,
+            audience,
           ): audience is Audience =>
             audience ===
             'FEMALE' ||
@@ -1268,10 +1225,22 @@ export default function SalonReviewScreen({
     // --------------------------------------------------------
 
     if (
-      !data.addressLine ||
-      !data.city ||
-      !data.state ||
-      !data.pincode
+      !String(
+        data.addressLine ||
+        '',
+      ).trim() ||
+      !String(
+        data.city ||
+        '',
+      ).trim() ||
+      !String(
+        data.state ||
+        '',
+      ).trim() ||
+      !String(
+        data.pincode ||
+        '',
+      ).trim()
     ) {
 
       Alert.alert(
@@ -1393,7 +1362,6 @@ export default function SalonReviewScreen({
 
     // --------------------------------------------------------
     // SHOP & ESTABLISHMENT
-    // REQUIRED
     // --------------------------------------------------------
 
     const cleanShop =
@@ -1416,7 +1384,6 @@ export default function SalonReviewScreen({
 
     // --------------------------------------------------------
     // SHOP & ESTABLISHMENT DOCUMENT
-    // REQUIRED
     // --------------------------------------------------------
 
     if (
@@ -1432,9 +1399,9 @@ export default function SalonReviewScreen({
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // SERVICES
-    // --------------------------------------------------------
+    // ========================================================
 
     if (
       selectedServiceSelections.length ===
@@ -1443,31 +1410,77 @@ export default function SalonReviewScreen({
 
       Alert.alert(
         'Services Required',
-        'Please select at least one service category and subcategory.',
+        'Please select at least one service.',
       );
 
       return;
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // VALIDATE SERVICES
-    // --------------------------------------------------------
+    // ========================================================
 
     const invalidService =
       selectedServiceSelections.find(
-        selection =>
-          !selection.audience ||
-          !selection.categoryId ||
-          !selection.subcategoryId ||
-          !selection.price ||
-          Number(
-            selection.price,
-          ) <= 0 ||
-          !selection.durationMinutes ||
-          Number(
-            selection.durationMinutes,
-          ) <= 0,
+        selection => {
+
+          const businessTypeId =
+            String(
+              selection.businessTypeId ||
+              '',
+            ).trim();
+
+          const serviceName =
+            String(
+              selection.name ||
+              '',
+            ).trim();
+
+          const categoryId =
+            String(
+              selection.categoryId ||
+              '',
+            ).trim();
+
+          const subcategoryId =
+            String(
+              selection.subcategoryId ||
+              '',
+            ).trim();
+
+          const price =
+            Number(
+              selection.price,
+            );
+
+          const duration =
+            Number(
+              selection.durationMinutes,
+            );
+
+          return (
+            !selection.serviceKey ||
+
+            !businessTypeId ||
+
+            !serviceName ||
+
+            !selection.audience ||
+
+            !categoryId ||
+
+            !subcategoryId ||
+
+            !Number.isFinite(price) ||
+
+            price <= 0 ||
+
+            !Number.isFinite(duration) ||
+
+            duration <= 0
+          );
+        },
       );
 
 
@@ -1475,16 +1488,16 @@ export default function SalonReviewScreen({
 
       Alert.alert(
         'Invalid Service',
-        'Every selected service must have an audience, category, subcategory, price, and duration.',
+        'Every service must have a business type, service name, audience, category, subcategory, price, and duration.',
       );
 
       return;
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // BUILD KYC DOCUMENTS
-    // --------------------------------------------------------
+    // ========================================================
 
     let kycDocuments:
       KycDocumentInput[] = [];
@@ -1496,7 +1509,7 @@ export default function SalonReviewScreen({
         buildKycDocumentPayload();
 
     } catch (
-    error: any
+      error: any
     ) {
 
       console.error(
@@ -1514,9 +1527,9 @@ export default function SalonReviewScreen({
     }
 
 
-    // --------------------------------------------------------
-    // VALIDATE REQUIRED KYC DOCUMENT COUNT
-    // --------------------------------------------------------
+    // ========================================================
+    // REQUIRED KYC DOCUMENT COUNT
+    // ========================================================
 
     const requiredKycDocumentTypes:
       KycDocumentType[] = [
@@ -1551,9 +1564,9 @@ export default function SalonReviewScreen({
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // DEBUG KYC
-    // --------------------------------------------------------
+    // ========================================================
 
     console.log(
       '[SalonReview] KYC UPLOAD IDS:',
@@ -1597,6 +1610,86 @@ export default function SalonReviewScreen({
 
 
     // ========================================================
+    // BUILD NEW SERVICE PAYLOAD
+    // ========================================================
+
+    const services =
+      selectedServiceSelections.map(
+        selection => {
+
+          const businessTypeId =
+            String(
+              selection.businessTypeId ||
+              '',
+            ).trim();
+
+          const serviceName =
+            String(
+              selection.name ||
+              '',
+            ).trim();
+
+          const description =
+            String(
+              selection.description ||
+              '',
+            ).trim();
+
+          const price =
+            Number(
+              selection.price,
+            );
+
+          const duration =
+            Number(
+              selection.durationMinutes,
+            );
+
+          return {
+
+            businessTypeId,
+
+            categoryId:
+              String(
+                selection.categoryId,
+              ).trim(),
+
+            subcategoryId:
+              String(
+                selection.subcategoryId,
+              ).trim(),
+
+            name:
+              serviceName,
+
+            description,
+
+            audience:
+              selection.audience,
+
+            price,
+
+            duration,
+          };
+        },
+      );
+
+
+    // ========================================================
+    // DEBUG SERVICES
+    // ========================================================
+
+    console.log(
+      '[SalonReview] SERVICES PAYLOAD:',
+      JSON.stringify(
+        services,
+        null,
+        2,
+      ),
+    );
+
+
+    // ========================================================
     // SUBMIT
     // ========================================================
 
@@ -1626,43 +1719,18 @@ export default function SalonReviewScreen({
       );
 
       console.log(
-        'PAN DOCUMENT:',
-        panDocument,
-      );
-
-      console.log(
-        'AADHAAR DOCUMENT:',
-        aadhaarDocument,
-      );
-
-      console.log(
-        'SHOP & ESTABLISHMENT DOCUMENT:',
-        shopEstablishmentDocument,
-      );
-
-      console.log(
-        'GST DOCUMENT:',
-        gstDocument,
-      );
-
-      console.log(
-        'UDYAM DOCUMENT:',
-        udyamDocument,
-      );
-
-      console.log(
-        'KYC DOCUMENTS PAYLOAD:',
+        'SERVICES:',
         JSON.stringify(
-          kycDocuments,
+          services,
           null,
           2,
         ),
       );
 
       console.log(
-        'SERVICES:',
+        'KYC DOCUMENTS:',
         JSON.stringify(
-          selectedServiceSelections,
+          kycDocuments,
           null,
           2,
         ),
@@ -1673,40 +1741,9 @@ export default function SalonReviewScreen({
       );
 
 
-      // ------------------------------------------------------
-      // SERVICE PAYLOAD
-      // ------------------------------------------------------
-
-      const serviceSelections =
-        selectedServiceSelections.map(
-          selection => ({
-
-            audience:
-              selection.audience,
-
-            categoryId:
-              selection.categoryId,
-
-            subcategoryId:
-              selection.subcategoryId,
-
-            price:
-              Number(
-                selection.price,
-              ),
-
-            duration:
-              Number(
-                selection.durationMinutes,
-              ),
-
-          }),
-        );
-
-
-      // ------------------------------------------------------
+      // ======================================================
       // FINAL REGISTER INPUT
-      // ------------------------------------------------------
+      // ======================================================
 
       const registerInput = {
 
@@ -1719,13 +1756,13 @@ export default function SalonReviewScreen({
           '',
 
         salonName:
-          data.salonName,
+          data.salonName.trim(),
 
         ownerName:
-          data.ownerName,
+          data.ownerName.trim(),
 
         email:
-          data.email,
+          data.email.trim(),
 
         businessTypeId:
           primaryBusinessTypeId,
@@ -1742,16 +1779,16 @@ export default function SalonReviewScreen({
         address: {
 
           addressLine:
-            data.addressLine,
+            data.addressLine.trim(),
 
           city:
-            data.city,
+            data.city.trim(),
 
           state:
-            data.state,
+            data.state.trim(),
 
           pincode:
-            data.pincode,
+            data.pincode.trim(),
 
         },
 
@@ -1765,8 +1802,10 @@ export default function SalonReviewScreen({
           data.longitude,
 
         gstNumber:
-          data.gstNumber ||
-          '',
+          String(
+            data.gstNumber ||
+            '',
+          ).trim(),
 
         panNumber:
           cleanPAN,
@@ -1778,37 +1817,36 @@ export default function SalonReviewScreen({
           cleanShop,
 
         udyamNumber:
-          data.udyamNumber ||
-          '',
+          String(
+            data.udyamNumber ||
+            '',
+          ).trim(),
 
         bankAccount:
-          data.bankAccount ||
-          '',
+          String(
+            data.bankAccount ||
+            '',
+          ).trim(),
 
         ifsc:
-          data.ifsc ||
-          '',
+          String(
+            data.ifsc ||
+            '',
+          ).trim(),
 
-        serviceSelections:
-          serviceSelections,
+        // ====================================================
+        // NEW ACTUAL SERVICES
+        // ====================================================
 
-        // ----------------------------------------------------
-        // IMPORTANT:
-        // No uploadId here.
+        services,
+
+        // ====================================================
+        // KYC
         //
-        // Matches:
-        //
-        // input KycDocumentInput {
-        //   documentType: KycDocumentType!
-        //   fileName: String!
-        //   contentType: String!
-        //   fileSize: Int
-        //   s3Key: String!
-        // }
-        // ----------------------------------------------------
+        // No uploadId.
+        // ====================================================
 
-        kycDocuments:
-          kycDocuments,
+        kycDocuments,
       };
 
 
@@ -1822,9 +1860,9 @@ export default function SalonReviewScreen({
       );
 
 
-      // ------------------------------------------------------
+      // ======================================================
       // REGISTER SALON
-      // ------------------------------------------------------
+      // ======================================================
 
       const response =
         await registerSalonPartner({
@@ -1860,14 +1898,18 @@ export default function SalonReviewScreen({
       );
 
 
+      // ======================================================
+      // RESULT
+      // ======================================================
+
       const result =
         response.data
           ?.registerSalonPartner;
 
 
-      // ------------------------------------------------------
+      // ======================================================
       // BACKEND FAILURE
-      // ------------------------------------------------------
+      // ======================================================
 
       if (
         !result?.success
@@ -1883,9 +1925,9 @@ export default function SalonReviewScreen({
       }
 
 
-      // ------------------------------------------------------
+      // ======================================================
       // SALON ID
-      // ------------------------------------------------------
+      // ======================================================
 
       const salonId =
         result?.salonId;
@@ -1902,9 +1944,9 @@ export default function SalonReviewScreen({
       }
 
 
-      // ------------------------------------------------------
+      // ======================================================
       // UPDATE USER
-      // ------------------------------------------------------
+      // ======================================================
 
       const existingRoles =
         currentUser.roles || {
@@ -1943,16 +1985,16 @@ export default function SalonReviewScreen({
       );
 
 
-      // ------------------------------------------------------
-      // RESET
-      // ------------------------------------------------------
+      // ======================================================
+      // RESET REGISTRATION
+      // ======================================================
 
       reset();
 
 
-      // ------------------------------------------------------
-      // NAVIGATE
-      // ------------------------------------------------------
+      // ======================================================
+      // SUCCESS SCREEN
+      // ======================================================
 
       navigation.navigate(
         'SalonSuccess',
@@ -1962,7 +2004,7 @@ export default function SalonReviewScreen({
       );
 
     } catch (
-    error: any
+      error: any
     ) {
 
       console.error(
@@ -2150,12 +2192,7 @@ export default function SalonReviewScreen({
               >
 
                 {selectedBusinessTypes.map(
-                  (
-                    businessType: {
-                      businessTypeId: string;
-                      name: string;
-                    },
-                  ) => (
+                  businessType => (
 
                     <View
                       key={
@@ -2217,9 +2254,7 @@ export default function SalonReviewScreen({
               )
                 ? data.targetAudiences
                   .map(
-                    (
-                      audience: Audience,
-                    ) =>
+                    audience =>
                       getAudienceLabel(
                         audience,
                       ),
@@ -2275,29 +2310,8 @@ export default function SalonReviewScreen({
                 ).slice(-4)}`
                 : '-'
             }
-          />
-
-
-          {/* <DetailRow
-            label="Bank account"
-            value={
-              data.bankAccount
-                ? `XXXXXX${String(
-                  data.bankAccount,
-                ).slice(-4)}`
-                : '-'
-            }
-          />
-
-
-          <DetailRow
-            label="IFSC"
-            value={
-              data.ifsc ||
-              '-'
-            }
             last
-          /> */}
+          />
 
         </View>
 
@@ -2375,9 +2389,6 @@ export default function SalonReviewScreen({
               hasGstDocument
             }
             required={false}
-            last={
-              !udyamDocument
-            }
           />
 
 
@@ -2420,38 +2431,11 @@ export default function SalonReviewScreen({
               styles.sectionSubtitle
             }
           >
-            These are the Clavata services selected for your business.
+            These are the actual services that will be offered by your business.
           </Text>
 
 
-          {categoriesLoading ||
-            subcategoriesLoading ? (
-
-            <View
-              style={
-                styles.servicesLoading
-              }
-            >
-
-              <ActivityIndicator
-                size="small"
-                color={
-                  COLORS.themeColor
-                }
-              />
-
-
-              <Text
-                style={
-                  styles.loadingText
-                }
-              >
-                Loading service details...
-              </Text>
-
-            </View>
-
-          ) : selectedServiceSelections.length ===
+          {selectedServiceSelections.length ===
             0 ? (
 
             <Text
@@ -2469,7 +2453,7 @@ export default function SalonReviewScreen({
 
                 const services =
                   groupedServices[
-                  audience
+                    audience
                   ];
 
 
@@ -2477,6 +2461,7 @@ export default function SalonReviewScreen({
                   services.length ===
                   0
                 ) {
+
                   return null;
                 }
 
@@ -2491,6 +2476,10 @@ export default function SalonReviewScreen({
                       styles.audienceSection
                     }
                   >
+
+                    {/* ==================================================
+                        AUDIENCE HEADER
+                    ================================================== */}
 
                     <View
                       style={
@@ -2513,14 +2502,19 @@ export default function SalonReviewScreen({
                     </View>
 
 
+                    {/* ==================================================
+                        SERVICES
+                    ================================================== */}
+
                     {services.map(
                       (
                         service,
-                        index,
                       ) => (
 
                         <View
-                          key={`${audience}-${service.categoryId}-${service.subcategoryId}-${index}`}
+                          key={
+                            service.serviceKey
+                          }
                           style={
                             styles.serviceItem
                           }
@@ -2539,6 +2533,8 @@ export default function SalonReviewScreen({
                             }
                           >
 
+                            {/* CATEGORY */}
+
                             <Text
                               style={
                                 styles.serviceCategory
@@ -2551,9 +2547,11 @@ export default function SalonReviewScreen({
                             </Text>
 
 
+                            {/* SUBCATEGORY */}
+
                             <Text
                               style={
-                                styles.serviceName
+                                styles.serviceSubcategory
                               }
                             >
                               {
@@ -2562,8 +2560,63 @@ export default function SalonReviewScreen({
                               }
                             </Text>
 
+
+                            {/* ACTUAL SERVICE NAME */}
+
+                            <Text
+                              style={
+                                styles.serviceName
+                              }
+                            >
+                              {
+                                service.name ||
+                                'Service name not provided'
+                              }
+                            </Text>
+
+
+                            {/* DESCRIPTION */}
+
+                            {service.description ? (
+
+                              <Text
+                                style={
+                                  styles.serviceDescription
+                                }
+                              >
+                                {
+                                  service.description
+                                }
+                              </Text>
+
+                            ) : null}
+
+
+                            {/* DURATION */}
+
+                            {service.durationMinutes !==
+                              undefined &&
+                              service.durationMinutes !==
+                              null ? (
+
+                              <Text
+                                style={
+                                  styles.serviceDuration
+                                }
+                              >
+                                {
+                                  Number(
+                                    service.durationMinutes,
+                                  )
+                                } min
+                              </Text>
+
+                            ) : null}
+
                           </View>
 
+
+                          {/* PRICE */}
 
                           {service.price !==
                             undefined &&
@@ -3197,30 +3250,9 @@ const styles =
         COLORS.textSecondary,
     },
 
-    servicesLoading: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
-      paddingVertical:
-        SPACING.medium,
-    },
-
-    loadingText: {
-      marginLeft:
-        SPACING.small,
-
-      fontFamily:
-        FONTS.regular,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      color:
-        COLORS.textSecondary,
-    },
+    // ========================================================
+    // SERVICES
+    // ========================================================
 
     emptyText: {
       fontFamily:
@@ -3277,7 +3309,7 @@ const styles =
         'center',
 
       paddingVertical:
-        SPACING.small,
+        SPACING.medium,
 
       borderBottomWidth:
         1,
@@ -3315,9 +3347,54 @@ const styles =
         COLORS.text,
     },
 
-    serviceName: {
+    serviceSubcategory: {
       marginTop:
         2,
+
+      fontFamily:
+        FONTS.regular,
+
+      fontSize:
+        FONT_SIZES.small,
+
+      color:
+        COLORS.textSecondary,
+    },
+
+    serviceName: {
+      marginTop:
+        4,
+
+      fontFamily:
+        FONTS.semiBold,
+
+      fontSize:
+        FONT_SIZES.body,
+
+      color:
+        COLORS.text,
+    },
+
+    serviceDescription: {
+      marginTop:
+        3,
+
+      fontFamily:
+        FONTS.regular,
+
+      fontSize:
+        FONT_SIZES.small,
+
+      lineHeight:
+        FONT_SIZES.small + 5,
+
+      color:
+        COLORS.textSecondary,
+    },
+
+    serviceDuration: {
+      marginTop:
+        4,
 
       fontFamily:
         FONTS.regular,
@@ -3342,6 +3419,10 @@ const styles =
       marginLeft:
         SPACING.small,
     },
+
+    // ========================================================
+    // VERIFICATION
+    // ========================================================
 
     notice: {
       marginTop:
@@ -3389,6 +3470,10 @@ const styles =
       color:
         COLORS.textSecondary,
     },
+
+    // ========================================================
+    // BUTTON
+    // ========================================================
 
     button: {
       width:
@@ -3445,4 +3530,3 @@ const styles =
     },
 
   });
-

@@ -12,6 +12,7 @@ import SalonRejectedScreen from '../Screens/Provider/SalonRejectedScreen';
 import SalonBusinessHoursScreen from '../Screens/Provider/SalonBusinessHoursScreen';
 import SalonServices from '../Screens/Provider/SalonServices';
 import ConfigureSalonServices from '../Screens/Provider/ConfigureSalonServices';
+import ServiceReview from '../Screens/Provider/ServiceReview';
 const Stack = createNativeStackNavigator();
 export default function PartnerStack() {
   return (
@@ -40,6 +41,10 @@ export default function PartnerStack() {
       <Stack.Screen
         name="SalonAddress"
         component={SalonAddressScreen}
+      />
+      <Stack.Screen
+        name="ServiceReview"
+        component={ServiceReview}
       />
       <Stack.Screen
         name="SalonKYC"

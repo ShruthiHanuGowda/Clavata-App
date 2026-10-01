@@ -201,19 +201,93 @@ export type ServiceAudience =
 // =====================================================
 // SALON SERVICE SELECTION
 // =====================================================
+//
+// IMPORTANT:
+//
+// This now represents an actual salon-created service.
+//
+// Example:
+//
+// Hair
+//   └── Hair Cut
+//        ├── Layer Hair Cut
+//        └── Step Hair Cut
+//
+// Both services can have:
+//
+// categoryId       = same
+// subcategoryId   = same
+// audience        = same
+//
+// Therefore serviceKey MUST be unique per actual service.
+//
+// =====================================================
 
 export type SalonServiceSelection = {
+
+    // ===================================================
+    // LOCAL UNIQUE SERVICE KEY
+    // ===================================================
+    //
+    // This is generated on the device during registration.
+    // It is NOT the final backend serviceId.
+    //
+    serviceKey: string;
+
+    // ===================================================
+    // BUSINESS TYPE
+    // ===================================================
+
+    businessTypeId?: string;
+
+    // ===================================================
+    // ACTUAL SERVICE NAME
+    // ===================================================
+    //
+    // Example:
+    //
+    // Layer Hair Cut
+    // Step Hair Cut
+    //
+    name: string;
+
+    // ===================================================
+    // DESCRIPTION
+    // ===================================================
+
+    description?: string;
+
+    // ===================================================
+    // AUDIENCE
+    // ===================================================
+
     audience: ServiceAudience;
+
+    // ===================================================
+    // CATEGORY
+    // ===================================================
 
     categoryId: string;
 
     categoryName: string;
 
+    // ===================================================
+    // SUBCATEGORY
+    // ===================================================
+
     subcategoryId: string;
 
     subcategoryName: string;
 
+    // ===================================================
+    // PRICE
+    // ===================================================
+
     price?: number;
+
+    // ===================================================
+    // DURATION
+    // ===================================================
 
     durationMinutes?: number;
 };
@@ -353,7 +427,37 @@ export type SalonRegistrationData = {
     kycUploadId: string;
 
     // ===================================================
-    // CLAVATA SERVICE SELECTIONS
+    // CLAVATA SERVICES
+    // ===================================================
+    //
+    // Each item is one actual salon service.
+    //
+    // Multiple items may have the same:
+    //
+    // categoryId
+    // subcategoryId
+    // audience
+    //
+    // Example:
+    //
+    // [
+    //   {
+    //      serviceKey: "LOCAL-1",
+    //      name: "Layer Hair Cut",
+    //      categoryId: "CAT-H",
+    //      subcategoryId: "SUB-HC",
+    //      audience: "FEMALE"
+    //   },
+    //
+    //   {
+    //      serviceKey: "LOCAL-2",
+    //      name: "Step Hair Cut",
+    //      categoryId: "CAT-H",
+    //      subcategoryId: "SUB-HC",
+    //      audience: "FEMALE"
+    //   }
+    // ]
+    //
     // ===================================================
 
     serviceSelections: SalonServiceSelection[];
