@@ -70,21 +70,17 @@ type BusinessType = {
 // ============================================================
 // REVIEW SERVICE
 // ============================================================
-//
-// IMPORTANT:
-//
-// This matches SalonServiceSelection from
-// SalonRegistrationContext.
-//
-// serviceKey is local only.
-// Backend creates the real serviceId.
-//
-// ============================================================
 
 type ReviewServiceSelection = {
+  uniqueId?: string;
   serviceKey: string;
 
   businessTypeId?: string;
+
+  /*
+   * Required by GraphQL SalonServiceInput.
+   */
+  businessTypeName: string;
 
   name: string;
 
@@ -108,16 +104,6 @@ type ReviewServiceSelection = {
 
 // ============================================================
 // KYC DOCUMENT INPUT
-//
-// MUST MATCH GRAPHQL
-//
-// input KycDocumentInput {
-//   documentType: KycDocumentType!
-//   fileName: String!
-//   contentType: String!
-//   fileSize: Int
-//   s3Key: String!
-// }
 // ============================================================
 
 type KycDocumentInput = {
@@ -144,23 +130,6 @@ type RegisterSalonPartnerResponse = {
 
 // ============================================================
 // REGISTER VARIABLES
-//
-// NEW SERVICE MODEL
-//
-// services:
-// [
-//   {
-//     businessTypeId,
-//     categoryId,
-//     subcategoryId,
-//     name,
-//     description,
-//     audience,
-//     price,
-//     duration
-//   }
-// ]
-//
 // ============================================================
 
 type RegisterSalonPartnerVariables = {
@@ -185,14 +154,43 @@ type RegisterSalonPartnerVariables = {
       pincode: string;
     };
 
-    businessHours: Record<
-      string,
-      {
+    businessHours: {
+      MONDAY: {
+        open: string;
+        close: string;
         isOpen: boolean;
-        open?: string;
-        close?: string;
-      }
-    >;
+      };
+      TUESDAY: {
+        open: string;
+        close: string;
+        isOpen: boolean;
+      };
+      WEDNESDAY: {
+        open: string;
+        close: string;
+        isOpen: boolean;
+      };
+      THURSDAY: {
+        open: string;
+        close: string;
+        isOpen: boolean;
+      };
+      FRIDAY: {
+        open: string;
+        close: string;
+        isOpen: boolean;
+      };
+      SATURDAY: {
+        open: string;
+        close: string;
+        isOpen: boolean;
+      };
+      SUNDAY: {
+        open: string;
+        close: string;
+        isOpen: boolean;
+      };
+    };
 
     latitude?: number;
     longitude?: number;
@@ -206,13 +204,27 @@ type RegisterSalonPartnerVariables = {
     bankAccount?: string;
     ifsc?: string;
 
+    /*
+     * IMPORTANT:
+     *
+     * These fields MUST match SalonServiceInput
+     * in the GraphQL schema.
+     */
     services: Array<{
       businessTypeId: string;
+      businessTypeName: string;
+
       categoryId: string;
+      categoryName: string;
+
       subcategoryId: string;
+      subcategoryName: string;
+
       name: string;
-      description: string;
+      description?: string;
+
       audience: Audience;
+
       price: number;
       duration: number;
     }>;
@@ -239,7 +251,7 @@ const AUDIENCE_ORDER: Audience[] = [
 
 const getAudienceLabel = (
   audience: Audience,
-) => {
+): string => {
 
   switch (audience) {
 
@@ -315,13 +327,6 @@ const getKycDocumentContentType = (
 };
 
 
-// ============================================================
-// UPLOAD ID
-//
-// Used only for debugging.
-// NOT SENT TO GRAPHQL.
-// ============================================================
-
 const getKycDocumentUploadId = (
   document: any,
 ): string => {
@@ -332,10 +337,6 @@ const getKycDocumentUploadId = (
   ).trim();
 };
 
-
-// ============================================================
-// S3 KEY
-// ============================================================
 
 const getKycDocumentS3Key = (
   document: any,
@@ -348,10 +349,6 @@ const getKycDocumentS3Key = (
   ).trim();
 };
 
-
-// ============================================================
-// VALID KYC DOCUMENT
-// ============================================================
 
 const hasValidKycDocument = (
   document: any,
@@ -369,6 +366,20 @@ const hasValidKycDocument = (
       document,
     )
   );
+};
+
+
+// ============================================================
+// CLEAN STRING
+// ============================================================
+
+const cleanString = (
+  value: any,
+): string => {
+
+  return String(
+    value ?? '',
+  ).trim();
 };
 
 
@@ -423,7 +434,7 @@ export default function SalonReviewScreen({
       },
 
       fetchPolicy:
-        'network-only',
+        'cache-first',
 
       notifyOnNetworkStatusChange:
         true,
@@ -433,6 +444,25 @@ export default function SalonReviewScreen({
         console.log(
           '[SalonReview] GET_BUSINESS_TYPES error:',
           error,
+        );
+
+        console.log(
+          '[SalonReview] GET_BUSINESS_TYPES message:',
+          error?.message,
+        );
+
+        console.log(
+          '[SalonReview] GET_BUSINESS_TYPES graphQLErrors:',
+          JSON.stringify(
+            error?.graphQLErrors,
+            null,
+            2,
+          ),
+        );
+
+        console.log(
+          '[SalonReview] GET_BUSINESS_TYPES networkError:',
+          error?.networkError,
         );
       },
     },
@@ -468,14 +498,18 @@ export default function SalonReviewScreen({
             ]
             : [];
 
-      return ids
-        .map(
-          id =>
-            String(
-              id ?? '',
-            ).trim(),
-        )
-        .filter(Boolean);
+      return Array.from(
+        new Set(
+          ids
+            .map(
+              id =>
+                cleanString(
+                  id,
+                ),
+            )
+            .filter(Boolean),
+        ),
+      );
 
     }, [
       data.businessTypeIds,
@@ -484,7 +518,7 @@ export default function SalonReviewScreen({
 
 
   // ==========================================================
-  // SELECTED BUSINESS TYPE NAMES
+  // SELECTED BUSINESS TYPES
   // ==========================================================
 
   const selectedBusinessTypes =
@@ -508,8 +542,7 @@ export default function SalonReviewScreen({
             name:
               getBusinessTypeName(
                 matched,
-              ) ||
-              businessTypeId,
+              ),
           };
         },
       );
@@ -527,28 +560,112 @@ export default function SalonReviewScreen({
   const selectedBusinessTypeLabel =
     useMemo(() => {
 
+      const names =
+        selectedBusinessTypes
+          .map(
+            item =>
+              cleanString(
+                item.name,
+              ),
+          )
+          .filter(Boolean);
+
       if (
-        selectedBusinessTypes.length ===
-        0
+        names.length > 0
       ) {
 
-        return (
-          data.businessType ||
-          'Not provided'
-        );
+        return names.join(', ');
       }
 
-      return selectedBusinessTypes
-        .map(
-          item =>
-            item.name,
-        )
-        .join(', ');
+
+      const storedName =
+        cleanString(
+          data.businessType,
+        );
+
+
+      const looksLikeBusinessTypeId =
+        storedName.startsWith(
+          'BT#',
+        );
+
+
+      if (
+        storedName &&
+        !looksLikeBusinessTypeId
+      ) {
+
+        return storedName;
+      }
+
+
+      return '';
 
     }, [
       selectedBusinessTypes,
       data.businessType,
     ]);
+
+
+  // ==========================================================
+  // BUSINESS TYPE NAME BY ID
+  //
+  // IMPORTANT:
+  //
+  // SalonServiceInput now requires:
+  //
+  // businessTypeName: String!
+  //
+  // Therefore we resolve the name from the business type
+  // master using the service's businessTypeId.
+  // ==========================================================
+
+  const getBusinessTypeNameById =
+    (
+      businessTypeId?: string,
+    ): string => {
+
+      const id =
+        cleanString(
+          businessTypeId,
+        );
+
+      if (!id) {
+        return '';
+      }
+
+
+      const matched =
+        businessTypes.find(
+          item =>
+            getBusinessTypeId(
+              item,
+            ) === id,
+        );
+
+
+      const masterName =
+        getBusinessTypeName(
+          matched,
+        );
+
+
+      if (masterName) {
+        return masterName;
+      }
+
+
+      const selected =
+        selectedBusinessTypes.find(
+          item =>
+            item.businessTypeId === id,
+        );
+
+
+      return cleanString(
+        selected?.name,
+      );
+    };
 
 
   // ==========================================================
@@ -565,27 +682,14 @@ export default function SalonReviewScreen({
     selectedBusinessTypes,
   );
 
+  console.log(
+    '[SalonReview] RESOLVED BUSINESS TYPE LABEL:',
+    selectedBusinessTypeLabel,
+  );
+
 
   // ==========================================================
   // SERVICE SELECTIONS
-  // ==========================================================
-  //
-  // Context already contains:
-  //
-  // serviceKey
-  // businessTypeId
-  // name
-  // description
-  // audience
-  // categoryId
-  // categoryName
-  // subcategoryId
-  // subcategoryName
-  // price
-  // durationMinutes
-  //
-  // No catalog lookup is required here.
-  //
   // ==========================================================
 
   const selectedServiceSelections:
@@ -601,78 +705,161 @@ export default function SalonReviewScreen({
         return [];
       }
 
-      return data.serviceSelections
-        .filter(
-          selection =>
-            selection &&
-            selection.serviceKey &&
-            selection.audience &&
-            selection.categoryId &&
-            selection.subcategoryId,
-        )
-        .map(
-          selection => ({
+
+      const seenKeys =
+        new Set<string>();
+
+
+      const result:
+        ReviewServiceSelection[] = [];
+
+
+      data.serviceSelections.forEach(
+        (selection: any, index: number) => {
+
+          if (
+            !selection ||
+            !selection.audience ||
+            !selection.categoryId ||
+            !selection.subcategoryId
+          ) {
+
+            return;
+          }
+
+
+          const uniqueId =
+            cleanString(
+              selection.uniqueId,
+            );
+
+
+          const originalServiceKey =
+            cleanString(
+              selection.serviceKey,
+            );
+
+
+          /*
+           * IMPORTANT:
+           *
+           * ConfigureSalonServices creates a new uniqueId
+           * when "Add another service" is used.
+           *
+           * The copied serviceKey can therefore be the same
+           * for multiple services under the same subcategory.
+           *
+           * uniqueId MUST take priority so those services are
+           * not incorrectly removed as duplicates.
+           */
+          const effectiveServiceKey =
+            uniqueId ||
+            originalServiceKey ||
+            [
+              selection.audience,
+              selection.categoryId,
+              selection.subcategoryId,
+              cleanString(
+                selection.name,
+              ),
+              index,
+            ].join('::');
+
+
+          if (
+            seenKeys.has(
+              effectiveServiceKey,
+            )
+          ) {
+
+            console.warn(
+              '[SalonReview] Duplicate service ignored:',
+              effectiveServiceKey,
+            );
+
+            return;
+          }
+
+
+          seenKeys.add(
+            effectiveServiceKey,
+          );
+
+
+          result.push({
+
+            uniqueId:
+              uniqueId ||
+              undefined,
+
+            /*
+             * Preserve the original serviceKey when it exists.
+             * effectiveServiceKey is only used internally to
+             * distinguish the current service instance.
+             */
             serviceKey:
-              String(
-                selection.serviceKey,
-              ).trim(),
+              originalServiceKey ||
+              effectiveServiceKey,
 
             businessTypeId:
-              selection.businessTypeId
-                ? String(
-                  selection.businessTypeId,
-                ).trim()
-                : undefined,
+              cleanString(
+                selection.businessTypeId,
+              ) ||
+              undefined,
+
+            businessTypeName:
+              cleanString(
+                selection.businessTypeName,
+              ),
 
             name:
-              String(
-                selection.name ||
-                '',
-              ).trim(),
+              cleanString(
+                selection.name,
+              ),
 
             description:
-              String(
-                selection.description ||
-                '',
-              ).trim(),
+              cleanString(
+                selection.description,
+              ),
 
             audience:
               selection.audience,
 
             categoryId:
-              String(
+              cleanString(
                 selection.categoryId,
-              ).trim(),
+              ),
 
             categoryName:
-              String(
-                selection.categoryName ||
-                '',
-              ).trim(),
+              cleanString(
+                selection.categoryName,
+              ),
 
             subcategoryId:
-              String(
+              cleanString(
                 selection.subcategoryId,
-              ).trim(),
+              ),
 
             subcategoryName:
-              String(
-                selection.subcategoryName ||
-                '',
-              ).trim(),
+              cleanString(
+                selection.subcategoryName,
+              ),
 
             price:
               selection.price,
 
             durationMinutes:
               selection.durationMinutes,
-          }),
-        );
+          });
+        },
+      );
+
+
+      return result;
 
     }, [
       data.serviceSelections,
     ]);
-
 
   // ==========================================================
   // GROUP SERVICES BY AUDIENCE
@@ -694,6 +881,7 @@ export default function SalonReviewScreen({
         KIDS: [],
       };
 
+
       selectedServiceSelections.forEach(
         selection => {
 
@@ -711,6 +899,7 @@ export default function SalonReviewScreen({
           }
         },
       );
+
 
       return groups;
 
@@ -1056,7 +1245,9 @@ export default function SalonReviewScreen({
     // USER DATA CHECK
     // --------------------------------------------------------
 
-    if (!data.userId) {
+    if (
+      !data.userId
+    ) {
 
       Alert.alert(
         'Registration Error',
@@ -1071,12 +1262,13 @@ export default function SalonReviewScreen({
     // SALON NAME
     // --------------------------------------------------------
 
-    if (
-      !String(
-        data.salonName ||
-        '',
-      ).trim()
-    ) {
+    const salonName =
+      cleanString(
+        data.salonName,
+      );
+
+
+    if (!salonName) {
 
       Alert.alert(
         'Registration Error',
@@ -1091,12 +1283,13 @@ export default function SalonReviewScreen({
     // OWNER NAME
     // --------------------------------------------------------
 
-    if (
-      !String(
-        data.ownerName ||
-        '',
-      ).trim()
-    ) {
+    const ownerName =
+      cleanString(
+        data.ownerName,
+      );
+
+
+    if (!ownerName) {
 
       Alert.alert(
         'Registration Error',
@@ -1111,12 +1304,13 @@ export default function SalonReviewScreen({
     // EMAIL
     // --------------------------------------------------------
 
-    if (
-      !String(
-        data.email ||
-        '',
-      ).trim()
-    ) {
+    const email =
+      cleanString(
+        data.email,
+      );
+
+
+    if (!email) {
 
       Alert.alert(
         'Registration Error',
@@ -1128,26 +1322,47 @@ export default function SalonReviewScreen({
 
 
     // --------------------------------------------------------
-    // BUSINESS TYPE
+    // PHONE
+    // --------------------------------------------------------
+
+    const phoneNumber =
+      cleanString(
+        currentUser.phoneNumber ||
+        data.phoneNumber,
+      );
+
+
+    if (!phoneNumber) {
+
+      Alert.alert(
+        'Registration Error',
+        'Phone number is missing.',
+      );
+
+      return;
+    }
+
+
+    // --------------------------------------------------------
+    // BUSINESS TYPES
     // --------------------------------------------------------
 
     const normalizedBusinessTypeIds =
       selectedBusinessTypeIds
         .map(
           id =>
-            String(
+            cleanString(
               id,
-            ).trim(),
+            ),
         )
         .filter(Boolean);
 
 
     const primaryBusinessTypeId =
       normalizedBusinessTypeIds[0] ||
-      String(
-        data.businessTypeId ||
-        '',
-      ).trim();
+      cleanString(
+        data.businessTypeId,
+      );
 
 
     if (
@@ -1170,14 +1385,31 @@ export default function SalonReviewScreen({
     // --------------------------------------------------------
 
     const businessTypeName =
-      selectedBusinessTypeLabel.trim();
+      cleanString(
+        selectedBusinessTypeLabel,
+      );
 
 
-    if (!businessTypeName) {
+    if (
+      !businessTypeName ||
+      businessTypeName.startsWith(
+        'BT#',
+      )
+    ) {
+
+      console.warn(
+        '[SalonReview] Business type names are not available.',
+        {
+          ids:
+            normalizedBusinessTypeIds,
+
+          businessTypes,
+        },
+      );
 
       Alert.alert(
-        'Business Type Required',
-        'Business type information is missing.',
+        'Business Type Information',
+        'Business type names could not be loaded. Please go back and select your business types again.',
       );
 
       return;
@@ -1194,7 +1426,7 @@ export default function SalonReviewScreen({
       )
         ? data.targetAudiences.filter(
           (
-            audience,
+            audience: any,
           ): audience is Audience =>
             audience ===
             'FEMALE' ||
@@ -1224,23 +1456,32 @@ export default function SalonReviewScreen({
     // ADDRESS
     // --------------------------------------------------------
 
+    const addressLine =
+      cleanString(
+        data.addressLine,
+      );
+
+    const city =
+      cleanString(
+        data.city,
+      );
+
+    const state =
+      cleanString(
+        data.state,
+      );
+
+    const pincode =
+      cleanString(
+        data.pincode,
+      );
+
+
     if (
-      !String(
-        data.addressLine ||
-        '',
-      ).trim() ||
-      !String(
-        data.city ||
-        '',
-      ).trim() ||
-      !String(
-        data.state ||
-        '',
-      ).trim() ||
-      !String(
-        data.pincode ||
-        '',
-      ).trim()
+      !addressLine ||
+      !city ||
+      !state ||
+      !pincode
     ) {
 
       Alert.alert(
@@ -1272,16 +1513,94 @@ export default function SalonReviewScreen({
     }
 
 
-    // --------------------------------------------------------
+    /*
+     * GraphQL requires every day to contain:
+     *
+     * open: String!
+     * close: String!
+     * isOpen: Boolean!
+     *
+     * Therefore normalize every day before submitting.
+     */
+
+    const days = [
+      'MONDAY',
+      'TUESDAY',
+      'WEDNESDAY',
+      'THURSDAY',
+      'FRIDAY',
+      'SATURDAY',
+      'SUNDAY',
+    ] as const;
+
+
+    const normalizedBusinessHours =
+      {} as RegisterSalonPartnerVariables['input']['businessHours'];
+
+
+    for (
+      const day of days
+    ) {
+
+      const sourceDay =
+        (
+          data.businessHours as any
+        )?.[day];
+
+
+      if (!sourceDay) {
+
+        Alert.alert(
+          'Business Hours Required',
+          `${day} business hours are missing.`,
+        );
+
+        return;
+      }
+
+
+      normalizedBusinessHours[day] = {
+
+        isOpen:
+          Boolean(
+            sourceDay.isOpen,
+          ),
+
+        open:
+          cleanString(
+            sourceDay.open,
+          ),
+
+        close:
+          cleanString(
+            sourceDay.close,
+          ),
+      };
+
+
+      if (
+        !normalizedBusinessHours[day].open ||
+        !normalizedBusinessHours[day].close
+      ) {
+
+        Alert.alert(
+          'Business Hours Required',
+          `Please provide opening and closing times for ${day}.`,
+        );
+
+        return;
+      }
+    }
+
+
+    // ========================================================
     // PAN
-    // --------------------------------------------------------
+    // ========================================================
 
     const cleanPAN =
-      String(
-        data.panNumber ||
-        '',
+      cleanString(
+        data.panNumber,
       )
-        .trim()
         .toUpperCase();
 
 
@@ -1300,9 +1619,9 @@ export default function SalonReviewScreen({
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // PAN DOCUMENT
-    // --------------------------------------------------------
+    // ========================================================
 
     if (!hasPanDocument) {
 
@@ -1315,14 +1634,13 @@ export default function SalonReviewScreen({
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // AADHAAR
-    // --------------------------------------------------------
+    // ========================================================
 
     const cleanAadhaar =
-      String(
-        data.aadhaarNumber ||
-        '',
+      cleanString(
+        data.aadhaarNumber,
       )
         .replace(
           /\D/g,
@@ -1345,9 +1663,9 @@ export default function SalonReviewScreen({
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // AADHAAR DOCUMENT
-    // --------------------------------------------------------
+    // ========================================================
 
     if (!hasAadhaarDocument) {
 
@@ -1360,15 +1678,14 @@ export default function SalonReviewScreen({
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // SHOP & ESTABLISHMENT
-    // --------------------------------------------------------
+    // ========================================================
 
     const cleanShop =
-      String(
-        data.shopEstablishmentNumber ||
-        '',
-      ).trim();
+      cleanString(
+        data.shopEstablishmentNumber,
+      );
 
 
     if (!cleanShop) {
@@ -1382,9 +1699,9 @@ export default function SalonReviewScreen({
     }
 
 
-    // --------------------------------------------------------
-    // SHOP & ESTABLISHMENT DOCUMENT
-    // --------------------------------------------------------
+    // ========================================================
+    // SHOP DOCUMENT
+    // ========================================================
 
     if (
       !hasShopEstablishmentDocument
@@ -1418,67 +1735,156 @@ export default function SalonReviewScreen({
 
 
     // ========================================================
-    // VALIDATE SERVICES
+    // BUILD SERVICES
     // ========================================================
 
-    const invalidService =
-      selectedServiceSelections.find(
+    const services =
+      selectedServiceSelections.map(
         selection => {
 
           const businessTypeId =
-            String(
-              selection.businessTypeId ||
-              '',
-            ).trim();
+            cleanString(
+              selection.businessTypeId,
+            );
 
-          const serviceName =
-            String(
-              selection.name ||
-              '',
-            ).trim();
+
+          /*
+           * IMPORTANT:
+           *
+           * businessTypeName is REQUIRED by GraphQL.
+           *
+           * First use the name stored on the service.
+           * If unavailable, resolve it from the master list.
+           */
+
+          const businessTypeName =
+            cleanString(
+              selection.businessTypeName,
+            ) ||
+            getBusinessTypeNameById(
+              selection.businessTypeId,
+            );
+
 
           const categoryId =
-            String(
-              selection.categoryId ||
-              '',
-            ).trim();
+            cleanString(
+              selection.categoryId,
+            );
+
+
+          const categoryName =
+            cleanString(
+              selection.categoryName,
+            );
+
 
           const subcategoryId =
-            String(
-              selection.subcategoryId ||
-              '',
-            ).trim();
+            cleanString(
+              selection.subcategoryId,
+            );
+
+
+          const subcategoryName =
+            cleanString(
+              selection.subcategoryName,
+            );
+
+
+          const serviceName =
+            cleanString(
+              selection.name,
+            );
+
+
+          const description =
+            cleanString(
+              selection.description,
+            );
+
 
           const price =
             Number(
               selection.price,
             );
 
+
           const duration =
             Number(
               selection.durationMinutes,
             );
 
+
+          return {
+
+            businessTypeId,
+
+            businessTypeName,
+
+            categoryId,
+
+            categoryName,
+
+            subcategoryId,
+
+            subcategoryName,
+
+            name:
+              serviceName,
+
+            description,
+
+            audience:
+              selection.audience,
+
+            price,
+
+            duration,
+          };
+        },
+      );
+
+
+    // ========================================================
+    // VALIDATE FINAL SERVICES PAYLOAD
+    //
+    // This validates the ACTUAL GraphQL payload rather than
+    // validating the source selection object.
+    // ========================================================
+
+    const invalidService =
+      services.find(
+        service => {
+
           return (
-            !selection.serviceKey ||
 
-            !businessTypeId ||
+            !service.businessTypeId ||
 
-            !serviceName ||
+            !service.businessTypeName ||
 
-            !selection.audience ||
+            !service.categoryId ||
 
-            !categoryId ||
+            !service.categoryName ||
 
-            !subcategoryId ||
+            !service.subcategoryId ||
 
-            !Number.isFinite(price) ||
+            !service.subcategoryName ||
 
-            price <= 0 ||
+            !service.name ||
 
-            !Number.isFinite(duration) ||
+            !service.audience ||
 
-            duration <= 0
+            !Number.isFinite(
+              service.price,
+            ) ||
+
+            service.price <= 0 ||
+
+            !Number.isFinite(
+              service.duration,
+            ) ||
+
+            service.duration <= 0
+
           );
         },
       );
@@ -1486,9 +1892,19 @@ export default function SalonReviewScreen({
 
     if (invalidService) {
 
+      console.error(
+        '[SalonReview] INVALID SERVICE PAYLOAD:',
+        JSON.stringify(
+          invalidService,
+          null,
+          2,
+        ),
+      );
+
+
       Alert.alert(
         'Invalid Service',
-        'Every service must have a business type, service name, audience, category, subcategory, price, and duration.',
+        'Every service must have a business type, business type name, category, category name, subcategory, subcategory name, service name, audience, price, and duration.',
       );
 
       return;
@@ -1610,74 +2026,150 @@ export default function SalonReviewScreen({
 
 
     // ========================================================
-    // BUILD NEW SERVICE PAYLOAD
+    // FINAL REGISTER INPUT
     // ========================================================
 
-    const services =
-      selectedServiceSelections.map(
-        selection => {
+    const registerInput:
+      RegisterSalonPartnerVariables['input'] = {
 
-          const businessTypeId =
-            String(
-              selection.businessTypeId ||
-              '',
-            ).trim();
+      userId:
+        currentUser.userId,
 
-          const serviceName =
-            String(
-              selection.name ||
-              '',
-            ).trim();
+      phoneNumber,
 
-          const description =
-            String(
-              selection.description ||
-              '',
-            ).trim();
+      salonName,
 
-          const price =
-            Number(
-              selection.price,
-            );
+      ownerName,
 
-          const duration =
-            Number(
-              selection.durationMinutes,
-            );
+      email,
 
-          return {
+      businessTypeId:
+        primaryBusinessTypeId,
 
-            businessTypeId,
+      businessTypeIds:
+        normalizedBusinessTypeIds,
 
-            categoryId:
-              String(
-                selection.categoryId,
-              ).trim(),
+      businessType:
+        businessTypeName,
 
-            subcategoryId:
-              String(
-                selection.subcategoryId,
-              ).trim(),
+      targetAudiences,
 
-            name:
-              serviceName,
+      address: {
 
-            description,
+        addressLine,
 
-            audience:
-              selection.audience,
+        city,
 
-            price,
+        state,
 
-            duration,
-          };
-        },
-      );
+        pincode,
+      },
+
+      businessHours:
+        normalizedBusinessHours,
+
+      latitude:
+        data.latitude,
+
+      longitude:
+        data.longitude,
+
+      /*
+       * These are optional according to GraphQL.
+       * Empty strings are omitted so that the server receives
+       * undefined rather than unnecessary empty values.
+       */
+
+      ...(cleanString(
+        data.gstNumber,
+      )
+        ? {
+          gstNumber:
+            cleanString(
+              data.gstNumber,
+            ).toUpperCase(),
+        }
+        : {}),
+
+      panNumber:
+        cleanPAN,
+
+      aadhaarNumber:
+        cleanAadhaar,
+
+      shopEstablishmentNumber:
+        cleanShop,
+
+      ...(cleanString(
+        data.udyamNumber,
+      )
+        ? {
+          udyamNumber:
+            cleanString(
+              data.udyamNumber,
+            ).toUpperCase(),
+        }
+        : {}),
+
+      ...(cleanString(
+        data.bankAccount,
+      )
+        ? {
+          bankAccount:
+            cleanString(
+              data.bankAccount,
+            ),
+        }
+        : {}),
+
+      ...(cleanString(
+        data.ifsc,
+      )
+        ? {
+          ifsc:
+            cleanString(
+              data.ifsc,
+            ).toUpperCase(),
+        }
+        : {}),
+
+      services,
+
+      kycDocuments,
+    };
 
 
     // ========================================================
-    // DEBUG SERVICES
+    // FINAL DEBUG
     // ========================================================
+
+    console.log(
+      '==========================================',
+    );
+
+    console.log(
+      '[SalonReview] SUBMITTING SALON REGISTRATION',
+    );
+
+    console.log(
+      '[SalonReview] BUSINESS TYPE IDS:',
+      normalizedBusinessTypeIds,
+    );
+
+    console.log(
+      '[SalonReview] BUSINESS TYPE NAME:',
+      businessTypeName,
+    );
+
+    console.log(
+      '[SalonReview] TARGET AUDIENCES:',
+      targetAudiences,
+    );
+
+    console.log(
+      '[SalonReview] SERVICES COUNT:',
+      services.length,
+    );
 
     console.log(
       '[SalonReview] SERVICES PAYLOAD:',
@@ -1688,181 +2180,34 @@ export default function SalonReviewScreen({
       ),
     );
 
+    console.log(
+      '[SalonReview] KYC DOCUMENT COUNT:',
+      kycDocuments.length,
+    );
+
+    console.log(
+      '[SalonReview] FINAL REGISTER INPUT:',
+      JSON.stringify(
+        registerInput,
+        null,
+        2,
+      ),
+    );
+
+    console.log(
+      '[SalonReview] Calling registerSalonPartner...',
+    );
+
+    console.log(
+      '==========================================',
+    );
+
 
     // ========================================================
-    // SUBMIT
+    // REGISTER SALON
     // ========================================================
 
     try {
-
-      console.log(
-        '==========================================',
-      );
-
-      console.log(
-        'SUBMITTING SALON REGISTRATION',
-      );
-
-      console.log(
-        'BUSINESS TYPE IDS:',
-        normalizedBusinessTypeIds,
-      );
-
-      console.log(
-        'BUSINESS TYPE NAME:',
-        businessTypeName,
-      );
-
-      console.log(
-        'TARGET AUDIENCES:',
-        targetAudiences,
-      );
-
-      console.log(
-        'SERVICES:',
-        JSON.stringify(
-          services,
-          null,
-          2,
-        ),
-      );
-
-      console.log(
-        'KYC DOCUMENTS:',
-        JSON.stringify(
-          kycDocuments,
-          null,
-          2,
-        ),
-      );
-
-      console.log(
-        '==========================================',
-      );
-
-
-      // ======================================================
-      // FINAL REGISTER INPUT
-      // ======================================================
-
-      const registerInput = {
-
-        userId:
-          currentUser.userId,
-
-        phoneNumber:
-          currentUser.phoneNumber ||
-          data.phoneNumber ||
-          '',
-
-        salonName:
-          data.salonName.trim(),
-
-        ownerName:
-          data.ownerName.trim(),
-
-        email:
-          data.email.trim(),
-
-        businessTypeId:
-          primaryBusinessTypeId,
-
-        businessTypeIds:
-          normalizedBusinessTypeIds,
-
-        businessType:
-          businessTypeName,
-
-        targetAudiences:
-          targetAudiences,
-
-        address: {
-
-          addressLine:
-            data.addressLine.trim(),
-
-          city:
-            data.city.trim(),
-
-          state:
-            data.state.trim(),
-
-          pincode:
-            data.pincode.trim(),
-
-        },
-
-        businessHours:
-          data.businessHours,
-
-        latitude:
-          data.latitude,
-
-        longitude:
-          data.longitude,
-
-        gstNumber:
-          String(
-            data.gstNumber ||
-            '',
-          ).trim(),
-
-        panNumber:
-          cleanPAN,
-
-        aadhaarNumber:
-          cleanAadhaar,
-
-        shopEstablishmentNumber:
-          cleanShop,
-
-        udyamNumber:
-          String(
-            data.udyamNumber ||
-            '',
-          ).trim(),
-
-        bankAccount:
-          String(
-            data.bankAccount ||
-            '',
-          ).trim(),
-
-        ifsc:
-          String(
-            data.ifsc ||
-            '',
-          ).trim(),
-
-        // ====================================================
-        // NEW ACTUAL SERVICES
-        // ====================================================
-
-        services,
-
-        // ====================================================
-        // KYC
-        //
-        // No uploadId.
-        // ====================================================
-
-        kycDocuments,
-      };
-
-
-      console.log(
-        '[SalonReview] FINAL REGISTER INPUT:',
-        JSON.stringify(
-          registerInput,
-          null,
-          2,
-        ),
-      );
-
-
-      // ======================================================
-      // REGISTER SALON
-      // ======================================================
 
       const response =
         await registerSalonPartner({
@@ -1882,7 +2227,7 @@ export default function SalonReviewScreen({
       );
 
       console.log(
-        'REGISTER SALON RESPONSE:',
+        '[SalonReview] REGISTER SALON RESPONSE:',
       );
 
       console.log(
@@ -1930,7 +2275,9 @@ export default function SalonReviewScreen({
       // ======================================================
 
       const salonId =
-        result?.salonId;
+        cleanString(
+          result?.salonId,
+        );
 
 
       if (!salonId) {
@@ -1965,8 +2312,7 @@ export default function SalonReviewScreen({
         providerStatus:
           'PENDING',
 
-        salonId:
-          salonId,
+        salonId,
 
         roles: {
 
@@ -1974,9 +2320,7 @@ export default function SalonReviewScreen({
 
           businessPartner:
             true,
-
         },
-
       };
 
 
@@ -2012,26 +2356,57 @@ export default function SalonReviewScreen({
       );
 
       console.error(
-        'REGISTER SALON ERROR',
+        '[SalonReview] REGISTER SALON ERROR',
       );
 
       console.error(
+        '[SalonReview] ERROR:',
         error,
       );
 
       console.error(
-        'MESSAGE:',
+        '[SalonReview] MESSAGE:',
         error?.message,
       );
 
       console.error(
-        'GRAPHQL ERRORS:',
-        error?.graphQLErrors,
+        '[SalonReview] GRAPHQL ERRORS:',
+        JSON.stringify(
+          error?.graphQLErrors,
+          null,
+          2,
+        ),
       );
 
       console.error(
-        'NETWORK ERROR:',
+        '[SalonReview] NETWORK ERROR:',
         error?.networkError,
+      );
+
+      console.error(
+        '[SalonReview] NETWORK ERROR NAME:',
+        error?.networkError?.name,
+      );
+
+      console.error(
+        '[SalonReview] NETWORK ERROR MESSAGE:',
+        error?.networkError?.message,
+      );
+
+      console.error(
+        '[SalonReview] NETWORK ERROR STACK:',
+        error?.networkError?.stack,
+      );
+
+      console.error(
+        '[SalonReview] ERROR RESULT:',
+        JSON.stringify(
+          error,
+          Object.getOwnPropertyNames(
+            error,
+          ),
+          2,
+        ),
       );
 
       console.error(
@@ -2116,7 +2491,9 @@ export default function SalonReviewScreen({
           <DetailRow
             label="Salon"
             value={
-              data.salonName
+              cleanString(
+                data.salonName,
+              )
             }
           />
 
@@ -2124,7 +2501,9 @@ export default function SalonReviewScreen({
           <DetailRow
             label="Owner"
             value={
-              data.ownerName
+              cleanString(
+                data.ownerName,
+              )
             }
           />
 
@@ -2132,7 +2511,9 @@ export default function SalonReviewScreen({
           <DetailRow
             label="Email"
             value={
-              data.email
+              cleanString(
+                data.email,
+              )
             }
           />
 
@@ -2182,8 +2563,10 @@ export default function SalonReviewScreen({
 
               </View>
 
-            ) : selectedBusinessTypes.length >
-              0 ? (
+            ) : selectedBusinessTypes.some(
+              item =>
+                !!item.name,
+            ) ? (
 
               <View
                 style={
@@ -2191,32 +2574,37 @@ export default function SalonReviewScreen({
                 }
               >
 
-                {selectedBusinessTypes.map(
-                  businessType => (
+                {selectedBusinessTypes
+                  .filter(
+                    item =>
+                      !!item.name,
+                  )
+                  .map(
+                    businessType => (
 
-                    <View
-                      key={
-                        businessType.businessTypeId
-                      }
-                      style={
-                        styles.businessTypeChip
-                      }
-                    >
-
-                      <Text
+                      <View
+                        key={
+                          businessType.businessTypeId
+                        }
                         style={
-                          styles.businessTypeChipText
+                          styles.businessTypeChip
                         }
                       >
-                        {
-                          businessType.name
-                        }
-                      </Text>
 
-                    </View>
+                        <Text
+                          style={
+                            styles.businessTypeChipText
+                          }
+                        >
+                          {
+                            businessType.name
+                          }
+                        </Text>
 
-                  ),
-                )}
+                      </View>
+
+                    ),
+                  )}
 
               </View>
 
@@ -2228,8 +2616,8 @@ export default function SalonReviewScreen({
                 }
               >
                 {
-                  data.businessType ||
-                  'Not provided'
+                  selectedBusinessTypeLabel ||
+                  'Business type information unavailable'
                 }
               </Text>
 
@@ -2241,7 +2629,7 @@ export default function SalonReviewScreen({
           <DetailRow
             label="Address"
             value={
-              `${data.addressLine}, ${data.city}, ${data.state} - ${data.pincode}`
+              `${cleanString(data.addressLine)}, ${cleanString(data.city)}, ${cleanString(data.state)} - ${cleanString(data.pincode)}`
             }
           />
 
@@ -2254,7 +2642,9 @@ export default function SalonReviewScreen({
               )
                 ? data.targetAudiences
                   .map(
-                    audience =>
+                    (
+                      audience: Audience,
+                    ) =>
                       getAudienceLabel(
                         audience,
                       ),
@@ -2268,7 +2658,9 @@ export default function SalonReviewScreen({
           <DetailRow
             label="GSTIN"
             value={
-              data.gstNumber ||
+              cleanString(
+                data.gstNumber,
+              ) ||
               'Not provided'
             }
           />
@@ -2277,7 +2669,9 @@ export default function SalonReviewScreen({
           <DetailRow
             label="Shop & Establishment"
             value={
-              data.shopEstablishmentNumber ||
+              cleanString(
+                data.shopEstablishmentNumber,
+              ) ||
               '-'
             }
           />
@@ -2286,7 +2680,9 @@ export default function SalonReviewScreen({
           <DetailRow
             label="Udyam"
             value={
-              data.udyamNumber ||
+              cleanString(
+                data.udyamNumber,
+              ) ||
               'Not provided'
             }
           />
@@ -2295,7 +2691,9 @@ export default function SalonReviewScreen({
           <DetailRow
             label="PAN"
             value={
-              data.panNumber ||
+              cleanString(
+                data.panNumber,
+              ) ||
               '-'
             }
           />
@@ -2305,7 +2703,7 @@ export default function SalonReviewScreen({
             label="Aadhaar"
             value={
               data.aadhaarNumber
-                ? `XXXX XXXX ${String(
+                ? `XXXX XXXX ${cleanString(
                   data.aadhaarNumber,
                 ).slice(-4)}`
                 : '-'
@@ -2451,14 +2849,14 @@ export default function SalonReviewScreen({
             AUDIENCE_ORDER.map(
               audience => {
 
-                const services =
+                const audienceServices =
                   groupedServices[
                     audience
                   ];
 
 
                 if (
-                  services.length ===
+                  audienceServices.length ===
                   0
                 ) {
 
@@ -2476,10 +2874,6 @@ export default function SalonReviewScreen({
                       styles.audienceSection
                     }
                   >
-
-                    {/* ==================================================
-                        AUDIENCE HEADER
-                    ================================================== */}
 
                     <View
                       style={
@@ -2502,19 +2896,14 @@ export default function SalonReviewScreen({
                     </View>
 
 
-                    {/* ==================================================
-                        SERVICES
-                    ================================================== */}
-
-                    {services.map(
+                    {audienceServices.map(
                       (
                         service,
+                        index,
                       ) => (
 
                         <View
-                          key={
-                            service.serviceKey
-                          }
+                          key={`${service.serviceKey}-${index}`}
                           style={
                             styles.serviceItem
                           }
@@ -2533,8 +2922,6 @@ export default function SalonReviewScreen({
                             }
                           >
 
-                            {/* CATEGORY */}
-
                             <Text
                               style={
                                 styles.serviceCategory
@@ -2546,8 +2933,6 @@ export default function SalonReviewScreen({
                               }
                             </Text>
 
-
-                            {/* SUBCATEGORY */}
 
                             <Text
                               style={
@@ -2561,8 +2946,6 @@ export default function SalonReviewScreen({
                             </Text>
 
 
-                            {/* ACTUAL SERVICE NAME */}
-
                             <Text
                               style={
                                 styles.serviceName
@@ -2574,8 +2957,6 @@ export default function SalonReviewScreen({
                               }
                             </Text>
 
-
-                            {/* DESCRIPTION */}
 
                             {service.description ? (
 
@@ -2591,8 +2972,6 @@ export default function SalonReviewScreen({
 
                             ) : null}
 
-
-                            {/* DURATION */}
 
                             {service.durationMinutes !==
                               undefined &&
@@ -2615,8 +2994,6 @@ export default function SalonReviewScreen({
 
                           </View>
 
-
-                          {/* PRICE */}
 
                           {service.price !==
                             undefined &&
@@ -2691,61 +3068,24 @@ export default function SalonReviewScreen({
         ==================================================== */}
 
         <DButton
-          style={[
-            styles.button,
-            {
-              backgroundColor:
-                COLORS.themeColor,
-            },
-            loading &&
-            styles.buttonDisabled,
-          ]}
+          style={
+            styles.button
+          }
           onPress={
             onSubmit
           }
           disabled={
             loading
           }
+          loading={
+            loading
+          }
         >
-
-          {loading ? (
-
-            <View
-              style={
-                styles.loadingContent
-              }
-            >
-
-              <ActivityIndicator
-                size="small"
-                color={
-                  COLORS.white
-                }
-              />
-
-
-              <Text
-                style={
-                  styles.buttonText
-                }
-              >
-                Submitting...
-              </Text>
-
-            </View>
-
-          ) : (
-
-            <Text
-              style={
-                styles.buttonText
-              }
-            >
-              Submit Registration
-            </Text>
-
-          )}
-
+          {
+            loading
+              ? 'Submitting...'
+              : 'Submit Registration'
+          }
         </DButton>
 
 
@@ -3490,38 +3830,6 @@ const styles =
 
       backgroundColor:
         COLORS.themeColor,
-    },
-
-    buttonDisabled: {
-      opacity:
-        0.7,
-    },
-
-    buttonText: {
-      color:
-        COLORS.white,
-
-      fontFamily:
-        FONTS.semiBold,
-
-      fontSize:
-        FONT_SIZES.body,
-
-      textAlign:
-        'center',
-    },
-
-    loadingContent: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
-      justifyContent:
-        'center',
-
-      gap: 10,
     },
 
     bottomSpacing: {

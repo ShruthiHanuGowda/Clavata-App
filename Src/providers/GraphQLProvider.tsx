@@ -45,20 +45,33 @@ const httpLink = new HttpLink({
     'x-api-key': APPSYNC_API_KEY,
   },
   fetch: async (uri, options) => {
-    console.log('🌐 GraphQL request:', uri);
+    console.log('==========================================');
+    console.log('🌐 GRAPHQL REQUEST');
+    console.log('🌐 URI:', uri);
+    console.log('🌐 METHOD:', options?.method);
+    console.log('🌐 HEADERS:', options?.headers);
 
     try {
       const response = await fetch(uri, options);
 
-      console.log(
-        '🌐 GraphQL response:',
-        response.status,
-        response.statusText,
-      );
+      console.log('==========================================');
+      console.log('🌐 GRAPHQL RESPONSE');
+      console.log('🌐 STATUS:', response.status);
+      console.log('🌐 STATUS TEXT:', response.statusText);
+
+      const responseText = await response.clone().text();
+
+      console.log('🌐 RESPONSE BODY:', responseText);
 
       return response;
-    } catch (error) {
-      console.log('❌ GraphQL fetch failed:', error);
+    } catch (error: any) {
+      console.log('==========================================');
+      console.log('❌ GRAPHQL NATIVE FETCH FAILED');
+      console.log('❌ ERROR NAME:', error?.name);
+      console.log('❌ ERROR MESSAGE:', error?.message);
+      console.log('❌ ERROR:', error);
+      console.log('==========================================');
+
       throw error;
     }
   },

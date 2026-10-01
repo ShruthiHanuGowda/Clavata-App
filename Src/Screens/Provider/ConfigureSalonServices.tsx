@@ -70,26 +70,6 @@ type Subcategory = {
 // ============================================================
 // EXTENDED SERVICE TYPE
 // ============================================================
-//
-// IMPORTANT:
-//
-// Multiple actual services can belong to the same:
-//
-// category + subcategory + audience
-//
-// Example:
-//
-// Hair
-//   Hair Cut
-//      Layer Hair Cut
-//      Step Hair Cut
-//      Bob Cut
-//
-// Each actual service has its own local uniqueId.
-//
-// The service name is entered by the salon.
-// It is NOT derived from the subcategory name.
-//
 
 type ConfiguredSalonService =
     SalonServiceSelection & {
@@ -98,6 +78,65 @@ type ConfiguredSalonService =
         name: string;
         description?: string;
     };
+
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+/**
+ * Returns the name exactly as entered.
+ *
+ * IMPORTANT:
+ * Do NOT trim this value while the user is typing.
+ *
+ * Trimming during onChangeText causes the TextInput value
+ * to change immediately and can make spaces/cursor movement
+ * behave strangely.
+ */
+const getRawServiceName = (
+    service: ConfiguredSalonService,
+): string => {
+
+    return String(
+        service.name ?? '',
+    );
+};
+
+
+/**
+ * Used only when a service name needs to be compared,
+ * searched, sorted, or validated.
+ */
+const getCleanServiceName = (
+    service: ConfiguredSalonService,
+): string => {
+
+    return getRawServiceName(
+        service,
+    )
+        .trim()
+        .replace(/\s+/g, ' ');
+
+};
+
+
+/**
+ * Professional normalization for a completed text field.
+ *
+ * This is intentionally NOT used while typing.
+ */
+const normalizeServiceName = (
+    value: string,
+): string => {
+
+    return String(
+        value ?? '',
+    )
+        .replace(/\s+/g, ' ')
+        .trim();
+
+};
 
 
 // ============================================================
@@ -147,56 +186,95 @@ const ConfigureSalonServices = ({
         data: categoryResponse,
         loading: categoriesLoading,
         error: categoriesError,
-    } = useQuery(GET_CLAVATA_CATEGORIES);
+    } = useQuery(
+        GET_CLAVATA_CATEGORIES,
+    );
 
 
     const {
         data: subcategoryResponse,
         loading: subcategoriesLoading,
         error: subcategoriesError,
-    } = useQuery(GET_CLAVATA_SUBCATEGORIES);
+    } = useQuery(
+        GET_CLAVATA_SUBCATEGORIES,
+    );
 
 
     // ========================================================
     // CATEGORIES
     // ========================================================
 
-    const categories: Category[] = useMemo(() => {
+    const categories: Category[] =
+        useMemo(
+            () => {
 
-        const rawCategories =
-            categoryResponse?.categories?.categories || [];
+                const rawCategories =
+                    categoryResponse
+                        ?.categories
+                        ?.categories ||
+                    [];
 
-        return [...rawCategories].sort(
-            (a: Category, b: Category) =>
-                a.name.localeCompare(b.name),
+                return [
+                    ...rawCategories,
+                ].sort(
+                    (
+                        a: Category,
+                        b: Category,
+                    ) =>
+                        a.name.localeCompare(
+                            b.name,
+                        ),
+                );
+
+            },
+            [
+                categoryResponse,
+            ],
         );
-
-    }, [categoryResponse]);
 
 
     // ========================================================
     // SUBCATEGORIES
     // ========================================================
 
-    const subcategories: Subcategory[] = useMemo(() => {
+    const subcategories: Subcategory[] =
+        useMemo(
+            () => {
 
-        const rawSubcategories =
-            subcategoryResponse?.subcategories?.subcategories || [];
+                const rawSubcategories =
+                    subcategoryResponse
+                        ?.subcategories
+                        ?.subcategories ||
+                    [];
 
-        return [...rawSubcategories].sort(
-            (a: Subcategory, b: Subcategory) =>
-                a.name.localeCompare(b.name),
+                return [
+                    ...rawSubcategories,
+                ].sort(
+                    (
+                        a: Subcategory,
+                        b: Subcategory,
+                    ) =>
+                        a.name.localeCompare(
+                            b.name,
+                        ),
+                );
+
+            },
+            [
+                subcategoryResponse,
+            ],
         );
-
-    }, [subcategoryResponse]);
 
 
     // ========================================================
     // SELECTED SERVICES
     // ========================================================
 
-    const selectedServices: ConfiguredSalonService[] =
-        Array.isArray(data.serviceSelections)
+    const selectedServices:
+        ConfiguredSalonService[] =
+        Array.isArray(
+            data.serviceSelections,
+        )
             ? data.serviceSelections as ConfiguredSalonService[]
             : [];
 
@@ -205,18 +283,27 @@ const ConfigureSalonServices = ({
     // SERVICE LOOKUP
     // ========================================================
 
-    const getSubcategory = useCallback(
-        (subcategoryId: string) => {
+    const getSubcategory =
+        useCallback(
+            (
+                subcategoryId: string,
+            ) => {
 
-            return subcategories.find(
-                subcategory =>
-                    String(subcategory.subcategoryId) ===
-                    String(subcategoryId),
-            );
+                return subcategories.find(
+                    subcategory =>
+                        String(
+                            subcategory.subcategoryId,
+                        ) ===
+                        String(
+                            subcategoryId,
+                        ),
+                );
 
-        },
-        [subcategories],
-    );
+            },
+            [
+                subcategories,
+            ],
+        );
 
 
     // ========================================================
@@ -225,228 +312,300 @@ const ConfigureSalonServices = ({
     //
     // IMPORTANT:
     //
-    // Do NOT fall back to subcategoryName here.
+    // This returns the RAW value.
     //
-    // Example:
+    // DO NOT trim here.
     //
-    // Subcategory = Hair Cut
+    // This allows the user to type:
     //
-    // Actual service name may be:
+    // "Hair Cut"
     //
-    // Layer Hair Cut
-    // Step Hair Cut
-    // Bob Cut
-    //
-    // Therefore an unconfigured service has NO name yet.
+    // naturally without the trailing space being removed.
     //
 
-    const getServiceName = useCallback(
-        (
-            service: ConfiguredSalonService,
-        ) => {
+    const getServiceName =
+        useCallback(
+            (
+                service: ConfiguredSalonService,
+            ) => {
 
-            return String(
-                service.name ?? '',
-            ).trim();
+                return getRawServiceName(
+                    service,
+                );
 
-        },
-        [],
-    );
+            },
+            [],
+        );
 
 
     // ========================================================
     // UNIQUE SERVICE KEY
     // ========================================================
     //
-    // DO NOT use only:
+    // We prefer the permanent/local unique ID.
     //
-    // category + subcategory + audience
+    // If there isn't one, the caller should provide the
+    // service index so the fallback remains unique.
     //
-    // because multiple services are allowed.
-    //
 
-    const getServiceKey = useCallback(
-        (
-            service: ConfiguredSalonService,
-            index?: number,
-        ) => {
+    const getServiceKey =
+        useCallback(
+            (
+                service: ConfiguredSalonService,
+                index?: number,
+            ) => {
 
-            if (service.uniqueId) {
-                return String(service.uniqueId);
-            }
+                if (
+                    service.uniqueId
+                ) {
 
-            if ((service as any).serviceKey) {
-                return String(
-                    (service as any).serviceKey,
-                );
-            }
+                    return String(
+                        service.uniqueId,
+                    );
 
-            if ((service as any).id) {
-                return String(
-                    (service as any).id,
-                );
-            }
+                }
 
-            return [
-                String(service.categoryId),
-                String(service.subcategoryId),
-                String(service.audience),
-                String(service.name || ''),
-                String(index ?? ''),
-            ].join('::');
 
-        },
-        [],
-    );
+                if (
+                    (service as any).serviceKey
+                ) {
+
+                    return String(
+                        (service as any).serviceKey,
+                    );
+
+                }
+
+
+                if (
+                    (service as any).id
+                ) {
+
+                    return String(
+                        (service as any).id,
+                    );
+
+                }
+
+
+                return [
+                    String(
+                        service.categoryId ??
+                        '',
+                    ),
+                    String(
+                        service.subcategoryId ??
+                        '',
+                    ),
+                    String(
+                        service.audience ??
+                        '',
+                    ),
+                    String(
+                        index ?? '',
+                    ),
+                ].join('::');
+
+            },
+            [],
+        );
 
 
     // ========================================================
     // GROUP SERVICES BY CATEGORY
     // ========================================================
 
-    const servicesByCategory = useMemo(() => {
+    const servicesByCategory =
+        useMemo(
+            () => {
 
-        const grouped: Record<
-            string,
-            ConfiguredSalonService[]
-        > = {};
-
-
-        selectedServices.forEach(service => {
-
-            if (!grouped[service.categoryId]) {
-
-                grouped[service.categoryId] = [];
-
-            }
-
-            grouped[
-                service.categoryId
-            ].push(service);
-
-        });
+                const grouped:
+                    Record<
+                        string,
+                        ConfiguredSalonService[]
+                    > = {};
 
 
-        Object.keys(grouped).forEach(
-            categoryId => {
+                selectedServices.forEach(
+                    service => {
 
-                grouped[categoryId].sort(
-                    (a, b) => {
+                        if (
+                            !grouped[
+                                service.categoryId
+                            ]
+                        ) {
 
-                        const aName =
-                            getServiceName(a);
+                            grouped[
+                                service.categoryId
+                            ] = [];
 
-                        const bName =
-                            getServiceName(b);
-
-
-                        // Unnamed services stay before named
-                        // services so they are easy to complete.
-
-                        if (!aName && !bName) {
-                            return 0;
-                        }
-
-                        if (!aName) {
-                            return -1;
-                        }
-
-                        if (!bName) {
-                            return 1;
                         }
 
 
-                        return aName.localeCompare(
-                            bName,
+                        grouped[
+                            service.categoryId
+                        ].push(
+                            service,
                         );
 
                     },
                 );
 
+
+                Object.keys(
+                    grouped,
+                ).forEach(
+                    categoryId => {
+
+                        grouped[
+                            categoryId
+                        ].sort(
+                            (
+                                a,
+                                b,
+                            ) => {
+
+                                const aName =
+                                    getCleanServiceName(
+                                        a,
+                                    );
+
+                                const bName =
+                                    getCleanServiceName(
+                                        b,
+                                    );
+
+
+                                if (
+                                    !aName &&
+                                    !bName
+                                ) {
+
+                                    return 0;
+
+                                }
+
+
+                                if (
+                                    !aName
+                                ) {
+
+                                    return -1;
+
+                                }
+
+
+                                if (
+                                    !bName
+                                ) {
+
+                                    return 1;
+
+                                }
+
+
+                                return aName.localeCompare(
+                                    bName,
+                                );
+
+                            },
+                        );
+
+                    },
+                );
+
+
+                return grouped;
+
             },
+            [
+                selectedServices,
+            ],
         );
-
-
-        return grouped;
-
-    }, [
-        selectedServices,
-        getServiceName,
-    ]);
 
 
     // ========================================================
     // FILTER CATEGORIES
     // ========================================================
 
-    const filteredCategories = useMemo(() => {
+    const filteredCategories =
+        useMemo(
+            () => {
 
-        const search =
-            searchText
-                .trim()
-                .toLowerCase();
-
-
-        return categories.filter(
-            category => {
-
-                const categoryServices =
-                    servicesByCategory[
-                    category.categoryId
-                    ] || [];
+                const search =
+                    searchText
+                        .trim()
+                        .toLowerCase();
 
 
-                if (!search) {
+                return categories.filter(
+                    category => {
 
-                    return (
-                        categoryServices.length >
-                        0
-                    );
-
-                }
-
-
-                const categoryMatches =
-                    category.name
-                        .toLowerCase()
-                        .includes(search);
+                        const categoryServices =
+                            servicesByCategory[
+                                category.categoryId
+                            ] ||
+                            [];
 
 
-                const serviceMatches =
-                    categoryServices.some(
-                        service => {
+                        if (
+                            !search
+                        ) {
 
-                            const name =
-                                getServiceName(
-                                    service,
+                            return (
+                                categoryServices.length >
+                                0
+                            );
+
+                        }
+
+
+                        const categoryMatches =
+                            category.name
+                                .toLowerCase()
+                                .includes(
+                                    search,
                                 );
 
 
-                            return (
-                                !!name &&
-                                name
-                                    .toLowerCase()
-                                    .includes(search)
+                        const serviceMatches =
+                            categoryServices.some(
+                                service => {
+
+                                    const name =
+                                        getCleanServiceName(
+                                            service,
+                                        );
+
+
+                                    return (
+                                        !!name &&
+                                        name
+                                            .toLowerCase()
+                                            .includes(
+                                                search,
+                                            )
+                                    );
+
+                                },
                             );
 
-                        },
-                    );
 
+                        return (
+                            categoryMatches ||
+                            serviceMatches
+                        );
 
-                return (
-                    categoryMatches ||
-                    serviceMatches
+                    },
                 );
 
             },
+            [
+                categories,
+                searchText,
+                servicesByCategory,
+            ],
         );
-
-    }, [
-        categories,
-        searchText,
-        servicesByCategory,
-        getServiceName,
-    ]);
 
 
     // ========================================================
@@ -456,11 +615,14 @@ const ConfigureSalonServices = ({
     const isServiceConfigured =
         useCallback(
             (
-                service: ConfiguredSalonService,
+                service:
+                    ConfiguredSalonService,
             ) => {
 
                 const serviceName =
-                    service.name?.trim();
+                    getCleanServiceName(
+                        service,
+                    );
 
 
                 const validName =
@@ -501,16 +663,19 @@ const ConfigureSalonServices = ({
     // ========================================================
 
     const configuredCount =
-        useMemo(() => {
+        useMemo(
+            () => {
 
-            return selectedServices.filter(
+                return selectedServices.filter(
+                    isServiceConfigured,
+                ).length;
+
+            },
+            [
+                selectedServices,
                 isServiceConfigured,
-            ).length;
-
-        }, [
-            selectedServices,
-            isServiceConfigured,
-        ]);
+            ],
+        );
 
 
     const totalCount =
@@ -549,12 +714,14 @@ const ConfigureSalonServices = ({
     const updateService =
         useCallback(
             (
-                service: ConfiguredSalonService,
+                service:
+                    ConfiguredSalonService,
                 field:
                     | 'name'
                     | 'price'
                     | 'durationMinutes',
                 value: string,
+                serviceIndex?: number,
             ) => {
 
                 let updatedValue:
@@ -562,6 +729,21 @@ const ConfigureSalonServices = ({
                     | number
                     | undefined;
 
+
+                // ==================================================
+                // SERVICE NAME
+                // ==================================================
+                //
+                // IMPORTANT:
+                //
+                // Store the value EXACTLY as typed.
+                //
+                // Do not trim.
+                // Do not collapse spaces.
+                //
+                // This prevents the TextInput from jumping when
+                // the user types spaces.
+                //
 
                 if (
                     field === 'name'
@@ -592,6 +774,7 @@ const ConfigureSalonServices = ({
                 const serviceKey =
                     getServiceKey(
                         service,
+                        serviceIndex,
                     );
 
 
@@ -599,14 +782,18 @@ const ConfigureSalonServices = ({
                     selectedServices.map(
                         (
                             currentService,
-                            index,
+                            currentIndex,
                         ) => {
 
-                            if (
+                            const currentKey =
                                 getServiceKey(
                                     currentService,
-                                    index,
-                                ) !==
+                                    currentIndex,
+                                );
+
+
+                            if (
+                                currentKey !==
                                 serviceKey
                             ) {
 
@@ -640,16 +827,67 @@ const ConfigureSalonServices = ({
 
 
     // ========================================================
+    // NORMALIZE SERVICE NAME ON BLUR
+    // ========================================================
+
+    const handleServiceNameBlur =
+        useCallback(
+            (
+                service:
+                    ConfiguredSalonService,
+                serviceIndex: number,
+            ) => {
+
+                const rawName =
+                    getRawServiceName(
+                        service,
+                    );
+
+
+                const normalizedName =
+                    normalizeServiceName(
+                        rawName,
+                    );
+
+
+                // Don't update unnecessarily.
+                if (
+                    rawName ===
+                    normalizedName
+                ) {
+
+                    return;
+
+                }
+
+
+                updateService(
+                    service,
+                    'name',
+                    normalizedName,
+                    serviceIndex,
+                );
+
+            },
+            [
+                updateService,
+            ],
+        );
+
+
+    // ========================================================
     // ADD ANOTHER SERVICE
     // ========================================================
 
     const addAnotherService =
         useCallback(
             (
-                service: ConfiguredSalonService,
+                service:
+                    ConfiguredSalonService,
             ) => {
 
-                const newService: ConfiguredSalonService = {
+                const newService:
+                    ConfiguredSalonService = {
 
                     ...service,
 
@@ -658,16 +896,14 @@ const ConfigureSalonServices = ({
                             .toString(36)
                             .substring(2, 9)}`,
 
-                    // IMPORTANT:
-                    // New actual service starts blank.
-
                     name: '',
 
                     description: '',
 
                     price: undefined,
 
-                    durationMinutes: undefined,
+                    durationMinutes:
+                        undefined,
 
                 };
 
@@ -675,7 +911,8 @@ const ConfigureSalonServices = ({
                 const currentIndex =
                     selectedServices.findIndex(
                         currentService =>
-                            currentService === service,
+                            currentService ===
+                            service,
                     );
 
 
@@ -732,7 +969,8 @@ const ConfigureSalonServices = ({
     const removeService =
         useCallback(
             (
-                service: ConfiguredSalonService,
+                service:
+                    ConfiguredSalonService,
             ) => {
 
                 if (
@@ -749,7 +987,9 @@ const ConfigureSalonServices = ({
 
 
                 const serviceName =
-                    service.name?.trim();
+                    getCleanServiceName(
+                        service,
+                    );
 
 
                 const displayName =
@@ -781,7 +1021,9 @@ const ConfigureSalonServices = ({
                                 if (
                                     index < 0
                                 ) {
+
                                     return;
+
                                 }
 
 
@@ -829,7 +1071,7 @@ const ConfigureSalonServices = ({
                         ...previous,
                         [categoryId]:
                             !previous[
-                            categoryId
+                                categoryId
                             ],
                     }),
                 );
@@ -858,7 +1100,9 @@ const ConfigureSalonServices = ({
 
 
                 const duration =
-                    Number(cleaned);
+                    Number(
+                        cleaned,
+                    );
 
 
                 if (
@@ -929,7 +1173,9 @@ const ConfigureSalonServices = ({
 
 
                 const duration =
-                    Number(cleaned);
+                    Number(
+                        cleaned,
+                    );
 
 
                 if (
@@ -1032,6 +1278,9 @@ const ConfigureSalonServices = ({
         useCallback(
             () => {
 
+                Keyboard.dismiss();
+
+
                 if (
                     totalCount === 0
                 ) {
@@ -1110,7 +1359,9 @@ const ConfigureSalonServices = ({
         subcategoriesLoading;
 
 
-    if (loading) {
+    if (
+        loading
+    ) {
 
         return (
             <SafeAreaView
@@ -1151,6 +1402,7 @@ const ConfigureSalonServices = ({
 
             </SafeAreaView>
         );
+
     }
 
 
@@ -1191,6 +1443,7 @@ const ConfigureSalonServices = ({
                         Unable to load services
                     </Text>
 
+
                     <Text
                         style={
                             styles.errorText
@@ -1198,6 +1451,7 @@ const ConfigureSalonServices = ({
                     >
                         Please go back and try again.
                     </Text>
+
 
                     <TouchableOpacity
                         style={
@@ -1222,6 +1476,7 @@ const ConfigureSalonServices = ({
 
             </SafeAreaView>
         );
+
     }
 
 
@@ -1248,6 +1503,7 @@ const ConfigureSalonServices = ({
                 showsVerticalScrollIndicator={
                     false
                 }
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={
                     styles.content
                 }
@@ -1302,6 +1558,7 @@ const ConfigureSalonServices = ({
                             >
                                 Service setup
                             </Text>
+
 
                             <Text
                                 style={
@@ -1499,6 +1756,8 @@ const ConfigureSalonServices = ({
                         style={
                             styles.searchInput
                         }
+                        returnKeyType="search"
+                        autoCorrect={false}
                     />
 
                 </View>
@@ -1568,8 +1827,9 @@ const ConfigureSalonServices = ({
 
                         const categoryServices =
                             servicesByCategory[
-                            category.categoryId
-                            ] || [];
+                                category.categoryId
+                            ] ||
+                            [];
 
 
                         const search =
@@ -1584,7 +1844,7 @@ const ConfigureSalonServices = ({
                                     service => {
 
                                         const serviceName =
-                                            getServiceName(
+                                            getCleanServiceName(
                                                 service,
                                             );
 
@@ -1628,8 +1888,9 @@ const ConfigureSalonServices = ({
 
                         const isOpen =
                             expandedCategories[
-                            category.categoryId
-                            ] ?? true;
+                                category.categoryId
+                            ] ??
+                            true;
 
 
                         const categoryCompleted =
@@ -1641,7 +1902,9 @@ const ConfigureSalonServices = ({
                         return (
                             <View
                                 key={
-                                    category.categoryId
+                                    String(
+                                        category.categoryId,
+                                    )
                                 }
                                 style={
                                     styles.categoryCard
@@ -1740,11 +2003,49 @@ const ConfigureSalonServices = ({
                                                     );
 
 
+                                                /*
+                                                 * IMPORTANT:
+                                                 *
+                                                 * Use the absolute index from
+                                                 * categoryServices where possible.
+                                                 *
+                                                 * Adding serviceIndex alone can
+                                                 * become unstable when searching.
+                                                 *
+                                                 * uniqueId/serviceKey is preferred.
+                                                 */
+
+                                                const absoluteIndex =
+                                                    categoryServices.findIndex(
+                                                        item =>
+                                                            item ===
+                                                            service,
+                                                    );
+
+
+                                                const stableIndex =
+                                                    absoluteIndex >= 0
+                                                        ? absoluteIndex
+                                                        : serviceIndex;
+
+
                                                 const serviceKey =
                                                     getServiceKey(
                                                         service,
-                                                        serviceIndex,
+                                                        stableIndex,
                                                     );
+
+
+                                                /*
+                                                 * Extra uniqueness protection.
+                                                 *
+                                                 * If old data contains duplicate
+                                                 * serviceKey values, React will
+                                                 * still receive a unique key.
+                                                 */
+
+                                                const renderKey =
+                                                    `${serviceKey}::${stableIndex}`;
 
 
                                                 const serviceName =
@@ -1756,7 +2057,7 @@ const ConfigureSalonServices = ({
                                                 return (
                                                     <View
                                                         key={
-                                                            serviceKey
+                                                            renderKey
                                                         }
                                                         style={[
                                                             styles.serviceCard,
@@ -1790,8 +2091,12 @@ const ConfigureSalonServices = ({
                                                                             styles.serviceNumber
                                                                         }
                                                                     >
-                                                                        {serviceIndex + 1}
+                                                                        {
+                                                                            serviceIndex +
+                                                                            1
+                                                                        }
                                                                     </Text>
+
 
                                                                     <Text
                                                                         style={
@@ -1827,6 +2132,14 @@ const ConfigureSalonServices = ({
                                                                                 service,
                                                                                 'name',
                                                                                 value,
+                                                                                stableIndex,
+                                                                            )
+                                                                    }
+                                                                    onBlur={
+                                                                        () =>
+                                                                            handleServiceNameBlur(
+                                                                                service,
+                                                                                stableIndex,
                                                                             )
                                                                     }
                                                                     placeholder="Enter service name"
@@ -1840,6 +2153,13 @@ const ConfigureSalonServices = ({
                                                                         100
                                                                     }
                                                                     returnKeyType="done"
+                                                                    autoCorrect={
+                                                                        true
+                                                                    }
+                                                                    autoCapitalize="words"
+                                                                    blurOnSubmit={
+                                                                        true
+                                                                    }
                                                                 />
 
 
@@ -1940,6 +2260,7 @@ const ConfigureSalonServices = ({
                                                                                     service,
                                                                                     'price',
                                                                                     value,
+                                                                                    stableIndex,
                                                                                 )
                                                                         }
                                                                         placeholder="0"
@@ -1998,6 +2319,7 @@ const ConfigureSalonServices = ({
                                                                                     service,
                                                                                     'durationMinutes',
                                                                                     value,
+                                                                                    stableIndex,
                                                                                 )
                                                                         }
                                                                         placeholder="30"
@@ -2029,9 +2351,7 @@ const ConfigureSalonServices = ({
                                                         </View>
 
 
-                                                        {/* ================================================= */}
                                                         {/* SERVICE ACTIONS */}
-                                                        {/* ================================================= */}
 
                                                         <View
                                                             style={
@@ -2060,6 +2380,7 @@ const ConfigureSalonServices = ({
                                                                 >
                                                                     +
                                                                 </Text>
+
 
                                                                 <Text
                                                                     style={
@@ -2110,9 +2431,7 @@ const ConfigureSalonServices = ({
                                         )}
 
 
-                                        {/* ================================================= */}
                                         {/* CATEGORY BULK DURATION */}
-                                        {/* ================================================= */}
 
                                         <CategoryDurationInput
                                             onApply={
@@ -2273,21 +2592,22 @@ const CategoryDurationInput = ({
     ] = useState('');
 
 
-    const handleApply = useCallback(
-        () => {
+    const handleApply =
+        useCallback(
+            () => {
 
-            Keyboard.dismiss();
+                Keyboard.dismiss();
 
-            onApply(
+                onApply(
+                    duration,
+                );
+
+            },
+            [
                 duration,
-            );
-
-        },
-        [
-            duration,
-            onApply,
-        ],
-    );
+                onApply,
+            ],
+        );
 
 
     return (
@@ -2866,10 +3186,6 @@ const styles = StyleSheet.create({
         color:
             COLORS.black,
     },
-
-    // ========================================================
-    // SERVICE ACTIONS
-    // ========================================================
 
     serviceActions: {
         flexDirection:
