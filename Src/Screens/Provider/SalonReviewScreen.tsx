@@ -76,10 +76,6 @@ type ReviewServiceSelection = {
   serviceKey: string;
 
   businessTypeId?: string;
-
-  /*
-   * Required by GraphQL SalonServiceInput.
-   */
   businessTypeName: string;
 
   name: string;
@@ -89,11 +85,9 @@ type ReviewServiceSelection = {
   audience: Audience;
 
   categoryId: string;
-
   categoryName: string;
 
   subcategoryId: string;
-
   subcategoryName: string;
 
   price?: number;
@@ -103,7 +97,7 @@ type ReviewServiceSelection = {
 
 
 // ============================================================
-// KYC DOCUMENT INPUT
+// GRAPHQL KYC DOCUMENT INPUT
 // ============================================================
 
 type KycDocumentInput = {
@@ -204,12 +198,6 @@ type RegisterSalonPartnerVariables = {
     bankAccount?: string;
     ifsc?: string;
 
-    /*
-     * IMPORTANT:
-     *
-     * These fields MUST match SalonServiceInput
-     * in the GraphQL schema.
-     */
     services: Array<{
       businessTypeId: string;
       businessTypeName: string;
@@ -498,6 +486,7 @@ export default function SalonReviewScreen({
             ]
             : [];
 
+
       return Array.from(
         new Set(
           ids
@@ -536,6 +525,7 @@ export default function SalonReviewScreen({
                 businessTypeId,
             );
 
+
           return {
             businessTypeId,
 
@@ -569,6 +559,7 @@ export default function SalonReviewScreen({
               ),
           )
           .filter(Boolean);
+
 
       if (
         names.length > 0
@@ -608,63 +599,205 @@ export default function SalonReviewScreen({
 
 
   // ==========================================================
-  // BUSINESS TYPE NAME BY ID
-  //
-  // IMPORTANT:
-  //
-  // SalonServiceInput now requires:
-  //
-  // businessTypeName: String!
-  //
-  // Therefore we resolve the name from the business type
-  // master using the service's businessTypeId.
+  // BUSINESS TYPE LOOKUP
   // ==========================================================
 
-  const getBusinessTypeNameById =
-    (
-      businessTypeId?: string,
-    ): string => {
+  const businessTypeMap =
+    useMemo(() => {
 
-      const id =
-        cleanString(
-          businessTypeId,
-        );
-
-      if (!id) {
-        return '';
-      }
+      const map =
+        new Map<
+          string,
+          string
+        >();
 
 
-      const matched =
-        businessTypes.find(
-          item =>
+      businessTypes.forEach(
+        item => {
+
+          const id =
             getBusinessTypeId(
               item,
-            ) === id,
+            );
+
+          const name =
+            getBusinessTypeName(
+              item,
+            );
+
+
+          if (
+            id &&
+            name
+          ) {
+
+            map.set(
+              id,
+              name,
+            );
+          }
+        },
+      );
+
+
+      selectedBusinessTypes.forEach(
+        item => {
+
+          const id =
+            cleanString(
+              item.businessTypeId,
+            );
+
+          const name =
+            cleanString(
+              item.name,
+            );
+
+
+          if (
+            id &&
+            name &&
+            !map.has(id)
+          ) {
+
+            map.set(
+              id,
+              name,
+            );
+          }
+        },
+      );
+
+
+      return map;
+
+    }, [
+      businessTypes,
+      selectedBusinessTypes,
+    ]);
+
+
+  // ==========================================================
+  // RESOLVE BUSINESS TYPE ID
+  //
+  // This is intentionally defensive.
+  //
+  // If a service already has a businessTypeId, preserve it.
+  //
+  // If the service lost the ID but the salon has exactly one
+  // selected business type, safely use that one.
+  //
+  // If multiple business types are selected and the service
+  // has no ID, we DO NOT guess.
+  // ==========================================================
+
+  const resolveBusinessTypeId =
+    (
+      service: any,
+    ): string => {
+
+      const serviceBusinessTypeId =
+        cleanString(
+          service?.businessTypeId,
         );
 
 
-      const masterName =
-        getBusinessTypeName(
-          matched,
-        );
+      if (
+        serviceBusinessTypeId
+      ) {
 
-
-      if (masterName) {
-        return masterName;
+        return serviceBusinessTypeId;
       }
 
 
-      const selected =
-        selectedBusinessTypes.find(
-          item =>
-            item.businessTypeId === id,
+      if (
+        selectedBusinessTypeIds.length ===
+        1
+      ) {
+
+        return selectedBusinessTypeIds[0];
+      }
+
+
+      return '';
+    };
+
+
+  // ==========================================================
+  // RESOLVE BUSINESS TYPE NAME
+  // ==========================================================
+
+  const resolveBusinessTypeName =
+    (
+      service: any,
+      businessTypeId: string,
+    ): string => {
+
+      const serviceName =
+        cleanString(
+          service?.businessTypeName,
         );
 
 
-      return cleanString(
-        selected?.name,
-      );
+      if (
+        serviceName
+      ) {
+
+        return serviceName;
+      }
+
+
+      if (
+        businessTypeId
+      ) {
+
+        const mappedName =
+          cleanString(
+            businessTypeMap.get(
+              businessTypeId,
+            ),
+          );
+
+
+        if (
+          mappedName
+        ) {
+
+          return mappedName;
+        }
+      }
+
+
+      /*
+       * If exactly one business type is selected, the salon-level
+       * business type name is unambiguous.
+       */
+
+      if (
+        selectedBusinessTypeIds.length ===
+        1
+      ) {
+
+        const onlyBusinessType =
+          selectedBusinessTypes[0];
+
+
+        const onlyName =
+          cleanString(
+            onlyBusinessType?.name,
+          );
+
+
+        if (
+          onlyName
+        ) {
+
+          return onlyName;
+        }
+      }
+
+
+      return '';
     };
 
 
@@ -715,7 +848,10 @@ export default function SalonReviewScreen({
 
 
       data.serviceSelections.forEach(
-        (selection: any, index: number) => {
+        (
+          selection: any,
+          index: number,
+        ) => {
 
           if (
             !selection ||
@@ -740,18 +876,6 @@ export default function SalonReviewScreen({
             );
 
 
-          /*
-           * IMPORTANT:
-           *
-           * ConfigureSalonServices creates a new uniqueId
-           * when "Add another service" is used.
-           *
-           * The copied serviceKey can therefore be the same
-           * for multiple services under the same subcategory.
-           *
-           * uniqueId MUST take priority so those services are
-           * not incorrectly removed as duplicates.
-           */
           const effectiveServiceKey =
             uniqueId ||
             originalServiceKey ||
@@ -786,31 +910,42 @@ export default function SalonReviewScreen({
           );
 
 
+          // --------------------------------------------------
+          // BUSINESS TYPE
+          // --------------------------------------------------
+
+          const businessTypeId =
+            resolveBusinessTypeId(
+              selection,
+            );
+
+
+          const businessTypeName =
+            resolveBusinessTypeName(
+              selection,
+              businessTypeId,
+            );
+
+
+          // --------------------------------------------------
+          // NORMALIZED SERVICE
+          // --------------------------------------------------
+
           result.push({
 
             uniqueId:
               uniqueId ||
               undefined,
 
-            /*
-             * Preserve the original serviceKey when it exists.
-             * effectiveServiceKey is only used internally to
-             * distinguish the current service instance.
-             */
             serviceKey:
               originalServiceKey ||
               effectiveServiceKey,
 
             businessTypeId:
-              cleanString(
-                selection.businessTypeId,
-              ) ||
+              businessTypeId ||
               undefined,
 
-            businessTypeName:
-              cleanString(
-                selection.businessTypeName,
-              ),
+            businessTypeName,
 
             name:
               cleanString(
@@ -859,7 +994,11 @@ export default function SalonReviewScreen({
 
     }, [
       data.serviceSelections,
+      selectedBusinessTypeIds,
+      selectedBusinessTypes,
+      businessTypeMap,
     ]);
+
 
   // ==========================================================
   // GROUP SERVICES BY AUDIENCE
@@ -1513,16 +1652,6 @@ export default function SalonReviewScreen({
     }
 
 
-    /*
-     * GraphQL requires every day to contain:
-     *
-     * open: String!
-     * close: String!
-     * isOpen: Boolean!
-     *
-     * Therefore normalize every day before submitting.
-     */
-
     const days = [
       'MONDAY',
       'TUESDAY',
@@ -1743,26 +1872,15 @@ export default function SalonReviewScreen({
         selection => {
 
           const businessTypeId =
-            cleanString(
-              selection.businessTypeId,
+            resolveBusinessTypeId(
+              selection,
             );
 
 
-          /*
-           * IMPORTANT:
-           *
-           * businessTypeName is REQUIRED by GraphQL.
-           *
-           * First use the name stored on the service.
-           * If unavailable, resolve it from the master list.
-           */
-
           const businessTypeName =
-            cleanString(
-              selection.businessTypeName,
-            ) ||
-            getBusinessTypeNameById(
-              selection.businessTypeId,
+            resolveBusinessTypeName(
+              selection,
+              businessTypeId,
             );
 
 
@@ -1808,6 +1926,17 @@ export default function SalonReviewScreen({
             );
 
 
+          /*
+           * IMPORTANT:
+           *
+           * Context uses durationMinutes.
+           *
+           * GraphQL SalonServiceInput uses duration.
+           *
+           * Therefore convert only at the final GraphQL
+           * payload boundary.
+           */
+
           const duration =
             Number(
               selection.durationMinutes,
@@ -1846,13 +1975,10 @@ export default function SalonReviewScreen({
 
     // ========================================================
     // VALIDATE FINAL SERVICES PAYLOAD
-    //
-    // This validates the ACTUAL GraphQL payload rather than
-    // validating the source selection object.
     // ========================================================
 
-    const invalidService =
-      services.find(
+    const invalidServiceIndex =
+      services.findIndex(
         service => {
 
           return (
@@ -1890,10 +2016,32 @@ export default function SalonReviewScreen({
       );
 
 
-    if (invalidService) {
+    if (
+      invalidServiceIndex >=
+      0
+    ) {
+
+      const invalidService =
+        services[
+          invalidServiceIndex
+        ];
+
 
       console.error(
-        '[SalonReview] INVALID SERVICE PAYLOAD:',
+        '====================================================',
+      );
+
+      console.error(
+        '[SalonReview] INVALID SERVICE PAYLOAD',
+      );
+
+      console.error(
+        '[SalonReview] INVALID SERVICE INDEX:',
+        invalidServiceIndex,
+      );
+
+      console.error(
+        '[SalonReview] INVALID SERVICE:',
         JSON.stringify(
           invalidService,
           null,
@@ -1901,10 +2049,41 @@ export default function SalonReviewScreen({
         ),
       );
 
+      console.error(
+        '[SalonReview] SELECTED BUSINESS TYPE IDS:',
+        JSON.stringify(
+          selectedBusinessTypeIds,
+          null,
+          2,
+        ),
+      );
+
+      console.error(
+        '[SalonReview] SELECTED BUSINESS TYPES:',
+        JSON.stringify(
+          selectedBusinessTypes,
+          null,
+          2,
+        ),
+      );
+
+      console.error(
+        '[SalonReview] RAW SERVICE SELECTIONS:',
+        JSON.stringify(
+          data.serviceSelections,
+          null,
+          2,
+        ),
+      );
+
+      console.error(
+        '====================================================',
+      );
+
 
       Alert.alert(
         'Invalid Service',
-        'Every service must have a business type, business type name, category, category name, subcategory, subcategory name, service name, audience, price, and duration.',
+        `Service ${invalidServiceIndex + 1} is missing required business type, category, service, price, or duration information. Please go back and review the service.`,
       );
 
       return;
@@ -2073,12 +2252,6 @@ export default function SalonReviewScreen({
 
       longitude:
         data.longitude,
-
-      /*
-       * These are optional according to GraphQL.
-       * Empty strings are omitted so that the server receives
-       * undefined rather than unnecessary empty values.
-       */
 
       ...(cleanString(
         data.gstNumber,

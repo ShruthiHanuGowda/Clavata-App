@@ -81,7 +81,8 @@ type ServiceGroup = {
 
 type ServiceFormState = {
     serviceKey?: string;
-
+    businessTypeId?: string;
+    businessTypeName?: string;
     categoryId: string;
     categoryName: string;
 

@@ -82,6 +82,7 @@ type ConfigurableSalonService =
   SalonServiceSelection & {
     serviceKey: string;
     businessTypeId?: string;
+    businessTypeName?: string;
     name: string;
     description?: string;
     price?: number;
@@ -411,6 +412,25 @@ export default function SalonServices({
     ]);
 
   // ==========================================================
+  // SALON BUSINESS TYPE NAME
+  //
+  // Used as a safe fallback when the registration currently
+  // contains only one business type name.
+  // ==========================================================
+
+  const salonBusinessTypeName =
+    useMemo(() => {
+      const value = String(
+        (data as any)?.businessType ??
+          '',
+      ).trim();
+
+      return value;
+    }, [
+      (data as any)?.businessType,
+    ]);
+
+  // ==========================================================
   // CURRENT SERVICE SELECTIONS
   // ==========================================================
 
@@ -466,6 +486,22 @@ export default function SalonServices({
                 serviceKey:
                   selection.serviceKey ||
                   `LEGACY-${index}-${selection.audience}-${selection.categoryId}-${selection.subcategoryId}`,
+
+                businessTypeId:
+                  typeof selection.businessTypeId ===
+                  'string'
+                    ? selection.businessTypeId.trim()
+                    : undefined,
+
+                businessTypeName:
+                  typeof (
+                    selection as any
+                  ).businessTypeName ===
+                  'string'
+                    ? (
+                        selection as any
+                      ).businessTypeName.trim()
+                    : undefined,
 
                 description:
                   selection.description ??
@@ -635,6 +671,19 @@ export default function SalonServices({
             description:
               selection.description ??
               '',
+
+            businessTypeId:
+              selection.businessTypeId ||
+              getBusinessTypeIdForSubcategoryStatic(
+                subcategory,
+                salonBusinessTypeIds,
+              ) ||
+              undefined,
+
+            businessTypeName:
+              selection.businessTypeName ||
+              salonBusinessTypeName ||
+              undefined,
           };
         },
       );
@@ -642,6 +691,8 @@ export default function SalonServices({
       selectedServiceSelections,
       categories,
       subcategories,
+      salonBusinessTypeIds,
+      salonBusinessTypeName,
     ]);
 
   // ==========================================================
@@ -693,10 +744,6 @@ export default function SalonServices({
 
   // ==========================================================
   // GROUP SELECTED SERVICES
-  //
-  // Category
-  //   Subcategory
-  //     Audience
   // ==========================================================
 
   const groupedSelectedServices =
@@ -914,6 +961,21 @@ export default function SalonServices({
     };
 
   // ==========================================================
+  // GET BUSINESS TYPE NAME
+  //
+  // For now the registration-level businessType is used as
+  // the name fallback. The ID remains authoritative.
+  // ==========================================================
+
+  const getBusinessTypeNameForSubcategory =
+    (
+      _subcategory: Subcategory,
+      _businessTypeId: string,
+    ): string => {
+      return salonBusinessTypeName;
+    };
+
+  // ==========================================================
   // UPDATE REGISTRATION SERVICES
   // ==========================================================
 
@@ -1075,6 +1137,12 @@ export default function SalonServices({
                 subcategory,
               );
 
+            const businessTypeName =
+              getBusinessTypeNameForSubcategory(
+                subcategory,
+                businessTypeId,
+              );
+
             return {
               serviceKey:
                 createServiceKey(
@@ -1086,7 +1154,13 @@ export default function SalonServices({
               audience:
                 activeAudience,
 
-              businessTypeId,
+              businessTypeId:
+                businessTypeId ||
+                undefined,
+
+              businessTypeName:
+                businessTypeName ||
+                undefined,
 
               categoryId:
                 category.categoryId,
@@ -1231,6 +1305,12 @@ export default function SalonServices({
           subcategory,
         );
 
+      const businessTypeName =
+        getBusinessTypeNameForSubcategory(
+          subcategory,
+          businessTypeId,
+        );
+
       updatedSelections = [
         ...selectedServiceSelections,
 
@@ -1245,7 +1325,13 @@ export default function SalonServices({
           audience:
             activeAudience,
 
-          businessTypeId,
+          businessTypeId:
+            businessTypeId ||
+            undefined,
+
+          businessTypeName:
+            businessTypeName ||
+            undefined,
 
           categoryId:
             category.categoryId,
@@ -1338,39 +1424,79 @@ export default function SalonServices({
 
     const preservedSelections =
       selectedServiceSelections.map(
-        selection => ({
-          ...selection,
+        selection => {
+          const subcategory =
+            subcategories.find(
+              item =>
+                item.categoryId ===
+                  selection.categoryId &&
+                item.subcategoryId ===
+                  selection.subcategoryId,
+            );
 
-          serviceKey:
-            selection.serviceKey ||
-            createServiceKey(
-              selection.audience,
-              selection.categoryId,
-              selection.subcategoryId,
-            ),
+          const resolvedBusinessTypeId =
+            selection.businessTypeId ||
+            (
+              subcategory
+                ? getBusinessTypeIdForSubcategory(
+                    subcategory,
+                  )
+                : ''
+            );
 
-          name:
-            typeof selection.name ===
-            'string'
-              ? selection.name.trim()
-              : '',
+          const resolvedBusinessTypeName =
+            selection.businessTypeName ||
+            (
+              resolvedBusinessTypeId
+                ? getBusinessTypeNameForSubcategory(
+                    subcategory as Subcategory,
+                    resolvedBusinessTypeId,
+                  )
+                : ''
+            );
 
-          description:
-            selection.description ??
-            '',
+          return {
+            ...selection,
 
-          price:
-            typeof selection.price ===
-            'number'
-              ? selection.price
-              : undefined,
+            serviceKey:
+              selection.serviceKey ||
+              createServiceKey(
+                selection.audience,
+                selection.categoryId,
+                selection.subcategoryId,
+              ),
 
-          durationMinutes:
-            typeof selection.durationMinutes ===
-            'number'
-              ? selection.durationMinutes
-              : undefined,
-        }),
+            businessTypeId:
+              resolvedBusinessTypeId ||
+              undefined,
+
+            businessTypeName:
+              resolvedBusinessTypeName ||
+              undefined,
+
+            name:
+              typeof selection.name ===
+              'string'
+                ? selection.name.trim()
+                : '',
+
+            description:
+              selection.description ??
+              '',
+
+            price:
+              typeof selection.price ===
+              'number'
+                ? selection.price
+                : undefined,
+
+            durationMinutes:
+              typeof selection.durationMinutes ===
+              'number'
+                ? selection.durationMinutes
+                : undefined,
+          };
+        },
       );
 
     try {
@@ -1619,11 +1745,6 @@ export default function SalonServices({
           </TouchableOpacity>
         ) : null}
 
-        {/* ====================================================
-            SELECTED SERVICE CATEGORIES
-            Category → Subcategory → Audience
-            ==================================================== */}
-
         {!categoriesLoading &&
         !subcategoriesLoading &&
         sortedSelectedServices.length >
@@ -1695,7 +1816,6 @@ export default function SalonServices({
                       styles.selectedCategoryGroupSpacing,
                   ]}
                 >
-                  {/* CATEGORY */}
                   <View
                     style={
                       styles.selectedCategoryHeader
@@ -1751,7 +1871,6 @@ export default function SalonServices({
                     </View>
                   </View>
 
-                  {/* SUBCATEGORIES */}
                   {category.subcategories.map(
                     (
                       subcategory,
@@ -1794,7 +1913,6 @@ export default function SalonServices({
                           </View>
                         </View>
 
-                        {/* AUDIENCE LIST */}
                         <View
                           style={
                             styles.selectedAudienceList
@@ -2614,6 +2732,52 @@ export default function SalonServices({
 }
 
 // ============================================================
+// STATIC BUSINESS TYPE HELPER
+// ============================================================
+
+function getBusinessTypeIdForSubcategoryStatic(
+  subcategory:
+    | Subcategory
+    | undefined,
+  salonBusinessTypeIds: string[],
+): string {
+  if (!subcategory) {
+    return '';
+  }
+
+  const subcategoryBusinessTypeIds =
+    Array.isArray(
+      subcategory.businessTypeIds,
+    )
+      ? subcategory.businessTypeIds
+          .map(id =>
+            String(
+              id ?? '',
+            ).trim(),
+          )
+          .filter(Boolean)
+      : [];
+
+  const matchingBusinessTypeId =
+    salonBusinessTypeIds.find(
+      businessTypeId =>
+        subcategoryBusinessTypeIds.includes(
+          businessTypeId,
+        ),
+    );
+
+  return (
+    matchingBusinessTypeId ||
+    (
+      salonBusinessTypeIds.length ===
+      1
+        ? salonBusinessTypeIds[0]
+        : ''
+    )
+  );
+}
+
+// ============================================================
 // STYLES
 // ============================================================
 
@@ -2840,10 +3004,6 @@ const styles =
         SPACING.small,
     },
 
-    // ========================================================
-    // SELECTED SERVICE CATEGORIES
-    // ========================================================
-
     selectedServicesPreview: {
       backgroundColor:
         COLORS.surface,
@@ -2902,10 +3062,6 @@ const styles =
       color:
         COLORS.themeColor,
     },
-
-    // ========================================================
-    // CATEGORY
-    // ========================================================
 
     selectedCategoryGroup: {
       paddingBottom:
@@ -2978,10 +3134,6 @@ const styles =
       marginTop: 2,
     },
 
-    // ========================================================
-    // SUBCATEGORY
-    // ========================================================
-
     selectedSubcategoryGroup: {
       marginLeft:
         36,
@@ -3018,10 +3170,6 @@ const styles =
         COLORS.text,
     },
 
-    // ========================================================
-    // AUDIENCE
-    // ========================================================
-
     selectedAudienceList: {
       marginLeft:
         22,
@@ -3054,10 +3202,6 @@ const styles =
         COLORS.textSecondary,
     },
 
-    // ========================================================
-    // SHOW MORE
-    // ========================================================
-
     moreSelectedButton: {
       flexDirection:
         'row',
@@ -3088,10 +3232,6 @@ const styles =
         COLORS.themeColor,
       marginLeft: 5,
     },
-
-    // ========================================================
-    // MODAL
-    // ========================================================
 
     modalOverlay: {
       flex: 1,
@@ -3777,4 +3917,3 @@ const styles =
         'center',
     },
   });
-

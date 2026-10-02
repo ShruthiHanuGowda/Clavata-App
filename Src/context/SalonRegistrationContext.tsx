@@ -239,7 +239,7 @@ export type SalonServiceSelection = {
     // ===================================================
 
     businessTypeId?: string;
-
+    businessTypeName?: string;
     // ===================================================
     // ACTUAL SERVICE NAME
     // ===================================================
