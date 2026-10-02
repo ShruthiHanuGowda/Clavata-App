@@ -1,5 +1,7 @@
 import React, {
   useCallback,
+  useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -22,30 +24,26 @@ import {
 import Geolocation from '@react-native-community/geolocation';
 
 import MapView, {
-  Marker,
-  Region,
   MapPressEvent,
+  Marker,
   MarkerDragStartEndEvent,
+  Region,
 } from 'react-native-maps';
 
-import {
-  reverseGeocode,
-} from '../../services/locationService';
+import { reverseGeocode } from '../../services/locationService';
 
-import {
-  Header,
-} from '../../components';
+import { Header } from '../../components';
 
-import {
-  useSalonRegistration,
-} from '../../context/SalonRegistrationContext';
+import { useSalonRegistration } from '../../context/SalonRegistrationContext';
 
 import {
   COLORS,
   FONTS,
+  FONT_SIZES,
   SPACING,
   RADIUS,
 } from '../../constants/constants';
+
 
 // ============================================================
 // TYPES
@@ -56,14 +54,17 @@ type Coordinates = {
   longitude: number;
 };
 
+type LocationMode = 'current' | 'address' | null;
+
 type GeocodeResult = {
   latitude: number;
   longitude: number;
   displayName: string;
 };
 
+
 // ============================================================
-// DEFAULT LOCATION
+// DEFAULT MAP LOCATION
 // ============================================================
 
 const DEFAULT_COORDINATES: Coordinates = {
@@ -76,197 +77,280 @@ const DEFAULT_DELTA = {
   longitudeDelta: 0.01,
 };
 
+
 // ============================================================
-// SCREEN
+// COMPONENT
 // ============================================================
 
 export default function SalonAddressScreen({
   navigation,
 }: any) {
-  const {
-    updateData,
-  } = useSalonRegistration();
+  const { updateData } = useSalonRegistration();
+
 
   // ==========================================================
-  // ADDRESS
+  // ADDRESS STATE
   // ==========================================================
 
-  const [
+  const [addressLine, setAddressLine] =
+    useState<string>('');
+
+  const [city, setCity] =
+    useState<string>('');
+
+  const [state, setState] =
+    useState<string>('');
+
+  const [pincode, setPincode] =
+    useState<string>('');
+
+
+  // ==========================================================
+  // LOCATION STATE
+  // ==========================================================
+
+  const [coordinates, setCoordinates] =
+    useState<Coordinates | null>(null);
+
+  const [locationMode, setLocationMode] =
+    useState<LocationMode>(null);
+
+  /**
+   * locationFound means that Clavata has successfully
+   * found a location using either:
+   *
+   * 1. Current device location
+   * 2. Address search
+   * 3. Map adjustment
+   *
+   * Once this becomes true, the address/search controls
+   * become read-only. The map remains editable.
+   */
+  const [locationFound, setLocationFound] =
+    useState<boolean>(false);
+
+
+  // ==========================================================
+  // LOADING STATE
+  // ==========================================================
+
+  const [searchingAddress, setSearchingAddress] =
+    useState<boolean>(false);
+
+  const [gettingLocation, setGettingLocation] =
+    useState<boolean>(false);
+
+  const [reverseGeocoding, setReverseGeocoding] =
+    useState<boolean>(false);
+
+
+  // ==========================================================
+  // SEARCH STATE
+  // ==========================================================
+
+  const [searchText, setSearchText] =
+    useState<string>('');
+
+
+  // ==========================================================
+  // MAP STATE
+  // ==========================================================
+
+  const [mapRegion, setMapRegion] =
+    useState<Region>({
+      ...DEFAULT_COORDINATES,
+      ...DEFAULT_DELTA,
+    });
+
+
+  // ==========================================================
+  // DERIVED STATE
+  // ==========================================================
+
+  const isLocationBusy =
+    gettingLocation ||
+    searchingAddress ||
+    reverseGeocoding;
+
+  const locationLocked =
+    locationFound && coordinates !== null;
+
+
+  // ==========================================================
+  // BUILD SEARCH QUERY
+  // ==========================================================
+
+  const buildAddressSearchQuery = useCallback(() => {
+    const parts = [
+      addressLine.trim(),
+      city.trim(),
+      state.trim(),
+      pincode.trim(),
+      'India',
+    ].filter(Boolean);
+
+    return parts.join(', ');
+  }, [
     addressLine,
-    setAddressLine,
-  ] = useState<string>('');
-
-  const [
     city,
-    setCity,
-  ] = useState<string>('');
-
-  const [
     state,
-    setState,
-  ] = useState<string>('');
-
-  const [
     pincode,
-    setPincode,
-  ] = useState<string>('');
+  ]);
+
 
   // ==========================================================
-  // LOCATION
+  // AUTOMATICALLY POPULATE SEARCH BOX
   // ==========================================================
 
-  const [
-    coordinates,
-    setCoordinates,
-  ] = useState<Coordinates | null>(null);
+  /**
+   * While entering the structured address, automatically
+   * build the search query.
+   *
+   * Example:
+   *
+   * Address:
+   * 12 MG Road
+   *
+   * City:
+   * Bengaluru
+   *
+   * State:
+   * Karnataka
+   *
+   * Pincode:
+   * 560001
+   *
+   * Search box becomes:
+   *
+   * 12 MG Road, Bengaluru, Karnataka, 560001, India
+   *
+   * Once a location is found, the search box is locked.
+   */
+  useEffect(() => {
+    if (
+      locationMode !== 'address' ||
+      locationFound
+    ) {
+      return;
+    }
 
-  const [
-    locationConfirmed,
-    setLocationConfirmed,
-  ] = useState<boolean>(false);
+    const query =
+      buildAddressSearchQuery();
 
-  // ==========================================================
-  // LOADING
-  // ==========================================================
+    setSearchText(query);
+  }, [
+    addressLine,
+    city,
+    state,
+    pincode,
+    locationMode,
+    locationFound,
+    buildAddressSearchQuery,
+  ]);
 
-  const [
-    searchingAddress,
-    setSearchingAddress,
-  ] = useState<boolean>(false);
-
-  const [
-    gettingLocation,
-    setGettingLocation,
-  ] = useState<boolean>(false);
-
-  const [
-    reverseGeocoding,
-    setReverseGeocoding,
-  ] = useState<boolean>(false);
-
-  // ==========================================================
-  // SEARCH
-  // ==========================================================
-
-  const [
-    searchText,
-    setSearchText,
-  ] = useState<string>('');
-
-  // ==========================================================
-  // MAP
-  // ==========================================================
-
-  const [
-    mapRegion,
-    setMapRegion,
-  ] = useState<Region>({
-    ...DEFAULT_COORDINATES,
-    ...DEFAULT_DELTA,
-  });
 
   // ==========================================================
   // GEOCODE ADDRESS
   // ==========================================================
 
-  const geocodeAddress =
-    useCallback(
-      async (
-        query: string,
-      ): Promise<GeocodeResult | null> => {
-        try {
-          const trimmedQuery =
-            query.trim();
+  const geocodeAddress = useCallback(
+    async (
+      query: string,
+    ): Promise<GeocodeResult | null> => {
+      try {
+        const trimmedQuery =
+          query.trim();
 
-          if (!trimmedQuery) {
-            return null;
-          }
+        if (!trimmedQuery) {
+          return null;
+        }
 
-          const url =
-            `https://nominatim.openstreetmap.org/search?` +
-            `q=${encodeURIComponent(
-              trimmedQuery,
-            )}` +
-            `&format=jsonv2` +
-            `&limit=1` +
-            `&countrycodes=in`;
+        const url =
+          `https://nominatim.openstreetmap.org/search?` +
+          `q=${encodeURIComponent(trimmedQuery)}` +
+          `&format=jsonv2` +
+          `&limit=1` +
+          `&countrycodes=in`;
 
-          const response =
-            await fetch(url, {
+        const response =
+          await fetch(
+            url,
+            {
               method: 'GET',
-
               headers: {
                 Accept:
                   'application/json',
-
                 'User-Agent':
                   'ClavataSalonApp/1.0',
               },
-            });
-
-          if (!response.ok) {
-            throw new Error(
-              `Geocoding failed: ${response.status}`,
-            );
-          }
-
-          const data: unknown =
-            await response.json();
-
-          if (
-            !Array.isArray(data) ||
-            data.length === 0
-          ) {
-            return null;
-          }
-
-          const result =
-            data[0] as {
-              lat?: string;
-              lon?: string;
-              display_name?: string;
-            };
-
-          const latitude =
-            Number(result.lat);
-
-          const longitude =
-            Number(result.lon);
-
-          if (
-            !Number.isFinite(latitude) ||
-            !Number.isFinite(longitude)
-          ) {
-            return null;
-          }
-
-          return {
-            latitude,
-            longitude,
-            displayName:
-              result.display_name || '',
-          };
-        } catch (error) {
-          console.error(
-            'GEOCODE ERROR:',
-            error,
+            },
           );
 
+        if (!response.ok) {
+          throw new Error(
+            `Geocoding failed: ${response.status}`,
+          );
+        }
+
+        const data: unknown =
+          await response.json();
+
+        if (
+          !Array.isArray(data) ||
+          data.length === 0
+        ) {
           return null;
         }
-      },
-      [],
-    );
+
+        const result =
+          data[0] as {
+            lat?: string;
+            lon?: string;
+            display_name?: string;
+          };
+
+        const latitude =
+          Number(result.lat);
+
+        const longitude =
+          Number(result.lon);
+
+        if (
+          !Number.isFinite(latitude) ||
+          !Number.isFinite(longitude)
+        ) {
+          return null;
+        }
+
+        return {
+          latitude,
+          longitude,
+          displayName:
+            result.display_name || '',
+        };
+      } catch (error) {
+        console.error(
+          'GEOCODE ADDRESS ERROR:',
+          error,
+        );
+
+        return null;
+      }
+    },
+    [],
+  );
+
 
   // ==========================================================
-  // APPLY REVERSE GEOCODE
+  // REVERSE GEOCODE
   // ==========================================================
 
   const applyReverseGeocode =
     useCallback(
       async (
         location: Coordinates,
-      ) => {
+        preserveSearchText = false,
+      ): Promise<boolean> => {
         try {
           setReverseGeocoding(true);
 
@@ -277,15 +361,11 @@ export default function SalonAddressScreen({
             );
 
           if (!data) {
-            return;
+            return false;
           }
 
           const address =
             data.address || {};
-
-          // ----------------------------------------------------
-          // ADDRESS LINE
-          // ----------------------------------------------------
 
           const addressLineParts = [
             address.house_number,
@@ -297,10 +377,6 @@ export default function SalonAddressScreen({
           const newAddressLine =
             addressLineParts.join(', ');
 
-          // ----------------------------------------------------
-          // CITY
-          // ----------------------------------------------------
-
           const newCity =
             address.city ||
             address.town ||
@@ -308,220 +384,225 @@ export default function SalonAddressScreen({
             address.municipality ||
             '';
 
-          // ----------------------------------------------------
-          // STATE
-          // ----------------------------------------------------
-
           const newState =
             address.state || '';
-
-          // ----------------------------------------------------
-          // PINCODE
-          // ----------------------------------------------------
 
           const newPincode =
             address.postcode || '';
 
-          // ----------------------------------------------------
-          // DISPLAY NAME
-          // ----------------------------------------------------
-
           const displayName =
             data.display_name || '';
 
+
           // ----------------------------------------------------
-          // UPDATE ADDRESS
+          // UPDATE STRUCTURED ADDRESS
           // ----------------------------------------------------
 
-          if (
-            newAddressLine.trim()
-          ) {
+          if (newAddressLine.trim()) {
             setAddressLine(
               newAddressLine.trim(),
             );
           }
 
-          if (
-            newCity.trim()
-          ) {
+          if (newCity.trim()) {
             setCity(
               newCity.trim(),
             );
           }
 
-          if (
-            newState.trim()
-          ) {
+          if (newState.trim()) {
             setState(
               newState.trim(),
             );
           }
 
-          if (
-            newPincode.trim()
-          ) {
+          if (newPincode.trim()) {
             setPincode(
               newPincode.trim(),
             );
           }
 
+
+          // ----------------------------------------------------
+          // UPDATE SEARCH TEXT
+          // ----------------------------------------------------
+
           if (
+            !preserveSearchText &&
             displayName.trim()
           ) {
             setSearchText(
               displayName.trim(),
             );
           }
+
+          return true;
         } catch (error) {
           console.error(
-            'APPLY REVERSE GEOCODE ERROR:',
+            'REVERSE GEOCODE ERROR:',
             error,
           );
+
+          return false;
         } finally {
-          setReverseGeocoding(
-            false,
-          );
+          setReverseGeocoding(false);
         }
       },
       [],
     );
 
+
   // ==========================================================
-  // UPDATE LOCATION
+  // UPDATE SELECTED LOCATION
   // ==========================================================
 
   const updateSelectedLocation =
     useCallback(
       async (
         newCoordinates: Coordinates,
-      ) => {
+        preserveSearchText = false,
+      ): Promise<boolean> => {
         setCoordinates(
           newCoordinates,
-        );
-
-        // Any location change requires confirmation again.
-        setLocationConfirmed(
-          false,
         );
 
         setMapRegion({
           latitude:
             newCoordinates.latitude,
-
           longitude:
             newCoordinates.longitude,
-
-          latitudeDelta:
-            0.005,
-
-          longitudeDelta:
-            0.005,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
         });
 
-        await applyReverseGeocode(
-          newCoordinates,
-        );
+        const reverseGeocodeSuccess =
+          await applyReverseGeocode(
+            newCoordinates,
+            preserveSearchText,
+          );
+
+        /**
+         * Only lock the address/search controls
+         * if we successfully obtained the location
+         * and its address.
+         */
+        if (reverseGeocodeSuccess) {
+          setLocationFound(true);
+        }
+
+        return reverseGeocodeSuccess;
       },
       [applyReverseGeocode],
     );
 
+
   // ==========================================================
-  // SEARCH ADDRESS
+  // ADDRESS FIELD CHANGE
   // ==========================================================
 
-  const handleSearchAddress =
-    useCallback(async () => {
-      if (!searchText.trim()) {
-        Alert.alert(
-          'Enter an address',
-          'Please enter your salon address to search.',
-        );
-
-        return;
-      }
-
-      try {
-        setSearchingAddress(true);
-
-        const result =
-          await geocodeAddress(
-            searchText,
-          );
-
-        if (!result) {
-          Alert.alert(
-            'Address not found',
-            'We could not find this address. Try adding the area, city or pincode.',
-          );
-
+  const handleAddressFieldChange =
+    useCallback(
+      (
+        field:
+          | 'address'
+          | 'city'
+          | 'state'
+          | 'pincode',
+        value: string,
+      ) => {
+        if (locationLocked) {
           return;
         }
 
-        const newCoordinates: Coordinates = {
-          latitude:
-            result.latitude,
+        switch (field) {
+          case 'address':
+            setAddressLine(value);
+            break;
 
-          longitude:
-            result.longitude,
-        };
+          case 'city':
+            setCity(value);
+            break;
 
-        await updateSelectedLocation(
-          newCoordinates,
-        );
-      } catch (error) {
-        console.error(
-          'SEARCH ADDRESS ERROR:',
-          error,
-        );
+          case 'state':
+            setState(value);
+            break;
 
-        Alert.alert(
-          'Unable to find address',
-          'Something went wrong while searching for this address. Please try again.',
-        );
-      } finally {
-        setSearchingAddress(
-          false,
-        );
-      }
-    }, [
-      searchText,
-      geocodeAddress,
-      updateSelectedLocation,
-    ]);
+          case 'pincode':
+            setPincode(
+              value
+                .replace(/\D/g, '')
+                .slice(0, 6),
+            );
+            break;
+        }
+      },
+      [locationLocked],
+    );
+
 
   // ==========================================================
-  // CURRENT DEVICE LOCATION
+  // SELECT ADDRESS MODE
+  // ==========================================================
+
+  const handleSelectAddressMode =
+    useCallback(() => {
+      if (
+        isLocationBusy ||
+        locationFound
+      ) {
+        return;
+      }
+
+      setLocationMode('address');
+
+      const query =
+        buildAddressSearchQuery();
+
+      if (query) {
+        setSearchText(query);
+      }
+    }, [
+      isLocationBusy,
+      locationFound,
+      buildAddressSearchQuery,
+    ]);
+
+
+  // ==========================================================
+  // USE CURRENT LOCATION
   // ==========================================================
 
   const handleUseCurrentLocation =
     useCallback(async () => {
-      if (gettingLocation) {
+      if (
+        gettingLocation ||
+        locationFound
+      ) {
         return;
       }
 
       try {
-        setGettingLocation(
-          true,
-        );
+        setLocationMode('current');
 
-        // ======================================================
+        setGettingLocation(true);
+
+
+        // ------------------------------------------------------
         // ANDROID PERMISSION
-        // ======================================================
+        // ------------------------------------------------------
 
         if (Platform.OS === 'android') {
           const permission =
             await PermissionsAndroid.request(
-              PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+              PermissionsAndroid.PERMISSIONS
+                .ACCESS_FINE_LOCATION,
               {
                 title:
                   'Location Permission',
-
                 message:
-                  'Clavata uses your location to place your salon accurately on the map.',
-
+                  'Clavata uses your location to place your business accurately on the map.',
                 buttonPositive:
                   'Allow',
-
                 buttonNegative:
                   'Cancel',
               },
@@ -529,7 +610,8 @@ export default function SalonAddressScreen({
 
           if (
             permission !==
-            PermissionsAndroid.RESULTS.GRANTED
+            PermissionsAndroid.RESULTS
+              .GRANTED
           ) {
             Alert.alert(
               'Location Permission Required',
@@ -548,58 +630,54 @@ export default function SalonAddressScreen({
               ],
             );
 
+            setLocationMode(null);
+
             return;
           }
         }
 
-        // ======================================================
+
+        // ------------------------------------------------------
         // GET GPS LOCATION
-        // ======================================================
+        // ------------------------------------------------------
 
         const location =
-          await new Promise<{
-            latitude: number;
-            longitude: number;
-          } | null>((resolve) => {
-            Geolocation.getCurrentPosition(
-              position => {
-                const {
-                  latitude,
-                  longitude,
-                } = position.coords;
+          await new Promise<Coordinates | null>(
+            resolve => {
+              Geolocation.getCurrentPosition(
+                position => {
+                  const {
+                    latitude,
+                    longitude,
+                  } = position.coords;
 
-                console.log(
-                  'CURRENT GPS:',
-                  latitude,
-                  longitude,
-                );
+                  resolve({
+                    latitude,
+                    longitude,
+                  });
+                },
+                error => {
+                  console.log(
+                    'GPS ERROR:',
+                    error,
+                  );
 
-                resolve({
-                  latitude,
-                  longitude,
-                });
-              },
+                  resolve(null);
+                },
+                {
+                  enableHighAccuracy:
+                    true,
+                  timeout: 15000,
+                  maximumAge: 10000,
+                },
+              );
+            },
+          );
 
-              error => {
-                console.log(
-                  'GPS ERROR:',
-                  error,
-                );
 
-                resolve(null);
-              },
-
-              {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 10000,
-              },
-            );
-          });
-
-        // ======================================================
-        // GPS FAILED
-        // ======================================================
+        // ------------------------------------------------------
+        // GPS FAILURE
+        // ------------------------------------------------------
 
         if (!location) {
           Alert.alert(
@@ -619,43 +697,143 @@ export default function SalonAddressScreen({
             ],
           );
 
+          setLocationMode(null);
+
           return;
         }
 
-        // ======================================================
-        // UPDATE LOCATION
-        // ======================================================
 
-        const newCoordinates: Coordinates = {
-          latitude:
-            location.latitude,
+        // ------------------------------------------------------
+        // REVERSE GEOCODE GPS
+        // ------------------------------------------------------
 
-          longitude:
-            location.longitude,
-        };
+        const success =
+          await updateSelectedLocation(
+            location,
+          );
 
-        await updateSelectedLocation(
-          newCoordinates,
-        );
+        if (!success) {
+          Alert.alert(
+            'Address unavailable',
+            'We found your location, but could not read the business address. Please try again or enter your address manually.',
+          );
+
+          setLocationFound(false);
+        }
       } catch (error) {
         console.error(
           'CURRENT LOCATION ERROR:',
           error,
         );
 
+        setLocationMode(null);
+
         Alert.alert(
           'Location unavailable',
           'Unable to get your current location. Please try again.',
         );
       } finally {
-        setGettingLocation(
-          false,
-        );
+        setGettingLocation(false);
       }
     }, [
       gettingLocation,
+      locationFound,
       updateSelectedLocation,
     ]);
+
+
+  // ==========================================================
+  // SEARCH ADDRESS
+  // ==========================================================
+
+  const handleSearchAddress =
+    useCallback(async () => {
+      const query =
+        searchText.trim();
+
+      if (!query) {
+        Alert.alert(
+          'Enter an address',
+          'Please enter your business address to search.',
+        );
+
+        return;
+      }
+
+      if (locationLocked) {
+        return;
+      }
+
+      try {
+        setLocationMode('address');
+
+        setSearchingAddress(true);
+
+        const result =
+          await geocodeAddress(query);
+
+        if (!result) {
+          Alert.alert(
+            'Address not found',
+            'We could not find this address. Try adding the area, city, state or pincode.',
+          );
+
+          return;
+        }
+
+        const newCoordinates: Coordinates =
+          {
+            latitude:
+              result.latitude,
+            longitude:
+              result.longitude,
+          };
+
+
+        /**
+         * Preserve exactly what the user searched.
+         *
+         * Reverse geocoding still updates the structured
+         * address fields.
+         */
+        const success =
+          await updateSelectedLocation(
+            newCoordinates,
+            true,
+          );
+
+        if (!success) {
+          Alert.alert(
+            'Address unavailable',
+            'We found the location, but could not read its address. Please try another search.',
+          );
+
+          setLocationFound(false);
+
+          return;
+        }
+
+        setSearchText(query);
+      } catch (error) {
+        console.error(
+          'SEARCH ADDRESS ERROR:',
+          error,
+        );
+
+        Alert.alert(
+          'Unable to find address',
+          'Something went wrong while searching for this address. Please try again.',
+        );
+      } finally {
+        setSearchingAddress(false);
+      }
+    }, [
+      searchText,
+      locationLocked,
+      geocodeAddress,
+      updateSelectedLocation,
+    ]);
+
 
   // ==========================================================
   // MAP REGION CHANGE
@@ -663,16 +841,15 @@ export default function SalonAddressScreen({
 
   const handleRegionChangeComplete =
     useCallback(
-      (currentRegion: Region) => {
-        setMapRegion(
-          currentRegion,
-        );
+      (region: Region) => {
+        setMapRegion(region);
       },
       [],
     );
 
+
   // ==========================================================
-  // MAP PRESSED
+  // MAP PRESS
   // ==========================================================
 
   const handleMapPress =
@@ -680,26 +857,43 @@ export default function SalonAddressScreen({
       async (
         event: MapPressEvent,
       ) => {
+        if (reverseGeocoding) {
+          return;
+        }
+
         const {
           latitude,
           longitude,
         } =
           event.nativeEvent.coordinate;
 
-        const newCoordinates: Coordinates = {
-          latitude,
-          longitude,
-        };
+        const newCoordinates: Coordinates =
+          {
+            latitude,
+            longitude,
+          };
 
-        await updateSelectedLocation(
-          newCoordinates,
-        );
+        const success =
+          await updateSelectedLocation(
+            newCoordinates,
+          );
+
+        if (!success) {
+          Alert.alert(
+            'Address unavailable',
+            'We could not read the address at this location. Please move the pin to another location.',
+          );
+        }
       },
-      [updateSelectedLocation],
+      [
+        reverseGeocoding,
+        updateSelectedLocation,
+      ],
     );
 
+
   // ==========================================================
-  // MARKER DRAG END
+  // MARKER DRAG
   // ==========================================================
 
   const handleMarkerDragEnd =
@@ -707,66 +901,99 @@ export default function SalonAddressScreen({
       async (
         event: MarkerDragStartEndEvent,
       ) => {
+        if (reverseGeocoding) {
+          return;
+        }
+
         const {
           latitude,
           longitude,
         } =
           event.nativeEvent.coordinate;
 
-        const newCoordinates: Coordinates = {
-          latitude,
-          longitude,
-        };
+        const newCoordinates: Coordinates =
+          {
+            latitude,
+            longitude,
+          };
 
-        await updateSelectedLocation(
-          newCoordinates,
-        );
+        const success =
+          await updateSelectedLocation(
+            newCoordinates,
+          );
+
+        if (!success) {
+          Alert.alert(
+            'Address unavailable',
+            'We could not read the address at this location. Please move the pin to another location.',
+          );
+        }
       },
-      [updateSelectedLocation],
+      [
+        reverseGeocoding,
+        updateSelectedLocation,
+      ],
     );
+
+
+  // ==========================================================
+  // CHANGE LOCATION
+  // ==========================================================
+
+  const handleChangeLocation =
+    useCallback(() => {
+      if (isLocationBusy) {
+        return;
+      }
+
+      setCoordinates(null);
+
+      setLocationFound(false);
+
+      setLocationMode(null);
+
+      setAddressLine('');
+
+      setCity('');
+
+      setState('');
+
+      setPincode('');
+
+      setSearchText('');
+
+      setMapRegion({
+        ...DEFAULT_COORDINATES,
+        ...DEFAULT_DELTA,
+      });
+    }, [
+      isLocationBusy,
+    ]);
+
 
   // ==========================================================
   // CONFIRM LOCATION
-  //
-  // This is now the FINAL action on this screen.
-  //
-  // Once the user confirms:
-  // 1. Validate address
-  // 2. Save address + coordinates
-  // 3. Navigate automatically to next screen
   // ==========================================================
 
   const handleConfirmLocation =
     useCallback(() => {
-      // --------------------------------------------------------
-      // LOCATION
-      // --------------------------------------------------------
-
       if (!coordinates) {
         Alert.alert(
           'Select your location',
-          'Search for your address or use your current location first.',
+          'Please search for your business address or use your current location first.',
         );
 
         return;
       }
-
-      // --------------------------------------------------------
-      // ADDRESS
-      // --------------------------------------------------------
 
       if (!addressLine.trim()) {
         Alert.alert(
           'Address required',
-          'Please enter your salon street address.',
+          'Please enter your business street address.',
         );
 
         return;
       }
-
-      // --------------------------------------------------------
-      // CITY
-      // --------------------------------------------------------
 
       if (!city.trim()) {
         Alert.alert(
@@ -777,10 +1004,6 @@ export default function SalonAddressScreen({
         return;
       }
 
-      // --------------------------------------------------------
-      // STATE
-      // --------------------------------------------------------
-
       if (!state.trim()) {
         Alert.alert(
           'State required',
@@ -789,10 +1012,6 @@ export default function SalonAddressScreen({
 
         return;
       }
-
-      // --------------------------------------------------------
-      // PINCODE
-      // --------------------------------------------------------
 
       if (
         !/^\d{6}$/.test(
@@ -807,9 +1026,10 @@ export default function SalonAddressScreen({
         return;
       }
 
-      // --------------------------------------------------------
+
+      // ------------------------------------------------------
       // SAVE REGISTRATION DATA
-      // --------------------------------------------------------
+      // ------------------------------------------------------
 
       updateData({
         addressLine:
@@ -831,17 +1051,6 @@ export default function SalonAddressScreen({
           coordinates.longitude,
       });
 
-      // --------------------------------------------------------
-      // MARK AS CONFIRMED
-      // --------------------------------------------------------
-
-      setLocationConfirmed(
-        true,
-      );
-
-      // --------------------------------------------------------
-      // LOG
-      // --------------------------------------------------------
 
       console.log(
         '======================================',
@@ -885,9 +1094,10 @@ export default function SalonAddressScreen({
         '======================================',
       );
 
-      // --------------------------------------------------------
-      // AUTOMATICALLY GO TO NEXT SCREEN
-      // --------------------------------------------------------
+
+      // ------------------------------------------------------
+      // NEXT STEP
+      // ------------------------------------------------------
 
       navigation.navigate(
         'SalonBusinessHours',
@@ -901,6 +1111,29 @@ export default function SalonAddressScreen({
       updateData,
       navigation,
     ]);
+
+
+  // ==========================================================
+  // LOCATION SUMMARY
+  // ==========================================================
+
+  const locationSummary =
+    useMemo(() => {
+      const parts = [
+        addressLine.trim(),
+        city.trim(),
+        state.trim(),
+        pincode.trim(),
+      ].filter(Boolean);
+
+      return parts.join(', ');
+    }, [
+      addressLine,
+      city,
+      state,
+      pincode,
+    ]);
+
 
   // ==========================================================
   // RENDER
@@ -931,711 +1164,848 @@ export default function SalonAddressScreen({
             false
           }
         >
-          {/* ==================================================
-              LOCATION METHOD CARD
-          ================================================== */}
+
+          {/* ================================================== */}
+          {/* INTRO */}
+          {/* ================================================== */}
 
           <View
             style={
-              styles.locationMethodCard
+              styles.introSection
             }
           >
-            <View
+            <Text
               style={
-                styles.locationMethodHeader
+                styles.pageTitle
               }
             >
-              <View
-                style={
-                  styles.locationMethodHeaderText
-                }
-              >
-                <Text
-                  style={
-                    styles.locationMethodTitle
-                  }
-                >
-                  Find your business location
-                </Text>
-              </View>
-            </View>
-
-            {/* ==================================================
-                SEARCH
-            ================================================== */}
+              Find your business location
+            </Text>
 
             <Text
               style={
-                styles.searchLabel
+                styles.pageSubtitle
               }
             >
-              Search address
+              Add your business location so
+              customers can easily find
             </Text>
+          </View>
 
+
+          {/* ================================================== */}
+          {/* LOCATION METHOD */}
+          {/* ================================================== */}
+
+          {!locationFound && (
             <View
               style={
-                styles.searchRow
+                styles.methodSection
               }
             >
-              <TextInput
+              <Text
                 style={
-                  styles.searchInput
-                }
-                placeholder="Enter business address, area or pincode"
-                placeholderTextColor={
-                  COLORS.textMuted
-                }
-                value={
-                  searchText
-                }
-                onChangeText={
-                  text => {
-                    setSearchText(
-                      text,
-                    );
-
-                    setLocationConfirmed(
-                      false,
-                    );
-                  }
-                }
-                autoCapitalize="words"
-                autoCorrect={false}
-                returnKeyType="search"
-                onSubmitEditing={
-                  handleSearchAddress
-                }
-              />
-
-              <TouchableOpacity
-                style={
-                  styles.searchButton
-                }
-                onPress={
-                  handleSearchAddress
-                }
-                disabled={
-                  searchingAddress ||
-                  gettingLocation ||
-                  reverseGeocoding
-                }
-                activeOpacity={
-                  0.8
+                  styles.sectionTitle
                 }
               >
-                {searchingAddress ? (
+                Choose how to add your location
+              </Text>
+
+              <Text
+                style={
+                  styles.sectionSubtitle
+                }
+              >
+                Use your current location if you
+                are at your business, or enter the
+                address manually.
+              </Text>
+
+
+              {/* ---------------------------------------------- */}
+              {/* CURRENT LOCATION */}
+              {/* ---------------------------------------------- */}
+
+              <TouchableOpacity
+                style={[
+                  styles.methodCard,
+                  locationMode ===
+                    'current' &&
+                    styles.methodCardSelected,
+                  gettingLocation &&
+                    styles.methodCardDisabled,
+                ]}
+                onPress={
+                  handleUseCurrentLocation
+                }
+                disabled={
+                  isLocationBusy ||
+                  locationFound
+                }
+                activeOpacity={0.85}
+              >
+                <View
+                  style={
+                    styles.methodIcon
+                  }
+                >
+                  <Text
+                    style={
+                      styles.methodIconText
+                    }
+                  >
+                    ◎
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.methodContent
+                  }
+                >
+                  <Text
+                    style={
+                      styles.methodTitle
+                    }
+                  >
+                    Use my current location
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.methodDescription
+                    }
+                  >
+                    Best if you are currently at
+                    your business.
+                  </Text>
+                </View>
+
+                {gettingLocation ? (
                   <ActivityIndicator
+                    size="small"
                     color={
-                      COLORS.white
+                      COLORS.themeColor
                     }
                   />
                 ) : (
                   <Text
                     style={
-                      styles.searchButtonText
-                    }
-                  >
-                    Search
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* ==================================================
-                DIVIDER
-            ================================================== */}
-
-            <View
-              style={
-                styles.orContainer
-              }
-            >
-              <View
-                style={
-                  styles.orLine
-                }
-              />
-
-              <Text
-                style={
-                  styles.orText
-                }
-              >
-                OR
-              </Text>
-
-              <View
-                style={
-                  styles.orLine
-                }
-              />
-            </View>
-
-            {/* ==================================================
-                CURRENT LOCATION
-            ================================================== */}
-
-            <TouchableOpacity
-              style={
-                styles.currentLocationButton
-              }
-              onPress={
-                handleUseCurrentLocation
-              }
-              disabled={
-                gettingLocation ||
-                searchingAddress ||
-                reverseGeocoding
-              }
-              activeOpacity={
-                0.8
-              }
-            >
-              {gettingLocation ? (
-                <ActivityIndicator
-                  color={
-                    COLORS.primary
-                  }
-                />
-              ) : (
-                <>
-                  <View
-                    style={
-                      styles.currentLocationContent
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.currentLocationTitle
-                      }
-                    >
-                      Use my current location
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.currentLocationSubtitle
-                      }
-                    >
-                      Automatically detect where you are
-                    </Text>
-                  </View>
-
-                  <Text
-                    style={
-                      styles.currentLocationArrow
+                      styles.chevron
                     }
                   >
                     ›
                   </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+                )}
+              </TouchableOpacity>
 
-          {/* ==================================================
-              SELECTED LOCATION STATUS
-          ================================================== */}
 
-          {coordinates && (
-            <View
-              style={
-                styles.selectedLocationBanner
-              }
-            >
-              <View
-                style={
-                  styles.selectedLocationDot
+              {/* ---------------------------------------------- */}
+              {/* ENTER ADDRESS */}
+              {/* ---------------------------------------------- */}
+
+              <TouchableOpacity
+                style={[
+                  styles.methodCard,
+                  locationMode ===
+                    'address' &&
+                    styles.methodCardSelected,
+                ]}
+                onPress={
+                  handleSelectAddressMode
                 }
-              />
-
-              <View
-                style={
-                  styles.selectedLocationTextContainer
+                disabled={
+                  isLocationBusy ||
+                  locationFound
                 }
+                activeOpacity={0.85}
               >
-                <Text
+                <View
                   style={
-                    styles.selectedLocationTitle
+                    styles.methodIcon
                   }
                 >
-                  Location selected
-                </Text>
+                  <Text
+                    style={
+                      styles.methodIconText
+                    }
+                  >
+                    ⌖
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.methodContent
+                  }
+                >
+                  <Text
+                    style={
+                      styles.methodTitle
+                    }
+                  >
+                    Enter business address
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.methodDescription
+                    }
+                  >
+                    Enter your address and find it
+                    on the map.
+                  </Text>
+                </View>
 
                 <Text
                   style={
-                    styles.selectedLocationSubtitle
+                    styles.chevron
                   }
                 >
-                  Check the map below and adjust the pin if
-                  needed.
+                  ›
                 </Text>
-              </View>
+              </TouchableOpacity>
             </View>
           )}
 
-          {/* ==================================================
-              ADDRESS DETAILS
-          ================================================== */}
 
-          <View
-            style={
-              styles.sectionTitleContainer
-            }
-          >
-            <Text
-              style={
-                styles.sectionTitle
-              }
-            >
-              Address details
-            </Text>
+          {/* ================================================== */}
+          {/* MANUAL ADDRESS */}
+          {/* ================================================== */}
 
-            <Text
-              style={
-                styles.sectionSubtitle
-              }
-            >
-              These details will be used as your business
-              registered address.
-            </Text>
-          </View>
-
-          {/* ==================================================
-              ADDRESS
-          ================================================== */}
-
-          <View
-            style={styles.field}
-          >
-            <Text
-              style={styles.label}
-            >
-              Address
-            </Text>
-
-            <TextInput
-              style={[
-                styles.input,
-                styles.addressInput,
-              ]}
-              placeholder="Enter street address"
-              placeholderTextColor={
-                COLORS.textMuted
-              }
-              value={
-                addressLine
-              }
-              onChangeText={
-                (text: string) => {
-                  setAddressLine(
-                    text,
-                  );
-
-                  setLocationConfirmed(
-                    false,
-                  );
-                }
-              }
-              autoCapitalize="words"
-              autoCorrect={false}
-              multiline
-              textAlignVertical="top"
-            />
-          </View>
-
-          {/* ==================================================
-              CITY + STATE
-          ================================================== */}
-
-          <View
-            style={
-              styles.twoColumnRow
-            }
-          >
-            <View
-              style={[
-                styles.field,
-                styles.columnField,
-              ]}
-            >
-              <Text
-                style={styles.label}
-              >
-                City
-              </Text>
-
-              <TextInput
-                style={
-                  styles.input
-                }
-                placeholder="City"
-                placeholderTextColor={
-                  COLORS.textMuted
-                }
-                value={city}
-                onChangeText={
-                  (text: string) => {
-                    setCity(text);
-
-                    setLocationConfirmed(
-                      false,
-                    );
-                  }
-                }
-                autoCapitalize="words"
-                autoCorrect={false}
-              />
-            </View>
-
-            <View
-              style={[
-                styles.field,
-                styles.columnField,
-              ]}
-            >
-              <Text
-                style={styles.label}
-              >
-                State
-              </Text>
-
-              <TextInput
-                style={
-                  styles.input
-                }
-                placeholder="State"
-                placeholderTextColor={
-                  COLORS.textMuted
-                }
-                value={state}
-                onChangeText={
-                  (text: string) => {
-                    setState(text);
-
-                    setLocationConfirmed(
-                      false,
-                    );
-                  }
-                }
-                autoCapitalize="words"
-                autoCorrect={false}
-              />
-            </View>
-          </View>
-
-          {/* ==================================================
-              PINCODE
-          ================================================== */}
-
-          <View
-            style={styles.field}
-          >
-            <Text
-              style={styles.label}
-            >
-              Pincode
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="6-digit pincode"
-              placeholderTextColor={
-                COLORS.textMuted
-              }
-              keyboardType="number-pad"
-              maxLength={6}
-              value={pincode}
-              onChangeText={
-                (text: string) => {
-                  const numericText =
-                    text.replace(
-                      /\D/g,
-                      '',
-                    );
-
-                  setPincode(
-                    numericText,
-                  );
-
-                  setLocationConfirmed(
-                    false,
-                  );
-                }
-              }
-            />
-          </View>
-
-          {/* ==================================================
-              MAP
-          ================================================== */}
-
-          <View
-            style={
-              styles.mapSection
-            }
-          >
-            <View
-              style={
-                styles.mapHeader
-              }
-            >
+          {locationMode ===
+            'address' &&
+            !locationFound && (
               <View
                 style={
-                  styles.mapHeaderTextContainer
+                  styles.addressSection
                 }
               >
-                <Text
-                  style={
-                    styles.mapTitle
-                  }
-                >
-                  Verify your exact location
-                </Text>
 
-                <Text
-                  style={
-                    styles.mapSubtitle
-                  }
-                >
-                  Drag the pin or tap anywhere on the map to
-                  adjust the location.
-                </Text>
-              </View>
+                {/* -------------------------------------------- */}
+                {/* SECTION HEADER */}
+                {/* -------------------------------------------- */}
 
-              {locationConfirmed && (
                 <View
                   style={
-                    styles.confirmedBadge
+                    styles.sectionHeader
                   }
                 >
                   <Text
                     style={
-                      styles.confirmedBadgeText
+                      styles.sectionTitle
                     }
                   >
-                    ✓ Confirmed
+                    Business address
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.requiredText
+                    }
+                  >
+                    * Required
                   </Text>
                 </View>
-              )}
-            </View>
 
-            {/* ==================================================
-                MAP
-            ================================================== */}
 
-            <View
-              style={
-                styles.mapContainer
-              }
-            >
-              <MapView
-                style={
-                  styles.map
-                }
-                region={
-                  mapRegion
-                }
-                onRegionChangeComplete={
-                  handleRegionChangeComplete
-                }
-                onPress={
-                  handleMapPress
-                }
-                showsUserLocation={
-                  true
-                }
-                showsMyLocationButton={
-                  false
-                }
-              >
-                {coordinates && (
-                  <Marker
-                    coordinate={
-                      coordinates
+                {/* -------------------------------------------- */}
+                {/* ADDRESS */}
+                {/* -------------------------------------------- */}
+
+                <View
+                  style={
+                    styles.inputGroup
+                  }
+                >
+                  <Text
+                    style={
+                      styles.inputLabel
                     }
-                    title="Salon location"
-                    description="Drag this pin to your exact salon location."
-                    draggable
-                    onDragEnd={
-                      handleMarkerDragEnd
+                  >
+                    Address
+                  </Text>
+
+                  <TextInput
+                    value={
+                      addressLine
                     }
+                    onChangeText={
+                      value =>
+                        handleAddressFieldChange(
+                          'address',
+                          value,
+                        )
+                    }
+                    placeholder="House / building / street"
+                    placeholderTextColor={
+                      COLORS.textMuted
+                    }
+                    editable={
+                      !locationLocked
+                    }
+                    style={[
+                      styles.input,
+                      locationLocked &&
+                        styles.inputDisabled,
+                    ]}
+                    returnKeyType="next"
                   />
-                )}
-              </MapView>
-
-              {!coordinates && (
-                <View
-                  pointerEvents="none"
-                  style={
-                    styles.mapEmptyOverlay
-                  }
-                >
-                  <View
-                    style={
-                      styles.mapEmptyCard
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.mapEmptyTitle
-                      }
-                    >
-                      Location not selected
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.mapEmptyText
-                      }
-                    >
-                      Search your address or use your current
-                      location above.
-                    </Text>
-                  </View>
                 </View>
-              )}
 
-              {reverseGeocoding && (
+
+                {/* -------------------------------------------- */}
+                {/* CITY + STATE */}
+                {/* -------------------------------------------- */}
+
                 <View
                   style={
-                    styles.mapLoadingOverlay
+                    styles.row
                   }
                 >
                   <View
                     style={
-                      styles.mapLoadingCard
+                      styles.halfInput
                     }
                   >
-                    <ActivityIndicator
-                      color={
-                        COLORS.primary
+                    <Text
+                      style={
+                        styles.inputLabel
                       }
+                    >
+                      City
+                    </Text>
+
+                    <TextInput
+                      value={
+                        city
+                      }
+                      onChangeText={
+                        value =>
+                          handleAddressFieldChange(
+                            'city',
+                            value,
+                          )
+                      }
+                      placeholder="City"
+                      placeholderTextColor={
+                        COLORS.textMuted
+                      }
+                      editable={
+                        !locationLocked
+                      }
+                      style={[
+                        styles.input,
+                        locationLocked &&
+                          styles.inputDisabled,
+                      ]}
+                      returnKeyType="next"
                     />
+                  </View>
 
+
+                  <View
+                    style={
+                      styles.halfInput
+                    }
+                  >
                     <Text
                       style={
-                        styles.mapLoadingText
+                        styles.inputLabel
                       }
                     >
-                      Updating address...
+                      State
                     </Text>
+
+                    <TextInput
+                      value={
+                        state
+                      }
+                      onChangeText={
+                        value =>
+                          handleAddressFieldChange(
+                            'state',
+                            value,
+                          )
+                      }
+                      placeholder="State"
+                      placeholderTextColor={
+                        COLORS.textMuted
+                      }
+                      editable={
+                        !locationLocked
+                      }
+                      style={[
+                        styles.input,
+                        locationLocked &&
+                          styles.inputDisabled,
+                      ]}
+                      returnKeyType="next"
+                    />
                   </View>
                 </View>
-              )}
-            </View>
 
-            {/* ==================================================
-                COORDINATES
-            ================================================== */}
 
-            {coordinates && (
-              <View
-                style={
-                  styles.coordinatesCard
-                }
-              >
+                {/* -------------------------------------------- */}
+                {/* PINCODE */}
+                {/* -------------------------------------------- */}
+
                 <View
                   style={
-                    styles.coordinateItem
+                    styles.inputGroup
                   }
                 >
                   <Text
                     style={
-                      styles.coordinateLabel
+                      styles.inputLabel
                     }
                   >
-                    Latitude
+                    Pincode
                   </Text>
 
-                  <Text
-                    style={
-                      styles.coordinateValue
+                  <TextInput
+                    value={
+                      pincode
                     }
-                  >
-                    {coordinates.latitude.toFixed(
-                      6,
-                    )}
-                  </Text>
+                    onChangeText={
+                      value =>
+                        handleAddressFieldChange(
+                          'pincode',
+                          value,
+                        )
+                    }
+                    placeholder="6-digit pincode"
+                    placeholderTextColor={
+                      COLORS.textMuted
+                    }
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    editable={
+                      !locationLocked
+                    }
+                    style={[
+                      styles.input,
+                      styles.pincodeInput,
+                      locationLocked &&
+                        styles.inputDisabled,
+                    ]}
+                  />
                 </View>
 
-                <View
-                  style={
-                    styles.coordinateDivider
-                  }
-                />
+
+                {/* ================================================== */}
+                {/* FIND BUSINESS LOCATION */}
+                {/* ================================================== */}
 
                 <View
                   style={
-                    styles.coordinateItem
+                    styles.searchSection
                   }
                 >
                   <Text
                     style={
-                      styles.coordinateLabel
+                      styles.searchTitle
                     }
                   >
-                    Longitude
+                    Find your business location
                   </Text>
 
                   <Text
                     style={
-                      styles.coordinateValue
+                      styles.searchDescription
                     }
                   >
-                    {coordinates.longitude.toFixed(
-                      6,
-                    )}
+                    We'll use the address above to
+                    find your location on the map.
+                    You can edit the search text if
+                    needed.
                   </Text>
+
+
+                  {/* ---------------------------------------------- */}
+                  {/* SEARCH INPUT */}
+                  {/* ---------------------------------------------- */}
+
+                  {/* <TextInput
+                    value={
+                      searchText
+                    }
+                    onChangeText={
+                      setSearchText
+                    }
+                    placeholder="Search your business address"
+                    placeholderTextColor={
+                      COLORS.textMuted
+                    }
+                    editable={
+                      !locationLocked &&
+                      !isLocationBusy
+                    }
+                    multiline
+                    numberOfLines={2}
+                    textAlignVertical="top"
+                    style={[
+                      styles.searchInput,
+                      locationLocked &&
+                        styles.inputDisabled,
+                    ]}
+                  /> */}
+
+
+                  {/* ---------------------------------------------- */}
+                  {/* SEARCH BUTTON */}
+                  {/* ---------------------------------------------- */}
+
+                  <TouchableOpacity
+                    style={[
+                      styles.searchButton,
+                      (
+                        searchingAddress ||
+                        locationLocked ||
+                        !searchText.trim()
+                      ) &&
+                        styles.buttonDisabled,
+                    ]}
+                    onPress={
+                      handleSearchAddress
+                    }
+                    disabled={
+                      searchingAddress ||
+                      locationLocked ||
+                      !searchText.trim()
+                    }
+                    activeOpacity={0.85}
+                  >
+                    {searchingAddress ? (
+                      <>
+                        <ActivityIndicator
+                          size="small"
+                          color={
+                            COLORS.white
+                          }
+                        />
+
+                        <Text
+                          style={
+                            styles.searchButtonText
+                          }
+                        >
+                          Finding location...
+                        </Text>
+                      </>
+                    ) : (
+                      <Text
+                        style={
+                          styles.searchButtonText
+                        }
+                      >
+                        Search
+                      </Text>
+                    )}
+                  </TouchableOpacity>
                 </View>
               </View>
             )}
 
-            {/* ==================================================
-                CONFIRM LOCATION
-                FINAL ACTION
-            ================================================== */}
 
-            <TouchableOpacity
-              style={[
-                styles.confirmLocationButton,
+          {/* ================================================== */}
+          {/* LOCATION FOUND / MAP VERIFICATION */}
+          {/* ================================================== */}
 
-                !coordinates &&
-                  styles.confirmLocationButtonDisabled,
+          {locationFound &&
+            coordinates && (
+              <View
+                style={
+                  styles.locationFoundSection
+                }
+              >
 
-                locationConfirmed &&
-                  styles.confirmLocationButtonConfirmed,
-              ]}
-              disabled={
-                !coordinates ||
-                reverseGeocoding
-              }
-              onPress={
-                handleConfirmLocation
-              }
-              activeOpacity={
-                0.8
-              }
-            >
-              {reverseGeocoding ? (
-                <ActivityIndicator
-                  color={
-                    COLORS.white
-                  }
-                />
-              ) : (
-                <Text
+                {/* -------------------------------------------- */}
+                {/* LOCATION FOUND BANNER */}
+                {/* -------------------------------------------- */}
+
+                <View
                   style={
-                    styles.confirmLocationText
+                    styles.foundCard
                   }
                 >
-                  {locationConfirmed
-                    ? '✓ Location Confirmed'
-                    : 'Confirm Location'}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
+                  <View
+                    style={
+                      styles.foundIcon
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.foundIconText
+                      }
+                    >
+                      ✓
+                    </Text>
+                  </View>
+
+                  <View
+                    style={
+                      styles.foundContent
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.foundTitle
+                      }
+                    >
+                      Location found
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.foundDescription
+                      }
+                    >
+                      Please check the map and make
+                      sure the pin is at your business
+                      location.
+                    </Text>
+                  </View>
+                </View>
+
+
+                {/* -------------------------------------------- */}
+                {/* MAP */}
+                {/* -------------------------------------------- */}
+
+                <View
+                  style={
+                    styles.mapSection
+                  }
+                >
+                  <Text
+                    style={
+                      styles.sectionTitle
+                    }
+                  >
+                    Verify your location
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.mapInstruction
+                    }
+                  >
+                    Move the pin if necessary. Place
+                    it as close as possible to your
+                    business entrance.
+                  </Text>
+
+
+                  {/* MAP */}
+
+                  <View
+                    style={
+                      styles.mapContainer
+                    }
+                  >
+                    <MapView
+                      style={
+                        styles.map
+                      }
+                      region={
+                        mapRegion
+                      }
+                      onRegionChangeComplete={
+                        handleRegionChangeComplete
+                      }
+                      onPress={
+                        handleMapPress
+                      }
+                      showsUserLocation={
+                        locationMode ===
+                        'current'
+                      }
+                      showsMyLocationButton={
+                        false
+                      }
+                      toolbarEnabled={
+                        false
+                      }
+                      loadingEnabled
+                      moveOnMarkerPress={
+                        false
+                    }
+                    >
+                      <Marker
+                        coordinate={
+                          coordinates
+                        }
+                        draggable={
+                          !reverseGeocoding
+                        }
+                        onDragEnd={
+                          handleMarkerDragEnd
+                        }
+                        title="Business location"
+                        description="Drag the pin to your exact business location"
+                      />
+                    </MapView>
+
+
+                    {/* MAP LOADING */}
+
+                    {reverseGeocoding && (
+                      <View
+                        style={
+                          styles.mapLoading
+                        }
+                      >
+                        <ActivityIndicator
+                          size="small"
+                          color={
+                            COLORS.themeColor
+                          }
+                        />
+
+                        <Text
+                          style={
+                            styles.mapLoadingText
+                          }
+                        >
+                          Updating address...
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+
+                  <Text
+                    style={
+                      styles.mapHint
+                    }
+                  >
+                    Tap the map or drag the pin to
+                    adjust the exact location.
+                  </Text>
+                </View>
+
+
+                {/* -------------------------------------------- */}
+                {/* BUSINESS LOCATION SUMMARY */}
+                {/* -------------------------------------------- */}
+
+                <View
+                  style={
+                    styles.summaryCard
+                  }
+                >
+                  <View
+                    style={
+                      styles.summaryIcon
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.summaryIconText
+                      }
+                    >
+                      ⌖
+                    </Text>
+                  </View>
+
+                  <View
+                    style={
+                      styles.summaryContent
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.summaryTitle
+                      }
+                    >
+                      Business location
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.summaryAddress
+                      }
+                    >
+                      {locationSummary ||
+                        'Location selected'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* -------------------------------------------- */}
+                {/* CHANGE LOCATION */}
+                {/* -------------------------------------------- */}
+
+                <TouchableOpacity
+                  style={
+                    styles.changeLocationButton
+                  }
+                  onPress={
+                    handleChangeLocation
+                  }
+                  disabled={
+                    isLocationBusy
+                  }
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={
+                      styles.changeLocationText
+                    }
+                  >
+                    Change location
+                  </Text>
+                </TouchableOpacity>
+                {/* -------------------------------------------- */}
+                {/* VERIFY & CONTINUE */}
+                {/* -------------------------------------------- */}
+
+                <TouchableOpacity
+                  style={[
+                    styles.continueButton,
+                    reverseGeocoding &&
+                      styles.buttonDisabled,
+                  ]}
+                  onPress={
+                    handleConfirmLocation
+                  }
+                  disabled={
+                    reverseGeocoding
+                  }
+                  activeOpacity={0.85}
+                >
+                  {reverseGeocoding ? (
+                    <>
+                      <ActivityIndicator
+                        size="small"
+                        color={
+                          COLORS.white
+                        }
+                      />
+
+                      <Text
+                        style={
+                          styles.continueButtonText
+                        }
+                      >
+                        Updating...
+                      </Text>
+                    </>
+                  ) : (
+                    <Text
+                      style={
+                        styles.continueButtonText
+                      }
+                    >
+                      Verify & Continue
+                    </Text>
+                  )}
+                </TouchableOpacity>
+
+              </View>
+            )}
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -1647,15 +2017,10 @@ export default function SalonAddressScreen({
 // ============================================================
 
 const styles = StyleSheet.create({
-  // ==========================================================
-  // CONTAINER
-  // ==========================================================
 
   container: {
     flex: 1,
-
-    backgroundColor:
-      COLORS.background,
+    backgroundColor: COLORS.background,
   },
 
   flex: {
@@ -1663,875 +2028,545 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    paddingHorizontal:
-      SPACING.xxl,
-
-    paddingTop:
-      SPACING.xxxl,
-
-    paddingBottom:
-      SPACING.huge,
+    paddingHorizontal: SPACING.large,
+    paddingTop: SPACING.large,
+    paddingBottom: SPACING.huge,
   },
+
 
   // ==========================================================
-  // HEADER
+  // INTRO
   // ==========================================================
 
-  headerSection: {
-    marginBottom:
-      SPACING.xxl,
+  introSection: {
+    marginBottom: SPACING.xl,
   },
 
-  title: {
-    fontFamily:
-      FONTS.bold,
-
-    fontSize: 21,
-
-    lineHeight: 27,
-
-    color:
-      COLORS.text,
-
-    letterSpacing: -0.3,
-
-    marginBottom:
-      SPACING.small,
+  pageTitle: {
+    fontFamily: FONTS.bold,
+    fontSize: FONT_SIZES.title,
+    color: COLORS.text,
+    marginBottom: SPACING.small,
   },
 
-  subtitle: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 14,
-
+  pageSubtitle: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
     lineHeight: 21,
-
-    color:
-      COLORS.textSecondary,
-
-    maxWidth: 350,
+    color: COLORS.textSecondary,
   },
 
+
   // ==========================================================
-  // LOCATION METHOD CARD
+  // SECTIONS
   // ==========================================================
 
-  locationMethodCard: {
-    backgroundColor:
-      COLORS.surface,
+  methodSection: {
+    marginBottom: SPACING.large,
+  },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.small,
+  },
+
+  sectionTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.medium,
+    color: COLORS.text,
+  },
+
+  sectionSubtitle: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 18,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.medium,
+  },
+
+  requiredText: {
+    fontFamily: FONTS.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+  },
+
+
+  // ==========================================================
+  // LOCATION METHOD CARDS
+  // ==========================================================
+
+  methodCard: {
+    minHeight: 78,
+    flexDirection: 'row',
+    alignItems: 'center',
+
+    backgroundColor: COLORS.surface,
 
     borderWidth: 1,
+    borderColor: COLORS.border,
 
-    borderColor:
-      COLORS.border,
+    borderRadius: RADIUS.large,
 
-    borderRadius:
-      RADIUS.large,
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.medium,
 
-    padding:
-      SPACING.large,
-
-    marginBottom:
-      SPACING.medium,
+    marginBottom: SPACING.small,
   },
 
-  locationMethodHeader: {
-    flexDirection:
-      'row',
-
-    alignItems:
-      'center',
-
-    marginBottom:
-      SPACING.large,
+  methodCardSelected: {
+    borderColor: COLORS.themeColor,
   },
 
-  locationIconContainer: {
+  methodCardDisabled: {
+    opacity: 0.5,
+  },
+
+  methodIcon: {
     width: 42,
-
     height: 42,
 
-    borderRadius:
-      RADIUS.round,
+    borderRadius: RADIUS.round,
 
-    backgroundColor:
-      COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    backgroundColor: COLORS.background,
 
     borderWidth: 1,
+    borderColor: COLORS.border,
 
-    borderColor:
-      COLORS.border,
-
-    alignItems:
-      'center',
-
-    justifyContent:
-      'center',
-
-    marginRight:
-      SPACING.medium,
+    marginRight: SPACING.medium,
   },
 
-  locationPinIcon: {
-    fontSize: 22,
-
-    color:
-      COLORS.primary,
+  methodIconText: {
+    fontFamily: FONTS.medium,
+    fontSize: 21,
+    color: COLORS.text,
   },
 
-  locationMethodHeaderText: {
+  methodContent: {
+    flex: 1,
+    paddingRight: SPACING.small,
+  },
+
+  methodTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+
+  methodDescription: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 17,
+    color: COLORS.textSecondary,
+  },
+
+  chevron: {
+    fontFamily: FONTS.regular,
+    fontSize: 26,
+    color: COLORS.textMuted,
+  },
+
+
+  // ==========================================================
+  // ADDRESS
+  // ==========================================================
+
+  addressSection: {
+    marginTop: SPACING.small,
+  },
+
+  inputGroup: {
+    marginBottom: SPACING.medium,
+  },
+
+  inputLabel: {
+    fontFamily: FONTS.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.text,
+    marginBottom: SPACING.small,
+  },
+
+  input: {
+    minHeight: 48,
+
+    backgroundColor: COLORS.surface,
+
+    borderWidth: 1,
+    borderColor: COLORS.border,
+
+    borderRadius: RADIUS.medium,
+
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.small,
+
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+
+    color: COLORS.text,
+  },
+
+  inputDisabled: {
+    backgroundColor: '#F1F1F3',
+    borderColor: '#E2E2E2',
+    color: COLORS.textMuted,
+  },
+
+  pincodeInput: {
+    maxWidth: 180,
+  },
+
+  row: {
+    flexDirection: 'row',
+    gap: SPACING.medium,
+  },
+
+  halfInput: {
     flex: 1,
   },
 
-  locationMethodTitle: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 16,
-
-    color:
-      COLORS.text,
-
-    marginBottom: 3,
-  },
-
-  locationMethodSubtitle: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 12,
-
-    lineHeight: 17,
-
-    color:
-      COLORS.textSecondary,
-  },
 
   // ==========================================================
   // SEARCH
   // ==========================================================
 
-  searchLabel: {
-    fontFamily:
-      FONTS.semiBold,
+  searchSection: {
+    marginTop: SPACING.large,
+    paddingTop: SPACING.large,
 
-    fontSize: 13,
-
-    color:
-      COLORS.text,
-
-    marginBottom:
-      SPACING.small,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
 
-  searchRow: {
-    flexDirection:
-      'row',
+  searchTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.body,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
 
-    alignItems:
-      'center',
+  searchDescription: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 18,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.medium,
   },
 
   searchInput: {
-    flex: 1,
+    minHeight: 72,
 
-    height: 50,
-
-    backgroundColor:
-      COLORS.background,
+    backgroundColor: COLORS.surface,
 
     borderWidth: 1,
+    borderColor: COLORS.border,
 
-    borderColor:
-      COLORS.border,
+    borderRadius: RADIUS.medium,
 
-    borderRadius:
-      RADIUS.medium,
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.medium,
 
-    paddingHorizontal:
-      SPACING.medium,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    lineHeight: 20,
 
-    fontFamily:
-      FONTS.regular,
+    color: COLORS.text,
 
-    fontSize: 14,
-
-    color:
-      COLORS.text,
-
-    marginRight:
-      SPACING.small,
+    marginBottom: SPACING.small,
   },
 
   searchButton: {
-    height: 50,
+    minHeight: 50,
 
-    paddingHorizontal:
-      SPACING.large,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
 
-    borderRadius:
-      RADIUS.medium,
+    backgroundColor: COLORS.themeColor,
 
-    backgroundColor:
-      COLORS.themeColor,
+    borderRadius: RADIUS.medium,
 
-    alignItems:
-      'center',
+    paddingHorizontal: SPACING.large,
 
-    justifyContent:
-      'center',
-
-    minWidth: 82,
+    gap: SPACING.small,
   },
 
   searchButtonText: {
-    color:
-      COLORS.white,
-
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 13,
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.white,
   },
 
+
   // ==========================================================
-  // OR DIVIDER
+  // LOCATION FOUND
   // ==========================================================
 
-  orContainer: {
-    flexDirection:
-      'row',
-
-    alignItems:
-      'center',
-
-    marginVertical:
-      SPACING.large,
+  locationFoundSection: {
+    marginTop: SPACING.small,
   },
 
-  orLine: {
-    flex: 1,
+  foundCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
 
-    height: 1,
-
-    backgroundColor:
-      COLORS.border,
-  },
-
-  orText: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 10,
-
-    color:
-      COLORS.textMuted,
-
-    marginHorizontal:
-      SPACING.medium,
-  },
-
-  // ==========================================================
-  // CURRENT LOCATION
-  // ==========================================================
-
-  currentLocationButton: {
-    minHeight: 58,
-
-    borderRadius:
-      RADIUS.medium,
+    backgroundColor: COLORS.surface,
 
     borderWidth: 1,
+    borderColor: COLORS.border,
 
-    borderColor:
-      COLORS.border,
+    borderRadius: RADIUS.large,
 
-    flexDirection:
-      'row',
+    padding: SPACING.medium,
 
-    alignItems:
-      'center',
-
-    paddingHorizontal:
-      SPACING.medium,
-
-    backgroundColor:
-      COLORS.background,
+    marginBottom: SPACING.large,
   },
 
-  currentLocationIcon: {
-    fontSize: 23,
+  foundIcon: {
+    width: 38,
+    height: 38,
 
-    color:
-      COLORS.primary,
+    borderRadius: RADIUS.round,
 
-    marginRight:
-      SPACING.medium,
-  },
+    alignItems: 'center',
+    justifyContent: 'center',
 
-  currentLocationContent: {
-    flex: 1,
-  },
-
-  currentLocationTitle: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 14,
-
-    color:
-      COLORS.text,
-
-    marginBottom: 2,
-  },
-
-  currentLocationSubtitle: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 11,
-
-    color:
-      COLORS.textSecondary,
-  },
-
-  currentLocationArrow: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 25,
-
-    color:
-      COLORS.textMuted,
-
-    marginLeft:
-      SPACING.small,
-  },
-
-  // ==========================================================
-  // SELECTED LOCATION BANNER
-  // ==========================================================
-
-  selectedLocationBanner: {
-    flexDirection:
-      'row',
-
-    alignItems:
-      'center',
-
-    backgroundColor:
-      COLORS.surface,
+    backgroundColor: COLORS.background,
 
     borderWidth: 1,
+    borderColor: COLORS.border,
 
-    borderColor:
-      COLORS.border,
-
-    borderRadius:
-      RADIUS.medium,
-
-    padding:
-      SPACING.medium,
-
-    marginBottom:
-      SPACING.medium,
+    marginRight: SPACING.medium,
   },
 
-  selectedLocationDot: {
-    width: 9,
-
-    height: 9,
-
-    borderRadius:
-      RADIUS.round,
-
-    backgroundColor:
-      COLORS.themeColor,
-
-    marginRight:
-      SPACING.small,
+  foundIconText: {
+    fontFamily: FONTS.bold,
+    fontSize: 18,
+    color: COLORS.text,
   },
 
-  selectedLocationTextContainer: {
+  foundContent: {
     flex: 1,
   },
 
-  selectedLocationTitle: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 13,
-
-    color:
-      COLORS.text,
-
-    marginBottom: 2,
+  foundTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
   },
 
-  selectedLocationSubtitle: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 11,
-
-    color:
-      COLORS.textSecondary,
-  },
-
-  // ==========================================================
-  // ADDRESS SECTION
-  // ==========================================================
-
-  sectionTitleContainer: {
-    marginTop:
-      SPACING.large,
-
-    marginBottom:
-      SPACING.large,
-  },
-
-  sectionTitle: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 17,
-
-    color:
-      COLORS.text,
-
-    marginBottom: 4,
-  },
-
-  sectionSubtitle: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 12,
-
+  foundDescription: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
     lineHeight: 17,
-
-    color:
-      COLORS.textSecondary,
+    color: COLORS.textSecondary,
   },
 
-  field: {
-    marginBottom:
-      SPACING.large,
-  },
-
-  twoColumnRow: {
-    flexDirection:
-      'row',
-
-    gap:
-      SPACING.medium,
-  },
-
-  columnField: {
-    flex: 1,
-  },
-
-  label: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 13,
-
-    color:
-      COLORS.text,
-
-    marginBottom:
-      SPACING.small,
-  },
-
-  input: {
-    minHeight: 52,
-
-    backgroundColor:
-      COLORS.surface,
-
-    borderWidth: 1,
-
-    borderColor:
-      COLORS.border,
-
-    borderRadius:
-      RADIUS.medium,
-
-    paddingHorizontal:
-      SPACING.large,
-
-    paddingVertical:
-      SPACING.medium,
-
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 15,
-
-    color:
-      COLORS.text,
-  },
-
-  addressInput: {
-    minHeight: 82,
-
-    paddingTop:
-      SPACING.medium,
-  },
 
   // ==========================================================
-  // MAP SECTION
+  // MAP
   // ==========================================================
 
   mapSection: {
-    marginTop:
-      SPACING.medium,
-
-    marginBottom:
-      SPACING.xl,
+    marginBottom: SPACING.large,
   },
 
-  mapHeader: {
-    flexDirection:
-      'row',
-
-    alignItems:
-      'flex-start',
-
-    justifyContent:
-      'space-between',
-
-    marginBottom:
-      SPACING.medium,
-  },
-
-  mapHeaderTextContainer: {
-    flex: 1,
-
-    paddingRight:
-      SPACING.medium,
-  },
-
-  mapTitle: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 17,
-
-    color:
-      COLORS.text,
-
-    marginBottom: 4,
-  },
-
-  mapSubtitle: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 12,
-
-    lineHeight: 17,
-
-    color:
-      COLORS.textSecondary,
-  },
-
-  confirmedBadge: {
-    backgroundColor:
-      COLORS.themeColor,
-
-    paddingHorizontal:
-      SPACING.small,
-
-    paddingVertical:
-      6,
-
-    borderRadius:
-      RADIUS.medium,
-  },
-
-  confirmedBadgeText: {
-    color:
-      COLORS.white,
-
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 10,
+  mapInstruction: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 18,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.small,
   },
 
   mapContainer: {
-    height: 300,
+    height: 270,
 
-    borderRadius:
-      RADIUS.large,
+    overflow: 'hidden',
 
-    overflow:
-      'hidden',
+    borderRadius: RADIUS.large,
 
     borderWidth: 1,
+    borderColor: COLORS.border,
 
-    borderColor:
-      COLORS.border,
-
-    backgroundColor:
-      COLORS.surface,
+    backgroundColor: COLORS.background,
   },
 
   map: {
     flex: 1,
   },
 
-  // ==========================================================
-  // EMPTY MAP
-  // ==========================================================
+  mapLoading: {
+    position: 'absolute',
 
-  mapEmptyOverlay: {
-    position:
-      'absolute',
+    top: SPACING.small,
 
-    left: 20,
+    alignSelf: 'center',
 
-    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
 
-    top: 0,
-
-    bottom: 0,
-
-    alignItems:
-      'center',
-
-    justifyContent:
-      'center',
-  },
-
-  mapEmptyCard: {
-    backgroundColor:
-      'rgba(255,255,255,0.94)',
-
-    borderRadius:
-      RADIUS.large,
-
-    paddingHorizontal:
-      SPACING.xl,
-
-    paddingVertical:
-      SPACING.large,
-
-    alignItems:
-      'center',
-
-    maxWidth: 290,
+    backgroundColor: COLORS.surface,
 
     borderWidth: 1,
+    borderColor: COLORS.border,
 
-    borderColor:
-      COLORS.border,
-  },
+    borderRadius: RADIUS.medium,
 
-  mapEmptyIcon: {
-    fontSize: 26,
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.small,
 
-    color:
-      COLORS.primary,
+    elevation: 3,
 
-    marginBottom:
-      SPACING.small,
-  },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
 
-  mapEmptyTitle: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 14,
-
-    color:
-      COLORS.text,
-
-    marginBottom: 5,
-  },
-
-  mapEmptyText: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 11,
-
-    lineHeight: 16,
-
-    color:
-      COLORS.textSecondary,
-
-    textAlign:
-      'center',
-  },
-
-  // ==========================================================
-  // MAP LOADING
-  // ==========================================================
-
-  mapLoadingOverlay: {
-    position:
-      'absolute',
-
-    left: 0,
-
-    right: 0,
-
-    top: 0,
-
-    bottom: 0,
-
-    alignItems:
-      'center',
-
-    justifyContent:
-      'center',
-
-    backgroundColor:
-      'rgba(255,255,255,0.25)',
-  },
-
-  mapLoadingCard: {
-    backgroundColor:
-      COLORS.surface,
-
-    borderRadius:
-      RADIUS.medium,
-
-    paddingHorizontal:
-      SPACING.large,
-
-    paddingVertical:
-      SPACING.medium,
-
-    flexDirection:
-      'row',
-
-    alignItems:
-      'center',
-
-    borderWidth: 1,
-
-    borderColor:
-      COLORS.border,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
   },
 
   mapLoadingText: {
-    marginLeft:
-      SPACING.small,
-
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 13,
-
-    color:
-      COLORS.text,
+    fontFamily: FONTS.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.text,
+    marginLeft: SPACING.small,
   },
 
+  mapHint: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 17,
+
+    color: COLORS.textMuted,
+
+    textAlign: 'center',
+
+    marginTop: SPACING.small,
+  },
+
+
   // ==========================================================
-  // COORDINATES
+  // LOCATION SUMMARY
   // ==========================================================
 
-  coordinatesCard: {
-    flexDirection:
-      'row',
+  summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
 
-    backgroundColor:
-      COLORS.surface,
+    backgroundColor: COLORS.surface,
 
     borderWidth: 1,
+    borderColor: COLORS.border,
 
-    borderColor:
-      COLORS.border,
+    borderRadius: RADIUS.large,
 
-    borderRadius:
-      RADIUS.medium,
+    padding: SPACING.medium,
 
-    marginTop:
-      SPACING.medium,
-
-    padding:
-      SPACING.medium,
+    marginBottom: SPACING.medium,
   },
 
-  coordinateItem: {
+  summaryIcon: {
+    width: 38,
+    height: 38,
+
+    borderRadius: RADIUS.round,
+
+    alignItems: 'center',
+    justifyContent: 'center',
+
+    backgroundColor: COLORS.background,
+
+    borderWidth: 1,
+    borderColor: COLORS.border,
+
+    marginRight: SPACING.medium,
+  },
+
+  summaryIconText: {
+    fontFamily: FONTS.medium,
+    fontSize: 19,
+    color: COLORS.text,
+  },
+
+  summaryContent: {
     flex: 1,
   },
 
-  coordinateDivider: {
-    width: 1,
-
-    backgroundColor:
-      COLORS.border,
-
-    marginHorizontal:
-      SPACING.medium,
+  summaryTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
   },
 
-  coordinateLabel: {
-    fontFamily:
-      FONTS.regular,
-
-    fontSize: 10,
-
-    color:
-      COLORS.textMuted,
-
-    marginBottom: 3,
+  summaryAddress: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    lineHeight: 19,
+    color: COLORS.textSecondary,
   },
 
-  coordinateValue: {
-    fontFamily:
-      FONTS.semiBold,
-
-    fontSize: 12,
-
-    color:
-      COLORS.text,
-  },
 
   // ==========================================================
-  // CONFIRM LOCATION
+  // VERIFY & CONTINUE
   // ==========================================================
 
-  confirmLocationButton: {
-    height: 52,
+  continueButton: {
+    minHeight: 52,
 
-    marginTop:
-      SPACING.medium,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
 
-    borderRadius:
-      RADIUS.medium,
+    backgroundColor: COLORS.themeColor,
 
-    backgroundColor:
-      COLORS.themeColor,
+    borderRadius: RADIUS.medium,
 
-    alignItems:
-      'center',
+    paddingHorizontal: SPACING.large,
 
-    justifyContent:
-      'center',
+    gap: SPACING.small,
+
+    marginTop: SPACING.small,
   },
 
-  confirmLocationButtonDisabled: {
-    opacity: 0.4,
+  continueButtonText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.white,
   },
 
-  confirmLocationButtonConfirmed: {
-    opacity: 1,
+  buttonDisabled: {
+    opacity: 0.5,
   },
 
-  confirmLocationText: {
-    color:
-      COLORS.white,
 
-    fontFamily:
-      FONTS.semiBold,
+  // ==========================================================
+  // CHANGE LOCATION
+  // ==========================================================
 
-    fontSize: 15,
-  },
+  changeLocationButton: {
+  marginTop: SPACING.medium,
+  minHeight: 48,
+  borderRadius: RADIUS.medium,
+  borderWidth: 1,
+  borderColor: COLORS.borderStrong,
+  backgroundColor: COLORS.surface,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+changeLocationText: {
+  fontFamily: FONTS.medium,
+  fontSize: FONT_SIZES.body,
+  color: COLORS.text,
+},
 });

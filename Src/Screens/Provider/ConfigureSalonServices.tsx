@@ -2,6 +2,7 @@ import React, {
     useMemo,
     useState,
     useCallback,
+    useEffect,
 } from 'react';
 
 import {
@@ -15,6 +16,8 @@ import {
     Alert,
     ActivityIndicator,
     Keyboard,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 
 import { useQuery } from '@apollo/client';
@@ -81,19 +84,28 @@ type ConfiguredSalonService =
 
 
 // ============================================================
+// SERVICE ROW
+// ============================================================
+//
+// Keeping the original index is important.
+//
+// We do NOT identify a service only by name/category/audience.
+// Two services can legitimately have the same name.
+//
+// The index is used only for updating the current registration
+// array safely.
+//
+
+type ServiceRow = {
+    service: ConfiguredSalonService;
+    originalIndex: number;
+};
+
+
+// ============================================================
 // HELPERS
 // ============================================================
 
-/**
- * Returns the name exactly as entered.
- *
- * IMPORTANT:
- * Do NOT trim this value while the user is typing.
- *
- * Trimming during onChangeText causes the TextInput value
- * to change immediately and can make spaces/cursor movement
- * behave strangely.
- */
 const getRawServiceName = (
     service: ConfiguredSalonService,
 ): string => {
@@ -101,13 +113,10 @@ const getRawServiceName = (
     return String(
         service.name ?? '',
     );
+
 };
 
 
-/**
- * Used only when a service name needs to be compared,
- * searched, sorted, or validated.
- */
 const getCleanServiceName = (
     service: ConfiguredSalonService,
 ): string => {
@@ -121,11 +130,6 @@ const getCleanServiceName = (
 };
 
 
-/**
- * Professional normalization for a completed text field.
- *
- * This is intentionally NOT used while typing.
- */
 const normalizeServiceName = (
     value: string,
 ): string => {
@@ -162,20 +166,48 @@ const ConfigureSalonServices = ({
         setSearchText,
     ] = useState('');
 
+
     const [
         defaultDuration,
         setDefaultDuration,
     ] = useState('');
+
 
     const [
         saving,
         setSaving,
     ] = useState(false);
 
+
     const [
         expandedCategories,
         setExpandedCategories,
     ] = useState<Record<string, boolean>>({});
+
+
+    // ========================================================
+    // LOCAL SERVICE NAME DRAFTS
+    // ========================================================
+    //
+    // IMPORTANT:
+    //
+    // Text inputs are NOT bound directly to the global
+    // registration context while typing.
+    //
+    // This prevents the entire screen from re-rendering on
+    // every keystroke.
+    //
+    // Example:
+    //
+    // draftNames["0"] = "Hair Cut"
+    //
+    // The value is committed to context when the field blurs.
+    //
+
+    const [
+        draftNames,
+        setDraftNames,
+    ] = useState<Record<string, string>>({});
 
 
     // ========================================================
@@ -188,6 +220,9 @@ const ConfigureSalonServices = ({
         error: categoriesError,
     } = useQuery(
         GET_CLAVATA_CATEGORIES,
+        {
+            fetchPolicy: 'network-only',
+        },
     );
 
 
@@ -197,6 +232,9 @@ const ConfigureSalonServices = ({
         error: subcategoriesError,
     } = useQuery(
         GET_CLAVATA_SUBCATEGORIES,
+        {
+            fetchPolicy: 'network-only',
+        },
     );
 
 
@@ -214,15 +252,50 @@ const ConfigureSalonServices = ({
                         ?.categories ||
                     [];
 
-                return [
-                    ...rawCategories,
-                ].sort(
+
+                const unique =
+                    new Map<string, Category>();
+
+
+                rawCategories.forEach(
+                    (category: Category) => {
+
+                        if (
+                            category?.categoryId &&
+                            !unique.has(
+                                String(
+                                    category.categoryId,
+                                ),
+                            )
+                        ) {
+
+                            unique.set(
+                                String(
+                                    category.categoryId,
+                                ),
+                                category,
+                            );
+
+                        }
+
+                    },
+                );
+
+
+                return Array.from(
+                    unique.values(),
+                ).sort(
                     (
-                        a: Category,
-                        b: Category,
+                        a,
+                        b,
                     ) =>
                         a.name.localeCompare(
                             b.name,
+                            undefined,
+                            {
+                                sensitivity:
+                                    'base',
+                            },
                         ),
                 );
 
@@ -247,15 +320,63 @@ const ConfigureSalonServices = ({
                         ?.subcategories ||
                     [];
 
-                return [
-                    ...rawSubcategories,
-                ].sort(
+
+                const unique =
+                    new Map<
+                        string,
+                        Subcategory
+                    >();
+
+
+                rawSubcategories.forEach(
                     (
-                        a: Subcategory,
-                        b: Subcategory,
+                        subcategory: Subcategory,
+                    ) => {
+
+                        if (
+                            !subcategory?.subcategoryId
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        const key =
+                            `${subcategory.categoryId}::${subcategory.subcategoryId}`;
+
+
+                        if (
+                            !unique.has(
+                                key,
+                            )
+                        ) {
+
+                            unique.set(
+                                key,
+                                subcategory,
+                            );
+
+                        }
+
+                    },
+                );
+
+
+                return Array.from(
+                    unique.values(),
+                ).sort(
+                    (
+                        a,
+                        b,
                     ) =>
                         a.name.localeCompare(
                             b.name,
+                            undefined,
+                            {
+                                sensitivity:
+                                    'base',
+                            },
                         ),
                 );
 
@@ -272,11 +393,123 @@ const ConfigureSalonServices = ({
 
     const selectedServices:
         ConfiguredSalonService[] =
-        Array.isArray(
-            data.serviceSelections,
-        )
-            ? data.serviceSelections as ConfiguredSalonService[]
-            : [];
+        useMemo(
+            () => {
+
+                if (
+                    !Array.isArray(
+                        data?.serviceSelections,
+                    )
+                ) {
+
+                    return [];
+
+                }
+
+
+                return (
+                    data.serviceSelections as ConfiguredSalonService[]
+                );
+
+            },
+            [
+                data?.serviceSelections,
+            ],
+        );
+
+
+    // ========================================================
+    // INITIALIZE LOCAL NAME DRAFTS
+    // ========================================================
+    //
+    // When the screen opens, copy existing saved names into
+    // local state.
+    //
+    // This also preserves names when coming back to this page.
+    //
+
+    useEffect(
+        () => {
+
+            setDraftNames(
+                previous => {
+
+                    const next = {
+                        ...previous,
+                    };
+
+
+                    selectedServices.forEach(
+                        (
+                            service,
+                            index,
+                        ) => {
+
+                            if (
+                                next[
+                                    String(index)
+                                ] ===
+                                undefined
+                            ) {
+
+                                next[
+                                    String(index)
+                                ] =
+                                    getRawServiceName(
+                                        service,
+                                    );
+
+                            }
+
+                        },
+                    );
+
+
+                    const validKeys =
+                        new Set(
+                            selectedServices.map(
+                                (
+                                    _,
+                                    index,
+                                ) =>
+                                    String(
+                                        index,
+                                    ),
+                            ),
+                        );
+
+
+                    Object.keys(
+                        next,
+                    ).forEach(
+                        key => {
+
+                            if (
+                                !validKeys.has(
+                                    key,
+                                )
+                            ) {
+
+                                delete next[
+                                    key
+                                ];
+
+                            }
+
+                        },
+                    );
+
+
+                    return next;
+
+                },
+            );
+
+        },
+        [
+            selectedServices.length,
+        ],
+    );
 
 
     // ========================================================
@@ -307,52 +540,60 @@ const ConfigureSalonServices = ({
 
 
     // ========================================================
-    // SERVICE NAME
+    // SERVICE NAME FOR INPUT
     // ========================================================
-    //
-    // IMPORTANT:
-    //
-    // This returns the RAW value.
-    //
-    // DO NOT trim here.
-    //
-    // This allows the user to type:
-    //
-    // "Hair Cut"
-    //
-    // naturally without the trailing space being removed.
-    //
 
     const getServiceName =
         useCallback(
             (
                 service: ConfiguredSalonService,
+                originalIndex: number,
             ) => {
+
+                const localValue =
+                    draftNames[
+                        String(
+                            originalIndex,
+                        )
+                    ];
+
+
+                if (
+                    localValue !==
+                    undefined
+                ) {
+
+                    return localValue;
+
+                }
+
 
                 return getRawServiceName(
                     service,
                 );
 
             },
-            [],
+            [
+                draftNames,
+            ],
         );
 
 
     // ========================================================
-    // UNIQUE SERVICE KEY
+    // SERVICE KEY
     // ========================================================
     //
-    // We prefer the permanent/local unique ID.
+    // Only used for React rendering.
     //
-    // If there isn't one, the caller should provide the
-    // service index so the fallback remains unique.
+    // We deliberately do NOT use this key to decide which
+    // service gets updated.
     //
 
-    const getServiceKey =
+    const getRenderKey =
         useCallback(
             (
                 service: ConfiguredSalonService,
-                index?: number,
+                index: number,
             ) => {
 
                 if (
@@ -372,7 +613,7 @@ const ConfigureSalonServices = ({
 
                     return String(
                         (service as any).serviceKey,
-                    );
+                    ) + `::${index}`;
 
                 }
 
@@ -383,27 +624,16 @@ const ConfigureSalonServices = ({
 
                     return String(
                         (service as any).id,
-                    );
+                    ) + `::${index}`;
 
                 }
 
 
                 return [
-                    String(
-                        service.categoryId ??
-                        '',
-                    ),
-                    String(
-                        service.subcategoryId ??
-                        '',
-                    ),
-                    String(
-                        service.audience ??
-                        '',
-                    ),
-                    String(
-                        index ?? '',
-                    ),
+                    service.categoryId,
+                    service.subcategoryId,
+                    service.audience,
+                    index,
                 ].join('::');
 
             },
@@ -422,31 +652,50 @@ const ConfigureSalonServices = ({
                 const grouped:
                     Record<
                         string,
-                        ConfiguredSalonService[]
+                        ServiceRow[]
                     > = {};
 
 
                 selectedServices.forEach(
-                    service => {
+                    (
+                        service,
+                        originalIndex,
+                    ) => {
+
+                        const categoryId =
+                            String(
+                                service.categoryId ?? '',
+                            );
+
+
+                        if (
+                            !categoryId
+                        ) {
+
+                            return;
+
+                        }
+
 
                         if (
                             !grouped[
-                                service.categoryId
+                                categoryId
                             ]
                         ) {
 
                             grouped[
-                                service.categoryId
+                                categoryId
                             ] = [];
 
                         }
 
 
                         grouped[
-                            service.categoryId
-                        ].push(
+                            categoryId
+                        ].push({
                             service,
-                        );
+                            originalIndex,
+                        });
 
                     },
                 );
@@ -467,27 +716,27 @@ const ConfigureSalonServices = ({
 
                                 const aName =
                                     getCleanServiceName(
-                                        a,
+                                        a.service,
                                     );
+
 
                                 const bName =
                                     getCleanServiceName(
-                                        b,
+                                        b.service,
                                     );
 
 
+                                /*
+                                 * Keep incomplete services first.
+                                 *
+                                 * This is more useful during setup because
+                                 * the user immediately sees what still needs
+                                 * to be completed.
+                                 */
+
                                 if (
                                     !aName &&
-                                    !bName
-                                ) {
-
-                                    return 0;
-
-                                }
-
-
-                                if (
-                                    !aName
+                                    bName
                                 ) {
 
                                     return -1;
@@ -496,6 +745,7 @@ const ConfigureSalonServices = ({
 
 
                                 if (
+                                    aName &&
                                     !bName
                                 ) {
 
@@ -504,8 +754,26 @@ const ConfigureSalonServices = ({
                                 }
 
 
-                                return aName.localeCompare(
-                                    bName,
+                                if (
+                                    aName &&
+                                    bName
+                                ) {
+
+                                    return aName.localeCompare(
+                                        bName,
+                                        undefined,
+                                        {
+                                            sensitivity:
+                                                'base',
+                                        },
+                                    );
+
+                                }
+
+
+                                return (
+                                    a.originalIndex -
+                                    b.originalIndex
                                 );
 
                             },
@@ -541,7 +809,7 @@ const ConfigureSalonServices = ({
                 return categories.filter(
                     category => {
 
-                        const categoryServices =
+                        const rows =
                             servicesByCategory[
                                 category.categoryId
                             ] ||
@@ -549,13 +817,20 @@ const ConfigureSalonServices = ({
 
 
                         if (
+                            rows.length ===
+                            0
+                        ) {
+
+                            return false;
+
+                        }
+
+
+                        if (
                             !search
                         ) {
 
-                            return (
-                                categoryServices.length >
-                                0
-                            );
+                            return true;
 
                         }
 
@@ -569,22 +844,42 @@ const ConfigureSalonServices = ({
 
 
                         const serviceMatches =
-                            categoryServices.some(
-                                service => {
+                            rows.some(
+                                row => {
 
                                     const name =
                                         getCleanServiceName(
-                                            service,
+                                            row.service,
                                         );
 
 
+                                    const subcategory =
+                                        getSubcategory(
+                                            row.service.subcategoryId,
+                                        );
+
+
+                                    const subcategoryName =
+                                        String(
+                                            subcategory?.name ||
+                                            row.service.subcategoryName ||
+                                            '',
+                                        )
+                                            .toLowerCase();
+
+
                                     return (
-                                        !!name &&
-                                        name
-                                            .toLowerCase()
-                                            .includes(
-                                                search,
-                                            )
+                                        (
+                                            !!name &&
+                                            name
+                                                .toLowerCase()
+                                                .includes(
+                                                    search,
+                                                )
+                                        ) ||
+                                        subcategoryName.includes(
+                                            search,
+                                        )
                                     );
 
                                 },
@@ -604,6 +899,7 @@ const ConfigureSalonServices = ({
                 categories,
                 searchText,
                 servicesByCategory,
+                getSubcategory,
             ],
         );
 
@@ -689,7 +985,8 @@ const ConfigureSalonServices = ({
 
     const allConfigured =
         totalCount > 0 &&
-        configuredCount === totalCount;
+        configuredCount ===
+        totalCount;
 
 
     // ========================================================
@@ -708,75 +1005,30 @@ const ConfigureSalonServices = ({
 
 
     // ========================================================
-    // UPDATE SERVICE
+    // UPDATE SERVICE BY INDEX
     // ========================================================
+    //
+    // IMPORTANT:
+    //
+    // The update is now performed by the service's original
+    // array index.
+    //
+    // We do NOT use serviceKey matching here.
+    //
+    // This prevents duplicate/legacy service keys from causing
+    // multiple inputs to change at the same time.
+    //
 
-    const updateService =
+    const updateServiceByIndex =
         useCallback(
             (
-                service:
-                    ConfiguredSalonService,
+                serviceIndex: number,
                 field:
                     | 'name'
                     | 'price'
                     | 'durationMinutes',
                 value: string,
-                serviceIndex?: number,
             ) => {
-
-                let updatedValue:
-                    | string
-                    | number
-                    | undefined;
-
-
-                // ==================================================
-                // SERVICE NAME
-                // ==================================================
-                //
-                // IMPORTANT:
-                //
-                // Store the value EXACTLY as typed.
-                //
-                // Do not trim.
-                // Do not collapse spaces.
-                //
-                // This prevents the TextInput from jumping when
-                // the user types spaces.
-                //
-
-                if (
-                    field === 'name'
-                ) {
-
-                    updatedValue =
-                        value;
-
-                } else {
-
-                    const cleanedValue =
-                        value.replace(
-                            /[^0-9]/g,
-                            '',
-                        );
-
-
-                    updatedValue =
-                        cleanedValue === ''
-                            ? undefined
-                            : Number(
-                                cleanedValue,
-                            );
-
-                }
-
-
-                const serviceKey =
-                    getServiceKey(
-                        service,
-                        serviceIndex,
-                    );
-
 
                 const updatedSelections =
                     selectedServices.map(
@@ -785,16 +1037,9 @@ const ConfigureSalonServices = ({
                             currentIndex,
                         ) => {
 
-                            const currentKey =
-                                getServiceKey(
-                                    currentService,
-                                    currentIndex,
-                                );
-
-
                             if (
-                                currentKey !==
-                                serviceKey
+                                currentIndex !==
+                                serviceIndex
                             ) {
 
                                 return currentService;
@@ -802,10 +1047,37 @@ const ConfigureSalonServices = ({
                             }
 
 
+                            if (
+                                field ===
+                                'name'
+                            ) {
+
+                                return {
+                                    ...currentService,
+                                    name:
+                                        value,
+                                };
+
+                            }
+
+
+                            const cleanedValue =
+                                value.replace(
+                                    /[^0-9]/g,
+                                    '',
+                                );
+
+
                             return {
                                 ...currentService,
+
                                 [field]:
-                                    updatedValue,
+                                    cleanedValue ===
+                                        ''
+                                        ? undefined
+                                        : Number(
+                                            cleanedValue,
+                                        ),
                             };
 
                         },
@@ -821,27 +1093,59 @@ const ConfigureSalonServices = ({
             [
                 selectedServices,
                 updateData,
-                getServiceKey,
             ],
         );
 
 
     // ========================================================
-    // NORMALIZE SERVICE NAME ON BLUR
+    // HANDLE SERVICE NAME CHANGE
+    // ========================================================
+    //
+    // This only updates local state.
+    //
+    // The global registration data does NOT update on every
+    // keystroke.
+    //
+
+    const handleServiceNameChange =
+        useCallback(
+            (
+                serviceIndex: number,
+                value: string,
+            ) => {
+
+                setDraftNames(
+                    previous => ({
+                        ...previous,
+                        [String(
+                            serviceIndex,
+                        )]:
+                            value,
+                    }),
+                );
+
+            },
+            [],
+        );
+
+
+    // ========================================================
+    // HANDLE SERVICE NAME BLUR
     // ========================================================
 
     const handleServiceNameBlur =
         useCallback(
             (
-                service:
-                    ConfiguredSalonService,
                 serviceIndex: number,
             ) => {
 
                 const rawName =
-                    getRawServiceName(
-                        service,
-                    );
+                    draftNames[
+                        String(
+                            serviceIndex,
+                        )
+                    ] ??
+                    '';
 
 
                 const normalizedName =
@@ -850,27 +1154,31 @@ const ConfigureSalonServices = ({
                     );
 
 
-                // Don't update unnecessarily.
-                if (
-                    rawName ===
-                    normalizedName
-                ) {
+                setDraftNames(
+                    previous => ({
+                        ...previous,
+                        [String(
+                            serviceIndex,
+                        )]:
+                            normalizedName,
+                    }),
+                );
 
-                    return;
 
-                }
+                /*
+                 * Commit only after the user has finished editing.
+                 */
 
-
-                updateService(
-                    service,
+                updateServiceByIndex(
+                    serviceIndex,
                     'name',
                     normalizedName,
-                    serviceIndex,
                 );
 
             },
             [
-                updateService,
+                draftNames,
+                updateServiceByIndex,
             ],
         );
 
@@ -878,13 +1186,51 @@ const ConfigureSalonServices = ({
     // ========================================================
     // ADD ANOTHER SERVICE
     // ========================================================
+    //
+    // A new service may only be added after the current service
+    // has a valid price AND duration.
+    //
 
     const addAnotherService =
         useCallback(
             (
                 service:
                     ConfiguredSalonService,
+                serviceIndex: number,
             ) => {
+
+                const validPrice =
+                    typeof service.price ===
+                        'number' &&
+                    Number.isFinite(
+                        service.price,
+                    ) &&
+                    service.price > 0;
+
+
+                const validDuration =
+                    typeof service.durationMinutes ===
+                        'number' &&
+                    Number.isFinite(
+                        service.durationMinutes,
+                    ) &&
+                    service.durationMinutes > 0;
+
+
+                if (
+                    !validPrice ||
+                    !validDuration
+                ) {
+
+                    Alert.alert(
+                        'Complete this service first',
+                        'Please enter the price and duration before adding another service.',
+                    );
+
+                    return;
+
+                }
+
 
                 const newService:
                     ConfiguredSalonService = {
@@ -900,7 +1246,8 @@ const ConfigureSalonServices = ({
 
                     description: '',
 
-                    price: undefined,
+                    price:
+                        undefined,
 
                     durationMinutes:
                         undefined,
@@ -908,36 +1255,17 @@ const ConfigureSalonServices = ({
                 };
 
 
-                const currentIndex =
-                    selectedServices.findIndex(
-                        currentService =>
-                            currentService ===
-                            service,
-                    );
+                const updatedSelections =
+                    [
+                        ...selectedServices,
+                    ];
 
 
-                const updatedSelections = [
-                    ...selectedServices,
-                ];
-
-
-                if (
-                    currentIndex >= 0
-                ) {
-
-                    updatedSelections.splice(
-                        currentIndex + 1,
-                        0,
-                        newService,
-                    );
-
-                } else {
-
-                    updatedSelections.push(
-                        newService,
-                    );
-
-                }
+                updatedSelections.splice(
+                    serviceIndex + 1,
+                    0,
+                    newService,
+                );
 
 
                 updateData({
@@ -949,7 +1277,9 @@ const ConfigureSalonServices = ({
                 setExpandedCategories(
                     previous => ({
                         ...previous,
-                        [service.categoryId]:
+                        [
+                            service.categoryId
+                        ]:
                             true,
                     }),
                 );
@@ -971,10 +1301,12 @@ const ConfigureSalonServices = ({
             (
                 service:
                     ConfiguredSalonService,
+                serviceIndex: number,
             ) => {
 
                 if (
-                    selectedServices.length <= 1
+                    selectedServices.length <=
+                    1
                 ) {
 
                     Alert.alert(
@@ -983,6 +1315,7 @@ const ConfigureSalonServices = ({
                     );
 
                     return;
+
                 }
 
 
@@ -994,6 +1327,9 @@ const ConfigureSalonServices = ({
 
                 const displayName =
                     serviceName ||
+                    getSubcategory(
+                        service.subcategoryId,
+                    )?.name ||
                     'this service';
 
 
@@ -1010,31 +1346,14 @@ const ConfigureSalonServices = ({
                             style: 'destructive',
                             onPress: () => {
 
-                                const index =
-                                    selectedServices.findIndex(
-                                        currentService =>
-                                            currentService ===
-                                            service,
-                                    );
-
-
-                                if (
-                                    index < 0
-                                ) {
-
-                                    return;
-
-                                }
-
-
                                 const updatedSelections =
                                     selectedServices.filter(
                                         (
                                             _,
-                                            currentIndex,
-                                        ) =>
-                                            currentIndex !==
                                             index,
+                                        ) =>
+                                            index !==
+                                            serviceIndex,
                                     );
 
 
@@ -1042,6 +1361,84 @@ const ConfigureSalonServices = ({
                                     serviceSelections:
                                         updatedSelections,
                                 });
+
+
+                                setDraftNames(
+                                    previous => {
+
+                                        const next = {
+                                            ...previous,
+                                        };
+
+
+                                        delete next[
+                                            String(
+                                                serviceIndex,
+                                            )
+                                        ];
+
+
+                                        /*
+                                         * Re-index drafts after removal.
+                                         */
+
+                                        const reindexed:
+                                            Record<
+                                                string,
+                                                string
+                                            > = {};
+
+
+                                        Object.keys(
+                                            next,
+                                        ).forEach(
+                                            key => {
+
+                                                const oldIndex =
+                                                    Number(
+                                                        key,
+                                                    );
+
+
+                                                if (
+                                                    oldIndex <
+                                                    serviceIndex
+                                                ) {
+
+                                                    reindexed[
+                                                        String(
+                                                            oldIndex,
+                                                        )
+                                                    ] =
+                                                        next[
+                                                            key
+                                                        ];
+
+                                                } else if (
+                                                    oldIndex >
+                                                    serviceIndex
+                                                ) {
+
+                                                    reindexed[
+                                                        String(
+                                                            oldIndex -
+                                                            1,
+                                                        )
+                                                    ] =
+                                                        next[
+                                                            key
+                                                        ];
+
+                                                }
+
+                                            },
+                                        );
+
+
+                                        return reindexed;
+
+                                    },
+                                );
 
                             },
                         },
@@ -1052,6 +1449,7 @@ const ConfigureSalonServices = ({
             [
                 selectedServices,
                 updateData,
+                getSubcategory,
             ],
         );
 
@@ -1106,6 +1504,7 @@ const ConfigureSalonServices = ({
 
 
                 if (
+                    !cleaned ||
                     !Number.isFinite(
                         duration,
                     ) ||
@@ -1118,6 +1517,7 @@ const ConfigureSalonServices = ({
                     );
 
                     return;
+
                 }
 
 
@@ -1192,6 +1592,7 @@ const ConfigureSalonServices = ({
                     );
 
                     return;
+
                 }
 
 
@@ -1236,7 +1637,8 @@ const ConfigureSalonServices = ({
 
 
                 if (
-                    matchedCount === 0
+                    matchedCount ===
+                    0
                 ) {
 
                     Alert.alert(
@@ -1245,6 +1647,7 @@ const ConfigureSalonServices = ({
                     );
 
                     return;
+
                 }
 
 
@@ -1256,9 +1659,10 @@ const ConfigureSalonServices = ({
 
                 Alert.alert(
                     'Duration applied',
-                    `${duration} minutes has been applied to ${matchedCount} selected ${matchedCount === 1
-                        ? 'service'
-                        : 'services'
+                    `${duration} minutes has been applied to ${matchedCount} selected ${
+                        matchedCount === 1
+                            ? 'service'
+                            : 'services'
                     } in this category.`,
                 );
 
@@ -1281,8 +1685,60 @@ const ConfigureSalonServices = ({
                 Keyboard.dismiss();
 
 
+                /*
+                 * Commit any local name drafts before validation.
+                 *
+                 * This protects against a user typing a name and
+                 * immediately pressing Continue without manually
+                 * leaving the field first.
+                 */
+
+                const committedSelections =
+                    selectedServices.map(
+                        (
+                            service,
+                            index,
+                        ) => {
+
+                            const draft =
+                                draftNames[
+                                    String(
+                                        index,
+                                    )
+                                ];
+
+
+                            if (
+                                draft ===
+                                undefined
+                            ) {
+
+                                return service;
+
+                            }
+
+
+                            return {
+                                ...service,
+                                name:
+                                    normalizeServiceName(
+                                        draft,
+                                    ),
+                            };
+
+                        },
+                    );
+
+
+                updateData({
+                    serviceSelections:
+                        committedSelections,
+                });
+
+
                 if (
-                    totalCount === 0
+                    committedSelections.length ===
+                    0
                 ) {
 
                     Alert.alert(
@@ -1291,11 +1747,12 @@ const ConfigureSalonServices = ({
                     );
 
                     return;
+
                 }
 
 
                 const incompleteServices =
-                    selectedServices.filter(
+                    committedSelections.filter(
                         service =>
                             !isServiceConfigured(
                                 service,
@@ -1321,6 +1778,7 @@ const ConfigureSalonServices = ({
                     );
 
                     return;
+
                 }
 
 
@@ -1332,18 +1790,20 @@ const ConfigureSalonServices = ({
 
                         setSaving(false);
 
+
                         navigation.navigate(
                             'ServiceReview',
                         );
 
                     },
-                    300,
+                    250,
                 );
 
             },
             [
-                totalCount,
                 selectedServices,
+                draftNames,
+                updateData,
                 isServiceConfigured,
                 navigation,
             ],
@@ -1386,7 +1846,7 @@ const ConfigureSalonServices = ({
                     <ActivityIndicator
                         size="large"
                         color={
-                            COLORS.primary
+                            COLORS.themeColor
                         }
                     />
 
@@ -1499,604 +1959,647 @@ const ConfigureSalonServices = ({
             />
 
 
-            <ScrollView
-                showsVerticalScrollIndicator={
-                    false
+            <KeyboardAvoidingView
+                style={
+                    styles.keyboardContainer
                 }
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={
-                    styles.content
+                behavior={
+                    Platform.OS ===
+                    'ios'
+                        ? 'padding'
+                        : undefined
                 }
             >
 
-                {/* ================================================= */}
-                {/* TITLE */}
-                {/* ================================================= */}
-
-                <Text
-                    style={
-                        styles.title
+                <ScrollView
+                    showsVerticalScrollIndicator={
+                        false
                     }
-                >
-                    Set up your services
-                </Text>
-
-
-                <Text
-                    style={
-                        styles.subtitle
-                    }
-                >
-                    Add each actual service your salon
-                    provides. You can add multiple services
-                    under the same category and subcategory.
-                </Text>
-
-
-                {/* ================================================= */}
-                {/* PROGRESS */}
-                {/* ================================================= */}
-
-                <View
-                    style={
-                        styles.progressCard
+                    keyboardShouldPersistTaps="handled"
+                    contentContainerStyle={
+                        styles.content
                     }
                 >
 
-                    <View
+                    {/* ================================================= */}
+                    {/* TITLE */}
+                    {/* ================================================= */}
+
+                    <Text
                         style={
-                            styles.progressHeader
+                            styles.title
                         }
                     >
-
-                        <View>
-
-                            <Text
-                                style={
-                                    styles.progressTitle
-                                }
-                            >
-                                Service setup
-                            </Text>
+                        Set up your services
+                    </Text>
 
 
-                            <Text
-                                style={
-                                    styles.progressSubtitle
-                                }
-                            >
-                                {configuredCount} of {totalCount}{' '}
-                                completed
-                            </Text>
+                    <Text
+                        style={
+                            styles.subtitle
+                        }
+                    >
+                        Enter the actual services you offer,
+                        along with their price and typical
+                        duration.
+                    </Text>
 
-                        </View>
 
-
-                        <Text
-                            style={
-                                styles.progressPercentage
-                            }
-                        >
-                            {progressPercentage}%
-                        </Text>
-
-                    </View>
-
+                    {/* ================================================= */}
+                    {/* PROGRESS */}
+                    {/* ================================================= */}
 
                     <View
                         style={
-                            styles.progressTrack
+                            styles.progressCard
                         }
                     >
 
                         <View
-                            style={[
-                                styles.progressFill,
-                                {
-                                    width:
-                                        `${progressPercentage}%`,
-                                },
-                            ]}
-                        />
-
-                    </View>
-
-
-                    {remainingCount > 0 ? (
-
-                        <Text
                             style={
-                                styles.remainingText
-                            }
-                        >
-                            {remainingCount}{' '}
-                            {remainingCount === 1
-                                ? 'service'
-                                : 'services'}{' '}
-                            remaining
-                        </Text>
-
-                    ) : (
-
-                        <Text
-                            style={
-                                styles.completedText
-                            }
-                        >
-                            ✓ All services completed
-                        </Text>
-
-                    )}
-
-                </View>
-
-
-                {/* ================================================= */}
-                {/* BULK DURATION */}
-                {/* ================================================= */}
-
-                {totalCount > 1 && (
-
-                    <View
-                        style={
-                            styles.bulkCard
-                        }
-                    >
-
-                        <Text
-                            style={
-                                styles.bulkTitle
-                            }
-                        >
-                            Save time
-                        </Text>
-
-
-                        <Text
-                            style={
-                                styles.bulkSubtitle
-                            }
-                        >
-                            If most of your services have the same
-                            duration, apply it to all services at once.
-                        </Text>
-
-
-                        <View
-                            style={
-                                styles.bulkRow
+                                styles.progressHeader
                             }
                         >
 
-                            <TextInput
-                                value={
-                                    defaultDuration
-                                }
-                                onChangeText={
-                                    value =>
-                                        setDefaultDuration(
-                                            value.replace(
-                                                /[^0-9]/g,
-                                                '',
-                                            ),
-                                        )
-                                }
-                                placeholder="30"
-                                placeholderTextColor={
-                                    COLORS.textSecondary
-                                }
-                                keyboardType="number-pad"
+                            <View
                                 style={
-                                    styles.bulkInput
-                                }
-                                maxLength={
-                                    3
-                                }
-                            />
-
-
-                            <Text
-                                style={
-                                    styles.minutesText
-                                }
-                            >
-                                min
-                            </Text>
-
-
-                            <TouchableOpacity
-                                style={
-                                    styles.applyButton
-                                }
-                                onPress={
-                                    applyDurationToAll
-                                }
-                                activeOpacity={
-                                    0.7
+                                    styles.progressHeaderLeft
                                 }
                             >
 
                                 <Text
                                     style={
-                                        styles.applyButtonText
+                                        styles.progressTitle
                                     }
                                 >
-                                    Apply to all
+                                    Service setup
+                                </Text>
+
+
+                                <Text
+                                    style={
+                                        styles.progressSubtitle
+                                    }
+                                >
+                                    {configuredCount} of {totalCount}{' '}
+                                    completed
+                                </Text>
+
+                            </View>
+
+
+                            <Text
+                                style={
+                                    styles.progressPercentage
+                                }
+                            >
+                                {progressPercentage}%
+                            </Text>
+
+                        </View>
+
+
+                        <View
+                            style={
+                                styles.progressTrack
+                            }
+                        >
+
+                            <View
+                                style={[
+                                    styles.progressFill,
+                                    {
+                                        width:
+                                            `${progressPercentage}%`,
+                                    },
+                                ]}
+                            />
+
+                        </View>
+
+
+                        {remainingCount > 0 ? (
+
+                            <Text
+                                style={
+                                    styles.remainingText
+                                }
+                            >
+                                {remainingCount}{' '}
+                                {remainingCount ===
+                                1
+                                    ? 'service'
+                                    : 'services'}{' '}
+                                remaining
+                            </Text>
+
+                        ) : (
+
+                            <Text
+                                style={
+                                    styles.completedText
+                                }
+                            >
+                                ✓ All services completed
+                            </Text>
+
+                        )}
+
+                    </View>
+
+
+                    {/* ================================================= */}
+                    {/* BULK DURATION */}
+                    {/* ================================================= */}
+
+                    {totalCount > 1 && (
+
+                        <View
+                            style={
+                                styles.bulkCard
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.bulkTitle
+                                }
+                            >
+                                Apply a common duration
+                            </Text>
+
+
+                            <Text
+                                style={
+                                    styles.bulkSubtitle
+                                }
+                            >
+                                Useful when most of your services
+                                take a similar amount of time.
+                            </Text>
+
+
+                            <View
+                                style={
+                                    styles.bulkRow
+                                }
+                            >
+
+                                <TextInput
+                                    value={
+                                        defaultDuration
+                                    }
+                                    onChangeText={
+                                        value =>
+                                            setDefaultDuration(
+                                                value.replace(
+                                                    /[^0-9]/g,
+                                                    '',
+                                                ),
+                                            )
+                                    }
+                                    placeholder="30"
+                                    placeholderTextColor={
+                                        COLORS.textSecondary
+                                    }
+                                    keyboardType="number-pad"
+                                    style={
+                                        styles.bulkInput
+                                    }
+                                    maxLength={
+                                        3
+                                    }
+                                />
+
+
+                                <Text
+                                    style={
+                                        styles.minutesText
+                                    }
+                                >
+                                    min
+                                </Text>
+
+
+                                <TouchableOpacity
+                                    style={
+                                        styles.applyButton
+                                    }
+                                    onPress={
+                                        applyDurationToAll
+                                    }
+                                    activeOpacity={
+                                        0.8
+                                    }
+                                >
+
+                                    <Text
+                                        style={
+                                            styles.applyButtonText
+                                        }
+                                    >
+                                        Apply to all
+                                    </Text>
+
+                                </TouchableOpacity>
+
+                            </View>
+
+                        </View>
+                    )}
+
+
+                    {/* ================================================= */}
+                    {/* SEARCH */}
+                    {/* ================================================= */}
+
+                    <View
+                        style={
+                            styles.searchContainer
+                        }
+                    >
+
+                        <TextInput
+                            value={
+                                searchText
+                            }
+                            onChangeText={
+                                setSearchText
+                            }
+                            placeholder="Search category or service"
+                            placeholderTextColor={
+                                COLORS.textSecondary
+                            }
+                            style={
+                                styles.searchInput
+                            }
+                            returnKeyType="search"
+                            autoCorrect={
+                                false
+                            }
+                            autoCapitalize="none"
+                        />
+
+                    </View>
+
+
+                    {/* ================================================= */}
+                    {/* EMPTY */}
+                    {/* ================================================= */}
+
+                    {totalCount ===
+                        0 && (
+
+                        <View
+                            style={
+                                styles.emptyContainer
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.emptyTitle
+                                }
+                            >
+                                No services selected
+                            </Text>
+
+
+                            <Text
+                                style={
+                                    styles.emptyText
+                                }
+                            >
+                                Go back and select the service
+                                categories your business provides.
+                            </Text>
+
+
+                            <TouchableOpacity
+                                style={
+                                    styles.goBackButton
+                                }
+                                onPress={() =>
+                                    navigation.goBack()
+                                }
+                            >
+
+                                <Text
+                                    style={
+                                        styles.goBackButtonText
+                                    }
+                                >
+                                    Select Services
                                 </Text>
 
                             </TouchableOpacity>
 
                         </View>
 
-                    </View>
-                )}
+                    )}
 
 
-                {/* ================================================= */}
-                {/* SEARCH */}
-                {/* ================================================= */}
+                    {/* ================================================= */}
+                    {/* CATEGORY LIST */}
+                    {/* ================================================= */}
 
-                <View
-                    style={
-                        styles.searchContainer
-                    }
-                >
+                    {filteredCategories.map(
+                        (
+                            category,
+                        ) => {
 
-                    <TextInput
-                        value={
-                            searchText
-                        }
-                        onChangeText={
-                            setSearchText
-                        }
-                        placeholder="Search selected services"
-                        placeholderTextColor={
-                            COLORS.textSecondary
-                        }
-                        style={
-                            styles.searchInput
-                        }
-                        returnKeyType="search"
-                        autoCorrect={false}
-                    />
-
-                </View>
+                            const categoryRows =
+                                servicesByCategory[
+                                    category.categoryId
+                                ] ||
+                                [];
 
 
-                {/* ================================================= */}
-                {/* EMPTY */}
-                {/* ================================================= */}
-
-                {totalCount === 0 && (
-
-                    <View
-                        style={
-                            styles.emptyContainer
-                        }
-                    >
-
-                        <Text
-                            style={
-                                styles.emptyTitle
-                            }
-                        >
-                            No services selected
-                        </Text>
+                            const search =
+                                searchText
+                                    .trim()
+                                    .toLowerCase();
 
 
-                        <Text
-                            style={
-                                styles.emptyText
-                            }
-                        >
-                            Go back and select the services
-                            your salon provides.
-                        </Text>
+                            const visibleRows =
+                                search
+                                    ? categoryRows.filter(
+                                        row => {
+
+                                            const serviceName =
+                                                getCleanServiceName(
+                                                    row.service,
+                                                );
 
 
-                        <TouchableOpacity
-                            style={
-                                styles.goBackButton
-                            }
-                            onPress={() =>
-                                navigation.goBack()
-                            }
-                        >
-
-                            <Text
-                                style={
-                                    styles.goBackButtonText
-                                }
-                            >
-                                Select Services
-                            </Text>
-
-                        </TouchableOpacity>
-
-                    </View>
-
-                )}
+                                            const subcategory =
+                                                getSubcategory(
+                                                    row.service.subcategoryId,
+                                                );
 
 
-                {/* ================================================= */}
-                {/* CATEGORY LIST */}
-                {/* ================================================= */}
-
-                {filteredCategories.map(
-                    category => {
-
-                        const categoryServices =
-                            servicesByCategory[
-                                category.categoryId
-                            ] ||
-                            [];
+                                            const subcategoryName =
+                                                String(
+                                                    subcategory?.name ||
+                                                    row.service.subcategoryName ||
+                                                    '',
+                                                )
+                                                    .toLowerCase();
 
 
-                        const search =
-                            searchText
-                                .trim()
-                                .toLowerCase();
+                                            const categoryMatches =
+                                                category.name
+                                                    .toLowerCase()
+                                                    .includes(
+                                                        search,
+                                                    );
 
 
-                        const visibleServices =
-                            search
-                                ? categoryServices.filter(
-                                    service => {
+                                            const serviceMatches =
+                                                !!serviceName &&
+                                                serviceName
+                                                    .toLowerCase()
+                                                    .includes(
+                                                        search,
+                                                    );
 
-                                        const serviceName =
-                                            getCleanServiceName(
-                                                service,
+
+                                            const subcategoryMatches =
+                                                subcategoryName.includes(
+                                                    search,
+                                                );
+
+
+                                            return (
+                                                categoryMatches ||
+                                                serviceMatches ||
+                                                subcategoryMatches
                                             );
 
-
-                                        const categoryMatches =
-                                            category.name
-                                                .toLowerCase()
-                                                .includes(
-                                                    search,
-                                                );
-
-
-                                        const serviceMatches =
-                                            !!serviceName &&
-                                            serviceName
-                                                .toLowerCase()
-                                                .includes(
-                                                    search,
-                                                );
-
-
-                                        return (
-                                            categoryMatches ||
-                                            serviceMatches
-                                        );
-
-                                    },
-                                )
-                                : categoryServices;
-
-
-                        if (
-                            visibleServices.length ===
-                            0
-                        ) {
-
-                            return null;
-
-                        }
-
-
-                        const isOpen =
-                            expandedCategories[
-                                category.categoryId
-                            ] ??
-                            true;
-
-
-                        const categoryCompleted =
-                            categoryServices.filter(
-                                isServiceConfigured,
-                            ).length;
-
-
-                        return (
-                            <View
-                                key={
-                                    String(
-                                        category.categoryId,
+                                        },
                                     )
-                                }
-                                style={
-                                    styles.categoryCard
-                                }
-                            >
+                                    : categoryRows;
 
-                                {/* CATEGORY HEADER */}
 
-                                <TouchableOpacity
-                                    activeOpacity={
-                                        0.7
-                                    }
-                                    style={
-                                        styles.categoryHeader
-                                    }
-                                    onPress={() =>
-                                        toggleCategory(
+                            if (
+                                visibleRows.length ===
+                                0
+                            ) {
+
+                                return null;
+
+                            }
+
+
+                            const isOpen =
+                                expandedCategories[
+                                    category.categoryId
+                                ] ??
+                                true;
+
+
+                            const categoryCompleted =
+                                categoryRows.filter(
+                                    row =>
+                                        isServiceConfigured(
+                                            row.service,
+                                        ),
+                                ).length;
+
+
+                            return (
+                                <View
+                                    key={
+                                        String(
                                             category.categoryId,
                                         )
                                     }
+                                    style={
+                                        styles.categoryCard
+                                    }
                                 >
 
-                                    <View
+                                    {/* CATEGORY HEADER */}
+
+                                    <TouchableOpacity
+                                        activeOpacity={
+                                            0.75
+                                        }
                                         style={
-                                            styles.categoryHeaderLeft
+                                            styles.categoryHeader
+                                        }
+                                        onPress={() =>
+                                            toggleCategory(
+                                                category.categoryId,
+                                            )
                                         }
                                     >
 
-                                        <Text
+                                        <View
                                             style={
-                                                styles.categoryName
+                                                styles.categoryHeaderLeft
                                             }
                                         >
-                                            {
-                                                category.name
-                                            }
-                                        </Text>
+
+                                            <Text
+                                                style={
+                                                    styles.categoryName
+                                                }
+                                            >
+                                                {
+                                                    category.name
+                                                }
+                                            </Text>
 
 
-                                        <Text
+                                            <Text
+                                                style={
+                                                    styles.categoryCount
+                                                }
+                                            >
+                                                {
+                                                    categoryCompleted
+                                                }
+                                                {' / '}
+                                                {
+                                                    categoryRows.length
+                                                }
+                                                {' completed'}
+                                            </Text>
+
+                                        </View>
+
+
+                                        <View
                                             style={
-                                                styles.categoryCount
+                                                styles.categoryHeaderRight
                                             }
                                         >
-                                            {
-                                                categoryCompleted
+
+                                            <Text
+                                                style={
+                                                    styles.categoryArrow
+                                                }
+                                            >
+                                                {isOpen
+                                                    ? '−'
+                                                    : '+'}
+                                            </Text>
+
+                                        </View>
+
+                                    </TouchableOpacity>
+
+
+                                    {/* CATEGORY CONTENT */}
+
+                                    {isOpen && (
+
+                                        <View
+                                            style={
+                                                styles.servicesContainer
                                             }
-                                            {' / '}
-                                            {
-                                                categoryServices.length
-                                            }
-                                            {' completed'}
-                                        </Text>
+                                        >
 
-                                    </View>
+                                            {visibleRows.map(
+                                                (
+                                                    row,
+                                                    visibleIndex,
+                                                ) => {
 
-
-                                    <Text
-                                        style={
-                                            styles.categoryArrow
-                                        }
-                                    >
-                                        {isOpen
-                                            ? '−'
-                                            : '+'}
-                                    </Text>
-
-                                </TouchableOpacity>
-
-
-                                {/* CATEGORY SERVICES */}
-
-                                {isOpen && (
-
-                                    <View
-                                        style={
-                                            styles.servicesContainer
-                                        }
-                                    >
-
-                                        {visibleServices.map(
-                                            (
-                                                service,
-                                                serviceIndex,
-                                            ) => {
-
-                                                const subcategory =
-                                                    getSubcategory(
-                                                        service.subcategoryId,
-                                                    );
-
-
-                                                const configured =
-                                                    isServiceConfigured(
+                                                    const {
                                                         service,
-                                                    );
+                                                        originalIndex,
+                                                    } = row;
 
 
-                                                /*
-                                                 * IMPORTANT:
-                                                 *
-                                                 * Use the absolute index from
-                                                 * categoryServices where possible.
-                                                 *
-                                                 * Adding serviceIndex alone can
-                                                 * become unstable when searching.
-                                                 *
-                                                 * uniqueId/serviceKey is preferred.
-                                                 */
+                                                    const subcategory =
+                                                        getSubcategory(
+                                                            service.subcategoryId,
+                                                        );
 
-                                                const absoluteIndex =
-                                                    categoryServices.findIndex(
-                                                        item =>
-                                                            item ===
+
+                                                    const configured =
+                                                        isServiceConfigured(
                                                             service,
-                                                    );
+                                                        );
 
 
-                                                const stableIndex =
-                                                    absoluteIndex >= 0
-                                                        ? absoluteIndex
-                                                        : serviceIndex;
+                                                    const serviceName =
+                                                        getServiceName(
+                                                            service,
+                                                            originalIndex,
+                                                        );
 
 
-                                                const serviceKey =
-                                                    getServiceKey(
-                                                        service,
-                                                        stableIndex,
-                                                    );
+                                                    const renderKey =
+                                                        getRenderKey(
+                                                            service,
+                                                            originalIndex,
+                                                        );
 
 
-                                                /*
-                                                 * Extra uniqueness protection.
-                                                 *
-                                                 * If old data contains duplicate
-                                                 * serviceKey values, React will
-                                                 * still receive a unique key.
-                                                 */
-
-                                                const renderKey =
-                                                    `${serviceKey}::${stableIndex}`;
+                                                    const subcategoryName =
+                                                        subcategory?.name ||
+                                                        service.subcategoryName ||
+                                                        'Service';
 
 
-                                                const serviceName =
-                                                    getServiceName(
-                                                        service,
-                                                    );
+                                                    const audienceLabel =
+                                                        service.audience ===
+                                                            'FEMALE'
+                                                            ? 'Women'
+                                                            : service.audience ===
+                                                                'MALE'
+                                                                ? 'Men'
+                                                                : 'Kids';
 
 
-                                                return (
-                                                    <View
-                                                        key={
-                                                            renderKey
-                                                        }
-                                                        style={[
-                                                            styles.serviceCard,
-                                                            !configured &&
-                                                            styles.serviceCardIncomplete,
-                                                        ]}
-                                                    >
-
-                                                        {/* SERVICE NAME */}
-
+                                                    return (
                                                         <View
-                                                            style={
-                                                                styles.serviceHeader
+                                                            key={
+                                                                renderKey
                                                             }
+                                                            style={[
+                                                                styles.serviceCard,
+                                                                !configured &&
+                                                                styles.serviceCardIncomplete,
+                                                            ]}
                                                         >
+
+                                                            {/* SERVICE CONTEXT */}
 
                                                             <View
                                                                 style={
-                                                                    styles.serviceTitleContainer
+                                                                    styles.serviceContext
                                                                 }
                                                             >
 
                                                                 <View
                                                                     style={
-                                                                        styles.serviceTopRow
+                                                                        styles.serviceNumber
                                                                     }
                                                                 >
 
                                                                     <Text
                                                                         style={
-                                                                            styles.serviceNumber
+                                                                            styles.serviceNumberText
                                                                         }
                                                                     >
                                                                         {
-                                                                            serviceIndex +
+                                                                            visibleIndex +
                                                                             1
                                                                         }
                                                                     </Text>
 
+                                                                </View>
+
+
+                                                                <View
+                                                                    style={
+                                                                        styles.serviceContextText
+                                                                    }
+                                                                >
 
                                                                     <Text
                                                                         style={
@@ -2104,21 +2607,64 @@ const ConfigureSalonServices = ({
                                                                         }
                                                                     >
                                                                         {
-                                                                            subcategory?.name ||
-                                                                            service.subcategoryName ||
-                                                                            'Service'
+                                                                            subcategoryName
                                                                         }
                                                                     </Text>
 
+
+                                                                    <View
+                                                                        style={
+                                                                            styles.contextBottomRow
+                                                                        }
+                                                                    >
+
+                                                                        <View
+                                                                            style={
+                                                                                styles.audienceBadge
+                                                                            }
+                                                                        >
+
+                                                                            <Text
+                                                                                style={
+                                                                                    styles.audienceBadgeText
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    audienceLabel
+                                                                                }
+                                                                            </Text>
+
+                                                                        </View>
+
+                                                                    </View>
+
                                                                 </View>
 
+                                                            </View>
+
+
+                                                            {/* SERVICE NAME */}
+
+                                                            <View
+                                                                style={
+                                                                    styles.nameFieldContainer
+                                                                }
+                                                            >
 
                                                                 <Text
                                                                     style={
                                                                         styles.fieldLabel
                                                                     }
                                                                 >
-                                                                    Service name *
+                                                                    Service name
+                                                                    <Text
+                                                                        style={
+                                                                            styles.requiredAsterisk
+                                                                        }
+                                                                    >
+                                                                        {' '}
+                                                                        *
+                                                                    </Text>
                                                                 </Text>
 
 
@@ -2128,27 +2674,25 @@ const ConfigureSalonServices = ({
                                                                     }
                                                                     onChangeText={
                                                                         value =>
-                                                                            updateService(
-                                                                                service,
-                                                                                'name',
+                                                                            handleServiceNameChange(
+                                                                                originalIndex,
                                                                                 value,
-                                                                                stableIndex,
                                                                             )
                                                                     }
-                                                                    onBlur={
-                                                                        () =>
-                                                                            handleServiceNameBlur(
-                                                                                service,
-                                                                                stableIndex,
-                                                                            )
+                                                                    onBlur={() =>
+                                                                        handleServiceNameBlur(
+                                                                            originalIndex,
+                                                                        )
                                                                     }
-                                                                    placeholder="Enter service name"
+                                                                    placeholder="e.g. Hair Cut, Hair Color, Facial"
                                                                     placeholderTextColor={
                                                                         COLORS.textSecondary
                                                                     }
-                                                                    style={
-                                                                        styles.nameInput
-                                                                    }
+                                                                    style={[
+                                                                        styles.nameInput,
+                                                                        !serviceName.trim() &&
+                                                                        styles.nameInputIncomplete,
+                                                                    ]}
                                                                     maxLength={
                                                                         100
                                                                     }
@@ -2158,25 +2702,185 @@ const ConfigureSalonServices = ({
                                                                     }
                                                                     autoCapitalize="words"
                                                                     blurOnSubmit={
-                                                                        true
+                                                                        false
+                                                                    }
+                                                                    textContentType="name"
+                                                                    importantForAutofill="no"
+                                                                    multiline={
+                                                                        false
                                                                     }
                                                                 />
 
+                                                            </View>
 
-                                                                <Text
+
+                                                            {/* PRICE + DURATION */}
+
+                                                            <View
+                                                                style={
+                                                                    styles.fieldsRow
+                                                                }
+                                                            >
+
+                                                                {/* PRICE */}
+
+                                                                <View
                                                                     style={
-                                                                        styles.audienceLabel
+                                                                        styles.fieldContainer
                                                                     }
                                                                 >
-                                                                    {service.audience ===
-                                                                        'FEMALE'
-                                                                        ? 'Women'
-                                                                        : service.audience ===
-                                                                            'MALE'
-                                                                            ? 'Men'
-                                                                            : 'Kids'}
-                                                                </Text>
 
+                                                                    <Text
+                                                                        style={
+                                                                            styles.fieldLabel
+                                                                        }
+                                                                    >
+                                                                        Price
+                                                                        <Text
+                                                                            style={
+                                                                                styles.requiredAsterisk
+                                                                            }
+                                                                        >
+                                                                            {' '}
+                                                                            *
+                                                                        </Text>
+                                                                    </Text>
+
+
+                                                                    <View
+                                                                        style={
+                                                                            styles.inputWithPrefix
+                                                                        }
+                                                                    >
+
+                                                                        <Text
+                                                                            style={
+                                                                                styles.prefix
+                                                                            }
+                                                                        >
+                                                                            ₹
+                                                                        </Text>
+
+
+                                                                        <TextInput
+                                                                            value={
+                                                                                service.price !==
+                                                                                    undefined
+                                                                                    ? String(
+                                                                                        service.price,
+                                                                                    )
+                                                                                    : ''
+                                                                            }
+                                                                            onChangeText={
+                                                                                value =>
+                                                                                    updateServiceByIndex(
+                                                                                        originalIndex,
+                                                                                        'price',
+                                                                                        value,
+                                                                                    )
+                                                                            }
+                                                                            placeholder="0"
+                                                                            placeholderTextColor={
+                                                                                COLORS.textSecondary
+                                                                            }
+                                                                            keyboardType="number-pad"
+                                                                            style={
+                                                                                styles.serviceInput
+                                                                            }
+                                                                            maxLength={
+                                                                                6
+                                                                            }
+                                                                        />
+
+                                                                    </View>
+
+                                                                </View>
+
+
+                                                                {/* DURATION */}
+
+                                                                <View
+                                                                    style={
+                                                                        styles.fieldContainer
+                                                                    }
+                                                                >
+
+                                                                    <Text
+                                                                        style={
+                                                                            styles.fieldLabel
+                                                                        }
+                                                                    >
+                                                                        Duration
+                                                                        <Text
+                                                                            style={
+                                                                                styles.requiredAsterisk
+                                                                            }
+                                                                        >
+                                                                            {' '}
+                                                                            *
+                                                                        </Text>
+                                                                    </Text>
+
+
+                                                                    <View
+                                                                        style={
+                                                                            styles.inputWithSuffix
+                                                                        }
+                                                                    >
+
+                                                                        <TextInput
+                                                                            value={
+                                                                                service.durationMinutes !==
+                                                                                    undefined
+                                                                                    ? String(
+                                                                                        service.durationMinutes,
+                                                                                    )
+                                                                                    : ''
+                                                                            }
+                                                                            onChangeText={
+                                                                                value =>
+                                                                                    updateServiceByIndex(
+                                                                                        originalIndex,
+                                                                                        'durationMinutes',
+                                                                                        value,
+                                                                                    )
+                                                                            }
+                                                                            placeholder="30"
+                                                                            placeholderTextColor={
+                                                                                COLORS.textSecondary
+                                                                            }
+                                                                            keyboardType="number-pad"
+                                                                            style={
+                                                                                styles.serviceInput
+                                                                            }
+                                                                            maxLength={
+                                                                                3
+                                                                            }
+                                                                        />
+
+
+                                                                        <Text
+                                                                            style={
+                                                                                styles.suffix
+                                                                            }
+                                                                        >
+                                                                            min
+                                                                        </Text>
+
+                                                                    </View>
+
+                                                                </View>
+
+                                                            </View>
+
+
+                                                            {/* STATUS */}
+
+                                                            <View
+                                                                style={
+                                                                    styles.statusRow
+                                                                }
+                                                            >
 
                                                                 {!configured ? (
 
@@ -2185,7 +2889,7 @@ const ConfigureSalonServices = ({
                                                                             styles.requiredLabel
                                                                         }
                                                                     >
-                                                                        Name, price & duration required
+                                                                        Complete name, price and duration
                                                                     </Text>
 
                                                                 ) : (
@@ -2195,379 +2899,279 @@ const ConfigureSalonServices = ({
                                                                             styles.completedLabel
                                                                         }
                                                                     >
-                                                                        ✓ Completed
+                                                                        ✓ Service ready
                                                                     </Text>
 
                                                                 )}
 
                                                             </View>
 
-                                                        </View>
 
-
-                                                        {/* PRICE + DURATION */}
-
-                                                        <View
-                                                            style={
-                                                                styles.fieldsRow
-                                                            }
-                                                        >
-
-                                                            {/* PRICE */}
+                                                            {/* SERVICE ACTIONS */}
 
                                                             <View
                                                                 style={
-                                                                    styles.fieldContainer
+                                                                    styles.serviceActions
                                                                 }
                                                             >
 
-                                                                <Text
-                                                                    style={
-                                                                        styles.fieldLabel
-                                                                    }
-                                                                >
-                                                                    Price *
-                                                                </Text>
+                                                                {(() => {
+
+                                                                    const canAddAnother =
+                                                                        typeof service.price ===
+                                                                            'number' &&
+                                                                        Number.isFinite(
+                                                                            service.price,
+                                                                        ) &&
+                                                                        service.price > 0 &&
+                                                                        typeof service.durationMinutes ===
+                                                                            'number' &&
+                                                                        Number.isFinite(
+                                                                            service.durationMinutes,
+                                                                        ) &&
+                                                                        service.durationMinutes > 0;
 
 
-                                                                <View
-                                                                    style={
-                                                                        styles.inputWithPrefix
-                                                                    }
-                                                                >
+                                                                    return (
+                                                                        <TouchableOpacity
+                                                                            activeOpacity={
+                                                                                canAddAnother
+                                                                                    ? 0.75
+                                                                                    : 1
+                                                                            }
+                                                                            disabled={
+                                                                                !canAddAnother
+                                                                            }
+                                                                            style={[
+                                                                                styles.addServiceButton,
+                                                                                !canAddAnother &&
+                                                                                    styles.addServiceButtonDisabled,
+                                                                            ]}
+                                                                            onPress={() =>
+                                                                                addAnotherService(
+                                                                                    service,
+                                                                                    originalIndex,
+                                                                                )
+                                                                            }
+                                                                        >
 
-                                                                    <Text
+                                                                            <Text
+                                                                                style={[
+                                                                                    styles.addServiceIcon,
+                                                                                    !canAddAnother &&
+                                                                                        styles.addServiceTextDisabled,
+                                                                                ]}
+                                                                            >
+                                                                                +
+                                                                            </Text>
+
+
+                                                                            <Text
+                                                                                style={[
+                                                                                    styles.addServiceText,
+                                                                                    !canAddAnother &&
+                                                                                        styles.addServiceTextDisabled,
+                                                                                ]}
+                                                                            >
+                                                                                Add another
+                                                                            </Text>
+
+                                                                        </TouchableOpacity>
+                                                                    );
+
+                                                                })()}
+
+
+                                                                {selectedServices.length >
+                                                                    1 && (
+
+                                                                    <TouchableOpacity
+                                                                        activeOpacity={
+                                                                            0.75
+                                                                        }
                                                                         style={
-                                                                            styles.prefix
+                                                                            styles.removeServiceButton
+                                                                        }
+                                                                        onPress={() =>
+                                                                            removeService(
+                                                                                service,
+                                                                                originalIndex,
+                                                                            )
                                                                         }
                                                                     >
-                                                                        ₹
-                                                                    </Text>
 
+                                                                        <Text
+                                                                            style={
+                                                                                styles.removeServiceText
+                                                                            }
+                                                                        >
+                                                                            Remove
+                                                                        </Text>
 
-                                                                    <TextInput
-                                                                        value={
-                                                                            service.price !==
-                                                                                undefined
-                                                                                ? String(
-                                                                                    service.price,
-                                                                                )
-                                                                                : ''
-                                                                        }
-                                                                        onChangeText={
-                                                                            value =>
-                                                                                updateService(
-                                                                                    service,
-                                                                                    'price',
-                                                                                    value,
-                                                                                    stableIndex,
-                                                                                )
-                                                                        }
-                                                                        placeholder="0"
-                                                                        placeholderTextColor={
-                                                                            COLORS.textSecondary
-                                                                        }
-                                                                        keyboardType="number-pad"
-                                                                        style={
-                                                                            styles.serviceInput
-                                                                        }
-                                                                        maxLength={
-                                                                            6
-                                                                        }
-                                                                    />
+                                                                    </TouchableOpacity>
 
-                                                                </View>
-
-                                                            </View>
-
-
-                                                            {/* DURATION */}
-
-                                                            <View
-                                                                style={
-                                                                    styles.fieldContainer
-                                                                }
-                                                            >
-
-                                                                <Text
-                                                                    style={
-                                                                        styles.fieldLabel
-                                                                    }
-                                                                >
-                                                                    Duration *
-                                                                </Text>
-
-
-                                                                <View
-                                                                    style={
-                                                                        styles.inputWithSuffix
-                                                                    }
-                                                                >
-
-                                                                    <TextInput
-                                                                        value={
-                                                                            service.durationMinutes !==
-                                                                                undefined
-                                                                                ? String(
-                                                                                    service.durationMinutes,
-                                                                                )
-                                                                                : ''
-                                                                        }
-                                                                        onChangeText={
-                                                                            value =>
-                                                                                updateService(
-                                                                                    service,
-                                                                                    'durationMinutes',
-                                                                                    value,
-                                                                                    stableIndex,
-                                                                                )
-                                                                        }
-                                                                        placeholder="30"
-                                                                        placeholderTextColor={
-                                                                            COLORS.textSecondary
-                                                                        }
-                                                                        keyboardType="number-pad"
-                                                                        style={
-                                                                            styles.serviceInput
-                                                                        }
-                                                                        maxLength={
-                                                                            3
-                                                                        }
-                                                                    />
-
-
-                                                                    <Text
-                                                                        style={
-                                                                            styles.suffix
-                                                                        }
-                                                                    >
-                                                                        min
-                                                                    </Text>
-
-                                                                </View>
+                                                                )}
 
                                                             </View>
 
                                                         </View>
+                                                    );
+
+                                                },
+                                            )}
 
 
-                                                        {/* SERVICE ACTIONS */}
+                                            {/* CATEGORY BULK DURATION */}
 
-                                                        <View
-                                                            style={
-                                                                styles.serviceActions
-                                                            }
-                                                        >
+                                            <CategoryDurationInput
+                                                onApply={
+                                                    duration =>
+                                                        applyDurationToCategory(
+                                                            category.categoryId,
+                                                            duration,
+                                                        )
+                                                }
+                                            />
 
-                                                            <TouchableOpacity
-                                                                activeOpacity={
-                                                                    0.7
-                                                                }
-                                                                style={
-                                                                    styles.addServiceButton
-                                                                }
-                                                                onPress={() =>
-                                                                    addAnotherService(
-                                                                        service,
-                                                                    )
-                                                                }
-                                                            >
+                                        </View>
 
-                                                                <Text
-                                                                    style={
-                                                                        styles.addServiceIcon
-                                                                    }
-                                                                >
-                                                                    +
-                                                                </Text>
+                                    )}
+
+                                </View>
+                            );
+
+                        },
+                    )}
 
 
-                                                                <Text
-                                                                    style={
-                                                                        styles.addServiceText
-                                                                    }
-                                                                >
-                                                                    Add another service
-                                                                </Text>
+                    {/* ================================================= */}
+                    {/* INFORMATION */}
+                    {/* ================================================= */}
 
-                                                            </TouchableOpacity>
-
-
-                                                            {selectedServices.length >
-                                                                1 && (
-
-                                                                <TouchableOpacity
-                                                                    activeOpacity={
-                                                                        0.7
-                                                                    }
-                                                                    style={
-                                                                        styles.removeServiceButton
-                                                                    }
-                                                                    onPress={() =>
-                                                                        removeService(
-                                                                            service,
-                                                                        )
-                                                                    }
-                                                                >
-
-                                                                    <Text
-                                                                        style={
-                                                                            styles.removeServiceText
-                                                                        }
-                                                                    >
-                                                                        Remove
-                                                                    </Text>
-
-                                                                </TouchableOpacity>
-
-                                                            )}
-
-                                                        </View>
-
-                                                    </View>
-                                                );
-
-                                            },
-                                        )}
-
-
-                                        {/* CATEGORY BULK DURATION */}
-
-                                        <CategoryDurationInput
-                                            onApply={
-                                                duration =>
-                                                    applyDurationToCategory(
-                                                        category.categoryId,
-                                                        duration,
-                                                    )
-                                            }
-                                        />
-
-                                    </View>
-
-                                )}
-
-                            </View>
-                        );
-
-                    },
-                )}
-
-
-                {/* ================================================= */}
-                {/* INFORMATION */}
-                {/* ================================================= */}
-
-                <View
-                    style={
-                        styles.infoCard
-                    }
-                >
-
-                    <Text
+                    <View
                         style={
-                            styles.infoTitle
+                            styles.infoCard
                         }
                     >
-                        💡 You can edit these later
-                    </Text>
-
-
-                    <Text
-                        style={
-                            styles.infoText
-                        }
-                    >
-                        You can add, remove, or edit your services
-                        anytime from your business profile, including
-                        service names, prices and durations.
-                    </Text>
-
-                </View>
-
-
-                <View
-                    style={
-                        styles.bottomSpace
-                    }
-                />
-
-            </ScrollView>
-
-
-            {/* ================================================= */}
-            {/* FOOTER */}
-            {/* ================================================= */}
-
-            <View
-                style={
-                    styles.footer
-                }
-            >
-
-                {!allConfigured && (
-
-                    <Text
-                        style={
-                            styles.footerWarning
-                        }
-                    >
-                        Complete all {remainingCount}{' '}
-                        remaining{' '}
-                        {remainingCount === 1
-                            ? 'service'
-                            : 'services'}{' '}
-                        before continuing.
-                    </Text>
-
-                )}
-
-
-                <TouchableOpacity
-                    onPress={
-                        handleContinue
-                    }
-                    disabled={
-                        !allConfigured ||
-                        saving
-                    }
-                    activeOpacity={
-                        0.8
-                    }
-                    style={[
-                        styles.continueButton,
-                        (
-                            !allConfigured ||
-                            saving
-                        ) &&
-                        styles.continueButtonDisabled,
-                    ]}
-                >
-
-                    {saving ? (
-
-                        <ActivityIndicator
-                            size="small"
-                            color={
-                                COLORS.white
-                            }
-                        />
-
-                    ) : (
 
                         <Text
                             style={
-                                styles.continueButtonText
+                                styles.infoTitle
                             }
                         >
-                            Continue
+                            Service setup
+                        </Text>
+
+
+                        <Text
+                            style={
+                                styles.infoText
+                            }
+                        >
+                            Enter the name customers will see when
+                            booking this service. For example, use
+                            “Hair Cut” or “Keratin Treatment” rather
+                            than the category name.
+                        </Text>
+
+
+                        <Text
+                            style={
+                                styles.infoText
+                            }
+                        >
+                            You can add multiple services under the
+                            same subcategory and update your pricing
+                            or duration later.
+                        </Text>
+
+                    </View>
+
+
+                    <View
+                        style={
+                            styles.bottomSpace
+                        }
+                    />
+
+                </ScrollView>
+
+
+                {/* ================================================= */}
+                {/* FOOTER */}
+                {/* ================================================= */}
+
+                <View
+                    style={
+                        styles.footer
+                    }
+                >
+
+                    {!allConfigured && (
+
+                        <Text
+                            style={
+                                styles.footerWarning
+                            }
+                        >
+                            Complete all {remainingCount}{' '}
+                            remaining{' '}
+                            {remainingCount === 1
+                                ? 'service'
+                                : 'services'}{' '}
+                            before continuing.
                         </Text>
 
                     )}
 
-                </TouchableOpacity>
 
-            </View>
+                    <TouchableOpacity
+                        onPress={
+                            handleContinue
+                        }
+                        disabled={
+                            !allConfigured ||
+                            saving
+                        }
+                        activeOpacity={
+                            0.8
+                        }
+                        style={[
+                            styles.continueButton,
+                            (
+                                !allConfigured ||
+                                saving
+                            ) &&
+                            styles.continueButtonDisabled,
+                        ]}
+                    >
+
+                        {saving ? (
+
+                            <ActivityIndicator
+                                size="small"
+                                color={
+                                    COLORS.white
+                                }
+                            />
+
+                        ) : (
+
+                            <Text
+                                style={
+                                    styles.continueButtonText
+                                }
+                            >
+                                Continue
+                            </Text>
+
+                        )}
+
+                    </TouchableOpacity>
+
+                </View>
+
+            </KeyboardAvoidingView>
 
         </SafeAreaView>
     );
@@ -2676,7 +3280,7 @@ const CategoryDurationInput = ({
                         handleApply
                     }
                     activeOpacity={
-                        0.7
+                        0.75
                     }
                 >
 
@@ -2701,825 +3305,1077 @@ const CategoryDurationInput = ({
 // STYLES
 // ============================================================
 
-const styles = StyleSheet.create({
-
-    container: {
-        flex: 1,
-        backgroundColor:
-            COLORS.background,
-    },
-
-    content: {
-        paddingHorizontal:
-            SPACING.large,
-        paddingTop:
-            SPACING.large,
-        paddingBottom:
-            SPACING.xl,
-    },
-
-    title: {
-        fontFamily:
-            FONTS.bold,
-        fontSize: 24,
-        color:
-            COLORS.black,
-        marginBottom:
-            SPACING.small,
-    },
-
-    subtitle: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 14,
-        lineHeight: 21,
-        color:
-            COLORS.textSecondary,
-        marginBottom:
-            SPACING.large,
-    },
-
-    progressCard: {
-        backgroundColor:
-            COLORS.white,
-        borderRadius:
-            RADIUS.large,
-        padding:
-            SPACING.medium,
-        marginBottom:
-            SPACING.medium,
-    },
-
-    progressHeader: {
-        flexDirection:
-            'row',
-        alignItems:
-            'center',
-        justifyContent:
-            'space-between',
-        marginBottom:
-            SPACING.medium,
-    },
-
-    progressTitle: {
-        fontFamily:
-            FONTS.bold,
-        fontSize: 16,
-        color:
-            COLORS.black,
-    },
-
-    progressSubtitle: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 13,
-        color:
-            COLORS.textSecondary,
-        marginTop: 3,
-    },
-
-    progressPercentage: {
-        fontFamily:
-            FONTS.bold,
-        fontSize: 20,
-        color:
-            COLORS.primary,
-    },
-
-    progressTrack: {
-        height: 8,
-        backgroundColor:
-            '#E8E8E8',
-        borderRadius: 10,
-        overflow: 'hidden',
-    },
-
-    progressFill: {
-        height: '100%',
-        backgroundColor:
-            COLORS.themeColor,
-        borderRadius: 10,
-    },
-
-    remainingText: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 12,
-        color:
-            '#C77700',
-        marginTop:
-            SPACING.small,
-    },
-
-    completedText: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 12,
-        color:
-            COLORS.primary,
-        marginTop:
-            SPACING.small,
-    },
-
-    bulkCard: {
-        backgroundColor:
-            '#F3FAF9',
-        borderRadius:
-            RADIUS.large,
-        padding:
-            SPACING.medium,
-        marginBottom:
-            SPACING.medium,
-        borderWidth: 1,
-        borderColor:
-            '#D8EFEC',
-    },
-
-    bulkTitle: {
-        fontFamily:
-            FONTS.bold,
-        fontSize: 15,
-        color:
-            COLORS.black,
-        marginBottom: 4,
-    },
-
-    bulkSubtitle: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 12,
-        lineHeight: 18,
-        color:
-            COLORS.textSecondary,
-        marginBottom:
-            SPACING.medium,
-    },
-
-    bulkRow: {
-        flexDirection:
-            'row',
-        alignItems:
-            'center',
-    },
-
-    bulkInput: {
-        width: 75,
-        height: 44,
-        backgroundColor:
-            COLORS.white,
-        borderWidth: 1,
-        borderColor:
-            '#D5D5D5',
-        borderRadius:
-            RADIUS.medium,
-        paddingHorizontal: 12,
-        fontFamily:
-            FONTS.medium,
-        fontSize: 15,
-        color:
-            COLORS.black,
-        textAlign:
-            'center',
-    },
-
-    minutesText: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 13,
-        color:
-            COLORS.textSecondary,
-        marginHorizontal: 8,
-    },
-
-    applyButton: {
-        height: 44,
-        paddingHorizontal: 16,
-        borderRadius:
-            RADIUS.medium,
-        backgroundColor:
-            COLORS.themeColor,
-        justifyContent:
-            'center',
-        alignItems:
-            'center',
-        marginLeft:
-            'auto',
-    },
-
-    applyButtonText: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 13,
-        color:
-            COLORS.white,
-    },
-
-    searchContainer: {
-        marginBottom:
-            SPACING.medium,
-    },
-
-    searchInput: {
-        height: 48,
-        backgroundColor:
-            COLORS.white,
-        borderWidth: 1,
-        borderColor:
-            '#DDDDDD',
-        borderRadius:
-            RADIUS.medium,
-        paddingHorizontal: 15,
-        fontFamily:
-            FONTS.regular,
-        fontSize: 14,
-        color:
-            COLORS.black,
-    },
-
-    categoryCard: {
-        backgroundColor:
-            COLORS.white,
-        borderRadius:
-            RADIUS.large,
-        marginBottom:
-            SPACING.medium,
-        overflow:
-            'hidden',
-    },
-
-    categoryHeader: {
-        minHeight: 66,
-        paddingHorizontal:
-            SPACING.medium,
-        flexDirection:
-            'row',
-        alignItems:
-            'center',
-        justifyContent:
-            'space-between',
-    },
-
-    categoryHeaderLeft: {
-        flex: 1,
-    },
-
-    categoryName: {
-        fontFamily:
-            FONTS.bold,
-        fontSize: 16,
-        color:
-            COLORS.black,
-    },
-
-    categoryCount: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 12,
-        color:
-            COLORS.textSecondary,
-        marginTop: 4,
-    },
-
-    categoryArrow: {
-        fontFamily:
-            FONTS.bold,
-        fontSize: 25,
-        color:
-            COLORS.primary,
-        marginLeft: 12,
-    },
-
-    servicesContainer: {
-        paddingHorizontal:
-            SPACING.medium,
-        paddingBottom:
-            SPACING.medium,
-    },
-
-    serviceCard: {
-        borderTopWidth: 1,
-        borderTopColor:
-            '#EEEEEE',
-        paddingVertical:
-            SPACING.medium,
-    },
-
-    serviceCardIncomplete: {
-        backgroundColor:
-            '#FFFDF8',
-        marginHorizontal:
-            -SPACING.small,
-        paddingHorizontal:
-            SPACING.small,
-        borderRadius:
-            RADIUS.medium,
-    },
-
-    serviceHeader: {
-        flexDirection:
-            'row',
-        alignItems:
-            'center',
-        marginBottom:
-            SPACING.small,
-    },
-
-    serviceTitleContainer: {
-        flex: 1,
-    },
-
-    serviceTopRow: {
-        flexDirection:
-            'row',
-        alignItems:
-            'center',
-        marginBottom:
-            8,
-    },
-
-    serviceNumber: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor:
-            '#E8F6F4',
-        textAlign:
-            'center',
-        textAlignVertical:
-            'center',
-        fontFamily:
-            FONTS.bold,
-        fontSize: 11,
-        color:
-            COLORS.primary,
-        marginRight: 8,
-        overflow: 'hidden',
-    },
-
-    subcategoryText: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 12,
-        color:
-            COLORS.textSecondary,
-    },
-
-    fieldLabel: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 12,
-        color:
-            COLORS.textSecondary,
-        marginBottom: 5,
-    },
-
-    nameInput: {
-        width: '100%',
-        height: 46,
-        backgroundColor:
-            COLORS.white,
-        borderWidth: 1,
-        borderColor:
-            '#D7D7D7',
-        borderRadius:
-            RADIUS.medium,
-        paddingHorizontal: 12,
-        fontFamily:
-            FONTS.medium,
-        fontSize: 14,
-        color:
-            COLORS.black,
-    },
-
-    audienceLabel: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 11,
-        color:
-            COLORS.primary,
-        marginTop: 5,
-    },
-
-    requiredLabel: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 11,
-        color:
-            '#C77700',
-        marginTop: 3,
-    },
-
-    completedLabel: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 11,
-        color:
-            COLORS.primary,
-        marginTop: 3,
-    },
-
-    fieldsRow: {
-        flexDirection:
-            'row',
-        gap: 10,
-    },
-
-    fieldContainer: {
-        flex: 1,
-    },
-
-    inputWithPrefix: {
-        height: 46,
-        flexDirection:
-            'row',
-        alignItems:
-            'center',
-        backgroundColor:
-            COLORS.white,
-        borderWidth: 1,
-        borderColor:
-            '#D7D7D7',
-        borderRadius:
-            RADIUS.medium,
-    },
-
-    inputWithSuffix: {
-        height: 46,
-        flexDirection:
-            'row',
-        alignItems:
-            'center',
-        backgroundColor:
-            COLORS.white,
-        borderWidth: 1,
-        borderColor:
-            '#D7D7D7',
-        borderRadius:
-            RADIUS.medium,
-    },
-
-    prefix: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 14,
-        color:
-            COLORS.textSecondary,
-        marginLeft: 12,
-    },
-
-    suffix: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 12,
-        color:
-            COLORS.textSecondary,
-        marginRight: 10,
-    },
-
-    serviceInput: {
-        flex: 1,
-        height: 44,
-        paddingHorizontal: 8,
-        fontFamily:
-            FONTS.medium,
-        fontSize: 14,
-        color:
-            COLORS.black,
-    },
-
-    serviceActions: {
-        flexDirection:
-            'row',
-        alignItems:
-            'center',
-        justifyContent:
-            'space-between',
-        marginTop:
-            SPACING.medium,
-    },
-
-    addServiceButton: {
-        flexDirection:
-            'row',
-        alignItems:
-            'center',
-        paddingVertical: 8,
-        paddingRight: 10,
-    },
-
-    addServiceIcon: {
-        fontFamily:
-            FONTS.bold,
-        fontSize: 20,
-        lineHeight: 20,
-        color:
-            COLORS.themeColor,
-        marginRight: 6,
-    },
-
-    addServiceText: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 13,
-        color:
-            COLORS.themeColor,
-    },
-
-    removeServiceButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 8,
-    },
-
-    removeServiceText: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 12,
-        color:
-            '#C77700',
-    },
-
-    categoryBulkContainer: {
-        borderTopWidth: 1,
-        borderTopColor:
-            '#EEEEEE',
-        paddingTop:
-            SPACING.medium,
-        marginTop: 4,
-    },
-
-    categoryBulkLabel: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 12,
-        color:
-            COLORS.textSecondary,
-        marginBottom: 7,
-    },
-
-    categoryBulkRow: {
-        flexDirection:
-            'row',
-        alignItems:
-            'center',
-    },
-
-    categoryDurationInput: {
-        width: 65,
-        height: 40,
-        backgroundColor:
-            COLORS.white,
-        borderWidth: 1,
-        borderColor:
-            '#D5D5D5',
-        borderRadius:
-            RADIUS.medium,
-        textAlign:
-            'center',
-        fontFamily:
-            FONTS.medium,
-        fontSize: 13,
-        color:
-            COLORS.black,
-    },
-
-    categoryMinutes: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 12,
-        color:
-            COLORS.textSecondary,
-        marginHorizontal: 7,
-    },
-
-    categoryApplyButton: {
-        height: 40,
-        paddingHorizontal: 15,
-        borderRadius:
-            RADIUS.medium,
-        backgroundColor:
-            '#E8F6F4',
-        justifyContent:
-            'center',
-        alignItems:
-            'center',
-    },
-
-    categoryApplyText: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 12,
-        color:
-            COLORS.primary,
-    },
-
-    infoCard: {
-        backgroundColor:
-            COLORS.white,
-        borderRadius:
-            RADIUS.large,
-        padding:
-            SPACING.medium,
-        marginTop:
-            SPACING.small,
-        borderWidth: 1,
-        borderColor:
-            '#E5E5E5',
-    },
-
-    infoTitle: {
-        fontFamily:
-            FONTS.bold,
-        fontSize: 14,
-        color:
-            COLORS.black,
-        marginBottom: 6,
-    },
-
-    infoText: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 12,
-        lineHeight: 18,
-        color:
-            COLORS.textSecondary,
-    },
-
-    footer: {
-        backgroundColor:
-            COLORS.white,
-        paddingHorizontal:
-            SPACING.large,
-        paddingTop:
-            SPACING.small,
-        paddingBottom:
-            SPACING.medium,
-        borderTopWidth: 1,
-        borderTopColor:
-            '#EEEEEE',
-    },
-
-    footerWarning: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 12,
-        color:
-            '#C77700',
-        textAlign:
-            'center',
-        marginBottom: 8,
-    },
-
-    continueButton: {
-        width: '100%',
-        minHeight: 50,
-        borderRadius:
-            RADIUS.medium,
-        backgroundColor:
-            COLORS.themeColor,
-        alignItems:
-            'center',
-        justifyContent:
-            'center',
-    },
-
-    continueButtonDisabled: {
-        opacity: 0.5,
-    },
-
-    continueButtonText: {
-        fontFamily:
-            FONTS.bold,
-        fontSize: 15,
-        color:
-            COLORS.white,
-    },
-
-    bottomSpace: {
-        height: 20,
-    },
-
-    loadingContainer: {
-        flex: 1,
-        alignItems:
-            'center',
-        justifyContent:
-            'center',
-        paddingHorizontal:
-            SPACING.large,
-    },
-
-    loadingText: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 14,
-        color:
-            COLORS.textSecondary,
-        marginTop:
-            SPACING.medium,
-    },
-
-    errorContainer: {
-        flex: 1,
-        alignItems:
-            'center',
-        justifyContent:
-            'center',
-        paddingHorizontal:
-            SPACING.large,
-    },
-
-    errorTitle: {
-        fontFamily:
-            FONTS.bold,
-        fontSize: 18,
-        color:
-            COLORS.black,
-        textAlign:
-            'center',
-    },
-
-    errorText: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 14,
-        color:
-            COLORS.textSecondary,
-        textAlign:
-            'center',
-        marginTop: 8,
-    },
-
-    errorButton: {
-        marginTop:
-            SPACING.large,
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius:
-            RADIUS.medium,
-        backgroundColor:
-            COLORS.primary,
-    },
-
-    errorButtonText: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 14,
-        color:
-            COLORS.white,
-    },
-
-    emptyContainer: {
-        backgroundColor:
-            COLORS.white,
-        borderRadius:
-            RADIUS.large,
-        padding:
-            SPACING.large,
-        alignItems:
-            'center',
-        marginBottom:
-            SPACING.medium,
-    },
-
-    emptyTitle: {
-        fontFamily:
-            FONTS.bold,
-        fontSize: 16,
-        color:
-            COLORS.black,
-    },
-
-    emptyText: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 13,
-        color:
-            COLORS.textSecondary,
-        textAlign:
-            'center',
-        marginTop: 6,
-    },
-
-    goBackButton: {
-        marginTop:
-            SPACING.medium,
-        paddingHorizontal: 18,
-        paddingVertical: 10,
-        borderRadius:
-            RADIUS.medium,
-        backgroundColor:
-            COLORS.primary,
-    },
-
-    goBackButtonText: {
-        fontFamily:
-            FONTS.medium,
-        fontSize: 13,
-        color:
-            COLORS.white,
-    },
-
-});
+const styles =
+    StyleSheet.create({
+
+        container: {
+            flex: 1,
+            backgroundColor:
+                COLORS.background,
+        },
+
+        keyboardContainer: {
+            flex: 1,
+        },
+
+        content: {
+            paddingHorizontal:
+                SPACING.large,
+            paddingTop:
+                SPACING.large,
+            paddingBottom:
+                SPACING.xl,
+        },
+
+        title: {
+            fontFamily:
+                FONTS.bold,
+            fontSize: 23,
+            color:
+                COLORS.text,
+            marginBottom:
+                SPACING.small,
+        },
+
+        subtitle: {
+            fontFamily:
+                FONTS.regular,
+            fontSize: 14,
+            lineHeight: 21,
+            color:
+                COLORS.textSecondary,
+            marginBottom:
+                SPACING.large,
+        },
+
+        // ====================================================
+        // PROGRESS
+        // ====================================================
+
+        progressCard: {
+            backgroundColor:
+                COLORS.white,
+            borderRadius:
+                RADIUS.large,
+            padding:
+                SPACING.medium,
+            marginBottom:
+                SPACING.medium,
+            borderWidth:
+                1,
+            borderColor:
+                COLORS.border,
+        },
+
+        progressHeader: {
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+            justifyContent:
+                'space-between',
+            marginBottom:
+                SPACING.medium,
+        },
+
+        progressHeaderLeft: {
+            flex: 1,
+        },
+
+        progressTitle: {
+            fontFamily:
+                FONTS.bold,
+            fontSize: 15,
+            color:
+                COLORS.text,
+        },
+
+        progressSubtitle: {
+            fontFamily:
+                FONTS.regular,
+            fontSize: 12,
+            color:
+                COLORS.textSecondary,
+            marginTop:
+                3,
+        },
+
+        progressPercentage: {
+            fontFamily:
+                FONTS.bold,
+            fontSize: 19,
+            color:
+                COLORS.themeColor,
+        },
+
+        progressTrack: {
+            height: 7,
+            backgroundColor:
+                '#E8E8E8',
+            borderRadius:
+                10,
+            overflow:
+                'hidden',
+        },
+
+        progressFill: {
+            height:
+                '100%',
+            backgroundColor:
+                COLORS.themeColor,
+            borderRadius:
+                10,
+        },
+
+        remainingText: {
+            fontFamily:
+                FONTS.medium,
+            fontSize: 11,
+            color:
+                '#C77700',
+            marginTop:
+                SPACING.small,
+        },
+
+        completedText: {
+            fontFamily:
+                FONTS.medium,
+            fontSize: 11,
+            color:
+                COLORS.themeColor,
+            marginTop:
+                SPACING.small,
+        },
+
+        // ====================================================
+        // BULK
+        // ====================================================
+
+        bulkCard: {
+            backgroundColor:
+                COLORS.white,
+            borderRadius:
+                RADIUS.large,
+            padding:
+                SPACING.medium,
+            marginBottom:
+                SPACING.medium,
+            borderWidth:
+                1,
+            borderColor:
+                COLORS.border,
+        },
+
+        bulkTitle: {
+            fontFamily:
+                FONTS.bold,
+            fontSize: 14,
+            color:
+                COLORS.text,
+            marginBottom:
+                4,
+        },
+
+        bulkSubtitle: {
+            fontFamily:
+                FONTS.regular,
+            fontSize: 12,
+            lineHeight: 17,
+            color:
+                COLORS.textSecondary,
+            marginBottom:
+                SPACING.medium,
+        },
+
+        bulkRow: {
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+        },
+
+        bulkInput: {
+            width:
+                70,
+            height:
+                44,
+            backgroundColor:
+                COLORS.white,
+            borderWidth:
+                1,
+            borderColor:
+                COLORS.border,
+            borderRadius:
+                RADIUS.medium,
+            paddingHorizontal:
+                10,
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                14,
+            color:
+                COLORS.text,
+            textAlign:
+                'center',
+        },
+
+        minutesText: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                12,
+            color:
+                COLORS.textSecondary,
+            marginHorizontal:
+                8,
+        },
+
+        applyButton: {
+            height:
+                44,
+            paddingHorizontal:
+                15,
+            borderRadius:
+                RADIUS.medium,
+            backgroundColor:
+                COLORS.themeColor,
+            justifyContent:
+                'center',
+            alignItems:
+                'center',
+            marginLeft:
+                'auto',
+        },
+
+        applyButtonText: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                12,
+            color:
+                COLORS.white,
+        },
+
+        // ====================================================
+        // SEARCH
+        // ====================================================
+
+        searchContainer: {
+            marginBottom:
+                SPACING.medium,
+        },
+
+        searchInput: {
+            height:
+                48,
+            backgroundColor:
+                COLORS.white,
+            borderWidth:
+                1,
+            borderColor:
+                COLORS.border,
+            borderRadius:
+                RADIUS.medium,
+            paddingHorizontal:
+                15,
+            fontFamily:
+                FONTS.regular,
+            fontSize:
+                14,
+            color:
+                COLORS.text,
+        },
+
+        // ====================================================
+        // CATEGORY
+        // ====================================================
+
+        categoryCard: {
+            backgroundColor:
+                COLORS.white,
+            borderRadius:
+                RADIUS.large,
+            marginBottom:
+                SPACING.medium,
+            overflow:
+                'hidden',
+            borderWidth:
+                1,
+            borderColor:
+                COLORS.border,
+        },
+
+        categoryHeader: {
+            minHeight:
+                66,
+            paddingHorizontal:
+                SPACING.medium,
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+            justifyContent:
+                'space-between',
+        },
+
+        categoryHeaderLeft: {
+            flex: 1,
+        },
+
+        categoryHeaderRight: {
+            marginLeft:
+                SPACING.medium,
+        },
+
+        categoryName: {
+            fontFamily:
+                FONTS.bold,
+            fontSize:
+                16,
+            color:
+                COLORS.text,
+        },
+
+        categoryCount: {
+            fontFamily:
+                FONTS.regular,
+            fontSize:
+                11,
+            color:
+                COLORS.textSecondary,
+            marginTop:
+                4,
+        },
+
+        categoryArrow: {
+            fontFamily:
+                FONTS.bold,
+            fontSize:
+                24,
+            color:
+                COLORS.themeColor,
+        },
+
+        servicesContainer: {
+            paddingHorizontal:
+                SPACING.medium,
+            paddingBottom:
+                SPACING.medium,
+        },
+
+        // ====================================================
+        // SERVICE CARD
+        // ====================================================
+
+        serviceCard: {
+            borderTopWidth:
+                1,
+            borderTopColor:
+                '#EEEEEE',
+            paddingVertical:
+                SPACING.medium,
+        },
+
+        serviceCardIncomplete: {
+            backgroundColor:
+                '#FFFDF8',
+            marginHorizontal:
+                -SPACING.small,
+            paddingHorizontal:
+                SPACING.small,
+            borderRadius:
+                RADIUS.medium,
+        },
+
+        // ====================================================
+        // SERVICE CONTEXT
+        // ====================================================
+
+        serviceContext: {
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+            marginBottom:
+                SPACING.medium,
+        },
+
+        serviceNumber: {
+            width:
+                28,
+            height:
+                28,
+            borderRadius:
+                14,
+            backgroundColor:
+                COLORS.background,
+            borderWidth:
+                1,
+            borderColor:
+                COLORS.themeColor,
+            alignItems:
+                'center',
+            justifyContent:
+                'center',
+            marginRight:
+                SPACING.small,
+        },
+
+        serviceNumberText: {
+            fontFamily:
+                FONTS.bold,
+            fontSize:
+                11,
+            color:
+                COLORS.themeColor,
+        },
+
+        serviceContextText: {
+            flex: 1,
+        },
+
+        subcategoryText: {
+            fontFamily:
+                FONTS.semiBold,
+            fontSize:
+                13,
+            color:
+                COLORS.text,
+        },
+
+        contextBottomRow: {
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+            marginTop:
+                5,
+        },
+
+        audienceBadge: {
+            alignSelf:
+                'flex-start',
+            paddingHorizontal:
+                8,
+            paddingVertical:
+                3,
+            borderRadius:
+                10,
+            backgroundColor:
+                COLORS.background,
+            borderWidth:
+                1,
+            borderColor:
+                COLORS.border,
+        },
+
+        audienceBadgeText: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                9,
+            color:
+                COLORS.textSecondary,
+        },
+
+        // ====================================================
+        // NAME
+        // ====================================================
+
+        nameFieldContainer: {
+            marginBottom:
+                SPACING.medium,
+        },
+
+        fieldLabel: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                12,
+            color:
+                COLORS.textSecondary,
+            marginBottom:
+                6,
+        },
+
+        requiredAsterisk: {
+            color:
+                COLORS.themeColor,
+        },
+
+        nameInput: {
+            width:
+                '100%',
+            height:
+                48,
+            backgroundColor:
+                COLORS.white,
+            borderWidth:
+                1,
+            borderColor:
+                '#D7D7D7',
+            borderRadius:
+                RADIUS.medium,
+            paddingHorizontal:
+                13,
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                14,
+            color:
+                COLORS.text,
+        },
+
+        nameInputIncomplete: {
+            borderColor:
+                '#D8C9A6',
+        },
+
+        // ====================================================
+        // PRICE / DURATION
+        // ====================================================
+
+        fieldsRow: {
+            flexDirection:
+                'row',
+            gap:
+                10,
+        },
+
+        fieldContainer: {
+            flex: 1,
+        },
+
+        inputWithPrefix: {
+            height:
+                46,
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+            backgroundColor:
+                COLORS.white,
+            borderWidth:
+                1,
+            borderColor:
+                '#D7D7D7',
+            borderRadius:
+                RADIUS.medium,
+        },
+
+        inputWithSuffix: {
+            height:
+                46,
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+            backgroundColor:
+                COLORS.white,
+            borderWidth:
+                1,
+            borderColor:
+                '#D7D7D7',
+            borderRadius:
+                RADIUS.medium,
+        },
+
+        prefix: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                14,
+            color:
+                COLORS.textSecondary,
+            marginLeft:
+                12,
+        },
+
+        suffix: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                11,
+            color:
+                COLORS.textSecondary,
+            marginRight:
+                10,
+        },
+
+        serviceInput: {
+            flex: 1,
+            height:
+                44,
+            paddingHorizontal:
+                8,
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                14,
+            color:
+                COLORS.text,
+        },
+
+        // ====================================================
+        // STATUS
+        // ====================================================
+
+        statusRow: {
+            minHeight:
+                18,
+            marginTop:
+                4,
+        },
+
+        requiredLabel: {
+            fontFamily:
+                FONTS.regular,
+            fontSize:
+                10,
+            color:
+                '#C77700',
+        },
+
+        completedLabel: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                10,
+            color:
+                COLORS.themeColor,
+        },
+
+        // ====================================================
+        // ACTIONS
+        // ====================================================
+
+        serviceActions: {
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+            justifyContent:
+                'space-between',
+            marginTop:
+                SPACING.small,
+        },
+
+        addServiceButton: {
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+            paddingVertical:
+                8,
+            paddingRight:
+                10,
+        },
+
+        addServiceButtonDisabled: {
+            opacity:
+                0.45,
+        },
+
+        addServiceIcon: {
+            fontFamily:
+                FONTS.bold,
+            fontSize:
+                19,
+            lineHeight:
+                19,
+            color:
+                COLORS.themeColor,
+            marginRight:
+                6,
+        },
+
+        addServiceText: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                12,
+            color:
+                COLORS.themeColor,
+        },
+
+        addServiceTextDisabled: {
+            color:
+                COLORS.textSecondary,
+        },
+
+        removeServiceButton: {
+            paddingVertical:
+                8,
+            paddingHorizontal:
+                8,
+        },
+
+        removeServiceText: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                11,
+            color:
+                '#C77700',
+        },
+
+        // ====================================================
+        // CATEGORY DURATION
+        // ====================================================
+
+        categoryBulkContainer: {
+            borderTopWidth:
+                1,
+            borderTopColor:
+                '#EEEEEE',
+            paddingTop:
+                SPACING.medium,
+            marginTop:
+                4,
+        },
+
+        categoryBulkLabel: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                11,
+            color:
+                COLORS.textSecondary,
+            marginBottom:
+                7,
+        },
+
+        categoryBulkRow: {
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+        },
+
+        categoryDurationInput: {
+            width:
+                65,
+            height:
+                40,
+            backgroundColor:
+                COLORS.white,
+            borderWidth:
+                1,
+            borderColor:
+                COLORS.border,
+            borderRadius:
+                RADIUS.medium,
+            textAlign:
+                'center',
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                13,
+            color:
+                COLORS.text,
+        },
+
+        categoryMinutes: {
+            fontFamily:
+                FONTS.regular,
+            fontSize:
+                11,
+            color:
+                COLORS.textSecondary,
+            marginHorizontal:
+                7,
+        },
+
+        categoryApplyButton: {
+            height:
+                40,
+            paddingHorizontal:
+                15,
+            borderRadius:
+                RADIUS.medium,
+            backgroundColor:
+                COLORS.background,
+            borderWidth:
+                1,
+            borderColor:
+                COLORS.themeColor,
+            justifyContent:
+                'center',
+            alignItems:
+                'center',
+        },
+
+        categoryApplyText: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                11,
+            color:
+                COLORS.themeColor,
+        },
+
+        // ====================================================
+        // INFORMATION
+        // ====================================================
+
+        infoCard: {
+            backgroundColor:
+                COLORS.white,
+            borderRadius:
+                RADIUS.large,
+            padding:
+                SPACING.medium,
+            marginTop:
+                SPACING.small,
+            borderWidth:
+                1,
+            borderColor:
+                COLORS.border,
+        },
+
+        infoTitle: {
+            fontFamily:
+                FONTS.bold,
+            fontSize:
+                14,
+            color:
+                COLORS.text,
+            marginBottom:
+                7,
+        },
+
+        infoText: {
+            fontFamily:
+                FONTS.regular,
+            fontSize:
+                12,
+            lineHeight:
+                18,
+            color:
+                COLORS.textSecondary,
+            marginBottom:
+                6,
+        },
+
+        // ====================================================
+        // EMPTY
+        // ====================================================
+
+        emptyContainer: {
+            backgroundColor:
+                COLORS.white,
+            borderRadius:
+                RADIUS.large,
+            padding:
+                SPACING.large,
+            alignItems:
+                'center',
+            marginBottom:
+                SPACING.medium,
+            borderWidth:
+                1,
+            borderColor:
+                COLORS.border,
+        },
+
+        emptyTitle: {
+            fontFamily:
+                FONTS.bold,
+            fontSize:
+                16,
+            color:
+                COLORS.text,
+        },
+
+        emptyText: {
+            fontFamily:
+                FONTS.regular,
+            fontSize:
+                13,
+            lineHeight:
+                18,
+            color:
+                COLORS.textSecondary,
+            textAlign:
+                'center',
+            marginTop:
+                6,
+        },
+
+        goBackButton: {
+            marginTop:
+                SPACING.medium,
+            paddingHorizontal:
+                18,
+            paddingVertical:
+                10,
+            borderRadius:
+                RADIUS.medium,
+            backgroundColor:
+                COLORS.themeColor,
+        },
+
+        goBackButtonText: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                13,
+            color:
+                COLORS.white,
+        },
+
+        // ====================================================
+        // FOOTER
+        // ====================================================
+
+        footer: {
+            backgroundColor:
+                COLORS.white,
+            paddingHorizontal:
+                SPACING.large,
+            paddingTop:
+                SPACING.small,
+            paddingBottom:
+                SPACING.medium,
+            borderTopWidth:
+                1,
+            borderTopColor:
+                '#EEEEEE',
+        },
+
+        footerWarning: {
+            fontFamily:
+                FONTS.regular,
+            fontSize:
+                11,
+            color:
+                '#C77700',
+            textAlign:
+                'center',
+            marginBottom:
+                8,
+        },
+
+        continueButton: {
+            width:
+                '100%',
+            minHeight:
+                50,
+            borderRadius:
+                RADIUS.medium,
+            backgroundColor:
+                COLORS.themeColor,
+            alignItems:
+                'center',
+            justifyContent:
+                'center',
+        },
+
+        continueButtonDisabled: {
+            opacity:
+                0.5,
+        },
+
+        continueButtonText: {
+            fontFamily:
+                FONTS.bold,
+            fontSize:
+                15,
+            color:
+                COLORS.white,
+        },
+
+        // ====================================================
+        // LOADING
+        // ====================================================
+
+        loadingContainer: {
+            flex: 1,
+            alignItems:
+                'center',
+            justifyContent:
+                'center',
+            paddingHorizontal:
+                SPACING.large,
+        },
+
+        loadingText: {
+            fontFamily:
+                FONTS.regular,
+            fontSize:
+                14,
+            color:
+                COLORS.textSecondary,
+            marginTop:
+                SPACING.medium,
+        },
+
+        // ====================================================
+        // ERROR
+        // ====================================================
+
+        errorContainer: {
+            flex: 1,
+            alignItems:
+                'center',
+            justifyContent:
+                'center',
+            paddingHorizontal:
+                SPACING.large,
+        },
+
+        errorTitle: {
+            fontFamily:
+                FONTS.bold,
+            fontSize:
+                18,
+            color:
+                COLORS.text,
+            textAlign:
+                'center',
+        },
+
+        errorText: {
+            fontFamily:
+                FONTS.regular,
+            fontSize:
+                14,
+            color:
+                COLORS.textSecondary,
+            textAlign:
+                'center',
+            marginTop:
+                8,
+        },
+
+        errorButton: {
+            marginTop:
+                SPACING.large,
+            paddingHorizontal:
+                20,
+            paddingVertical:
+                12,
+            borderRadius:
+                RADIUS.medium,
+            backgroundColor:
+                COLORS.themeColor,
+        },
+
+        errorButtonText: {
+            fontFamily:
+                FONTS.medium,
+            fontSize:
+                14,
+            color:
+                COLORS.white,
+        },
+
+        bottomSpace: {
+            height:
+                20,
+        },
+
+    });
 
 
 export default ConfigureSalonServices;

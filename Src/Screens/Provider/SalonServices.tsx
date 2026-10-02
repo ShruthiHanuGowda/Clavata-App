@@ -95,6 +95,24 @@ type AudienceTab = {
 };
 
 // ============================================================
+// GROUPED SELECTED SERVICES
+// ============================================================
+
+type GroupedSelectedSubcategory = {
+  categoryId: string;
+  categoryName: string;
+  subcategoryId: string;
+  subcategoryName: string;
+  services: ConfigurableSalonService[];
+};
+
+type GroupedSelectedCategory = {
+  categoryId: string;
+  categoryName: string;
+  subcategories: GroupedSelectedSubcategory[];
+};
+
+// ============================================================
 // AUDIENCE CONFIG
 // ============================================================
 
@@ -394,24 +412,6 @@ export default function SalonServices({
 
   // ==========================================================
   // CURRENT SERVICE SELECTIONS
-  //
-  // IMPORTANT:
-  // `name` is the actual salon-created service name.
-  //
-  // It MUST NOT be populated from subcategoryName.
-  //
-  // Example:
-  //
-  // Category:
-  // Hair
-  //
-  // Subcategory:
-  // Hair Cut
-  //
-  // Actual service:
-  // Layer Hair Cut
-  //
-  // Therefore name starts as "".
   // ==========================================================
 
   const selectedServiceSelections:
@@ -457,8 +457,6 @@ export default function SalonServices({
               {
                 ...selection,
 
-                // Keep an existing actual service name.
-                // NEVER use subcategoryName as fallback.
                 name:
                   typeof selection.name ===
                   'string'
@@ -509,10 +507,6 @@ export default function SalonServices({
 
       return subcategories.filter(
         subcategory => {
-          // --------------------------------------------------
-          // BUSINESS TYPE FILTER
-          // --------------------------------------------------
-
           if (
             salonBusinessTypeIds.length ===
             0
@@ -550,10 +544,6 @@ export default function SalonServices({
           ) {
             return false;
           }
-
-          // --------------------------------------------------
-          // AUDIENCE FILTER
-          // --------------------------------------------------
 
           if (
             !Array.isArray(
@@ -601,9 +591,6 @@ export default function SalonServices({
 
   // ==========================================================
   // NORMALIZED SELECTED SERVICES
-  //
-  // IMPORTANT:
-  // No subcategory -> service name fallback.
   // ==========================================================
 
   const normalizedSelectedServices =
@@ -639,9 +626,6 @@ export default function SalonServices({
               subcategory?.name ||
               selection.subcategoryId,
 
-            // IMPORTANT:
-            // The service name stays empty until
-            // ConfigureSalonServices.
             name:
               typeof selection.name ===
               'string'
@@ -705,6 +689,168 @@ export default function SalonServices({
       });
     }, [
       normalizedSelectedServices,
+    ]);
+
+  // ==========================================================
+  // GROUP SELECTED SERVICES
+  //
+  // Category
+  //   Subcategory
+  //     Audience
+  // ==========================================================
+
+  const groupedSelectedServices =
+    useMemo<GroupedSelectedCategory[]>(
+      () => {
+        const categoryMap =
+          new Map<
+            string,
+            GroupedSelectedCategory
+          >();
+
+        sortedSelectedServices.forEach(
+          selection => {
+            const categoryId =
+              selection.categoryId;
+
+            const subcategoryId =
+              selection.subcategoryId;
+
+            let categoryGroup =
+              categoryMap.get(
+                categoryId,
+              );
+
+            if (
+              !categoryGroup
+            ) {
+              categoryGroup = {
+                categoryId,
+                categoryName:
+                  selection.categoryName ||
+                  categoryId,
+                subcategories: [],
+              };
+
+              categoryMap.set(
+                categoryId,
+                categoryGroup,
+              );
+            }
+
+            let subcategoryGroup =
+              categoryGroup.subcategories.find(
+                item =>
+                  item.subcategoryId ===
+                  subcategoryId,
+              );
+
+            if (
+              !subcategoryGroup
+            ) {
+              subcategoryGroup = {
+                categoryId,
+                categoryName:
+                  selection.categoryName ||
+                  categoryId,
+
+                subcategoryId,
+
+                subcategoryName:
+                  selection.subcategoryName ||
+                  subcategoryId,
+
+                services: [],
+              };
+
+              categoryGroup.subcategories.push(
+                subcategoryGroup,
+              );
+            }
+
+            subcategoryGroup.services.push(
+              selection,
+            );
+          },
+        );
+
+        return Array.from(
+          categoryMap.values(),
+        );
+      },
+      [
+        sortedSelectedServices,
+      ],
+    );
+
+  // ==========================================================
+  // VISIBLE SELECTED SERVICES
+  // ==========================================================
+
+  const visibleSelectedServices =
+    useMemo(() => {
+      return showAllSelectedServices
+        ? sortedSelectedServices
+        : sortedSelectedServices.slice(
+            0,
+            6,
+          );
+    }, [
+      showAllSelectedServices,
+      sortedSelectedServices,
+    ]);
+
+  // ==========================================================
+  // VISIBLE GROUPED SELECTED SERVICES
+  // ==========================================================
+
+  const visibleGroupedSelectedServices =
+    useMemo(() => {
+      const visibleKeys =
+        new Set(
+          visibleSelectedServices.map(
+            service =>
+              service.serviceKey,
+          ),
+        );
+
+      return groupedSelectedServices
+        .map(
+          category => ({
+            ...category,
+
+            subcategories:
+              category.subcategories
+                .map(
+                  subcategory => ({
+                    ...subcategory,
+
+                    services:
+                      subcategory.services.filter(
+                        service =>
+                          visibleKeys.has(
+                            service.serviceKey,
+                          ),
+                      ),
+                  }),
+                )
+                .filter(
+                  subcategory =>
+                    subcategory.services
+                      .length >
+                    0,
+                ),
+          }),
+        )
+        .filter(
+          category =>
+            category.subcategories
+              .length >
+            0,
+        );
+    }, [
+      groupedSelectedServices,
+      visibleSelectedServices,
     ]);
 
   // ==========================================================
@@ -869,10 +1015,7 @@ export default function SalonServices({
       selectedCategoryCount ===
       categorySubcategories.length;
 
-    // ========================================================
     // REMOVE ALL
-    // ========================================================
-
     if (allSelected) {
       const audienceSubcategoryIds =
         new Set(
@@ -900,10 +1043,7 @@ export default function SalonServices({
       return;
     }
 
-    // ========================================================
     // SELECT ALL
-    // ========================================================
-
     const selectedIds =
       new Set(
         selectedServiceSelections
@@ -960,12 +1100,8 @@ export default function SalonServices({
               subcategoryName:
                 subcategory.name,
 
-              // IMPORTANT:
-              // Actual salon-created service name
-              // starts EMPTY.
               name: '',
 
-              // Description also starts empty.
               description: '',
 
               price:
@@ -1072,10 +1208,7 @@ export default function SalonServices({
     let updatedSelections:
       ConfigurableSalonService[];
 
-    // ========================================================
     // REMOVE
-    // ========================================================
-
     if (alreadySelected) {
       updatedSelections =
         selectedServiceSelections.filter(
@@ -1091,10 +1224,7 @@ export default function SalonServices({
         );
     }
 
-    // ========================================================
     // ADD
-    // ========================================================
-
     else {
       const businessTypeId =
         getBusinessTypeIdForSubcategory(
@@ -1129,12 +1259,9 @@ export default function SalonServices({
           subcategoryName:
             subcategory.name,
 
-          // IMPORTANT:
-          // DO NOT pre-fill this with subcategory.name.
           name: '',
 
-          description:
-            '',
+          description: '',
 
           price:
             undefined,
@@ -1186,10 +1313,6 @@ export default function SalonServices({
   // ==========================================================
 
   const handleContinue = async () => {
-    // ========================================================
-    // SERVICE VALIDATION
-    // ========================================================
-
     if (
       selectedServiceSelections.length ===
       0
@@ -1213,21 +1336,6 @@ export default function SalonServices({
       return;
     }
 
-    // ========================================================
-    // NORMALIZE SERVICES BEFORE CONTINUING
-    //
-    // IMPORTANT:
-    // Service name is intentionally kept EMPTY here.
-    //
-    // ConfigureSalonServices is responsible for asking
-    // the salon to enter:
-    //
-    // - Service name
-    // - Description
-    // - Price
-    // - Duration
-    // ========================================================
-
     const preservedSelections =
       selectedServiceSelections.map(
         selection => ({
@@ -1241,8 +1349,6 @@ export default function SalonServices({
               selection.subcategoryId,
             ),
 
-          // IMPORTANT:
-          // Never use subcategoryName as a service name.
           name:
             typeof selection.name ===
             'string'
@@ -1281,13 +1387,6 @@ export default function SalonServices({
             150,
           ),
       );
-
-      // ======================================================
-      // NEXT SCREEN
-      //
-      // ConfigureSalonServices will collect the actual
-      // salon-created service name.
-      // ======================================================
 
       navigation.navigate(
         'ConfigureSalonServices',
@@ -1346,10 +1445,6 @@ export default function SalonServices({
           false
         }
       >
-        {/* ==================================================
-            TITLE
-        ================================================== */}
-
         <Text
           style={styles.title}
         >
@@ -1362,10 +1457,6 @@ export default function SalonServices({
           Select the services you offer based on
           the audience your business serves.
         </Text>
-
-        {/* ==================================================
-            NO AUDIENCE WARNING
-        ================================================== */}
 
         {!categoriesLoading &&
         !subcategoriesLoading &&
@@ -1396,10 +1487,6 @@ export default function SalonServices({
           </View>
         ) : null}
 
-        {/* ==================================================
-            CATALOG LOADING
-        ================================================== */}
-
         {(
           categoriesLoading ||
           subcategoriesLoading
@@ -1425,10 +1512,6 @@ export default function SalonServices({
             </Text>
           </View>
         ) : null}
-
-        {/* ==================================================
-            CATALOG ERROR
-        ================================================== */}
 
         {!categoriesLoading &&
         !subcategoriesLoading &&
@@ -1478,10 +1561,6 @@ export default function SalonServices({
             </TouchableOpacity>
           </View>
         ) : null}
-
-        {/* ==================================================
-            SELECT SERVICES BUTTON
-        ================================================== */}
 
         {!categoriesLoading &&
         !subcategoriesLoading &&
@@ -1540,9 +1619,10 @@ export default function SalonServices({
           </TouchableOpacity>
         ) : null}
 
-        {/* ==================================================
-            SELECTED SERVICES PREVIEW
-        ================================================== */}
+        {/* ====================================================
+            SELECTED SERVICE CATEGORIES
+            Category → Subcategory → Audience
+            ==================================================== */}
 
         {!categoriesLoading &&
         !subcategoriesLoading &&
@@ -1558,17 +1638,30 @@ export default function SalonServices({
                 styles.selectedPreviewHeader
               }
             >
-              <Text
+              <View
                 style={
-                  styles.selectedPreviewTitle
+                  styles.selectedPreviewHeaderLeft
                 }
               >
-                Your selected services (
-                {
-                  sortedSelectedServices.length
-                }
-                )
-              </Text>
+                <Text
+                  style={
+                    styles.selectedPreviewTitle
+                  }
+                >
+                  Selected Service Categories
+                </Text>
+
+                <Text
+                  style={
+                    styles.selectedPreviewCount
+                  }
+                >
+                  {
+                    sortedSelectedServices.length
+                  }{' '}
+                  selected
+                </Text>
+              </View>
 
               <TouchableOpacity
                 activeOpacity={0.8}
@@ -1586,59 +1679,169 @@ export default function SalonServices({
               </TouchableOpacity>
             </View>
 
-            {(
-              showAllSelectedServices
-                ? sortedSelectedServices
-                : sortedSelectedServices.slice(
-                    0,
-                    6,
-                  )
-            ).map(
-              selection => (
+            {visibleGroupedSelectedServices.map(
+              (
+                category,
+                categoryIndex,
+              ) => (
                 <View
                   key={
-                    selection.serviceKey
+                    category.categoryId
                   }
-                  style={
-                    styles.selectedServiceChip
-                  }
+                  style={[
+                    styles.selectedCategoryGroup,
+                    categoryIndex >
+                      0 &&
+                      styles.selectedCategoryGroupSpacing,
+                  ]}
                 >
+                  {/* CATEGORY */}
                   <View
                     style={
-                      styles.selectedServiceDot
-                    }
-                  />
-
-                  <View
-                    style={
-                      styles.selectedServiceContent
+                      styles.selectedCategoryHeader
                     }
                   >
-                    <Text
+                    <View
                       style={
-                        styles.selectedServiceText
+                        styles.selectedCategoryNumber
                       }
                     >
-                      {selection.name ||
-                        selection.subcategoryName}
-                    </Text>
+                      <Text
+                        style={
+                          styles.selectedCategoryNumberText
+                        }
+                      >
+                        {categoryIndex +
+                          1}
+                      </Text>
+                    </View>
 
-                    <Text
+                    <View
                       style={
-                        styles.selectedServiceCategory
+                        styles.selectedCategoryHeaderContent
                       }
                     >
-                      {selection.categoryName} •{' '}
-                      {
-                        AUDIENCE_TABS.find(
-                          tab =>
-                            tab.key ===
-                            selection.audience,
-                        )?.label ||
-                          selection.audience
-                      }
-                    </Text>
+                      <Text
+                        style={
+                          styles.selectedCategoryName
+                        }
+                      >
+                        {
+                          category.categoryName
+                        }
+                      </Text>
+
+                      <Text
+                        style={
+                          styles.selectedCategoryMeta
+                        }
+                      >
+                        {
+                          category
+                            .subcategories
+                            .length
+                        }{' '}
+                        {category
+                          .subcategories
+                          .length ===
+                        1
+                          ? 'subcategory'
+                          : 'subcategories'}
+                      </Text>
+                    </View>
                   </View>
+
+                  {/* SUBCATEGORIES */}
+                  {category.subcategories.map(
+                    (
+                      subcategory,
+                      subcategoryIndex,
+                    ) => (
+                      <View
+                        key={`${category.categoryId}-${subcategory.subcategoryId}`}
+                        style={
+                          styles.selectedSubcategoryGroup
+                        }
+                      >
+                        <View
+                          style={
+                            styles.selectedSubcategoryHeader
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.selectedSubcategoryNumber
+                            }
+                          >
+                            {subcategoryIndex +
+                              1}
+                          </Text>
+
+                          <View
+                            style={
+                              styles.selectedSubcategoryHeaderContent
+                            }
+                          >
+                            <Text
+                              style={
+                                styles.selectedSubcategoryName
+                              }
+                            >
+                              {
+                                subcategory.subcategoryName
+                              }
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* AUDIENCE LIST */}
+                        <View
+                          style={
+                            styles.selectedAudienceList
+                          }
+                        >
+                          {subcategory.services.map(
+                            selection => {
+                              const audienceLabel =
+                                AUDIENCE_TABS.find(
+                                  tab =>
+                                    tab.key ===
+                                    selection.audience,
+                                )?.label ||
+                                selection.audience;
+
+                              return (
+                                <View
+                                  key={
+                                    selection.serviceKey
+                                  }
+                                  style={
+                                    styles.selectedAudienceRow
+                                  }
+                                >
+                                  <View
+                                    style={
+                                      styles.selectedAudienceIndicator
+                                    }
+                                  />
+
+                                  <Text
+                                    style={
+                                      styles.selectedAudienceText
+                                    }
+                                  >
+                                    {
+                                      audienceLabel
+                                    }
+                                  </Text>
+                                </View>
+                              );
+                            },
+                          )}
+                        </View>
+                      </View>
+                    ),
+                  )}
                 </View>
               ),
             )}
@@ -1684,10 +1887,6 @@ export default function SalonServices({
           </View>
         ) : null}
 
-        {/* ==================================================
-            REQUIRED MESSAGE
-        ================================================== */}
-
         {!categoriesLoading &&
         !subcategoriesLoading &&
         !categoriesError &&
@@ -1703,10 +1902,6 @@ export default function SalonServices({
             to continue.
           </Text>
         ) : null}
-
-        {/* ==================================================
-            INFORMATION
-        ================================================== */}
 
         <View
           style={styles.infoCard}
@@ -1754,10 +1949,6 @@ export default function SalonServices({
           </Text>
         </View>
 
-        {/* ==================================================
-            CONTINUE
-        ================================================== */}
-
         <DButton
           style={styles.button}
           onPress={
@@ -1785,7 +1976,7 @@ export default function SalonServices({
 
       {/* ======================================================
           SERVICES MODAL
-      ====================================================== */}
+          ====================================================== */}
 
       <Modal
         visible={
@@ -1807,10 +1998,6 @@ export default function SalonServices({
               styles.servicesModal
             }
           >
-            {/* =================================================
-                MODAL HEADER
-            ================================================= */}
-
             <View
               style={
                 styles.modalHeader
@@ -1857,10 +2044,6 @@ export default function SalonServices({
                 </Text>
               </TouchableOpacity>
             </View>
-
-            {/* =================================================
-                AUDIENCE TABS
-            ================================================= */}
 
             {availableAudienceTabs.length >
             0 ? (
@@ -1946,10 +2129,6 @@ export default function SalonServices({
               </View>
             ) : null}
 
-            {/* =================================================
-                ACTIVE AUDIENCE LABEL
-            ================================================= */}
-
             {activeAudience ? (
               <View
                 style={
@@ -2006,10 +2185,6 @@ export default function SalonServices({
               </View>
             ) : null}
 
-            {/* =================================================
-                SELECTED COUNT
-            ================================================= */}
-
             <View
               style={
                 styles.modalSelectedBar
@@ -2041,10 +2216,6 @@ export default function SalonServices({
                 </Text>
               ) : null}
             </View>
-
-            {/* =================================================
-                CATEGORY LIST
-            ================================================= */}
 
             <ScrollView
               style={
@@ -2134,10 +2305,6 @@ export default function SalonServices({
                           styles.modalCategory
                         }
                       >
-                        {/* =====================================
-                            CATEGORY HEADER
-                        ===================================== */}
-
                         <View
                           style={[
                             styles.modalCategoryHeader,
@@ -2150,8 +2317,6 @@ export default function SalonServices({
                               styles.modalCategoryHeaderLeft
                             }
                           >
-                            {/* CATEGORY CHECKBOX */}
-
                             <TouchableOpacity
                               activeOpacity={
                                 0.8
@@ -2195,8 +2360,6 @@ export default function SalonServices({
                               ) : null}
                             </TouchableOpacity>
 
-                            {/* CATEGORY ICON */}
-
                             <View
                               style={
                                 styles.categoryIcon
@@ -2214,8 +2377,6 @@ export default function SalonServices({
                                   .toUpperCase()}
                               </Text>
                             </View>
-
-                            {/* CATEGORY NAME */}
 
                             <TouchableOpacity
                               activeOpacity={
@@ -2261,8 +2422,6 @@ export default function SalonServices({
                             </TouchableOpacity>
                           </View>
 
-                          {/* OPEN / CLOSE */}
-
                           <TouchableOpacity
                             activeOpacity={
                               0.8
@@ -2287,10 +2446,6 @@ export default function SalonServices({
                             </Text>
                           </TouchableOpacity>
                         </View>
-
-                        {/* =====================================
-                            SUBCATEGORIES
-                        ===================================== */}
 
                         {isOpen ? (
                           <View
@@ -2355,8 +2510,6 @@ export default function SalonServices({
                                             styles.modalSubcategoryRowSelected,
                                         ]}
                                       >
-                                        {/* CHECKBOX */}
-
                                         <View
                                           style={[
                                             styles.checkbox,
@@ -2374,8 +2527,6 @@ export default function SalonServices({
                                             </Text>
                                           ) : null}
                                         </View>
-
-                                        {/* NAME */}
 
                                         <View
                                           style={
@@ -2417,10 +2568,6 @@ export default function SalonServices({
                 )
               )}
             </ScrollView>
-
-            {/* =================================================
-                MODAL FOOTER
-            ================================================= */}
 
             <View
               style={
@@ -2693,6 +2840,10 @@ const styles =
         SPACING.small,
     },
 
+    // ========================================================
+    // SELECTED SERVICE CATEGORIES
+    // ========================================================
+
     selectedServicesPreview: {
       backgroundColor:
         COLORS.surface,
@@ -2715,15 +2866,33 @@ const styles =
       justifyContent:
         'space-between',
       marginBottom:
-        SPACING.small,
+        SPACING.medium,
+    },
+
+    selectedPreviewHeaderLeft: {
+      flex: 1,
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
     },
 
     selectedPreviewTitle: {
       fontFamily:
         FONTS.semiBold,
-      fontSize: 12,
+      fontSize: 13,
       color:
         COLORS.text,
+    },
+
+    selectedPreviewCount: {
+      fontFamily:
+        FONTS.regular,
+      fontSize: 10,
+      color:
+        COLORS.textSecondary,
+      marginLeft:
+        SPACING.small,
     },
 
     editServicesText: {
@@ -2734,38 +2903,73 @@ const styles =
         COLORS.themeColor,
     },
 
-    selectedServiceChip: {
+    // ========================================================
+    // CATEGORY
+    // ========================================================
+
+    selectedCategoryGroup: {
+      paddingBottom:
+        SPACING.small,
+    },
+
+    selectedCategoryGroupSpacing: {
+      marginTop:
+        SPACING.medium,
+      paddingTop:
+        SPACING.medium,
+      borderTopWidth:
+        1,
+      borderTopColor:
+        COLORS.border,
+    },
+
+    selectedCategoryHeader: {
       flexDirection:
         'row',
       alignItems:
-        'flex-start',
-      paddingVertical: 6,
+        'center',
+      marginBottom:
+        SPACING.small,
     },
 
-    selectedServiceDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
+    selectedCategoryNumber: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
       backgroundColor:
+        COLORS.background,
+      borderWidth: 1,
+      borderColor:
         COLORS.themeColor,
+      alignItems:
+        'center',
+      justifyContent:
+        'center',
       marginRight:
         SPACING.small,
-      marginTop: 5,
     },
 
-    selectedServiceContent: {
+    selectedCategoryNumberText: {
+      fontFamily:
+        FONTS.bold,
+      fontSize: 12,
+      color:
+        COLORS.themeColor,
+    },
+
+    selectedCategoryHeaderContent: {
       flex: 1,
     },
 
-    selectedServiceText: {
+    selectedCategoryName: {
       fontFamily:
-        FONTS.regular,
-      fontSize: 12,
+        FONTS.semiBold,
+      fontSize: 14,
       color:
         COLORS.text,
     },
 
-    selectedServiceCategory: {
+    selectedCategoryMeta: {
       fontFamily:
         FONTS.regular,
       fontSize: 10,
@@ -2774,6 +2978,86 @@ const styles =
       marginTop: 2,
     },
 
+    // ========================================================
+    // SUBCATEGORY
+    // ========================================================
+
+    selectedSubcategoryGroup: {
+      marginLeft:
+        36,
+      marginBottom:
+        SPACING.small,
+    },
+
+    selectedSubcategoryHeader: {
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      minHeight: 25,
+    },
+
+    selectedSubcategoryNumber: {
+      width: 22,
+      fontFamily:
+        FONTS.semiBold,
+      fontSize: 11,
+      color:
+        COLORS.themeColor,
+    },
+
+    selectedSubcategoryHeaderContent: {
+      flex: 1,
+    },
+
+    selectedSubcategoryName: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize: 12,
+      color:
+        COLORS.text,
+    },
+
+    // ========================================================
+    // AUDIENCE
+    // ========================================================
+
+    selectedAudienceList: {
+      marginLeft:
+        22,
+      marginTop: 2,
+    },
+
+    selectedAudienceRow: {
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      minHeight: 24,
+    },
+
+    selectedAudienceIndicator: {
+      width: 5,
+      height: 5,
+      borderRadius: 2.5,
+      backgroundColor:
+        COLORS.themeColor,
+      marginRight:
+        SPACING.small,
+    },
+
+    selectedAudienceText: {
+      fontFamily:
+        FONTS.regular,
+      fontSize: 11,
+      color:
+        COLORS.textSecondary,
+    },
+
+    // ========================================================
+    // SHOW MORE
+    // ========================================================
+
     moreSelectedButton: {
       flexDirection:
         'row',
@@ -2781,7 +3065,8 @@ const styles =
         'center',
       alignSelf:
         'flex-start',
-      marginTop: 5,
+      marginTop:
+        SPACING.small,
       paddingVertical: 5,
       paddingHorizontal: 2,
     },
@@ -2803,6 +3088,10 @@ const styles =
         COLORS.themeColor,
       marginLeft: 5,
     },
+
+    // ========================================================
+    // MODAL
+    // ========================================================
 
     modalOverlay: {
       flex: 1,
@@ -3488,3 +3777,4 @@ const styles =
         'center',
     },
   });
+
