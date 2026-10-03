@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {
     SafeAreaView,
     View,
@@ -9,7 +10,11 @@ import {
     Dimensions,
     Image,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+
+import {
+    useNavigation,
+} from '@react-navigation/native';
+
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {
@@ -22,31 +27,102 @@ import {
 
 const { width, height } = Dimensions.get('window');
 
+/* ============================================================
+ * TYPES
+ * ========================================================== */
+
+type UserRole = 'CUSTOMER' | 'PROVIDER';
+
+type LoginMode = 'CUSTOMER' | 'PROVIDER' | 'SIGN_IN';
+
+/* ============================================================
+ * SCREEN
+ * ========================================================== */
+
 const WelcomeChoiceScreen = () => {
+
     const navigation = useNavigation<any>();
 
+    /* ========================================================
+     * CUSTOMER
+     *
+     * User explicitly chooses Customer.
+     * LoginScreen will handle OTP verification and determine
+     * whether this number is new or already registered.
+     * ====================================================== */
+
     const handleFindService = () => {
+
+        console.log('========================================');
+        console.log('WELCOME → CUSTOMER');
+        console.log('MODE:', 'CUSTOMER');
+        console.log('ROLE:', 'CUSTOMER');
+        console.log('========================================');
+
         navigation.navigate('LoginScreen', {
-            mode: 'CUSTOMER',
-            selectedRole: 'CUSTOMER',
+            mode: 'CUSTOMER' as LoginMode,
+            role: 'CUSTOMER' as UserRole,
         });
     };
+
+    /* ========================================================
+     * SERVICE PARTNER
+     *
+     * User explicitly chooses Service Partner.
+     * LoginScreen will handle OTP verification and determine
+     * whether this number is new or already registered.
+     * ====================================================== */
 
     const handleProvideService = () => {
+
+        console.log('========================================');
+        console.log('WELCOME → SERVICE PARTNER');
+        console.log('MODE:', 'PROVIDER');
+        console.log('ROLE:', 'PROVIDER');
+        console.log('========================================');
+
         navigation.navigate('LoginScreen', {
-            mode: 'PROVIDER',
-            selectedRole: 'PROVIDER',
+            mode: 'PROVIDER' as LoginMode,
+            role: 'PROVIDER' as UserRole,
         });
     };
 
+    /* ========================================================
+     * SIGN IN
+     *
+     * IMPORTANT:
+     * Do NOT send a role here.
+     *
+     * Sign-in must first verify the phone number.
+     *
+     * If the number exists:
+     *   → LoginScreen checks stored user.role
+     *
+     * If the number does not exist:
+     *   → LoginScreen sends the user back here
+     *     to choose Customer or Service Partner.
+     * ====================================================== */
+
     const handleSignIn = () => {
+
+        console.log('========================================');
+        console.log('WELCOME → SIGN IN');
+        console.log('MODE:', 'SIGN_IN');
+        console.log('ROLE:', 'NOT_SELECTED');
+        console.log('========================================');
+
         navigation.navigate('LoginScreen', {
             mode: 'SIGN_IN',
         });
     };
 
+    /* ========================================================
+     * RENDER
+     * ====================================================== */
+
     return (
         <SafeAreaView style={styles.safeArea}>
+
             <StatusBar
                 barStyle="dark-content"
                 backgroundColor={COLORS.background}
@@ -54,33 +130,51 @@ const WelcomeChoiceScreen = () => {
 
             <View style={styles.container}>
 
-                {/* Clavata Brand */}
+                {/* ==================================================
+                 * CLAVATA BRAND
+                 * ================================================== */}
+
                 <View style={styles.brandContainer}>
+
                     <Text style={styles.brandText}>
                         Clavata
                     </Text>
 
-                    {/* <View style={styles.brandAccent} /> */}
+                    {/* Optional brand accent */}
+                    {/*
+                    <View style={styles.brandAccent} />
+                    */}
+
                 </View>
 
-                {/* Options */}
+                {/* ==================================================
+                 * ROLE OPTIONS
+                 * ================================================== */}
+
                 <View style={styles.optionsContainer}>
 
-                    {/* Customer */}
+                    {/* ==================================================
+                     * CUSTOMER
+                     * ================================================== */}
+
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={handleFindService}
                         style={styles.option}
                     >
+
                         <View style={styles.customerIconWrapper}>
+
                             <Image
                                 source={require('../../assets/Customer.png')}
                                 style={styles.customerIcon}
                                 resizeMode="contain"
                             />
+
                         </View>
 
                         <View style={styles.optionContent}>
+
                             <Text style={styles.optionTitle}>
                                 Customer
                             </Text>
@@ -88,6 +182,7 @@ const WelcomeChoiceScreen = () => {
                             <Text style={styles.optionDescription}>
                                 Find the right service. Book in minutes
                             </Text>
+
                         </View>
 
                         <MaterialCommunityIcons
@@ -95,23 +190,31 @@ const WelcomeChoiceScreen = () => {
                             size={26}
                             color={COLORS.textMuted}
                         />
+
                     </TouchableOpacity>
 
-                    {/* Service Partner */}
+                    {/* ==================================================
+                     * SERVICE PARTNER
+                     * ================================================== */}
+
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={handleProvideService}
                         style={styles.option}
                     >
+
                         <View style={styles.servicePartnerIconWrapper}>
+
                             <Image
                                 source={require('../../assets/ServicePartner.png')}
                                 style={styles.servicePartnerIcon}
                                 resizeMode="contain"
                             />
+
                         </View>
 
                         <View style={styles.optionContent}>
+
                             <Text style={styles.optionTitle}>
                                 Service Partner
                             </Text>
@@ -119,6 +222,7 @@ const WelcomeChoiceScreen = () => {
                             <Text style={styles.optionDescription}>
                                 Get discovered. Receive bookings
                             </Text>
+
                         </View>
 
                         <MaterialCommunityIcons
@@ -126,12 +230,17 @@ const WelcomeChoiceScreen = () => {
                             size={26}
                             color={COLORS.textMuted}
                         />
+
                     </TouchableOpacity>
 
                 </View>
 
-                {/* Sign In */}
+                {/* ==================================================
+                 * SIGN IN
+                 * ================================================== */}
+
                 <View style={styles.signInContainer}>
+
                     <Text style={styles.signInText}>
                         Already have an account?
                     </Text>
@@ -140,20 +249,32 @@ const WelcomeChoiceScreen = () => {
                         activeOpacity={0.7}
                         onPress={handleSignIn}
                     >
+
                         <Text style={styles.signInLink}>
                             Sign in
                         </Text>
+
                     </TouchableOpacity>
+
                 </View>
 
             </View>
+
         </SafeAreaView>
     );
 };
 
 export default WelcomeChoiceScreen;
 
+/* ================================================================
+ * STYLES
+ * ================================================================ */
+
 const styles = StyleSheet.create({
+
+    /* ============================================================
+     * ROOT
+     * ========================================================== */
 
     safeArea: {
         flex: 1,
@@ -162,6 +283,7 @@ const styles = StyleSheet.create({
 
     container: {
         flex: 1,
+
         backgroundColor: COLORS.background,
 
         paddingHorizontal: Math.max(
@@ -172,9 +294,10 @@ const styles = StyleSheet.create({
         paddingTop: height * 0.06,
     },
 
-    /*
-     * Clavata wordmark
-     */
+    /* ============================================================
+     * BRAND
+     * ========================================================== */
+
     brandContainer: {
         alignItems: 'center',
 
@@ -191,6 +314,7 @@ const styles = StyleSheet.create({
 
     brandText: {
         fontFamily: FONTS.bold,
+
         fontSize: 42,
 
         fontWeight: '700',
@@ -203,10 +327,11 @@ const styles = StyleSheet.create({
     },
 
     /*
-     * Small accent underneath Clavata
+     * Optional brand accent.
      */
     brandAccent: {
         width: 42,
+
         height: 4,
 
         marginTop: 6,
@@ -215,6 +340,10 @@ const styles = StyleSheet.create({
 
         backgroundColor: COLORS.themeColor,
     },
+
+    /* ============================================================
+     * OPTIONS
+     * ========================================================== */
 
     optionsContainer: {
         width: '100%',
@@ -229,9 +358,11 @@ const styles = StyleSheet.create({
         ),
 
         flexDirection: 'row',
+
         alignItems: 'center',
 
         borderWidth: 1,
+
         borderColor: COLORS.border,
 
         borderRadius: RADIUS.medium,
@@ -243,17 +374,17 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.medium,
     },
 
-    /*
-     * Customer icon
-     *
-     * Customer.png gets its own size because
-     * its visual proportions are different.
-     */
+    /* ============================================================
+     * CUSTOMER ICON
+     * ========================================================== */
+
     customerIconWrapper: {
         width: 62,
+
         height: 62,
 
         alignItems: 'center',
+
         justifyContent: 'center',
 
         marginRight: SPACING.large,
@@ -261,20 +392,21 @@ const styles = StyleSheet.create({
 
     customerIcon: {
         width: 58,
+
         height: 58,
     },
 
-    /*
-     * Service Partner icon
-     *
-     * Slightly smaller than the customer icon
-     * to keep the visual weight balanced.
-     */
+    /* ============================================================
+     * SERVICE PARTNER ICON
+     * ========================================================== */
+
     servicePartnerIconWrapper: {
         width: 62,
+
         height: 62,
 
         alignItems: 'center',
+
         justifyContent: 'center',
 
         marginRight: SPACING.large,
@@ -282,8 +414,13 @@ const styles = StyleSheet.create({
 
     servicePartnerIcon: {
         width: 68,
+
         height: 68,
     },
+
+    /* ============================================================
+     * OPTION CONTENT
+     * ========================================================== */
 
     optionContent: {
         flex: 1,
@@ -295,6 +432,7 @@ const styles = StyleSheet.create({
 
     optionTitle: {
         fontFamily: FONTS.semiBold,
+
         fontSize: FONT_SIZES.medium,
 
         color: COLORS.primary,
@@ -304,6 +442,7 @@ const styles = StyleSheet.create({
 
     optionDescription: {
         fontFamily: FONTS.medium,
+
         fontSize: FONT_SIZES.small,
 
         color: COLORS.text,
@@ -311,12 +450,17 @@ const styles = StyleSheet.create({
         lineHeight: FONT_SIZES.small + 5,
     },
 
+    /* ============================================================
+     * SIGN IN
+     * ========================================================== */
+
     signInContainer: {
         width: '100%',
 
         flexDirection: 'row',
 
         justifyContent: 'center',
+
         alignItems: 'center',
 
         marginTop: SPACING.medium,
@@ -324,6 +468,7 @@ const styles = StyleSheet.create({
 
     signInText: {
         fontFamily: FONTS.medium,
+
         fontSize: FONT_SIZES.small,
 
         color: COLORS.text,
@@ -331,6 +476,7 @@ const styles = StyleSheet.create({
 
     signInLink: {
         fontFamily: FONTS.bold,
+
         fontSize: FONT_SIZES.medium,
 
         lineHeight: FONT_SIZES.small + 10,

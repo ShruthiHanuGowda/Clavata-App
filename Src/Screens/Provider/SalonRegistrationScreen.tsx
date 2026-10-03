@@ -1,6 +1,4 @@
 import React, {
-  useEffect,
-  useMemo,
   useState,
 } from 'react';
 
@@ -18,8 +16,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 
-import { useQuery } from '@apollo/client';
-
 import {
   Header,
   DButton,
@@ -30,7 +26,9 @@ import {
   // ServiceMode,
 } from '../../context/SalonRegistrationContext';
 
-import { useUser } from '../../context/UserContext';
+import {
+  useUser,
+} from '../../context/UserContext';
 
 import {
   COLORS,
@@ -40,35 +38,9 @@ import {
   RADIUS,
 } from '../../constants/constants';
 
-import {
-  GET_BUSINESS_TYPES,
-} from '../../graphql/queries';
-
 /* =========================================================
    TYPES
 ========================================================= */
-
-interface BusinessType {
-  businessTypeId: string;
-  name: string;
-  description?: string | null;
-  status: 'ACTIVE' | 'INACTIVE';
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface BusinessTypesQueryData {
-  businessTypes: {
-    success: boolean;
-    message: string;
-    totalCount: number;
-    businessTypes: BusinessType[];
-  };
-}
-
-interface BusinessTypesQueryVariables {
-  status: 'ACTIVE' | 'INACTIVE';
-}
 
 type TargetAudience =
   | 'FEMALE'
@@ -127,16 +99,6 @@ const SalonRegistrationScreen = ({
   ======================================================= */
 
   const [
-    businessType,
-    setBusinessType,
-  ] = useState('');
-
-  const [
-    selectedBusinessTypes,
-    setSelectedBusinessTypes,
-  ] = useState<BusinessType[]>([]);
-
-  const [
     salonName,
     setSalonName,
   ] = useState('');
@@ -150,16 +112,6 @@ const SalonRegistrationScreen = ({
     email,
     setEmail,
   ] = useState('');
-
-  const [
-    businessTypeModalVisible,
-    setBusinessTypeModalVisible,
-  ] = useState(false);
-
-  const [
-    helpModalVisible,
-    setHelpModalVisible,
-  ] = useState(false);
 
   /*
    * =======================================================
@@ -196,257 +148,6 @@ const SalonRegistrationScreen = ({
     submitting,
     setSubmitting,
   ] = useState(false);
-
-  /* =======================================================
-     BUSINESS TYPES
-     SOURCE OF TRUTH = ADMIN PANEL
-  ======================================================= */
-
-  const {
-    data: businessTypesData,
-    loading: businessTypesLoading,
-    error: businessTypesError,
-    refetch: refetchBusinessTypes,
-  } = useQuery<
-    BusinessTypesQueryData,
-    BusinessTypesQueryVariables
-  >(
-    GET_BUSINESS_TYPES,
-    {
-      variables: {
-        status: 'ACTIVE',
-      },
-
-      fetchPolicy: 'network-only',
-
-      notifyOnNetworkStatusChange: true,
-
-      onError: error => {
-        console.log(
-          '[SalonRegistration] GET_BUSINESS_TYPES error:',
-          error,
-        );
-      },
-    },
-  );
-
-  /* =======================================================
-     ACTIVE BUSINESS TYPE OPTIONS
-  ======================================================= */
-
-  const businessTypeOptions =
-    useMemo(() => {
-      const types =
-        businessTypesData
-          ?.businessTypes
-          ?.businessTypes ?? [];
-
-      const activeTypes =
-        types.filter(
-          item =>
-            item.status === 'ACTIVE' &&
-            item.name?.trim(),
-        );
-
-      const uniqueTypes: BusinessType[] =
-        [];
-
-      const seenNames =
-        new Set<string>();
-
-      activeTypes
-        .sort((a, b) =>
-          a.name.localeCompare(
-            b.name,
-            undefined,
-            {
-              sensitivity: 'base',
-            },
-          ),
-        )
-        .forEach(item => {
-          const normalizedName =
-            item.name
-              .trim()
-              .toLowerCase();
-
-          if (
-            !seenNames.has(
-              normalizedName,
-            )
-          ) {
-            seenNames.add(
-              normalizedName,
-            );
-
-            uniqueTypes.push(item);
-          }
-        });
-
-      return uniqueTypes;
-    }, [businessTypesData]);
-
-  /* =======================================================
-     RESTORE SELECTED BUSINESS TYPES
-     FROM REGISTRATION CONTEXT
-  ======================================================= */
-
-  useEffect(() => {
-    const storedIds =
-      Array.isArray(
-        (data as any)?.businessTypeIds,
-      )
-        ? (data as any).businessTypeIds
-        : data.businessTypeId
-        ? [data.businessTypeId]
-        : [];
-
-    const normalizedIds =
-      storedIds
-        .map((id: any) =>
-          String(id ?? '').trim(),
-        )
-        .filter(Boolean);
-
-    if (
-      normalizedIds.length === 0 ||
-      businessTypeOptions.length === 0
-    ) {
-      return;
-    }
-
-    const restored =
-      businessTypeOptions.filter(type =>
-        normalizedIds.includes(
-          type.businessTypeId.trim(),
-        ),
-      );
-
-    if (restored.length === 0) {
-      return;
-    }
-
-    setSelectedBusinessTypes(
-      restored,
-    );
-
-    setBusinessType(
-      restored
-        .map(type =>
-          type.name.trim(),
-        )
-        .join(', '),
-    );
-  }, [
-    businessTypeOptions,
-    (data as any)?.businessTypeIds,
-    data.businessTypeId,
-  ]);
-
-  /* =======================================================
-     SELECT BUSINESS TYPE
-
-     IMPORTANT:
-     Do NOT call updateData() inside
-     setSelectedBusinessTypes(current => ...).
-
-     React state updater functions must remain pure.
-  ======================================================= */
-
-  const toggleBusinessType = (
-    type: BusinessType,
-  ) => {
-    const alreadySelected =
-      selectedBusinessTypes.some(
-        item =>
-          item.businessTypeId ===
-          type.businessTypeId,
-      );
-
-    const updated =
-      alreadySelected
-        ? selectedBusinessTypes.filter(
-            item =>
-              item.businessTypeId !==
-              type.businessTypeId,
-          )
-        : [
-            ...selectedBusinessTypes,
-            type,
-          ];
-
-    const businessTypeIds =
-      updated
-        .map(item =>
-          item.businessTypeId
-            .trim(),
-        )
-        .filter(Boolean);
-
-    const businessTypeNames =
-      updated
-        .map(item =>
-          item.name.trim(),
-        )
-        .filter(Boolean);
-
-    const businessTypeValue =
-      businessTypeNames.join(', ');
-
-    /*
-     * Local component state updates.
-     */
-    setSelectedBusinessTypes(
-      updated,
-    );
-
-    setBusinessType(
-      businessTypeValue,
-    );
-
-    /*
-     * IMPORTANT:
-     * This is intentionally OUTSIDE
-     * setSelectedBusinessTypes().
-     *
-     * This prevents:
-     *
-     * Cannot update a component
-     * SalonRegistrationProvider
-     * while rendering a different component
-     * SalonRegistrationScreen.
-     */
-    updateData({
-      businessTypeId:
-        businessTypeIds[0] || '',
-
-      businessType:
-        businessTypeValue,
-
-      businessTypeIds,
-    } as any);
-  };
-
-  const getBusinessTypeLabel = () => {
-    if (
-      selectedBusinessTypes.length ===
-      0
-    ) {
-      return '';
-    }
-
-    return selectedBusinessTypes
-      .map(type =>
-        type.name.trim(),
-      )
-      .join(', ');
-  };
-
-  const closeBusinessTypeModal = () => {
-    setBusinessTypeModalVisible(
-      false,
-    );
-  };
 
   /* =======================================================
      TARGET AUDIENCE
@@ -582,9 +283,6 @@ const SalonRegistrationScreen = ({
       return;
     }
 
-    const trimmedBusinessType =
-      getBusinessTypeLabel().trim();
-
     const trimmedSalonName =
       salonName.trim();
 
@@ -593,62 +291,6 @@ const SalonRegistrationScreen = ({
 
     const trimmedEmail =
       email.trim();
-
-    /* -------------------------------------------------------
-       BUSINESS TYPE
-    ------------------------------------------------------- */
-
-    if (
-      selectedBusinessTypes.length ===
-      0
-    ) {
-      Alert.alert(
-        'Business Type Required',
-        'Please select at least one business type to continue. You can select more than one.',
-      );
-
-      return;
-    }
-
-    /* -------------------------------------------------------
-       BUSINESS TYPE IDS
-    ------------------------------------------------------- */
-
-    const businessTypeIds =
-      selectedBusinessTypes
-        .map(type =>
-          type.businessTypeId.trim(),
-        )
-        .filter(Boolean);
-
-    const businessTypeId =
-      businessTypeIds[0] ||
-      data.businessTypeId?.trim();
-
-    if (
-      businessTypeIds.length === 0 ||
-      !businessTypeId
-    ) {
-      console.log(
-        '[SalonRegistration] BUSINESS TYPE IDS ARE MISSING',
-        {
-          selectedBusinessTypes,
-          contextBusinessTypeId:
-            data.businessTypeId,
-          contextBusinessTypeIds:
-            (data as any)
-              ?.businessTypeIds,
-          businessType,
-        },
-      );
-
-      Alert.alert(
-        'Business Type Required',
-        'Please select at least one valid business type to continue.',
-      );
-
-      return;
-    }
 
     /* -------------------------------------------------------
        TARGET AUDIENCE
@@ -773,13 +415,45 @@ const SalonRegistrationScreen = ({
       setSubmitting(true);
 
       console.log(
-        '[SalonRegistration] BUSINESS TYPES:',
-        {
-          businessTypeIds,
-          businessTypeId,
-          businessType:
-            trimmedBusinessType,
-        },
+        '====================================================',
+      );
+
+      console.log(
+        '[SalonRegistration] SAVE REGISTRATION DATA',
+      );
+
+      console.log(
+        '====================================================',
+      );
+
+      console.log(
+        '[SalonRegistration] User ID:',
+        currentUser.userId,
+      );
+
+      console.log(
+        '[SalonRegistration] Phone:',
+        currentUser.phoneNumber,
+      );
+
+      console.log(
+        '[SalonRegistration] Business Name:',
+        trimmedSalonName,
+      );
+
+      console.log(
+        '[SalonRegistration] Owner Name:',
+        trimmedOwnerName,
+      );
+
+      console.log(
+        '[SalonRegistration] Email:',
+        trimmedEmail,
+      );
+
+      console.log(
+        '[SalonRegistration] Target Audiences:',
+        targetAudiences,
       );
 
       await updateData({
@@ -798,15 +472,6 @@ const SalonRegistrationScreen = ({
         email:
           trimmedEmail,
 
-        businessTypeId:
-          businessTypeId,
-
-        businessType:
-          trimmedBusinessType,
-
-        businessTypeIds:
-          businessTypeIds,
-
         targetAudiences:
           targetAudiences,
 
@@ -824,6 +489,14 @@ const SalonRegistrationScreen = ({
         serviceSpecificModes: {},
         */
       });
+
+      console.log(
+        '[SalonRegistration] Registration data saved successfully.',
+      );
+
+      console.log(
+        '[SalonRegistration] Navigating to SalonAddress...',
+      );
 
       navigation.navigate(
         'SalonAddress',
@@ -878,222 +551,6 @@ const SalonRegistrationScreen = ({
             Provide your business details
             to get started with Clavata
           </Text>
-
-          {/* BUSINESS TYPE */}
-
-          <View
-            style={
-              styles.fieldContainer
-            }
-          >
-            <View
-              style={styles.labelRow}
-            >
-              <Text
-                style={styles.label}
-              >
-                Business type
-              </Text>
-
-              <TouchableOpacity
-                style={
-                  styles.helpButton
-                }
-                activeOpacity={0.7}
-                onPress={() =>
-                  setHelpModalVisible(
-                    true,
-                  )
-                }
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.dropdown,
-                businessTypeModalVisible &&
-                  styles.dropdownActive,
-              ]}
-              activeOpacity={0.7}
-              onPress={() =>
-                setBusinessTypeModalVisible(
-                  true,
-                )
-              }
-              disabled={
-                businessTypesLoading
-              }
-            >
-              <View
-                style={
-                  styles.dropdownContent
-                }
-              >
-                {businessTypesLoading ? (
-                  <View
-                    style={
-                      styles.loadingRow
-                    }
-                  >
-                    <ActivityIndicator
-                      size="small"
-                    />
-
-                    <Text
-                      style={
-                        styles.loadingText
-                      }
-                    >
-                      Loading business
-                      types...
-                    </Text>
-                  </View>
-                ) : (
-                  <Text
-                    style={[
-                      styles.dropdownText,
-                      !businessType &&
-                        styles.placeholderText,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {getBusinessTypeLabel() ||
-                      'Select business type'}
-                  </Text>
-                )}
-              </View>
-
-              {!businessTypesLoading && (
-                <Text
-                  style={
-                    styles.dropdownArrow
-                  }
-                >
-                  ▾
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            {!businessTypesLoading &&
-              businessTypesError && (
-                <View
-                  style={
-                    styles.errorContainer
-                  }
-                >
-                  <Text
-                    style={
-                      styles.errorText
-                    }
-                  >
-                    We couldn't load the
-                    available business
-                    types.
-                  </Text>
-
-                  <TouchableOpacity
-                    onPress={() =>
-                      refetchBusinessTypes()
-                    }
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={
-                        styles.retryText
-                      }
-                    >
-                      Try again
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-            {!businessTypesLoading &&
-              !businessTypesError &&
-              businessTypeOptions.length ===
-                0 && (
-                <View
-                  style={
-                    styles.errorContainer
-                  }
-                >
-                  <Text
-                    style={
-                      styles.errorText
-                    }
-                  >
-                    No business types are
-                    currently available.
-                  </Text>
-
-                  <TouchableOpacity
-                    onPress={() =>
-                      setHelpModalVisible(
-                        true,
-                      )
-                    }
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={
-                        styles.retryText
-                      }
-                    >
-                      Need help?
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-            {selectedBusinessTypes.length >
-              0 && (
-              <View
-                style={
-                  styles.selectedBusinessTypeInfo
-                }
-              >
-                <View
-                  style={
-                    styles.infoIconContainer
-                  }
-                >
-                  <Text
-                    style={
-                      styles.infoIconText
-                    }
-                  >
-                    i
-                  </Text>
-                </View>
-
-                <View
-                  style={
-                    styles.selectedDescriptionContent
-                  }
-                >
-                  <Text
-                    style={
-                      styles.selectedDescriptionLabel
-                    }
-                  >
-                    Selected business types
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.selectedDescription
-                    }
-                  >
-                    {selectedBusinessTypes
-                      .map(type =>
-                        type.name.trim(),
-                      )
-                      .join(', ')}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
 
           {/* TARGET AUDIENCE */}
 
@@ -1456,317 +913,6 @@ const SalonRegistrationScreen = ({
       </ScrollView>
 
       {/* =====================================================
-          BUSINESS TYPE MODAL
-      ===================================================== */}
-
-      <Modal
-        visible={
-          businessTypeModalVisible
-        }
-        transparent
-        animationType="slide"
-        onRequestClose={() =>
-          setBusinessTypeModalVisible(
-            false,
-          )
-        }
-      >
-        <View
-          style={
-            styles.modalOverlay
-          }
-        >
-          <Pressable
-            style={
-              styles.modalOutside
-            }
-            onPress={() =>
-              setBusinessTypeModalVisible(
-                false,
-              )
-            }
-          />
-
-          <View
-            style={
-              styles.modalContainer
-            }
-          >
-            <View
-              style={
-                styles.modalHeader
-              }
-            >
-              <View
-                style={
-                  styles.modalHeaderTextContainer
-                }
-              >
-                <Text
-                  style={
-                    styles.modalTitle
-                  }
-                >
-                  Select Business Type
-                </Text>
-
-                <Text
-                  style={
-                    styles.modalSubtitle
-                  }
-                >
-                  Select all business types that apply to your business.
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={
-                  styles.closeButton
-                }
-                activeOpacity={0.7}
-                onPress={() =>
-                  setBusinessTypeModalVisible(
-                    false,
-                  )
-                }
-              >
-                <Text
-                  style={
-                    styles.closeButtonText
-                  }
-                >
-                  ×
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              style={
-                styles.modalScroll
-              }
-              contentContainerStyle={
-                styles.modalScrollContent
-              }
-              showsVerticalScrollIndicator={
-                false
-              }
-            >
-              {businessTypesLoading ? (
-                <View
-                  style={
-                    styles.modalLoadingContainer
-                  }
-                >
-                  <ActivityIndicator />
-
-                  <Text
-                    style={
-                      styles.modalLoadingText
-                    }
-                  >
-                    Loading business types...
-                  </Text>
-                </View>
-              ) : businessTypeOptions.length ===
-                0 ? (
-                <View
-                  style={
-                    styles.emptyModalContainer
-                  }
-                >
-                  <Text
-                    style={
-                      styles.emptyModalTitle
-                    }
-                  >
-                    No business types available
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.emptyModalText
-                    }
-                  >
-                    Please contact Clavata
-                    Support if you need
-                    assistance choosing a
-                    business type.
-                  </Text>
-
-                  <TouchableOpacity
-                    style={
-                      styles.modalActionButton
-                    }
-                    activeOpacity={0.7}
-                    onPress={() => {
-                      setBusinessTypeModalVisible(
-                        false,
-                      );
-
-                      setHelpModalVisible(
-                        true,
-                      );
-                    }}
-                  >
-                    <Text
-                      style={
-                        styles.modalActionButtonText
-                      }
-                    >
-                      Contact Clavata Support
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                businessTypeOptions.map(
-                  type => {
-                    const isSelected =
-                      selectedBusinessTypes.some(
-                        item =>
-                          item.businessTypeId ===
-                          type.businessTypeId,
-                      );
-
-                    return (
-                      <TouchableOpacity
-                        key={
-                          type.businessTypeId
-                        }
-                        style={[
-                          styles.businessTypeOption,
-                          isSelected &&
-                            styles.businessTypeOptionSelected,
-                        ]}
-                        activeOpacity={0.7}
-                        onPress={() =>
-                          toggleBusinessType(
-                            type,
-                          )
-                        }
-                      >
-                        <View
-                          style={
-                            styles.businessTypeOptionContent
-                          }
-                        >
-                          <View
-                            style={
-                              styles.businessTypeTitleRow
-                            }
-                          >
-                            <Text
-                              style={[
-                                styles.businessTypeOptionTitle,
-                                isSelected &&
-                                  styles.businessTypeOptionTitleSelected,
-                              ]}
-                            >
-                              {type.name}
-                            </Text>
-
-                            {isSelected && (
-                              <View
-                                style={
-                                  styles.selectedCheck
-                                }
-                              >
-                                <Text
-                                  style={
-                                    styles.selectedCheckText
-                                  }
-                                >
-                                  ✓
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-
-                          <Text
-                            style={
-                              styles.businessTypeOptionDescription
-                            }
-                          >
-                            {type.description?.trim() ||
-                              'Select this option if it best describes your business.'}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  },
-                )
-              )}
-            </ScrollView>
-
-            {businessTypeOptions.length >
-              0 && (
-              <View
-                style={
-                  styles.businessTypeDoneContainer
-                }
-              >
-                <TouchableOpacity
-                  style={
-                    styles.businessTypeDoneButton
-                  }
-                  activeOpacity={0.7}
-                  onPress={
-                    closeBusinessTypeModal
-                  }
-                >
-                  <Text
-                    style={
-                      styles.businessTypeDoneButtonText
-                    }
-                  >
-                    Done
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {businessTypeOptions.length >
-              0 && (
-              <View
-                style={
-                  styles.modalHelpContainer
-                }
-              >
-                <Text
-                  style={
-                    styles.modalHelpText
-                  }
-                >
-                  Can't find a suitable
-                  business type?
-                </Text>
-
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    setBusinessTypeModalVisible(
-                      false,
-                    );
-
-                    setHelpModalVisible(
-                      true,
-                    );
-                  }}
-                >
-                  <Text
-                    style={
-                      styles.modalHelpLink
-                    }
-                  >
-                    Contact Clavata Support
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* =====================================================
           TARGET AUDIENCE MODAL
       ===================================================== */}
 
@@ -1994,107 +1140,6 @@ const SalonRegistrationScreen = ({
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* =====================================================
-          HELP MODAL
-      ===================================================== */}
-
-      <Modal
-        visible={helpModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() =>
-          setHelpModalVisible(
-            false,
-          )
-        }
-      >
-        <View
-          style={
-            styles.helpModalOverlay
-          }
-        >
-          <Pressable
-            style={
-              styles.helpModalOutside
-            }
-            onPress={() =>
-              setHelpModalVisible(
-                false,
-              )
-            }
-          />
-
-          <View
-            style={
-              styles.helpModalContainer
-            }
-          >
-            <Text
-              style={
-                styles.helpModalTitle
-              }
-            >
-              Business type not listed?
-            </Text>
-
-            <Text
-              style={
-                styles.helpModalDescription
-              }
-            >
-              Please contact Clavata Support
-              and tell us about your business.
-              Our team will help you identify
-              the appropriate business type.
-            </Text>
-
-            <View
-              style={
-                styles.helpGuidanceBox
-              }
-            >
-              <Text
-                style={
-                  styles.helpGuidanceTitle
-                }
-              >
-                Important
-              </Text>
-
-              <Text
-                style={
-                  styles.helpGuidanceText
-                }
-              >
-                Please do not select an unrelated
-                business type just to continue
-                your registration.
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={
-                styles.helpCloseButton
-              }
-              activeOpacity={0.7}
-              onPress={() =>
-                setHelpModalVisible(
-                  false,
-                )
-              }
-            >
-              <Text
-                style={
-                  styles.helpCloseButtonText
-                }
-              >
-                Close
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -2468,14 +1513,6 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
 
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent:
-      'space-between',
-    marginBottom: 8,
-  },
-
   label: {
     fontSize:
       FONT_SIZES?.small ?? 14,
@@ -2568,13 +1605,6 @@ const styles = StyleSheet.create({
       COLORS.white,
   },
 
-  helpButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingVertical: 2,
-  },
-
   dropdown: {
     minHeight: 52,
     borderWidth: 1,
@@ -2620,95 +1650,6 @@ const styles = StyleSheet.create({
     color:
       COLORS.textSecondary,
     marginTop: -3,
-  },
-
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  loadingText: {
-    fontSize: 13,
-    fontFamily:
-      FONTS?.regular,
-    color:
-      COLORS.textSecondary,
-    marginLeft: 8,
-  },
-
-  errorContainer: {
-    marginTop: 8,
-    paddingHorizontal: 2,
-  },
-
-  errorText: {
-    fontSize: 12,
-    fontFamily:
-      FONTS?.regular,
-    color:
-      COLORS.textSecondary,
-    lineHeight: 17,
-  },
-
-  retryText: {
-    fontSize: 12,
-    fontFamily:
-      FONTS?.medium,
-    color:
-      COLORS.primary,
-    marginTop: 4,
-  },
-
-  selectedBusinessTypeInfo: {
-    flexDirection: 'row',
-    backgroundColor:
-      COLORS.background,
-    borderRadius:
-      RADIUS?.medium ?? 10,
-    padding: 12,
-    marginTop: 10,
-  },
-
-  infoIconContainer: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor:
-      COLORS.themeColor,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 9,
-    marginTop: 1,
-  },
-
-  infoIconText: {
-    fontSize: 12,
-    fontFamily:
-      FONTS?.bold,
-    color:
-      COLORS.white,
-  },
-
-  selectedDescriptionContent: {
-    flex: 1,
-  },
-
-  selectedDescriptionLabel: {
-    fontSize: 12,
-    fontFamily:
-      FONTS?.medium,
-    color:
-      COLORS.text,
-    marginBottom: 3,
-  },
-
-  selectedDescription: {
-    fontSize: 12,
-    fontFamily:
-      FONTS?.regular,
-    color:
-      COLORS.textSecondary,
-    lineHeight: 18,
   },
 
   sectionContainer: {
@@ -2834,6 +1775,10 @@ const styles = StyleSheet.create({
       FONTS?.medium,
   },
 
+  /* =======================================================
+     MODAL
+  ======================================================= */
+
   modalOverlay: {
     flex: 1,
     justifyContent:
@@ -2921,111 +1866,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 
-  businessTypeOption: {
-    borderWidth: 1,
-    borderColor:
-      COLORS.border,
-    borderRadius:
-      RADIUS?.medium ?? 10,
-    padding: 15,
-    marginBottom: 10,
-    backgroundColor:
-      COLORS.white,
-  },
-
-  businessTypeOptionSelected: {
-    borderColor:
-      COLORS.primary,
-    backgroundColor:
-      'rgba(0,157,148,0.04)',
-  },
-
-  businessTypeOptionContent: {
-    flex: 1,
-  },
-
-  businessTypeTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent:
-      'space-between',
-  },
-
-  businessTypeOptionTitle: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily:
-      FONTS?.medium,
-    color:
-      COLORS.text,
-    paddingRight: 10,
-  },
-
-  businessTypeOptionTitleSelected: {
-    fontFamily:
-      FONTS?.bold,
-    color:
-      COLORS.primary,
-  },
-
-  businessTypeOptionDescription: {
-    fontSize: 12,
-    fontFamily:
-      FONTS?.regular,
-    color:
-      COLORS.textSecondary,
-    lineHeight: 18,
-    marginTop: 6,
-    paddingRight: 8,
-  },
-
-  selectedCheck: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor:
-      COLORS.themeColor,
-    alignItems: 'center',
-    justifyContent:
-      'center',
-  },
-
-  selectedCheckText: {
-    color:
-      COLORS.white,
-    fontSize: 13,
-    fontFamily:
-      FONTS?.bold,
-  },
-
-  businessTypeDoneContainer: {
-    borderTopWidth:
-      StyleSheet.hairlineWidth,
-    borderTopColor:
-      COLORS.border,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 6,
-  },
-
-  businessTypeDoneButton: {
-    height: 48,
-    borderRadius:
-      RADIUS?.medium ?? 10,
-    backgroundColor:
-      COLORS.themeColor,
-    alignItems: 'center',
-    justifyContent:
-      'center',
-  },
-
-  businessTypeDoneButtonText: {
-    color:
-      COLORS.white,
-    fontSize: 14,
-    fontFamily:
-      FONTS?.medium,
-  },
+  /* =======================================================
+     AUDIENCE OPTIONS
+  ======================================================= */
 
   audienceOption: {
     flexDirection: 'row',
@@ -3149,157 +1992,32 @@ const styles = StyleSheet.create({
       FONTS?.medium,
   },
 
-  modalLoadingContainer: {
+  /* =======================================================
+     MODAL INFO
+  ======================================================= */
+
+  modalInfoIcon: {
+    width: 21,
+    height: 21,
+    borderRadius: 10.5,
+    backgroundColor:
+      COLORS.themeColor,
     alignItems: 'center',
     justifyContent:
       'center',
-    paddingVertical: 50,
+    marginRight: 9,
   },
 
-  modalLoadingText: {
-    fontSize: 13,
-    fontFamily:
-      FONTS?.regular,
-    color:
-      COLORS.textSecondary,
-    marginTop: 10,
-  },
-
-  emptyModalContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-  },
-
-  emptyModalTitle: {
-    fontSize: 16,
-    fontFamily:
-      FONTS?.bold,
-    color:
-      COLORS.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-
-  emptyModalText: {
-    fontSize: 13,
-    fontFamily:
-      FONTS?.regular,
-    color:
-      COLORS.textSecondary,
-    lineHeight: 19,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-
-  modalActionButton: {
-    backgroundColor:
-      COLORS.primary,
-    borderRadius:
-      RADIUS?.medium ?? 10,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-  },
-
-  modalActionButtonText: {
+  modalInfoIconText: {
     color:
       COLORS.white,
-    fontSize: 13,
+    fontSize: 11,
     fontFamily:
-      FONTS?.medium,
+      FONTS?.bold,
   },
 
-  modalHelpContainer: {
-    borderTopWidth:
-      StyleSheet.hairlineWidth,
-    borderTopColor:
-      COLORS.border,
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    alignItems: 'center',
-  },
-
-  modalHelpText: {
-    fontSize: 12,
-    fontFamily:
-      FONTS?.regular,
-    color:
-      COLORS.textSecondary,
-    marginBottom: 4,
-  },
-
-  modalHelpLink: {
-    fontSize: 13,
-    fontFamily:
-      FONTS?.medium,
-    color:
-      COLORS.primary,
-  },
-
-  helpModalOverlay: {
+  modalInfoText: {
     flex: 1,
-    backgroundColor:
-      'rgba(0,0,0,0.5)',
-    justifyContent:
-      'center',
-    alignItems:
-      'center',
-    paddingHorizontal: 22,
-  },
-
-  helpModalOutside: {
-    ...StyleSheet.absoluteFillObject,
-  },
-
-  helpModalContainer: {
-    width: '100%',
-    backgroundColor:
-      COLORS.white,
-    borderRadius: 18,
-    padding: 22,
-  },
-
-  helpModalTitle: {
-    fontSize: 19,
-    fontFamily:
-      FONTS?.bold,
-    color:
-      COLORS.text,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-
-  helpModalDescription: {
-    fontSize: 13,
-    fontFamily:
-      FONTS?.regular,
-    color:
-      COLORS.textSecondary,
-    lineHeight: 20,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-
-  helpGuidanceBox: {
-    backgroundColor:
-      COLORS.background,
-    borderRadius:
-      RADIUS?.medium ?? 10,
-    padding: 13,
-    marginTop: 10,
-    marginBottom: 18,
-  },
-
-  helpGuidanceTitle: {
-    fontSize: 13,
-    fontFamily:
-      FONTS?.medium,
-    color:
-      COLORS.text,
-    marginBottom: 4,
-  },
-
-  helpGuidanceText: {
     fontSize: 12,
     fontFamily:
       FONTS?.regular,
@@ -3308,29 +2026,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  helpCloseButton: {
-    height: 48,
-    borderRadius:
-      RADIUS?.medium ?? 10,
-    backgroundColor:
-      COLORS.themeColor,
-    alignItems: 'center',
-    justifyContent:
-      'center',
-  },
-
-  helpCloseButtonText: {
-    color:
-      COLORS.white,
-    fontSize: 14,
-    fontFamily:
-      FONTS?.medium,
-  },
-
   /*
    * =======================================================
    * SERVICE AVAILABILITY STYLES
-   * KEPT UNCHANGED FOR FUTURE USE
+   * KEPT FOR FUTURE USE
    * =======================================================
    */
 
@@ -3411,36 +2110,6 @@ const styles = StyleSheet.create({
       RADIUS?.medium ?? 10,
     padding: 13,
     marginTop: 5,
-  },
-
-  modalInfoIcon: {
-    width: 21,
-    height: 21,
-    borderRadius: 10.5,
-    backgroundColor:
-      COLORS.themeColor,
-    alignItems: 'center',
-    justifyContent:
-      'center',
-    marginRight: 9,
-  },
-
-  modalInfoIconText: {
-    color:
-      COLORS.white,
-    fontSize: 11,
-    fontFamily:
-      FONTS?.bold,
-  },
-
-  modalInfoText: {
-    flex: 1,
-    fontSize: 12,
-    fontFamily:
-      FONTS?.regular,
-    color:
-      COLORS.textSecondary,
-    lineHeight: 18,
   },
 });
 

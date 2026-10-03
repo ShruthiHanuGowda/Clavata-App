@@ -9,25 +9,6 @@ export const SEND_OTP = gql`
   }
 `;
 
-
-// ============================================================
-// RESEND OTP
-// ============================================================
-
-export const RESEND_OTP = gql`
-  mutation ResendOTP($phoneNumber: String!) {
-    resendOTP(phoneNumber: $phoneNumber) {
-      success
-      message
-    }
-  }
-`;
-
-
-// ============================================================
-// VERIFY OTP
-// ============================================================
-
 export const VERIFY_OTP = gql`
   mutation VerifyOTP(
     $phoneNumber: String!
@@ -46,25 +27,40 @@ export const VERIFY_OTP = gql`
         phoneNumber
         fullName
 
-        roles {
-          customer
-          businessPartner
-        }
+        role
 
-        activeRole
         providerStatus
         salonId
 
         createdAt
         updatedAt
+
+        preferredPaymentMethod
       }
     }
   }
 `;
 
+export const RESEND_OTP = gql`
+  mutation ResendOTP(
+    $phoneNumber: String!
+  ) {
+    resendOTP(
+      phoneNumber: $phoneNumber
+    ) {
+      success
+      message
+    }
+  }
+`;
+
 export const REGISTER_USER = gql`
-  mutation RegisterUser($input: RegisterUserInput!) {
-    registerUser(input: $input) {
+  mutation RegisterUser(
+    $input: RegisterUserInput!
+  ) {
+    registerUser(
+      input: $input
+    ) {
       success
       message
 
@@ -72,22 +68,20 @@ export const REGISTER_USER = gql`
         userId
         phoneNumber
         fullName
-        salonId
-        activeRole
-        providerStatus
 
-        roles {
-          customer
-          businessPartner
-        }
+        role
+
+        providerStatus
+        salonId
 
         createdAt
         updatedAt
+
+        preferredPaymentMethod
       }
     }
   }
 `;
-
 
 export const REGISTER_SALON_PARTNER = gql`
   mutation RegisterSalonPartner(
