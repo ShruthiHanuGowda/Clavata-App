@@ -316,8 +316,8 @@ export default function ProfileScreen() {
 
 
   const isSalon =
-    currentUser?.activeRole ===
-    'SALON';
+    currentUser?.role ===
+    'PROVIDER';
 
 
   const roleText =

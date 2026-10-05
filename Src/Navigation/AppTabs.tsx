@@ -23,7 +23,7 @@ export default function AppTabs() {
 
   console.log(
     'ACTIVE ROLE:',
-    currentUser?.activeRole,
+    currentUser?.role,
   );
 
   console.log(
@@ -43,7 +43,7 @@ export default function AppTabs() {
    */
 
   if (
-    currentUser?.activeRole ===
+    currentUser?.role ===
     'PROVIDER'
   ) {
     return <SalonTabs />;

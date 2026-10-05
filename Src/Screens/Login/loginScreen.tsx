@@ -550,24 +550,6 @@ export default function LoginScreen() {
       ],
     );
 
-
-  // ============================================================
-  // GET EXISTING USER ROLE
-  //
-  // IMPORTANT:
-  //
-  // There is ONLY ONE canonical role:
-  //
-  // user.role
-  //
-  // Never use:
-  //
-  // user.activeRole
-  // user.roles
-  // user.roles.customer
-  // user.roles.businessPartner
-  // ============================================================
-
   const getExistingRole =
     useCallback(
       (

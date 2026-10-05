@@ -517,16 +517,6 @@ export default function OTPModal({
           }
 
 
-          // ----------------------------------------------------
-          // Validate canonical role.
-          //
-          // ONLY:
-          // user.role
-          //
-          // No activeRole.
-          // No roles object.
-          // ----------------------------------------------------
-
           if (
             user.role !==
               'CUSTOMER' &&

@@ -339,24 +339,6 @@ export default function RegisterUser() {
           return;
         }
 
-        /* ====================================================
-           GRAPHQL VARIABLES
-           ==================================================== */
-
-        /*
-         * RegisterUserInput:
-         *
-         *   phoneNumber
-         *   fullName
-         *   acceptedTerms
-         *   role
-         *
-         * There is intentionally NO:
-         *
-         *   activeRole
-         *   roles
-         */
-
         const variables = {
           input: {
             phoneNumber,

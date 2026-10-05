@@ -57,11 +57,11 @@ export default function LoginScreenWeb() {
             return 'PROVIDER';
         }
 
-        if (user?.activeRole === 'CUSTOMER') {
+        if (user?.role === 'CUSTOMER') {
             return 'CUSTOMER';
         }
 
-        if (user?.activeRole === 'PROVIDER') {
+        if (user?.role === 'PROVIDER') {
             return 'PROVIDER';
         }
 
@@ -228,7 +228,7 @@ export default function LoginScreenWeb() {
             if (mode === 'CUSTOMER') {
                 navigation.replace('RegisterUser', {
                     phoneNumber,
-                    activeRole: 'CUSTOMER',
+                    role: 'CUSTOMER',
                 });
 
                 return;
@@ -237,7 +237,7 @@ export default function LoginScreenWeb() {
             if (mode === 'PROVIDER') {
                 navigation.replace('RegisterUser', {
                     phoneNumber,
-                    activeRole: 'PROVIDER',
+                    role: 'PROVIDER',
                 });
 
                 return;
