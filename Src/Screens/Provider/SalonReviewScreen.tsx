@@ -64,6 +64,14 @@ type KycDocumentType =
 // REVIEW SERVICE
 // ============================================================
 //
+// Local registration context model:
+//
+// data.serviceSelections
+//
+// GraphQL registration model:
+//
+// input.services
+//
 // Service hierarchy:
 //
 // Audience
@@ -71,17 +79,9 @@ type KycDocumentType =
 //      → Subcategory
 //         → Service
 //
-// Business type is intentionally NOT part of the service model.
-//
 // Multiple services are allowed under the same:
 //
 // Audience + Category + Subcategory
-//
-// Example:
-//
-// FEMALE → Hair → Hair Cut → Layer Haircut
-// FEMALE → Hair → Hair Cut → Bob Haircut
-// FEMALE → Hair → Hair Cut → Step Haircut
 //
 // ============================================================
 
@@ -161,30 +161,29 @@ type BusinessHour = {
 //
 // IMPORTANT:
 //
-// This must match the current GraphQL schema:
-//
-// RegisterSalonPartnerInput
+// This matches the current RegisterSalonPartnerInput.
 //
 // There is NO:
 //
+// businessType
 // businessTypeId
 // businessTypeIds
-// businessType
 // bankAccount
 // ifsc
-// services
-//
-// Service field is:
-//
 // serviceSelections
 //
-// And each selection contains:
+// Registration uses:
+//
+// services
+//
+// Each service contains:
 //
 // categoryId
 // categoryName
 // subcategoryId
 // subcategoryName
-// serviceName
+// name
+// description
 // audience
 // price
 // duration
@@ -245,7 +244,9 @@ type RegisterSalonPartnerVariables = {
 
     udyamNumber?: string;
 
-    serviceSelections: Array<{
+    kycDocuments: KycDocumentInput[];
+
+    services: Array<{
       categoryId: string;
 
       categoryName: string;
@@ -254,7 +255,9 @@ type RegisterSalonPartnerVariables = {
 
       subcategoryName: string;
 
-      serviceName: string;
+      name: string;
+
+      description?: string;
 
       audience: Audience;
 
@@ -262,8 +265,6 @@ type RegisterSalonPartnerVariables = {
 
       duration: number;
     }>;
-
-    kycDocuments: KycDocumentInput[];
   };
 };
 
@@ -513,13 +514,11 @@ export default function SalonReviewScreen({
 
 
           /*
-           * The registration context currently stores
-           * the service name as `name`.
+           * The registration context stores
+           * the service name locally as `name`.
            *
-           * We keep that local structure unchanged.
-           *
-           * It will be converted to `serviceName`
-           * only when building the GraphQL payload.
+           * The GraphQL registration payload
+           * uses `name` as well.
            */
           const serviceName =
             cleanString(
@@ -558,11 +557,10 @@ export default function SalonReviewScreen({
 
 
           /*
-           * IMPORTANT:
-           *
-           * The service name remains part of the fallback
-           * identity so multiple services under the same
-           * category/subcategory remain separate.
+           * The service name remains part of the
+           * fallback identity so multiple services
+           * under the same category/subcategory
+           * remain separate.
            */
           const effectiveServiceKey =
             uniqueId ||
@@ -1253,7 +1251,7 @@ export default function SalonReviewScreen({
 
     const normalizedBusinessHours =
       {} as RegisterSalonPartnerVariables[
-        'input'
+      'input'
       ]['businessHours'];
 
 
@@ -1447,24 +1445,34 @@ export default function SalonReviewScreen({
 
 
     // ========================================================
-    // BUILD SERVICE SELECTIONS
+    // BUILD GRAPHQL SERVICES
     // ========================================================
     //
-    // LOCAL MODEL:
+    // IMPORTANT:
     //
+    // Local context:
+    //
+    // data.serviceSelections
+    //
+    // GraphQL:
+    //
+    // input.services
+    //
+    // GraphQL service:
+    //
+    // categoryId
+    // categoryName
+    // subcategoryId
+    // subcategoryName
     // name
-    // durationMinutes
-    //
-    // GRAPHQL MODEL:
-    //
-    // serviceName
+    // description
+    // audience
+    // price
     // duration
-    //
-    // description is intentionally NOT sent.
     //
     // ========================================================
 
-    const serviceSelections =
+    const services =
       selectedServiceSelections.map(
         selection => {
 
@@ -1488,9 +1496,14 @@ export default function SalonReviewScreen({
               selection.subcategoryName,
             );
 
-          const serviceName =
+          const name =
             cleanString(
               selection.name,
+            );
+
+          const description =
+            cleanString(
+              selection.description,
             );
 
           const price =
@@ -1514,7 +1527,13 @@ export default function SalonReviewScreen({
 
             subcategoryName,
 
-            serviceName,
+            name,
+
+            ...(description
+              ? {
+                description,
+              }
+              : {}),
 
             audience:
               selection.audience,
@@ -1528,11 +1547,11 @@ export default function SalonReviewScreen({
 
 
     // ========================================================
-    // VALIDATE FINAL SERVICE SELECTIONS
+    // VALIDATE FINAL SERVICES
     // ========================================================
 
     const invalidServiceIndex =
-      serviceSelections.findIndex(
+      services.findIndex(
         service => {
 
           return (
@@ -1545,7 +1564,7 @@ export default function SalonReviewScreen({
 
             !service.subcategoryName ||
 
-            !service.serviceName ||
+            !service.name ||
 
             !isValidAudience(
               service.audience,
@@ -1573,8 +1592,8 @@ export default function SalonReviewScreen({
     ) {
 
       const invalidService =
-        serviceSelections[
-          invalidServiceIndex
+        services[
+        invalidServiceIndex
         ];
 
 
@@ -1637,7 +1656,7 @@ export default function SalonReviewScreen({
         buildKycDocumentPayload();
 
     } catch (
-      error: any
+    error: any
     ) {
 
       console.error(
@@ -1756,21 +1775,19 @@ export default function SalonReviewScreen({
     // FINAL REGISTER INPUT
     // ========================================================
     //
-    // IMPORTANT:
+    // This object contains ONLY fields belonging to the
+    // current RegisterSalonPartnerInput.
     //
-    // Do NOT add:
-    //
-    // bankAccount
-    // ifsc
-    // services
-    //
-    // They are not part of RegisterSalonPartnerInput.
+    // There is NO business type.
+    // There is NO serviceSelections field.
+    // There is NO bankAccount.
+    // There is NO ifsc.
     //
     // ========================================================
 
     const registerInput:
       RegisterSalonPartnerVariables[
-        'input'
+      'input'
       ] = {
 
       userId:
@@ -1837,7 +1854,7 @@ export default function SalonReviewScreen({
 
       kycDocuments,
 
-      serviceSelections,
+      services,
     };
 
 
@@ -1859,14 +1876,14 @@ export default function SalonReviewScreen({
     );
 
     console.log(
-      '[SalonReview] SERVICE SELECTIONS COUNT:',
-      serviceSelections.length,
+      '[SalonReview] SERVICES COUNT:',
+      services.length,
     );
 
     console.log(
-      '[SalonReview] SERVICE SELECTIONS PAYLOAD:',
+      '[SalonReview] SERVICES PAYLOAD:',
       JSON.stringify(
-        serviceSelections,
+        services,
         null,
         2,
       ),
@@ -1883,8 +1900,7 @@ export default function SalonReviewScreen({
         registerInput,
         null,
         2,
-      ),
-    );
+      ));
 
     console.log(
       '[SalonReview] Calling registerSalonPartner...',
@@ -1900,7 +1916,27 @@ export default function SalonReviewScreen({
     // ========================================================
 
     try {
+      console.log(
+        '====================================================',
+      );
 
+      console.log(
+        '[SalonReview] ACTUAL GRAPHQL VARIABLES BEING SENT:',
+      );
+
+      console.log(
+        JSON.stringify(
+          {
+            input: registerInput,
+          },
+          null,
+          2,
+        ),
+      );
+
+      console.log(
+        '====================================================',
+      );
       const response =
         await registerSalonPartner({
 
@@ -2014,7 +2050,7 @@ export default function SalonReviewScreen({
       );
 
     } catch (
-      error: any
+    error: any
     ) {
 
       console.error(
@@ -2388,7 +2424,7 @@ export default function SalonReviewScreen({
 
                 const audienceServices =
                   groupedServices[
-                    audience
+                  audience
                   ];
 
 
