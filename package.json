@@ -21,6 +21,8 @@
   },
   "dependencies": {
     "@apollo/client": "^3.13.8",
+    "@aws-sdk/client-dynamodb": "^3.967.0",
+    "@aws-sdk/lib-dynamodb": "^3.967.0",
     "@ethersproject/shims": "^5.8.0",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@magic-ext/gdkms": "latest",
