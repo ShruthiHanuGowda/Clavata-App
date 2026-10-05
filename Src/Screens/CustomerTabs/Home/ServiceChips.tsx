@@ -99,18 +99,19 @@ type Props = {
 ========================================================= */
 
 const categoryIcons: Record<string, any> = {
-  "hair & styling": require('../../../assets/category/Hair&styling.png'),
-  "facials & skin": require('../../../assets/category/Facials&skin.png'),
-  "hair color & treatments": require('../../../assets/category/Haircolor&treatments.png'),
-  "nails, hands & feet": require('../../../assets/category/NailsHand&feet.png'),
-  makeup: require('../../../assets/category/Makeup.png'),
-  waxing: require('../../../assets/category/Waxing.png'),
-  threading: require('../../../assets/category/Threading.png'),
-  bridal: require('../../../assets/category/BridalIcon.png'),
+  "hair": require('../../../assets/category/Hair&styling.png'),
+  "facial & skin care": require('../../../assets/category/Facials&skin.png'),
+  // "hair color & treatments": require('../../../assets/category/Haircolor&treatments.png'),
+  "nails": require('../../../assets/category/NailsHand&feet.png'),
+  "makeup & bridal": require('../../../assets/category/Makeup.png'),
+  "threading & hair removal": require('../../../assets/category/Waxing.png'),
+  "lashes & brows": require('../../../assets/category/Threading.png'),
+  "spa & massage": require('../../../assets/category/BridalIcon.png'),
+  "body care & wellness": require('../../../assets/category/Facials&skin.png'),
 };
 
 const fallbackIcon =
-  require('../../../assets/category/Hair&styling.png');
+  require('../../../assets/category/Facials&skin.png');
 
 /* =========================================================
    HELPERS

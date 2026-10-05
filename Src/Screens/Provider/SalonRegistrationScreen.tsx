@@ -1,7 +1,6 @@
 import React, {
   useState,
 } from 'react';
-
 import {
   SafeAreaView,
   View,
@@ -15,21 +14,16 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
-
 import {
   Header,
   DButton,
 } from '../../components';
-
 import {
   useSalonRegistration,
-  // ServiceMode,
 } from '../../context/SalonRegistrationContext';
-
 import {
   useUser,
 } from '../../context/UserContext';
-
 import {
   COLORS,
   FONTS,
@@ -37,26 +31,15 @@ import {
   SPACING,
   RADIUS,
 } from '../../constants/constants';
-
-/* =========================================================
-   TYPES
-========================================================= */
-
 type TargetAudience =
   | 'FEMALE'
   | 'MALE'
   | 'KIDS';
-
 interface TargetAudienceOption {
   value: TargetAudience;
   label: string;
   description: string;
 }
-
-/* =========================================================
-   TARGET AUDIENCE OPTIONS
-========================================================= */
-
 const TARGET_AUDIENCE_OPTIONS: TargetAudienceOption[] = [
   {
     value: 'FEMALE',
@@ -77,11 +60,6 @@ const TARGET_AUDIENCE_OPTIONS: TargetAudienceOption[] = [
       'Services specifically offered for children.',
   },
 ];
-
-/* =========================================================
-   COMPONENT
-========================================================= */
-
 const SalonRegistrationScreen = ({
   navigation,
 }: any) => {
@@ -89,70 +67,33 @@ const SalonRegistrationScreen = ({
     data,
     updateData,
   } = useSalonRegistration();
-
   const {
     currentUser,
   } = useUser();
-
-  /* =======================================================
-     FORM STATE
-  ======================================================= */
-
   const [
     salonName,
     setSalonName,
   ] = useState('');
-
   const [
     ownerName,
     setOwnerName,
   ] = useState('');
-
   const [
     email,
     setEmail,
   ] = useState('');
-
-  /*
-   * =======================================================
-   * SERVICE AVAILABILITY - TEMPORARILY DISABLED
-   *
-   * Kept here commented so the functionality can be
-   * enabled later without changing the rest of the screen.
-   * =======================================================
-   */
-
-  /*
-  const [
-    serviceMode,
-    setServiceMode,
-  ] = useState<ServiceMode | null>(null);
-
-  const [
-    serviceModeModalVisible,
-    setServiceModeModalVisible,
-  ] = useState(false);
-  */
-
   const [
     targetAudiences,
     setTargetAudiences,
   ] = useState<TargetAudience[]>([]);
-
   const [
     targetAudienceModalVisible,
     setTargetAudienceModalVisible,
   ] = useState(false);
-
   const [
     submitting,
     setSubmitting,
   ] = useState(false);
-
-  /* =======================================================
-     TARGET AUDIENCE
-  ======================================================= */
-
   const toggleTargetAudience = (
     audience: TargetAudience,
   ) => {
@@ -166,7 +107,6 @@ const SalonRegistrationScreen = ({
               item !== audience,
           );
         }
-
         return [
           ...current,
           audience,
@@ -174,11 +114,6 @@ const SalonRegistrationScreen = ({
       },
     );
   };
-
-  /* =======================================================
-     TARGET AUDIENCE LABEL
-  ======================================================= */
-
   const getTargetAudienceLabel =
     () => {
       if (
@@ -186,7 +121,6 @@ const SalonRegistrationScreen = ({
       ) {
         return '';
       }
-
       const selectedLabels =
         TARGET_AUDIENCE_OPTIONS
           .filter(option =>
@@ -197,105 +131,20 @@ const SalonRegistrationScreen = ({
           .map(
             option => option.label,
           );
-
       return selectedLabels.join(
         ', ',
       );
     };
-
-  /*
-   * =======================================================
-   * SELECT SERVICE MODE
-   * TEMPORARILY DISABLED
-   * =======================================================
-   */
-
-  /*
-  const selectServiceMode = (
-    mode: ServiceMode,
-  ) => {
-    setServiceMode(mode);
-
-    setServiceModeModalVisible(
-      false,
-    );
-  };
-  */
-
-  /*
-   * =======================================================
-   * SERVICE MODE LABEL
-   * TEMPORARILY DISABLED
-   * =======================================================
-   */
-
-  /*
-  const getServiceModeLabel = () => {
-    switch (serviceMode) {
-      case 'SALON_ONLY':
-        return 'Salon only';
-
-      case 'HOME_ONLY':
-        return 'Home only';
-
-      case 'SALON_AND_HOME':
-        return 'Salon & Home';
-
-      default:
-        return '';
-    }
-  };
-  */
-
-  /*
-   * =======================================================
-   * SERVICE MODE DESCRIPTION
-   * TEMPORARILY DISABLED
-   * =======================================================
-   */
-
-  /*
-  const getServiceModeDescription = (
-    mode: ServiceMode,
-  ) => {
-    switch (mode) {
-      case 'SALON_ONLY':
-        return 'Customers visit your business location for services.';
-
-      case 'HOME_ONLY':
-        return 'You provide services at the customer’s location.';
-
-      case 'SALON_AND_HOME':
-        return 'You provide services both at your business location and at the customer’s location.';
-
-      default:
-        return '';
-    }
-  };
-  */
-
-  /* =======================================================
-     SUBMIT / NEXT
-  ======================================================= */
-
   const onNext = async () => {
     if (submitting) {
       return;
     }
-
     const trimmedSalonName =
       salonName.trim();
-
     const trimmedOwnerName =
       ownerName.trim();
-
     const trimmedEmail =
       email.trim();
-
-    /* -------------------------------------------------------
-       TARGET AUDIENCE
-    ------------------------------------------------------- */
-
     if (
       targetAudiences.length === 0
     ) {
@@ -303,52 +152,31 @@ const SalonRegistrationScreen = ({
         'Customer Type Required',
         'Please select who your business serves. You can select more than one.',
       );
-
       return;
     }
-
-    /* -------------------------------------------------------
-       BUSINESS NAME
-    ------------------------------------------------------- */
-
     if (!trimmedSalonName) {
       Alert.alert(
         'Business Name Required',
         'Please enter your business name.',
       );
-
       return;
     }
-
-    /* -------------------------------------------------------
-       OWNER NAME
-    ------------------------------------------------------- */
-
     if (!trimmedOwnerName) {
       Alert.alert(
         'Owner Name Required',
         'Please enter the owner name as per Aadhaar.',
       );
-
       return;
     }
-
-    /* -------------------------------------------------------
-       EMAIL
-    ------------------------------------------------------- */
-
     if (!trimmedEmail) {
       Alert.alert(
         'Email Required',
         'Please enter your business email address.',
       );
-
       return;
     }
-
     const emailRegex =
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
     if (
       !emailRegex.test(
         trimmedEmail,
@@ -358,44 +186,15 @@ const SalonRegistrationScreen = ({
         'Invalid Email',
         'Please enter a valid business email address.',
       );
-
       return;
     }
-
-    /*
-     * =======================================================
-     * SERVICE AVAILABILITY
-     * TEMPORARILY DISABLED
-     *
-     * This validation is commented out so the user does not
-     * need to select Salon / Home / Salon & Home.
-     * =======================================================
-     */
-
-    /*
-    if (!serviceMode) {
-      Alert.alert(
-        'Service Availability Required',
-        'Please select how you provide your services.',
-      );
-
-      return;
-    }
-    */
-
-    /* -------------------------------------------------------
-       CURRENT USER
-    ------------------------------------------------------- */
-
     if (!currentUser?.userId) {
       Alert.alert(
         'Unable to Continue',
         'Your user information is unavailable. Please sign in again.',
       );
-
       return;
     }
-
     if (
       !currentUser?.phoneNumber
     ) {
@@ -403,101 +202,57 @@ const SalonRegistrationScreen = ({
         'Phone Number Missing',
         'Your phone number is unavailable. Please sign in again.',
       );
-
       return;
     }
-
-    /* -------------------------------------------------------
-       SAVE REGISTRATION DATA
-    ------------------------------------------------------- */
-
     try {
       setSubmitting(true);
-
-      console.log(
-        '====================================================',
-      );
-
       console.log(
         '[SalonRegistration] SAVE REGISTRATION DATA',
       );
-
-      console.log(
-        '====================================================',
-      );
-
       console.log(
         '[SalonRegistration] User ID:',
         currentUser.userId,
       );
-
       console.log(
         '[SalonRegistration] Phone:',
         currentUser.phoneNumber,
       );
-
       console.log(
         '[SalonRegistration] Business Name:',
         trimmedSalonName,
       );
-
       console.log(
         '[SalonRegistration] Owner Name:',
         trimmedOwnerName,
       );
-
       console.log(
         '[SalonRegistration] Email:',
         trimmedEmail,
       );
-
       console.log(
         '[SalonRegistration] Target Audiences:',
         targetAudiences,
       );
-
       await updateData({
         userId:
           currentUser.userId,
-
         phoneNumber:
           currentUser.phoneNumber,
-
         salonName:
           trimmedSalonName,
-
         ownerName:
           trimmedOwnerName,
-
         email:
           trimmedEmail,
-
         targetAudiences:
           targetAudiences,
-
-        /*
-         * ===================================================
-         * SERVICE AVAILABILITY TEMPORARILY DISABLED
-         *
-         * These fields are intentionally not sent for now.
-         * ===================================================
-         */
-
-        /*
-        serviceMode,
-
-        serviceSpecificModes: {},
-        */
       });
-
       console.log(
         '[SalonRegistration] Registration data saved successfully.',
       );
-
       console.log(
         '[SalonRegistration] Navigating to SalonAddress...',
       );
-
       navigation.navigate(
         'SalonAddress',
       );
@@ -506,7 +261,6 @@ const SalonRegistrationScreen = ({
         '[SalonRegistration] Failed to save registration:',
         error,
       );
-
       Alert.alert(
         'Unable to Continue',
         'Something went wrong while saving your registration details. Please try again.',
@@ -515,11 +269,6 @@ const SalonRegistrationScreen = ({
       setSubmitting(false);
     }
   };
-
-  /* =======================================================
-     RENDER
-  ======================================================= */
-
   return (
     <SafeAreaView
       style={styles.safeArea}
@@ -527,7 +276,6 @@ const SalonRegistrationScreen = ({
       <Header
         headerTitle="Registration"
       />
-
       <ScrollView
         style={styles.container}
         contentContainerStyle={
@@ -539,30 +287,23 @@ const SalonRegistrationScreen = ({
         }
       >
         <View style={styles.card}>
-          {/* INTRO */}
-
           <Text style={styles.title}>
             Tell us about your business
           </Text>
-
           <Text
             style={styles.subtitle}
           >
             Provide your business details
             to get started with Clavata
           </Text>
-
-          {/* TARGET AUDIENCE */}
-
           <View
             style={
               styles.fieldContainer
             }
           >
             <Text style={styles.label}>
-              Who does your business serve?
+              Who does your business serve *
             </Text>
-
             <Text
               style={
                 styles.audienceHelperText
@@ -570,7 +311,6 @@ const SalonRegistrationScreen = ({
             >
               Select all that apply
             </Text>
-
             <TouchableOpacity
               style={[
                 styles.dropdown,
@@ -602,7 +342,6 @@ const SalonRegistrationScreen = ({
                     'Select customer type'}
                 </Text>
               </View>
-
               <Text
                 style={
                   styles.dropdownArrow
@@ -611,7 +350,6 @@ const SalonRegistrationScreen = ({
                 ▾
               </Text>
             </TouchableOpacity>
-
             {targetAudiences.length >
               0 && (
               <View
@@ -626,7 +364,6 @@ const SalonRegistrationScreen = ({
                 >
                   Selected
                 </Text>
-
                 <View
                   style={
                     styles.audienceChipContainer
@@ -660,18 +397,19 @@ const SalonRegistrationScreen = ({
               </View>
             )}
           </View>
-
-          {/* BUSINESS NAME */}
-
           <View
             style={
               styles.fieldContainer
             }
           >
             <Text style={styles.label}>
-              Business name (salon/spa/barber)
+              Business name *
             </Text>
-
+            <Text
+              style={styles.helperText}
+            >
+              Enter your shop/company name
+            </Text>
             <TextInput
               style={styles.input}
               placeholder="Enter your business name"
@@ -687,25 +425,20 @@ const SalonRegistrationScreen = ({
               maxLength={100}
             />
           </View>
-
-          {/* OWNER NAME */}
-
           <View
             style={
               styles.fieldContainer
             }
           >
             <Text style={styles.label}>
-              Owner name
+              Owner name *
             </Text>
-
             <Text
               style={styles.helperText}
             >
               Enter the name exactly as it
               appears on Aadhaar.
             </Text>
-
             <TextInput
               style={styles.input}
               placeholder="Enter owner name"
@@ -721,18 +454,14 @@ const SalonRegistrationScreen = ({
               maxLength={100}
             />
           </View>
-
-          {/* BUSINESS EMAIL */}
-
           <View
             style={
               styles.fieldContainer
             }
           >
             <Text style={styles.label}>
-              Business email
+              Business email *
             </Text>
-
             <TextInput
               style={styles.input}
               placeholder="Enter business email"
@@ -748,148 +477,6 @@ const SalonRegistrationScreen = ({
               maxLength={150}
             />
           </View>
-
-          {/*
-           * =================================================
-           * SERVICE AVAILABILITY
-           * TEMPORARILY COMMENTED OUT
-           *
-           * The entire UI is preserved here so it can be
-           * enabled later without rebuilding the section.
-           * =================================================
-           */}
-
-          {/*
-          <View
-            style={
-              styles.sectionContainer
-            }
-          >
-            <Text
-              style={styles.sectionTitle}
-            >
-              Service availability
-            </Text>
-
-            <Text
-              style={
-                styles.sectionDescription
-              }
-            >
-              Choose where you provide your
-              services. You can configure
-              availability for individual
-              services later.
-            </Text>
-
-            <TouchableOpacity
-              style={[
-                styles.dropdown,
-                serviceModeModalVisible &&
-                  styles.dropdownActive,
-              ]}
-              activeOpacity={0.7}
-              onPress={() =>
-                setServiceModeModalVisible(
-                  true,
-                )
-              }
-            >
-              <Text
-                style={[
-                  styles.dropdownText,
-                  !serviceMode &&
-                    styles.placeholderText,
-                ]}
-              >
-                {getServiceModeLabel() ||
-                  'Select service availability'}
-              </Text>
-
-              <Text
-                style={
-                  styles.dropdownArrow
-                }
-              >
-                ▾
-              </Text>
-            </TouchableOpacity>
-
-            {serviceMode && (
-              <View
-                style={
-                  styles.selectedModeInfo
-                }
-              >
-                <Text
-                  style={
-                    styles.selectedModeTitle
-                  }
-                >
-                  {getServiceModeLabel()}
-                </Text>
-
-                <Text
-                  style={
-                    styles.selectedModeDescription
-                  }
-                >
-                  {getServiceModeDescription(
-                    serviceMode,
-                  )}
-                </Text>
-              </View>
-            )}
-          </View>
-          */}
-
-          {/* INFO BOX */}
-
-          {/* <View
-            style={styles.infoBox}
-          >
-            <View
-              style={
-                styles.infoBoxIcon
-              }
-            >
-              <Text
-                style={
-                  styles.infoBoxIconText
-                }
-              >
-                i
-              </Text>
-            </View>
-
-            <View
-              style={
-                styles.infoBoxContent
-              }
-            >
-              <Text
-                style={
-                  styles.infoBoxTitle
-                }
-              >
-                Service settings
-              </Text>
-
-              <Text
-                style={
-                  styles.infoBoxText
-                }
-              >
-                After registration, you can
-                select the services you offer
-                and configure pricing, duration,
-                and service-specific availability.
-              </Text>
-            </View>
-          </View> */}
-
-          {/* CONTINUE */}
-
           <DButton
             style={styles.button}
             onPress={onNext}
@@ -911,11 +498,6 @@ const SalonRegistrationScreen = ({
           </DButton>
         </View>
       </ScrollView>
-
-      {/* =====================================================
-          TARGET AUDIENCE MODAL
-      ===================================================== */}
-
       <Modal
         visible={
           targetAudienceModalVisible
@@ -943,7 +525,6 @@ const SalonRegistrationScreen = ({
               )
             }
           />
-
           <View
             style={
               styles.modalContainer
@@ -966,7 +547,6 @@ const SalonRegistrationScreen = ({
                 >
                   Who does your business serve?
                 </Text>
-
                 <Text
                   style={
                     styles.modalSubtitle
@@ -975,7 +555,6 @@ const SalonRegistrationScreen = ({
                   Select all that apply
                 </Text>
               </View>
-
               <TouchableOpacity
                 style={
                   styles.closeButton
@@ -996,7 +575,6 @@ const SalonRegistrationScreen = ({
                 </Text>
               </TouchableOpacity>
             </View>
-
             <ScrollView
               style={
                 styles.modalScroll
@@ -1014,7 +592,6 @@ const SalonRegistrationScreen = ({
                     targetAudiences.includes(
                       option.value,
                     );
-
                   return (
                     <TouchableOpacity
                       key={
@@ -1049,7 +626,6 @@ const SalonRegistrationScreen = ({
                           </Text>
                         )}
                       </View>
-
                       <View
                         style={
                           styles.audienceOptionContent
@@ -1064,7 +640,6 @@ const SalonRegistrationScreen = ({
                         >
                           {option.label}
                         </Text>
-
                         <Text
                           style={
                             styles.audienceOptionDescription
@@ -1079,7 +654,6 @@ const SalonRegistrationScreen = ({
                   );
                 },
               )}
-
               <View
                 style={
                   styles.audienceInfoBox
@@ -1098,7 +672,6 @@ const SalonRegistrationScreen = ({
                     i
                   </Text>
                 </View>
-
                 <Text
                   style={
                     styles.modalInfoText
@@ -1111,7 +684,6 @@ const SalonRegistrationScreen = ({
                 </Text>
               </View>
             </ScrollView>
-
             <View
               style={
                 styles.audienceDoneContainer
@@ -1143,334 +715,18 @@ const SalonRegistrationScreen = ({
           </View>
         </View>
       </Modal>
-
-      {/*
-       * =====================================================
-       * SERVICE MODE MODAL
-       * TEMPORARILY COMMENTED OUT
-       *
-       * Nothing from the Service Availability functionality
-       * is removed. It is simply disabled for now.
-       * =====================================================
-       */}
-
-      {/*
-      <Modal
-        visible={
-          serviceModeModalVisible
-        }
-        transparent
-        animationType="slide"
-        onRequestClose={() =>
-          setServiceModeModalVisible(
-            false,
-          )
-        }
-      >
-        <View
-          style={
-            styles.modalOverlay
-          }
-        >
-          <Pressable
-            style={
-              styles.modalOutside
-            }
-            onPress={() =>
-              setServiceModeModalVisible(
-                false,
-              )
-            }
-          />
-
-          <View
-            style={
-              styles.modalContainer
-            }
-          >
-            <View
-              style={
-                styles.modalHeader
-              }
-            >
-              <View
-                style={
-                  styles.modalHeaderTextContainer
-                }
-              >
-                <Text
-                  style={
-                    styles.modalTitle
-                  }
-                >
-                  Service Availability
-                </Text>
-
-                <Text
-                  style={
-                    styles.modalSubtitle
-                  }
-                >
-                  Choose where you provide your
-                  services.
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={
-                  styles.closeButton
-                }
-                activeOpacity={0.7}
-                onPress={() =>
-                  setServiceModeModalVisible(
-                    false,
-                  )
-                }
-              >
-                <Text
-                  style={
-                    styles.closeButtonText
-                  }
-                >
-                  ×
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              style={
-                styles.modalScroll
-              }
-              contentContainerStyle={
-                styles.modalScrollContent
-              }
-              showsVerticalScrollIndicator={
-                false
-              }
-            >
-              <TouchableOpacity
-                style={[
-                  styles.serviceModeOption,
-                  serviceMode ===
-                    'SALON_ONLY' &&
-                    styles.serviceModeOptionSelected,
-                ]}
-                activeOpacity={0.7}
-                onPress={() =>
-                  selectServiceMode(
-                    'SALON_ONLY',
-                  )
-                }
-              >
-                <View
-                  style={[
-                    styles.radioOuter,
-                    serviceMode ===
-                      'SALON_ONLY' &&
-                      styles.radioOuterSelected,
-                  ]}
-                >
-                  {serviceMode ===
-                    'SALON_ONLY' && (
-                    <View
-                      style={
-                        styles.radioInner
-                      }
-                    />
-                  )}
-                </View>
-
-                <View
-                  style={
-                    styles.serviceModeContent
-                  }
-                >
-                  <Text
-                    style={
-                      styles.serviceModeTitle
-                    }
-                  >
-                    Salon only
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.serviceModeDescription
-                    }
-                  >
-                    Customers visit your
-                    business location for
-                    services.
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.serviceModeOption,
-                  serviceMode ===
-                    'HOME_ONLY' &&
-                    styles.serviceModeOptionSelected,
-                ]}
-                activeOpacity={0.7}
-                onPress={() =>
-                  selectServiceMode(
-                    'HOME_ONLY',
-                  )
-                }
-              >
-                <View
-                  style={[
-                    styles.radioOuter,
-                    serviceMode ===
-                      'HOME_ONLY' &&
-                      styles.radioOuterSelected,
-                  ]}
-                >
-                  {serviceMode ===
-                    'HOME_ONLY' && (
-                    <View
-                      style={
-                        styles.radioInner
-                      }
-                    />
-                  )}
-                </View>
-
-                <View
-                  style={
-                    styles.serviceModeContent
-                  }
-                >
-                  <Text
-                    style={
-                      styles.serviceModeTitle
-                    }
-                  >
-                    Home only
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.serviceModeDescription
-                    }
-                  >
-                    You provide services at
-                    the customer's location.
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.serviceModeOption,
-                  serviceMode ===
-                    'SALON_AND_HOME' &&
-                    styles.serviceModeOptionSelected,
-                ]}
-                activeOpacity={0.7}
-                onPress={() =>
-                  selectServiceMode(
-                    'SALON_AND_HOME',
-                  )
-                }
-              >
-                <View
-                  style={[
-                    styles.radioOuter,
-                    serviceMode ===
-                      'SALON_AND_HOME' &&
-                      styles.radioOuterSelected,
-                  ]}
-                >
-                  {serviceMode ===
-                    'SALON_AND_HOME' && (
-                    <View
-                      style={
-                        styles.radioInner
-                      }
-                    />
-                  )}
-                </View>
-
-                <View
-                  style={
-                    styles.serviceModeContent
-                  }
-                >
-                  <Text
-                    style={
-                      styles.serviceModeTitle
-                    }
-                  >
-                    Salon & Home
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.serviceModeDescription
-                    }
-                  >
-                    You provide services both at
-                    your business location and at
-                    the customer's location.
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <View
-                style={
-                  styles.modalInfoBox
-                }
-              >
-                <View
-                  style={
-                    styles.modalInfoIcon
-                  }
-                >
-                  <Text
-                    style={
-                      styles.modalInfoIconText
-                    }
-                  >
-                    i
-                  </Text>
-                </View>
-
-                <Text
-                  style={
-                    styles.modalInfoText
-                  }
-                >
-                  You can configure availability
-                  for individual services during
-                  the next service setup step.
-                </Text>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-      */}
     </SafeAreaView>
   );
 };
-
-/* =========================================================
-   STYLES
-========================================================= */
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor:
       COLORS.background,
   },
-
   container: {
     flex: 1,
   },
-
   contentContainer: {
     paddingHorizontal:
       SPACING?.medium ?? 16,
@@ -1478,7 +734,6 @@ const styles = StyleSheet.create({
       SPACING?.medium ?? 16,
     paddingBottom: 40,
   },
-
   card: {
     backgroundColor:
       COLORS.white,
@@ -1487,7 +742,6 @@ const styles = StyleSheet.create({
     padding:
       SPACING?.medium ?? 16,
   },
-
   title: {
     fontSize:
       FONT_SIZES?.title ?? 24,
@@ -1497,7 +751,6 @@ const styles = StyleSheet.create({
       COLORS.text,
     marginBottom: 6,
   },
-
   subtitle: {
     fontSize:
       FONT_SIZES?.small ?? 14,
@@ -1508,11 +761,9 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginBottom: 24,
   },
-
   fieldContainer: {
     marginBottom: 22,
   },
-
   label: {
     fontSize:
       FONT_SIZES?.small ?? 14,
@@ -1522,7 +773,6 @@ const styles = StyleSheet.create({
       COLORS.text,
     marginBottom: 8,
   },
-
   helperText: {
     fontSize: 12,
     fontFamily:
@@ -1533,7 +783,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 17,
   },
-
   audienceHelperText: {
     fontSize: 12,
     fontFamily:
@@ -1543,7 +792,6 @@ const styles = StyleSheet.create({
     marginTop: -4,
     marginBottom: 9,
   },
-
   selectedAudienceInfo: {
     marginTop: 9,
     padding: 12,
@@ -1552,7 +800,6 @@ const styles = StyleSheet.create({
     borderRadius:
       RADIUS?.medium ?? 10,
   },
-
   selectedAudienceTitle: {
     fontSize: 12,
     fontFamily:
@@ -1561,13 +808,11 @@ const styles = StyleSheet.create({
       COLORS.text,
     marginBottom: 8,
   },
-
   audienceChipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 7,
   },
-
   audienceChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1578,7 +823,6 @@ const styles = StyleSheet.create({
     borderColor:
       COLORS.primary,
   },
-
   audienceChipText: {
     fontSize: 12,
     fontFamily:
@@ -1586,7 +830,6 @@ const styles = StyleSheet.create({
     color:
       COLORS.primary,
   },
-
   input: {
     height: 52,
     borderWidth: 1,
@@ -1604,7 +847,6 @@ const styles = StyleSheet.create({
     backgroundColor:
       COLORS.white,
   },
-
   dropdown: {
     minHeight: 52,
     borderWidth: 1,
@@ -1620,17 +862,14 @@ const styles = StyleSheet.create({
     backgroundColor:
       COLORS.white,
   },
-
   dropdownActive: {
     borderColor:
       COLORS.primary,
   },
-
   dropdownContent: {
     flex: 1,
     marginRight: 10,
   },
-
   dropdownText: {
     fontSize:
       FONT_SIZES?.small ?? 14,
@@ -1639,24 +878,20 @@ const styles = StyleSheet.create({
     color:
       COLORS.text,
   },
-
   placeholderText: {
     color:
       COLORS.textSecondary,
   },
-
   dropdownArrow: {
     fontSize: 18,
     color:
       COLORS.textSecondary,
     marginTop: -3,
   },
-
   sectionContainer: {
     marginTop: 4,
     marginBottom: 20,
   },
-
   sectionTitle: {
     fontSize:
       FONT_SIZES?.medium ?? 16,
@@ -1666,7 +901,6 @@ const styles = StyleSheet.create({
       COLORS.text,
     marginBottom: 5,
   },
-
   sectionDescription: {
     fontSize: 12,
     fontFamily:
@@ -1676,7 +910,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 12,
   },
-
   selectedModeInfo: {
     marginTop: 9,
     padding: 12,
@@ -1685,7 +918,6 @@ const styles = StyleSheet.create({
     borderRadius:
       RADIUS?.medium ?? 10,
   },
-
   selectedModeTitle: {
     fontSize: 13,
     fontFamily:
@@ -1694,7 +926,6 @@ const styles = StyleSheet.create({
       COLORS.text,
     marginBottom: 3,
   },
-
   selectedModeDescription: {
     fontSize: 12,
     fontFamily:
@@ -1703,7 +934,6 @@ const styles = StyleSheet.create({
       COLORS.textSecondary,
     lineHeight: 18,
   },
-
   infoBox: {
     flexDirection: 'row',
     backgroundColor:
@@ -1713,7 +943,6 @@ const styles = StyleSheet.create({
     padding: 13,
     marginBottom: 24,
   },
-
   infoBoxIcon: {
     width: 22,
     height: 22,
@@ -1724,7 +953,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
-
   infoBoxIconText: {
     fontSize: 12,
     fontFamily:
@@ -1732,11 +960,9 @@ const styles = StyleSheet.create({
     color:
       COLORS.white,
   },
-
   infoBoxContent: {
     flex: 1,
   },
-
   infoBoxTitle: {
     fontSize: 13,
     fontFamily:
@@ -1745,7 +971,6 @@ const styles = StyleSheet.create({
       COLORS.text,
     marginBottom: 3,
   },
-
   infoBoxText: {
     fontSize: 12,
     fontFamily:
@@ -1754,7 +979,6 @@ const styles = StyleSheet.create({
       COLORS.textSecondary,
     lineHeight: 18,
   },
-
   button: {
     width: '100%',
     height: 54,
@@ -1765,7 +989,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   buttonText: {
     color:
       COLORS.white,
@@ -1774,11 +997,6 @@ const styles = StyleSheet.create({
     fontFamily:
       FONTS?.medium,
   },
-
-  /* =======================================================
-     MODAL
-  ======================================================= */
-
   modalOverlay: {
     flex: 1,
     justifyContent:
@@ -1786,11 +1004,9 @@ const styles = StyleSheet.create({
     backgroundColor:
       'rgba(0,0,0,0.45)',
   },
-
   modalOutside: {
     flex: 1,
   },
-
   modalContainer: {
     backgroundColor:
       COLORS.white,
@@ -1799,7 +1015,6 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
     paddingBottom: 10,
   },
-
   modalHeader: {
     flexDirection: 'row',
     justifyContent:
@@ -1814,12 +1029,10 @@ const styles = StyleSheet.create({
     borderBottomColor:
       COLORS.border,
   },
-
   modalHeaderTextContainer: {
     flex: 1,
     paddingRight: 12,
   },
-
   modalTitle: {
     fontSize: 18,
     fontFamily:
@@ -1828,7 +1041,6 @@ const styles = StyleSheet.create({
       COLORS.text,
     marginBottom: 4,
   },
-
   modalSubtitle: {
     fontSize: 12,
     fontFamily:
@@ -1837,7 +1049,6 @@ const styles = StyleSheet.create({
       COLORS.textSecondary,
     lineHeight: 18,
   },
-
   closeButton: {
     width: 34,
     height: 34,
@@ -1848,7 +1059,6 @@ const styles = StyleSheet.create({
     justifyContent:
       'center',
   },
-
   closeButtonText: {
     fontSize: 24,
     lineHeight: 25,
@@ -1857,19 +1067,12 @@ const styles = StyleSheet.create({
     fontFamily:
       FONTS?.regular,
   },
-
   modalScroll: {
     flexGrow: 0,
   },
-
   modalScrollContent: {
     padding: 16,
   },
-
-  /* =======================================================
-     AUDIENCE OPTIONS
-  ======================================================= */
-
   audienceOption: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1883,14 +1086,12 @@ const styles = StyleSheet.create({
     backgroundColor:
       COLORS.white,
   },
-
   audienceOptionSelected: {
     borderColor:
       COLORS.primary,
     backgroundColor:
       'rgba(0,157,148,0.04)',
   },
-
   checkbox: {
     width: 22,
     height: 22,
@@ -1904,14 +1105,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
     marginTop: 1,
   },
-
   checkboxSelected: {
     borderColor:
       COLORS.themeColor,
     backgroundColor:
       COLORS.themeColor,
   },
-
   checkboxText: {
     color:
       COLORS.white,
@@ -1919,11 +1118,9 @@ const styles = StyleSheet.create({
     fontFamily:
       FONTS?.bold,
   },
-
   audienceOptionContent: {
     flex: 1,
   },
-
   audienceOptionTitle: {
     fontSize: 15,
     fontFamily:
@@ -1932,14 +1129,12 @@ const styles = StyleSheet.create({
       COLORS.text,
     marginBottom: 4,
   },
-
   audienceOptionTitleSelected: {
     fontFamily:
       FONTS?.bold,
     color:
       COLORS.primary,
   },
-
   audienceOptionDescription: {
     fontSize: 12,
     fontFamily:
@@ -1948,7 +1143,6 @@ const styles = StyleSheet.create({
       COLORS.textSecondary,
     lineHeight: 18,
   },
-
   audienceInfoBox: {
     flexDirection: 'row',
     backgroundColor:
@@ -1958,7 +1152,6 @@ const styles = StyleSheet.create({
     padding: 13,
     marginTop: 5,
   },
-
   audienceDoneContainer: {
     borderTopWidth:
       StyleSheet.hairlineWidth,
@@ -1968,7 +1161,6 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 6,
   },
-
   audienceDoneButton: {
     height: 48,
     borderRadius:
@@ -1979,11 +1171,9 @@ const styles = StyleSheet.create({
     justifyContent:
       'center',
   },
-
   audienceDoneButtonDisabled: {
     opacity: 0.5,
   },
-
   audienceDoneButtonText: {
     color:
       COLORS.white,
@@ -1991,11 +1181,6 @@ const styles = StyleSheet.create({
     fontFamily:
       FONTS?.medium,
   },
-
-  /* =======================================================
-     MODAL INFO
-  ======================================================= */
-
   modalInfoIcon: {
     width: 21,
     height: 21,
@@ -2007,7 +1192,6 @@ const styles = StyleSheet.create({
       'center',
     marginRight: 9,
   },
-
   modalInfoIconText: {
     color:
       COLORS.white,
@@ -2015,7 +1199,6 @@ const styles = StyleSheet.create({
     fontFamily:
       FONTS?.bold,
   },
-
   modalInfoText: {
     flex: 1,
     fontSize: 12,
@@ -2025,14 +1208,6 @@ const styles = StyleSheet.create({
       COLORS.textSecondary,
     lineHeight: 18,
   },
-
-  /*
-   * =======================================================
-   * SERVICE AVAILABILITY STYLES
-   * KEPT FOR FUTURE USE
-   * =======================================================
-   */
-
   serviceModeOption: {
     flexDirection: 'row',
     alignItems:
@@ -2045,14 +1220,12 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
   },
-
   serviceModeOptionSelected: {
     borderColor:
       COLORS.primary,
     backgroundColor:
       'rgba(0,157,148,0.04)',
   },
-
   radioOuter: {
     width: 22,
     height: 22,
@@ -2066,12 +1239,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
     marginTop: 1,
   },
-
   radioOuterSelected: {
     borderColor:
       COLORS.primary,
   },
-
   radioInner: {
     width: 11,
     height: 11,
@@ -2079,11 +1250,9 @@ const styles = StyleSheet.create({
     backgroundColor:
       COLORS.primary,
   },
-
   serviceModeContent: {
     flex: 1,
   },
-
   serviceModeTitle: {
     fontSize: 14,
     fontFamily:
@@ -2092,7 +1261,6 @@ const styles = StyleSheet.create({
       COLORS.text,
     marginBottom: 4,
   },
-
   serviceModeDescription: {
     fontSize: 12,
     fontFamily:
@@ -2101,7 +1269,6 @@ const styles = StyleSheet.create({
       COLORS.textSecondary,
     lineHeight: 18,
   },
-
   modalInfoBox: {
     flexDirection: 'row',
     backgroundColor:
@@ -2112,5 +1279,4 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
 });
-
 export default SalonRegistrationScreen;

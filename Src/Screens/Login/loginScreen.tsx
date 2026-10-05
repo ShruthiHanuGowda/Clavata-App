@@ -48,6 +48,10 @@ import {
   COLORS,
 } from '../../constants/constants';
 
+import {
+  useUser,
+} from '../../context/UserContext';
+
 
 // ============================================================
 // TYPES
@@ -57,16 +61,19 @@ type UserRole =
   | 'CUSTOMER'
   | 'PROVIDER';
 
+
 type LoginMode =
   | 'CUSTOMER'
   | 'PROVIDER'
   | 'SIGN_IN';
+
 
 type ProviderStatus =
   | 'NOT_REGISTERED'
   | 'PENDING'
   | 'APPROVED'
   | 'REJECTED';
+
 
 interface ClavataUser {
   userId?: string;
@@ -86,7 +93,12 @@ interface ClavataUser {
   updatedAt?: string;
 
   preferredPaymentMethod?: string | null;
+
+  profileImageUrl?: string | null;
+
+  salonName?: string | null;
 }
+
 
 interface OTPVerificationResult {
   success?: boolean;
@@ -107,8 +119,8 @@ interface LoginRouteParams {
   mode?: LoginMode;
 
   /**
-   * Role is only supplied when the user explicitly selected
-   * Customer or Service Partner from WelcomeChoiceScreen.
+   * Role is supplied only when the user explicitly selected
+   * Customer or Service Partner from the Welcome screen.
    *
    * SIGN_IN intentionally does not supply a role.
    */
@@ -134,18 +146,46 @@ export default function LoginScreen() {
 
 
   // ============================================================
+  // USER CONTEXT
+  //
+  // IMPORTANT:
+  //
+  // Existing users must be stored here after OTP verification.
+  //
+  // This is what allows screens such as:
+  //
+  // SalonRegistrationScreen
+  //
+  // to access:
+  //
+  // currentUser.userId
+  // currentUser.phoneNumber
+  // currentUser.role
+  // currentUser.providerStatus
+  // ============================================================
+
+  const {
+    currentUser,
+    setCurrentUser,
+  } = useUser();
+
+
+  // ============================================================
   // ROUTE PARAMS
   // ============================================================
 
   const routeParams =
     (route.params || {}) as LoginRouteParams;
 
+
   const mode: LoginMode =
     routeParams.mode ||
     'SIGN_IN';
 
+
   const selectedRole =
     routeParams.role;
+
 
   const hideBackButton =
     routeParams.hideBackButton === true;
@@ -160,10 +200,12 @@ export default function LoginScreen() {
     setShowOTP,
   ] = useState(false);
 
+
   const [
     isValid,
     setValid,
   ] = useState(false);
+
 
   const [
     phoneNumber,
@@ -171,6 +213,7 @@ export default function LoginScreen() {
   ] = useState(
     routeParams.phoneNumber || '',
   );
+
 
   const [
     loading,
@@ -203,27 +246,36 @@ export default function LoginScreen() {
     );
 
     console.log(
-      'LOGIN SCREEN',
+      '[LoginScreen] SCREEN INITIALIZED',
     );
 
     console.log(
-      'MODE:',
+      '[LoginScreen] MODE:',
       mode,
     );
 
     console.log(
-      'SELECTED ROLE:',
+      '[LoginScreen] SELECTED ROLE:',
       selectedRole || 'NONE',
     );
 
     console.log(
-      'PHONE:',
+      '[LoginScreen] PHONE:',
       routeParams.phoneNumber || 'NONE',
     );
 
     console.log(
-      'HIDE BACK:',
+      '[LoginScreen] HIDE BACK:',
       hideBackButton,
+    );
+
+    console.log(
+      '[LoginScreen] CURRENT USER:',
+      JSON.stringify(
+        currentUser,
+        null,
+        2,
+      ),
     );
 
     console.log(
@@ -235,6 +287,7 @@ export default function LoginScreen() {
     selectedRole,
     routeParams.phoneNumber,
     hideBackButton,
+    currentUser,
   ]);
 
 
@@ -252,6 +305,7 @@ export default function LoginScreen() {
 
   /**
    * Keep the existing visual behavior:
+   *
    * enabled  -> theme color
    * disabled -> black
    */
@@ -271,12 +325,13 @@ export default function LoginScreen() {
       return;
     }
 
+
     console.error(
       '====================================================',
     );
 
     console.error(
-      'SEND OTP GRAPHQL ERROR',
+      '[LoginScreen] SEND OTP GRAPHQL ERROR',
     );
 
     console.error(
@@ -284,7 +339,7 @@ export default function LoginScreen() {
     );
 
     console.error(
-      'GRAPHQL ERROR MESSAGE:',
+      '[LoginScreen] GRAPHQL ERROR MESSAGE:',
       queryError?.message,
     );
 
@@ -292,7 +347,9 @@ export default function LoginScreen() {
       '====================================================',
     );
 
+
     setLoading(false);
+
 
     Alert.alert(
       'Unable to continue',
@@ -320,30 +377,32 @@ export default function LoginScreen() {
           return;
         }
 
+
         try {
 
           setLoading(true);
+
 
           console.log(
             '====================================================',
           );
 
           console.log(
-            'SEND OTP START',
+            '[LoginScreen] SEND OTP START',
           );
 
           console.log(
-            'PHONE:',
+            '[LoginScreen] PHONE:',
             phoneNumber,
           );
 
           console.log(
-            'MODE:',
+            '[LoginScreen] MODE:',
             mode,
           );
 
           console.log(
-            'SELECTED ROLE:',
+            '[LoginScreen] SELECTED ROLE:',
             selectedRole || 'NONE',
           );
 
@@ -366,7 +425,7 @@ export default function LoginScreen() {
           );
 
           console.log(
-            'SEND OTP RESPONSE',
+            '[LoginScreen] SEND OTP RESPONSE',
           );
 
           console.log(
@@ -387,7 +446,7 @@ export default function LoginScreen() {
           ) {
 
             console.log(
-              'OTP SENT SUCCESSFULLY',
+              '[LoginScreen] OTP SENT SUCCESSFULLY',
             );
 
             setShowOTP(true);
@@ -397,9 +456,10 @@ export default function LoginScreen() {
 
 
           console.warn(
-            'SEND OTP FAILED:',
+            '[LoginScreen] SEND OTP FAILED:',
             data?.sendOTP?.message,
           );
+
 
           Alert.alert(
             'Unable to continue',
@@ -414,7 +474,7 @@ export default function LoginScreen() {
           );
 
           console.error(
-            'SEND OTP EXCEPTION',
+            '[LoginScreen] SEND OTP EXCEPTION',
           );
 
           console.error(
@@ -424,6 +484,7 @@ export default function LoginScreen() {
           console.error(
             '====================================================',
           );
+
 
           Alert.alert(
             'Something went wrong',
@@ -456,8 +517,9 @@ export default function LoginScreen() {
       () => {
 
         console.log(
-          'LOGIN BACK PRESSED',
+          '[LoginScreen] BACK PRESSED',
         );
+
 
         if (
           navigation.canGoBack()
@@ -469,12 +531,15 @@ export default function LoginScreen() {
         }
 
 
-        /**
-         * Fallback.
-         *
-         * This should normally not be reached because LoginScreen
-         * is opened from WelcomeChoiceScreen.
-         */
+        console.log(
+          '[LoginScreen] NO BACK STACK',
+        );
+
+        console.log(
+          '[LoginScreen] FALLBACK → authScreens',
+        );
+
+
         navigation.navigate(
           'authScreens',
         );
@@ -491,11 +556,12 @@ export default function LoginScreen() {
   //
   // IMPORTANT:
   //
-  // There is ONLY one canonical role:
+  // There is ONLY ONE canonical role:
   //
   // user.role
   //
   // Never use:
+  //
   // user.activeRole
   // user.roles
   // user.roles.customer
@@ -515,19 +581,328 @@ export default function LoginScreen() {
           user?.role ===
           'CUSTOMER'
         ) {
+
           return 'CUSTOMER';
         }
+
 
         if (
           user?.role ===
           'PROVIDER'
         ) {
+
           return 'PROVIDER';
         }
 
+
         return null;
+
       },
       [],
+    );
+
+
+  // ============================================================
+  // SAVE VERIFIED USER TO USER CONTEXT
+  //
+  // THIS IS THE IMPORTANT FIX.
+  //
+  // Previously LoginScreen navigated directly to BecomePartner
+  // without putting the backend user into UserContext.
+  //
+  // Therefore SalonRegistrationScreen received:
+  //
+  // currentUser === null
+  //
+  // and displayed:
+  //
+  // "Your user information is unavailable."
+  //
+  // We now save the authenticated user BEFORE navigation.
+  // ============================================================
+
+  const saveAuthenticatedUser =
+    useCallback(
+      (
+        user:
+          ClavataUser |
+          null |
+          undefined,
+      ): boolean => {
+
+        console.log(
+          '====================================================',
+        );
+
+        console.log(
+          '[LoginScreen] SAVE AUTHENTICATED USER',
+        );
+
+        console.log(
+          '[LoginScreen] USER:',
+          JSON.stringify(
+            user,
+            null,
+            2,
+          ),
+        );
+
+        console.log(
+          '====================================================',
+        );
+
+
+        // --------------------------------------------------------
+        // USER REQUIRED
+        // --------------------------------------------------------
+
+        if (!user) {
+
+          console.error(
+            '[LoginScreen] Cannot save null user.',
+          );
+
+          return false;
+        }
+
+
+        // --------------------------------------------------------
+        // USER ID REQUIRED
+        // --------------------------------------------------------
+
+        if (!user.userId) {
+
+          console.error(
+            '[LoginScreen] Cannot save user without userId.',
+          );
+
+          Alert.alert(
+            'Account error',
+            'Your account information is incomplete. Please sign in again.',
+          );
+
+          return false;
+        }
+
+
+        // --------------------------------------------------------
+        // PHONE REQUIRED
+        // --------------------------------------------------------
+
+        if (!user.phoneNumber) {
+
+          console.error(
+            '[LoginScreen] Cannot save user without phoneNumber.',
+          );
+
+          Alert.alert(
+            'Account error',
+            'Your phone number is missing from your account. Please sign in again.',
+          );
+
+          return false;
+        }
+
+
+        // --------------------------------------------------------
+        // FULL NAME
+        // --------------------------------------------------------
+
+        if (!user.fullName) {
+
+          console.warn(
+            '[LoginScreen] User fullName is missing.',
+          );
+        }
+
+
+        // --------------------------------------------------------
+        // ROLE REQUIRED
+        // --------------------------------------------------------
+
+        const role =
+          getExistingRole(user);
+
+
+        if (!role) {
+
+          console.error(
+            '[LoginScreen] Cannot save user with invalid role:',
+            user.role,
+          );
+
+          Alert.alert(
+            'Account error',
+            'Your account type is invalid. Please contact support.',
+          );
+
+          return false;
+        }
+
+
+        // --------------------------------------------------------
+        // PROVIDER STATUS
+        // --------------------------------------------------------
+
+        let providerStatus:
+          ProviderStatus | null =
+            null;
+
+
+        if (
+          role ===
+          'PROVIDER'
+        ) {
+
+          const normalizedStatus =
+            String(
+              user.providerStatus ||
+                'NOT_REGISTERED',
+            )
+              .trim()
+              .toUpperCase();
+
+
+          if (
+            normalizedStatus ===
+              'NOT_REGISTERED' ||
+            normalizedStatus ===
+              'PENDING' ||
+            normalizedStatus ===
+              'APPROVED' ||
+            normalizedStatus ===
+              'REJECTED'
+          ) {
+
+            providerStatus =
+              normalizedStatus as ProviderStatus;
+
+          } else {
+
+            console.warn(
+              '[LoginScreen] Unknown provider status:',
+              normalizedStatus,
+            );
+
+            providerStatus =
+              'NOT_REGISTERED';
+          }
+
+        } else {
+
+          providerStatus =
+            null;
+        }
+
+
+        // --------------------------------------------------------
+        // BUILD USER FOR CONTEXT
+        //
+        // This shape matches the NEW UserContext.
+        // --------------------------------------------------------
+
+        const authenticatedUser =
+          {
+            userId:
+              user.userId,
+
+            phoneNumber:
+              user.phoneNumber,
+
+            fullName:
+              user.fullName || '',
+
+            role,
+
+            providerStatus,
+
+            salonId:
+              user.salonId ??
+              null,
+
+            salonName:
+              user.salonName ??
+              null,
+
+            profileImageUrl:
+              user.profileImageUrl ??
+              null,
+
+            createdAt:
+              user.createdAt,
+
+            updatedAt:
+              user.updatedAt,
+
+            preferredPaymentMethod:
+              user.preferredPaymentMethod ??
+              null,
+          };
+
+
+        console.log(
+          '====================================================',
+        );
+
+        console.log(
+          '[LoginScreen] SETTING USER CONTEXT',
+        );
+
+        console.log(
+          '[LoginScreen] USER ID:',
+          authenticatedUser.userId,
+        );
+
+        console.log(
+          '[LoginScreen] PHONE:',
+          authenticatedUser.phoneNumber,
+        );
+
+        console.log(
+          '[LoginScreen] ROLE:',
+          authenticatedUser.role,
+        );
+
+        console.log(
+          '[LoginScreen] PROVIDER STATUS:',
+          authenticatedUser.providerStatus,
+        );
+
+        console.log(
+          '[LoginScreen] USER CONTEXT PAYLOAD:',
+          JSON.stringify(
+            authenticatedUser,
+            null,
+            2,
+          ),
+        );
+
+        console.log(
+          '====================================================',
+        );
+
+
+        // --------------------------------------------------------
+        // SAVE TO CONTEXT
+        // --------------------------------------------------------
+
+        setCurrentUser(
+          authenticatedUser,
+        );
+
+
+        console.log(
+          '[LoginScreen] USER SUCCESSFULLY SENT TO USER CONTEXT',
+        );
+
+
+        return true;
+
+      },
+      [
+        getExistingRole,
+        setCurrentUser,
+      ],
     );
 
 
@@ -538,7 +913,8 @@ export default function LoginScreen() {
   const openExistingAccount =
     useCallback(
       (
-        user: ClavataUser,
+        user:
+          ClavataUser,
       ) => {
 
         console.log(
@@ -546,41 +922,41 @@ export default function LoginScreen() {
         );
 
         console.log(
-          'OPEN EXISTING ACCOUNT',
+          '[LoginScreen] OPEN EXISTING ACCOUNT',
         );
 
         console.log(
-          'USER ID:',
+          '[LoginScreen] USER ID:',
           user?.userId,
         );
 
         console.log(
-          'PHONE:',
+          '[LoginScreen] PHONE:',
           user?.phoneNumber,
         );
 
         console.log(
-          'FULL NAME:',
+          '[LoginScreen] FULL NAME:',
           user?.fullName,
         );
 
         console.log(
-          'ROLE:',
+          '[LoginScreen] ROLE:',
           user?.role,
         );
 
         console.log(
-          'PROVIDER STATUS:',
+          '[LoginScreen] PROVIDER STATUS:',
           user?.providerStatus,
         );
 
         console.log(
-          'SALON ID:',
+          '[LoginScreen] SALON ID:',
           user?.salonId,
         );
 
         console.log(
-          'FULL USER:',
+          '[LoginScreen] FULL USER:',
           JSON.stringify(
             user,
             null,
@@ -604,7 +980,7 @@ export default function LoginScreen() {
         if (!existingRole) {
 
           console.error(
-            'INVALID USER ROLE',
+            '[LoginScreen] INVALID USER ROLE',
             JSON.stringify(
               user,
               null,
@@ -612,9 +988,34 @@ export default function LoginScreen() {
             ),
           );
 
+
           Alert.alert(
             'Account error',
             'We could not determine your account type. Please contact support.',
+          );
+
+          return;
+        }
+
+
+        // ========================================================
+        // IMPORTANT:
+        //
+        // SAVE USER TO CONTEXT BEFORE NAVIGATION.
+        //
+        // This fixes the currentUser === null problem.
+        // ========================================================
+
+        const userSaved =
+          saveAuthenticatedUser(
+            user,
+          );
+
+
+        if (!userSaved) {
+
+          console.error(
+            '[LoginScreen] USER COULD NOT BE SAVED TO CONTEXT',
           );
 
           return;
@@ -631,11 +1032,11 @@ export default function LoginScreen() {
         ) {
 
           console.log(
-            'CUSTOMER ACCOUNT DETECTED',
+            '[LoginScreen] CUSTOMER ACCOUNT DETECTED',
           );
 
           console.log(
-            'NAVIGATION → CUSTOMER APP',
+            '[LoginScreen] NAVIGATION → CUSTOMER APP',
           );
 
 
@@ -646,6 +1047,7 @@ export default function LoginScreen() {
                 'HomeScreen',
             },
           );
+
 
           return;
         }
@@ -670,7 +1072,7 @@ export default function LoginScreen() {
 
 
           console.log(
-            'NORMALIZED PROVIDER STATUS:',
+            '[LoginScreen] NORMALIZED PROVIDER STATUS:',
             providerStatus,
           );
 
@@ -685,12 +1087,14 @@ export default function LoginScreen() {
           ) {
 
             console.log(
-              'PROVIDER → BECOME PARTNER',
+              '[LoginScreen] PROVIDER → BECOME PARTNER',
             );
+
 
             navigation.navigate(
               'BecomePartner',
             );
+
 
             return;
           }
@@ -706,8 +1110,9 @@ export default function LoginScreen() {
           ) {
 
             console.log(
-              'PROVIDER → PENDING VERIFICATION',
+              '[LoginScreen] PROVIDER → PENDING VERIFICATION',
             );
+
 
             navigation.replace(
               'BecomePartner',
@@ -716,6 +1121,7 @@ export default function LoginScreen() {
                   'SalonPendingVerification',
               },
             );
+
 
             return;
           }
@@ -731,12 +1137,14 @@ export default function LoginScreen() {
           ) {
 
             console.log(
-              'PROVIDER → PROVIDER APP',
+              '[LoginScreen] PROVIDER → PROVIDER APP',
             );
+
 
             navigation.replace(
               'appScreens',
             );
+
 
             return;
           }
@@ -752,12 +1160,14 @@ export default function LoginScreen() {
           ) {
 
             console.log(
-              'PROVIDER → BECOME PARTNER',
+              '[LoginScreen] PROVIDER → BECOME PARTNER',
             );
+
 
             navigation.navigate(
               'BecomePartner',
             );
+
 
             return;
           }
@@ -768,14 +1178,16 @@ export default function LoginScreen() {
           // ======================================================
 
           console.error(
-            'UNKNOWN PROVIDER STATUS:',
+            '[LoginScreen] UNKNOWN PROVIDER STATUS:',
             providerStatus,
           );
+
 
           Alert.alert(
             'Account status unavailable',
             'We could not determine your provider account status. Please contact support.',
           );
+
 
           return;
         }
@@ -786,9 +1198,10 @@ export default function LoginScreen() {
         // ========================================================
 
         console.error(
-          'UNEXPECTED ACCOUNT ROLE:',
+          '[LoginScreen] UNEXPECTED ACCOUNT ROLE:',
           existingRole,
         );
+
 
         Alert.alert(
           'Account error',
@@ -798,6 +1211,7 @@ export default function LoginScreen() {
       },
       [
         getExistingRole,
+        saveAuthenticatedUser,
         navigation,
       ],
     );
@@ -819,36 +1233,36 @@ export default function LoginScreen() {
         );
 
         console.log(
-          'OTP LOGIN RESULT',
+          '[LoginScreen] OTP LOGIN RESULT',
         );
 
         console.log(
-          'SUCCESS:',
+          '[LoginScreen] SUCCESS:',
           result?.success,
         );
 
         console.log(
-          'MESSAGE:',
+          '[LoginScreen] MESSAGE:',
           result?.message,
         );
 
         console.log(
-          'IS EXISTING USER:',
+          '[LoginScreen] IS EXISTING USER:',
           result?.isExistingUser,
         );
 
         console.log(
-          'ROLE:',
+          '[LoginScreen] ROLE:',
           result?.user?.role,
         );
 
         console.log(
-          'PROVIDER STATUS:',
+          '[LoginScreen] PROVIDER STATUS:',
           result?.user?.providerStatus,
         );
 
         console.log(
-          'USER:',
+          '[LoginScreen] USER:',
           JSON.stringify(
             result?.user,
             null,
@@ -857,17 +1271,17 @@ export default function LoginScreen() {
         );
 
         console.log(
-          'LOGIN MODE:',
+          '[LoginScreen] LOGIN MODE:',
           mode,
         );
 
         console.log(
-          'SELECTED ROLE:',
+          '[LoginScreen] SELECTED ROLE:',
           selectedRole || 'NONE',
         );
 
         console.log(
-          'PHONE:',
+          '[LoginScreen] PHONE:',
           phoneNumber,
         );
 
@@ -892,14 +1306,16 @@ export default function LoginScreen() {
         ) {
 
           console.error(
-            'OTP VERIFICATION FAILED',
+            '[LoginScreen] OTP VERIFICATION FAILED',
           );
+
 
           Alert.alert(
             'Verification failed',
             result?.message ||
               'OTP verification failed. Please try again.',
           );
+
 
           return;
         }
@@ -911,11 +1327,11 @@ export default function LoginScreen() {
 
         if (
           result?.isExistingUser ===
-            true
+          true
         ) {
 
           console.log(
-            'EXISTING USER FOUND',
+            '[LoginScreen] EXISTING USER FOUND',
           );
 
 
@@ -926,13 +1342,15 @@ export default function LoginScreen() {
           if (!user) {
 
             console.error(
-              'EXISTING USER FLAG IS TRUE BUT USER IS NULL',
+              '[LoginScreen] EXISTING USER FLAG IS TRUE BUT USER IS NULL',
             );
+
 
             Alert.alert(
               'Account error',
               'We found your account, but could not load your account details. Please try again.',
             );
+
 
             return;
           }
@@ -943,7 +1361,7 @@ export default function LoginScreen() {
 
 
           console.log(
-            'EXISTING USER ROLE:',
+            '[LoginScreen] EXISTING USER ROLE:',
             existingRole,
           );
 
@@ -955,7 +1373,7 @@ export default function LoginScreen() {
           if (!existingRole) {
 
             console.error(
-              'EXISTING USER HAS INVALID ROLE:',
+              '[LoginScreen] EXISTING USER HAS INVALID ROLE:',
               JSON.stringify(
                 user,
                 null,
@@ -963,10 +1381,12 @@ export default function LoginScreen() {
               ),
             );
 
+
             Alert.alert(
               'Account error',
               'Your account does not have a valid account type. Please contact support.',
             );
+
 
             return;
           }
@@ -975,10 +1395,9 @@ export default function LoginScreen() {
           // ======================================================
           // SIGN IN
           //
-          // For Sign In, the database role is ALWAYS the source
-          // of truth.
+          // Database role is the source of truth.
           //
-          // Do NOT use selectedRole.
+          // selectedRole is intentionally ignored here.
           // ======================================================
 
           if (
@@ -987,12 +1406,14 @@ export default function LoginScreen() {
           ) {
 
             console.log(
-              'SIGN IN → EXISTING ACCOUNT',
+              '[LoginScreen] SIGN IN → EXISTING ACCOUNT',
             );
+
 
             openExistingAccount(
               user,
             );
+
 
             return;
           }
@@ -1001,13 +1422,7 @@ export default function LoginScreen() {
           // ======================================================
           // CUSTOMER MODE
           //
-          // User explicitly selected Customer on Welcome screen.
-          //
-          // Existing Customer:
-          //     → Open Customer account
-          //
-          // Existing Provider:
-          //     → Do not allow a second account.
+          // User explicitly selected Customer.
           // ======================================================
 
           if (
@@ -1015,25 +1430,37 @@ export default function LoginScreen() {
             'CUSTOMER'
           ) {
 
+            // ----------------------------------------------------
+            // Existing Customer
+            // ----------------------------------------------------
+
             if (
               existingRole ===
               'CUSTOMER'
             ) {
 
               console.log(
-                'CUSTOMER MODE + EXISTING CUSTOMER',
+                '[LoginScreen] CUSTOMER MODE + EXISTING CUSTOMER',
               );
+
 
               openExistingAccount(
                 user,
               );
 
+
               return;
             }
 
 
+            // ----------------------------------------------------
+            // Existing Provider
+            //
+            // One phone number = one account.
+            // ----------------------------------------------------
+
             console.log(
-              'CUSTOMER MODE + EXISTING PROVIDER',
+              '[LoginScreen] CUSTOMER MODE + EXISTING PROVIDER',
             );
 
 
@@ -1043,13 +1470,20 @@ export default function LoginScreen() {
               [
                 {
                   text: 'Sign in',
+
                   onPress: () => {
+
+                    console.log(
+                      '[LoginScreen] USER CHOSE SIGN IN',
+                    );
+
 
                     navigation.replace(
                       'LoginScreen',
                       {
                         mode:
                           'SIGN_IN',
+
                         phoneNumber,
                       },
                     );
@@ -1059,10 +1493,13 @@ export default function LoginScreen() {
 
                 {
                   text: 'Cancel',
-                  style: 'cancel',
+
+                  style:
+                    'cancel',
                 },
               ],
             );
+
 
             return;
           }
@@ -1072,12 +1509,6 @@ export default function LoginScreen() {
           // PROVIDER MODE
           //
           // User explicitly selected Service Partner.
-          //
-          // Existing Provider:
-          //     → Open Provider account
-          //
-          // Existing Customer:
-          //     → Do not allow a second account.
           // ======================================================
 
           if (
@@ -1085,25 +1516,37 @@ export default function LoginScreen() {
             'PROVIDER'
           ) {
 
+            // ----------------------------------------------------
+            // Existing Provider
+            // ----------------------------------------------------
+
             if (
               existingRole ===
               'PROVIDER'
             ) {
 
               console.log(
-                'PROVIDER MODE + EXISTING PROVIDER',
+                '[LoginScreen] PROVIDER MODE + EXISTING PROVIDER',
               );
+
 
               openExistingAccount(
                 user,
               );
 
+
               return;
             }
 
 
+            // ----------------------------------------------------
+            // Existing Customer
+            //
+            // One phone number = one account.
+            // ----------------------------------------------------
+
             console.log(
-              'PROVIDER MODE + EXISTING CUSTOMER',
+              '[LoginScreen] PROVIDER MODE + EXISTING CUSTOMER',
             );
 
 
@@ -1113,13 +1556,20 @@ export default function LoginScreen() {
               [
                 {
                   text: 'Sign in',
+
                   onPress: () => {
+
+                    console.log(
+                      '[LoginScreen] USER CHOSE SIGN IN',
+                    );
+
 
                     navigation.replace(
                       'LoginScreen',
                       {
                         mode:
                           'SIGN_IN',
+
                         phoneNumber,
                       },
                     );
@@ -1129,10 +1579,13 @@ export default function LoginScreen() {
 
                 {
                   text: 'Cancel',
-                  style: 'cancel',
+
+                  style:
+                    'cancel',
                 },
               ],
             );
+
 
             return;
           }
@@ -1143,14 +1596,16 @@ export default function LoginScreen() {
           // ======================================================
 
           console.error(
-            'UNKNOWN LOGIN MODE:',
+            '[LoginScreen] UNKNOWN LOGIN MODE:',
             mode,
           );
+
 
           Alert.alert(
             'Unable to continue',
             'We could not determine how to open your account. Please try again.',
           );
+
 
           return;
         }
@@ -1166,31 +1621,18 @@ export default function LoginScreen() {
         ) {
 
           console.log(
-            'NO EXISTING USER FOUND',
+            '[LoginScreen] NO EXISTING USER FOUND',
           );
 
 
           // ======================================================
           // SIGN IN + NEW NUMBER
           //
-          // THIS IS THE IMPORTANT FLOW.
+          // Important:
           //
-          // A user clicked:
+          // We cannot assume CUSTOMER or PROVIDER.
           //
-          // Welcome
-          //    ↓
-          // Sign in
-          //    ↓
-          // New phone number
-          //    ↓
-          // OTP verified
-          //
-          // We DO NOT assume Customer.
-          // We DO NOT assume Provider.
-          // We DO NOT open BecomePartner.
-          //
-          // Instead, return to WelcomeChoiceScreen so the user
-          // chooses their account type.
+          // The user must return to the Welcome role selection.
           // ======================================================
 
           if (
@@ -1199,17 +1641,38 @@ export default function LoginScreen() {
           ) {
 
             console.log(
-              'SIGN IN → NUMBER NOT FOUND',
+              '[LoginScreen] SIGN IN → NUMBER NOT FOUND',
             );
 
             console.log(
-              'SIGN IN → RETURN TO WELCOME ROLE SELECTION',
+              '[LoginScreen] SIGN IN → RETURN TO WELCOME ROLE SELECTION',
             );
 
 
+            /**
+             * IMPORTANT:
+             *
+             * The exact nested navigation depends on the structure
+             * of authScreens.
+             *
+             * If WelcomeChoiceScreen is directly inside the
+             * authScreens navigator, use this nested navigation.
+             *
+             * Passing phoneNumber allows WelcomeChoiceScreen to
+             * preserve the verified number.
+             */
             navigation.replace(
               'authScreens',
+              {
+                screen:
+                  'WelcomeChoiceScreen',
+
+                params: {
+                  phoneNumber,
+                },
+              },
             );
+
 
             return;
           }
@@ -1217,8 +1680,6 @@ export default function LoginScreen() {
 
           // ======================================================
           // CUSTOMER REGISTRATION
-          //
-          // New number + Customer selection.
           // ======================================================
 
           if (
@@ -1227,11 +1688,11 @@ export default function LoginScreen() {
           ) {
 
             console.log(
-              'NEW NUMBER → CUSTOMER REGISTRATION',
+              '[LoginScreen] NEW NUMBER → CUSTOMER REGISTRATION',
             );
 
             console.log(
-              'REGISTER ROLE:',
+              '[LoginScreen] REGISTER ROLE:',
               'CUSTOMER',
             );
 
@@ -1240,10 +1701,12 @@ export default function LoginScreen() {
               'RegisterUser',
               {
                 phoneNumber,
+
                 role:
                   'CUSTOMER',
               },
             );
+
 
             return;
           }
@@ -1251,8 +1714,6 @@ export default function LoginScreen() {
 
           // ======================================================
           // PROVIDER REGISTRATION
-          //
-          // New number + Service Partner selection.
           // ======================================================
 
           if (
@@ -1261,11 +1722,11 @@ export default function LoginScreen() {
           ) {
 
             console.log(
-              'NEW NUMBER → PROVIDER REGISTRATION',
+              '[LoginScreen] NEW NUMBER → PROVIDER REGISTRATION',
             );
 
             console.log(
-              'REGISTER ROLE:',
+              '[LoginScreen] REGISTER ROLE:',
               'PROVIDER',
             );
 
@@ -1274,10 +1735,12 @@ export default function LoginScreen() {
               'RegisterUser',
               {
                 phoneNumber,
+
                 role:
                   'PROVIDER',
               },
             );
+
 
             return;
           }
@@ -1288,14 +1751,16 @@ export default function LoginScreen() {
           // ======================================================
 
           console.error(
-            'UNKNOWN NEW USER MODE:',
+            '[LoginScreen] UNKNOWN NEW USER MODE:',
             mode,
           );
+
 
           Alert.alert(
             'Unable to continue',
             'We could not determine your account type. Please return to the welcome screen and try again.',
           );
+
 
           return;
         }
@@ -1306,13 +1771,14 @@ export default function LoginScreen() {
         // ========================================================
 
         console.error(
-          'UNKNOWN OTP ACCOUNT STATE:',
+          '[LoginScreen] UNKNOWN OTP ACCOUNT STATE:',
           JSON.stringify(
             result,
             null,
             2,
           ),
         );
+
 
         Alert.alert(
           'Unable to continue',
@@ -1408,7 +1874,9 @@ export default function LoginScreen() {
 
             <Image
               source={
-                require('../../assets/logo-blue.png')
+                require(
+                  '../../assets/logo-blue.png',
+                )
               }
               style={
                 styles.heroLogo

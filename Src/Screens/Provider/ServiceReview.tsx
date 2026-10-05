@@ -42,6 +42,78 @@ type ReviewService =
         description?: string;
     };
 
+type AudienceGroup = {
+    audience: string;
+    audienceLabel: string;
+    categories: CategoryGroup[];
+};
+
+type CategoryGroup = {
+    categoryId: string;
+    categoryName: string;
+    subcategories: SubcategoryGroup[];
+};
+
+type SubcategoryGroup = {
+    subcategoryId: string;
+    subcategoryName: string;
+    services: ReviewService[];
+};
+
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+const getAudienceLabel = (
+    audience?: string,
+): string => {
+
+    switch (
+        String(audience ?? '')
+            .trim()
+            .toUpperCase()
+    ) {
+
+        case 'FEMALE':
+            return 'Female';
+
+        case 'MALE':
+            return 'Male';
+
+        case 'KIDS':
+            return 'Kids';
+
+        default:
+            return 'Other';
+    }
+};
+
+
+const getAudienceOrder = (
+    audience?: string,
+): number => {
+
+    switch (
+        String(audience ?? '')
+            .trim()
+            .toUpperCase()
+    ) {
+
+        case 'FEMALE':
+            return 1;
+
+        case 'MALE':
+            return 2;
+
+        case 'KIDS':
+            return 3;
+
+        default:
+            return 99;
+    }
+};
+
 
 // ============================================================
 // COMPONENT
@@ -70,112 +142,215 @@ const ServiceReview = ({
     // GROUP SERVICES
     // ========================================================
     //
-    // Category
-    //    Subcategory
-    //       Service 1
-    //       Service 2
+    // Audience
+    //   Category
+    //      Subcategory
+    //          Service 1
+    //          Service 2
+    //
+    // Example:
+    //
+    // Female
+    //   Hair
+    //      Haircut
+    //          Layer Haircut
+    //          Bob Haircut
+    //
+    // Male
+    //   Hair
+    //      Haircut
+    //          Classic Haircut
+    //          Fade Haircut
     //
     // ========================================================
 
-    const groupedServices = useMemo(() => {
+    const groupedServices =
+        useMemo<AudienceGroup[]>(() => {
 
-        type SubcategoryGroup = {
-            subcategoryId: string;
-            subcategoryName: string;
-            services: ReviewService[];
-        };
-
-        type CategoryGroup = {
-            categoryId: string;
-            categoryName: string;
-            subcategories: SubcategoryGroup[];
-        };
+            const audienceMap =
+                new Map<
+                    string,
+                    AudienceGroup
+                >();
 
 
-        const categoryMap =
-            new Map<
-                string,
-                CategoryGroup
-            >();
+            services.forEach(
+                service => {
 
-
-        services.forEach(service => {
-
-            const categoryId =
-                String(
-                    service.categoryId ?? '',
-                );
-
-            const subcategoryId =
-                String(
-                    service.subcategoryId ?? '',
-                );
-
-
-            if (!categoryMap.has(categoryId)) {
-
-                categoryMap.set(
-                    categoryId,
-                    {
-                        categoryId,
-                        categoryName:
-                            String(
-                                service.categoryName ?? '',
-                            ).trim() ||
-                            'Category',
-                        subcategories: [],
-                    },
-                );
-
-            }
-
-
-            const category =
-                categoryMap.get(
-                    categoryId,
-                )!;
-
-
-            let subcategory =
-                category.subcategories.find(
-                    item =>
-                        item.subcategoryId ===
-                        subcategoryId,
-                );
-
-
-            if (!subcategory) {
-
-                subcategory = {
-                    subcategoryId,
-                    subcategoryName:
+                    const rawAudience =
                         String(
-                            service.subcategoryName ?? '',
-                        ).trim() ||
-                        'Subcategory',
-                    services: [],
-                };
+                            service.audience ?? '',
+                        )
+                            .trim()
+                            .toUpperCase();
+
+                    const audienceKey =
+                        rawAudience || 'OTHER';
 
 
-                category.subcategories.push(
-                    subcategory,
-                );
+                    // ==================================================
+                    // AUDIENCE
+                    // ==================================================
 
-            }
+                    if (
+                        !audienceMap.has(
+                            audienceKey,
+                        )
+                    ) {
+
+                        audienceMap.set(
+                            audienceKey,
+                            {
+                                audience:
+                                    audienceKey,
+
+                                audienceLabel:
+                                    getAudienceLabel(
+                                        audienceKey,
+                                    ),
+
+                                categories: [],
+                            },
+                        );
+
+                    }
 
 
-            subcategory.services.push(
-                service,
+                    const audienceGroup =
+                        audienceMap.get(
+                            audienceKey,
+                        )!;
+
+
+                    // ==================================================
+                    // CATEGORY
+                    // ==================================================
+
+                    const categoryId =
+                        String(
+                            service.categoryId ?? '',
+                        )
+                            .trim();
+
+
+                    let category =
+                        audienceGroup.categories.find(
+                            item =>
+                                item.categoryId ===
+                                categoryId,
+                        );
+
+
+                    if (
+                        !category
+                    ) {
+
+                        category = {
+                            categoryId,
+
+                            categoryName:
+                                String(
+                                    service.categoryName ?? '',
+                                )
+                                    .trim() ||
+                                'Category',
+
+                            subcategories: [],
+                        };
+
+
+                        audienceGroup.categories.push(
+                            category,
+                        );
+
+                    }
+
+
+                    // ==================================================
+                    // SUBCATEGORY
+                    // ==================================================
+
+                    const subcategoryId =
+                        String(
+                            service.subcategoryId ?? '',
+                        )
+                            .trim();
+
+
+                    let subcategory =
+                        category.subcategories.find(
+                            item =>
+                                item.subcategoryId ===
+                                subcategoryId,
+                        );
+
+
+                    if (
+                        !subcategory
+                    ) {
+
+                        subcategory = {
+                            subcategoryId,
+
+                            subcategoryName:
+                                String(
+                                    service.subcategoryName ?? '',
+                                )
+                                    .trim() ||
+                                'Subcategory',
+
+                            services: [],
+                        };
+
+
+                        category.subcategories.push(
+                            subcategory,
+                        );
+
+                    }
+
+
+                    // ==================================================
+                    // SERVICE
+                    // ==================================================
+
+                    subcategory.services.push(
+                        service,
+                    );
+
+                },
             );
 
-        });
+
+            // ==========================================================
+            // SORT AUDIENCES
+            // ==========================================================
+
+            const audiences =
+                Array.from(
+                    audienceMap.values(),
+                );
 
 
-        return Array.from(
-            categoryMap.values(),
-        );
+            audiences.sort(
+                (
+                    first,
+                    second,
+                ) =>
+                    getAudienceOrder(
+                        first.audience,
+                    ) -
+                    getAudienceOrder(
+                        second.audience,
+                    ),
+            );
 
-    }, [services]);
+
+            return audiences;
+
+        }, [
+            services,
+        ]);
 
 
     // ========================================================
@@ -189,13 +364,6 @@ const ServiceReview = ({
     // ========================================================
     // EDIT
     // ========================================================
-    //
-    // We simply go back to ConfigureSalonServices.
-    //
-    // The registration context already contains the
-    // service name, price and duration, so all values
-    // remain available for editing.
-    //
 
     const handleEdit =
         useCallback(() => {
@@ -241,7 +409,7 @@ const ServiceReview = ({
 
                         const validPrice =
                             typeof service.price ===
-                            'number' &&
+                                'number' &&
                             Number.isFinite(
                                 service.price,
                             ) &&
@@ -250,7 +418,7 @@ const ServiceReview = ({
 
                         const validDuration =
                             typeof service.durationMinutes ===
-                            'number' &&
+                                'number' &&
                             Number.isFinite(
                                 service.durationMinutes,
                             ) &&
@@ -277,7 +445,8 @@ const ServiceReview = ({
                     [
                         {
                             text: 'Edit',
-                            onPress: handleEdit,
+                            onPress:
+                                handleEdit,
                         },
                         {
                             text: 'Cancel',
@@ -460,285 +629,331 @@ const ServiceReview = ({
 
 
                 {/* ================================================= */}
-                {/* CATEGORY GROUPS */}
+                {/* AUDIENCE GROUPS */}
                 {/* ================================================= */}
 
                 {groupedServices.map(
-                    category => (
+                    audienceGroup => (
 
                         <View
                             key={
-                                category.categoryId
+                                audienceGroup.audience
                             }
                             style={
-                                styles.categoryCard
+                                styles.audienceCard
                             }
                         >
 
-                            {/* CATEGORY */}
+                            {/* ================================================= */}
+                            {/* AUDIENCE HEADER */}
+                            {/* ================================================= */}
 
                             <View
                                 style={
-                                    styles.categoryHeader
+                                    styles.audienceHeader
                                 }
                             >
 
                                 <Text
                                     style={
-                                        styles.categoryName
+                                        styles.audienceHeaderName
                                     }
                                 >
                                     {
-                                        category.categoryName
+                                        audienceGroup.audienceLabel
+                                    }
+                                </Text>
+
+
+                                <Text
+                                    style={
+                                        styles.audienceHeaderSubtitle
+                                    }
+                                >
+                                    Services for{' '}
+                                    {
+                                        audienceGroup.audienceLabel.toLowerCase()
                                     }
                                 </Text>
 
                             </View>
 
 
-                            {/* SUBCATEGORIES */}
+                            {/* ================================================= */}
+                            {/* CATEGORIES */}
+                            {/* ================================================= */}
 
-                            {category.subcategories.map(
-                                subcategory => (
+                            {audienceGroup.categories.map(
+                                category => (
 
                                     <View
                                         key={
-                                            subcategory.subcategoryId
+                                            `${audienceGroup.audience}-${category.categoryId}`
                                         }
                                         style={
-                                            styles.subcategorySection
+                                            styles.categorySection
                                         }
                                     >
 
-                                        <Text
+                                        {/* CATEGORY */}
+
+                                        <View
                                             style={
-                                                styles.subcategoryName
+                                                styles.categoryHeader
                                             }
                                         >
-                                            {
-                                                subcategory.subcategoryName
-                                            }
-                                        </Text>
+
+                                            <Text
+                                                style={
+                                                    styles.categoryName
+                                                }
+                                            >
+                                                {
+                                                    category.categoryName
+                                                }
+                                            </Text>
+
+                                        </View>
 
 
-                                        {subcategory.services.map(
-                                            (
-                                                service,
-                                                index,
-                                            ) => {
+                                        {/* ================================================= */}
+                                        {/* SUBCATEGORIES */}
+                                        {/* ================================================= */}
 
-                                                const serviceName =
-                                                    String(
-                                                        service.name ??
-                                                        '',
-                                                    ).trim();
+                                        {category.subcategories.map(
+                                            subcategory => (
 
+                                                <View
+                                                    key={
+                                                        `${audienceGroup.audience}-${category.categoryId}-${subcategory.subcategoryId}`
+                                                    }
+                                                    style={
+                                                        styles.subcategorySection
+                                                    }
+                                                >
 
-                                                const price =
-                                                    typeof service.price ===
-                                                        'number'
-                                                        ? service.price
-                                                        : 0;
-
-
-                                                const duration =
-                                                    typeof service.durationMinutes ===
-                                                        'number'
-                                                        ? service.durationMinutes
-                                                        : 0;
-
-
-                                                const audience =
-                                                    service.audience ===
-                                                        'FEMALE'
-                                                        ? 'Women'
-                                                        : service.audience ===
-                                                            'MALE'
-                                                            ? 'Men'
-                                                            : 'Kids';
-
-
-                                                const serviceKey =
-                                                    String(
-                                                        service.uniqueId ??
-                                                        (service as any).serviceKey ??
-                                                        `${service.categoryId}-${service.subcategoryId}-${service.audience}-${index}`,
-                                                    );
-
-
-                                                return (
-                                                    <View
-                                                        key={
-                                                            serviceKey
-                                                        }
+                                                    <Text
                                                         style={
-                                                            styles.serviceCard
+                                                            styles.subcategoryName
                                                         }
                                                     >
+                                                        {
+                                                            subcategory.subcategoryName
+                                                        }
+                                                    </Text>
 
-                                                        {/* SERVICE INFO */}
 
-                                                        <View
-                                                            style={
-                                                                styles.serviceInfo
-                                                            }
-                                                        >
+                                                    {/* ================================================= */}
+                                                    {/* SERVICES */}
+                                                    {/* ================================================= */}
 
-                                                            <View
-                                                                style={
-                                                                    styles.serviceNameRow
-                                                                }
-                                                            >
+                                                    {subcategory.services.map(
+                                                        (
+                                                            service,
+                                                            index,
+                                                        ) => {
 
+                                                            const serviceName =
+                                                                String(
+                                                                    service.name ?? '',
+                                                                ).trim();
+
+
+                                                            const price =
+                                                                typeof service.price ===
+                                                                    'number'
+                                                                    ? service.price
+                                                                    : null;
+
+
+                                                            const duration =
+                                                                typeof service.durationMinutes ===
+                                                                    'number'
+                                                                    ? service.durationMinutes
+                                                                    : null;
+
+
+                                                            const serviceKey =
+                                                                String(
+                                                                    service.uniqueId ??
+                                                                    (service as any).serviceKey ??
+                                                                    `${audienceGroup.audience}-${service.categoryId}-${service.subcategoryId}-${service.name}-${index}`,
+                                                                );
+
+
+                                                            return (
                                                                 <View
+                                                                    key={
+                                                                        serviceKey
+                                                                    }
                                                                     style={
-                                                                        styles.serviceNumber
+                                                                        styles.serviceCard
                                                                     }
                                                                 >
 
-                                                                    <Text
+                                                                    {/* SERVICE INFO */}
+
+                                                                    <View
                                                                         style={
-                                                                            styles.serviceNumberText
+                                                                            styles.serviceInfo
                                                                         }
                                                                     >
-                                                                        {index + 1}
-                                                                    </Text>
+
+                                                                        <View
+                                                                            style={
+                                                                                styles.serviceNameRow
+                                                                            }
+                                                                        >
+
+                                                                            <View
+                                                                                style={
+                                                                                    styles.serviceNumber
+                                                                                }
+                                                                            >
+
+                                                                                <Text
+                                                                                    style={
+                                                                                        styles.serviceNumberText
+                                                                                    }
+                                                                                >
+                                                                                    {
+                                                                                        index + 1
+                                                                                    }
+                                                                                </Text>
+
+                                                                            </View>
+
+
+                                                                            <View
+                                                                                style={
+                                                                                    styles.serviceNameContainer
+                                                                                }
+                                                                            >
+
+                                                                                <Text
+                                                                                    style={
+                                                                                        styles.serviceName
+                                                                                    }
+                                                                                >
+                                                                                    {
+                                                                                        serviceName ||
+                                                                                        'Service name not set'
+                                                                                    }
+                                                                                </Text>
+
+                                                                            </View>
+
+                                                                        </View>
+
+
+                                                                        {/* PRICE + DURATION */}
+
+                                                                        <View
+                                                                            style={
+                                                                                styles.detailsRow
+                                                                            }
+                                                                        >
+
+                                                                            <View
+                                                                                style={
+                                                                                    styles.detailItem
+                                                                                }
+                                                                            >
+
+                                                                                <Text
+                                                                                    style={
+                                                                                        styles.detailLabel
+                                                                                    }
+                                                                                >
+                                                                                    Price
+                                                                                </Text>
+
+
+                                                                                <Text
+                                                                                    style={
+                                                                                        styles.detailValue
+                                                                                    }
+                                                                                >
+                                                                                    {price !== null
+                                                                                        ? `₹${price}`
+                                                                                        : 'Not set'}
+                                                                                </Text>
+
+                                                                            </View>
+
+
+                                                                            <View
+                                                                                style={
+                                                                                    styles.detailDivider
+                                                                                }
+                                                                            />
+
+
+                                                                            <View
+                                                                                style={
+                                                                                    styles.detailItem
+                                                                                }
+                                                                            >
+
+                                                                                <Text
+                                                                                    style={
+                                                                                        styles.detailLabel
+                                                                                    }
+                                                                                >
+                                                                                    Duration
+                                                                                </Text>
+
+
+                                                                                <Text
+                                                                                    style={
+                                                                                        styles.detailValue
+                                                                                    }
+                                                                                >
+                                                                                    {duration !== null
+                                                                                        ? `${duration} min`
+                                                                                        : 'Not set'}
+                                                                                </Text>
+
+                                                                            </View>
+
+                                                                        </View>
+
+                                                                    </View>
+
+
+                                                                    {/* EDIT */}
+
+                                                                    <TouchableOpacity
+                                                                        activeOpacity={
+                                                                            0.7
+                                                                        }
+                                                                        style={
+                                                                            styles.editButton
+                                                                        }
+                                                                        onPress={
+                                                                            handleEdit
+                                                                        }
+                                                                    >
+
+                                                                        <Text
+                                                                            style={
+                                                                                styles.editButtonText
+                                                                            }
+                                                                        >
+                                                                            Edit
+                                                                        </Text>
+
+                                                                    </TouchableOpacity>
 
                                                                 </View>
+                                                            );
 
+                                                        },
+                                                    )}
 
-                                                                <View
-                                                                    style={
-                                                                        styles.serviceNameContainer
-                                                                    }
-                                                                >
+                                                </View>
 
-                                                                    <Text
-                                                                        style={
-                                                                            styles.serviceName
-                                                                        }
-                                                                    >
-                                                                        {
-                                                                            serviceName ||
-                                                                            'Service name not set'
-                                                                        }
-                                                                    </Text>
-
-
-                                                                    <Text
-                                                                        style={
-                                                                            styles.audienceText
-                                                                        }
-                                                                    >
-                                                                        For{' '}
-                                                                        {
-                                                                            audience
-                                                                        }
-                                                                    </Text>
-
-                                                                </View>
-
-                                                            </View>
-
-
-                                                            {/* PRICE + DURATION */}
-
-                                                            <View
-                                                                style={
-                                                                    styles.detailsRow
-                                                                }
-                                                            >
-
-                                                                <View
-                                                                    style={
-                                                                        styles.detailItem
-                                                                    }
-                                                                >
-
-                                                                    <Text
-                                                                        style={
-                                                                            styles.detailLabel
-                                                                        }
-                                                                    >
-                                                                        Price
-                                                                    </Text>
-
-                                                                    <Text
-                                                                        style={
-                                                                            styles.detailValue
-                                                                        }
-                                                                    >
-                                                                        ₹{price}
-                                                                    </Text>
-
-                                                                </View>
-
-
-                                                                <View
-                                                                    style={
-                                                                        styles.detailDivider
-                                                                    }
-                                                                />
-
-
-                                                                <View
-                                                                    style={
-                                                                        styles.detailItem
-                                                                    }
-                                                                >
-
-                                                                    <Text
-                                                                        style={
-                                                                            styles.detailLabel
-                                                                        }
-                                                                    >
-                                                                        Duration
-                                                                    </Text>
-
-                                                                    <Text
-                                                                        style={
-                                                                            styles.detailValue
-                                                                        }
-                                                                    >
-                                                                        {duration}{' '}
-                                                                        min
-                                                                    </Text>
-
-                                                                </View>
-
-                                                            </View>
-
-                                                        </View>
-
-
-                                                        {/* EDIT */}
-
-                                                        <TouchableOpacity
-                                                            activeOpacity={
-                                                                0.7
-                                                            }
-                                                            style={
-                                                                styles.editButton
-                                                            }
-                                                            onPress={
-                                                                handleEdit
-                                                            }
-                                                        >
-
-                                                            <Text
-                                                                style={
-                                                                    styles.editButtonText
-                                                                }
-                                                            >
-                                                                Edit
-                                                            </Text>
-
-                                                        </TouchableOpacity>
-
-                                                    </View>
-                                                );
-
-                                            },
+                                            ),
                                         )}
 
                                     </View>
@@ -925,42 +1140,87 @@ const styles = StyleSheet.create({
             COLORS.primary,
     },
 
-    categoryCard: {
+    // ========================================================
+    // AUDIENCE
+    // ========================================================
+
+    audienceCard: {
         backgroundColor:
             COLORS.white,
         borderRadius:
             RADIUS.large,
         marginBottom:
-            SPACING.medium,
+            SPACING.large,
         overflow:
             'hidden',
     },
 
-    categoryHeader: {
+    audienceHeader: {
         paddingHorizontal:
             SPACING.medium,
         paddingVertical:
             SPACING.medium,
         backgroundColor:
-            '#FAFAFA',
-        borderBottomWidth: 1,
+            '#F7F5FF',
+        borderBottomWidth:
+            1,
         borderBottomColor:
-            '#EEEEEE',
+            '#E9E5F5',
+    },
+
+    audienceHeaderName: {
+        fontFamily:
+            FONTS.bold,
+        fontSize: 19,
+        color:
+            COLORS.black,
+    },
+
+    audienceHeaderSubtitle: {
+        fontFamily:
+            FONTS.regular,
+        fontSize: 12,
+        color:
+            COLORS.textSecondary,
+        marginTop:
+            3,
+    },
+
+    // ========================================================
+    // CATEGORY
+    // ========================================================
+
+    categorySection: {
+        paddingTop:
+            SPACING.small,
+    },
+
+    categoryHeader: {
+        paddingHorizontal:
+            SPACING.medium,
+        paddingTop:
+            SPACING.medium,
+        paddingBottom:
+            SPACING.small,
     },
 
     categoryName: {
         fontFamily:
             FONTS.bold,
-        fontSize: 17,
+        fontSize: 16,
         color:
             COLORS.black,
     },
+
+    // ========================================================
+    // SUBCATEGORY
+    // ========================================================
 
     subcategorySection: {
         paddingHorizontal:
             SPACING.medium,
         paddingTop:
-            SPACING.medium,
+            SPACING.small,
     },
 
     subcategoryName: {
@@ -973,8 +1233,13 @@ const styles = StyleSheet.create({
             SPACING.small,
     },
 
+    // ========================================================
+    // SERVICE
+    // ========================================================
+
     serviceCard: {
-        borderWidth: 1,
+        borderWidth:
+            1,
         borderColor:
             '#E6E6E6',
         borderRadius:
@@ -999,9 +1264,12 @@ const styles = StyleSheet.create({
     },
 
     serviceNumber: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
+        width:
+            30,
+        height:
+            30,
+        borderRadius:
+            15,
         backgroundColor:
             '#E8F6F4',
         alignItems:
@@ -1015,7 +1283,8 @@ const styles = StyleSheet.create({
     serviceNumberText: {
         fontFamily:
             FONTS.bold,
-        fontSize: 12,
+        fontSize:
+            12,
         color:
             COLORS.primary,
     },
@@ -1027,19 +1296,17 @@ const styles = StyleSheet.create({
     serviceName: {
         fontFamily:
             FONTS.bold,
-        fontSize: 15,
+        fontSize:
+            15,
         color:
             COLORS.black,
+        lineHeight:
+            20,
     },
 
-    audienceText: {
-        fontFamily:
-            FONTS.regular,
-        fontSize: 11,
-        color:
-            COLORS.primary,
-        marginTop: 3,
-    },
+    // ========================================================
+    // PRICE / DURATION
+    // ========================================================
 
     detailsRow: {
         flexDirection:
@@ -1050,7 +1317,8 @@ const styles = StyleSheet.create({
             SPACING.medium,
         paddingTop:
             SPACING.medium,
-        borderTopWidth: 1,
+        borderTopWidth:
+            1,
         borderTopColor:
             '#EEEEEE',
     },
@@ -1062,36 +1330,47 @@ const styles = StyleSheet.create({
     detailLabel: {
         fontFamily:
             FONTS.regular,
-        fontSize: 11,
+        fontSize:
+            11,
         color:
             COLORS.textSecondary,
-        marginBottom: 3,
+        marginBottom:
+            3,
     },
 
     detailValue: {
         fontFamily:
             FONTS.bold,
-        fontSize: 14,
+        fontSize:
+            14,
         color:
             COLORS.black,
     },
 
     detailDivider: {
-        width: 1,
-        height: 30,
+        width:
+            1,
+        height:
+            30,
         backgroundColor:
             '#E5E5E5',
         marginHorizontal:
             SPACING.medium,
     },
 
+    // ========================================================
+    // EDIT
+    // ========================================================
+
     editButton: {
         alignSelf:
             'flex-end',
         marginTop:
             SPACING.medium,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
+        paddingHorizontal:
+            16,
+        paddingVertical:
+            8,
         borderRadius:
             RADIUS.medium,
         backgroundColor:
@@ -1101,15 +1380,21 @@ const styles = StyleSheet.create({
     editButtonText: {
         fontFamily:
             FONTS.medium,
-        fontSize: 12,
+        fontSize:
+            12,
         color:
             COLORS.primary,
     },
 
+    // ========================================================
+    // CONFIRMATION
+    // ========================================================
+
     confirmationCard: {
         backgroundColor:
             COLORS.white,
-        borderWidth: 1,
+        borderWidth:
+            1,
         borderColor:
             '#E5E5E5',
         borderRadius:
@@ -1123,20 +1408,28 @@ const styles = StyleSheet.create({
     confirmationTitle: {
         fontFamily:
             FONTS.bold,
-        fontSize: 14,
+        fontSize:
+            14,
         color:
             COLORS.black,
-        marginBottom: 6,
+        marginBottom:
+            6,
     },
 
     confirmationText: {
         fontFamily:
             FONTS.regular,
-        fontSize: 12,
-        lineHeight: 18,
+        fontSize:
+            12,
+        lineHeight:
+            18,
         color:
             COLORS.textSecondary,
     },
+
+    // ========================================================
+    // FOOTER
+    // ========================================================
 
     footer: {
         backgroundColor:
@@ -1147,17 +1440,21 @@ const styles = StyleSheet.create({
             SPACING.small,
         paddingBottom:
             SPACING.medium,
-        borderTopWidth: 1,
+        borderTopWidth:
+            1,
         borderTopColor:
             '#EEEEEE',
     },
 
     editAllButton: {
-        width: '100%',
-        minHeight: 46,
+        width:
+            '100%',
+        minHeight:
+            46,
         borderRadius:
             RADIUS.medium,
-        borderWidth: 1,
+        borderWidth:
+            1,
         borderColor:
             COLORS.themeColor,
         alignItems:
@@ -1171,14 +1468,17 @@ const styles = StyleSheet.create({
     editAllButtonText: {
         fontFamily:
             FONTS.bold,
-        fontSize: 14,
+        fontSize:
+            14,
         color:
             COLORS.themeColor,
     },
 
     confirmButton: {
-        width: '100%',
-        minHeight: 50,
+        width:
+            '100%',
+        minHeight:
+            50,
         borderRadius:
             RADIUS.medium,
         backgroundColor:
@@ -1192,16 +1492,23 @@ const styles = StyleSheet.create({
     confirmButtonText: {
         fontFamily:
             FONTS.bold,
-        fontSize: 15,
+        fontSize:
+            15,
         color:
             COLORS.white,
     },
 
+    // ========================================================
+    // EMPTY
+    // ========================================================
+
     primaryButton: {
         marginTop:
             SPACING.large,
-        minHeight: 48,
-        paddingHorizontal: 24,
+        minHeight:
+            48,
+        paddingHorizontal:
+            24,
         borderRadius:
             RADIUS.medium,
         backgroundColor:
@@ -1215,7 +1522,8 @@ const styles = StyleSheet.create({
     primaryButtonText: {
         fontFamily:
             FONTS.bold,
-        fontSize: 14,
+        fontSize:
+            14,
         color:
             COLORS.white,
     },
@@ -1233,7 +1541,8 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontFamily:
             FONTS.bold,
-        fontSize: 18,
+        fontSize:
+            18,
         color:
             COLORS.black,
         textAlign:
@@ -1243,20 +1552,25 @@ const styles = StyleSheet.create({
     emptyText: {
         fontFamily:
             FONTS.regular,
-        fontSize: 14,
-        lineHeight: 21,
+        fontSize:
+            14,
+        lineHeight:
+            21,
         color:
             COLORS.textSecondary,
         textAlign:
             'center',
-        marginTop: 8,
+        marginTop:
+            8,
     },
 
     bottomSpace: {
-        height: 20,
+        height:
+            20,
     },
 
 });
 
 
 export default ServiceReview;
+

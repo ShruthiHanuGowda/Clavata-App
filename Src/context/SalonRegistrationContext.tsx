@@ -20,22 +20,39 @@ export type KycDocumentType =
 // =====================================================
 
 export type KycDocument = {
+    /**
+     * Local file URI.
+     */
     uri: string;
 
+    /**
+     * Original file name.
+     */
     name: string;
 
+    /**
+     * MIME type.
+     */
     type?: string | null;
 
+    /**
+     * File size in bytes.
+     */
     size?: number | null;
 
-    // ===================================================
-    // KYC S3 UPLOAD INFORMATION
-    // ===================================================
-
+    /**
+     * Registration-level upload identifier.
+     */
     uploadId?: string;
 
+    /**
+     * Final S3 object key.
+     */
     s3Key?: string;
 
+    /**
+     * KYC document category.
+     */
     documentType?: KycDocumentType;
 };
 
@@ -112,40 +129,38 @@ export const DEFAULT_BUSINESS_HOURS: BusinessHours = {
 };
 
 // =====================================================
-// CREATE DEFAULT HOURS
+// CREATE DEFAULT BUSINESS HOURS
 // =====================================================
 
-const createDefaultBusinessHours =
-    (): BusinessHours => ({
+const createDefaultBusinessHours = (): BusinessHours => ({
+    MONDAY: {
+        ...DEFAULT_BUSINESS_HOURS.MONDAY,
+    },
 
-        MONDAY: {
-            ...DEFAULT_BUSINESS_HOURS.MONDAY,
-        },
+    TUESDAY: {
+        ...DEFAULT_BUSINESS_HOURS.TUESDAY,
+    },
 
-        TUESDAY: {
-            ...DEFAULT_BUSINESS_HOURS.TUESDAY,
-        },
+    WEDNESDAY: {
+        ...DEFAULT_BUSINESS_HOURS.WEDNESDAY,
+    },
 
-        WEDNESDAY: {
-            ...DEFAULT_BUSINESS_HOURS.WEDNESDAY,
-        },
+    THURSDAY: {
+        ...DEFAULT_BUSINESS_HOURS.THURSDAY,
+    },
 
-        THURSDAY: {
-            ...DEFAULT_BUSINESS_HOURS.THURSDAY,
-        },
+    FRIDAY: {
+        ...DEFAULT_BUSINESS_HOURS.FRIDAY,
+    },
 
-        FRIDAY: {
-            ...DEFAULT_BUSINESS_HOURS.FRIDAY,
-        },
+    SATURDAY: {
+        ...DEFAULT_BUSINESS_HOURS.SATURDAY,
+    },
 
-        SATURDAY: {
-            ...DEFAULT_BUSINESS_HOURS.SATURDAY,
-        },
-
-        SUNDAY: {
-            ...DEFAULT_BUSINESS_HOURS.SUNDAY,
-        },
-    });
+    SUNDAY: {
+        ...DEFAULT_BUSINESS_HOURS.SUNDAY,
+    },
+});
 
 // =====================================================
 // KYC STATUS
@@ -164,14 +179,14 @@ export type KYCStatus =
 
 export type BusinessDocument = {
     type:
-    | 'GST_CERTIFICATE'
-    | 'SHOP_ESTABLISHMENT'
-    | 'UDYAM'
-    | 'PARTNERSHIP_DEED'
-    | 'INCORPORATION_CERTIFICATE'
-    | 'RENTAL_AGREEMENT'
-    | 'UTILITY_BILL'
-    | 'OTHER';
+        | 'GST_CERTIFICATE'
+        | 'SHOP_ESTABLISHMENT'
+        | 'UDYAM'
+        | 'PARTNERSHIP_DEED'
+        | 'INCORPORATION_CERTIFICATE'
+        | 'RENTAL_AGREEMENT'
+        | 'UTILITY_BILL'
+        | 'OTHER';
 
     uri: string;
 
@@ -202,98 +217,109 @@ export type ServiceAudience =
 // SALON SERVICE SELECTION
 // =====================================================
 //
-// IMPORTANT:
+// Business Type is intentionally NOT part of the model.
 //
-// This now represents an actual salon-created service.
+// Service hierarchy:
+//
+//   Audience
+//      ↓
+//   Category
+//      ↓
+//   Subcategory
+//      ↓
+//   Service
 //
 // Example:
 //
-// Hair
-//   └── Hair Cut
-//        ├── Layer Hair Cut
-//        └── Step Hair Cut
+// FEMALE
+//   Hair
+//     Haircut
+//       Layer Haircut
+//       Step Haircut
+//       Bob Haircut
 //
-// Both services can have:
+// Multiple services are allowed under the same
+// audience + category + subcategory.
 //
-// categoryId       = same
-// subcategoryId   = same
-// audience        = same
-//
-// Therefore serviceKey MUST be unique per actual service.
+// serviceKey identifies the individual local service.
 //
 // =====================================================
 
 export type SalonServiceSelection = {
-
-    // ===================================================
+    // =================================================
     // LOCAL UNIQUE SERVICE KEY
-    // ===================================================
+    // =================================================
     //
-    // This is generated on the device during registration.
-    // It is NOT the final backend serviceId.
-    //
-    serviceKey: string;
-
-    // ===================================================
-    // BUSINESS TYPE
-    // ===================================================
-
-    businessTypeId?: string;
-    businessTypeName?: string;
-    // ===================================================
-    // ACTUAL SERVICE NAME
-    // ===================================================
+    // Temporary local identifier.
     //
     // Example:
     //
-    // Layer Hair Cut
-    // Step Hair Cut
+    // LOCAL-SERVICE-1727950012345-AB12CD
     //
+    // This is NOT the backend serviceId.
+    //
+    serviceKey: string;
+
+    // =================================================
+    // SERVICE NAME
+    // =================================================
+
     name: string;
 
-    // ===================================================
-    // DESCRIPTION
-    // ===================================================
+    // =================================================
+    // SERVICE DESCRIPTION
+    // =================================================
 
     description?: string;
 
-    // ===================================================
+    // =================================================
     // AUDIENCE
-    // ===================================================
+    // =================================================
 
     audience: ServiceAudience;
 
-    // ===================================================
+    // =================================================
     // CATEGORY
-    // ===================================================
+    // =================================================
 
     categoryId: string;
 
     categoryName: string;
 
-    // ===================================================
+    // =================================================
     // SUBCATEGORY
-    // ===================================================
+    // =================================================
 
     subcategoryId: string;
 
     subcategoryName: string;
 
-    // ===================================================
+    // =================================================
     // PRICE
-    // ===================================================
+    // =================================================
 
     price?: number;
 
-    // ===================================================
+    // =================================================
     // DURATION
-    // ===================================================
+    // =================================================
 
     durationMinutes?: number;
 };
 
 // =====================================================
 // SERVICE-SPECIFIC MODE
+// =====================================================
+//
+// Allows different services to have different
+// availability modes.
+//
+// Example:
+//
+// {
+//     "LOCAL-SERVICE-001": "HOME_ONLY"
+// }
+//
 // =====================================================
 
 export type ServiceSpecificModes = Record<
@@ -306,18 +332,17 @@ export type ServiceSpecificModes = Record<
 // =====================================================
 
 export type SalonRegistrationData = {
-
-    // ===================================================
+    // =================================================
     // USER
-    // ===================================================
+    // =================================================
 
     userId: string;
 
     phoneNumber: string;
 
-    // ===================================================
+    // =================================================
     // BUSINESS
-    // ===================================================
+    // =================================================
 
     salonName: string;
 
@@ -325,33 +350,31 @@ export type SalonRegistrationData = {
 
     email: string;
 
-    // ===================================================
-    // BUSINESS TYPE
-    // ===================================================
-
-    businessTypeId: string;
-
-    businessTypeIds: string[];
-
-    businessType: string;
-
-    // ===================================================
+    // =================================================
     // SERVICE AUDIENCE
-    // ===================================================
+    // =================================================
+    //
+    // Audiences selected during registration.
+    //
+    // Example:
+    //
+    // ['FEMALE', 'MALE', 'KIDS']
+    //
+    // =================================================
 
     targetAudiences: ServiceAudience[];
 
-    // ===================================================
+    // =================================================
     // SERVICE AVAILABILITY
-    // ===================================================
+    // =================================================
 
     serviceMode: ServiceMode;
 
     serviceSpecificModes: ServiceSpecificModes;
 
-    // ===================================================
+    // =================================================
     // ADDRESS
-    // ===================================================
+    // =================================================
 
     addressLine: string;
 
@@ -365,17 +388,17 @@ export type SalonRegistrationData = {
 
     longitude?: number;
 
-    // ===================================================
+    // =================================================
     // KYC - OWNER
-    // ===================================================
+    // =================================================
 
     panNumber: string;
 
     aadhaarNumber: string;
 
-    // ===================================================
+    // =================================================
     // KYB - BUSINESS
-    // ===================================================
+    // =================================================
 
     gstNumber: string;
 
@@ -387,9 +410,9 @@ export type SalonRegistrationData = {
 
     llpinNumber: string;
 
-    // ===================================================
+    // =================================================
     // BANK
-    // ===================================================
+    // =================================================
 
     bankAccount: string;
 
@@ -397,15 +420,15 @@ export type SalonRegistrationData = {
 
     accountHolderName: string;
 
-    // ===================================================
+    // =================================================
     // GENERAL BUSINESS DOCUMENTS
-    // ===================================================
+    // =================================================
 
     businessDocuments: BusinessDocument[];
 
-    // ===================================================
+    // =================================================
     // KYC DOCUMENTS
-    // ===================================================
+    // =================================================
 
     panDocument?: KycDocument | null;
 
@@ -417,54 +440,59 @@ export type SalonRegistrationData = {
 
     udyamDocument?: KycDocument | null;
 
-    // ===================================================
+    // =================================================
     // KYC S3 UPLOAD ID
-    //
-    // One uploadId is used for all documents belonging
-    // to this salon registration.
-    // ===================================================
+    // =================================================
 
     kycUploadId: string;
 
-    // ===================================================
+    // =================================================
     // CLAVATA SERVICES
-    // ===================================================
+    // =================================================
     //
-    // Each item is one actual salon service.
+    // Multiple services are allowed under the same:
     //
-    // Multiple items may have the same:
-    //
-    // categoryId
-    // subcategoryId
-    // audience
+    //   audience
+    //   category
+    //   subcategory
     //
     // Example:
     //
     // [
     //   {
-    //      serviceKey: "LOCAL-1",
-    //      name: "Layer Hair Cut",
-    //      categoryId: "CAT-H",
-    //      subcategoryId: "SUB-HC",
-    //      audience: "FEMALE"
+    //      serviceKey: 'LOCAL-SERVICE-001',
+    //      name: 'Layer Haircut',
+    //      audience: 'FEMALE',
+    //      categoryId: 'CAT_HAIR',
+    //      categoryName: 'Hair',
+    //      subcategoryId: 'SUB_HAIRCUT',
+    //      subcategoryName: 'Haircut',
+    //      price: 400,
+    //      durationMinutes: 40
     //   },
     //
     //   {
-    //      serviceKey: "LOCAL-2",
-    //      name: "Step Hair Cut",
-    //      categoryId: "CAT-H",
-    //      subcategoryId: "SUB-HC",
-    //      audience: "FEMALE"
+    //      serviceKey: 'LOCAL-SERVICE-002',
+    //      name: 'Step Haircut',
+    //      audience: 'FEMALE',
+    //      categoryId: 'CAT_HAIR',
+    //      categoryName: 'Hair',
+    //      subcategoryId: 'SUB_HAIRCUT',
+    //      subcategoryName: 'Haircut',
+    //      price: 500,
+    //      durationMinutes: 45
     //   }
     // ]
     //
-    // ===================================================
+    // Both services are valid.
+    //
+    // =================================================
 
     serviceSelections: SalonServiceSelection[];
 
-    // ===================================================
+    // =================================================
     // VERIFICATION
-    // ===================================================
+    // =================================================
 
     kycStatus: KYCStatus;
 
@@ -476,186 +504,172 @@ export type SalonRegistrationData = {
 
     kycRejectionReason: string;
 
-    // ===================================================
+    // =================================================
     // PROVIDER STATUS
-    // ===================================================
+    // =================================================
 
     providerStatus:
-    | 'NOT_REGISTERED'
-    | 'PENDING'
-    | 'APPROVED'
-    | 'REJECTED';
+        | 'NOT_REGISTERED'
+        | 'PENDING'
+        | 'APPROVED'
+        | 'REJECTED';
 
-    // ===================================================
+    // =================================================
     // BUSINESS HOURS
-    // ===================================================
+    // =================================================
 
     businessHours: BusinessHours;
 };
 
 // =====================================================
-// INITIAL DATA
+// CREATE INITIAL REGISTRATION DATA
 // =====================================================
 
-const createInitialData =
-    (): SalonRegistrationData => ({
+const createInitialData = (): SalonRegistrationData => ({
+    // =================================================
+    // USER
+    // =================================================
 
-        // =================================================
-        // USER
-        // =================================================
+    userId: '',
 
-        userId: '',
+    phoneNumber: '',
 
-        phoneNumber: '',
+    // =================================================
+    // BUSINESS
+    // =================================================
 
-        // =================================================
-        // BUSINESS
-        // =================================================
+    salonName: '',
 
-        salonName: '',
+    ownerName: '',
 
-        ownerName: '',
+    email: '',
 
-        email: '',
+    // =================================================
+    // SERVICE AUDIENCE
+    // =================================================
 
-        // =================================================
-        // BUSINESS TYPE
-        // =================================================
+    targetAudiences: [],
 
-        businessTypeId: '',
+    // =================================================
+    // SERVICE AVAILABILITY
+    // =================================================
 
-        businessTypeIds: [],
+    serviceMode: 'SALON_ONLY',
 
-        businessType: '',
+    serviceSpecificModes: {},
 
-        // =================================================
-        // SERVICE AUDIENCE
-        // =================================================
+    // =================================================
+    // ADDRESS
+    // =================================================
 
-        targetAudiences: [],
+    addressLine: '',
 
-        // =================================================
-        // SERVICE AVAILABILITY
-        // =================================================
+    city: '',
 
-        serviceMode: 'SALON_ONLY',
+    state: '',
 
-        serviceSpecificModes: {},
+    pincode: '',
 
-        // =================================================
-        // ADDRESS
-        // =================================================
+    latitude: undefined,
 
-        addressLine: '',
+    longitude: undefined,
 
-        city: '',
+    // =================================================
+    // KYC
+    // =================================================
 
-        state: '',
+    panNumber: '',
 
-        pincode: '',
+    aadhaarNumber: '',
 
-        latitude: undefined,
+    // =================================================
+    // KYB
+    // =================================================
 
-        longitude: undefined,
+    gstNumber: '',
 
-        // =================================================
-        // KYC
-        // =================================================
+    shopEstablishmentNumber: '',
 
-        panNumber: '',
+    udyamNumber: '',
 
-        aadhaarNumber: '',
+    cinNumber: '',
 
-        // =================================================
-        // KYB
-        // =================================================
+    llpinNumber: '',
 
-        gstNumber: '',
+    // =================================================
+    // BANK
+    // =================================================
 
-        shopEstablishmentNumber: '',
+    bankAccount: '',
 
-        udyamNumber: '',
+    ifsc: '',
 
-        cinNumber: '',
+    accountHolderName: '',
 
-        llpinNumber: '',
+    // =================================================
+    // GENERAL BUSINESS DOCUMENTS
+    // =================================================
 
-        // =================================================
-        // BANK
-        // =================================================
+    businessDocuments: [],
 
-        bankAccount: '',
+    // =================================================
+    // KYC DOCUMENTS
+    // =================================================
 
-        ifsc: '',
+    panDocument: null,
 
-        accountHolderName: '',
+    aadhaarDocument: null,
 
-        // =================================================
-        // GENERAL DOCUMENTS
-        // =================================================
+    shopEstablishmentDocument: null,
 
-        businessDocuments: [],
+    gstDocument: null,
 
-        // =================================================
-        // KYC DOCUMENTS
-        // =================================================
+    udyamDocument: null,
 
-        panDocument: null,
+    // =================================================
+    // KYC S3 UPLOAD
+    // =================================================
 
-        aadhaarDocument: null,
+    kycUploadId: '',
 
-        shopEstablishmentDocument: null,
+    // =================================================
+    // SERVICE SELECTIONS
+    // =================================================
 
-        gstDocument: null,
+    serviceSelections: [],
 
-        udyamDocument: null,
+    // =================================================
+    // VERIFICATION
+    // =================================================
 
-        // =================================================
-        // KYC S3 UPLOAD
-        // =================================================
+    kycStatus: 'NOT_STARTED',
 
-        kycUploadId: '',
+    kycReferenceId: '',
 
-        // =================================================
-        // SERVICE SELECTIONS
-        // =================================================
+    kycSubmittedAt: '',
 
-        serviceSelections: [],
+    kycReviewedAt: '',
 
-        // =================================================
-        // VERIFICATION
-        // =================================================
+    kycRejectionReason: '',
 
-        kycStatus: 'NOT_STARTED',
+    // =================================================
+    // PROVIDER STATUS
+    // =================================================
 
-        kycReferenceId: '',
+    providerStatus: 'NOT_REGISTERED',
 
-        kycSubmittedAt: '',
+    // =================================================
+    // BUSINESS HOURS
+    // =================================================
 
-        kycReviewedAt: '',
-
-        kycRejectionReason: '',
-
-        // =================================================
-        // PROVIDER STATUS
-        // =================================================
-
-        providerStatus: 'NOT_REGISTERED',
-
-        // =================================================
-        // BUSINESS HOURS
-        // =================================================
-
-        businessHours:
-            createDefaultBusinessHours(),
-    });
+    businessHours: createDefaultBusinessHours(),
+});
 
 // =====================================================
 // CONTEXT TYPE
 // =====================================================
 
 type SalonRegistrationContextType = {
-
     data: SalonRegistrationData;
 
     updateData: (
@@ -670,9 +684,9 @@ type SalonRegistrationContextType = {
 // =====================================================
 
 const SalonRegistrationContext =
-    createContext<
-        SalonRegistrationContextType | null
-    >(null);
+    createContext<SalonRegistrationContextType | null>(
+        null,
+    );
 
 // =====================================================
 // PROVIDER
@@ -683,20 +697,18 @@ export const SalonRegistrationProvider = ({
 }: {
     children: React.ReactNode;
 }) => {
-
     const [data, setData] =
         useState<SalonRegistrationData>(
             createInitialData(),
         );
 
-    // ===================================================
+    // =================================================
     // UPDATE DATA
-    // ===================================================
+    // =================================================
 
     const updateData = (
         values: Partial<SalonRegistrationData>,
     ) => {
-
         console.log(
             '======================================',
         );
@@ -705,7 +717,15 @@ export const SalonRegistrationProvider = ({
             'SALON REGISTRATION UPDATE',
         );
 
-        console.log(values);
+        console.log(
+            'UPDATED FIELDS:',
+            Object.keys(values),
+        );
+
+        console.log(
+            'UPDATE VALUES:',
+            values,
+        );
 
         console.log(
             '======================================',
@@ -717,14 +737,21 @@ export const SalonRegistrationProvider = ({
         }));
     };
 
-    // ===================================================
+    // =================================================
     // RESET
-    // ===================================================
+    // =================================================
 
     const reset = () => {
+        console.log(
+            '======================================',
+        );
 
         console.log(
             'SALON REGISTRATION RESET',
+        );
+
+        console.log(
+            '======================================',
         );
 
         setData(
@@ -732,9 +759,9 @@ export const SalonRegistrationProvider = ({
         );
     };
 
-    // ===================================================
+    // =================================================
     // PROVIDER
-    // ===================================================
+    // =================================================
 
     return (
         <SalonRegistrationContext.Provider
@@ -754,14 +781,12 @@ export const SalonRegistrationProvider = ({
 // =====================================================
 
 export const useSalonRegistration = () => {
-
     const context =
         useContext(
             SalonRegistrationContext,
         );
 
     if (!context) {
-
         throw new Error(
             'useSalonRegistration must be used inside SalonRegistrationProvider',
         );
@@ -769,3 +794,4 @@ export const useSalonRegistration = () => {
 
     return context;
 };
+

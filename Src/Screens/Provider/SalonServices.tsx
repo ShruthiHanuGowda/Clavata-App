@@ -1,15 +1,10 @@
-import React, {
-  useMemo,
-  useState,
-} from 'react';
-
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
-  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -18,12 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
-import {
-  Header,
-  DButton,
-} from '../../components';
-
+import { Header } from '../../components';
 import {
   COLORS,
   FONTS,
@@ -31,202 +21,113 @@ import {
   SPACING,
   RADIUS,
 } from '../../constants/constants';
-
 import {
   SalonServiceSelection,
-  useSalonRegistration,
   ServiceAudience,
+  useSalonRegistration,
 } from '../../context/SalonRegistrationContext';
-
+import { useQuery } from '@apollo/client';
 import {
-  useQuery,
-} from '@apollo/client';
-
-import {
-  GET_BUSINESS_TYPES,
   GET_CLAVATA_CATEGORIES,
   GET_CLAVATA_SUBCATEGORIES,
 } from '../../graphql/queries';
-
-// ============================================================
-// TYPES
-// ============================================================
-
 type Category = {
   categoryId: string;
   name: string;
-  description?: string | null;
-  servicesCount?: number;
-  status?: string;
-  createdAt?: string;
-  updatedAt?: string;
 };
-
 type Subcategory = {
   subcategoryId: string;
   categoryId: string;
   name: string;
   description?: string | null;
-  servicesCount?: number;
-  status?: string;
-  createdAt?: string;
-  updatedAt?: string;
-
   audiences?: ServiceAudience[];
-  businessTypeIds?: string[];
 };
-
-type BusinessType = {
-  businessTypeId: string;
-  name: string;
-};
-
-type ConfiguredService =
-  SalonServiceSelection & {
-    serviceKey: string;
-    businessTypeId?: string;
-    name: string;
-    description?: string;
-    price?: number;
-    durationMinutes?: number;
-  };
-
-type ServiceFormState = {
-  serviceKey?: string;
-
-  businessTypeId: string;
+type ConfiguredService = SalonServiceSelection & {
+  serviceKey: string;
   audience: ServiceAudience;
-
   categoryId: string;
   categoryName: string;
-
   subcategoryId: string;
   subcategoryName: string;
-
   name: string;
-  description: string;
+  price?: number;
+  durationMinutes?: number;
+  description?: string;
+};
+type ServiceForm = {
+  serviceKey?: string;
+  audience: ServiceAudience;
+  categoryId: string;
+  categoryName: string;
+  subcategoryId: string;
+  subcategoryName: string;
+  name: string;
   price: string;
   durationMinutes: string;
+  description: string;
 };
-
-// ============================================================
-// CONSTANTS
-// ============================================================
-
-const AUDIENCE_TABS: {
+const AUDIENCES: {
   key: ServiceAudience;
   label: string;
 }[] = [
-    {
-      key: 'FEMALE',
-      label: 'Female',
-    },
-    {
-      key: 'MALE',
-      label: 'Male',
-    },
-    {
-      key: 'KIDS',
-      label: 'Kids',
-    },
-  ];
-
-// ============================================================
-// HELPERS
-// ============================================================
-
-const normalizeText = (
-  value?: unknown,
-): string => {
-  return String(value ?? '').trim();
-};
-
-const createServiceKey = (
-  businessTypeId: string,
-  audience: ServiceAudience,
-  categoryId: string,
-  subcategoryId: string,
-): string => {
-  return [
-    'SERVICE',
-    businessTypeId,
-    audience,
-    categoryId,
-    subcategoryId,
-    Date.now(),
-    Math.random()
-      .toString(36)
-      .slice(2, 8),
-  ].join('-');
-};
-
-const getAudienceLabel = (
-  audience: ServiceAudience,
-): string => {
-  switch (audience) {
-    case 'FEMALE':
-      return 'Female';
-
-    case 'MALE':
-      return 'Male';
-
-    case 'KIDS':
-      return 'Kids';
-
-    default:
-      return audience;
-  }
-};
-
-const getBusinessTypeId = (
-  item: any,
-): string => {
-  return normalizeText(
-    item?.businessTypeId ??
-    item?.id ??
-    item?.businessTypeID,
-  );
-};
-
-const getBusinessTypeName = (
-  item: any,
-): string => {
-  return normalizeText(
-    item?.name ??
-    item?.businessType ??
-    item?.label ??
-    item?.businessTypeName,
-  );
-};
-
-const parsePositiveNumber = (
+  {
+    key: 'FEMALE',
+    label: 'Female',
+  },
+  {
+    key: 'MALE',
+    label: 'Male',
+  },
+  {
+    key: 'KIDS',
+    label: 'Kids',
+  },
+];
+const normalize = (value: unknown): string =>
+  String(value ?? '').trim();
+const isAudience = (
+  value: unknown,
+): value is ServiceAudience =>
+  value === 'FEMALE' ||
+  value === 'MALE' ||
+  value === 'KIDS';
+const audienceLabel = (
+  value: ServiceAudience,
+): string =>
+  AUDIENCES.find(
+    item => item.key === value,
+  )?.label ?? value;
+const makeKey = (): string =>
+  `SERVICE-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 9)
+    .toUpperCase()}`;
+const positiveNumber = (
   value: string,
 ): number | undefined => {
   const normalized = value
     .replace(/,/g, '')
     .trim();
-
   if (!normalized) {
     return undefined;
   }
-
-  const numberValue =
-    Number(normalized);
-
-  if (
-    !Number.isFinite(numberValue) ||
-    numberValue <= 0
-  ) {
-    return undefined;
-  }
-
-  return numberValue;
+  const number = Number(normalized);
+  return Number.isFinite(number) && number > 0
+    ? number
+    : undefined;
 };
-
-// ============================================================
-// SCREEN
-// ============================================================
-
+const priceLabel = (
+  value?: number,
+): string => {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value <= 0
+  ) {
+    return 'Price not set';
+  }
+  return `₹${value.toLocaleString('en-IN')}`;
+};
 export default function SalonServices({
   navigation,
 }: any) {
@@ -234,76 +135,34 @@ export default function SalonServices({
     data,
     updateData,
   } = useSalonRegistration();
-
-  // ==========================================================
-  // MODAL
-  // ==========================================================
-
   const [
-    servicesModalVisible,
-    setServicesModalVisible,
+    modalVisible,
+    setModalVisible,
   ] = useState(false);
-
-  // ==========================================================
-  // ACTIVE BUSINESS TYPE
-  // ==========================================================
-
-  const [
-    activeBusinessTypeId,
-    setActiveBusinessTypeId,
-  ] = useState<string | null>(null);
-
-  // ==========================================================
-  // ACTIVE AUDIENCE
-  // ==========================================================
-
   const [
     activeAudience,
     setActiveAudience,
-  ] = useState<ServiceAudience | null>(
-    null,
-  );
-
-  // ==========================================================
-  // OPEN CATEGORIES
-  // ==========================================================
-
+  ] = useState<ServiceAudience | null>(null);
   const [
-    openCategories,
-    setOpenCategories,
-  ] = useState<
-    Record<string, boolean>
-  >({});
-
-  // ==========================================================
-  // SERVICE FORM
-  // ==========================================================
-
+    search,
+    setSearch,
+  ] = useState('');
   const [
-    serviceForm,
-    setServiceForm,
-  ] = useState<ServiceFormState | null>(
-    null,
-  );
-
+    expandedCategories,
+    setExpandedCategories,
+  ] = useState<Record<string, boolean>>({});
   const [
-    savingService,
-    setSavingService,
+    form,
+    setForm,
+  ] = useState<ServiceForm | null>(null);
+  const [
+    saving,
+    setSaving,
   ] = useState(false);
-
-  // ==========================================================
-  // SUBMITTING
-  // ==========================================================
-
   const [
     submitting,
     setSubmitting,
   ] = useState(false);
-
-  // ==========================================================
-  // CATEGORY QUERY
-  // ==========================================================
-
   const {
     data: categoryResponse,
     loading: categoriesLoading,
@@ -315,11 +174,6 @@ export default function SalonServices({
       fetchPolicy: 'network-only',
     },
   );
-
-  // ==========================================================
-  // SUBCATEGORY QUERY
-  // ==========================================================
-
   const {
     data: subcategoryResponse,
     loading: subcategoriesLoading,
@@ -331,1371 +185,707 @@ export default function SalonServices({
       fetchPolicy: 'network-only',
     },
   );
-
-  // ==========================================================
-  // BUSINESS TYPE QUERY
-  // ==========================================================
-
-  const {
-    data: businessTypesResponse,
-    loading: businessTypesLoading,
-    error: businessTypesError,
-    refetch: refetchBusinessTypes,
-  } = useQuery(
-    GET_BUSINESS_TYPES,
-    {
-      variables: {
-        status: 'ACTIVE',
-      },
-      fetchPolicy: 'cache-first',
-    },
-  );
-
-  // ==========================================================
-  // SELECTED BUSINESS TYPE IDS
-  // ==========================================================
-
-  const selectedBusinessTypeIds =
-    useMemo(() => {
-      const ids = Array.isArray(
-        (data as any)?.businessTypeIds,
-      )
-        ? (data as any).businessTypeIds
-        : (
-          data as any
-        )?.businessTypeId
-          ? [
-            (
-              data as any
-            ).businessTypeId,
-          ]
-          : [];
-
-      return ids
-        .map((id: unknown) =>
-          normalizeText(id),
-        )
-        .filter(Boolean);
-    }, [
-      (data as any)?.businessTypeIds,
-      (data as any)?.businessTypeId,
-    ]);
-
-  // ==========================================================
-  // BUSINESS TYPES
-  // ==========================================================
-
-  const businessTypes =
-    useMemo<BusinessType[]>(() => {
+  const categories = useMemo<Category[]>(
+    () => {
       const raw =
-        Array.isArray(
-          businessTypesResponse
-            ?.businessTypes
-            ?.businessTypes,
-        )
-          ? businessTypesResponse
-            .businessTypes
-            .businessTypes
-          : [];
-
-      const masterMap =
-        new Map<
-          string,
-          BusinessType
-        >();
-
-      raw.forEach(
-        (item: any) => {
-          const id =
-            getBusinessTypeId(item);
-
-          const name =
-            getBusinessTypeName(item);
-
-          if (
-            !id ||
-            !name
-          ) {
-            return;
-          }
-
-          masterMap.set(
-            id,
+        categoryResponse
+          ?.categories
+          ?.categories;
+      if (!Array.isArray(raw)) {
+        return [];
+      }
+      const unique =
+        new Map<string, Category>();
+      raw.forEach((item: any) => {
+        const categoryId =
+          normalize(
+            item?.categoryId,
+          );
+        const name =
+          normalize(
+            item?.name,
+          );
+        if (
+          !categoryId ||
+          !name
+        ) {
+          return;
+        }
+        if (
+          !unique.has(categoryId)
+        ) {
+          unique.set(
+            categoryId,
             {
-              businessTypeId: id,
+              categoryId,
               name,
             },
           );
-        },
-      );
-
-      /*
-       * IMPORTANT:
-       * Preserve the exact business-type order selected
-       * during registration.
-       */
-      return selectedBusinessTypeIds.map(
-        (id: string) => {
-          const master =
-            masterMap.get(id);
-
-          return (
-            master || {
-              businessTypeId: id,
-              name:
-                id.replace(
-                  /^BT#/,
-                  '',
-                ),
-            }
-          );
-        },
-      );
-    }, [
-      businessTypesResponse,
-      selectedBusinessTypeIds,
-    ]);
-
-  // ==========================================================
-  // CATEGORIES
-  // ==========================================================
-
-  const categories =
-    useMemo<Category[]>(() => {
-      const raw =
-        Array.isArray(
-          categoryResponse
-            ?.categories
-            ?.categories,
-        )
-          ? categoryResponse
-            .categories
-            .categories
-          : [];
-
-      const unique =
-        new Map<
-          string,
-          Category
-        >();
-
-      raw.forEach(
-        (category: Category) => {
-          const id =
-            normalizeText(
-              category?.categoryId,
-            );
-
-          if (
-            id &&
-            !unique.has(id)
-          ) {
-            unique.set(
-              id,
-              {
-                ...category,
-                categoryId: id,
-                name:
-                  normalizeText(
-                    category.name,
-                  ),
-              },
-            );
-          }
-        },
-      );
-
+        }
+      });
       return Array.from(
         unique.values(),
+      ).sort((a, b) =>
+        a.name.localeCompare(
+          b.name,
+          undefined,
+          {
+            sensitivity: 'base',
+          },
+        ),
       );
-    }, [
-      categoryResponse,
-    ]);
-
-  // ==========================================================
-  // SUBCATEGORIES
-  // ==========================================================
-
+    },
+    [categoryResponse],
+  );
   const subcategories =
-    useMemo<Subcategory[]>(() => {
-      const raw =
-        Array.isArray(
+    useMemo<Subcategory[]>(
+      () => {
+        const raw =
           subcategoryResponse
             ?.subcategories
-            ?.subcategories,
-        )
-          ? subcategoryResponse
-            .subcategories
-            .subcategories
-          : [];
-
-      const unique =
-        new Map<
-          string,
-          Subcategory
-        >();
-
-      raw.forEach(
-        (subcategory: Subcategory) => {
-          const categoryId =
-            normalizeText(
-              subcategory?.categoryId,
-            );
-
-          const subcategoryId =
-            normalizeText(
-              subcategory?.subcategoryId,
-            );
-
-          if (
-            !categoryId ||
-            !subcategoryId
-          ) {
-            return;
-          }
-
-          const key =
-            `${categoryId}-${subcategoryId}`;
-
-          if (
-            !unique.has(key)
-          ) {
+            ?.subcategories;
+        if (!Array.isArray(raw)) {
+          return [];
+        }
+        const unique =
+          new Map<
+            string,
+            Subcategory
+          >();
+        raw.forEach(
+          (item: any) => {
+            const categoryId =
+              normalize(
+                item?.categoryId,
+              );
+            const subcategoryId =
+              normalize(
+                item?.subcategoryId,
+              );
+            const name =
+              normalize(
+                item?.name,
+              );
+            if (
+              !categoryId ||
+              !subcategoryId ||
+              !name
+            ) {
+              return;
+            }
+            const key =
+              `${categoryId}-${subcategoryId}`;
+            if (
+              unique.has(key)
+            ) {
+              return;
+            }
             unique.set(
               key,
               {
-                ...subcategory,
-
                 categoryId,
-
                 subcategoryId,
-
-                name:
-                  normalizeText(
-                    subcategory.name,
-                  ),
-
-                businessTypeIds:
-                  Array.isArray(
-                    subcategory.businessTypeIds,
-                  )
-                    ? subcategory
-                      .businessTypeIds
-                      .map(id =>
-                        normalizeText(
-                          id,
-                        ),
-                      )
-                      .filter(Boolean)
-                    : [],
-
+                name,
+                description:
+                  item?.description ??
+                  null,
                 audiences:
                   Array.isArray(
-                    subcategory.audiences,
+                    item?.audiences,
                   )
-                    ? subcategory.audiences
+                    ? item.audiences.filter(
+                        isAudience,
+                      )
                     : [],
               },
             );
-          }
-        },
-      );
-
-      return Array.from(
-        unique.values(),
-      );
-    }, [
-      subcategoryResponse,
-    ]);
-
-  // ==========================================================
-  // TARGET AUDIENCES
-  // ==========================================================
-
+          },
+        );
+        return Array.from(
+          unique.values(),
+        ).sort((a, b) =>
+          a.name.localeCompare(
+            b.name,
+            undefined,
+            {
+              sensitivity: 'base',
+            },
+          ),
+        );
+      },
+      [subcategoryResponse],
+    );
   const availableAudiences =
-    useMemo<ServiceAudience[]>(() => {
-      const audiences =
-        Array.isArray(
-          data?.targetAudiences,
-        )
-          ? data.targetAudiences
-          : [];
-
-      return audiences.filter(
-        (
-          audience: any,
-        ): audience is ServiceAudience =>
-          audience === 'FEMALE' ||
-          audience === 'MALE' ||
-          audience === 'KIDS',
-      );
-    }, [
-      data?.targetAudiences,
-    ]);
-
-  // ==========================================================
-  // CURRENT SERVICES
-  // ==========================================================
-
-  const selectedServices =
-    useMemo<ConfiguredService[]>(() => {
-      if (
-        !Array.isArray(
-          data?.serviceSelections,
-        )
-      ) {
-        return [];
-      }
-
-      return (
-        data.serviceSelections as ConfiguredService[]
-      )
-        .map(
-          (
-            service,
-            index,
-          ) => ({
-            ...service,
-
-            serviceKey:
-              normalizeText(
-                service.serviceKey,
-              ) ||
-              `LEGACY-${index}-${Date.now()}`,
-
-            businessTypeId:
-              normalizeText(
-                service.businessTypeId,
-              ) ||
-              undefined,
-
-            name:
-              normalizeText(
-                service.name,
+    useMemo<ServiceAudience[]>(
+      () => {
+        const selected =
+          Array.isArray(
+            data?.targetAudiences,
+          )
+            ? data.targetAudiences
+            : [];
+        return AUDIENCES
+          .map(item => item.key)
+          .filter(
+            audience =>
+              selected.includes(
+                audience,
               ),
-
-            description:
-              normalizeText(
-                service.description,
-              ),
-
-            price:
-              typeof service.price ===
-                'number'
-                ? service.price
-                : undefined,
-
-            durationMinutes:
-              typeof service.durationMinutes ===
-                'number'
-                ? service.durationMinutes
-                : undefined,
-          }),
-        );
-    }, [
-      data?.serviceSelections,
-    ]);
-
-  // ==========================================================
-  // CURRENT BUSINESS TYPE
-  // ==========================================================
-
-  const activeBusinessType =
-    useMemo(() => {
-      if (
-        !activeBusinessTypeId
-      ) {
-        return null;
-      }
-
-      return (
-        businessTypes.find(
-          businessType =>
-            businessType.businessTypeId ===
-            activeBusinessTypeId,
-        ) || null
-      );
-    }, [
-      businessTypes,
-      activeBusinessTypeId,
-    ]);
-
-  // ==========================================================
-  // SERVICES FOR ACTIVE BUSINESS TYPE
-  // ==========================================================
-
-  const activeBusinessTypeServices =
-    useMemo(() => {
-      if (
-        !activeBusinessTypeId
-      ) {
-        return [];
-      }
-
-      return selectedServices.filter(
-        service =>
-          normalizeText(
-            service.businessTypeId,
-          ) ===
-          activeBusinessTypeId,
-      );
-    }, [
-      selectedServices,
-      activeBusinessTypeId,
-    ]);
-
-  // ==========================================================
-  // BUSINESS TYPE COMPLETION
-  // ==========================================================
-
-  const getBusinessTypeServiceCount =
-    (
-      businessTypeId: string,
-    ): number => {
-      return selectedServices.filter(
-        service =>
-          normalizeText(
-            service.businessTypeId,
-          ) === businessTypeId &&
-          normalizeText(
-            service.name,
-          ),
-      ).length;
-    };
-
-  const isBusinessTypeComplete =
-    (
-      businessTypeId: string,
-    ): boolean => {
-      return (
-        getBusinessTypeServiceCount(
-          businessTypeId,
-        ) > 0
-      );
-    };
-
-  // ==========================================================
-  // APPLICABLE SUBCATEGORIES
-  // ==========================================================
-
-  const activeAudienceSubcategories =
-    useMemo(() => {
-      if (
-        !activeBusinessTypeId ||
-        !activeAudience
-      ) {
-        return [];
-      }
-
-      return subcategories.filter(
-        subcategory => {
-          const businessTypeIds =
-            Array.isArray(
-              subcategory.businessTypeIds,
-            )
-              ? subcategory.businessTypeIds
-              : [];
-
-          const audiences =
-            Array.isArray(
-              subcategory.audiences,
-            )
-              ? subcategory.audiences
-              : [];
-
-          const matchesBusinessType =
-            businessTypeIds.includes(
-              activeBusinessTypeId,
-            );
-
-          const matchesAudience =
-            audiences.includes(
-              activeAudience,
-            );
-
-          return (
-            matchesBusinessType &&
-            matchesAudience
           );
-        },
-      );
-    }, [
-      subcategories,
-      activeBusinessTypeId,
-      activeAudience,
-    ]);
-
-  // ==========================================================
-  // APPLICABLE CATEGORIES
-  // ==========================================================
-
-  const activeCategories =
-    useMemo(() => {
-      const categoryIds =
-        new Set(
-          activeAudienceSubcategories.map(
-            subcategory =>
-              subcategory.categoryId,
-          ),
+      },
+      [data?.targetAudiences],
+    );
+  const selectedServices =
+    useMemo<ConfiguredService[]>(
+      () => {
+        const list =
+          Array.isArray(
+            data?.serviceSelections,
+          )
+            ? data.serviceSelections
+            : [];
+        return (
+          list as any[]
+        ).map(
+          (service, index) => {
+            const rawPrice =
+              Number(
+                service?.price,
+              );
+            const rawDuration =
+              Number(
+                service?.durationMinutes,
+              );
+            return {
+              ...service,
+              serviceKey:
+                normalize(
+                  service?.serviceKey,
+                ) ||
+                `LEGACY-${index}`,
+              audience:
+                service?.audience,
+              categoryId:
+                normalize(
+                  service?.categoryId,
+                ),
+              categoryName:
+                normalize(
+                  service?.categoryName,
+                ),
+              subcategoryId:
+                normalize(
+                  service?.subcategoryId,
+                ),
+              subcategoryName:
+                normalize(
+                  service?.subcategoryName,
+                ),
+              name:
+                normalize(
+                  service?.name,
+                ),
+              price:
+                Number.isFinite(
+                  rawPrice,
+                ) &&
+                rawPrice > 0
+                  ? rawPrice
+                  : undefined,
+              durationMinutes:
+                Number.isFinite(
+                  rawDuration,
+                ) &&
+                rawDuration > 0
+                  ? rawDuration
+                  : undefined,
+              description:
+                normalize(
+                  service?.description,
+                ),
+            };
+          },
         );
-
-      return categories.filter(
-        category =>
-          categoryIds.has(
-            category.categoryId,
-          ),
-      );
-    }, [
-      categories,
-      activeAudienceSubcategories,
-    ]);
-
-  // ==========================================================
-  // SAVE CONTEXT SERVICES
-  // ==========================================================
-
+      },
+      [data?.serviceSelections],
+    );
   const saveServices = (
     services: ConfiguredService[],
   ) => {
     updateData({
       serviceSelections:
-        services as any,
+        services as SalonServiceSelection[],
     });
   };
-
-  // ==========================================================
-  // OPEN SERVICES
-  // ==========================================================
-
-  const openServicesModal =
-    () => {
-      if (
-        businessTypes.length ===
-        0
-      ) {
-        Alert.alert(
-          'Business type required',
-          'Please select at least one business type before configuring services.',
-        );
-
-        return;
-      }
-
-      if (
-        availableAudiences.length ===
-        0
-      ) {
-        Alert.alert(
-          'Audience required',
-          'Please select at least one service audience before configuring services.',
-        );
-
-        return;
-      }
-
-      /*
-       * Start with the first selected business type.
-       * If the provider previously opened this screen,
-       * restore the last active business type.
-       */
-      setActiveBusinessTypeId(
-        previous =>
-          previous &&
-            businessTypes.some(
-              item =>
-                item.businessTypeId ===
-                previous,
-            )
-            ? previous
-            : businessTypes[0]
-              .businessTypeId,
-      );
-
-      setActiveAudience(
-        previous =>
-          previous &&
-            availableAudiences.includes(
-              previous,
-            )
-            ? previous
-            : availableAudiences[0],
-      );
-
-      setOpenCategories({});
-
-      setServicesModalVisible(
-        true,
-      );
-    };
-
-  // ==========================================================
-  // CLOSE SERVICES
-  // ==========================================================
-
-  const closeServicesModal =
-    () => {
-      setServiceForm(null);
-      setServicesModalVisible(
-        false,
-      );
-    };
-
-  // ==========================================================
-  // CHANGE BUSINESS TYPE
-  // ==========================================================
-
-  const handleBusinessTypeChange =
-    (
-      businessTypeId: string,
-    ) => {
-      if (
-        businessTypeId ===
-        activeBusinessTypeId
-      ) {
-        return;
-      }
-
-      /*
-       * DO NOT allow the provider to leave an unfinished
-       * business type.
-       */
-      if (
-        activeBusinessTypeId &&
-        !isBusinessTypeComplete(
-          activeBusinessTypeId,
-        )
-      ) {
-        const current =
-          businessTypes.find(
-            item =>
-              item.businessTypeId ===
-              activeBusinessTypeId,
-          );
-
-        Alert.alert(
-          'Complete this business type first',
-          `Please add at least one service for ${current?.name || 'this business type'} before moving to another business type.`,
-        );
-
-        return;
-      }
-
-      setActiveBusinessTypeId(
-        businessTypeId,
-      );
-
-      setActiveAudience(
-        previous =>
-          previous &&
-            availableAudiences.includes(
-              previous,
-            )
-            ? previous
-            : availableAudiences[0] ||
-            null,
-      );
-
-      setOpenCategories({});
-      setServiceForm(null);
-    };
-
-  // ==========================================================
-  // CHANGE AUDIENCE
-  // ==========================================================
-
-  const handleAudienceChange =
-    (
-      audience: ServiceAudience,
-    ) => {
-      setActiveAudience(
-        audience,
-      );
-
-      setOpenCategories({});
-    };
-
-  // ==========================================================
-  // CATEGORY OPEN / CLOSE
-  // ==========================================================
-
-  const toggleCategory =
-    (
-      categoryId: string,
-    ) => {
-      if (
-        !activeBusinessTypeId ||
-        !activeAudience
-      ) {
-        return;
-      }
-
-      const key =
-        `${activeBusinessTypeId}-${activeAudience}-${categoryId}`;
-
-      setOpenCategories(
-        previous => ({
-          ...previous,
-
-          [key]:
-            !previous[key],
-        }),
-      );
-    };
-
-  // ==========================================================
-  // GET CATEGORY SUBCATEGORIES
-  // ==========================================================
-
-  const getCategorySubcategories =
-    (
-      categoryId: string,
-    ) => {
-      return activeAudienceSubcategories
-        .filter(
-          subcategory =>
-            subcategory.categoryId ===
-            categoryId,
-        )
-        .sort(
-          (a, b) =>
-            a.name.localeCompare(
-              b.name,
-              undefined,
-              {
-                sensitivity:
-                  'base',
-              },
-            ),
-        );
-    };
-
-  // ==========================================================
-  // FIND EXISTING SERVICE
-  // ==========================================================
-
-  const getExistingService =
-    (
-      businessTypeId: string,
-      audience: ServiceAudience,
-      categoryId: string,
-      subcategoryId: string,
-    ) => {
-      return selectedServices.find(
-        service =>
-          normalizeText(
-            service.businessTypeId,
-          ) === businessTypeId &&
-          service.audience ===
+  const getAudienceCount = (
+    audience: ServiceAudience,
+  ) =>
+    selectedServices.filter(
+      service =>
+        service.audience ===
           audience &&
-          service.categoryId ===
-          categoryId &&
-          service.subcategoryId ===
-          subcategoryId,
-      );
-    };
-
-  // ==========================================================
-  // OPEN ADD SERVICE
-  // ==========================================================
-
-  const openAddService = (
-    category: Category,
-    subcategory: Subcategory,
-  ) => {
+        !!service.name,
+    ).length;
+  const filteredCategories =
+    useMemo(() => {
+      if (!activeAudience) {
+        return [];
+      }
+      const term =
+        search
+          .trim()
+          .toLowerCase();
+      return categories
+        .map(category => {
+          const items =
+            subcategories.filter(
+              subcategory => {
+                const matchesCategory =
+                  subcategory.categoryId ===
+                  category.categoryId;
+                const matchesAudience =
+                  subcategory.audiences?.includes(
+                    activeAudience,
+                  ) ?? false;
+                const matchesSearch =
+                  !term ||
+                  category.name
+                    .toLowerCase()
+                    .includes(term) ||
+                  subcategory.name
+                    .toLowerCase()
+                    .includes(term);
+                return (
+                  matchesCategory &&
+                  matchesAudience &&
+                  matchesSearch
+                );
+              },
+            );
+          return {
+            ...category,
+            subcategories: items,
+          };
+        })
+        .filter(
+          category =>
+            category
+              .subcategories
+              .length > 0,
+        );
+    }, [
+      categories,
+      subcategories,
+      activeAudience,
+      search,
+    ]);
+  const openCatalog = () => {
     if (
-      !activeBusinessTypeId ||
-      !activeAudience
+      !availableAudiences.length
+    ) {
+      Alert.alert(
+        'Audience required',
+        'Please select at least one target audience before adding services.',
+      );
+      return;
+    }
+    const audience =
+      activeAudience &&
+      availableAudiences.includes(
+        activeAudience,
+      )
+        ? activeAudience
+        : availableAudiences[0];
+    setActiveAudience(
+      audience,
+    );
+    setSearch('');
+    setExpandedCategories(
+      {},
+    );
+    setForm(null);
+    setModalVisible(true);
+  };
+  const closeModal = () => {
+    if (
+      saving ||
+      submitting
     ) {
       return;
     }
-
-    const existing =
-      getExistingService(
-        activeBusinessTypeId,
-        activeAudience,
-        category.categoryId,
-        subcategory.subcategoryId,
-      );
-
-    setServiceForm({
-      serviceKey:
-        existing?.serviceKey,
-
-      businessTypeId:
-        activeBusinessTypeId,
-
+    setForm(null);
+    setModalVisible(false);
+  };
+  const openAddForm = (
+    category: Category,
+    subcategory: Subcategory,
+  ) => {
+    if (!activeAudience) {
+      return;
+    }
+    setForm({
       audience:
         activeAudience,
-
       categoryId:
         category.categoryId,
-
       categoryName:
         category.name,
-
       subcategoryId:
         subcategory.subcategoryId,
-
       subcategoryName:
         subcategory.name,
-
-      name:
-        existing?.name || '',
-
-      description:
-        existing?.description ||
-        '',
-
-      price:
-        typeof existing?.price ===
-          'number'
-          ? String(
-            existing.price,
-          )
-          : '',
-
-      durationMinutes:
-        typeof existing?.durationMinutes ===
-          'number'
-          ? String(
-            existing.durationMinutes,
-          )
-          : '',
+      name: '',
+      price: '',
+      durationMinutes: '',
+      description: '',
     });
   };
-
-  // ==========================================================
-  // CLOSE SERVICE FORM
-  // ==========================================================
-
-  const closeServiceForm =
-    () => {
-      if (savingService) {
-        return;
-      }
-
-      setServiceForm(null);
-    };
-
-  // ==========================================================
-  // SAVE SERVICE
-  // ==========================================================
-
-  const handleSaveService =
-    async () => {
-      if (
-        !serviceForm
-      ) {
-        return;
-      }
-
-      const name =
-        normalizeText(
-          serviceForm.name,
-        );
-
-      const description =
-        normalizeText(
-          serviceForm.description,
-        );
-
-      const price =
-        parsePositiveNumber(
-          serviceForm.price,
-        );
-
-      const durationMinutes =
-        parsePositiveNumber(
-          serviceForm.durationMinutes,
-        );
-
-      if (!name) {
-        Alert.alert(
-          'Service name required',
-          'Please enter a service name.',
-        );
-
-        return;
-      }
-
-      if (
-        price === undefined
-      ) {
-        Alert.alert(
-          'Invalid price',
-          'Please enter a valid price greater than 0.',
-        );
-
-        return;
-      }
-
-      if (
-        durationMinutes ===
-        undefined
-      ) {
-        Alert.alert(
-          'Invalid duration',
-          'Please enter a valid duration in minutes.',
-        );
-
-        return;
-      }
-
-      /*
-       * businessTypeId is intentionally mandatory.
-       *
-       * We never derive it from the subcategory because
-       * the same subcategory can belong to multiple business
-       * types.
-       */
-      if (
-        !normalizeText(
-          serviceForm.businessTypeId,
-        )
-      ) {
-        Alert.alert(
-          'Business type missing',
-          'The business type for this service is missing. Please select the business type again.',
-        );
-
-        return;
-      }
-
-      try {
-        setSavingService(
-          true,
-        );
-
-        const serviceKey =
-          serviceForm.serviceKey ||
-          createServiceKey(
-            serviceForm.businessTypeId,
-            serviceForm.audience,
-            serviceForm.categoryId,
-            serviceForm.subcategoryId,
-          );
-
-        const newService: ConfiguredService =
+  const openEditForm = (
+    service: ConfiguredService,
+  ) => {
+    setForm({
+      serviceKey:
+        service.serviceKey,
+      audience:
+        service.audience,
+      categoryId:
+        service.categoryId,
+      categoryName:
+        service.categoryName,
+      subcategoryId:
+        service.subcategoryId,
+      subcategoryName:
+        service.subcategoryName,
+      name:
+        service.name,
+      price:
+        typeof service.price ===
+        'number'
+          ? String(
+              service.price,
+            )
+          : '',
+      durationMinutes:
+        typeof service.durationMinutes ===
+        'number'
+          ? String(
+              service.durationMinutes,
+            )
+          : '',
+      description:
+        service.description ||
+        '',
+    });
+  };
+  const updateForm = (
+    field: keyof ServiceForm,
+    value: string,
+  ) => {
+    setForm(
+      previous =>
+        previous
+          ? {
+              ...previous,
+              [field]: value,
+            }
+          : previous,
+    );
+  };
+  const isDuplicateServiceName = (
+    name: string,
+  ): boolean => {
+    if (!form) {
+      return false;
+    }
+    const normalizedName =
+      name.toLowerCase();
+    return selectedServices.some(
+      service =>
+        service.serviceKey !==
+          form.serviceKey &&
+        service.audience ===
+          form.audience &&
+        service.categoryId ===
+          form.categoryId &&
+        service.subcategoryId ===
+          form.subcategoryId &&
+        service.name
+          .trim()
+          .toLowerCase() ===
+          normalizedName,
+    );
+  };
+  const handleSaveService = () => {
+    if (
+      !form ||
+      saving
+    ) {
+      return;
+    }
+    const name =
+      normalize(form.name);
+    const price =
+      positiveNumber(
+        form.price,
+      );
+    const durationMinutes =
+      positiveNumber(
+        form.durationMinutes,
+      );
+    if (
+      !form.categoryId ||
+      !form.categoryName
+    ) {
+      Alert.alert(
+        'Category required',
+        'Please select a valid category.',
+      );
+      return;
+    }
+    if (
+      !form.subcategoryId ||
+      !form.subcategoryName
+    ) {
+      Alert.alert(
+        'Subcategory required',
+        'Please select a valid subcategory.',
+      );
+      return;
+    }
+    if (!name) {
+      Alert.alert(
+        'Service name required',
+        'Enter the service name.',
+      );
+      return;
+    }
+    if (
+      name.length > 100
+    ) {
+      Alert.alert(
+        'Name too long',
+        'Keep the service name under 100 characters.',
+      );
+      return;
+    }
+    if (
+      isDuplicateServiceName(
+        name,
+      )
+    ) {
+      Alert.alert(
+        'Service already added',
+        `"${name}" has already been added for ${audienceLabel(
+          form.audience,
+        )} under ${form.subcategoryName}.`,
+      );
+      return;
+    }
+    if (!price) {
+      Alert.alert(
+        'Invalid price',
+        'Enter a price greater than ₹0.',
+      );
+      return;
+    }
+    if (
+      !durationMinutes ||
+      !Number.isInteger(
+        durationMinutes,
+      )
+    ) {
+      Alert.alert(
+        'Invalid duration',
+        'Enter a whole number of minutes.',
+      );
+      return;
+    }
+    setSaving(true);
+    try {
+      const newService: ConfiguredService =
         {
-          serviceKey,
-
-          businessTypeId:
-            serviceForm.businessTypeId,
-
-          name,
-
-          description,
-
+          serviceKey:
+            form.serviceKey ||
+            makeKey(),
           audience:
-            serviceForm.audience,
-
+            form.audience,
           categoryId:
-            serviceForm.categoryId,
-
+            form.categoryId,
           categoryName:
-            serviceForm.categoryName,
-
+            form.categoryName,
           subcategoryId:
-            serviceForm.subcategoryId,
-
+            form.subcategoryId,
           subcategoryName:
-            serviceForm.subcategoryName,
-
+            form.subcategoryName,
+          name,
+          description:
+            normalize(
+              form.description,
+            ),
           price,
-
           durationMinutes,
         };
-
-        const existingIndex =
-          selectedServices.findIndex(
-            service =>
-              normalizeText(
-                service.businessTypeId,
-              ) ===
-              serviceForm.businessTypeId &&
-              service.audience ===
-              serviceForm.audience &&
-              service.categoryId ===
-              serviceForm.categoryId &&
-              service.subcategoryId ===
-              serviceForm.subcategoryId,
-          );
-
-        let updatedServices: ConfiguredService[];
-
-        if (
-          existingIndex >=
-          0
-        ) {
-          updatedServices =
-            selectedServices.map(
-              (
-                service,
-                index,
-              ) =>
-                index ===
-                  existingIndex
+      const updated =
+        form.serviceKey
+          ? selectedServices.map(
+              service =>
+                service.serviceKey ===
+                form.serviceKey
                   ? {
-                    ...service,
-                    ...newService,
-
-                    /*
-                     * Always preserve the explicit
-                     * business type.
-                     */
-                    businessTypeId:
-                      serviceForm.businessTypeId,
-                  }
+                      ...service,
+                      ...newService,
+                    }
                   : service,
-            );
-        } else {
-          updatedServices = [
-            ...selectedServices,
-            newService,
-          ];
-        }
-
-        saveServices(
-          updatedServices,
-        );
-
-        setServiceForm(null);
-      } catch (error) {
-        console.error(
-          'SAVE SERVICE ERROR:',
-          error,
-        );
-
-        Alert.alert(
-          'Unable to save service',
-          'Something went wrong while saving this service. Please try again.',
-        );
-      } finally {
-        setSavingService(
-          false,
-        );
-      }
-    };
-
-  // ==========================================================
-  // DELETE SERVICE
-  // ==========================================================
-
-  const handleDeleteService =
-    (
-      service: ConfiguredService,
-    ) => {
-      Alert.alert(
-        'Remove service',
-        `Remove "${service.name}" from your services?`,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-
-          {
-            text: 'Remove',
-            style: 'destructive',
-
-            onPress: () => {
-              const updated =
-                selectedServices.filter(
-                  item =>
-                    item.serviceKey !==
-                    service.serviceKey,
-                );
-
-              saveServices(
-                updated,
-              );
-            },
-          },
-        ],
-      );
-    };
-
-  // ==========================================================
-  // CATEGORY SERVICE COUNT
-  // ==========================================================
-
-  const getCategoryConfiguredCount =
-    (
-      categoryId: string,
-    ) => {
-      if (
-        !activeBusinessTypeId
-      ) {
-        return 0;
-      }
-
-      return activeBusinessTypeServices.filter(
-        service =>
-          service.categoryId ===
-          categoryId &&
-          normalizeText(
-            service.name,
-          ),
-      ).length;
-    };
-
-  // ==========================================================
-  // SUBCATEGORY CONFIGURED
-  // ==========================================================
-
-  const isSubcategoryConfigured =
-    (
-      categoryId: string,
-      subcategoryId: string,
-    ) => {
-      if (
-        !activeBusinessTypeId ||
-        !activeAudience
-      ) {
-        return false;
-      }
-
-      return Boolean(
-        getExistingService(
-          activeBusinessTypeId,
-          activeAudience,
-          categoryId,
-          subcategoryId,
-        )?.name,
-      );
-    };
-
-  // ==========================================================
-  // CURRENT BUSINESS TYPE INDEX
-  // ==========================================================
-
-  const activeBusinessTypeIndex =
-    useMemo(() => {
-      if (
-        !activeBusinessTypeId
-      ) {
-        return -1;
-      }
-
-      return businessTypes.findIndex(
-        businessType =>
-          businessType.businessTypeId ===
-          activeBusinessTypeId,
-      );
-    }, [
-      businessTypes,
-      activeBusinessTypeId,
-    ]);
-
-  const isLastBusinessType =
-    activeBusinessTypeIndex ===
-    businessTypes.length - 1;
-
-  // ==========================================================
-  // NEXT BUSINESS TYPE
-  // ==========================================================
-
-  const handleNextBusinessType =
-    () => {
-      if (
-        !activeBusinessTypeId
-      ) {
-        return;
-      }
-
-      const current =
-        businessTypes[
-        activeBusinessTypeIndex
-        ];
-
-      if (
-        !isBusinessTypeComplete(
-          activeBusinessTypeId,
-        )
-      ) {
-        Alert.alert(
-          'Complete this business type first',
-          `Please add at least one service for ${current?.name || 'this business type'} before continuing.`,
-        );
-
-        return;
-      }
-
-      if (
-        isLastBusinessType
-      ) {
-        handleFinishServices();
-
-        return;
-      }
-
-      const nextIndex =
-        activeBusinessTypeIndex +
-        1;
-
-      const nextBusinessType =
-        businessTypes[
-        nextIndex
-        ];
-
-      if (
-        !nextBusinessType
-      ) {
-        return;
-      }
-
-      setActiveBusinessTypeId(
-        nextBusinessType.businessTypeId,
-      );
-
-      setActiveAudience(
-        availableAudiences[0] ||
-        null,
-      );
-
-      setOpenCategories({});
-    };
-
-  // ==========================================================
-  // FINISH ALL SERVICES
-  // ==========================================================
-
-  const handleFinishServices =
-    async () => {
-      /*
-       * Every selected business type must be completed.
-       */
-      const incompleteBusinessTypes =
-        businessTypes.filter(
-          businessType =>
-            !isBusinessTypeComplete(
-              businessType.businessTypeId,
-            ),
-        );
-
-      if (
-        incompleteBusinessTypes.length >
-        0
-      ) {
-        const names =
-          incompleteBusinessTypes
-            .map(
-              item =>
-                item.name,
             )
-            .join(', ');
-
-        Alert.alert(
-          'Complete all business types',
-          `Please finish configuring services for: ${names}.`,
-        );
-
-        return;
-      }
-
-      /*
-       * Never allow a malformed service to move forward.
-       */
-      const invalidService =
-        selectedServices.find(
-          service =>
-            !normalizeText(
-              service.businessTypeId,
-            ) ||
-            !normalizeText(
-              service.name,
-            ) ||
-            typeof service.price !==
-            'number' ||
-            service.price <= 0 ||
-            typeof service.durationMinutes !==
-            'number' ||
-            service.durationMinutes <=
-            0,
-        );
-
-      if (
-        invalidService
-      ) {
-        Alert.alert(
-          'Incomplete service',
-          'Please complete every configured service before continuing.',
-        );
-
-        return;
-      }
-
-      try {
-        setSubmitting(true);
-
-        saveServices(
-          selectedServices,
-        );
-
-        await new Promise(
-          resolve =>
-            setTimeout(
-              resolve,
-              100,
-            ),
-        );
-
-        /*
-         * Keep the existing navigation contract.
-         *
-         * ConfigureSalonServices can now act as the final
-         * service review/edit screen before SalonKYC.
-         */
-        navigation.navigate(
-          'ConfigureSalonServices',
-        );
-      } catch (error) {
-        console.error(
-          'FINISH SERVICES ERROR:',
-          error,
-        );
-
-        Alert.alert(
-          'Unable to continue',
-          'Something went wrong while saving your services.',
-        );
-      } finally {
-        setSubmitting(false);
-      }
-    };
-
-  // ==========================================================
-  // RETRY
-  // ==========================================================
-
-  const handleRetry =
-    async () => {
-      try {
-        await Promise.all([
-          refetchCategories(),
-          refetchSubcategories(),
-          refetchBusinessTypes(),
-        ]);
-      } catch (error) {
-        console.error(
-          'SERVICE CATALOG RETRY ERROR:',
-          error,
-        );
-      }
-    };
-
-  // ==========================================================
-  // LOADING
-  // ==========================================================
-
-  const catalogLoading =
+          : [
+              ...selectedServices,
+              newService,
+            ];
+      saveServices(
+        updated,
+      );
+      setForm(null);
+    } catch (error) {
+      console.error(
+        'SAVE SERVICE ERROR:',
+        error,
+      );
+      Alert.alert(
+        'Unable to save',
+        'Please try again.',
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+  const handleDeleteService = (
+    service: ConfiguredService,
+  ) => {
+    Alert.alert(
+      'Remove service',
+      `Remove "${service.name}" from your salon services?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            saveServices(
+              selectedServices.filter(
+                item =>
+                  item.serviceKey !==
+                  service.serviceKey,
+              ),
+            );
+          },
+        },
+      ],
+    );
+  };
+  const handleContinue = () => {
+    if (
+      !availableAudiences.length
+    ) {
+      Alert.alert(
+        'Audience required',
+        'Select at least one audience.',
+      );
+      return;
+    }
+    const incomplete =
+      availableAudiences.filter(
+        audience =>
+          getAudienceCount(
+            audience,
+          ) === 0,
+      );
+    if (
+      incomplete.length
+    ) {
+      Alert.alert(
+        'Add services',
+        `Please add at least one service for: ${incomplete
+          .map(audienceLabel)
+          .join(', ')}.`,
+      );
+      return;
+    }
+    const invalid =
+      selectedServices.some(
+        service =>
+          !isAudience(
+            service.audience,
+          ) ||
+          !service.categoryId ||
+          !service.categoryName ||
+          !service.subcategoryId ||
+          !service.subcategoryName ||
+          !service.name ||
+          !Number.isFinite(
+            service.price,
+          ) ||
+          (service.price ?? 0) <=
+            0 ||
+          !Number.isInteger(
+            service.durationMinutes,
+          ) ||
+          (service.durationMinutes ??
+            0) <= 0,
+      );
+    if (invalid) {
+      Alert.alert(
+        'Incomplete services',
+        'Please edit any incomplete service before continuing.',
+      );
+      return;
+    }
+    setSubmitting(true);
+    try {
+      saveServices(
+        selectedServices,
+      );
+      setForm(null);
+      setModalVisible(
+        false,
+      );
+      navigation.navigate(
+        'SalonKYC',
+      );
+    } catch (error) {
+      console.error(
+        'CONTINUE SERVICES ERROR:',
+        error,
+      );
+      Alert.alert(
+        'Unable to continue',
+        'Please try again.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  const toggleCategory = (
+    categoryId: string,
+  ) => {
+    setExpandedCategories(
+      previous => ({
+        ...previous,
+        [categoryId]:
+          !previous[
+            categoryId
+          ],
+      }),
+    );
+  };
+  const loading =
     categoriesLoading ||
-    subcategoriesLoading ||
-    businessTypesLoading;
-
-  // ==========================================================
-  // RENDER
-  // ==========================================================
-
+    subcategoriesLoading;
+  const catalogError =
+    categoriesError ||
+    subcategoriesError;
   return (
     <SafeAreaView
       style={styles.container}
@@ -1703,793 +893,858 @@ export default function SalonServices({
       <Header
         headerTitle="Business Services"
       />
-
       <ScrollView
         contentContainerStyle={
-          styles.content
+          styles.page
         }
         showsVerticalScrollIndicator={
           false
         }
       >
-        <Text
-          style={styles.title}
-        >
-          Services provided by your business
-        </Text>
-
-        <Text
-          style={styles.subtitle}
-        >
-          Configure services separately for each
-          business type you selected.
-        </Text>
-
-        {catalogLoading ? (
-          <View
-            style={
-              styles.loadingCard
-            }
-          >
-            <ActivityIndicator
-              size="small"
-              color={
-                COLORS.themeColor
-              }
-            />
-
-            <Text
-              style={
-                styles.loadingText
-              }
-            >
-              Loading service catalog...
-            </Text>
-          </View>
-        ) : null}
-
-        {!catalogLoading &&
-          (
-            categoriesError ||
-            subcategoriesError ||
-            businessTypesError
-          ) ? (
-          <View
-            style={
-              styles.errorCard
-            }
-          >
-            <Text
-              style={
-                styles.errorTitle
-              }
-            >
-              Unable to load services
-            </Text>
-
-            <Text
-              style={
-                styles.errorText
-              }
-            >
-              Please check your connection and
-              try again.
-            </Text>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={
-                handleRetry
-              }
-              style={
-                styles.retryButton
-              }
-            >
-              <Text
-                style={
-                  styles.retryButtonText
-                }
-              >
-                Try Again
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
-
-        {!catalogLoading &&
-          !categoriesError &&
-          !subcategoriesError &&
-          !businessTypesError ? (
-          <>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={
-                openServicesModal
-              }
-              style={
-                styles.serviceSelector
-              }
-            >
-              <View
-                style={
-                  styles.serviceSelectorLeft
-                }
-              >
-                <Text
-                  style={
-                    styles.serviceSelectorTitle
-                  }
-                >
-                  Select Services
-                </Text>
-
-                <Text
-                  style={
-                    styles.serviceSelectorSubtitle
-                  }
-                >
-                  {selectedServices.length >
-                    0
-                    ? `${selectedServices.length} configured service${selectedServices.length ===
-                      1
-                      ? ''
-                      : 's'
-                    }`
-                    : 'Required • Configure your services'}
-                </Text>
-              </View>
-
-              <Text
-                style={
-                  styles.serviceSelectorArrow
-                }
-              >
-                ›
-              </Text>
-            </TouchableOpacity>
-
-            {businessTypes.map(
-              (
-                businessType,
-                index,
-              ) => {
-                const count =
-                  getBusinessTypeServiceCount(
-                    businessType.businessTypeId,
-                  );
-
-                const complete =
-                  count > 0;
-
-                return (
-                  <View
-                    key={
-                      businessType.businessTypeId
-                    }
-                    style={[
-                      styles.businessSummaryCard,
-                      index >
-                      0 &&
-                      styles.businessSummarySpacing,
-                    ]}
-                  >
-                    <View
-                      style={
-                        styles.businessSummaryTop
-                      }
-                    >
-                      <View
-                        style={
-                          styles.businessSummaryNumber
-                        }
-                      >
-                        <Text
-                          style={
-                            styles.businessSummaryNumberText
-                          }
-                        >
-                          {index + 1}
-                        </Text>
-                      </View>
-
-                      <View
-                        style={
-                          styles.businessSummaryContent
-                        }
-                      >
-                        <Text
-                          style={
-                            styles.businessSummaryName
-                          }
-                        >
-                          {
-                            businessType.name
-                          }
-                        </Text>
-
-                        <Text
-                          style={
-                            styles.businessSummaryMeta
-                          }
-                        >
-                          {count}{' '}
-                          configured
-                          service
-                          {count ===
-                            1
-                            ? ''
-                            : 's'}
-                        </Text>
-                      </View>
-
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          complete &&
-                          styles.statusBadgeComplete,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.statusBadgeText,
-                            complete &&
-                            styles.statusBadgeTextComplete,
-                          ]}
-                        >
-                          {complete
-                            ? 'Complete'
-                            : 'Pending'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {complete
-                      ? activeBusinessTypeId ===
-                        businessType.businessTypeId &&
-                        servicesModalVisible
-                        ? null
-                        : null
-                      : null}
-                  </View>
-                );
-              },
-            )}
-
-            <View
-              style={
-                styles.infoCard
-              }
-            >
-              <Text
-                style={
-                  styles.infoTitle
-                }
-              >
-                How service setup works
-              </Text>
-
-              <Text
-                style={
-                  styles.infoText
-                }
-              >
-                • Business Type is selected first.
-              </Text>
-
-              <Text
-                style={
-                  styles.infoText
-                }
-              >
-                • Only categories and subcategories
-                belonging to that business type are shown.
-              </Text>
-
-              <Text
-                style={
-                  styles.infoText
-                }
-              >
-                • Female, Male and Kids are shown
-                according to the audiences you selected.
-              </Text>
-
-              <Text
-                style={
-                  styles.infoText
-                }
-              >
-                • Every service keeps its exact
-                business type, audience, category and
-                subcategory.
-              </Text>
-
-              <Text
-                style={
-                  styles.infoText
-                }
-              >
-                • You must complete every selected
-                business type before continuing.
-              </Text>
-            </View>
-
-            <DButton
-              style={
-                styles.button
-              }
-              onPress={
-                openServicesModal
-              }
-            >
-              <Text
-                style={
-                  styles.buttonText
-                }
-              >
-                {selectedServices.length >
-                  0
-                  ? 'Edit Services'
-                  : 'Select Services'}
-              </Text>
-            </DButton>
-          </>
-        ) : null}
-      </ScrollView>
-
-      {/* ======================================================
-          SERVICES MODAL
-          ====================================================== */}
-
-      <Modal
-        visible={
-          servicesModalVisible
-        }
-        transparent
-        animationType="slide"
-        onRequestClose={
-          closeServicesModal
-        }
-      >
+        {
+}
         <View
           style={
-            styles.modalOverlay
+            styles.pageHeader
+          }
+        >
+          <Text
+            style={styles.heading}
+          >
+            Your salon services
+          </Text>
+          <Text
+            style={styles.subtitle}
+          >
+            Tell customers what your
+            salon offers. Add your
+            services, set prices and
+            estimated durations.
+          </Text>
+        </View>
+        {
+}
+        <View
+          style={
+            styles.summaryCard
           }
         >
           <View
             style={
-              styles.servicesModal
+              styles.summaryText
             }
           >
-            {/* ==================================================
-                STICKY HEADER
-                ================================================== */}
-
-            <View
+            <Text
               style={
-                styles.stickyHeader
+                styles.summaryNumber
               }
             >
+              {
+                selectedServices.length
+              }
+            </Text>
+            <View
+              style={{
+                flex: 1,
+              }}
+            >
+              <Text
+                style={
+                  styles.summaryTitle
+                }
+              >
+                Services added
+              </Text>
+              <Text
+                style={
+                  styles.summaryHint
+                }
+              >
+                Across{' '}
+                {
+                  availableAudiences.length
+                }{' '}
+                selected audience
+                {availableAudiences.length ===
+                1
+                  ? ''
+                  : 's'}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={
+              styles.primarySmall
+            }
+            onPress={
+              openCatalog
+            }
+            activeOpacity={0.8}
+          >
+            <Text
+              style={
+                styles.primarySmallText
+              }
+            >
+              + Add services
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {
+}
+        <Text
+          style={styles.sectionTitle}
+        >
+          Service coverage
+        </Text>
+        {availableAudiences.map(
+          audience => {
+            const count =
+              getAudienceCount(
+                audience,
+              );
+            return (
               <View
                 style={
-                  styles.modalTitleRow
+                  styles.audienceCard
                 }
+                key={audience}
               >
                 <View
                   style={
-                    styles.modalTitleContent
+                    styles.audienceAvatar
                   }
                 >
                   <Text
                     style={
-                      styles.modalTitle
+                      styles.audienceAvatarText
                     }
                   >
-                    Select Services
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.modalSubtitle
-                    }
-                  >
-                    Complete each business type
-                    before moving to the next one.
+                    {audienceLabel(
+                      audience,
+                    ).charAt(0)}
                   </Text>
                 </View>
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={
-                    closeServicesModal
-                  }
-                  style={
-                    styles.closeButton
-                  }
+                <View
+                  style={{
+                    flex: 1,
+                  }}
                 >
                   <Text
                     style={
-                      styles.closeButtonText
+                      styles.audienceName
                     }
                   >
-                    ×
+                    {audienceLabel(
+                      audience,
+                    )}
                   </Text>
-                </TouchableOpacity>
+                  <Text
+                    style={
+                      styles.audienceMeta
+                    }
+                  >
+                    {count} service
+                    {count === 1
+                      ? ''
+                      : 's'}{' '}
+                    added
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.status,
+                    count > 0
+                      ? styles.statusDone
+                      : styles.statusPending,
+                  ]}
+                >
+                  {count > 0
+                    ? 'Added'
+                    : 'Required'}
+                </Text>
               </View>
-
-              {/* ==================================================
-                  BUSINESS TYPE TABS
-                  ================================================== */}
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={
-                  false
-                }
-                contentContainerStyle={
-                  styles.businessTypeTabsContent
+            );
+          },
+        )}
+        {
+}
+        <View
+          style={
+            styles.listHeader
+          }
+        >
+          <View
+            style={{
+              flex: 1,
+            }}
+          >
+            <Text
+              style={
+                styles.sectionTitle
+              }
+            >
+              Added services
+            </Text>
+            <Text
+              style={
+                styles.subtitle
+              }
+            >
+              Review prices and
+              durations before
+              continuing.
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={
+              openCatalog
+            }
+          >
+            <Text
+              style={
+                styles.textAction
+              }
+            >
+              + Add
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {
+}
+        {selectedServices.length ===
+        0 ? (
+          <View
+            style={
+              styles.emptyCard
+            }
+          >
+            <View
+              style={
+                styles.emptySymbol
+              }
+            >
+              <Text
+                style={
+                  styles.emptySymbolText
                 }
               >
-                {businessTypes.map(
-                  (
-                    businessType,
-                  ) => {
-                    const isActive =
-                      activeBusinessTypeId ===
-                      businessType.businessTypeId;
-
-                    const complete =
-                      isBusinessTypeComplete(
-                        businessType.businessTypeId,
-                      );
-
-                    return (
-                      <TouchableOpacity
+                +
+              </Text>
+            </View>
+            <Text
+              style={
+                styles.emptyTitle
+              }
+            >
+              No services yet
+            </Text>
+            <Text
+              style={
+                styles.emptyText
+              }
+            >
+              Select the services
+              your salon provides
+              to get started.
+            </Text>
+            <TouchableOpacity
+              style={
+                styles.emptyButton
+              }
+              onPress={
+                openCatalog
+              }
+            >
+              <Text
+                style={
+                  styles.emptyButtonText
+                }
+              >
+                Choose services
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          availableAudiences.map(
+            audience => {
+              const services =
+                selectedServices
+                  .filter(
+                    item =>
+                      item.audience ===
+                      audience,
+                  )
+                  .sort((a, b) =>
+                    a.name.localeCompare(
+                      b.name,
+                    ),
+                  );
+              if (
+                !services.length
+              ) {
+                return null;
+              }
+              return (
+                <View
+                  key={audience}
+                  style={
+                    styles.audienceGroup
+                  }
+                >
+                  <View
+                    style={
+                      styles.audienceHeader
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.groupTitle
+                      }
+                    >
+                      {audienceLabel(
+                        audience,
+                      )}
+                      <Text
+                        style={
+                          styles.groupCount
+                        }
+                      >
+                        {' '}
+                        ·{' '}
+                        {
+                          services.length
+                        }
+                      </Text>
+                    </Text>
+                  </View>
+                  {services.map(
+                    service => (
+                      <View
                         key={
-                          businessType.businessTypeId
+                          service.serviceKey
                         }
-                        activeOpacity={0.8}
-                        onPress={() =>
-                          handleBusinessTypeChange(
-                            businessType.businessTypeId,
-                          )
+                        style={
+                          styles.serviceCard
                         }
-                        style={[
-                          styles.businessTypeTab,
-                          isActive &&
-                          styles.businessTypeTabActive,
-                        ]}
                       >
                         <View
                           style={
-                            styles.businessTypeTabTop
+                            styles.serviceDetails
                           }
                         >
                           <Text
-                            style={[
-                              styles.businessTypeTabText,
-                              isActive &&
-                              styles.businessTypeTabTextActive,
-                            ]}
-                            numberOfLines={
-                              1
+                            style={
+                              styles.servicePath
                             }
                           >
                             {
-                              businessType.name
+                              service.categoryName
+                            }{' '}
+                            ›{' '}
+                            {
+                              service.subcategoryName
                             }
                           </Text>
-
-                          {complete ? (
-                            <View
+                          <Text
+                            style={
+                              styles.serviceName
+                            }
+                          >
+                            {
+                              service.name
+                            }
+                          </Text>
+                          <View
+                            style={
+                              styles.serviceMeta
+                            }
+                          >
+                            <Text
                               style={
-                                styles.completeDot
+                                styles.servicePrice
                               }
                             >
-                              <Text
-                                style={
-                                  styles.completeDotText
-                                }
-                              >
-                                ✓
-                              </Text>
-                            </View>
-                          ) : null}
+                              {priceLabel(
+                                service.price,
+                              )}
+                            </Text>
+                            <View
+                              style={
+                                styles.metaDot
+                              }
+                            />
+                            <Text
+                              style={
+                                styles.serviceDuration
+                              }
+                            >
+                              {
+                                service.durationMinutes
+                              }{' '}
+                              min
+                            </Text>
+                          </View>
                         </View>
-
-                        <Text
-                          style={[
-                            styles.businessTypeTabCount,
-                            isActive &&
-                            styles.businessTypeTabCountActive,
-                          ]}
+                        <View
+                          style={
+                            styles.actions
+                          }
                         >
-                          {
-                            getBusinessTypeServiceCount(
-                              businessType.businessTypeId,
-                            )
-                          }{' '}
-                          service
-                          {getBusinessTypeServiceCount(
-                            businessType.businessTypeId,
-                          ) ===
-                            1
-                            ? ''
-                            : 's'}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  },
-                )}
-              </ScrollView>
-
-              {/* ==================================================
-                  ACTIVE BUSINESS TYPE
-                  ================================================== */}
-
-              {activeBusinessType ? (
-                <View
+                          <TouchableOpacity
+                            onPress={() => {
+                              setActiveAudience(
+                                audience,
+                              );
+                              setModalVisible(
+                                true,
+                              );
+                              openEditForm(
+                                service,
+                              );
+                            }}
+                            style={
+                              styles.editButton
+                            }
+                          >
+                            <Text
+                              style={
+                                styles.editText
+                              }
+                            >
+                              Edit
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() =>
+                              handleDeleteService(
+                                service,
+                              )
+                            }
+                            style={
+                              styles.removeButton
+                            }
+                          >
+                            <Text
+                              style={
+                                styles.removeText
+                              }
+                            >
+                              Remove
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ),
+                  )}
+                </View>
+              );
+            },
+          )
+        )}
+        {
+}
+        <View
+          style={
+            styles.noteCard
+          }
+        >
+          <Text
+            style={
+              styles.noteTitle
+            }
+          >
+            Before you continue
+          </Text>
+          <Text
+            style={
+              styles.noteText
+            }
+          >
+            Add at least one service
+            for each selected
+            audience. You can add
+            multiple services under
+            the same category and
+            subcategory.
+          </Text>
+        </View>
+        {
+}
+        <TouchableOpacity
+          style={[
+            styles.continueButton,
+            (!selectedServices.length ||
+              submitting) &&
+              styles.disabledButton,
+          ]}
+          onPress={
+            handleContinue
+          }
+          disabled={
+            !selectedServices.length ||
+            submitting
+          }
+        >
+          {submitting ? (
+            <ActivityIndicator
+              color={COLORS.white}
+            />
+          ) : (
+            <Text
+              style={
+                styles.continueText
+              }
+            >
+              Continue
+            </Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+      {
+}
+      <Modal
+        visible={
+          modalVisible
+        }
+        transparent
+        animationType="slide"
+        onRequestClose={
+          closeModal
+        }
+      >
+        <KeyboardAvoidingView
+          style={
+            styles.overlay
+          }
+          behavior={
+            Platform.OS ===
+            'ios'
+              ? 'padding'
+              : undefined
+          }
+        >
+          <View
+            style={
+              styles.modal
+            }
+          >
+            {
+}
+            <View
+              style={
+                styles.modalHeader
+              }
+            >
+              <View
+                style={{
+                  flex: 1,
+                }}
+              >
+                <Text
                   style={
-                    styles.activeBusinessTypeBar
+                    styles.modalTitle
                   }
                 >
-                  <View
-                    style={
-                      styles.activeBusinessTypeIndicator
-                    }
-                  />
-
-                  <View
-                    style={
-                      styles.activeBusinessTypeContent
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.activeBusinessTypeLabel
-                      }
-                    >
-                      BUSINESS TYPE
-                    </Text>
-
-                    <Text
-                      style={
-                        styles.activeBusinessTypeName
-                      }
-                    >
-                      {
-                        activeBusinessType.name
-                      }
-                    </Text>
-                  </View>
-
-                  <View
-                    style={
-                      styles.activeBusinessTypeProgress
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.activeBusinessTypeProgressText
-                      }
-                    >
-                      {activeBusinessTypeIndex +
-                        1}{' '}
-                      /{' '}
-                      {
-                        businessTypes.length
-                      }
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
-
-              {/* ==================================================
-                  AUDIENCE TABS
-                  ================================================== */}
-
-              <View
+                  {form
+                    ? form.serviceKey
+                      ? 'Edit service'
+                      : 'Add a service'
+                    : 'Choose services'}
+                </Text>
+                <Text
+                  style={
+                    styles.modalSubtitle
+                  }
+                >
+                  {form
+                    ? `${form.categoryName} › ${form.subcategoryName}`
+                    : 'Select a category and service type'}
+                </Text>
+              </View>
+              <TouchableOpacity
                 style={
-                  styles.audienceSection
+                  styles.closeButton
+                }
+                onPress={() => {
+                  if (form) {
+                    setForm(
+                      null,
+                    );
+                  } else {
+                    closeModal();
+                  }
+                }}
+                disabled={
+                  saving ||
+                  submitting
                 }
               >
                 <Text
                   style={
-                    styles.audienceSectionTitle
+                    styles.closeText
                   }
                 >
-                  Service for
+                  {form
+                    ? '‹'
+                    : '×'}
                 </Text>
-
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={
-                    false
-                  }
-                  contentContainerStyle={
-                    styles.audienceTabsContent
+              </TouchableOpacity>
+            </View>
+            {
+}
+            {!form ? (
+              <>
+                {
+}
+                <View
+                  style={
+                    styles.audienceSection
                   }
                 >
-                  {AUDIENCE_TABS.filter(
-                    tab =>
-                      availableAudiences.includes(
-                        tab.key,
-                      ),
-                  ).map(
-                    tab => {
-                      const isActive =
+                  <Text
+                    style={
+                      styles.fieldLabel
+                    }
+                  >
+                    SERVICE FOR
+                  </Text>
+                  <View
+                    style={
+                      styles.audienceTabs
+                    }
+                  >
+                    {AUDIENCES.filter(
+                      item =>
+                        availableAudiences.includes(
+                          item.key,
+                        ),
+                    ).map(item => {
+                      const active =
                         activeAudience ===
-                        tab.key;
-
+                        item.key;
                       return (
                         <TouchableOpacity
                           key={
-                            tab.key
+                            item.key
                           }
-                          activeOpacity={
-                            0.8
-                          }
-                          onPress={() =>
-                            handleAudienceChange(
-                              tab.key,
-                            )
-                          }
+                          onPress={() => {
+                            setActiveAudience(
+                              item.key,
+                            );
+                            setSearch(
+                              '',
+                            );
+                            setExpandedCategories(
+                              {},
+                            );
+                          }}
                           style={[
                             styles.audienceTab,
-                            isActive &&
-                            styles.audienceTabActive,
+                            active &&
+                              styles.audienceTabActive,
                           ]}
                         >
                           <Text
                             style={[
                               styles.audienceTabText,
-                              isActive &&
-                              styles.audienceTabTextActive,
+                              active &&
+                                styles.audienceTabTextActive,
                             ]}
                           >
                             {
-                              tab.label
+                              item.label
                             }
+                          </Text>
+                          <Text
+                            style={[
+                              styles.audienceTabCount,
+                              active &&
+                                styles.audienceTabCountActive,
+                            ]}
+                          >
+                            {getAudienceCount(
+                              item.key,
+                            )}
                           </Text>
                         </TouchableOpacity>
                       );
-                    },
-                  )}
-                </ScrollView>
-              </View>
-            </View>
-
-            {/* ==================================================
-                BODY
-                ================================================== */}
-
-            <ScrollView
-              style={
-                styles.modalBody
-              }
-              contentContainerStyle={
-                styles.modalBodyContent
-              }
-              showsVerticalScrollIndicator={
-                false
-              }
-              keyboardShouldPersistTaps="handled"
-            >
-              {activeBusinessType &&
-                activeAudience ? (
-                <>
-                  <View
+                    })}
+                  </View>
+                </View>
+                {
+}
+                <View
+                  style={
+                    styles.searchBox
+                  }
+                >
+                  <Text
                     style={
-                      styles.selectionContextCard
+                      styles.searchIcon
                     }
                   >
-                    <View
-                      style={
-                        styles.contextItem
+                    ⌕
+                  </Text>
+                  <TextInput
+                    value={
+                      search
+                    }
+                    onChangeText={
+                      setSearch
+                    }
+                    placeholder="Search categories or service types"
+                    placeholderTextColor={
+                      COLORS.textMuted
+                    }
+                    style={
+                      styles.searchInput
+                    }
+                    returnKeyType="search"
+                  />
+                  {search.length >
+                    0 && (
+                    <TouchableOpacity
+                      onPress={() =>
+                        setSearch(
+                          '',
+                        )
                       }
                     >
                       <Text
                         style={
-                          styles.contextLabel
+                          styles.clearSearch
                         }
                       >
-                        BUSINESS TYPE
+                        Clear
                       </Text>
-
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {
+}
+                <ScrollView
+                  style={
+                    styles.catalogBody
+                  }
+                  contentContainerStyle={
+                    styles.catalogContent
+                  }
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={
+                    false
+                  }
+                >
+                  {loading ? (
+                    <View
+                      style={
+                        styles.loading
+                      }
+                    >
+                      <ActivityIndicator
+                        color={
+                          COLORS.themeColor
+                        }
+                      />
                       <Text
                         style={
-                          styles.contextValue
+                          styles.loadingText
                         }
                       >
-                        {
-                          activeBusinessType.name
-                        }
+                        Loading service
+                        catalog...
                       </Text>
                     </View>
-
+                  ) : catalogError ? (
                     <View
                       style={
-                        styles.contextDivider
-                      }
-                    />
-
-                    <View
-                      style={
-                        styles.contextItem
+                        styles.emptyCatalog
                       }
                     >
                       <Text
                         style={
-                          styles.contextLabel
+                          styles.emptyTitle
                         }
                       >
-                        SERVICE FOR
+                        Unable to load
+                        services
                       </Text>
-
                       <Text
                         style={
-                          styles.contextValue
+                          styles.emptyText
                         }
                       >
-                        {getAudienceLabel(
-                          activeAudience,
-                        )}
+                        Check your
+                        connection and
+                        try again.
                       </Text>
+                      <TouchableOpacity
+                        style={
+                          styles.emptyButton
+                        }
+                        onPress={async () => {
+                          try {
+                            await Promise.all(
+                              [
+                                refetchCategories(),
+                                refetchSubcategories(),
+                              ],
+                            );
+                          } catch (
+                            error
+                          ) {
+                            console.error(
+                              'CATALOG RETRY ERROR:',
+                              error,
+                            );
+                          }
+                        }}
+                      >
+                        <Text
+                          style={
+                            styles.emptyButtonText
+                          }
+                        >
+                          Try again
+                        </Text>
+                      </TouchableOpacity>
                     </View>
-                  </View>
-
-                  {activeCategories.length ===
+                  ) : filteredCategories.length ===
                     0 ? (
                     <View
                       style={
-                        styles.emptyState
+                        styles.emptyCatalog
                       }
                     >
                       <Text
                         style={
-                          styles.emptyStateTitle
+                          styles.emptyTitle
                         }
                       >
-                        No services available
+                        No matching
+                        service types
                       </Text>
-
                       <Text
                         style={
-                          styles.emptyStateText
+                          styles.emptyText
                         }
                       >
-                        There are no categories configured
-                        for {activeBusinessType.name}
-                        and{' '}
-                        {getAudienceLabel(
-                          activeAudience,
-                        )}
-                        .
+                        Try another
+                        search or
+                        choose a
+                        different
+                        audience.
                       </Text>
                     </View>
                   ) : (
-                    activeCategories.map(
+                    filteredCategories.map(
                       category => {
-                        const categorySubcategories =
-                          getCategorySubcategories(
-                            category.categoryId,
-                          );
-
-                        const categoryKey =
-                          `${activeBusinessTypeId}-${activeAudience}-${category.categoryId}`;
-
                         const isOpen =
-                          Boolean(
-                            openCategories[
-                            categoryKey
-                            ],
-                          );
-
-                        const configuredCount =
-                          getCategoryConfiguredCount(
-                            category.categoryId,
-                          );
-
+                          !!expandedCategories[
+                            category
+                              .categoryId
+                          ] ||
+                          !!search.trim();
                         return (
                           <View
                             key={
@@ -2499,699 +1754,502 @@ export default function SalonServices({
                               styles.categoryCard
                             }
                           >
+                            {
+}
                             <TouchableOpacity
-                              activeOpacity={
-                                0.8
+                              style={
+                                styles.categoryHeader
                               }
                               onPress={() =>
                                 toggleCategory(
                                   category.categoryId,
                                 )
                               }
-                              style={[
-                                styles.categoryHeader,
-                                isOpen &&
-                                styles.categoryHeaderOpen,
-                              ]}
+                              activeOpacity={
+                                0.8
+                              }
                             >
                               <View
                                 style={
-                                  styles.categoryHeaderLeft
-                                }
-                              >
-                                <View
-                                  style={
-                                    styles.categoryIcon
-                                  }
-                                >
-                                  <Text
-                                    style={
-                                      styles.categoryIconText
-                                    }
-                                  >
-                                    {category.name
-                                      .charAt(
-                                        0,
-                                      )
-                                      .toUpperCase()}
-                                  </Text>
-                                </View>
-
-                                <View
-                                  style={
-                                    styles.categoryHeaderContent
-                                  }
-                                >
-                                  <Text
-                                    style={
-                                      styles.categoryName
-                                    }
-                                  >
-                                    {
-                                      category.name
-                                    }
-                                  </Text>
-
-                                  <Text
-                                    style={
-                                      styles.categoryMeta
-                                    }
-                                  >
-                                    {
-                                      categorySubcategories.length
-                                    }{' '}
-                                    subcategor
-                                    {categorySubcategories.length ===
-                                      1
-                                      ? 'y'
-                                      : 'ies'}
-
-                                    {configuredCount >
-                                      0
-                                      ? ` • ${configuredCount} configured`
-                                      : ''}
-                                  </Text>
-                                </View>
-                              </View>
-
-                              <View
-                                style={
-                                  styles.categoryChevron
+                                  styles.categoryIcon
                                 }
                               >
                                 <Text
                                   style={
-                                    styles.categoryChevronText
+                                    styles.categoryIconText
                                   }
                                 >
-                                  {isOpen
-                                    ? '−'
-                                    : '+'}
+                                  {category.name
+                                    .charAt(
+                                      0,
+                                    )
+                                    .toUpperCase()}
                                 </Text>
                               </View>
-                            </TouchableOpacity>
-
-                            {isOpen ? (
                               <View
+                                style={{
+                                  flex: 1,
+                                }}
+                              >
+                                <Text
+                                  style={
+                                    styles.categoryName
+                                  }
+                                >
+                                  {
+                                    category.name
+                                  }
+                                </Text>
+                                <Text
+                                  style={
+                                    styles.categoryMeta
+                                  }
+                                >
+                                  {
+                                    category
+                                      .subcategories
+                                      .length
+                                  }{' '}
+                                  service type
+                                  {category
+                                    .subcategories
+                                    .length ===
+                                  1
+                                    ? ''
+                                    : 's'}
+                                </Text>
+                              </View>
+                              <Text
                                 style={
-                                  styles.subcategoryList
+                                  styles.chevron
                                 }
                               >
-                                {categorySubcategories.map(
-                                  subcategory => {
-                                    const configured =
-                                      isSubcategoryConfigured(
-                                        category.categoryId,
-                                        subcategory.subcategoryId,
-                                      );
-
-                                    return (
-                                      <TouchableOpacity
-                                        key={`${activeBusinessTypeId}-${activeAudience}-${category.categoryId}-${subcategory.subcategoryId}`}
-                                        activeOpacity={
-                                          0.8
-                                        }
-                                        onPress={() =>
-                                          openAddService(
-                                            category,
-                                            subcategory,
-                                          )
-                                        }
-                                        style={[
-                                          styles.subcategoryRow,
-                                          configured &&
-                                          styles.subcategoryRowConfigured,
-                                        ]}
+                                {isOpen
+                                  ? '−'
+                                  : '+'}
+                              </Text>
+                            </TouchableOpacity>
+                            {
+}
+                            {isOpen &&
+                              category.subcategories.map(
+                                subcategory => {
+                                  const alreadyAdded =
+                                    selectedServices.filter(
+                                      service =>
+                                        service.audience ===
+                                          activeAudience &&
+                                        service.categoryId ===
+                                          category.categoryId &&
+                                        service.subcategoryId ===
+                                          subcategory.subcategoryId,
+                                    ).length;
+                                  return (
+                                    <TouchableOpacity
+                                      key={
+                                        subcategory.subcategoryId
+                                      }
+                                      style={
+                                        styles.subcategoryRow
+                                      }
+                                      onPress={() =>
+                                        openAddForm(
+                                          category,
+                                          subcategory,
+                                        )
+                                      }
+                                      activeOpacity={
+                                        0.75
+                                      }
+                                    >
+                                      <View
+                                        style={{
+                                          flex: 1,
+                                        }}
                                       >
-                                        <View
-                                          style={[
-                                            styles.subcategoryIndicator,
-                                            configured &&
-                                            styles.subcategoryIndicatorConfigured,
-                                          ]}
-                                        />
-
-                                        <View
+                                        <Text
                                           style={
-                                            styles.subcategoryContent
+                                            styles.subcategoryName
                                           }
                                         >
+                                          {
+                                            subcategory.name
+                                          }
+                                        </Text>
+                                        {subcategory.description ? (
                                           <Text
                                             style={
-                                              styles.subcategoryName
+                                              styles.subcategoryDescription
                                             }
                                           >
                                             {
-                                              subcategory.name
+                                              subcategory.description
                                             }
                                           </Text>
-
-                                          {!!subcategory.description && (
-                                            <Text
-                                              style={
-                                                styles.subcategoryDescription
-                                              }
-                                              numberOfLines={
-                                                2
-                                              }
-                                            >
-                                              {
-                                                subcategory.description
-                                              }
-                                            </Text>
-                                          )}
-
-                                          {configured ? (
-                                            <Text
-                                              style={
-                                                styles.configuredLabel
-                                              }
-                                            >
-                                              Service configured
-                                            </Text>
-                                          ) : null}
-                                        </View>
-
+                                        ) : null}
+                                        {alreadyAdded >
+                                          0 && (
+                                          <Text
+                                            style={
+                                              styles.alreadyAdded
+                                            }
+                                          >
+                                            {
+                                              alreadyAdded
+                                            }{' '}
+                                            added ·
+                                            Add
+                                            another
+                                            service
+                                          </Text>
+                                        )}
+                                      </View>
+                                      <View
+                                        style={
+                                          styles.addCircle
+                                        }
+                                      >
                                         <Text
                                           style={
-                                            styles.addServiceArrow
+                                            styles.addCircleText
                                           }
                                         >
-                                          {configured
-                                            ? 'Edit'
-                                            : 'Add'}
+                                          +
                                         </Text>
-                                      </TouchableOpacity>
-                                    );
-                                  },
-                                )}
-                              </View>
-                            ) : null}
+                                      </View>
+                                    </TouchableOpacity>
+                                  );
+                                },
+                              )}
                           </View>
                         );
                       },
                     )
                   )}
-                </>
-              ) : null}
-            </ScrollView>
-
-            {/* ==================================================
-                FOOTER
-                ================================================== */}
-
-            <View
-              style={
-                styles.modalFooter
-              }
-            >
-              <View
-                style={
-                  styles.footerProgress
-                }
-              >
-                <Text
+                </ScrollView>
+                {
+}
+                <View
                   style={
-                    styles.footerProgressText
+                    styles.modalFooter
                   }
                 >
-                  {activeBusinessType
-                    ? `${getBusinessTypeServiceCount(
-                      activeBusinessType.businessTypeId,
-                    )
-                    } service${getBusinessTypeServiceCount(
-                      activeBusinessType.businessTypeId,
-                    ) ===
-                      1
-                      ? ''
-                      : 's'
-                    } configured`
-                    : ''}
-                </Text>
-
-                <Text
+                  <View
+                    style={{
+                      flex: 1,
+                    }}
+                  >
+                    <Text
+                      style={
+                        styles.footerCount
+                      }
+                    >
+                      {
+                        selectedServices.length
+                      }{' '}
+                      services added
+                    </Text>
+                    <Text
+                      style={
+                        styles.footerHint
+                      }
+                    >
+                      You can edit them
+                      later.
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={
+                      styles.footerButton
+                    }
+                    onPress={
+                      closeModal
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.footerButtonText
+                      }
+                    >
+                      Done
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <ScrollView
                   style={
-                    styles.footerBusinessTypeText
+                    styles.formScroll
                   }
-                >
-                  {isLastBusinessType
-                    ? 'Last business type'
-                    : 'Complete this business type to continue'}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={
-                  handleNextBusinessType
-                }
-                style={[
-                  styles.nextButton,
-                  activeBusinessTypeId &&
-                    isBusinessTypeComplete(
-                      activeBusinessTypeId,
-                    )
-                    ? styles.nextButtonActive
-                    : styles.nextButtonDisabled,
-                ]}
-              >
-                <Text
-                  style={
-                    styles.nextButtonText
+                  contentContainerStyle={
+                    styles.formContent
                   }
+                  keyboardShouldPersistTaps="handled"
                 >
-                  {isLastBusinessType
-                    ? 'Finish Services'
-                    : 'Next Business Type'}
-                </Text>
-
-                <Text
-                  style={
-                    styles.nextButtonArrow
-                  }
-                >
-                  ›
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ======================================================
-          ADD / EDIT SERVICE MODAL
-          ====================================================== */}
-
-      <Modal
-        visible={
-          Boolean(serviceForm)
-        }
-        transparent
-        animationType="slide"
-        onRequestClose={
-          closeServiceForm
-        }
-      >
-        <KeyboardAvoidingView
-          style={
-            styles.serviceFormOverlay
-          }
-          behavior={
-            Platform.OS ===
-              'ios'
-              ? 'padding'
-              : undefined
-          }
-        >
-          <View
-            style={
-              styles.serviceFormModal
-            }
-          >
-            <View
-              style={
-                styles.serviceFormHeader
-              }
-            >
-              <View
-                style={
-                  styles.serviceFormHeaderContent
-                }
-              >
-                <Text
-                  style={
-                    styles.serviceFormTitle
-                  }
-                >
-                  {serviceForm?.serviceKey
-                    ? 'Edit Service'
-                    : 'Add Service'}
-                </Text>
-
-                <Text
-                  style={
-                    styles.serviceFormSubtitle
-                  }
-                >
-                  {serviceForm?.businessTypeId &&
-                    businessTypes.find(
-                      item =>
-                        item.businessTypeId ===
-                        serviceForm.businessTypeId,
-                    )?.name}{' '}
-                  •{' '}
-                  {serviceForm?.audience &&
-                    getAudienceLabel(
-                      serviceForm.audience,
-                    )}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={
-                  closeServiceForm
-                }
-                disabled={
-                  savingService
-                }
-                style={
-                  styles.closeButton
-                }
-              >
-                <Text
-                  style={
-                    styles.closeButtonText
-                  }
-                >
-                  ×
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              style={
-                styles.serviceFormScroll
-              }
-              contentContainerStyle={
-                styles.serviceFormContent
-              }
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={
-                false
-              }
-            >
-              <View
-                style={
-                  styles.servicePathCard
-                }
-              >
-                <Text
-                  style={
-                    styles.servicePathLabel
-                  }
-                >
-                  SERVICE PATH
-                </Text>
-
-                <Text
-                  style={
-                    styles.servicePathText
-                  }
-                >
-                  {serviceForm?.categoryName}
-                  {'  ›  '}
                   {
-                    serviceForm?.subcategoryName
-                  }
-                </Text>
-              </View>
-
-              <Text
-                style={
-                  styles.inputLabel
-                }
-              >
-                Service Name *
-              </Text>
-
-              <TextInput
-                value={
-                  serviceForm?.name ||
-                  ''
-                }
-                onChangeText={value =>
-                  setServiceForm(
-                    previous =>
-                      previous
-                        ? {
-                          ...previous,
-                          name: value,
+}
+                  <View
+                    style={
+                      styles.pathCard
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.fieldLabel
+                      }
+                    >
+                      SERVICE CATEGORY
+                    </Text>
+                    <Text
+                      style={
+                        styles.pathText
+                      }
+                    >
+                      {
+                        form.categoryName
+                      }{' '}
+                      ›{' '}
+                      {
+                        form.subcategoryName
+                      }
+                    </Text>
+                    <Text
+                      style={
+                        styles.pathAudience
+                      }
+                    >
+                      For{' '}
+                      {audienceLabel(
+                        form.audience,
+                      )}
+                    </Text>
+                  </View>
+                  {
+}
+                  <Text
+                    style={
+                      styles.fieldLabel
+                    }
+                  >
+                    SERVICE NAME *
+                  </Text>
+                  <TextInput
+                    value={
+                      form.name
+                    }
+                    onChangeText={value =>
+                      updateForm(
+                        'name',
+                        value,
+                      )
+                    }
+                    placeholderTextColor={
+                      COLORS.textMuted
+                    }
+                    style={
+                      styles.input
+                    }
+                    maxLength={
+                      100
+                    }
+                    editable={
+                      !saving
+                    }
+                    autoCapitalize="words"
+                  />
+                  {
+}
+                  <View
+                    style={
+                      styles.inputRow
+                    }
+                  >
+                    <View
+                      style={{
+                        flex: 1,
+                      }}
+                    >
+                      <Text
+                        style={
+                          styles.fieldLabel
                         }
-                        : previous,
-                  )
-                }
-                placeholder="e.g. Basic Hair Cut"
-                placeholderTextColor={
-                  COLORS.textMuted
-                }
-                style={
-                  styles.input
-                }
-                maxLength={
-                  100
-                }
-                editable={
-                  !savingService
-                }
-              />
-
-              <Text
-                style={
-                  styles.inputLabel
-                }
-              >
-                Description
-              </Text>
-
-              <TextInput
-                value={
-                  serviceForm?.description ||
-                  ''
-                }
-                onChangeText={value =>
-                  setServiceForm(
-                    previous =>
-                      previous
-                        ? {
-                          ...previous,
-                          description:
+                      >
+                        PRICE (₹) *
+                      </Text>
+                      <TextInput
+                        value={
+                          form.price
+                        }
+                        onChangeText={value =>
+                          updateForm(
+                            'price',
                             value,
+                          )
                         }
-                        : previous,
-                  )
-                }
-                placeholder="Briefly describe this service"
-                placeholderTextColor={
-                  COLORS.textMuted
-                }
-                style={[
-                  styles.input,
-                  styles.descriptionInput,
-                ]}
-                multiline
-                textAlignVertical="top"
-                maxLength={
-                  300
-                }
-                editable={
-                  !savingService
-                }
-              />
-
-              <View
-                style={
-                  styles.formRow
-                }
-              >
-                <View
-                  style={
-                    styles.formColumn
-                  }
-                >
+                        placeholder="500"
+                        placeholderTextColor={
+                          COLORS.textMuted
+                        }
+                        style={
+                          styles.input
+                        }
+                        keyboardType="decimal-pad"
+                        editable={
+                          !saving
+                        }
+                      />
+                    </View>
+                    <View
+                      style={{
+                        flex: 1,
+                      }}
+                    >
+                      <Text
+                        style={
+                          styles.fieldLabel
+                        }
+                      >
+                        DURATION (MIN) *
+                      </Text>
+                      <TextInput
+                        value={
+                          form.durationMinutes
+                        }
+                        onChangeText={value =>
+                          updateForm(
+                            'durationMinutes',
+                            value,
+                          )
+                        }
+                        placeholder="60"
+                        placeholderTextColor={
+                          COLORS.textMuted
+                        }
+                        style={
+                          styles.input
+                        }
+                        keyboardType="number-pad"
+                        editable={
+                          !saving
+                        }
+                      />
+                    </View>
+                  </View>
+                  {
+}
                   <Text
                     style={
-                      styles.inputLabel
+                      styles.fieldLabel
                     }
                   >
-                    Price (₹) *
+                    DESCRIPTION
                   </Text>
-
                   <TextInput
                     value={
-                      serviceForm?.price ||
-                      ''
+                      form.description
                     }
                     onChangeText={value =>
-                      setServiceForm(
-                        previous =>
-                          previous
-                            ? {
-                              ...previous,
-                              price: value,
-                            }
-                            : previous,
+                      updateForm(
+                        'description',
+                        value,
                       )
                     }
-                    placeholder="500"
+                    placeholder="Optional service description"
                     placeholderTextColor={
                       COLORS.textMuted
                     }
-                    style={
-                      styles.input
+                    style={[
+                      styles.input,
+                      styles.descriptionInput,
+                    ]}
+                    multiline
+                    textAlignVertical="top"
+                    maxLength={
+                      500
                     }
-                    keyboardType="decimal-pad"
                     editable={
-                      !savingService
+                      !saving
                     }
                   />
-                </View>
-
-                <View
-                  style={
-                    styles.formColumn
-                  }
-                >
                   <Text
                     style={
-                      styles.inputLabel
+                      styles.helperText
                     }
                   >
-                    Duration (min) *
+                    Use the price and
+                    approximate time
+                    customers should
+                    expect for this
+                    service.
                   </Text>
-
-                  <TextInput
-                    value={
-                      serviceForm?.durationMinutes ||
-                      ''
+                </ScrollView>
+                {
+}
+                <View
+                  style={
+                    styles.formFooter
+                  }
+                >
+                  <TouchableOpacity
+                    style={
+                      styles.cancelButton
                     }
-                    onChangeText={value =>
-                      setServiceForm(
-                        previous =>
-                          previous
-                            ? {
-                              ...previous,
-                              durationMinutes:
-                                value,
-                            }
-                            : previous,
+                    onPress={() =>
+                      setForm(
+                        null,
                       )
                     }
-                    placeholder="60"
-                    placeholderTextColor={
-                      COLORS.textMuted
+                    disabled={
+                      saving
                     }
+                  >
+                    <Text
+                      style={
+                        styles.cancelText
+                      }
+                    >
+                      Back
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={
-                      styles.input
+                      styles.saveButton
                     }
-                    keyboardType="number-pad"
-                    editable={
-                      !savingService
+                    onPress={
+                      handleSaveService
                     }
-                  />
-                </View>
-              </View>
-
-              <View
-                style={
-                  styles.lockedContextCard
-                }
-              >
-                <Text
-                  style={
-                    styles.lockedContextTitle
-                  }
-                >
-                  This service belongs to
-                </Text>
-
-                <Text
-                  style={
-                    styles.lockedContextText
-                  }
-                >
-                  {
-                    serviceForm?.categoryName
-                  }{' '}
-                  ›{' '}
-                  {
-                    serviceForm?.subcategoryName
-                  }
-                </Text>
-
-                <Text
-                  style={
-                    styles.lockedContextMeta
-                  }
-                >
-                  {
-                    activeBusinessType?.name
-                  }{' '}
-                  •{' '}
-                  {serviceForm?.audience &&
-                    getAudienceLabel(
-                      serviceForm.audience,
+                    disabled={
+                      saving
+                    }
+                  >
+                    {saving ? (
+                      <ActivityIndicator
+                        color={
+                          COLORS.white
+                        }
+                      />
+                    ) : (
+                      <Text
+                        style={
+                          styles.saveText
+                        }
+                      >
+                        {form.serviceKey
+                          ? 'Save changes'
+                          : 'Add service'}
+                      </Text>
                     )}
-                </Text>
-              </View>
-            </ScrollView>
-
-            <View
-              style={
-                styles.serviceFormFooter
-              }
-            >
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={
-                  closeServiceForm
-                }
-                disabled={
-                  savingService
-                }
-                style={
-                  styles.cancelButton
-                }
-              >
-                <Text
-                  style={
-                    styles.cancelButtonText
-                  }
-                >
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={
-                  handleSaveService
-                }
-                disabled={
-                  savingService
-                }
-                style={
-                  styles.saveButton
-                }
-              >
-                {savingService ? (
-                  <ActivityIndicator
-                    color={
-                      COLORS.white
-                    }
-                  />
-                ) : (
-                  <Text
-                    style={
-                      styles.saveButtonText
-                    }
-                  >
-                    Save Service
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
 }
-
-// ============================================================
-// STYLES
-// ============================================================
-
 const styles =
   StyleSheet.create({
     container: {
@@ -3199,15 +2257,17 @@ const styles =
       backgroundColor:
         COLORS.background,
     },
-
-    content: {
+    page: {
       padding:
         SPACING.large,
       paddingBottom:
         SPACING.huge,
     },
-
-    title: {
+    pageHeader: {
+      marginBottom:
+        SPACING.large,
+    },
+    heading: {
       fontFamily:
         FONTS.bold,
       fontSize:
@@ -3217,7 +2277,6 @@ const styles =
       marginBottom:
         SPACING.small,
     },
-
     subtitle: {
       fontFamily:
         FONTS.regular,
@@ -3226,28 +2285,659 @@ const styles =
       lineHeight: 20,
       color:
         COLORS.textSecondary,
-      marginBottom:
-        SPACING.large,
     },
-
-    loadingCard: {
+    summaryCard: {
       backgroundColor:
         COLORS.surface,
-      borderRadius:
-        RADIUS.large,
       borderWidth: 1,
       borderColor:
         COLORS.border,
+      borderRadius:
+        RADIUS.large,
       padding:
         SPACING.large,
+      marginBottom:
+        SPACING.large,
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      justifyContent:
+        'space-between',
+    },
+    summaryText: {
+      flex: 1,
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+    },
+    summaryNumber: {
+      fontFamily:
+        FONTS.bold,
+      fontSize: 32,
+      color:
+        COLORS.themeColor,
+      marginRight:
+        SPACING.medium,
+    },
+    summaryTitle: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.body,
+      color:
+        COLORS.text,
+    },
+    summaryHint: {
+      fontFamily:
+        FONTS.regular,
+      fontSize:
+        FONT_SIZES.xs,
+      color:
+        COLORS.textSecondary,
+      marginTop: 3,
+    },
+    primarySmall: {
+      paddingHorizontal:
+        SPACING.medium,
+      paddingVertical:
+        SPACING.small,
+      borderRadius:
+        RADIUS.medium,
+      backgroundColor:
+        COLORS.themeColor,
+      marginLeft:
+        SPACING.small,
+    },
+    primarySmallText: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.xs,
+      color:
+        COLORS.white,
+    },
+    sectionTitle: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.body,
+      color:
+        COLORS.text,
+      marginBottom:
+        SPACING.small,
+    },
+    audienceCard: {
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      padding:
+        SPACING.medium,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      borderRadius:
+        RADIUS.medium,
+      backgroundColor:
+        COLORS.surface,
+      marginBottom:
+        SPACING.small,
+    },
+    audienceAvatar: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      alignItems:
+        'center',
+      justifyContent:
+        'center',
+      marginRight:
+        SPACING.medium,
+    },
+    audienceAvatarText: {
+      fontFamily:
+        FONTS.bold,
+      fontSize:
+        FONT_SIZES.body,
+      color:
+        COLORS.themeColor,
+    },
+    audienceName: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.small,
+      color:
+        COLORS.text,
+    },
+    audienceMeta: {
+      fontFamily:
+        FONTS.regular,
+      fontSize:
+        FONT_SIZES.xs,
+      color:
+        COLORS.textSecondary,
+      marginTop: 2,
+    },
+    status: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize: 10,
+      paddingHorizontal:
+        SPACING.small,
+      paddingVertical: 5,
+      borderRadius:
+        RADIUS.medium,
+    },
+    statusDone: {
+      color:
+        COLORS.themeColor,
+      borderWidth: 1,
+      borderColor:
+        COLORS.themeColor,
+    },
+    statusPending: {
+      color:
+        COLORS.textSecondary,
+      backgroundColor:
+        COLORS.background,
+    },
+    listHeader: {
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      marginTop:
+        SPACING.large,
+      marginBottom:
+        SPACING.medium,
+    },
+    textAction: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.small,
+      color:
+        COLORS.themeColor,
+      marginLeft:
+        SPACING.small,
+    },
+    emptyCard: {
+      backgroundColor:
+        COLORS.surface,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      borderRadius:
+        RADIUS.large,
+      padding:
+        SPACING.xxl,
+      alignItems:
+        'center',
+    },
+    emptySymbol: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor:
+        COLORS.themeColor,
       alignItems:
         'center',
       justifyContent:
         'center',
       marginBottom:
+        SPACING.medium,
+    },
+    emptySymbolText: {
+      color:
+        COLORS.themeColor,
+      fontSize: 28,
+      fontFamily:
+        FONTS.regular,
+    },
+    emptyTitle: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.body,
+      color:
+        COLORS.text,
+      textAlign:
+        'center',
+    },
+    emptyText: {
+      fontFamily:
+        FONTS.regular,
+      fontSize:
+        FONT_SIZES.small,
+      color:
+        COLORS.textSecondary,
+      textAlign:
+        'center',
+      lineHeight: 19,
+      marginTop:
+        SPACING.small,
+    },
+    emptyButton: {
+      backgroundColor:
+        COLORS.themeColor,
+      paddingHorizontal:
+        SPACING.large,
+      paddingVertical:
+        SPACING.small,
+      borderRadius:
+        RADIUS.medium,
+      marginTop:
         SPACING.large,
     },
-
+    emptyButtonText: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.small,
+      color:
+        COLORS.white,
+    },
+    audienceGroup: {
+      marginBottom:
+        SPACING.large,
+    },
+    audienceHeader: {
+        width: '100%',
+      alignSelf: 'flex-start',
+      backgroundColor:
+        COLORS.themeColor,
+      borderRadius:
+        RADIUS.medium,
+      paddingHorizontal:
+        SPACING.medium,
+      paddingVertical:
+        SPACING.small,
+      marginBottom:
+        SPACING.small,
+    },
+    groupTitle: {
+      fontFamily:
+        FONTS.bold,
+      fontSize:
+        FONT_SIZES.body,
+      color:
+        COLORS.white,
+    },
+    groupCount: {
+      fontFamily:
+        FONTS.regular,
+      color:
+        COLORS.white,
+    },
+    serviceCard: {
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      backgroundColor:
+        COLORS.surface,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      borderRadius:
+        RADIUS.medium,
+      padding:
+        SPACING.medium,
+      marginBottom:
+        SPACING.small,
+    },
+    serviceDetails: {
+      flex: 1,
+      paddingRight:
+        SPACING.small,
+    },
+    serviceName: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.small,
+      color:
+        COLORS.text,
+    },
+    servicePath: {
+      fontFamily:
+        FONTS.regular,
+      fontSize:
+        FONT_SIZES.xs,
+      color:
+        COLORS.textSecondary,
+      marginTop: 3,
+    },
+    serviceMeta: {
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      marginTop:
+        SPACING.small,
+    },
+    servicePrice: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.xs,
+      color:
+        COLORS.themeColor,
+    },
+    metaDot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor:
+        COLORS.textMuted,
+      marginHorizontal:
+        SPACING.small,
+    },
+    serviceDuration: {
+      fontFamily:
+        FONTS.regular,
+      fontSize:
+        FONT_SIZES.xs,
+      color:
+        COLORS.textSecondary,
+    },
+    actions: {
+      alignItems:
+        'flex-end',
+      gap: 8,
+    },
+    editButton: {
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      borderRadius:
+        RADIUS.small,
+      paddingHorizontal:
+        SPACING.medium,
+      paddingVertical: 6,
+    },
+    editText: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.xs,
+      color:
+        COLORS.text,
+    },
+    removeButton: {
+      paddingHorizontal:
+        SPACING.medium,
+      paddingVertical: 4,
+    },
+    removeText: {
+      fontFamily:
+        FONTS.medium,
+      fontSize: 10,
+      color:
+        COLORS.textSecondary,
+    },
+    noteCard: {
+      padding:
+        SPACING.medium,
+      borderRadius:
+        RADIUS.medium,
+      backgroundColor:
+        COLORS.surface,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      marginTop:
+        SPACING.medium,
+    },
+    noteTitle: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.small,
+      color:
+        COLORS.text,
+      marginBottom: 4,
+    },
+    noteText: {
+      fontFamily:
+        FONTS.regular,
+      fontSize:
+        FONT_SIZES.xs,
+      lineHeight: 18,
+      color:
+        COLORS.textSecondary,
+    },
+    continueButton: {
+      height: 52,
+      borderRadius:
+        RADIUS.medium,
+      backgroundColor:
+        COLORS.themeColor,
+      alignItems:
+        'center',
+      justifyContent:
+        'center',
+      marginTop:
+        SPACING.large,
+    },
+    disabledButton: {
+      opacity: 0.5,
+    },
+    continueText: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.body,
+      color:
+        COLORS.white,
+    },
+    overlay: {
+      flex: 1,
+      backgroundColor:
+        'rgba(0,0,0,0.45)',
+      justifyContent:
+        'flex-end',
+    },
+    modal: {
+      height: '92%',
+      width: '100%',
+      backgroundColor:
+        COLORS.surface,
+      borderTopLeftRadius:
+        RADIUS.large,
+      borderTopRightRadius:
+        RADIUS.large,
+      overflow:
+        'hidden',
+    },
+    modalHeader: {
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      padding:
+        SPACING.large,
+      borderBottomWidth: 1,
+      borderBottomColor:
+        COLORS.border,
+    },
+    modalTitle: {
+      fontFamily:
+        FONTS.bold,
+      fontSize:
+        FONT_SIZES.title,
+      color:
+        COLORS.text,
+    },
+    modalSubtitle: {
+      fontFamily:
+        FONTS.regular,
+      fontSize:
+        FONT_SIZES.xs,
+      color:
+        COLORS.textSecondary,
+      marginTop: 3,
+    },
+    closeButton: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      alignItems:
+        'center',
+      justifyContent:
+        'center',
+      marginLeft:
+        SPACING.small,
+    },
+    closeText: {
+      fontSize: 25,
+      color:
+        COLORS.textSecondary,
+      lineHeight: 28,
+    },
+    audienceSection: {
+      paddingHorizontal:
+        SPACING.large,
+      paddingTop:
+        SPACING.medium,
+      paddingBottom:
+        SPACING.small,
+      borderBottomWidth: 1,
+      borderBottomColor:
+        COLORS.border,
+    },
+    fieldLabel: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize: 10,
+      color:
+        COLORS.textSecondary,
+      marginBottom:
+        SPACING.small,
+    },
+    audienceTabs: {
+      flexDirection:
+        'row',
+      gap:
+        SPACING.small,
+    },
+    audienceTab: {
+      flex: 1,
+      minHeight: 42,
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      justifyContent:
+        'center',
+      borderRadius:
+        RADIUS.medium,
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      paddingHorizontal: 4,
+      gap: 5,
+    },
+    audienceTabActive: {
+      backgroundColor:
+        COLORS.themeColor,
+      borderColor:
+        COLORS.themeColor,
+    },
+    audienceTabText: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.xs,
+      color:
+        COLORS.textSecondary,
+    },
+    audienceTabTextActive: {
+      color:
+        COLORS.white,
+    },
+    audienceTabCount: {
+      fontFamily:
+        FONTS.medium,
+      fontSize: 10,
+      color:
+        COLORS.textSecondary,
+    },
+    audienceTabCountActive: {
+      color:
+        COLORS.white,
+    },
+    searchBox: {
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      borderWidth: 1,
+      borderColor:
+        COLORS.border,
+      borderRadius:
+        RADIUS.medium,
+      marginHorizontal:
+        SPACING.large,
+      marginVertical:
+        SPACING.medium,
+      paddingHorizontal:
+        SPACING.medium,
+      minHeight: 46,
+      backgroundColor:
+        COLORS.background,
+    },
+    searchIcon: {
+      fontSize: 22,
+      color:
+        COLORS.textSecondary,
+      marginRight:
+        SPACING.small,
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: 8,
+      fontFamily:
+        FONTS.regular,
+      fontSize:
+        FONT_SIZES.small,
+      color:
+        COLORS.text,
+    },
+    clearSearch: {
+      fontFamily:
+        FONTS.medium,
+      fontSize:
+        FONT_SIZES.xs,
+      color:
+        COLORS.themeColor,
+      padding: 4,
+    },
+    catalogBody: {
+      flex: 1,
+    },
+    catalogContent: {
+      paddingHorizontal:
+        SPACING.large,
+      paddingBottom:
+        SPACING.large,
+    },
+    loading: {
+      padding:
+        SPACING.xxl,
+      alignItems:
+        'center',
+    },
     loadingText: {
       fontFamily:
         FONTS.regular,
@@ -3258,692 +2948,13 @@ const styles =
       marginTop:
         SPACING.small,
     },
-
-    errorCard: {
-      backgroundColor:
-        COLORS.surface,
-      borderRadius:
-        RADIUS.large,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
+    emptyCatalog: {
       padding:
-        SPACING.large,
-      marginBottom:
-        SPACING.large,
-    },
-
-    errorTitle: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.body,
-      color:
-        COLORS.text,
-      marginBottom:
-        SPACING.small,
-    },
-
-    errorText: {
-      fontFamily:
-        FONTS.regular,
-      fontSize:
-        FONT_SIZES.small,
-      lineHeight: 19,
-      color:
-        COLORS.textSecondary,
-    },
-
-    retryButton: {
-      alignSelf:
-        'flex-start',
-      marginTop:
-        SPACING.medium,
-      paddingHorizontal:
-        SPACING.large,
-      paddingVertical:
-        SPACING.small,
-      borderRadius:
-        RADIUS.medium,
-      borderWidth: 1,
-      borderColor:
-        COLORS.themeColor,
-    },
-
-    retryButtonText: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.small,
-      color:
-        COLORS.themeColor,
-    },
-
-    serviceSelector: {
-      minHeight: 72,
-      backgroundColor:
-        COLORS.surface,
-      borderWidth: 1,
-      borderColor:
-        COLORS.themeColor,
-      borderRadius:
-        RADIUS.large,
-      paddingHorizontal:
-        SPACING.large,
-      paddingVertical:
-        SPACING.medium,
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-      justifyContent:
-        'space-between',
-      marginBottom:
-        SPACING.large,
-    },
-
-    serviceSelectorLeft: {
-      flex: 1,
-    },
-
-    serviceSelectorTitle: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.body,
-      color:
-        COLORS.text,
-    },
-
-    serviceSelectorSubtitle: {
-      fontFamily:
-        FONTS.regular,
-      fontSize:
-        FONT_SIZES.small,
-      color:
-        COLORS.textSecondary,
-      marginTop:
-        3,
-    },
-
-    serviceSelectorArrow: {
-      fontFamily:
-        FONTS.regular,
-      fontSize: 30,
-      lineHeight: 30,
-      color:
-        COLORS.themeColor,
-      marginLeft:
-        SPACING.medium,
-    },
-
-    businessSummaryCard: {
-      backgroundColor:
-        COLORS.surface,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      borderRadius:
-        RADIUS.large,
-      padding:
-        SPACING.large,
-    },
-
-    businessSummarySpacing: {
-      marginTop:
-        SPACING.small,
-    },
-
-    businessSummaryTop: {
-      flexDirection:
-        'row',
+        SPACING.xxl,
       alignItems:
         'center',
     },
-
-    businessSummaryNumber: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      borderWidth: 1,
-      borderColor:
-        COLORS.themeColor,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      marginRight:
-        SPACING.medium,
-    },
-
-    businessSummaryNumberText: {
-      fontFamily:
-        FONTS.bold,
-      fontSize:
-        FONT_SIZES.small,
-      color:
-        COLORS.themeColor,
-    },
-
-    businessSummaryContent: {
-      flex: 1,
-    },
-
-    businessSummaryName: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.body,
-      color:
-        COLORS.text,
-    },
-
-    businessSummaryMeta: {
-      fontFamily:
-        FONTS.regular,
-      fontSize:
-        FONT_SIZES.xs,
-      color:
-        COLORS.textSecondary,
-      marginTop: 2,
-    },
-
-    statusBadge: {
-      paddingHorizontal:
-        SPACING.small,
-      paddingVertical: 5,
-      borderRadius:
-        RADIUS.round,
-      backgroundColor:
-        COLORS.background,
-    },
-
-    statusBadgeComplete: {
-      borderWidth: 1,
-      borderColor:
-        COLORS.themeColor,
-      backgroundColor:
-        COLORS.surface,
-    },
-
-    statusBadgeText: {
-      fontFamily:
-        FONTS.medium,
-      fontSize:
-        FONT_SIZES.xs,
-      color:
-        COLORS.textMuted,
-    },
-
-    statusBadgeTextComplete: {
-      color:
-        COLORS.themeColor,
-    },
-
-    infoCard: {
-      backgroundColor:
-        COLORS.surface,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      borderRadius:
-        RADIUS.large,
-      padding:
-        SPACING.large,
-      marginTop:
-        SPACING.large,
-      marginBottom:
-        SPACING.large,
-    },
-
-    infoTitle: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.body,
-      color:
-        COLORS.text,
-      marginBottom:
-        SPACING.small,
-    },
-
-    infoText: {
-      fontFamily:
-        FONTS.regular,
-      fontSize:
-        FONT_SIZES.small,
-      lineHeight: 19,
-      color:
-        COLORS.textSecondary,
-      marginBottom:
-        SPACING.small,
-    },
-
-    button: {
-      width:
-        '100%',
-      height: 54,
-      borderRadius:
-        RADIUS.medium,
-      backgroundColor:
-        COLORS.themeColor,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-    },
-
-    buttonText: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.body,
-      color:
-        COLORS.white,
-    },
-
-    // ========================================================
-    // MAIN MODAL
-    // ========================================================
-
-    modalOverlay: {
-      flex: 1,
-      backgroundColor:
-        'rgba(0, 0, 0, 0.45)',
-      justifyContent:
-        'flex-end',
-    },
-
-    servicesModal: {
-      width:
-        '100%',
-      height:
-        '94%',
-      backgroundColor:
-        COLORS.surface,
-      borderTopLeftRadius:
-        RADIUS.large,
-      borderTopRightRadius:
-        RADIUS.large,
-      overflow:
-        'hidden',
-    },
-
-    stickyHeader: {
-      backgroundColor:
-        COLORS.surface,
-      borderBottomWidth: 1,
-      borderBottomColor:
-        COLORS.border,
-      zIndex: 10,
-    },
-
-    modalTitleRow: {
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-      paddingHorizontal:
-        SPACING.large,
-      paddingTop:
-        SPACING.large,
-      paddingBottom:
-        SPACING.medium,
-    },
-
-    modalTitleContent: {
-      flex: 1,
-    },
-
-    modalTitle: {
-      fontFamily:
-        FONTS.bold,
-      fontSize:
-        FONT_SIZES.title,
-      color:
-        COLORS.text,
-    },
-
-    modalSubtitle: {
-      fontFamily:
-        FONTS.regular,
-      fontSize:
-        FONT_SIZES.xs,
-      lineHeight: 17,
-      color:
-        COLORS.textSecondary,
-      marginTop: 3,
-    },
-
-    closeButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      marginLeft:
-        SPACING.medium,
-    },
-
-    closeButtonText: {
-      fontFamily:
-        FONTS.regular,
-      fontSize: 25,
-      lineHeight: 27,
-      color:
-        COLORS.textSecondary,
-    },
-
-    // ========================================================
-    // BUSINESS TYPE TABS
-    // ========================================================
-
-    businessTypeTabsContent: {
-      paddingHorizontal:
-        SPACING.large,
-      paddingBottom:
-        SPACING.medium,
-    },
-
-    businessTypeTab: {
-      minWidth: 120,
-      maxWidth: 190,
-      paddingHorizontal:
-        SPACING.medium,
-      paddingVertical:
-        SPACING.small,
-      marginRight:
-        SPACING.small,
-      borderRadius:
-        RADIUS.medium,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      backgroundColor:
-        COLORS.surface,
-    },
-
-    businessTypeTabActive: {
-      borderColor:
-        COLORS.themeColor,
-      backgroundColor:
-        COLORS.surface,
-    },
-
-    businessTypeTabTop: {
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-      justifyContent:
-        'space-between',
-    },
-
-    businessTypeTabText: {
-      flex: 1,
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.small,
-      color:
-        COLORS.textSecondary,
-    },
-
-    businessTypeTabTextActive: {
-      color:
-        COLORS.themeColor,
-    },
-
-    businessTypeTabCount: {
-      fontFamily:
-        FONTS.regular,
-      fontSize:
-        FONT_SIZES.xs,
-      color:
-        COLORS.textMuted,
-      marginTop: 3,
-    },
-
-    businessTypeTabCountActive: {
-      color:
-        COLORS.themeColor,
-    },
-
-    completeDot: {
-      width: 18,
-      height: 18,
-      borderRadius: 9,
-      backgroundColor:
-        COLORS.themeColor,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      marginLeft:
-        SPACING.small,
-    },
-
-    completeDotText: {
-      fontFamily:
-        FONTS.bold,
-      fontSize: 11,
-      color:
-        COLORS.white,
-    },
-
-    // ========================================================
-    // ACTIVE BUSINESS TYPE
-    // ========================================================
-
-    activeBusinessTypeBar: {
-      marginHorizontal:
-        SPACING.large,
-      marginBottom:
-        SPACING.medium,
-      padding:
-        SPACING.medium,
-      borderRadius:
-        RADIUS.medium,
-      borderWidth: 1,
-      borderColor:
-        COLORS.themeColor,
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-    },
-
-    activeBusinessTypeIndicator: {
-      width: 4,
-      height: 34,
-      borderRadius: 2,
-      backgroundColor:
-        COLORS.themeColor,
-      marginRight:
-        SPACING.medium,
-    },
-
-    activeBusinessTypeContent: {
-      flex: 1,
-    },
-
-    activeBusinessTypeLabel: {
-      fontFamily:
-        FONTS.medium,
-      fontSize: 9,
-      letterSpacing: 0.6,
-      color:
-        COLORS.textMuted,
-    },
-
-    activeBusinessTypeName: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.body,
-      color:
-        COLORS.text,
-      marginTop: 1,
-    },
-
-    activeBusinessTypeProgress: {
-      paddingHorizontal:
-        SPACING.small,
-      paddingVertical: 5,
-      borderRadius:
-        RADIUS.round,
-      backgroundColor:
-        COLORS.background,
-    },
-
-    activeBusinessTypeProgressText: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.xs,
-      color:
-        COLORS.themeColor,
-    },
-
-    // ========================================================
-    // AUDIENCE
-    // ========================================================
-
-    audienceSection: {
-      paddingHorizontal:
-        SPACING.large,
-      paddingBottom:
-        SPACING.medium,
-    },
-
-    audienceSectionTitle: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.small,
-      color:
-        COLORS.text,
-      marginBottom:
-        SPACING.small,
-    },
-
-    audienceTabsContent: {
-      flexDirection:
-        'row',
-    },
-
-    audienceTab: {
-      minWidth: 88,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      paddingHorizontal:
-        SPACING.medium,
-      paddingVertical:
-        SPACING.small,
-      borderRadius:
-        RADIUS.round,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      marginRight:
-        SPACING.small,
-      backgroundColor:
-        COLORS.surface,
-    },
-
-    audienceTabActive: {
-      borderColor:
-        COLORS.themeColor,
-      backgroundColor:
-        COLORS.themeColor,
-    },
-
-    audienceTabText: {
-      fontFamily:
-        FONTS.medium,
-      fontSize:
-        FONT_SIZES.small,
-      color:
-        COLORS.textSecondary,
-    },
-
-    audienceTabTextActive: {
-      color:
-        COLORS.white,
-    },
-
-    // ========================================================
-    // MODAL BODY
-    // ========================================================
-
-    modalBody: {
-      flex: 1,
-    },
-
-    modalBodyContent: {
-      padding:
-        SPACING.large,
-      paddingBottom:
-        SPACING.large,
-    },
-
-    selectionContextCard: {
-      backgroundColor:
-        COLORS.background,
-      borderRadius:
-        RADIUS.medium,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      padding:
-        SPACING.medium,
-      flexDirection:
-        'row',
-      marginBottom:
-        SPACING.large,
-    },
-
-    contextItem: {
-      flex: 1,
-    },
-
-    contextDivider: {
-      width: 1,
-      backgroundColor:
-        COLORS.border,
-      marginHorizontal:
-        SPACING.medium,
-    },
-
-    contextLabel: {
-      fontFamily:
-        FONTS.medium,
-      fontSize: 9,
-      letterSpacing: 0.5,
-      color:
-        COLORS.textMuted,
-      marginBottom: 3,
-    },
-
-    contextValue: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.small,
-      color:
-        COLORS.text,
-    },
-
     categoryCard: {
-      backgroundColor:
-        COLORS.surface,
       borderWidth: 1,
       borderColor:
         COLORS.border,
@@ -3953,36 +2964,20 @@ const styles =
         SPACING.small,
       overflow:
         'hidden',
+      backgroundColor:
+        COLORS.surface,
     },
-
     categoryHeader: {
-      minHeight: 66,
-      paddingHorizontal:
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      padding:
         SPACING.medium,
-      paddingVertical:
-        SPACING.small,
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-      justifyContent:
-        'space-between',
+      minHeight: 68,
+      backgroundColor:
+        COLORS.surface,
     },
-
-    categoryHeaderOpen: {
-      borderBottomWidth: 1,
-      borderBottomColor:
-        COLORS.border,
-    },
-
-    categoryHeaderLeft: {
-      flex: 1,
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-    },
-
     categoryIcon: {
       width: 38,
       height: 38,
@@ -3997,7 +2992,6 @@ const styles =
       marginRight:
         SPACING.medium,
     },
-
     categoryIconText: {
       fontFamily:
         FONTS.bold,
@@ -4006,109 +3000,46 @@ const styles =
       color:
         COLORS.themeColor,
     },
-
-    categoryHeaderContent: {
-      flex: 1,
-    },
-
     categoryName: {
       fontFamily:
         FONTS.semiBold,
       fontSize:
-        FONT_SIZES.body,
+        FONT_SIZES.small,
       color:
         COLORS.text,
     },
-
     categoryMeta: {
       fontFamily:
         FONTS.regular,
-      fontSize:
-        FONT_SIZES.xs,
+      fontSize: 10,
       color:
         COLORS.textSecondary,
-      marginTop: 2,
+      marginTop: 3,
     },
-
-    categoryChevron: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      alignItems:
-        'center',
-      justifyContent:
-        'center',
-      marginLeft:
-        SPACING.small,
-    },
-
-    categoryChevronText: {
+    chevron: {
       fontFamily:
         FONTS.semiBold,
-      fontSize: 19,
-      lineHeight: 21,
+      fontSize: 22,
       color:
         COLORS.themeColor,
-    },
-
-    subcategoryList: {
-      padding:
-        SPACING.small,
-      backgroundColor:
-        COLORS.background,
-    },
-
-    subcategoryRow: {
-      minHeight: 60,
-      backgroundColor:
-        COLORS.surface,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      borderRadius:
-        RADIUS.medium,
       paddingHorizontal:
-        SPACING.medium,
-      paddingVertical:
         SPACING.small,
+    },
+    subcategoryRow: {
       flexDirection:
         'row',
       alignItems:
         'center',
-      marginBottom:
-        SPACING.small,
-    },
-
-    subcategoryRowConfigured: {
-      borderColor:
-        COLORS.themeColor,
-    },
-
-    subcategoryIndicator: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      borderWidth: 1,
-      borderColor:
-        COLORS.borderStrong,
-      marginRight:
+      paddingHorizontal:
         SPACING.medium,
-    },
-
-    subcategoryIndicatorConfigured: {
+      paddingVertical:
+        SPACING.medium,
+      borderTopWidth: 1,
+      borderTopColor:
+        COLORS.border,
       backgroundColor:
-        COLORS.themeColor,
-      borderColor:
-        COLORS.themeColor,
+        COLORS.background,
     },
-
-    subcategoryContent: {
-      flex: 1,
-    },
-
     subcategoryName: {
       fontFamily:
         FONTS.semiBold,
@@ -4117,132 +3048,80 @@ const styles =
       color:
         COLORS.text,
     },
-
     subcategoryDescription: {
       fontFamily:
         FONTS.regular,
-      fontSize:
-        FONT_SIZES.xs,
-      lineHeight: 15,
+      fontSize: 10,
       color:
         COLORS.textSecondary,
-      marginTop: 2,
-    },
-
-    configuredLabel: {
-      fontFamily:
-        FONTS.medium,
-      fontSize:
-        10,
-      color:
-        COLORS.themeColor,
       marginTop: 3,
     },
-
-    addServiceArrow: {
+    alreadyAdded: {
       fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.small,
+        FONTS.medium,
+      fontSize: 10,
       color:
         COLORS.themeColor,
+      marginTop: 4,
+    },
+    addCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor:
+        COLORS.themeColor,
+      alignItems:
+        'center',
+      justifyContent:
+        'center',
       marginLeft:
         SPACING.small,
     },
-
-    emptyState: {
-      backgroundColor:
-        COLORS.surface,
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      borderRadius:
-        RADIUS.large,
-      padding:
-        SPACING.xxl,
-      alignItems:
-        'center',
-    },
-
-    emptyStateTitle: {
+    addCircleText: {
       fontFamily:
         FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.body,
+      fontSize: 21,
       color:
-        COLORS.text,
-      textAlign:
-        'center',
+        COLORS.themeColor,
+      lineHeight: 24,
     },
-
-    emptyStateText: {
-      fontFamily:
-        FONTS.regular,
-      fontSize:
-        FONT_SIZES.small,
-      lineHeight: 19,
-      color:
-        COLORS.textSecondary,
-      textAlign:
-        'center',
-      marginTop:
-        SPACING.small,
-    },
-
-    // ========================================================
-    // FOOTER
-    // ========================================================
-
     modalFooter: {
+      flexDirection:
+        'row',
+      alignItems:
+        'center',
+      padding:
+        SPACING.medium,
       borderTopWidth: 1,
       borderTopColor:
         COLORS.border,
       backgroundColor:
         COLORS.surface,
-      padding:
-        SPACING.large,
     },
-
-    footerProgress: {
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-      justifyContent:
-        'space-between',
-      marginBottom:
-        SPACING.small,
-    },
-
-    footerProgressText: {
+    footerCount: {
       fontFamily:
-        FONTS.medium,
+        FONTS.semiBold,
       fontSize:
         FONT_SIZES.xs,
       color:
-        COLORS.textSecondary,
+        COLORS.text,
     },
-
-    footerBusinessTypeText: {
-      flex: 1,
-      textAlign:
-        'right',
+    footerHint: {
       fontFamily:
         FONTS.regular,
-      fontSize:
-        FONT_SIZES.xs,
+      fontSize: 10,
       color:
-        COLORS.textMuted,
-      marginLeft:
-        SPACING.small,
+        COLORS.textSecondary,
+      marginTop: 2,
     },
-
-    nextButton: {
-      height: 52,
+    footerButton: {
+      minWidth: 100,
+      height: 44,
       borderRadius:
         RADIUS.medium,
-      flexDirection:
-        'row',
+      backgroundColor:
+        COLORS.themeColor,
       alignItems:
         'center',
       justifyContent:
@@ -4250,163 +3129,60 @@ const styles =
       paddingHorizontal:
         SPACING.large,
     },
-
-    nextButtonActive: {
-      backgroundColor:
-        COLORS.themeColor,
-    },
-
-    nextButtonDisabled: {
-      backgroundColor:
-        COLORS.borderStrong,
-    },
-
-    nextButtonText: {
+    footerButtonText: {
       fontFamily:
         FONTS.semiBold,
       fontSize:
-        FONT_SIZES.body,
-      color:
-        COLORS.white,
-    },
-
-    nextButtonArrow: {
-      fontFamily:
-        FONTS.regular,
-      fontSize: 27,
-      lineHeight: 27,
-      color:
-        COLORS.white,
-      marginLeft:
-        SPACING.small,
-    },
-
-    // ========================================================
-    // SERVICE FORM
-    // ========================================================
-
-    serviceFormOverlay: {
-      flex: 1,
-      backgroundColor:
-        'rgba(0, 0, 0, 0.45)',
-      justifyContent:
-        'flex-end',
-    },
-
-    serviceFormModal: {
-      width:
-        '100%',
-      maxHeight:
-        '92%',
-      backgroundColor:
-        COLORS.surface,
-      borderTopLeftRadius:
-        RADIUS.large,
-      borderTopRightRadius:
-        RADIUS.large,
-      overflow:
-        'hidden',
-    },
-
-    serviceFormHeader: {
-      flexDirection:
-        'row',
-      alignItems:
-        'center',
-      padding:
-        SPACING.large,
-      borderBottomWidth: 1,
-      borderBottomColor:
-        COLORS.border,
-    },
-
-    serviceFormHeaderContent: {
-      flex: 1,
-    },
-
-    serviceFormTitle: {
-      fontFamily:
-        FONTS.bold,
-      fontSize:
-        FONT_SIZES.title,
-      color:
-        COLORS.text,
-    },
-
-    serviceFormSubtitle: {
-      fontFamily:
-        FONTS.regular,
-      fontSize:
         FONT_SIZES.small,
       color:
-        COLORS.textSecondary,
-      marginTop: 3,
+        COLORS.white,
     },
-
-    serviceFormScroll: {
-      flexGrow: 0,
+    formScroll: {
+      flex: 1,
     },
-
-    serviceFormContent: {
+    formContent: {
       padding:
         SPACING.large,
       paddingBottom:
         SPACING.xxl,
     },
-
-    servicePathCard: {
+    pathCard: {
+      padding:
+        SPACING.medium,
+      borderRadius:
+        RADIUS.medium,
       backgroundColor:
         COLORS.background,
       borderWidth: 1,
       borderColor:
         COLORS.border,
-      borderRadius:
-        RADIUS.medium,
-      padding:
-        SPACING.medium,
       marginBottom:
         SPACING.large,
     },
-
-    servicePathLabel: {
+    pathText: {
+      fontFamily:
+        FONTS.semiBold,
+      fontSize:
+        FONT_SIZES.small,
+      color:
+        COLORS.text,
+    },
+    pathAudience: {
       fontFamily:
         FONTS.medium,
-      fontSize: 9,
-      letterSpacing: 0.5,
-      color:
-        COLORS.textMuted,
-      marginBottom: 3,
-    },
-
-    servicePathText: {
-      fontFamily:
-        FONTS.semiBold,
       fontSize:
-        FONT_SIZES.small,
+        FONT_SIZES.xs,
       color:
-        COLORS.text,
+        COLORS.themeColor,
+      marginTop: 4,
     },
-
-    inputLabel: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.small,
-      color:
-        COLORS.text,
-      marginBottom:
-        SPACING.small,
-    },
-
     input: {
       minHeight: 48,
       borderWidth: 1,
       borderColor:
-        COLORS.borderStrong,
+        COLORS.border,
       borderRadius:
         RADIUS.medium,
-      backgroundColor:
-        COLORS.surface,
       paddingHorizontal:
         SPACING.medium,
       paddingVertical:
@@ -4417,74 +3193,34 @@ const styles =
         FONT_SIZES.body,
       color:
         COLORS.text,
+      backgroundColor:
+        COLORS.surface,
       marginBottom:
         SPACING.large,
     },
-
     descriptionInput: {
       minHeight: 100,
       paddingTop:
         SPACING.medium,
     },
-
-    formRow: {
+    inputRow: {
       flexDirection:
         'row',
       gap:
         SPACING.medium,
     },
-
-    formColumn: {
-      flex: 1,
-    },
-
-    lockedContextCard: {
-      borderWidth: 1,
-      borderColor:
-        COLORS.border,
-      borderRadius:
-        RADIUS.medium,
-      backgroundColor:
-        COLORS.background,
-      padding:
-        SPACING.medium,
-      marginTop:
-        SPACING.small,
-    },
-
-    lockedContextTitle: {
-      fontFamily:
-        FONTS.medium,
-      fontSize: 10,
-      color:
-        COLORS.textMuted,
-      marginBottom: 4,
-    },
-
-    lockedContextText: {
-      fontFamily:
-        FONTS.semiBold,
-      fontSize:
-        FONT_SIZES.small,
-      color:
-        COLORS.text,
-    },
-
-    lockedContextMeta: {
+    helperText: {
       fontFamily:
         FONTS.regular,
       fontSize:
         FONT_SIZES.xs,
+      lineHeight: 18,
       color:
         COLORS.textSecondary,
-      marginTop: 3,
     },
-
-    serviceFormFooter: {
+    formFooter: {
       flexDirection:
         'row',
-      gap:
-        SPACING.medium,
       padding:
         SPACING.large,
       borderTopWidth: 1,
@@ -4493,33 +3229,32 @@ const styles =
       backgroundColor:
         COLORS.surface,
     },
-
     cancelButton: {
       flex: 1,
-      height: 52,
+      height: 50,
       borderRadius:
         RADIUS.medium,
       borderWidth: 1,
       borderColor:
-        COLORS.borderStrong,
+        COLORS.border,
       alignItems:
         'center',
       justifyContent:
         'center',
+      marginRight:
+        SPACING.small,
     },
-
-    cancelButtonText: {
+    cancelText: {
       fontFamily:
         FONTS.semiBold,
       fontSize:
-        FONT_SIZES.body,
+        FONT_SIZES.small,
       color:
         COLORS.text,
     },
-
     saveButton: {
       flex: 1.5,
-      height: 52,
+      height: 50,
       borderRadius:
         RADIUS.medium,
       backgroundColor:
@@ -4528,13 +3263,14 @@ const styles =
         'center',
       justifyContent:
         'center',
+      marginLeft:
+        SPACING.small,
     },
-
-    saveButtonText: {
+    saveText: {
       fontFamily:
         FONTS.semiBold,
       fontSize:
-        FONT_SIZES.body,
+        FONT_SIZES.small,
       color:
         COLORS.white,
     },
