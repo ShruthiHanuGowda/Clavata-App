@@ -464,7 +464,7 @@ export default function LoginScreen() {
           Alert.alert(
             'Unable to continue',
             data?.sendOTP?.message ||
-              'We could not send the verification code.',
+            'We could not send the verification code.',
           );
 
         } catch (error) {
@@ -746,7 +746,7 @@ export default function LoginScreen() {
 
         let providerStatus:
           ProviderStatus | null =
-            null;
+          null;
 
 
         if (
@@ -757,7 +757,7 @@ export default function LoginScreen() {
           const normalizedStatus =
             String(
               user.providerStatus ||
-                'NOT_REGISTERED',
+              'NOT_REGISTERED',
             )
               .trim()
               .toUpperCase();
@@ -765,13 +765,13 @@ export default function LoginScreen() {
 
           if (
             normalizedStatus ===
-              'NOT_REGISTERED' ||
+            'NOT_REGISTERED' ||
             normalizedStatus ===
-              'PENDING' ||
+            'PENDING' ||
             normalizedStatus ===
-              'APPROVED' ||
+            'APPROVED' ||
             normalizedStatus ===
-              'REJECTED'
+            'REJECTED'
           ) {
 
             providerStatus =
@@ -802,42 +802,42 @@ export default function LoginScreen() {
         // --------------------------------------------------------
 
         const authenticatedUser =
-          {
-            userId:
-              user.userId,
+        {
+          userId:
+            user.userId,
 
-            phoneNumber:
-              user.phoneNumber,
+          phoneNumber:
+            user.phoneNumber,
 
-            fullName:
-              user.fullName || '',
+          fullName:
+            user.fullName || '',
 
-            role,
+          role,
 
-            providerStatus,
+          providerStatus,
 
-            salonId:
-              user.salonId ??
-              null,
+          salonId:
+            user.salonId ??
+            null,
 
-            salonName:
-              user.salonName ??
-              null,
+          salonName:
+            user.salonName ??
+            null,
 
-            profileImageUrl:
-              user.profileImageUrl ??
-              null,
+          profileImageUrl:
+            user.profileImageUrl ??
+            null,
 
-            createdAt:
-              user.createdAt,
+          createdAt:
+            user.createdAt,
 
-            updatedAt:
-              user.updatedAt,
+          updatedAt:
+            user.updatedAt,
 
-            preferredPaymentMethod:
-              user.preferredPaymentMethod ??
-              null,
-          };
+          preferredPaymentMethod:
+            user.preferredPaymentMethod ??
+            null,
+        };
 
 
         console.log(
@@ -1065,7 +1065,7 @@ export default function LoginScreen() {
           const providerStatus =
             String(
               user?.providerStatus ||
-                'NOT_REGISTERED',
+              'NOT_REGISTERED',
             )
               .trim()
               .toUpperCase() as ProviderStatus;
@@ -1142,9 +1142,12 @@ export default function LoginScreen() {
 
 
             navigation.replace(
-              'appScreens',
+              'BecomePartner',
+              {
+                screen:
+                  'SalonApp',
+              },
             );
-
 
             return;
           }
@@ -1164,9 +1167,9 @@ export default function LoginScreen() {
             );
 
 
-            navigation.navigate(
-              'BecomePartner',
-            );
+            navigation.replace('BecomePartner', {
+              screen: 'RejectedScreen',
+            });
 
 
             return;
@@ -1313,7 +1316,7 @@ export default function LoginScreen() {
           Alert.alert(
             'Verification failed',
             result?.message ||
-              'OTP verification failed. Please try again.',
+            'OTP verification failed. Please try again.',
           );
 
 
