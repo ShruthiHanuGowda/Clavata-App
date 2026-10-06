@@ -2556,7 +2556,7 @@ export default function BookingDateTimeScreen({
                 {/* PAYMENT BREAKDOWN */}
                 {/* ================================================= */}
 
-                <View
+                {/* <View
                     style={
                         styles.paymentCard
                     }
@@ -2678,7 +2678,7 @@ export default function BookingDateTimeScreen({
                             )}
                         </Text>
                     </View>
-                </View>
+                </View> */}
 
                 {/* ================================================= */}
                 {/* SERVICE PRICE BREAKDOWN */}

@@ -14,6 +14,8 @@ import { CREATE_BOOKING } from '../../../graphql/queries';
 
 const PRIMARY = '#009D94';
 
+const BOOKING_FEE = 9;
+
 type Service = {
     serviceId: string;
     salonId?: string;
@@ -58,37 +60,44 @@ export default function BookingSummaryScreen({
         offer,
 
         /*
-        These are passed from BookingDateTimeScreen.
+        These values are passed from BookingDateTimeScreen.
 
-        We still calculate everything again here rather
-        than blindly trusting the values passed by the
-        previous screen.
+        We still recalculate the pricing here instead of
+        blindly trusting values from the previous screen.
         */
         offerId: routeOfferId,
     } = route.params || {};
 
     console.log(
-        'BookingSummaryScreen params:',
+        '====================================================',
+    );
+
+    console.log(
+        '[BookingSummary] PARAMS:',
         route?.params,
     );
 
     console.log(
-        'date',
+        '[BookingSummary] DATE:',
         date,
     );
 
     console.log(
-        'Applied offer:',
+        '[BookingSummary] TIME:',
+        time,
+    );
+
+    console.log(
+        '[BookingSummary] OFFER:',
         offer,
+    );
+
+    console.log(
+        '====================================================',
     );
 
     const [createBooking, { loading }] =
         useMutation(CREATE_BOOKING);
-
-    const [paymentMethod, setPaymentMethod] =
-        useState<'SALON' | 'ONLINE'>(
-            'SALON',
-        );
 
     const [couponCode, setCouponCode] =
         useState(
@@ -137,7 +146,7 @@ export default function BookingSummaryScreen({
 
     /*
     ================================================================
-    OFFER VALIDATION FOR DISPLAY
+    OFFER VALIDATION
     ================================================================
     */
 
@@ -398,9 +407,6 @@ export default function BookingSummaryScreen({
 
             /*
             FIXED
-
-            Fixed discount is applied once
-            to the eligible subtotal.
             */
             if (
                 String(
@@ -426,6 +432,12 @@ export default function BookingSummaryScreen({
     ================================================================
     FINAL SERVICE TOTAL
     ================================================================
+
+    This is the amount that will be paid at the salon
+    AFTER the salon accepts the booking and the booking
+    fee is paid.
+
+    The ₹9 booking fee is NOT added here.
     */
 
     const discountedServicesTotal =
@@ -462,43 +474,9 @@ export default function BookingSummaryScreen({
 
     /*
     ================================================================
-    PLATFORM FEE + GST
+    OFFER APPLIED
     ================================================================
     */
-
-    const platformFee = 20;
-
-    const gst = Math.round(
-        platformFee * 0.18,
-    );
-
-    /*
-    ================================================================
-    FINAL DISPLAY TOTAL
-    ================================================================
-
-    Normal booking:
-        services total
-        + platform fee
-        + GST
-
-    Offer booking:
-        discounted services total
-        + platform fee
-        + GST
-    */
-
-    const total = useMemo(() => {
-        return (
-            discountedServicesTotal +
-            platformFee +
-            gst
-        );
-    }, [
-        discountedServicesTotal,
-        platformFee,
-        gst,
-    ]);
 
     const offerApplied =
         Boolean(
@@ -567,11 +545,8 @@ export default function BookingSummaryScreen({
         /*
         Fixed offer
 
-        The fixed amount is applied once
-        to the eligible subtotal.
-
-        For display, distribute the
-        discount proportionally.
+        Distribute the fixed discount proportionally
+        across eligible services for display.
         */
         if (
             discountType === 'FIXED' &&
@@ -683,68 +658,100 @@ export default function BookingSummaryScreen({
 
     /*
     ================================================================
-    TIME FORMAT
+    CREATE BOOKING REQUEST
     ================================================================
+
+    IMPORTANT FLOW:
+
+    1. Customer reviews booking.
+    2. Customer presses "Request Booking".
+    3. Booking request is created.
+    4. Salon receives the request.
+    5. Salon accepts/rejects.
+    6. ONLY AFTER SALON ACCEPTS:
+       customer pays ₹9 booking fee.
+    7. Remaining service amount is paid directly at salon.
+
+    Therefore:
+    - NO payment happens here.
+    - NO Razorpay/Cashfree is opened here.
+    - NO ₹9 is charged here.
     */
 
-    const formatTime = (
-        time: string,
-    ) => {
-        const [clock, period] =
-            time.split(' ');
-
-        let [hour, minute] =
-            clock.split(':');
-
-        let h = parseInt(
-            hour,
-            10,
-        );
-
-        if (
-            period === 'PM' &&
-            h !== 12
-        ) {
-            h += 12;
-        }
-
-        if (
-            period === 'AM' &&
-            h === 12
-        ) {
-            h = 0;
-        }
-
-        return `${String(h).padStart(
-            2,
-            '0',
-        )}:${minute}`;
-    };
-
-    /*
-    ================================================================
-    CREATE BOOKING
-    ================================================================
-    */
-
-    const confirmBooking =
+    const requestBooking =
         async () => {
             try {
+                if (
+                    !salonId
+                ) {
+                    Alert.alert(
+                        'Unable to continue',
+                        'Salon information is missing.',
+                    );
+
+                    return;
+                }
+
+                if (
+                    !customerUserId
+                ) {
+                    Alert.alert(
+                        'Unable to continue',
+                        'Customer information is missing.',
+                    );
+
+                    return;
+                }
+
+                if (
+                    !date?.date
+                ) {
+                    Alert.alert(
+                        'Invalid date',
+                        'Please select a valid appointment date.',
+                    );
+
+                    return;
+                }
+
+                if (
+                    !time
+                ) {
+                    Alert.alert(
+                        'Select time',
+                        'Please select an appointment time.',
+                    );
+
+                    return;
+                }
+
+                if (
+                    !services ||
+                    services.length === 0
+                ) {
+                    Alert.alert(
+                        'No services selected',
+                        'Please select at least one service.',
+                    );
+
+                    return;
+                }
+
                 /*
-                IMPORTANT:
+                ------------------------------------------------
+                BOOKING DATE
+                ------------------------------------------------
+                */
 
-                We only send offerId.
+                const bookingDate =
+                    date.date
+                        .toISOString()
+                        .split('T')[0];
 
-                The backend should:
-                - fetch offer
-                - validate offer
-                - validate salon
-                - validate services
-                - validate dates
-                - validate minimum amount
-                - validate usage limits
-                - calculate discount
-                - calculate final total
+                /*
+                ------------------------------------------------
+                FINAL OFFER ID
+                ------------------------------------------------
                 */
 
                 const finalOfferId =
@@ -752,6 +759,23 @@ export default function BookingSummaryScreen({
                         ?.offerId ||
                     routeOfferId ||
                     offer?.id;
+
+                /*
+                ------------------------------------------------
+                CREATE BOOKING REQUEST
+                ------------------------------------------------
+
+                We deliberately use PAY_AT_SALON.
+
+                This does NOT mean the customer is paying
+                at the salon right now.
+
+                It means the service amount is due at the
+                salon after the booking is accepted.
+
+                The separate ₹9 Clavata booking fee will
+                only be requested after salon acceptance.
+                */
 
                 const response =
                     await createBooking({
@@ -761,23 +785,73 @@ export default function BookingSummaryScreen({
 
                                 customerUserId,
 
-                                bookingDate:
-                                    date.date
-                                        .toISOString()
-                                        .split(
-                                            'T',
-                                        )[0],
+                                bookingDate,
 
+                                /*
+                                Convert displayed time
+                                such as "10:30 AM" to
+                                backend format "10:30".
+                                */
                                 startTime:
-                                    formatTime(
-                                        time,
-                                    ),
+                                    (() => {
+                                        const [clock, period] =
+                                            time.split(
+                                                ' ',
+                                            );
 
+                                        let [
+                                            hour,
+                                            minute,
+                                        ] =
+                                            clock.split(
+                                                ':',
+                                            );
+
+                                        let h =
+                                            parseInt(
+                                                hour,
+                                                10,
+                                            );
+
+                                        if (
+                                            period ===
+                                                'PM' &&
+                                            h !==
+                                                12
+                                        ) {
+                                            h +=
+                                                12;
+                                        }
+
+                                        if (
+                                            period ===
+                                                'AM' &&
+                                            h ===
+                                                12
+                                        ) {
+                                            h = 0;
+                                        }
+
+                                        return `${String(
+                                            h,
+                                        ).padStart(
+                                            2,
+                                            '0',
+                                        )}:${minute}`;
+                                    })(),
+
+                                /*
+                                ------------------------------------------------
+                                PAYMENT METHOD
+                                ------------------------------------------------
+
+                                Service amount is paid at salon.
+
+                                ₹9 booking fee is NOT collected
+                                at this stage.
+                                */
                                 paymentMethod:
-                                    paymentMethod ===
-                                    'ONLINE'
-                                        ? 'ONLINE'
-                                        : 'PAY_AT_SALON',
+                                    'PAY_AT_SALON',
 
                                 services:
                                     services.map(
@@ -798,7 +872,7 @@ export default function BookingSummaryScreen({
                                     no offerId
 
                                 Offer booking:
-                                    offerId is sent
+                                    offerId is sent.
                                 */
                                 ...(finalOfferId
                                     ? {
@@ -811,41 +885,96 @@ export default function BookingSummaryScreen({
                     });
 
                 console.log(
-                    'createBooking response:',
+                    '[BookingSummary] CREATE BOOKING RESPONSE:',
                     response.data,
                 );
+
+                /*
+                ========================================================
+                SUCCESS
+                ========================================================
+                */
 
                 if (
                     response.data
                         ?.createBooking
                         ?.success
                 ) {
+                    const booking =
+                        response.data
+                            ?.createBooking
+                            ?.booking;
+
+                    /*
+                    IMPORTANT:
+
+                    We are NOT taking payment here.
+
+                    BookingRequestSent should tell the customer:
+
+                    "Request sent to salon"
+
+                    and then wait for salon acceptance.
+                    */
+
                     navigation.replace(
                         'BookingRequestSent',
                         {
-                            booking:
-                                response.data
-                                    .createBooking
-                                    .booking,
+                            booking,
+
+                            /*
+                            Pass pricing information
+                            for the next stage after
+                            salon acceptance.
+                            */
+
+                            bookingFee:
+                                BOOKING_FEE,
+
+                            serviceTotal:
+                                discountedServicesTotal,
+
+                            amountToPayNow:
+                                BOOKING_FEE,
+
+                            amountAtSalon:
+                                discountedServicesTotal,
+
+                            /*
+                            This makes the next screen
+                            aware that payment should
+                            happen ONLY after salon
+                            acceptance.
+                            */
+                            paymentStatus:
+                                'WAITING_FOR_SALON_CONFIRMATION',
                         },
                     );
-                } else {
-                    Alert.alert(
-                        response.data
-                            ?.createBooking
-                            ?.message ||
-                            'Unable to create booking.',
-                    );
+
+                    return;
                 }
+
+                /*
+                ========================================================
+                BOOKING FAILED
+                ========================================================
+                */
+
+                Alert.alert(
+                    response.data
+                        ?.createBooking
+                        ?.message ||
+                        'Unable to send booking request.',
+                );
             } catch (err: any) {
                 console.error(
-                    'Create booking error:',
+                    '[BookingSummary] CREATE BOOKING ERROR:',
                     err,
                 );
 
                 Alert.alert(
                     err?.message ||
-                        'Something went wrong while creating the booking.',
+                        'Something went wrong while sending the booking request.',
                 );
             }
         };
@@ -868,6 +997,8 @@ export default function BookingSummaryScreen({
                 onPress={() =>
                     navigation.goBack()
                 }
+                style={styles.backButton}
+                activeOpacity={0.7}
             >
                 <Text
                     style={styles.back}
@@ -892,7 +1023,7 @@ export default function BookingSummaryScreen({
                 /* ================================================= */
 
                 ListHeaderComponent={
-                    <>
+                    <View>
                         <Text
                             style={
                                 styles.heading
@@ -900,6 +1031,66 @@ export default function BookingSummaryScreen({
                         >
                             Booking Summary
                         </Text>
+
+                        {/* ========================================= */}
+                        {/* BOOKING REQUEST INFO */}
+                        {/* ========================================= */}
+
+                        <View
+                            style={
+                                styles.requestInfoCard
+                            }
+                        >
+                            <View
+                                style={
+                                    styles.requestIcon
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.requestIconText
+                                    }
+                                >
+                                    ✓
+                                </Text>
+                            </View>
+
+                            <View
+                                style={
+                                    styles.requestInfoContent
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.requestInfoTitle
+                                    }
+                                >
+                                    Request first, pay later
+                                </Text>
+
+                                <Text
+                                    style={
+                                        styles.requestInfoText
+                                    }
+                                >
+                                    Your booking request
+                                    will first be sent
+                                    to the salon.
+                                </Text>
+
+                                <Text
+                                    style={
+                                        styles.requestInfoText
+                                    }
+                                >
+                                    You will pay the ₹
+                                    {BOOKING_FEE}{' '}
+                                    booking fee only
+                                    after the salon
+                                    accepts your request.
+                                </Text>
+                            </View>
+                        </View>
 
                         {/* ========================================= */}
                         {/* SALON */}
@@ -955,21 +1146,84 @@ export default function BookingSummaryScreen({
                                 Appointment
                             </Text>
 
-                            <Text>
-                                📅{' '}
-                                {date.label},{' '}
-                                {date.dayNumber}{' '}
-                                {date.month}{' '}
-                                {date.date.getFullYear()}
-                            </Text>
-
-                            <Text
-                                style={{
-                                    marginTop: 8,
-                                }}
+                            <View
+                                style={
+                                    styles.appointmentRow
+                                }
                             >
-                                🕒 {time}
-                            </Text>
+                                <Text
+                                    style={
+                                        styles.appointmentIcon
+                                    }
+                                >
+                                    📅
+                                </Text>
+
+                                <View
+                                    style={
+                                        styles.appointmentContent
+                                    }
+                                >
+                                    <Text
+                                        style={
+                                            styles.appointmentLabel
+                                        }
+                                    >
+                                        Date
+                                    </Text>
+
+                                    <Text
+                                        style={
+                                            styles.appointmentValue
+                                        }
+                                    >
+                                        {date?.label},{' '}
+                                        {date?.dayNumber}{' '}
+                                        {date?.month}{' '}
+                                        {date?.date?.getFullYear?.() ||
+                                            ''}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View
+                                style={[
+                                    styles.appointmentRow,
+                                    {
+                                        marginTop: 14,
+                                    },
+                                ]}
+                            >
+                                <Text
+                                    style={
+                                        styles.appointmentIcon
+                                    }
+                                >
+                                    🕒
+                                </Text>
+
+                                <View
+                                    style={
+                                        styles.appointmentContent
+                                    }
+                                >
+                                    <Text
+                                        style={
+                                            styles.appointmentLabel
+                                        }
+                                    >
+                                        Time
+                                    </Text>
+
+                                    <Text
+                                        style={
+                                            styles.appointmentValue
+                                        }
+                                    >
+                                        {time}
+                                    </Text>
+                                </View>
+                            </View>
                         </View>
 
                         {/* ========================================= */}
@@ -1025,12 +1279,12 @@ export default function BookingSummaryScreen({
                         )}
 
                         {/* ========================================= */}
-                        {/* SELECTED SERVICES */}
+                        {/* SELECTED SERVICES HEADER */}
                         {/* ========================================= */}
 
                         <View
                             style={
-                                styles.card
+                                styles.servicesHeader
                             }
                         >
                             <Text
@@ -1040,8 +1294,20 @@ export default function BookingSummaryScreen({
                             >
                                 Selected Services
                             </Text>
+
+                            <Text
+                                style={
+                                    styles.serviceCount
+                                }
+                            >
+                                {services.length}{' '}
+                                {services.length ===
+                                1
+                                    ? 'service'
+                                    : 'services'}
+                            </Text>
                         </View>
-                    </>
+                    </View>
                 }
 
                 /* ================================================= */
@@ -1108,7 +1374,7 @@ export default function BookingSummaryScreen({
                                                 styles.eligibleText
                                             }
                                         >
-                                            Offer applied
+                                            ✓ Offer applied
                                         </Text>
                                     )}
                             </View>
@@ -1153,7 +1419,7 @@ export default function BookingSummaryScreen({
                 /* ================================================= */
 
                 ListFooterComponent={
-                    <>
+                    <View>
                         {/* ========================================= */}
                         {/* DURATION */}
                         {/* ========================================= */}
@@ -1163,18 +1429,39 @@ export default function BookingSummaryScreen({
                                 styles.card
                             }
                         >
-                            <Text
+                            <View
                                 style={
-                                    styles.sectionTitle
+                                    styles.simpleRow
                                 }
                             >
-                                Duration
-                            </Text>
+                                <View>
+                                    <Text
+                                        style={
+                                            styles.sectionTitleSmall
+                                        }
+                                    >
+                                        Duration
+                                    </Text>
 
-                            <Text>
-                                {duration}{' '}
-                                mins
-                            </Text>
+                                    <Text
+                                        style={
+                                            styles.mutedText
+                                        }
+                                    >
+                                        Total appointment
+                                        duration
+                                    </Text>
+                                </View>
+
+                                <Text
+                                    style={
+                                        styles.durationValue
+                                    }
+                                >
+                                    {duration}{' '}
+                                    mins
+                                </Text>
+                            </View>
                         </View>
 
                         {/* ========================================= */}
@@ -1272,6 +1559,9 @@ export default function BookingSummaryScreen({
                                     style={
                                         styles.apply
                                     }
+                                    activeOpacity={
+                                        0.7
+                                    }
                                 >
                                     <Text
                                         style={{
@@ -1304,16 +1594,34 @@ export default function BookingSummaryScreen({
                                 Payment
                             </Text>
 
-                            {/* ORIGINAL SERVICES */}
+                            {/* ------------------------------------- */}
+                            {/* SERVICES */}
+                            {/* ------------------------------------- */}
 
                             <View
                                 style={
-                                    styles.row
+                                    styles.paymentRow
                                 }
                             >
-                                <Text>
-                                    Services
-                                </Text>
+                                <View>
+                                    <Text
+                                        style={
+                                            styles.paymentLabel
+                                        }
+                                    >
+                                        Services
+                                    </Text>
+
+                                    {offerApplied && (
+                                        <Text
+                                            style={
+                                                styles.paymentSubLabel
+                                            }
+                                        >
+                                            After discount
+                                        </Text>
+                                    )}
+                                </View>
 
                                 <View
                                     style={
@@ -1333,7 +1641,11 @@ export default function BookingSummaryScreen({
                                         </Text>
                                     )}
 
-                                    <Text>
+                                    <Text
+                                        style={
+                                            styles.paymentAmount
+                                        }
+                                    >
                                         ₹
                                         {discountedServicesTotal.toFixed(
                                             0,
@@ -1342,12 +1654,14 @@ export default function BookingSummaryScreen({
                                 </View>
                             </View>
 
+                            {/* ------------------------------------- */}
                             {/* OFFER DISCOUNT */}
+                            {/* ------------------------------------- */}
 
                             {offerApplied && (
                                 <View
                                     style={
-                                        styles.row
+                                        styles.paymentRow
                                     }
                                 >
                                     <Text
@@ -1371,7 +1685,9 @@ export default function BookingSummaryScreen({
                                 </View>
                             )}
 
+                            {/* ------------------------------------- */}
                             {/* MINIMUM AMOUNT MESSAGE */}
+                            {/* ------------------------------------- */}
 
                             {offer &&
                                 !offerApplied &&
@@ -1389,69 +1705,109 @@ export default function BookingSummaryScreen({
                                     </Text>
                                 )}
 
-                            {/* PLATFORM FEE */}
+                            {/* ------------------------------------- */}
+                            {/* DIVIDER */}
+                            {/* ------------------------------------- */}
 
                             <View
                                 style={
-                                    styles.row
+                                    styles.divider
                                 }
-                            >
-                                <Text>
-                                    Platform Fee
-                                </Text>
+                            />
 
-                                <Text>
-                                    ₹
-                                    {platformFee}
-                                </Text>
-                            </View>
-
-                            {/* GST */}
+                            {/* ------------------------------------- */}
+                            {/* AFTER SALON ACCEPTS */}
+                            {/* ------------------------------------- */}
 
                             <View
                                 style={
-                                    styles.row
+                                    styles.bookingFeeRow
                                 }
                             >
-                                <Text>
-                                    GST
-                                </Text>
-
-                                <Text>
-                                    ₹{gst}
-                                </Text>
-                            </View>
-
-                            {/* TOTAL */}
-
-                            <View
-                                style={[
-                                    styles.row,
-                                    {
-                                        marginTop: 10,
-                                    },
-                                ]}
-                            >
-                                <Text
-                                    style={{
-                                        fontWeight:
-                                            '700',
-                                    }}
+                                <View
+                                    style={
+                                        styles.bookingFeeInfo
+                                    }
                                 >
-                                    Total
-                                </Text>
+                                    <Text
+                                        style={
+                                            styles.bookingFeeTitle
+                                        }
+                                    >
+                                        Booking fee
+                                    </Text>
+
+                                    <Text
+                                        style={
+                                            styles.bookingFeeSubtitle
+                                        }
+                                    >
+                                        ₹{BOOKING_FEE} paid
+                                        after salon accepts
+                                    </Text>
+                                </View>
 
                                 <Text
                                     style={
-                                        styles.totalPrice
+                                        styles.bookingFeeAmount
                                     }
                                 >
-                                    ₹
-                                    {total.toFixed(
-                                        0,
-                                    )}
+                                    ₹{BOOKING_FEE}
                                 </Text>
                             </View>
+
+                            {/* ------------------------------------- */}
+                            {/* PAY AT SALON */}
+                            {/* ------------------------------------- */}
+
+                            <View
+                                style={
+                                    styles.salonPaymentBox
+                                }
+                            >
+                                <View
+                                    style={
+                                        styles.salonPaymentIcon
+                                    }
+                                >
+                                    <Text>
+                                        🏪
+                                    </Text>
+                                </View>
+
+                                <View
+                                    style={{
+                                        flex: 1,
+                                    }}
+                                >
+                                    <Text
+                                        style={
+                                            styles.salonPaymentTitle
+                                        }
+                                    >
+                                        Remaining amount at
+                                        salon
+                                    </Text>
+
+                                    <Text
+                                        style={
+                                            styles.salonPaymentText
+                                        }
+                                    >
+                                        ₹
+                                        {discountedServicesTotal.toFixed(
+                                            0,
+                                        )}{' '}
+                                        will be paid
+                                        directly to the
+                                        salon.
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* ------------------------------------- */}
+                            {/* SAVINGS */}
+                            {/* ------------------------------------- */}
 
                             {offerApplied && (
                                 <Text
@@ -1462,10 +1818,154 @@ export default function BookingSummaryScreen({
                                     You save ₹
                                     {discountAmount.toFixed(
                                         0,
-                                    )} with this
-                                    offer.
+                                    )}{' '}
+                                    with this offer.
                                 </Text>
                             )}
+
+                            {/* ------------------------------------- */}
+                            {/* HOW IT WORKS */}
+                            {/* ------------------------------------- */}
+
+                            <View
+                                style={
+                                    styles.paymentExplanation
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.paymentExplanationTitle
+                                    }
+                                >
+                                    How your booking works
+                                </Text>
+
+                                <View
+                                    style={
+                                        styles.stepRow
+                                    }
+                                >
+                                    <View
+                                        style={
+                                            styles.stepCircle
+                                        }
+                                    >
+                                        <Text
+                                            style={
+                                                styles.stepNumber
+                                            }
+                                        >
+                                            1
+                                        </Text>
+                                    </View>
+
+                                    <Text
+                                        style={
+                                            styles.stepText
+                                        }
+                                    >
+                                        Send your booking
+                                        request to the
+                                        salon.
+                                    </Text>
+                                </View>
+
+                                <View
+                                    style={
+                                        styles.stepRow
+                                    }
+                                >
+                                    <View
+                                        style={
+                                            styles.stepCircle
+                                        }
+                                    >
+                                        <Text
+                                            style={
+                                                styles.stepNumber
+                                            }
+                                        >
+                                            2
+                                        </Text>
+                                    </View>
+
+                                    <Text
+                                        style={
+                                            styles.stepText
+                                        }
+                                    >
+                                        Salon accepts your
+                                        requested date and
+                                        time.
+                                    </Text>
+                                </View>
+
+                                <View
+                                    style={
+                                        styles.stepRow
+                                    }
+                                >
+                                    <View
+                                        style={
+                                            styles.stepCircle
+                                        }
+                                    >
+                                        <Text
+                                            style={
+                                                styles.stepNumber
+                                            }
+                                        >
+                                            3
+                                        </Text>
+                                    </View>
+
+                                    <Text
+                                        style={
+                                            styles.stepText
+                                        }
+                                    >
+                                        Pay the ₹
+                                        {BOOKING_FEE}{' '}
+                                        booking fee to
+                                        Clavata.
+                                    </Text>
+                                </View>
+
+                                <View
+                                    style={
+                                        styles.stepRow
+                                    }
+                                >
+                                    <View
+                                        style={
+                                            styles.stepCircle
+                                        }
+                                    >
+                                        <Text
+                                            style={
+                                                styles.stepNumber
+                                            }
+                                        >
+                                            4
+                                        </Text>
+                                    </View>
+
+                                    <Text
+                                        style={
+                                            styles.stepText
+                                        }
+                                    >
+                                        Visit the salon
+                                        and pay the
+                                        remaining ₹
+                                        {discountedServicesTotal.toFixed(
+                                            0,
+                                        )}{' '}
+                                        directly to the
+                                        salon.
+                                    </Text>
+                                </View>
+                            </View>
 
                             {offer && (
                                 <Text
@@ -1482,96 +1982,75 @@ export default function BookingSummaryScreen({
                         </View>
 
                         {/* ========================================= */}
-                        {/* PAYMENT METHOD */}
-                        {/* ========================================= */}
-
-                        {/* <View
-                            style={
-                                styles.card
-                            }
-                        > */}
-                            {/* <Text
-                                style={
-                                    styles.sectionTitle
-                                }
-                            >
-                                Payment Method
-                            </Text> */}
-
-                            {/* PAY AT SALON */}
-
-                            {/* <TouchableOpacity
-                                style={
-                                    styles.option
-                                }
-                                onPress={() =>
-                                    setPaymentMethod(
-                                        'SALON',
-                                    )
-                                }
-                            >
-                                <Text>
-                                    {paymentMethod ===
-                                    'SALON'
-                                        ? '🟢'
-                                        : '⚪'}{' '}
-                                    Pay at Salon
-                                </Text>
-                            </TouchableOpacity> */}
-
-                            {/* ONLINE */}
-
-                            {/* <TouchableOpacity
-                                style={
-                                    styles.option
-                                }
-                                onPress={() =>
-                                    setPaymentMethod(
-                                        'ONLINE',
-                                    )
-                                }
-                            >
-                                <Text>
-                                    {paymentMethod ===
-                                    'ONLINE'
-                                        ? '🟢'
-                                        : '⚪'}{' '}
-                                    Pay Online
-                                </Text>
-                            </TouchableOpacity> */}
-                        {/* </View> */}
-
-                        {/* ========================================= */}
-                        {/* CONFIRM */}
+                        {/* REQUEST BOOKING */}
                         {/* ========================================= */}
 
                         <TouchableOpacity
-                            style={
-                                styles.confirm
-                            }
+                            style={[
+                                styles.confirm,
+                                loading &&
+                                    styles.confirmDisabled,
+                            ]}
                             disabled={
                                 loading
                             }
                             onPress={
-                                confirmBooking
+                                requestBooking
                             }
+                            activeOpacity={0.85}
                         >
-                            <Text
+                            <View
                                 style={
-                                    styles.confirmText
+                                    styles.confirmContent
                                 }
                             >
-                                {loading
-                                    ? 'Booking...'
-                                    : 'Confirm Booking'}
-                            </Text>
+                                <View
+                                    style={{
+                                        flex: 1,
+                                    }}
+                                >
+                                    <Text
+                                        style={
+                                            styles.confirmMainText
+                                        }
+                                    >
+                                        {loading
+                                            ? 'Sending request...'
+                                            : 'Request Booking'}
+                                    </Text>
+
+                                    {!loading && (
+                                        <Text
+                                            style={
+                                                styles.confirmSubText
+                                            }
+                                        >
+                                            No payment required
+                                            yet
+                                        </Text>
+                                    )}
+                                </View>
+
+                                {!loading && (
+                                    <Text
+                                        style={
+                                            styles.confirmArrow
+                                        }
+                                    >
+                                        →
+                                    </Text>
+                                )}
+                            </View>
                         </TouchableOpacity>
-                    </>
+                    </View>
                 }
 
                 contentContainerStyle={{
                     paddingBottom: 30,
                 }}
+                showsVerticalScrollIndicator={
+                    false
+                }
             />
         </SafeAreaView>
     );
@@ -1583,11 +2062,90 @@ const styles = StyleSheet.create({
         backgroundColor: '#F5F6FA',
     },
 
+    /*
+    ================================================================
+    HEADER
+    ================================================================
+    */
+
+    backButton: {
+        width: 45,
+        height: 42,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 2,
+        marginLeft: 4,
+    },
+
+    back: {
+        fontSize: 28,
+        fontWeight: '700',
+    },
+
     heading: {
         fontSize: 28,
         fontWeight: '700',
-        margin: 20,
+        marginHorizontal: 20,
+        marginTop: 5,
+        marginBottom: 18,
+        color: '#171717',
     },
+
+    /*
+    ================================================================
+    REQUEST INFO
+    ================================================================
+    */
+
+    requestInfoCard: {
+        backgroundColor: '#EAF8F3',
+        marginHorizontal: 15,
+        marginBottom: 15,
+        borderRadius: 16,
+        padding: 16,
+        flexDirection: 'row',
+        borderWidth: 1,
+        borderColor: '#B9E5D5',
+    },
+
+    requestIcon: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: PRIMARY,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+
+    requestIconText: {
+        color: '#FFF',
+        fontSize: 20,
+        fontWeight: '800',
+    },
+
+    requestInfoContent: {
+        flex: 1,
+    },
+
+    requestInfoTitle: {
+        color: '#176B53',
+        fontSize: 16,
+        fontWeight: '800',
+    },
+
+    requestInfoText: {
+        color: '#39705F',
+        fontSize: 13,
+        lineHeight: 19,
+        marginTop: 4,
+    },
+
+    /*
+    ================================================================
+    GENERAL CARD
+    ================================================================
+    */
 
     card: {
         backgroundColor: '#FFF',
@@ -1600,17 +2158,85 @@ const styles = StyleSheet.create({
     salon: {
         fontSize: 20,
         fontWeight: '700',
+        color: '#171717',
     },
 
     address: {
         marginTop: 8,
         color: '#666',
+        lineHeight: 20,
     },
 
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
         marginBottom: 12,
+        color: '#171717',
+    },
+
+    sectionTitleSmall: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#171717',
+    },
+
+    mutedText: {
+        marginTop: 4,
+        color: '#777',
+        fontSize: 12,
+    },
+
+    /*
+    ================================================================
+    APPOINTMENT
+    ================================================================
+    */
+
+    appointmentRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+
+    appointmentIcon: {
+        fontSize: 22,
+        width: 38,
+    },
+
+    appointmentContent: {
+        flex: 1,
+    },
+
+    appointmentLabel: {
+        color: '#888',
+        fontSize: 12,
+        marginBottom: 2,
+    },
+
+    appointmentValue: {
+        color: '#222',
+        fontSize: 15,
+        fontWeight: '600',
+    },
+
+    /*
+    ================================================================
+    SERVICES HEADER
+    ================================================================
+    */
+
+    servicesHeader: {
+        marginHorizontal: 15,
+        marginBottom: 10,
+        paddingHorizontal: 3,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+
+    serviceCount: {
+        color: '#777',
+        fontSize: 13,
+        fontWeight: '600',
     },
 
     /*
@@ -1663,8 +2289,7 @@ const styles = StyleSheet.create({
         padding: 18,
         borderRadius: 14,
         flexDirection: 'row',
-        justifyContent:
-            'space-between',
+        justifyContent: 'space-between',
         alignItems: 'center',
     },
 
@@ -1676,11 +2301,13 @@ const styles = StyleSheet.create({
     service: {
         fontWeight: '700',
         fontSize: 16,
+        color: '#222',
     },
 
     duration: {
         marginTop: 5,
         color: '#777',
+        fontSize: 13,
     },
 
     eligibleText: {
@@ -1713,6 +2340,24 @@ const styles = StyleSheet.create({
 
     /*
     ================================================================
+    DURATION
+    ================================================================
+    */
+
+    simpleRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+
+    durationValue: {
+        color: PRIMARY,
+        fontSize: 17,
+        fontWeight: '800',
+    },
+
+    /*
+    ================================================================
     PROMO
     ================================================================
     */
@@ -1723,6 +2368,8 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         paddingHorizontal: 15,
         height: 50,
+        color: '#222',
+        backgroundColor: '#FFF',
     },
 
     apply: {
@@ -1773,12 +2420,23 @@ const styles = StyleSheet.create({
     ================================================================
     */
 
-    row: {
+    paymentRow: {
         flexDirection: 'row',
-        justifyContent:
-            'space-between',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginVertical: 6,
+        marginVertical: 7,
+    },
+
+    paymentLabel: {
+        fontSize: 15,
+        color: '#222',
+        fontWeight: '500',
+    },
+
+    paymentSubLabel: {
+        fontSize: 11,
+        color: '#888',
+        marginTop: 2,
     },
 
     paymentPriceContainer: {
@@ -1790,6 +2448,13 @@ const styles = StyleSheet.create({
         fontSize: 12,
         textDecorationLine:
             'line-through',
+        marginBottom: 1,
+    },
+
+    paymentAmount: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#222',
     },
 
     discountLabel: {
@@ -1810,14 +2475,143 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
 
-    totalPrice: {
+    divider: {
+        height: 1,
+        backgroundColor: '#EEEEEE',
+        marginVertical: 14,
+    },
+
+    /*
+    ================================================================
+    BOOKING FEE
+    ================================================================
+    */
+
+    bookingFeeRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
+
+    bookingFeeInfo: {
+        flex: 1,
+        paddingRight: 10,
+    },
+
+    bookingFeeTitle: {
+        fontSize: 16,
         fontWeight: '700',
-        color: PRIMARY,
+        color: '#222',
+    },
+
+    bookingFeeSubtitle: {
+        marginTop: 3,
+        fontSize: 12,
+        color: '#777',
+        lineHeight: 17,
+    },
+
+    bookingFeeAmount: {
         fontSize: 18,
+        fontWeight: '800',
+        color: PRIMARY,
+    },
+
+    /*
+    ================================================================
+    PAY AT SALON
+    ================================================================
+    */
+
+    salonPaymentBox: {
+        marginTop: 14,
+        padding: 13,
+        borderRadius: 12,
+        backgroundColor: '#F7F7F7',
+        borderWidth: 1,
+        borderColor: '#E7E7E7',
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+
+    salonPaymentIcon: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: '#FFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+
+    salonPaymentTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#222',
+    },
+
+    salonPaymentText: {
+        marginTop: 3,
+        color: '#666',
+        fontSize: 12,
+        lineHeight: 17,
+    },
+
+    /*
+    ================================================================
+    HOW IT WORKS
+    ================================================================
+    */
+
+    paymentExplanation: {
+        marginTop: 15,
+        padding: 14,
+        borderRadius: 12,
+        backgroundColor: '#F8FAFA',
+        borderWidth: 1,
+        borderColor: '#E5EEEE',
+    },
+
+    paymentExplanationTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#222',
+        marginBottom: 10,
+    },
+
+    stepRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 10,
+    },
+
+    stepCircle: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: PRIMARY,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+
+    stepNumber: {
+        color: '#FFF',
+        fontSize: 12,
+        fontWeight: '800',
+    },
+
+    stepText: {
+        flex: 1,
+        color: '#666',
+        fontSize: 12,
+        lineHeight: 18,
+        paddingTop: 2,
     },
 
     savingsText: {
-        marginTop: 10,
+        marginTop: 12,
         color: '#16845E',
         fontWeight: '700',
         fontSize: 13,
@@ -1832,17 +2626,7 @@ const styles = StyleSheet.create({
 
     /*
     ================================================================
-    PAYMENT METHOD
-    ================================================================
-    */
-
-    option: {
-        marginVertical: 10,
-    },
-
-    /*
-    ================================================================
-    CONFIRM
+    CONFIRM / REQUEST BUTTON
     ================================================================
     */
 
@@ -1850,23 +2634,37 @@ const styles = StyleSheet.create({
         marginHorizontal: 20,
         marginBottom: 30,
         backgroundColor: PRIMARY,
-        height: 55,
-        borderRadius: 28,
-        justifyContent:
-            'center',
-        alignItems: 'center',
+        minHeight: 62,
+        borderRadius: 18,
+        justifyContent: 'center',
+        paddingHorizontal: 20,
     },
 
-    confirmText: {
+    confirmDisabled: {
+        opacity: 0.65,
+    },
+
+    confirmContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+
+    confirmMainText: {
         color: '#FFF',
-        fontWeight: '700',
+        fontWeight: '800',
         fontSize: 17,
     },
 
-    back: {
-        fontSize: 28,
-        fontWeight: '700',
-        marginLeft: 10,
-        marginTop: 5,
+    confirmSubText: {
+        color: '#E7FFFA',
+        fontSize: 12,
+        marginTop: 3,
+    },
+
+    confirmArrow: {
+        color: '#FFF',
+        fontSize: 26,
+        fontWeight: '600',
     },
 });
