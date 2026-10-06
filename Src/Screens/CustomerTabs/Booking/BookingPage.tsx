@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+
 import {
     NativeStackNavigationProp,
 } from '@react-navigation/native-stack';
+
 import {
     SafeAreaView,
     ScrollView,
@@ -22,35 +24,92 @@ import {
 import { useUser } from '../../../context/UserContext';
 
 import {
-    CUSTOMER_BOOKINGS,
     CANCEL_BOOKING,
 } from '../../../graphql/queries';
 
 import { useNavigation } from '@react-navigation/native';
+
 import { WalletStackParamList } from '../../../../types';
 
-type BookingNavigationProp =
-    NativeStackNavigationProp<
-        WalletStackParamList,
-        'explore'
-    >;
+
+// ============================================================
+// CUSTOMER BOOKINGS QUERY
+// ============================================================
+//
+// IMPORTANT:
+//
+// DynamoDB stores:
+//
+// serviceName
+// categoryName
+// subcategoryName
+// durationMinutes
+// price
+// audience
+//
+// Backend customerBookings resolver maps those to:
+//
+// name
+// category
+// subcategory
+// duration
+// price
+// audience
+//
+// ============================================================
+
+const CUSTOMER_BOOKINGS = gql`
+    query CustomerBookings(
+        $customerUserId: ID!
+    ) {
+        customerBookings(
+            customerUserId: $customerUserId
+        ) {
+            bookingId
+            salonId
+            customerUserId
+
+            salonName
+            customerName
+
+            bookingDate
+            startTime
+            endTime
+
+            reviewSubmitted
+            rating
+            review
+            reviewedAt
+
+            bookingStatus
+
+            paymentMethod
+            paymentStatus
+            preferredPaymentMethod
+
+            bookingFee
+            bookingFeeStatus
+            bookingFeePaidAt
+
+            remainingAmount
+            totalAmount
+
+            services {
+                serviceId
+                name
+                category
+                subcategory
+                duration
+                price
+                audience
+            }
+        }
+    }
+`;
+
 
 // ============================================================
 // REQUEST REFUND
-// ============================================================
-//
-// This mutation uses the backend mutation:
-//
-// requestRefund(input: {
-//   bookingId: ID!
-//   reason: RefundReason!
-// })
-//
-// For customer cancellation we always use:
-// CUSTOMER_CANCELLED
-//
-// The backend is responsible for calculating the exact refund
-// according to the cancellation policy.
 // ============================================================
 
 const REQUEST_REFUND = gql`
@@ -60,32 +119,41 @@ const REQUEST_REFUND = gql`
         requestRefund(input: $input) {
             success
             message
+
             refund {
                 refundId
                 bookingId
                 paymentTransactionId
+
                 customerUserId
                 customerName
                 customerPhone
+
                 salonId
                 salonName
+
                 originalAmount
                 refundAmount
                 clavataAmount
                 salonAmount
+
                 reason
                 status
+
                 paymentMethod
                 razorpayPaymentId
                 razorpayRefundId
+
                 requestedAt
                 processedAt
+
                 createdAt
                 updatedAt
             }
         }
     }
 `;
+
 
 // ============================================================
 // DESIGN SYSTEM
@@ -114,6 +182,17 @@ const COLORS = {
 
 
 // ============================================================
+// NAVIGATION
+// ============================================================
+
+type BookingNavigationProp =
+    NativeStackNavigationProp<
+        WalletStackParamList,
+        'explore'
+    >;
+
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
@@ -122,16 +201,24 @@ export default function BookingPage() {
     const navigation =
         useNavigation<BookingNavigationProp>();
 
+
     const [tab, setTab] =
-        useState<'Upcoming' | 'Completed' | 'Cancelled'>(
+        useState<
+            'Upcoming' |
+            'Completed' |
+            'Cancelled'
+        >(
             'Upcoming',
         );
+
 
     const [refreshing, setRefreshing] =
         useState(false);
 
+
     const [cancellingBookingId, setCancellingBookingId] =
         useState<string | null>(null);
+
 
     const { currentUser } =
         useUser();
@@ -396,7 +483,10 @@ export default function BookingPage() {
     // ============================================================
 
     const getRefundMessage =
-        (refund: any, booking: any) => {
+        (
+            refund: any,
+            booking: any,
+        ) => {
 
             const originalAmount =
                 Number(
@@ -405,26 +495,34 @@ export default function BookingPage() {
                     0,
                 );
 
+
             const refundAmount =
                 Number(
-                    refund?.refundAmount ?? 0,
+                    refund?.refundAmount ??
+                    0,
                 );
+
 
             const clavataAmount =
                 Number(
-                    refund?.clavataAmount ?? 0,
+                    refund?.clavataAmount ??
+                    0,
                 );
+
 
             const salonAmount =
                 Number(
-                    refund?.salonAmount ?? 0,
+                    refund?.salonAmount ??
+                    0,
                 );
 
 
             if (
                 originalAmount <= 0
             ) {
+
                 return {
+
                     title:
                         'Booking cancelled',
 
@@ -438,7 +536,9 @@ export default function BookingPage() {
                 refundAmount >=
                 originalAmount
             ) {
+
                 return {
+
                     title:
                         'Full refund requested',
 
@@ -453,7 +553,9 @@ export default function BookingPage() {
             if (
                 refundAmount > 0
             ) {
+
                 return {
+
                     title:
                         'Partial refund requested',
 
@@ -468,9 +570,14 @@ export default function BookingPage() {
 
 
             return {
-                title: 'No customer refund',
+
+                title:
+                    'No customer refund',
+
                 message:
-                    `Your ₹${originalAmount.toFixed(2)} Clavata booking fee is non-refundable because the cancellation was made less than 1 hour before the appointment.`,
+                    `Your ₹${originalAmount.toFixed(
+                        2,
+                    )} Clavata booking fee is non-refundable because the cancellation was made less than 1 hour before the appointment.`,
             };
         };
 
@@ -484,6 +591,7 @@ export default function BookingPage() {
 
             const bookingId =
                 booking?.bookingId;
+
 
             if (!bookingId) {
 
@@ -499,23 +607,22 @@ export default function BookingPage() {
             if (
                 cancellingBookingId
             ) {
+
                 return;
             }
 
 
             const bookingFee =
                 Number(
-                    booking?.bookingFee ?? 0,
+                    booking?.bookingFee ??
+                    0,
                 );
+
 
             const bookingFeePaid =
                 booking?.bookingFeeStatus ===
                 'PAID';
 
-
-            // =====================================================
-            // CONFIRMATION MESSAGE
-            // =====================================================
 
             let confirmationMessage =
                 'Are you sure you want to cancel this booking?';
@@ -568,8 +675,7 @@ export default function BookingPage() {
 
 
                                     // =================================================
-                                    // STEP 1:
-                                    // CANCEL BOOKING
+                                    // STEP 1
                                     // =================================================
 
                                     await cancelBookingMutation(
@@ -582,8 +688,7 @@ export default function BookingPage() {
 
 
                                     // =================================================
-                                    // STEP 2:
-                                    // REQUEST REFUND ONLY IF BOOKING FEE WAS PAID
+                                    // STEP 2
                                     // =================================================
 
                                     if (
@@ -599,6 +704,7 @@ export default function BookingPage() {
                                                         variables: {
                                                             input: {
                                                                 bookingId,
+
                                                                 reason:
                                                                     'CUSTOMER_CANCELLED',
                                                             },
@@ -618,10 +724,6 @@ export default function BookingPage() {
                                                     ?.refund;
 
 
-                                            // =============================================
-                                            // REFUND REQUEST CREATED
-                                            // =============================================
-
                                             if (
                                                 refundResponse?.success &&
                                                 refund
@@ -639,6 +741,7 @@ export default function BookingPage() {
 
                                                 Alert.alert(
                                                     refundMessage.title,
+
                                                     `${refundMessage.message}\n\nRefund status: ${String(
                                                         refund.status ||
                                                         'REQUESTED',
@@ -652,12 +755,13 @@ export default function BookingPage() {
 
                                                 Alert.alert(
                                                     'Booking Cancelled',
+
                                                     `Your booking has been cancelled successfully.\n\nHowever, we could not create the refund request automatically. Please contact Clavata support.\n\n${refundResponse?.message || ''}`,
                                                 );
                                             }
 
                                         } catch (
-                                        refundError: any
+                                            refundError: any
                                         ) {
 
                                             console.error(
@@ -671,27 +775,25 @@ export default function BookingPage() {
 
                                             Alert.alert(
                                                 'Booking Cancelled',
+
                                                 `Your booking has been cancelled successfully.\n\nThe refund request could not be created automatically. Please contact Clavata support.\n\n${refundError?.message || 'Unable to create refund request.'}`,
                                             );
                                         }
 
                                     } else {
 
-                                        // =============================================
-                                        // NO PAID BOOKING FEE
-                                        // =============================================
-
                                         await refetch();
 
 
                                         Alert.alert(
                                             'Booking Cancelled',
+
                                             'Your booking has been cancelled successfully.\n\nNo Clavata booking fee was paid, so there is no refund to process.',
                                         );
                                     }
 
                                 } catch (
-                                e: any
+                                    e: any
                                 ) {
 
                                     console.error(
@@ -702,6 +804,7 @@ export default function BookingPage() {
 
                                     Alert.alert(
                                         'Unable to Cancel',
+
                                         e?.message ||
                                         'Something went wrong while cancelling your booking.',
                                     );
@@ -726,153 +829,138 @@ export default function BookingPage() {
     // BOOK AGAIN
     // ============================================================
 
-    const bookAgain = (booking: any) => {
+    const bookAgain =
+        (booking: any) => {
 
-        console.log('BOOK AGAIN:', {
-            bookingId: booking?.bookingId,
-            salonId: booking?.salonId,
-            services: booking?.services,
-        });
+            console.log(
+                'BOOK AGAIN:',
+                {
+                    bookingId:
+                        booking?.bookingId,
 
+                    salonId:
+                        booking?.salonId,
 
-        if (!booking?.salonId) {
-
-            Alert.alert(
-                'Unable to book again',
-                'Salon information is missing from this booking.',
+                    services:
+                        booking?.services,
+                },
             );
 
-            return;
-        }
 
+            if (!booking?.salonId) {
 
-        if (
-            !Array.isArray(
-                booking?.services,
-            ) ||
-            booking.services.length === 0
-        ) {
-
-            Alert.alert(
-                'Unable to book again',
-                'Service information is missing from this booking.',
-            );
-
-            return;
-        }
-
-
-        if (
-            !currentUser?.userId
-        ) {
-
-            Alert.alert(
-                'Unable to book again',
-                'Customer information is missing. Please login again.',
-            );
-
-            return;
-        }
-
-
-        const services =
-            booking.services
-                .map(
-                    (service: any) => ({
-                        serviceId:
-                            String(
-                                service?.serviceId ??
-                                '',
-                            ),
-
-                        name:
-                            service?.name ??
-                            '',
-
-                        category:
-                            service?.category ??
-                            '',
-
-                        price:
-                            Number(
-                                service?.price ??
-                                0,
-                            ),
-
-                        duration:
-                            Number(
-                                service?.duration ??
-                                0,
-                            ),
-                    }),
-                )
-                .filter(
-                    (
-                        service: {
-                            serviceId: string;
-                            name: string;
-                            category: string;
-                            price: number;
-                            duration: number;
-                        },
-                    ) =>
-                        Boolean(
-                            service.serviceId,
-                        ),
+                Alert.alert(
+                    'Unable to book again',
+                    'Salon information is missing from this booking.',
                 );
 
-
-        if (
-            services.length === 0
-        ) {
-
-            Alert.alert(
-                'Unable to book again',
-                'No valid services were found in the previous booking.',
-            );
-
-            return;
-        }
+                return;
+            }
 
 
-        console.log(
-            'BOOK AGAIN NAVIGATION:',
-            {
-                salonId:
-                    booking.salonId,
+            if (
+                !Array.isArray(
+                    booking?.services,
+                ) ||
+                booking.services.length === 0
+            ) {
 
-                customerUserId:
-                    currentUser.userId,
+                Alert.alert(
+                    'Unable to book again',
+                    'Service information is missing from this booking.',
+                );
 
-                services,
-            },
-        );
-
-
-        const parentNavigation =
-            navigation.getParent<any>();
+                return;
+            }
 
 
-        if (
-            !parentNavigation
-        ) {
+            if (
+                !currentUser?.userId
+            ) {
 
-            Alert.alert(
-                'Unable to continue',
-                'Navigation is not available.',
-            );
+                Alert.alert(
+                    'Unable to book again',
+                    'Customer information is missing. Please login again.',
+                );
 
-            return;
-        }
+                return;
+            }
 
 
-        parentNavigation.navigate(
-            'Home',
-            {
-                screen:
-                    'BookingDateTime',
+            const services =
+                booking.services
+                    .map(
+                        (service: any) => ({
 
-                params: {
+                            serviceId:
+                                String(
+                                    service?.serviceId ??
+                                    '',
+                                ),
+
+                            name:
+                                service?.name ??
+                                '',
+
+                            category:
+                                service?.category ??
+                                '',
+
+                            subcategory:
+                                service?.subcategory ??
+                                '',
+
+                            audience:
+                                service?.audience ??
+                                '',
+
+                            price:
+                                Number(
+                                    service?.price ??
+                                    0,
+                                ),
+
+                            duration:
+                                Number(
+                                    service?.duration ??
+                                    0,
+                                ),
+                        }),
+                    )
+                    .filter(
+                        (
+                            service: {
+                                serviceId: string;
+                                name: string;
+                                category: string;
+                                subcategory: string;
+                                audience: string;
+                                price: number;
+                                duration: number;
+                            },
+                        ) =>
+                            Boolean(
+                                service.serviceId,
+                            ),
+                    );
+
+
+            if (
+                services.length === 0
+            ) {
+
+                Alert.alert(
+                    'Unable to book again',
+                    'No valid services were found in the previous booking.',
+                );
+
+                return;
+            }
+
+
+            console.log(
+                'BOOK AGAIN NAVIGATION:',
+                {
                     salonId:
                         booking.salonId,
 
@@ -881,9 +969,44 @@ export default function BookingPage() {
 
                     services,
                 },
-            },
-        );
-    };
+            );
+
+
+            const parentNavigation =
+                navigation.getParent<any>();
+
+
+            if (
+                !parentNavigation
+            ) {
+
+                Alert.alert(
+                    'Unable to continue',
+                    'Navigation is not available.',
+                );
+
+                return;
+            }
+
+
+            parentNavigation.navigate(
+                'Home',
+                {
+                    screen:
+                        'BookingDateTime',
+
+                    params: {
+                        salonId:
+                            booking.salonId,
+
+                        customerUserId:
+                            currentUser.userId,
+
+                        services,
+                    },
+                },
+            );
+        };
 
 
     // ============================================================
@@ -895,7 +1018,11 @@ export default function BookingPage() {
 
             console.log(
                 'VIEW BOOKING:',
-                booking.bookingId,
+                JSON.stringify(
+                    booking,
+                    null,
+                    2,
+                ),
             );
 
 
@@ -1065,9 +1192,11 @@ export default function BookingPage() {
                         refreshing={
                             refreshing
                         }
+
                         onRefresh={
                             handleRefresh
                         }
+
                         tintColor={
                             COLORS.primary
                         }
@@ -1429,14 +1558,13 @@ function BookingCard({
     isCancelling,
 }: BookingCardProps) {
 
+
     const services =
-        booking.services
-            ?.map(
-                (service: any) =>
-                    service.name,
-            )
-            .join(', ') ||
-        'Salon services';
+        Array.isArray(
+            booking?.services,
+        )
+            ? booking.services
+            : [];
 
 
     return (
@@ -1495,13 +1623,14 @@ function BookingCard({
 
                     <Text
                         style={
-                            styles.serviceText
-                        }
-                        numberOfLines={
-                            2
+                            styles.serviceCountText
                         }
                     >
-                        {services}
+                        {services.length}{' '}
+                        {services.length ===
+                            1
+                            ? 'service'
+                            : 'services'}
                     </Text>
 
                 </View>
@@ -1510,6 +1639,7 @@ function BookingCard({
                 <View
                     style={[
                         styles.statusBadge,
+
                         {
                             backgroundColor:
                                 status.background,
@@ -1523,6 +1653,7 @@ function BookingCard({
                     <Text
                         style={[
                             styles.statusText,
+
                             {
                                 color:
                                     status.color,
@@ -1533,6 +1664,204 @@ function BookingCard({
                     </Text>
 
                 </View>
+
+            </View>
+
+
+            {/* ================================================= */}
+            {/* SERVICES */}
+            {/* ================================================= */}
+
+            <View
+                style={
+                    styles.servicesContainer
+                }
+            >
+
+                {services.map(
+                    (
+                        service: any,
+                        index: number,
+                    ) => {
+
+                        const audience =
+                            String(
+                                service?.audience ??
+                                '',
+                            ).toUpperCase();
+
+
+                        return (
+
+                            <View
+                                key={
+                                    `${service?.serviceId || 'service'}-${index}`
+                                }
+                                style={
+                                    styles.serviceCard
+                                }
+                            >
+
+                                {/* ============================== */}
+                                {/* SERVICE TOP ROW */}
+                                {/* ============================== */}
+
+                                <View
+                                    style={
+                                        styles.serviceTopRow
+                                    }
+                                >
+
+                                    <View
+                                        style={
+                                            styles.serviceTitleContainer
+                                        }
+                                    >
+
+                                        <Text
+                                            style={
+                                                styles.serviceName
+                                            }
+                                        >
+                                            {service?.name ||
+                                                'Service'}
+                                        </Text>
+
+                                    </View>
+
+
+                                    {audience.length >
+                                        0 && (
+
+                                            <View
+                                                style={
+                                                    styles.audienceBadge
+                                                }
+                                            >
+
+                                                <Text
+                                                    style={
+                                                        styles.audienceBadgeText
+                                                    }
+                                                >
+                                                    {audience}
+                                                </Text>
+
+                                            </View>
+
+                                        )}
+
+                                </View>
+
+
+                                {/* ============================== */}
+                                {/* CATEGORY */}
+                                {/* ============================== */}
+
+                                <Text
+                                    style={
+                                        styles.categoryPath
+                                    }
+                                >
+                                    {service?.category ||
+                                        'Category'}
+
+                                    {service?.subcategory
+                                        ? `  ›  ${service.subcategory}`
+                                        : ''}
+                                </Text>
+
+
+                                {/* ============================== */}
+                                {/* SERVICE INFO */}
+                                {/* ============================== */}
+
+                                <View
+                                    style={
+                                        styles.serviceInfoRow
+                                    }
+                                >
+
+                                    {/* PRICE */}
+
+                                    <View
+                                        style={
+                                            styles.serviceInfoItem
+                                        }
+                                    >
+
+                                        <Text
+                                            style={
+                                                styles.serviceInfoLabel
+                                            }
+                                        >
+                                            PRICE
+                                        </Text>
+
+
+                                        <Text
+                                            style={
+                                                styles.serviceInfoValue
+                                            }
+                                        >
+                                            ₹
+                                            {Number(
+                                                service?.price ??
+                                                0,
+                                            )}
+                                        </Text>
+
+                                    </View>
+
+
+                                    {/* DIVIDER */}
+
+                                    <View
+                                        style={
+                                            styles.serviceInfoDivider
+                                        }
+                                    />
+
+
+                                    {/* DURATION */}
+
+                                    <View
+                                        style={
+                                            styles.serviceInfoItem
+                                        }
+                                    >
+
+                                        <Text
+                                            style={
+                                                styles.serviceInfoLabel
+                                            }
+                                        >
+                                            DURATION
+                                        </Text>
+
+
+                                        <Text
+                                            style={
+                                                styles.serviceInfoValue
+                                            }
+                                        >
+                                            {Number(
+                                                service?.duration ??
+                                                0,
+                                            )}{' '}
+                                            min
+                                        </Text>
+
+                                    </View>
+
+                                </View>
+
+                            </View>
+
+                        );
+
+                    },
+                )}
 
             </View>
 
@@ -2397,7 +2726,7 @@ const styles =
                 COLORS.text,
         },
 
-        serviceText: {
+        serviceCountText: {
             marginTop:
                 4,
 
@@ -2445,6 +2774,175 @@ const styles =
 
             textAlign:
                 'center',
+        },
+
+
+        // ======================================================
+        // SERVICES
+        // ======================================================
+
+        servicesContainer: {
+            marginTop:
+                13,
+        },
+
+        serviceCard: {
+            backgroundColor:
+                '#FAFAFA',
+
+            borderWidth:
+                1,
+
+            borderColor:
+                COLORS.border,
+
+            borderRadius:
+                12,
+
+            padding:
+                11,
+
+            marginBottom:
+                8,
+        },
+
+        serviceTopRow: {
+            flexDirection:
+                'row',
+
+            alignItems:
+                'center',
+
+            justifyContent:
+                'space-between',
+        },
+
+        serviceTitleContainer: {
+            flex:
+                1,
+
+            paddingRight:
+                8,
+        },
+
+        serviceName: {
+            fontSize:
+                14,
+
+            fontWeight:
+                '700',
+
+            color:
+                COLORS.text,
+        },
+
+        audienceBadge: {
+            paddingHorizontal:
+                8,
+
+            paddingVertical:
+                4,
+
+            borderRadius:
+                7,
+
+            backgroundColor:
+                COLORS.badgeColor,
+        },
+
+        audienceBadgeText: {
+            fontSize:
+                9,
+
+            fontWeight:
+                '800',
+
+            color:
+                COLORS.primary,
+
+            letterSpacing:
+                0.4,
+        },
+
+        categoryPath: {
+            marginTop:
+                4,
+
+            fontSize:
+                11,
+
+            color:
+                COLORS.textSecondary,
+
+            fontWeight:
+                '500',
+        },
+
+        serviceInfoRow: {
+            flexDirection:
+                'row',
+
+            alignItems:
+                'center',
+
+            marginTop:
+                10,
+
+            paddingTop:
+                9,
+
+            borderTopWidth:
+                1,
+
+            borderTopColor:
+                COLORS.border,
+        },
+
+        serviceInfoItem: {
+            flex:
+                1,
+        },
+
+        serviceInfoLabel: {
+            fontSize:
+                8,
+
+            fontWeight:
+                '700',
+
+            color:
+                COLORS.textMuted,
+
+            letterSpacing:
+                0.5,
+
+            marginBottom:
+                3,
+        },
+
+        serviceInfoValue: {
+            fontSize:
+                13,
+
+            fontWeight:
+                '700',
+
+            color:
+                COLORS.text,
+        },
+
+        serviceInfoDivider: {
+            width:
+                1,
+
+            height:
+                25,
+
+            backgroundColor:
+                COLORS.border,
+
+            marginHorizontal:
+                12,
         },
 
 

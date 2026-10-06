@@ -306,38 +306,43 @@ mutation CreateBooking($input: CreateBookingInput!) {
 }`;
 
 export const CUSTOMER_BOOKINGS = gql`
-query CustomerBookings($customerUserId: ID!) {
-  customerBookings(customerUserId: $customerUserId) {
-    bookingId
-    salonId
-    customerUserId
-    salonName
-    customerName
-    bookingDate
-    startTime
-    endTime
-    reviewSubmitted
-    rating
-    review
-    reviewedAt
-    bookingStatus
-    paymentMethod
-    paymentStatus
-    preferredPaymentMethod
-    bookingFee
-    bookingFeeStatus
-    bookingFeePaidAt
-    remainingAmount
-    totalAmount
-    services {
-      serviceId
-      name
-      category
-      duration
-      price
+  query CustomerBookings($customerUserId: ID!) {
+    customerBookings(customerUserId: $customerUserId) {
+      bookingId
+      salonId
+      customerUserId
+      salonName
+      customerName
+      bookingDate
+      startTime
+      endTime
+      reviewSubmitted
+      rating
+      review
+      reviewedAt
+      bookingStatus
+      paymentMethod
+      paymentStatus
+      preferredPaymentMethod
+      bookingFee
+      bookingFeeStatus
+      bookingFeePaidAt
+      remainingAmount
+      totalAmount
+
+      services {
+        serviceId
+        name
+        audience
+        category
+        subcategory
+        categoryId
+        subcategoryId
+        duration
+        price
+      }
     }
   }
-}
 `;
 
 // export const GET_SALON = gql`
