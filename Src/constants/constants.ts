@@ -16,8 +16,9 @@ export const COLORS = {
   white: '#FFFFFF',
   black: '#000000',
   transparent: 'transparent',
-  themeColor: '#009D94',
-  secondaryColor: '#f69961',
+  // themeColor: '#009D94',
+  themeColor: '#17769c',
+  secondaryColor: '#009D94',
 };
 
 
@@ -31,7 +32,7 @@ export const FONTS = {
 export const FONT_SIZES = {
   xs: 12,
   small: 14,
-  selected:15,
+  selected: 15,
   body: 16,
   medium: 17,
   title: 20,

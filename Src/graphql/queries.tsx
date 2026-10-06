@@ -661,7 +661,11 @@ export const SALON_DASHBOARD_QUERY = gql`
       services {
         serviceId
         name
+        audience
         category
+        subcategory
+        categoryId
+        subcategoryId
         duration
         price
       }
