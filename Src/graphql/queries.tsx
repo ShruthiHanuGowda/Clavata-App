@@ -110,13 +110,14 @@ export const GET_BOOKING = gql`
             startTime
             endTime
 
-            staffId
-            staffName
-
             services {
                 serviceId
                 name
+                audience
                 category
+                subcategory
+                categoryId
+                subcategoryId
                 duration
                 price
             }

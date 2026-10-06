@@ -101,6 +101,12 @@ export default function BookingDetails() {
     );
 
 
+    console.log(
+        'BookingDetails error:',
+        error,
+    );
+
+
     // ==========================================================
     // HELPERS
     // ==========================================================
@@ -234,6 +240,43 @@ export default function BookingDetails() {
                 return {
                     backgroundColor: '#F3F4F6',
                     color: '#6B7280',
+                };
+        }
+    };
+
+
+    // ==========================================================
+    // AUDIENCE
+    // ==========================================================
+
+    const getAudienceStyle = (
+        audience: string,
+    ) => {
+
+        switch (audience) {
+
+            case 'FEMALE':
+                return {
+                    backgroundColor: '#FCE7F3',
+                    color: '#BE185D',
+                };
+
+            case 'MALE':
+                return {
+                    backgroundColor: '#E0F2FE',
+                    color: '#0369A1',
+                };
+
+            case 'KIDS':
+                return {
+                    backgroundColor: '#FEF3C7',
+                    color: '#B45309',
+                };
+
+            default:
+                return {
+                    backgroundColor: '#F1F5F9',
+                    color: '#475569',
                 };
         }
     };
@@ -1088,6 +1131,7 @@ export default function BookingDetails() {
                         Booking Details
                     </Text>
 
+
                     <View
                         style={
                             styles.headerSpacer
@@ -1255,35 +1299,6 @@ export default function BookingDetails() {
 
                     </View>
 
-
-                    {booking.staffName ? (
-
-                        <View
-                            style={
-                                styles.infoRow
-                            }
-                        >
-
-                            <Text
-                                style={
-                                    styles.infoLabel
-                                }
-                            >
-                                Staff
-                            </Text>
-
-                            <Text
-                                style={
-                                    styles.infoValue
-                                }
-                            >
-                                {booking.staffName}
-                            </Text>
-
-                        </View>
-
-                    ) : null}
-
                 </View>
 
 
@@ -1304,68 +1319,210 @@ export default function BookingDetails() {
                     </Text>
 
 
-                    {booking.services?.map(
-                        (
-                            service: any,
-                            index: number,
-                        ) => (
+                    {booking.services?.length ? (
 
-                            <View
-                                key={
-                                    service.serviceId ||
-                                    index
-                                }
-                                style={
-                                    styles.serviceRow
-                                }
-                            >
+                        booking.services.map(
+                            (
+                                service: any,
+                                index: number,
+                            ) => {
 
-                                <View
-                                    style={
-                                        styles.serviceInfo
-                                    }
-                                >
+                                const audience =
+                                    service?.audience ||
+                                    '';
 
-                                    <Text
-                                        style={
-                                            styles.serviceName
+
+                                const audienceStyle =
+                                    getAudienceStyle(
+                                        audience,
+                                    );
+
+
+                                const category =
+                                    service?.category ||
+                                    '';
+
+
+                                const subcategory =
+                                    service?.subcategory ||
+                                    '';
+
+
+                                const hasCategory =
+                                    Boolean(
+                                        category ||
+                                        subcategory,
+                                    );
+
+
+                                const hasDuration =
+                                    service?.duration !==
+                                        null &&
+                                    service?.duration !==
+                                        undefined &&
+                                    Number(
+                                        service.duration,
+                                    ) > 0;
+
+
+                                return (
+
+                                    <View
+                                        key={
+                                            service?.serviceId ||
+                                            `${service?.name || 'service'}-${index}`
                                         }
+                                        style={[
+                                            styles.serviceRow,
+                                            index ===
+                                                booking.services.length - 1 &&
+                                                styles.lastServiceRow,
+                                        ]}
                                     >
-                                        {service.name}
-                                    </Text>
 
-                                    {service.duration ? (
-
-                                        <Text
+                                        <View
                                             style={
-                                                styles.serviceDuration
+                                                styles.serviceInfo
                                             }
                                         >
-                                            {service.duration}{' '}
-                                            min
-                                        </Text>
 
-                                    ) : null}
+                                            {/* --------------------------------
+                                                SERVICE NAME + AUDIENCE
+                                            -------------------------------- */}
 
-                                </View>
+                                            <View
+                                                style={
+                                                    styles.serviceTitleRow
+                                                }
+                                            >
+
+                                                <Text
+                                                    style={
+                                                        styles.serviceName
+                                                    }
+                                                    numberOfLines={
+                                                        2
+                                                    }
+                                                >
+                                                    {service?.name ||
+                                                        'Service'}
+                                                </Text>
 
 
-                                <Text
-                                    style={
-                                        styles.servicePrice
-                                    }
-                                >
-                                    {formatCurrency(
-                                        Number(
-                                            service.price ||
-                                            0,
-                                        ),
-                                    )}
-                                </Text>
+                                                {audience ? (
 
-                            </View>
+                                                    <View
+                                                        style={[
+                                                            styles.audienceBadge,
+                                                            {
+                                                                backgroundColor:
+                                                                    audienceStyle.backgroundColor,
+                                                            },
+                                                        ]}
+                                                    >
 
-                        ),
+                                                        <Text
+                                                            style={[
+                                                                styles.audienceText,
+                                                                {
+                                                                    color:
+                                                                        audienceStyle.color,
+                                                                },
+                                                            ]}
+                                                        >
+                                                            {audience}
+                                                        </Text>
+
+                                                    </View>
+
+                                                ) : null}
+
+                                            </View>
+
+
+                                            {/* --------------------------------
+                                                CATEGORY > SUBCATEGORY
+                                            -------------------------------- */}
+
+                                            {hasCategory ? (
+
+                                                <Text
+                                                    style={
+                                                        styles.serviceCategory
+                                                    }
+                                                    numberOfLines={
+                                                        2
+                                                    }
+                                                >
+                                                    {category || '-'}
+                                                    {subcategory
+                                                        ? ` > ${subcategory}`
+                                                        : ''}
+                                                </Text>
+
+                                            ) : null}
+
+
+                                            {/* --------------------------------
+                                                PRICE + DURATION
+                                            -------------------------------- */}
+
+                                            <View
+                                                style={
+                                                    styles.serviceMetaRow
+                                                }
+                                            >
+
+                                                <Text
+                                                    style={
+                                                        styles.servicePrice
+                                                    }
+                                                >
+                                                    {formatCurrency(
+                                                        Number(
+                                                            service?.price ||
+                                                            0,
+                                                        ),
+                                                    )}
+                                                </Text>
+
+
+                                                {hasDuration ? (
+
+                                                    <Text
+                                                        style={
+                                                            styles.serviceDuration
+                                                        }
+                                                    >
+                                                        {' • '}
+                                                        {Number(
+                                                            service.duration,
+                                                        )}
+                                                        {' min'}
+                                                    </Text>
+
+                                                ) : null}
+
+                                            </View>
+
+                                        </View>
+
+                                    </View>
+
+                                );
+                            },
+                        )
+
+                    ) : (
+
+                        <Text
+                            style={
+                                styles.emptyServiceText
+                            }
+                        >
+                            No services found for this booking.
+                        </Text>
+
                     )}
 
                 </View>
@@ -2154,24 +2311,76 @@ const styles = StyleSheet.create({
     },
 
 
+    // ============================================================
+    // SERVICES
+    // ============================================================
+
     serviceRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 9,
+        paddingVertical: 11,
         borderBottomWidth: 1,
         borderBottomColor: '#F1F5F9',
     },
 
 
+    lastServiceRow: {
+        borderBottomWidth: 0,
+        paddingBottom: 2,
+    },
+
+
     serviceInfo: {
-        flex: 1,
+        width: '100%',
+    },
+
+
+    serviceTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
 
 
     serviceName: {
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1E293B',
+        flex: 1,
+        marginRight: 10,
+    },
+
+
+    audienceBadge: {
+        borderRadius: 20,
+        paddingHorizontal: 9,
+        paddingVertical: 4,
+    },
+
+
+    audienceText: {
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 0.3,
+    },
+
+
+    serviceCategory: {
+        fontSize: 12,
+        fontWeight: '500',
+        color: '#64748B',
+        marginTop: 5,
+    },
+
+
+    serviceMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 5,
+    },
+
+
+    servicePrice: {
+        fontSize: 13,
+        fontWeight: '700',
         color: '#1E293B',
     },
 
@@ -2179,14 +2388,12 @@ const styles = StyleSheet.create({
     serviceDuration: {
         fontSize: 12,
         color: '#94A3B8',
-        marginTop: 3,
     },
 
 
-    servicePrice: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#1E293B',
+    emptyServiceText: {
+        fontSize: 13,
+        color: '#94A3B8',
     },
 
 
