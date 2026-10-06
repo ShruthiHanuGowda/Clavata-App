@@ -3867,277 +3867,311 @@ export default function SalonDetailsScreen({
                 </View>
             </Modal>
 
-            {/* ====================================================
-                BOTTOM BOOKING BAR
-               ==================================================== */}
+           {/* ====================================================
+    BOTTOM BOOKING BAR
+   ==================================================== */}
 
-            {selectedServices.length >
-                0 && (
-                <View
+{selectedServices.length > 0 && (
+    <View
+        style={
+            styles.bottomBar
+        }
+    >
+        {/* TAP THIS AREA TO VIEW SELECTED SERVICES */}
+
+        <TouchableOpacity
+            activeOpacity={
+                0.75
+            }
+            style={
+                styles.bottomInfo
+            }
+            onPress={() =>
+                setSelectedServicesVisible(
+                    true,
+                )
+            }
+        >
+            <View
+                style={
+                    styles.bottomSelectedRow
+                }
+            >
+                <Text
                     style={
-                        styles.bottomBar
+                        styles.selectedText
                     }
                 >
-                    {/* TAP THIS AREA TO VIEW SELECTED SERVICES */}
+                    {
+                        selectedServices.length
+                    }{' '}
+                    {selectedServices.length ===
+                    1
+                        ? 'service'
+                        : 'services'}
+                </Text>
 
-                    <TouchableOpacity
-                        activeOpacity={
-                            0.75
-                        }
-                        style={
-                            styles.bottomInfo
-                        }
-                        onPress={() =>
-                            setSelectedServicesVisible(
-                                true,
-                            )
-                        }
-                    >
-                        <View
-                            style={
-                                styles.bottomSelectedRow
-                            }
-                        >
-                            <Text
-                                style={
-                                    styles.selectedText
-                                }
-                            >
-                                {
-                                    selectedServices.length
-                                }{' '}
-                                {selectedServices.length ===
-                                1
-                                    ? 'service'
-                                    : 'services'}
-                            </Text>
+                <Text
+                    style={
+                        styles.bottomViewText
+                    }
+                >
+                    View
+                </Text>
 
-                            <Text
-                                style={
-                                    styles.bottomViewText
-                                }
-                            >
-                                View
-                            </Text>
+                <Text
+                    style={
+                        styles.bottomViewArrow
+                    }
+                >
+                    ↑
+                </Text>
+            </View>
 
-                            <Text
-                                style={
-                                    styles.bottomViewArrow
-                                }
-                            >
-                                ↑
-                            </Text>
-                        </View>
-
-                        {offerApplied && (
-                            <Text
-                                style={
-                                    styles.bottomOriginalPrice
-                                }
-                            >
-                                ₹
-                                {subtotal.toFixed(
-                                    0,
-                                )}
-                            </Text>
-                        )}
-
-                        <Text
-                            style={
-                                styles.totalPrice
-                            }
-                        >
-                            ₹
-                            {discountedServicesTotal.toFixed(
-                                0,
-                            )}
-                        </Text>
-
-                        {offerApplied && (
-                            <Text
-                                style={
-                                    styles.bottomSavings
-                                }
-                            >
-                                Save ₹
-                                {discountAmount.toFixed(
-                                    0,
-                                )}
-                            </Text>
-                        )}
-
-                        {!offerApplied &&
-                            normalizedOffer &&
-                            !minimumBookingAmountMet && (
-                                <Text
-                                    style={
-                                        styles.minimumAmountWarning
-                                    }
-                                >
-                                    Add more for offer
-                                </Text>
-                            )}
-
-                        <Text
-                            style={
-                                styles.totalDuration
-                            }
-                        >
-                            {
-                                totalDuration
-                            }{' '}
-                            mins
-                        </Text>
-                    </TouchableOpacity>
-
-                    {/* CONTINUE */}
-
-                    <TouchableOpacity
-                        style={
-                            styles.continueButton
-                        }
-                        activeOpacity={
-                            0.85
-                        }
-                        onPress={() => {
-                            if (
-                                !currentUser?.userId
-                            ) {
-                                Alert.alert(
-                                    'Login required',
-                                    'Please login to continue booking.',
-                                );
-
-                                return;
-                            }
-
-                            if (
-                                !salon?.salonId
-                            ) {
-                                Alert.alert(
-                                    'Salon unavailable',
-                                    'Salon information is missing. Please try again.',
-                                );
-
-                                return;
-                            }
-
-                            if (
-                                selectedServices.length ===
-                                0
-                            ) {
-                                Alert.alert(
-                                    'Select a service',
-                                    'Please select at least one service before continuing.',
-                                );
-
-                                return;
-                            }
-
-                            const params = {
-                                salonId:
-                                    salon.salonId,
-
-                                salon,
-
-                                salonName:
-                                    salon.salonName,
-
-                                customerUserId:
-                                    currentUser.userId,
-
-                                services:
-                                    selectedServices,
-
-                                offer:
-                                    normalizedOffer ||
-                                    undefined,
-
-                                offerId:
-                                    routeOfferId ||
-                                    normalizedOffer?.offerId ||
-                                    undefined,
-
-                                subtotal,
-
-                                discountAmount,
-
-                                totalPrice:
-                                    discountedServicesTotal,
-
-                                offerApplied,
-
-                                totalDuration,
-
-                                businessHours:
-                                    salon.businessHours ??
-                                    {
-                                        MONDAY:
-                                            (
-                                                salon as any
-                                            ).MONDAY,
-
-                                        TUESDAY:
-                                            (
-                                                salon as any
-                                            ).TUESDAY,
-
-                                        WEDNESDAY:
-                                            (
-                                                salon as any
-                                            ).WEDNESDAY,
-
-                                        THURSDAY:
-                                            (
-                                                salon as any
-                                            ).THURSDAY,
-
-                                        FRIDAY:
-                                            (
-                                                salon as any
-                                            ).FRIDAY,
-
-                                        SATURDAY:
-                                            (
-                                                salon as any
-                                            ).SATURDAY,
-
-                                        SUNDAY:
-                                            (
-                                                salon as any
-                                            ).SUNDAY,
-                                    },
-                            };
-
-                            console.log(
-                                '[SalonDetails] SENDING TO BOOKING DATETIME:',
-                                params,
-                            );
-
-                            navigation.navigate(
-                                'BookingDateTime',
-                                params,
-                            );
-                        }}
-                    >
-                        <Text
-                            style={
-                                styles.continueText
-                            }
-                        >
-                            Continue
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.continueArrow
-                            }
-                        >
-                            →
-                        </Text>
-                    </TouchableOpacity>
-                </View>
+            {offerApplied && (
+                <Text
+                    style={
+                        styles.bottomOriginalPrice
+                    }
+                >
+                    ₹
+                    {subtotal.toFixed(
+                        0,
+                    )}
+                </Text>
             )}
+
+            {/* SERVICES TOTAL */}
+
+            <Text
+                style={
+                    styles.totalPrice
+                }
+            >
+                ₹
+                {discountedServicesTotal.toFixed(
+                    0,
+                )}
+            </Text>
+
+            {offerApplied && (
+                <Text
+                    style={
+                        styles.bottomSavings
+                    }
+                >
+                    Save ₹
+                    {discountAmount.toFixed(
+                        0,
+                    )}
+                </Text>
+            )}
+
+            {!offerApplied &&
+                normalizedOffer &&
+                !minimumBookingAmountMet && (
+                    <Text
+                        style={
+                            styles.minimumAmountWarning
+                        }
+                    >
+                        Add more for offer
+                    </Text>
+                )}
+
+            {/* FIXED CLAVATA BOOKING FEE */}
+
+            <View
+                style={
+                    styles.bookingFeeRow
+                }
+            >
+                <Text
+                    style={
+                        styles.bookingFeeLabel
+                    }
+                >
+                    Booking fee
+                </Text>
+
+                <Text
+                    style={
+                        styles.bookingFeeValue
+                    }
+                >
+                    ₹9
+                </Text>
+            </View>
+
+            <Text
+                style={
+                    styles.totalDuration
+                }
+            >
+                {
+                    totalDuration
+                }{' '}
+                mins
+            </Text>
+        </TouchableOpacity>
+
+        {/* CONTINUE */}
+
+        <TouchableOpacity
+            style={
+                styles.continueButton
+            }
+            activeOpacity={
+                0.85
+            }
+            onPress={() => {
+                if (
+                    !currentUser?.userId
+                ) {
+                    Alert.alert(
+                        'Login required',
+                        'Please login to continue booking.',
+                    );
+
+                    return;
+                }
+
+                if (
+                    !salon?.salonId
+                ) {
+                    Alert.alert(
+                        'Salon unavailable',
+                        'Salon information is missing. Please try again.',
+                    );
+
+                    return;
+                }
+
+                if (
+                    selectedServices.length ===
+                    0
+                ) {
+                    Alert.alert(
+                        'Select a service',
+                        'Please select at least one service before continuing.',
+                    );
+
+                    return;
+                }
+
+                const params = {
+                    salonId:
+                        salon.salonId,
+
+                    salon,
+
+                    salonName:
+                        salon.salonName,
+
+                    customerUserId:
+                        currentUser.userId,
+
+                    services:
+                        selectedServices,
+
+                    offer:
+                        normalizedOffer ||
+                        undefined,
+
+                    offerId:
+                        routeOfferId ||
+                        normalizedOffer?.offerId ||
+                        undefined,
+
+                    subtotal,
+
+                    discountAmount,
+
+                    totalPrice:
+                        discountedServicesTotal,
+
+                    offerApplied,
+
+                    totalDuration,
+
+                    /*
+                     * Fixed Clavata booking fee.
+                     *
+                     * This is NOT added to totalPrice.
+                     * It is collected separately as the
+                     * fixed booking fee.
+                     */
+                    bookingFee: 9,
+
+                    businessHours:
+                        salon.businessHours ??
+                        {
+                            MONDAY:
+                                (
+                                    salon as any
+                                ).MONDAY,
+
+                            TUESDAY:
+                                (
+                                    salon as any
+                                ).TUESDAY,
+
+                            WEDNESDAY:
+                                (
+                                    salon as any
+                                ).WEDNESDAY,
+
+                            THURSDAY:
+                                (
+                                    salon as any
+                                ).THURSDAY,
+
+                            FRIDAY:
+                                (
+                                    salon as any
+                                ).FRIDAY,
+
+                            SATURDAY:
+                                (
+                                    salon as any
+                                ).SATURDAY,
+
+                            SUNDAY:
+                                (
+                                    salon as any
+                                ).SUNDAY,
+                        },
+                };
+
+                console.log(
+                    '[SalonDetails] SENDING TO BOOKING DATETIME:',
+                    params,
+                );
+
+                navigation.navigate(
+                    'BookingDateTime',
+                    params,
+                );
+            }}
+        >
+            <Text
+                style={
+                    styles.continueText
+                }
+            >
+                Continue
+            </Text>
+
+            <Text
+                style={
+                    styles.continueArrow
+                }
+            >
+                →
+            </Text>
+        </TouchableOpacity>
+    </View>
+)}
         </SafeAreaView>
     );
 }
@@ -5437,4 +5471,22 @@ const styles = StyleSheet.create({
         fontSize: 18,
         marginLeft: 7,
     },
+    bookingFeeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+},
+
+bookingFeeLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#777',
+},
+
+bookingFeeValue: {
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: '800',
+    color: PRIMARY,
+},
 });
