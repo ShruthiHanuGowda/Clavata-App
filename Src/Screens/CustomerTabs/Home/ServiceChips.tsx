@@ -83,6 +83,10 @@ type Props = {
     categoryId: string;
     category: string;
     subcategoryIds: string[];
+    audienceSubcategorySelections?: Array<{
+      audience: ServiceAudience;
+      subcategoryIds: string[];
+    }>;
   }) => void;
 
   selectedCategoryId?: string;
@@ -90,6 +94,26 @@ type Props = {
   selectedCategory?: string;
 
   selectedSubcategoryIds?: string[];
+
+  /**
+   * Audience-specific selections.
+   *
+   * IMPORTANT:
+   * A subcategory ID can be valid for multiple audiences.
+   * Therefore the real selection identity is:
+   *
+   * audience + subcategoryId
+   *
+   * Example:
+   * FEMALE + haircut-id
+   * MALE + haircut-id
+   *
+   * are two different selections.
+   */
+  selectedAudienceSubcategorySelections?: Array<{
+    audience: ServiceAudience;
+    subcategoryIds: string[];
+  }>;
 
   selectedAudiences?: ServiceAudience[];
 };
@@ -254,6 +278,7 @@ const ServiceChips: React.FC<Props> = ({
   selectedCategoryId,
   selectedCategory,
   selectedSubcategoryIds,
+  selectedAudienceSubcategorySelections,
   selectedAudiences,
 }) => {
   /* =======================================================
@@ -301,17 +326,6 @@ const ServiceChips: React.FC<Props> = ({
   >({});
 
   const [
-    internalSelectedSubcategoryIds,
-    setInternalSelectedSubcategoryIds,
-  ] = useState<string[]>(
-    Array.isArray(
-      selectedSubcategoryIds,
-    )
-      ? selectedSubcategoryIds
-      : [],
-  );
-
-  const [
     modalVisible,
     setModalVisible,
   ] = useState(false);
@@ -323,10 +337,34 @@ const ServiceChips: React.FC<Props> = ({
     null,
   );
 
+  /**
+   * IMPORTANT:
+   * Do NOT store modal selections as only string IDs.
+   *
+   * The same subcategory can appear under multiple audience
+   * sections. The selection must therefore include audience.
+   */
   const [
-    modalSelectedSubcategoryIds,
-    setModalSelectedSubcategoryIds,
-  ] = useState<string[]>([]);
+    internalSelectedAudienceSubcategories,
+    setInternalSelectedAudienceSubcategories,
+  ] = useState<
+    Record<ServiceAudience, string[]>
+  >({
+    FEMALE: [],
+    MALE: [],
+    KIDS: [],
+  });
+
+  const [
+    modalSelectedAudienceSubcategories,
+    setModalSelectedAudienceSubcategories,
+  ] = useState<
+    Record<ServiceAudience, string[]>
+  >({
+    FEMALE: [],
+    MALE: [],
+    KIDS: [],
+  });
 
   /* =======================================================
      NORMALIZED AUDIENCES
@@ -569,17 +607,103 @@ const ServiceChips: React.FC<Props> = ({
   ======================================================= */
 
   useEffect(() => {
+    /*
+     * Prefer the new audience-specific value when supplied.
+     *
+     * We keep selectedSubcategoryIds as a compatibility fallback
+     * for callers that have not yet been updated.
+     */
+    if (
+      Array.isArray(
+        selectedAudienceSubcategorySelections,
+      )
+    ) {
+      const next: Record<
+        ServiceAudience,
+        string[]
+      > = {
+        FEMALE: [],
+        MALE: [],
+        KIDS: [],
+      };
+
+      selectedAudienceSubcategorySelections.forEach(
+        selection => {
+          if (
+            !selection ||
+            !(
+              selection.audience === 'FEMALE' ||
+              selection.audience === 'MALE' ||
+              selection.audience === 'KIDS'
+            )
+          ) {
+            return;
+          }
+
+          next[selection.audience] =
+            Array.from(
+              new Set(
+                Array.isArray(
+                  selection.subcategoryIds,
+                )
+                  ? selection.subcategoryIds.map(
+                      id => String(id),
+                    )
+                  : [],
+              ),
+            );
+        },
+      );
+
+      setInternalSelectedAudienceSubcategories(
+        next,
+      );
+
+      return;
+    }
+
+    /*
+     * Backward-compatible fallback.
+     *
+     * If the parent still supplies only IDs, those IDs are
+     * considered selected for the currently selected audiences.
+     *
+     * Once the parent starts passing
+     * selectedAudienceSubcategorySelections, each audience
+     * will be completely independent.
+     */
     const nextIds =
       Array.isArray(
         selectedSubcategoryIds,
       )
-        ? selectedSubcategoryIds
+        ? selectedSubcategoryIds.map(id =>
+            String(id),
+          )
         : [];
 
-    setInternalSelectedSubcategoryIds(
-      nextIds,
+    const next: Record<
+      ServiceAudience,
+      string[]
+    > = {
+      FEMALE: [],
+      MALE: [],
+      KIDS: [],
+    };
+
+    normalizedSelectedAudiences.forEach(
+      audience => {
+        next[audience] = [...nextIds];
+      },
     );
-  }, [selectedSubcategoryIds]);
+
+    setInternalSelectedAudienceSubcategories(
+      next,
+    );
+  }, [
+    selectedSubcategoryIds,
+    selectedAudienceSubcategorySelections,
+    normalizedSelectedAudiences,
+  ]);
 
   /* =======================================================
      CLEAR INVALID SELECTIONS WHEN
@@ -588,16 +712,19 @@ const ServiceChips: React.FC<Props> = ({
 
   useEffect(() => {
     if (
-      normalizedSelectedAudiences.length ===
-      0
+      normalizedSelectedAudiences.length === 0
     ) {
-      setInternalSelectedSubcategoryIds(
-        [],
-      );
+      setInternalSelectedAudienceSubcategories({
+        FEMALE: [],
+        MALE: [],
+        KIDS: [],
+      });
 
-      setModalSelectedSubcategoryIds(
-        [],
-      );
+      setModalSelectedAudienceSubcategories({
+        FEMALE: [],
+        MALE: [],
+        KIDS: [],
+      });
 
       setActiveCategory(null);
       setModalVisible(false);
@@ -605,40 +732,65 @@ const ServiceChips: React.FC<Props> = ({
       return;
     }
 
-    setInternalSelectedSubcategoryIds(
-      previousIds => {
-        const validIds =
-          new Set<string>();
+    setInternalSelectedAudienceSubcategories(
+      previous => {
+        const next: Record<
+          ServiceAudience,
+          string[]
+        > = {
+          FEMALE: [],
+          MALE: [],
+          KIDS: [],
+        };
 
-        Object.values(
-          subcategoriesByCategory,
-        ).forEach(
-          subcategories => {
-            subcategories.forEach(
-              subcategory => {
-                if (
-                  matchesSelectedAudiences(
-                    subcategory,
-                    normalizedSelectedAudiences,
-                  )
-                ) {
-                  validIds.add(
-                    String(
-                      subcategory.subcategoryId,
-                    ),
-                  );
-                }
-              },
+        (
+          ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
+        ).forEach(audience => {
+          if (
+            !normalizedSelectedAudiences.includes(
+              audience,
+            )
+          ) {
+            return;
+          }
+
+          const validIds =
+            new Set<string>();
+
+          Object.values(
+            subcategoriesByCategory,
+          ).forEach(
+            subcategories => {
+              subcategories.forEach(
+                subcategory => {
+                  const audiences =
+                    normalizeAudienceList(
+                      subcategory.audiences,
+                    );
+
+                  if (
+                    audiences.includes(
+                      audience,
+                    )
+                  ) {
+                    validIds.add(
+                      String(
+                        subcategory.subcategoryId,
+                      ),
+                    );
+                  }
+                },
+              );
+            },
+          );
+
+          next[audience] =
+            previous[audience].filter(id =>
+              validIds.has(String(id)),
             );
-          },
-        );
+        });
 
-        return previousIds.filter(
-          id =>
-            validIds.has(
-              String(id),
-            ),
-        );
+        return next;
       },
     );
   }, [
@@ -818,33 +970,31 @@ const ServiceChips: React.FC<Props> = ({
   ) => {
     const categorySubcategories =
       subcategoriesByCategory[
-      categoryId
+        categoryId
       ] ?? [];
 
-    const validIds =
+    const categorySubcategoryIds =
       new Set(
-        categorySubcategories
-          .filter(
-            subcategory =>
-              matchesSelectedAudiences(
-                subcategory,
-                normalizedSelectedAudiences,
-              ),
-          )
-          .map(
-            subcategory =>
-              String(
-                subcategory.subcategoryId,
-              ),
-          ),
+        categorySubcategories.map(
+          subcategory =>
+            String(
+              subcategory.subcategoryId,
+            ),
+        ),
       );
 
-    return internalSelectedSubcategoryIds.filter(
-      id =>
-        validIds.has(
-          String(id),
-        ),
-    ).length;
+    return normalizedSelectedAudiences.reduce(
+      (count, audience) =>
+        count +
+        internalSelectedAudienceSubcategories[
+          audience
+        ].filter(id =>
+          categorySubcategoryIds.has(
+            String(id),
+          ),
+        ).length,
+      0,
+    );
   };
 
   /* =======================================================
@@ -861,7 +1011,7 @@ const ServiceChips: React.FC<Props> = ({
 
     const categorySubcategories =
       subcategoriesByCategory[
-      categoryId
+        categoryId
       ] ?? [];
 
     const categorySubcategoryIds =
@@ -874,23 +1024,53 @@ const ServiceChips: React.FC<Props> = ({
         ),
       );
 
-    const remainingIds =
-      internalSelectedSubcategoryIds.filter(
-        id =>
-          !categorySubcategoryIds.has(
-            String(id),
-          ),
-      );
+    const next: Record<
+      ServiceAudience,
+      string[]
+    > = {
+      FEMALE: [],
+      MALE: [],
+      KIDS: [],
+    };
 
-    setInternalSelectedSubcategoryIds(
-      remainingIds,
+    (
+      ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
+    ).forEach(audience => {
+      next[audience] =
+        internalSelectedAudienceSubcategories[
+          audience
+        ].filter(
+          id =>
+            !categorySubcategoryIds.has(
+              String(id),
+            ),
+        );
+    });
+
+    setInternalSelectedAudienceSubcategories(
+      next,
     );
+
+    const flattenedIds =
+      Array.from(
+        new Set(
+          Object.values(next).flat(),
+        ),
+      );
 
     onSelect({
       categoryId: '',
       category: '',
       subcategoryIds:
-        remainingIds,
+        flattenedIds,
+      audienceSubcategorySelections:
+        (
+          ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
+        ).map(audience => ({
+          audience,
+          subcategoryIds:
+            next[audience],
+        })),
     });
   };
 
@@ -913,41 +1093,60 @@ const ServiceChips: React.FC<Props> = ({
 
     const categorySubcategories =
       subcategoriesByCategory[
-      category.categoryId
+        category.categoryId
       ] ?? [];
 
-    const validCategoryIds =
-      new Set(
-        categorySubcategories
-          .filter(
-            subcategory =>
-              matchesSelectedAudiences(
-                subcategory,
-                normalizedSelectedAudiences,
-              ),
-          )
-          .map(
-            subcategory =>
-              String(
-                subcategory.subcategoryId,
-              ),
-          ),
-      );
+    const modalState: Record<
+      ServiceAudience,
+      string[]
+    > = {
+      FEMALE: [],
+      MALE: [],
+      KIDS: [],
+    };
 
-    const alreadySelectedForCategory =
-      internalSelectedSubcategoryIds.filter(
-        id =>
-          validCategoryIds.has(
-            String(id),
-          ),
-      );
+    /*
+     * IMPORTANT:
+     * Load selections independently for every audience.
+     *
+     * Female haircut and Male haircut can have the same
+     * subcategoryId, but they are still separate selections.
+     */
+    normalizedSelectedAudiences.forEach(
+      audience => {
+        const validCategoryIds =
+          new Set(
+            categorySubcategories
+              .filter(subcategory =>
+                normalizeAudienceList(
+                  subcategory.audiences,
+                ).includes(audience),
+              )
+              .map(
+                subcategory =>
+                  String(
+                    subcategory.subcategoryId,
+                  ),
+              ),
+          );
+
+        modalState[audience] =
+          internalSelectedAudienceSubcategories[
+            audience
+          ].filter(id =>
+            validCategoryIds.has(
+              String(id),
+            ),
+          );
+      },
+    );
 
     setActiveCategory(
       category,
     );
 
-    setModalSelectedSubcategoryIds(
-      alreadySelectedForCategory,
+    setModalSelectedAudienceSubcategories(
+      modalState,
     );
 
     setModalVisible(true);
@@ -958,6 +1157,7 @@ const ServiceChips: React.FC<Props> = ({
   ======================================================= */
 
   const handleSubcategoryToggle = (
+    audience: ServiceAudience,
     subcategoryId: string,
   ) => {
     const normalizedId =
@@ -965,26 +1165,48 @@ const ServiceChips: React.FC<Props> = ({
         subcategoryId,
       );
 
-    setModalSelectedSubcategoryIds(
+    /*
+     * CRITICAL FIX:
+     *
+     * The audience is part of the selection identity.
+     *
+     * Before:
+     *   [subcategoryId]
+     *
+     * After:
+     *   {
+     *     FEMALE: [subcategoryId],
+     *     MALE: [],
+     *   }
+     *
+     * This means selecting Haircut for Female no longer
+     * selects Haircut for Male.
+     */
+    setModalSelectedAudienceSubcategories(
       previous => {
-        if (
-          previous.some(
+        const current =
+          previous[audience] ?? [];
+
+        const alreadySelected =
+          current.some(
             id =>
               String(id) ===
               normalizedId,
-          )
-        ) {
-          return previous.filter(
-            id =>
-              String(id) !==
-              normalizedId,
           );
-        }
 
-        return [
+        return {
           ...previous,
-          normalizedId,
-        ];
+          [audience]: alreadySelected
+            ? current.filter(
+                id =>
+                  String(id) !==
+                  normalizedId,
+              )
+            : [
+                ...current,
+                normalizedId,
+              ],
+        };
       },
     );
   };
@@ -1006,70 +1228,116 @@ const ServiceChips: React.FC<Props> = ({
 
     const currentCategorySubcategories =
       subcategoriesByCategory[
-      activeCategoryId
+        activeCategoryId
       ] ?? [];
 
-    const validCurrentIds =
-      new Set(
-        currentCategorySubcategories
-          .filter(
-            subcategory =>
-              matchesSelectedAudiences(
-                subcategory,
-                normalizedSelectedAudiences,
-              ),
-          )
-          .map(
+    const validSelections: Record<
+      ServiceAudience,
+      string[]
+    > = {
+      FEMALE: [],
+      MALE: [],
+      KIDS: [],
+    };
+
+    /*
+     * Validate each audience separately.
+     *
+     * A subcategory can be shared by multiple audiences,
+     * so validation must never merge the audience buckets.
+     */
+    (
+      ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
+    ).forEach(audience => {
+      const validIds =
+        new Set(
+          currentCategorySubcategories
+            .filter(subcategory =>
+              normalizeAudienceList(
+                subcategory.audiences,
+              ).includes(audience),
+            )
+            .map(
+              subcategory =>
+                String(
+                  subcategory.subcategoryId,
+                ),
+            ),
+        );
+
+      validSelections[audience] =
+        (
+          modalSelectedAudienceSubcategories[
+            audience
+          ] ?? []
+        ).filter(id =>
+          validIds.has(String(id)),
+        );
+    });
+
+    /*
+     * Keep selections from OTHER categories for each
+     * audience independently.
+     */
+    const next: Record<
+      ServiceAudience,
+      string[]
+    > = {
+      FEMALE: [],
+      MALE: [],
+      KIDS: [],
+    };
+
+    (
+      ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
+    ).forEach(audience => {
+      const currentCategoryIds =
+        new Set(
+          currentCategorySubcategories.map(
             subcategory =>
               String(
                 subcategory.subcategoryId,
               ),
           ),
-      );
+        );
 
-    /*
-     * Keep selections belonging to
-     * other categories.
-     */
-    const otherCategorySelections =
-      internalSelectedSubcategoryIds.filter(
-        id =>
-          !validCurrentIds.has(
-            String(id),
-          ),
-      );
+      const otherCategorySelections =
+        internalSelectedAudienceSubcategories[
+          audience
+        ].filter(
+          id =>
+            !currentCategoryIds.has(
+              String(id),
+            ),
+        );
 
-    /*
-     * Keep only valid selections from
-     * the current category.
-     */
-    const validModalSelections =
-      modalSelectedSubcategoryIds.filter(
-        id =>
-          validCurrentIds.has(
-            String(id),
-          ),
-      );
+      next[audience] =
+        Array.from(
+          new Set([
+            ...otherCategorySelections,
+            ...validSelections[audience],
+          ]),
+        );
+    });
 
-    /*
-     * Remove duplicate subcategory IDs.
-     *
-     * This is important because a subcategory
-     * supporting both Female and Kids appears
-     * under both headings but must remain
-     * one selected ID.
-     */
-    const uniqueSelectedIds =
-      Array.from(
-        new Set([
-          ...otherCategorySelections,
-          ...validModalSelections,
-        ]),
-      );
-
-    setInternalSelectedSubcategoryIds(
-      uniqueSelectedIds,
+    setInternalSelectedAudienceSubcategories(
+      next,
     );
+
+    /*
+     * Keep the old flattened subcategoryIds output for
+     * compatibility with existing parent code.
+     *
+     * The NEW audienceSubcategorySelections field is the
+     * authoritative value when the parent needs to know
+     * exactly which audience owns which subcategory.
+     */
+    const flattenedIds =
+      Array.from(
+        new Set(
+          Object.values(next).flat(),
+        ),
+      );
 
     onSelect({
       categoryId:
@@ -1079,7 +1347,16 @@ const ServiceChips: React.FC<Props> = ({
         activeCategory.name.trim(),
 
       subcategoryIds:
-        uniqueSelectedIds,
+        flattenedIds,
+
+      audienceSubcategorySelections:
+        (
+          ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
+        ).map(audience => ({
+          audience,
+          subcategoryIds:
+            next[audience],
+        })),
     });
 
     setModalVisible(false);
@@ -1092,9 +1369,11 @@ const ServiceChips: React.FC<Props> = ({
   const handleCloseModal = () => {
     setModalVisible(false);
 
-    setModalSelectedSubcategoryIds(
-      [],
-    );
+    setModalSelectedAudienceSubcategories({
+      FEMALE: [],
+      MALE: [],
+      KIDS: [],
+    });
 
     setActiveCategory(null);
   };
@@ -1513,7 +1792,11 @@ const ServiceChips: React.FC<Props> = ({
                               );
 
                             const selected =
-                              modalSelectedSubcategoryIds.some(
+                              (
+                                modalSelectedAudienceSubcategories[
+                                  audience
+                                ] ?? []
+                              ).some(
                                 selectedId =>
                                   String(
                                     selectedId,
@@ -1531,6 +1814,7 @@ const ServiceChips: React.FC<Props> = ({
                                 ]}
                                 onPress={() =>
                                   handleSubcategoryToggle(
+                                    audience,
                                     id,
                                   )
                                 }

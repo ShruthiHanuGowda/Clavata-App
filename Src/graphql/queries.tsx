@@ -95,74 +95,6 @@ export const REGISTER_SALON_PARTNER = gql`
   }
 `;
 
-
-// export const CREATE_SERVICE = gql`
-//   mutation CreateService($input: CreateServiceInput!) {
-//     createService(input: $input) {
-//       success
-//       message
-//       service {
-//         serviceId
-//         salonId
-//         name
-//         category
-//         description
-//         duration
-//         price
-//         gender
-//         popular
-//         active
-//         createdAt
-//       }
-//     }
-//   }
-// `;
-
-// export const UPDATE_SERVICE = gql`
-// mutation UpdateService($input: UpdateServiceInput!) {
-//   updateService(input: $input) {
-//     success
-//     message
-//     service {
-//       serviceId
-//       name
-//       category
-//       description
-//       duration
-//       price
-//       gender
-//       popular
-//       active
-//     }
-//   }
-// }`;
-
-
-// export const DELETE_SERVICE = gql`
-// mutation DeleteService($input: DeleteServiceInput!) {
-//   deleteService(input: $input) {
-//     success
-//     message
-//   }
-// }`;
-
-// export const LIST_SERVICES = gql`
-// query ListServices($salonId: ID!) {
-//   listServices(salonId: $salonId) {
-//     serviceId
-//     salonId
-//     name
-//     category
-//     description
-//     duration
-//     price
-//     gender
-//     popular
-//     active
-//     createdAt
-//   }
-// }`
-
 export const GET_BOOKING = gql`
     query GetBooking($bookingId: ID!) {
         GetBooking(bookingId: $bookingId) {
@@ -1442,7 +1374,7 @@ export const GET_SALON = gql`
       ownerUserId
       salonName
       ownerName
-      businessType
+      targetAudiences
       ownerPhoneNumber
       alternatePhone
       email
@@ -1456,6 +1388,8 @@ export const GET_SALON = gql`
 
       latitude
       longitude
+      distance
+      minServicePrice
 
       logoUrl
       coverImageUrl
@@ -1506,15 +1440,15 @@ export const GET_SALON = gql`
         rejectionReason
       }
 
-      # ==========================================================
-      # SERVICE SELECTIONS
-      # ==========================================================
-
       serviceSelections {
         categoryId
         categoryName
         subcategoryId
         subcategoryName
+        serviceName
+        audience
+        price
+        duration
       }
 
       businessHours {
@@ -1560,12 +1494,14 @@ export const GET_SALON = gql`
       isActive
       isVisible
       isDeleted
+
       averageRating
       totalReviews
       totalAppointments
       totalCompletedAppointments
       totalCancelledAppointments
       totalRevenue
+
       approvedBy
       approvedAt
       rejectedBy
@@ -1977,7 +1913,7 @@ export const LIST_SERVICES = gql`
       description
       duration
       price
-      gender
+      audience
       popular
       active
       createdAt
@@ -1987,29 +1923,6 @@ export const LIST_SERVICES = gql`
   }
 `;
 
-export const GET_BUSINESS_TYPES = gql`
-  query BusinessTypes(
-    $search: String
-    $status: BusinessTypeStatus
-  ) {
-    businessTypes(
-      search: $search
-      status: $status
-    ) {
-      success
-      message
-      totalCount
-      businessTypes {
-        businessTypeId
-        name
-        description
-        status
-        createdAt
-        updatedAt
-      }
-    }
-  }
-`;
 
 export const GET_ACTIVE_CATEGORIES = gql`
   query GetActiveCategories {

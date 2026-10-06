@@ -16,7 +16,8 @@ export const COLORS = {
   white: '#FFFFFF',
   black: '#000000',
   transparent: 'transparent',
-  themeColor: '#009D94'
+  themeColor: '#009D94',
+  secondaryColor: '#f69961',
 };
 
 

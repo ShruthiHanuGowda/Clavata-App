@@ -82,6 +82,21 @@ type ServiceSelection = {
   categoryId: string;
   category: string;
   subcategoryIds: string[];
+
+  /**
+   * Keeps subcategory selections independent per audience.
+   *
+   * Example:
+   * FEMALE -> ['haircut-id']
+   * MALE   -> []
+   *
+   * The same subcategory ID may legitimately exist for
+   * multiple audiences, so audience is part of the selection identity.
+   */
+  audienceSubcategorySelections?: Array<{
+    audience: ServiceAudience;
+    subcategoryIds: string[];
+  }>;
 };
 
 // ============================================================
@@ -200,6 +215,24 @@ export default function HomeScreenPage() {
     selectedSubcategoryIds,
     setSelectedSubcategoryIds,
   ] = useState<string[]>([]);
+
+  /**
+   * IMPORTANT:
+   * Keep the real service selection separated by audience.
+   *
+   * Do NOT use selectedSubcategoryIds as the source of truth
+   * for the ServiceChips UI because the same subcategory ID can
+   * exist for Female, Male and Kids.
+   */
+  const [
+    selectedAudienceSubcategorySelections,
+    setSelectedAudienceSubcategorySelections,
+  ] = useState<
+    Array<{
+      audience: ServiceAudience;
+      subcategoryIds: string[];
+    }>
+  >([]);
 
   // ==========================================================
   // LOCATION
@@ -509,6 +542,7 @@ export default function HomeScreenPage() {
       setSelectedCategoryId('');
       setSelectedCategory('');
       setSelectedSubcategoryIds([]);
+      setSelectedAudienceSubcategorySelections([]);
     };
 
   // ==========================================================
@@ -534,6 +568,7 @@ export default function HomeScreenPage() {
         setSelectedCategoryId('');
         setSelectedCategory('');
         setSelectedSubcategoryIds([]);
+        setSelectedAudienceSubcategorySelections([]);
 
         setSelectedBudget(
           BUDGET_OPTIONS[0],
@@ -584,6 +619,57 @@ export default function HomeScreenPage() {
           ),
         );
 
+      /**
+       * This is the important part:
+       *
+       * ServiceChips now returns selections grouped by audience.
+       * We preserve that mapping in the parent instead of rebuilding
+       * it from the flattened subcategoryIds array.
+       */
+      const normalizedAudienceSubcategorySelections =
+        Array.isArray(
+          selection?.audienceSubcategorySelections,
+        )
+          ? selection.audienceSubcategorySelections
+              .filter(
+                item =>
+                  item &&
+                  (
+                    item.audience ===
+                      'FEMALE' ||
+                    item.audience ===
+                      'MALE' ||
+                    item.audience ===
+                      'KIDS'
+                  ),
+              )
+              .map(item => ({
+                audience:
+                  item.audience,
+                subcategoryIds:
+                  Array.from(
+                    new Set(
+                      Array.isArray(
+                        item.subcategoryIds,
+                      )
+                        ? item.subcategoryIds
+                            .map(id =>
+                              String(
+                                id ?? '',
+                              ).trim(),
+                            )
+                            .filter(Boolean)
+                        : [],
+                    ),
+                  ),
+              }))
+              .filter(
+                item =>
+                  item.subcategoryIds
+                    .length > 0,
+              )
+          : [];
+
       setSelectedCategoryId(
         normalizedCategoryId,
       );
@@ -592,8 +678,20 @@ export default function HomeScreenPage() {
         normalizedCategory,
       );
 
+      /**
+       * Keep the flattened list because the search/results screen
+       * currently expects subcategoryIds + audiences separately.
+       */
       setSelectedSubcategoryIds(
         normalizedSubcategoryIds,
+      );
+
+      /**
+       * Keep the audience-specific list because ServiceChips needs
+       * it to know which audience actually selected each subcategory.
+       */
+      setSelectedAudienceSubcategorySelections(
+        normalizedAudienceSubcategorySelections,
       );
 
       // Service search mode.
@@ -997,6 +1095,9 @@ export default function HomeScreenPage() {
               }
               selectedSubcategoryIds={
                 selectedSubcategoryIds
+              }
+              selectedAudienceSubcategorySelections={
+                selectedAudienceSubcategorySelections
               }
               selectedAudiences={
                 selectedAudiences
@@ -1851,7 +1952,7 @@ const styles =
       minHeight: 70,
       borderRadius: 18,
       backgroundColor:
-        COLORS.themeColor,
+        COLORS.secondaryColor,
       flexDirection:
         'row',
       alignItems:
