@@ -13,20 +13,22 @@ import {
 } from 'react-native';
 
 import {
+  gql,
   useQuery,
   useMutation,
 } from '@apollo/client';
 
 import styles from './styles';
 
-import AppointmentCard from './AppointmentCard';
+import AppointmentCard, {
+  Booking,
+} from './AppointmentCard';
 
 import AppointmentFilter from './AppointmentFilter';
 
-import { useUser } from '../../../context/UserContext';
+import {useUser} from '../../../context/UserContext';
 
 import {
-  LIST_BOOKINGS,
   ACCEPT_BOOKING,
   REJECT_BOOKING,
   COMPLETE_BOOKING,
@@ -34,57 +36,65 @@ import {
 
 
 // ============================================================
-// TYPES
+// GRAPHQL QUERY
 // ============================================================
 
-type Service = {
-  serviceId?: string;
+export const SALON_DASHBOARD_QUERY = gql`
+  query SalonDashboard($salonId: ID!) {
+    salonBookings(salonId: $salonId) {
+      bookingId
+      salonId
+      customerUserId
+      salonName
+      customerName
+      customerPhone
+      bookingDate
+      startTime
+      endTime
 
-  name: string;
+      services {
+        serviceId
+        name
+        audience
+        category
+        subcategory
+        categoryId
+        subcategoryId
+        duration
+        price
+      }
 
-  audience?: 'FEMALE' | 'MALE' | 'KIDS' | null;
+      totalDuration
+      subtotal
+      discount
+      totalAmount
 
-  category?: string;
+      paymentMethod
+      paymentStatus
+      bookingStatus
 
-  subcategory?: string;
+      notes
+      salonNote
 
-  categoryId?: string | null;
+      bookingFee
+      bookingFeeStatus
+      bookingFeePaidAt
+      remainingAmount
 
-  subcategoryId?: string | null;
+      razorpayOrderId
+      razorpayPaymentId
+      paymentGateway
 
-  duration?: number;
+      reviewSubmitted
+      rating
+      review
+      reviewedAt
 
-  price?: number;
-};
-
-
-type Booking = {
-  bookingId: string;
-
-  salonId?: string;
-
-  customerUserId?: string;
-
-  customerName: string;
-
-  customerPhone: string;
-
-  bookingDate: string;
-
-  startTime: string;
-
-  endTime: string;
-
-  bookingStatus: string;
-
-  totalAmount: number;
-
-  services: Service[];
-
-  bookingFeeStatus: string;
-
-  bookingFee: number;
-};
+      createdAt
+      updatedAt
+    }
+  }
+`;
 
 
 // ============================================================
@@ -149,7 +159,7 @@ export default function SalonAppointmentsScreen() {
     error,
     refetch,
   } = useQuery(
-    LIST_BOOKINGS,
+    SALON_DASHBOARD_QUERY,
     {
       skip: !salonId,
 
@@ -172,13 +182,30 @@ export default function SalonAppointmentsScreen() {
         );
 
         console.log(
-          '[SalonAppointments] LIST_BOOKINGS SUCCESS'
+          '[SalonAppointments] SALON_DASHBOARD_QUERY SUCCESS'
         );
 
         console.log(
           '[SalonAppointments] response:',
           JSON.stringify(
             responseData,
+            null,
+            2
+          )
+        );
+
+        console.log(
+          '[SalonAppointments] services received:',
+          JSON.stringify(
+            responseData?.salonBookings?.map(
+              (booking: Booking) => ({
+                bookingId:
+                  booking.bookingId,
+
+                services:
+                  booking.services,
+              })
+            ),
             null,
             2
           )
@@ -199,7 +226,7 @@ export default function SalonAppointmentsScreen() {
         );
 
         console.log(
-          '[SalonAppointments] LIST_BOOKINGS ERROR'
+          '[SalonAppointments] SALON_DASHBOARD_QUERY ERROR'
         );
 
         console.log(
@@ -282,6 +309,28 @@ export default function SalonAppointmentsScreen() {
   console.log(
     '[SalonAppointments] selected filter:',
     selectedFilter
+  );
+
+
+  // ============================================================
+  // BOOKING SERVICES DEBUG
+  // ============================================================
+
+  console.log(
+    '[SalonAppointments] booking services:',
+    JSON.stringify(
+      bookings.map(
+        booking => ({
+          bookingId:
+            booking.bookingId,
+
+          services:
+            booking.services,
+        })
+      ),
+      null,
+      2
+    )
   );
 
 
@@ -555,7 +604,7 @@ export default function SalonAppointmentsScreen() {
               const status =
                 String(
                   item.bookingStatus ??
-                  ''
+                    ''
                 ).toUpperCase();
 
 
@@ -846,12 +895,13 @@ export default function SalonAppointmentsScreen() {
         }
 
         contentContainerStyle={{
-          paddingBottom:
-            30,
+           paddingHorizontal: 4,
+    paddingBottom: 30,
+
 
           flexGrow:
             filteredAppointments.length ===
-            0
+              0
               ? 1
               : 0,
         }}
@@ -927,77 +977,8 @@ export default function SalonAppointmentsScreen() {
         renderItem={({
           item,
         }) => (
-
           <AppointmentCard
-
-            bookingId={
-              item.bookingId
-            }
-
-            customer={
-              item.customerName
-            }
-
-            service={
-              Array.isArray(
-                item.services
-              )
-                ? item.services
-                    .map(
-                      service =>
-                        service.name
-                    )
-                    .join(', ')
-                : ''
-            }
-
-            amount={
-              item.totalAmount
-            }
-
-            phone={
-              item.customerPhone
-            }
-
-            time={
-              `${item.bookingDate} • ${item.startTime} - ${item.endTime}`
-            }
-
-            status={
-              item.bookingStatus
-            }
-
-
-            onPress={() => {
-
-              Alert.alert(
-
-                item.customerName,
-
-                Array.isArray(
-                  item.services
-                )
-                  ? item.services
-                      .map(
-                        service =>
-                          service.name
-                      )
-                      .join('\n')
-                  : 'No services',
-
-              );
-
-            }}
-
-
-            bookingFeeStatus={
-              item.bookingFeeStatus
-            }
-
-            bookingFee={
-              item.bookingFee
-            }
-
+            booking={item}
 
             onAccept={() =>
               acceptBooking(
@@ -1005,28 +986,21 @@ export default function SalonAppointmentsScreen() {
               )
             }
 
-
             onReject={() =>
               rejectBooking(
                 item.bookingId
               )
             }
 
-
             onComplete={() =>
               completeBooking(
                 item.bookingId
               )
             }
-
           />
-
         )}
-
       />
 
     </SafeAreaView>
-
   );
-
 }

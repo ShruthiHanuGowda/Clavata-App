@@ -1031,7 +1031,6 @@ export default function BookingPage() {
                 {
                     bookingId:
                         booking.bookingId,
-
                     booking,
                 },
             );

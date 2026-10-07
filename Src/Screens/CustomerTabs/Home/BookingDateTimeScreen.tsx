@@ -7,214 +7,159 @@ import {
     SafeAreaView,
     View,
     Text,
-    TouchableOpacity,
-    ScrollView,
     StyleSheet,
+    TouchableOpacity,
     Modal,
+    ScrollView,
+    Dimensions,
+    TextInput,
+    Alert,
+    ActivityIndicator,
 } from 'react-native';
 
-import { Calendar } from 'react-native-calendars';
+import {
+    Calendar,
+} from 'react-native-calendars';
+
+import Icon from 'react-native-vector-icons/Ionicons';
+
+import {
+    useMutation,
+} from '@apollo/client';
+
+import {
+    useNavigation,
+    useRoute,
+} from '@react-navigation/native';
+
+import {
+    CREATE_BOOKING,
+} from '../../../graphql/queries';
+
 
 const PRIMARY = '#009D94';
 
 const BOOKING_FEE = 9;
 
-/*
-================================================================
-TYPES
-================================================================
-*/
+const PAYMENT_WINDOW_MINUTES = 15;
 
-type DateItem = {
-    id: string;
-    date: Date;
-    label: string;
-    day: string;
-    dayNumber: string;
-    month: string;
+const { height: SCREEN_HEIGHT } =
+    Dimensions.get('window');
+
+
+/* ================================================================
+   TYPES
+================================================================ */
+
+type WeekdayKey =
+    | 'MONDAY'
+    | 'TUESDAY'
+    | 'WEDNESDAY'
+    | 'THURSDAY'
+    | 'FRIDAY'
+    | 'SATURDAY'
+    | 'SUNDAY';
+
+
+type BusinessDay = {
+    isOpen?: boolean;
+    open?: string;
+    close?: string;
+    openingTime?: string;
+    closingTime?: string;
 };
 
-type Slot = {
-    id: string;
-    time: string;
-    startTime: string;
-    available: boolean;
-    reason?: string;
+
+type BusinessHours = {
+    [key in WeekdayKey]?:
+        | BusinessDay
+        | null;
 };
+
 
 type Service = {
     serviceId: string;
     salonId?: string;
+    id?: string;
     name: string;
     category?: string;
     description?: string;
     duration: number;
     price: number;
     gender?: string;
+    audience?: string;
     popular?: boolean;
     active?: boolean;
 };
 
+
 type Offer = {
     offerId: string;
+    id?: string;
     salonId: string;
     salonName?: string;
     title: string;
     description?: string;
-
     discountType:
         | 'PERCENTAGE'
         | 'FIXED'
         | string;
-
     discountValue: number;
-
     couponCode?: string | null;
-
-    minimumBookingAmount?: number | null;
-
+    code?: string | null;
+    minimumBookingAmount?:
+        | number
+        | null;
     category?: string | null;
-
     serviceIds: string[];
-
     startDate?: string;
-
     endDate?: string;
-
     status?: string;
 };
 
-type ExistingBooking = {
-    bookingId?: string;
-    salonId?: string;
-    customerUserId?: string;
-    bookingDate?: string;
-    startTime?: string;
-    endTime?: string;
-    bookingStatus?: string;
-};
-
-type BusinessDay = {
-    open?: string;
-    close?: string;
-    isOpen?: boolean;
-};
-
-type WeekdayKey =
-    | 'SUNDAY'
-    | 'MONDAY'
-    | 'TUESDAY'
-    | 'WEDNESDAY'
-    | 'THURSDAY'
-    | 'FRIDAY'
-    | 'SATURDAY';
-
-type BusinessHours = {
-    MONDAY?: BusinessDay;
-    TUESDAY?: BusinessDay;
-    WEDNESDAY?: BusinessDay;
-    THURSDAY?: BusinessDay;
-    FRIDAY?: BusinessDay;
-    SATURDAY?: BusinessDay;
-    SUNDAY?: BusinessDay;
-};
 
 type Salon = {
     salonId?: string;
+    id?: string;
+    name?: string;
     salonName?: string;
 
-    businessHours?: BusinessHours;
+    address?: {
+        addressLine?: string;
+        city?: string;
+        state?: string;
+    };
 
-    MONDAY?: BusinessDay;
-    TUESDAY?: BusinessDay;
-    WEDNESDAY?: BusinessDay;
-    THURSDAY?: BusinessDay;
-    FRIDAY?: BusinessDay;
-    SATURDAY?: BusinessDay;
-    SUNDAY?: BusinessDay;
-
-    [key: string]: any;
+    businessHours?:
+        | BusinessHours
+        | any;
 };
 
-/*
-================================================================
-GENERATE FUTURE DATES
 
-Used for the selected date object.
-
-We allow future dates for one year.
-================================================================
-*/
-
-const generateFutureDates = (): DateItem[] => {
-    const today = new Date();
-
-    return Array.from({
-        length: 366,
-    }).map((_, index) => {
-        const d = new Date(today);
-
-        d.setHours(
-            12,
-            0,
-            0,
-            0,
-        );
-
-        d.setDate(
-            today.getDate() +
-                index,
-        );
-
-        const weekday =
-            d.toLocaleDateString(
-                'en-US',
-                {
-                    weekday: 'short',
-                },
-            );
-
-        const month =
-            d.toLocaleDateString(
-                'en-US',
-                {
-                    month: 'short',
-                },
-            );
-
-        return {
-            id:
-                formatDate(d),
-
-            date: d,
-
-            label:
-                index === 0
-                    ? 'Today'
-                    : index === 1
-                        ? 'Tomorrow'
-                        : weekday,
-
-            day:
-                weekday,
-
-            dayNumber:
-                d.getDate().toString(),
-
-            month,
-        };
-    });
+type DateItem = {
+    date: Date;
+    dateString: string;
+    dayName: string;
+    dayNumber: number;
+    month: string;
+    label: string;
 };
 
-/*
-================================================================
-DATE HELPERS
-================================================================
-*/
+
+type Slot = {
+    id: string;
+    time: string;
+    startTime: string;
+};
+
+
+/* ================================================================
+   HELPERS
+================================================================ */
 
 const formatDate = (
     date: Date,
-): string => {
+) => {
     const year =
         date.getFullYear();
 
@@ -231,83 +176,101 @@ const formatDate = (
     return `${year}-${month}-${day}`;
 };
 
+
 const createDateItem = (
     date: Date,
 ): DateItem => {
-    const today =
-        formatDate(
-            new Date(),
-        );
-
-    const tomorrow =
-        new Date();
-
-    tomorrow.setHours(
-        12,
-        0,
-        0,
-        0,
-    );
-
-    tomorrow.setDate(
-        tomorrow.getDate() + 1,
-    );
-
-    const dateString =
-        formatDate(date);
-
-    const tomorrowString =
-        formatDate(tomorrow);
-
-    const weekday =
-        date.toLocaleDateString(
-            'en-US',
-            {
-                weekday: 'short',
-            },
-        );
-
-    const month =
-        date.toLocaleDateString(
-            'en-US',
-            {
-                month: 'short',
-            },
-        );
-
     return {
-        id: dateString,
-
         date,
+        dateString:
+            formatDate(date),
 
-        label:
-            dateString === today
-                ? 'Today'
-                : dateString ===
-                      tomorrowString
-                    ? 'Tomorrow'
-                    : weekday,
-
-        day:
-            weekday,
+        dayName:
+            date.toLocaleDateString(
+                'en-US',
+                {
+                    weekday: 'short',
+                },
+            ),
 
         dayNumber:
-            date.getDate().toString(),
+            date.getDate(),
 
-        month,
+        month:
+            date.toLocaleDateString(
+                'en-US',
+                {
+                    month: 'short',
+                },
+            ),
+
+        label:
+            date.toLocaleDateString(
+                'en-US',
+                {
+                    weekday: 'long',
+                },
+            ),
     };
 };
 
-/*
-================================================================
-FORMAT MINUTES AS 12-HOUR TIME
-================================================================
-*/
+
+const generateFutureDates = (
+    days: number = 365,
+) => {
+    const result: DateItem[] = [];
+
+    const today =
+        new Date();
+
+    today.setHours(
+        0,
+        0,
+        0,
+        0,
+    );
+
+    for (
+        let index = 0;
+        index < days;
+        index++
+    ) {
+        const date =
+            new Date(today);
+
+        date.setDate(
+            today.getDate() +
+                index,
+        );
+
+        result.push(
+            createDateItem(date),
+        );
+    }
+
+    return result;
+};
+
+
+const isSameDate = (
+    first: Date,
+    second: Date,
+) => {
+    return (
+        first.getFullYear() ===
+            second.getFullYear() &&
+        first.getMonth() ===
+            second.getMonth() &&
+        first.getDate() ===
+            second.getDate()
+    );
+};
+
 
 const formatTime = (
     totalMinutes: number,
-): string => {
-    const hours24 =
+) => {
+    let hours =
         Math.floor(
             totalMinutes / 60,
         );
@@ -315,42 +278,31 @@ const formatTime = (
     const minutes =
         totalMinutes % 60;
 
-    const suffix =
-        hours24 >= 12
+    const period =
+        hours >= 12
             ? 'PM'
             : 'AM';
 
-    let hours12 =
-        hours24 % 12;
-
-    if (
-        hours12 === 0
+    if (hours === 0) {
+        hours = 12;
+    } else if (
+        hours > 12
     ) {
-        hours12 = 12;
+        hours -= 12;
     }
 
-    return `${String(
-        hours12,
-    ).padStart(
-        2,
-        '0',
-    )}:${String(
+    return `${hours}:${String(
         minutes,
     ).padStart(
         2,
         '0',
-    )} ${suffix}`;
+    )} ${period}`;
 };
 
-/*
-================================================================
-FORMAT MINUTES AS 24-HOUR TIME
-================================================================
-*/
 
 const formatTime24 = (
     totalMinutes: number,
-): string => {
+) => {
     const hours =
         Math.floor(
             totalMinutes / 60,
@@ -372,343 +324,394 @@ const formatTime24 = (
     )}`;
 };
 
-/*
-================================================================
-TIME TO MINUTES
-================================================================
-*/
 
 const timeToMinutes = (
-    value?: string | null,
-): number | null => {
+    value?: string,
+) => {
     if (!value) {
         return null;
     }
 
-    const normalized =
+    const cleaned =
         String(value)
             .trim()
             .toUpperCase();
 
-    const twentyFourHour =
-        /^([01]\d|2[0-3]):([0-5]\d)$/.exec(
-            normalized,
+    /*
+     * Supports:
+     * 09:30
+     * 9:30
+     * 09:30 AM
+     * 9:30 PM
+     */
+
+    const match =
+        cleaned.match(
+            /^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/,
         );
 
-    if (
-        twentyFourHour
-    ) {
-        return (
-            Number(
-                twentyFourHour[1],
-            ) *
-                60 +
-            Number(
-                twentyFourHour[2],
-            )
-        );
-    }
-
-    const twelveHour =
-        /^(\d{1,2}):([0-5]\d)\s*(AM|PM)$/i.exec(
-            normalized,
-        );
-
-    if (
-        twelveHour
-    ) {
-        let hours =
-            Number(
-                twelveHour[1],
-            );
-
-        const minutes =
-            Number(
-                twelveHour[2],
-            );
-
-        const period =
-            twelveHour[3].toUpperCase();
-
-        if (
-            hours < 1 ||
-            hours > 12
-        ) {
-            return null;
-        }
-
-        if (
-            period === 'AM'
-        ) {
-            if (
-                hours === 12
-            ) {
-                hours = 0;
-            }
-        } else {
-            if (
-                hours !== 12
-            ) {
-                hours += 12;
-            }
-        }
-
-        return (
-            hours * 60 +
-            minutes
-        );
-    }
-
-    return null;
-};
-
-/*
-================================================================
-GET SALON BUSINESS DAY
-================================================================
-*/
-
-const getBusinessDay = (
-    salon: Salon | null | undefined,
-    date: Date,
-): BusinessDay | null => {
-    if (!salon) {
+    if (!match) {
         return null;
     }
 
-    const weekdays: WeekdayKey[] = [
-        'SUNDAY',
-        'MONDAY',
-        'TUESDAY',
-        'WEDNESDAY',
-        'THURSDAY',
-        'FRIDAY',
-        'SATURDAY',
-    ];
+    let hours =
+        Number(match[1]);
 
-    const weekdayKey: WeekdayKey =
-        weekdays[date.getDay()];
+    const minutes =
+        Number(match[2]);
 
-    const nestedBusinessDay =
-        salon.businessHours?.[
-            weekdayKey
-        ];
+    const period =
+        match[3];
 
     if (
-        nestedBusinessDay
+        period === 'PM' &&
+        hours !== 12
     ) {
-        return nestedBusinessDay;
+        hours += 12;
     }
-
-    const directBusinessDay =
-        salon[weekdayKey];
 
     if (
-        directBusinessDay &&
-        typeof directBusinessDay ===
-            'object'
+        period === 'AM' &&
+        hours === 12
     ) {
-        return directBusinessDay as BusinessDay;
+        hours = 0;
     }
 
-    return null;
+    return (
+        hours * 60 +
+        minutes
+    );
 };
 
-/*
-================================================================
-NORMALIZE BOOKING TIME
-================================================================
-*/
 
-const normalizeBookingTime = (
-    value?: string | null,
-): number | null => {
+const getBusinessDay = (
+    salon: Salon,
+    date: Date,
+): BusinessDay | null => {
+    const hours =
+        salon?.businessHours;
+
+    if (!hours) {
+        return null;
+    }
+
+    const day =
+        date.getDay();
+
+    const map: {
+        [key: number]: WeekdayKey;
+    } = {
+        0: 'SUNDAY',
+        1: 'MONDAY',
+        2: 'TUESDAY',
+        3: 'WEDNESDAY',
+        4: 'THURSDAY',
+        5: 'FRIDAY',
+        6: 'SATURDAY',
+    };
+
+    const key =
+        map[day];
+
+    return (
+        hours[key] || null
+    );
+};
+
+
+const getOpeningMinutes = (
+    businessDay:
+        | BusinessDay
+        | null,
+) => {
+    if (!businessDay) {
+        return null;
+    }
+
     return timeToMinutes(
-        value,
+        businessDay.open ||
+            businessDay.openingTime,
     );
 };
 
-/*
-================================================================
-BOOKING STATUS
-================================================================
-*/
 
-const bookingOccupiesSlot = (
-    booking: ExistingBooking,
-): boolean => {
-    const status =
-        String(
-            booking.bookingStatus ||
-                '',
-        )
-            .trim()
-            .toUpperCase();
+const getClosingMinutes = (
+    businessDay:
+        | BusinessDay
+        | null,
+) => {
+    if (!businessDay) {
+        return null;
+    }
 
+    return timeToMinutes(
+        businessDay.close ||
+            businessDay.closingTime,
+    );
+};
+
+
+const getServiceId = (
+    service: Service,
+) => {
     return (
-        status === 'PENDING' ||
-        status === 'CONFIRMED'
+        service.serviceId ||
+        service.id ||
+        ''
     );
 };
 
-/*
-================================================================
-TIME OVERLAP
-================================================================
-*/
 
-const timesOverlap = (
-    newStart: number,
-    newEnd: number,
-    existingStart: number,
-    existingEnd: number,
-): boolean => {
-    return (
-        newStart <
-            existingEnd &&
-        newEnd >
-            existingStart
+const getServicePrice = (
+    service: Service,
+) => {
+    return Number(
+        service.price || 0,
     );
 };
 
-/*
-================================================================
-MAIN SCREEN
-================================================================
-*/
 
-export default function BookingDateTimeScreen({
-    navigation,
-    route,
-}: any) {
+const getServiceDuration = (
+    service: Service,
+) => {
+    return Number(
+        service.duration || 0,
+    );
+};
+
+
+/* ================================================================
+   SCREEN
+================================================================ */
+
+export default function BookingDateTimeScreen() {
+    const navigation =
+        useNavigation<any>();
+
+    const route =
+        useRoute<any>();
+
+    const params =
+        route.params || {};
+
     const {
-        salonId,
         salon,
+        salonId,
         customerUserId,
         services = [],
         offer,
-        bookings = [],
-        existingBookings = [],
-    } = route.params || {};
+    } = params;
 
-    const typedSalon =
-        salon as Salon;
 
-    /*
-    ================================================================
-    TODAY
-    ================================================================
-    */
+    /* ============================================================
+       MUTATION
+    ============================================================ */
+
+    const [
+        createBooking,
+        {
+            loading:
+                creatingBooking,
+        },
+    ] = useMutation(
+        CREATE_BOOKING,
+    );
+
+
+    /* ============================================================
+       DATE
+    ============================================================ */
 
     const today =
-        formatDate(
-            new Date(),
-        );
+        useMemo(() => {
+            const value =
+                new Date();
 
-    /*
-    ================================================================
-    FUTURE DATE RANGE
-    ================================================================
-    */
+            value.setHours(
+                0,
+                0,
+                0,
+                0,
+            );
 
-    const dates =
+            return value;
+        }, []);
+
+
+    const futureDates =
         useMemo(
             () =>
-                generateFutureDates(),
+                generateFutureDates(
+                    365,
+                ),
             [],
         );
 
-    /*
-    ================================================================
-    SELECTED DATE
-    ================================================================
-    */
+
+    const initialDate =
+        useMemo(() => {
+            const incoming =
+                params.selectedDate ||
+                params.preferredDate;
+
+            if (
+                incoming instanceof Date
+            ) {
+                return incoming;
+            }
+
+            if (
+                typeof incoming ===
+                'string'
+            ) {
+                const parsed =
+                    new Date(
+                        `${incoming}T00:00:00`,
+                    );
+
+                if (
+                    !Number.isNaN(
+                        parsed.getTime(),
+                    )
+                ) {
+                    return parsed;
+                }
+            }
+
+            return today;
+        }, [
+            params.selectedDate,
+            params.preferredDate,
+            today,
+        ]);
+
 
     const [
         selectedDate,
         setSelectedDate,
-    ] =
-        useState<DateItem>(
-            dates[0],
-        );
+    ] = useState<Date>(
+        initialDate,
+    );
 
-    /*
-    ================================================================
-    CALENDAR VISIBILITY
-    ================================================================
-    */
 
     const [
-        calendarVisible,
-        setCalendarVisible,
-    ] =
-        useState(false);
+        selectedTime,
+        setSelectedTime,
+    ] = useState<Slot | null>(
+        params.selectedTime &&
+            params.selectedTime24
+            ? {
+                  id: `${formatDate(
+                      initialDate,
+                  )}-${params.selectedTime24}`,
 
-    /*
-    ================================================================
-    TIME POPUP
-    ================================================================
-    */
+                  time:
+                      params.selectedTime,
+
+                  startTime:
+                      params.selectedTime24,
+              }
+            : null,
+    );
+
+
+    /* ============================================================
+       PICKER STATE
+    ============================================================ */
 
     const [
-        timeModalVisible,
-        setTimeModalVisible,
-    ] =
-        useState(false);
+        showPicker,
+        setShowPicker,
+    ] = useState(false);
 
-    /*
-    ================================================================
-    SELECTED SLOT
-    ================================================================
-    */
 
     const [
-        selectedSlot,
-        setSelectedSlot,
-    ] =
-        useState<
-            string | null
-        >(null);
+        showFullCalendar,
+        setShowFullCalendar,
+    ] = useState(false);
 
-    /*
-    ================================================================
-    REAL BOOKINGS
-    ================================================================
-    */
 
-    const salonBookings =
-        useMemo<
-            ExistingBooking[]
-        >(() => {
+    const [
+        pickerDate,
+        setPickerDate,
+    ] = useState<Date>(
+        initialDate,
+    );
+
+
+    const [
+        pickerTime,
+        setPickerTime,
+    ] = useState<Slot | null>(
+        selectedTime,
+    );
+
+
+    /* ============================================================
+       NORMALIZED SERVICES
+    ============================================================ */
+
+    const normalizedServices =
+        useMemo<Service[]>(() => {
             if (
-                Array.isArray(
-                    bookings,
-                ) &&
-                bookings.length >
-                    0
-            ) {
-                return bookings;
-            }
-
-            if (
-                Array.isArray(
-                    existingBookings,
+                !Array.isArray(
+                    services,
                 )
             ) {
-                return existingBookings;
+                return [];
             }
 
-            return [];
+            return services;
+        }, [services]);
+
+
+    /* ============================================================
+       TOTAL DURATION
+    ============================================================ */
+
+    const totalDuration =
+        useMemo(() => {
+            return normalizedServices.reduce(
+                (
+                    total,
+                    service,
+                ) =>
+                    total +
+                    getServiceDuration(
+                        service,
+                    ),
+                0,
+            );
         }, [
-            bookings,
-            existingBookings,
+            normalizedServices,
         ]);
 
-    /*
-    ================================================================
-    NORMALIZED OFFER
-    ================================================================
-    */
+
+    /* ============================================================
+       SUBTOTAL
+    ============================================================ */
+
+    const subtotal =
+        useMemo(() => {
+            return normalizedServices.reduce(
+                (
+                    total,
+                    service,
+                ) =>
+                    total +
+                    getServicePrice(
+                        service,
+                    ),
+                0,
+            );
+        }, [
+            normalizedServices,
+        ]);
+
+
+    /* ============================================================
+       NORMALIZE OFFER
+    ============================================================ */
 
     const normalizedOffer:
         | Offer
@@ -733,8 +736,8 @@ export default function BookingDateTimeScreen({
                     offer.minimumBookingAmount !==
                         undefined
                         ? Number(
-                            offer.minimumBookingAmount,
-                        )
+                              offer.minimumBookingAmount,
+                          )
                         : null,
 
                 serviceIds:
@@ -746,11 +749,10 @@ export default function BookingDateTimeScreen({
             };
         }, [offer]);
 
-    /*
-    ================================================================
-    OFFER VALIDITY
-    ================================================================
-    */
+
+    /* ============================================================
+       OFFER VALIDATION
+    ============================================================ */
 
     const isOfferValid =
         useMemo(() => {
@@ -762,33 +764,28 @@ export default function BookingDateTimeScreen({
 
             if (
                 normalizedOffer.status &&
-                String(
-                    normalizedOffer.status,
-                ).toUpperCase() !==
+                normalizedOffer.status !==
                     'ACTIVE'
             ) {
                 return false;
             }
 
-            const selectedDateString =
-                formatDate(
-                    selectedDate.date,
-                );
+            const now =
+                new Date();
 
             if (
                 normalizedOffer.startDate
             ) {
-                const offerStart =
-                    String(
+                const startDate =
+                    new Date(
                         normalizedOffer.startDate,
-                    ).substring(
-                        0,
-                        10,
                     );
 
                 if (
-                    selectedDateString <
-                    offerStart
+                    !Number.isNaN(
+                        startDate.getTime(),
+                    ) &&
+                    now < startDate
                 ) {
                     return false;
                 }
@@ -797,17 +794,16 @@ export default function BookingDateTimeScreen({
             if (
                 normalizedOffer.endDate
             ) {
-                const offerEnd =
-                    String(
+                const endDate =
+                    new Date(
                         normalizedOffer.endDate,
-                    ).substring(
-                        0,
-                        10,
                     );
 
                 if (
-                    selectedDateString >
-                    offerEnd
+                    !Number.isNaN(
+                        endDate.getTime(),
+                    ) &&
+                    now > endDate
                 ) {
                     return false;
                 }
@@ -816,19 +812,17 @@ export default function BookingDateTimeScreen({
             return true;
         }, [
             normalizedOffer,
-            selectedDate,
         ]);
 
-    /*
-    ================================================================
-    SERVICE OFFER ELIGIBILITY
-    ================================================================
-    */
+
+    /* ============================================================
+       SERVICE ELIGIBILITY
+    ============================================================ */
 
     const isServiceEligibleForOffer =
         (
             service: Service,
-        ): boolean => {
+        ) => {
             if (
                 !normalizedOffer ||
                 !isOfferValid
@@ -841,19 +835,18 @@ export default function BookingDateTimeScreen({
                 [];
 
             if (
-                serviceIds.length >
-                0
+                serviceIds.length > 0
             ) {
                 return serviceIds.includes(
-                    service.serviceId,
+                    getServiceId(
+                        service,
+                    ),
                 );
             }
 
             if (
                 normalizedOffer.category &&
-                String(
-                    normalizedOffer.category,
-                ).trim()
+                normalizedOffer.category.trim()
             ) {
                 return (
                     String(
@@ -873,73 +866,45 @@ export default function BookingDateTimeScreen({
             return true;
         };
 
-    /*
-    ================================================================
-    SUBTOTAL
-    ================================================================
-    */
 
-    const subtotal =
-        useMemo(() => {
-            return services.reduce(
-                (
-                    sum: number,
-                    item: Service,
-                ) => {
-                    return (
-                        sum +
-                        Number(
-                            item.price ||
-                                0,
-                        )
-                    );
-                },
-                0,
-            );
-        }, [services]);
-
-    /*
-    ================================================================
-    ELIGIBLE SUBTOTAL
-    ================================================================
-    */
+    /* ============================================================
+       ELIGIBLE SUBTOTAL
+    ============================================================ */
 
     const eligibleSubtotal =
         useMemo(() => {
-            return services.reduce(
+            return normalizedServices.reduce(
                 (
-                    sum: number,
-                    item: Service,
+                    total,
+                    service,
                 ) => {
                     if (
                         !isServiceEligibleForOffer(
-                            item,
+                            service,
                         )
                     ) {
-                        return sum;
+                        return total;
                     }
 
                     return (
-                        sum +
-                        Number(
-                            item.price ||
-                                0,
+                        total +
+                        getServicePrice(
+                            service,
                         )
                     );
                 },
                 0,
             );
         }, [
-            services,
+            normalizedServices,
             normalizedOffer,
             isOfferValid,
         ]);
 
-    /*
-    ================================================================
-    MINIMUM BOOKING AMOUNT
-    ================================================================
-    */
+
+    /* ============================================================
+       MINIMUM BOOKING AMOUNT
+    ============================================================ */
 
     const minimumBookingAmountMet =
         useMemo(() => {
@@ -964,11 +929,10 @@ export default function BookingDateTimeScreen({
             subtotal,
         ]);
 
-    /*
-    ================================================================
-    DISCOUNT
-    ================================================================
-    */
+
+    /* ============================================================
+       DISCOUNT
+    ============================================================ */
 
     const discountAmount =
         useMemo(() => {
@@ -976,8 +940,7 @@ export default function BookingDateTimeScreen({
                 !normalizedOffer ||
                 !isOfferValid ||
                 !minimumBookingAmountMet ||
-                eligibleSubtotal <=
-                    0
+                eligibleSubtotal <= 0
             ) {
                 return 0;
             }
@@ -989,8 +952,7 @@ export default function BookingDateTimeScreen({
                 );
 
             if (
-                discountValue <=
-                0
+                discountValue <= 0
             ) {
                 return 0;
             }
@@ -1006,8 +968,7 @@ export default function BookingDateTimeScreen({
                     (
                         eligibleSubtotal *
                         discountValue
-                    ) /
-                        100,
+                    ) / 100,
                 );
             }
 
@@ -1031,13 +992,12 @@ export default function BookingDateTimeScreen({
             eligibleSubtotal,
         ]);
 
-    /*
-    ================================================================
-    FINAL SERVICE TOTAL
-    ================================================================
-    */
 
-    const totalPrice =
+    /* ============================================================
+       FINAL SERVICE TOTAL
+    ============================================================ */
+
+    const discountedServicesTotal =
         useMemo(() => {
             return Math.max(
                 0,
@@ -1049,38 +1009,46 @@ export default function BookingDateTimeScreen({
             discountAmount,
         ]);
 
-    /*
-    ================================================================
-    SERVICE DISPLAY PRICE
-    ================================================================
-    */
+
+    /* ============================================================
+       OFFER APPLIED
+    ============================================================ */
+
+    const offerApplied =
+        Boolean(
+            normalizedOffer &&
+                isOfferValid &&
+                minimumBookingAmountMet &&
+                discountAmount > 0,
+        );
+
+
+    /* ============================================================
+       INDIVIDUAL SERVICE DISPLAY PRICE
+    ============================================================ */
 
     const getServiceDisplayPrice =
         (
             service: Service,
-        ): number => {
+        ) => {
             const originalPrice =
-                Number(
-                    service.price ||
-                        0,
+                getServicePrice(
+                    service,
                 );
 
             if (
-                !normalizedOffer ||
-                !isOfferValid ||
-                !minimumBookingAmountMet ||
+                !offerApplied ||
                 !isServiceEligibleForOffer(
                     service,
-                ) ||
-                discountAmount <=
-                    0
+                )
             ) {
                 return originalPrice;
             }
 
             const discountType =
                 String(
-                    normalizedOffer.discountType,
+                    normalizedOffer?.discountType ||
+                        '',
                 ).toUpperCase();
 
             if (
@@ -1089,7 +1057,8 @@ export default function BookingDateTimeScreen({
             ) {
                 const percentage =
                     Number(
-                        normalizedOffer.discountValue ||
+                        normalizedOffer
+                            ?.discountValue ||
                             0,
                     );
 
@@ -1097,8 +1066,7 @@ export default function BookingDateTimeScreen({
                     (
                         originalPrice *
                         percentage
-                    ) /
-                    100;
+                    ) / 100;
 
                 return Math.max(
                     0,
@@ -1110,8 +1078,7 @@ export default function BookingDateTimeScreen({
             if (
                 discountType ===
                     'FIXED' &&
-                eligibleSubtotal >
-                    0
+                eligibleSubtotal > 0
             ) {
                 const serviceShare =
                     originalPrice /
@@ -1131,51 +1098,10 @@ export default function BookingDateTimeScreen({
             return originalPrice;
         };
 
-    /*
-    ================================================================
-    TOTAL DURATION
-    ================================================================
-    */
 
-    const totalDuration =
-        useMemo(() => {
-            return services.reduce(
-                (
-                    sum: number,
-                    item: Service,
-                ) => {
-                    return (
-                        sum +
-                        Number(
-                            item.duration ||
-                                0,
-                        )
-                    );
-                },
-                0,
-            );
-        }, [services]);
-
-    /*
-    ================================================================
-    OFFER APPLIED
-    ================================================================
-    */
-
-    const offerApplied =
-        Boolean(
-            normalizedOffer &&
-            isOfferValid &&
-            minimumBookingAmountMet &&
-            discountAmount >
-                0,
-        );
-
-    /*
-    ================================================================
-    OFFER MESSAGE
-    ================================================================
-    */
+    /* ============================================================
+       OFFER MESSAGE
+    ============================================================ */
 
     const offerMessage =
         useMemo(() => {
@@ -1188,15 +1114,15 @@ export default function BookingDateTimeScreen({
             if (
                 !isOfferValid
             ) {
-                return 'This offer is not valid for the selected date.';
+                return 'This offer is no longer active.';
             }
 
             if (
+                !minimumBookingAmountMet &&
                 normalizedOffer.minimumBookingAmount !==
                     null &&
                 normalizedOffer.minimumBookingAmount !==
-                    undefined &&
-                !minimumBookingAmountMet
+                    undefined
             ) {
                 const remaining =
                     Math.max(
@@ -1213,10 +1139,11 @@ export default function BookingDateTimeScreen({
             }
 
             if (
-                discountAmount >
-                0
+                offerApplied
             ) {
-                return `${normalizedOffer.title} applied`;
+                return `You save ₹${discountAmount.toFixed(
+                    0,
+                )} with this offer.`;
             }
 
             return null;
@@ -1225,189 +1152,96 @@ export default function BookingDateTimeScreen({
             isOfferValid,
             minimumBookingAmountMet,
             subtotal,
+            offerApplied,
             discountAmount,
         ]);
 
-    /*
-    ================================================================
-    SELECTED DATE STRING
-    ================================================================
-    */
+
+    /* ============================================================
+       DATE / BUSINESS HOURS
+    ============================================================ */
 
     const selectedDateString =
-        useMemo(
-            () =>
-                formatDate(
-                    selectedDate.date,
-                ),
-            [selectedDate],
+        formatDate(
+            selectedDate,
         );
 
-    /*
-    ================================================================
-    SELECTED BUSINESS DAY
-    ================================================================
-    */
+
+    const pickerDateString =
+        formatDate(
+            pickerDate,
+        );
+
 
     const selectedBusinessDay =
         useMemo(
             () =>
                 getBusinessDay(
-                    typedSalon,
-                    selectedDate.date,
+                    salon,
+                    selectedDate,
                 ),
             [
-                typedSalon,
+                salon,
                 selectedDate,
             ],
         );
 
-    /*
-    ================================================================
-    NORMALIZED BUSINESS HOURS
-    ================================================================
-    */
 
-    const businessHours =
-        useMemo(() => {
-            if (
-                !selectedBusinessDay
-            ) {
-                return null;
-            }
+    const pickerBusinessDay =
+        useMemo(
+            () =>
+                getBusinessDay(
+                    salon,
+                    pickerDate,
+                ),
+            [
+                salon,
+                pickerDate,
+            ],
+        );
 
-            const isOpen =
-                selectedBusinessDay.isOpen ===
-                true;
 
-            if (
-                !isOpen
-            ) {
-                return null;
-            }
+    const pickerSalonIsOpen =
+        Boolean(
+            pickerBusinessDay &&
+                pickerBusinessDay.isOpen !==
+                    false,
+        );
 
-            const openMinutes =
-                timeToMinutes(
-                    selectedBusinessDay.open,
-                );
 
-            const closeMinutes =
-                timeToMinutes(
-                    selectedBusinessDay.close,
-                );
+    const pickerOpeningMinutes =
+        getOpeningMinutes(
+            pickerBusinessDay,
+        );
 
-            if (
-                openMinutes ===
-                    null ||
-                closeMinutes ===
-                    null ||
-                closeMinutes <=
-                    openMinutes
-            ) {
-                return null;
-            }
 
-            return {
-                open:
-                    openMinutes,
+    const pickerClosingMinutes =
+        getClosingMinutes(
+            pickerBusinessDay,
+        );
 
-                close:
-                    closeMinutes,
-            };
-        }, [
-            selectedBusinessDay,
-        ]);
 
-    /*
-    ================================================================
-    CHECK REAL BOOKING CONFLICT
-    ================================================================
-    */
+    /* ============================================================
+       TIME SLOTS
 
-    const hasBookingConflict =
-        (
-            slotStartMinutes: number,
-            slotEndMinutes: number,
-        ): boolean => {
-            if (
-                salonBookings.length ===
-                0
-            ) {
-                return false;
-            }
+       IMPORTANT:
+       These are based ONLY on salon business hours.
 
-            return salonBookings.some(
-                booking => {
-                    const bookingDate =
-                        String(
-                            booking.bookingDate ||
-                                '',
-                        ).substring(
-                            0,
-                            10,
-                        );
-
-                    if (
-                        bookingDate !==
-                        selectedDateString
-                    ) {
-                        return false;
-                    }
-
-                    if (
-                        !bookingOccupiesSlot(
-                            booking,
-                        )
-                    ) {
-                        return false;
-                    }
-
-                    const existingStart =
-                        normalizeBookingTime(
-                            booking.startTime,
-                        );
-
-                    const existingEnd =
-                        normalizeBookingTime(
-                            booking.endTime,
-                        );
-
-                    if (
-                        existingStart ===
-                            null ||
-                        existingEnd ===
-                            null
-                    ) {
-                        return false;
-                    }
-
-                    return timesOverlap(
-                        slotStartMinutes,
-                        slotEndMinutes,
-                        existingStart,
-                        existingEnd,
-                    );
-                },
-            );
-        };
-
-    /*
-    ================================================================
-    GENERATE TIME SLOTS
-    ================================================================
-
-    IMPORTANT:
-
-    Past times are NOT generated for today.
-
-    We do not display "Passed".
-    ================================================================
-    */
+       They do NOT check:
+       - existing bookings
+       - staff
+       - employee slots
+       - other customers
+    ============================================================ */
 
     const allSlots =
         useMemo<Slot[]>(() => {
             if (
-                !businessHours
+                !pickerSalonIsOpen ||
+                pickerOpeningMinutes ===
+                    null ||
+                pickerClosingMinutes ===
+                    null
             ) {
                 return [];
             }
@@ -1415,443 +1249,663 @@ export default function BookingDateTimeScreen({
             const slots: Slot[] =
                 [];
 
-            const {
-                open,
-                close,
-            } =
-                businessHours;
+            const duration =
+                totalDuration >
+                0
+                    ? totalDuration
+                    : 30;
 
-            const latestStart =
-                close -
-                totalDuration;
-
-            if (
-                latestStart <
-                open
-            ) {
-                return [];
-            }
-
-            let current =
-                open;
-
-            let slotIndex =
-                0;
-
-            /*
-            --------------------------------------------------------
-            Current time only matters for TODAY.
-            --------------------------------------------------------
-            */
+            const isToday =
+                isSameDate(
+                    pickerDate,
+                    today,
+                );
 
             const now =
                 new Date();
 
-            const currentMinutes =
+            const nowMinutes =
                 now.getHours() *
                     60 +
                 now.getMinutes();
 
-            while (
-                current <=
-                latestStart
+            for (
+                let start =
+                    pickerOpeningMinutes;
+
+                start + duration <=
+                    pickerClosingMinutes;
+
+                start += 30
             ) {
-                const slotEnd =
-                    current +
-                    totalDuration;
-
                 /*
-                ----------------------------------------------------
-                PAST TIMES
-
-                Simply skip them.
-
-                No "Passed" card is created.
-                ----------------------------------------------------
-                */
-
+                 * For today, don't offer
+                 * times that have already started.
+                 */
                 if (
-                    selectedDateString ===
-                        today &&
-                    current <=
-                        currentMinutes
+                    isToday &&
+                    start <= nowMinutes
                 ) {
-                    current +=
-                        30;
-
                     continue;
                 }
 
-                let available =
-                    true;
-
-                let reason:
-                    | string
-                    | undefined;
-
-                /*
-                ----------------------------------------------------
-                BOOKING CONFLICT
-                ----------------------------------------------------
-                */
-
-                if (
-                    hasBookingConflict(
-                        current,
-                        slotEnd,
-                    )
-                ) {
-                    available =
-                        false;
-
-                    reason =
-                        'Booked';
-                }
-
                 slots.push({
-                    id:
-                        `${selectedDateString}-${slotIndex}`,
+                    id: `${pickerDateString}-${formatTime24(
+                        start,
+                    )}`,
 
                     time:
                         formatTime(
-                            current,
+                            start,
                         ),
 
                     startTime:
                         formatTime24(
-                            current,
+                            start,
                         ),
-
-                    available,
-
-                    reason,
                 });
-
-                current +=
-                    30;
-
-                slotIndex++;
             }
 
             return slots;
         }, [
-            businessHours,
+            pickerSalonIsOpen,
+            pickerOpeningMinutes,
+            pickerClosingMinutes,
             totalDuration,
-            selectedDateString,
+            pickerDate,
+            pickerDateString,
             today,
-            salonBookings,
         ]);
 
-    /*
-    ================================================================
-    TIME GROUPS
-    ================================================================
-    */
 
-    const morning =
-        useMemo(
-            () =>
-                allSlots.filter(
-                    slot => {
-                        const minutes =
-                            timeToMinutes(
-                                slot.startTime,
-                            );
+    const morningSlots =
+        allSlots.filter(
+            slot => {
+                const minutes =
+                    timeToMinutes(
+                        slot.startTime,
+                    ) || 0;
 
-                        return (
-                            minutes !==
-                                null &&
-                            minutes <
-                                12 *
-                                    60
-                        );
-                    },
-                ),
-            [allSlots],
+                return minutes <
+                    12 * 60;
+            },
         );
 
-    const afternoon =
-        useMemo(
-            () =>
-                allSlots.filter(
-                    slot => {
-                        const minutes =
-                            timeToMinutes(
-                                slot.startTime,
-                            );
 
-                        return (
-                            minutes !==
-                                null &&
-                            minutes >=
-                                12 *
-                                    60 &&
-                            minutes <
-                                17 *
-                                    60
-                        );
-                    },
-                ),
-            [allSlots],
+    const afternoonSlots =
+        allSlots.filter(
+            slot => {
+                const minutes =
+                    timeToMinutes(
+                        slot.startTime,
+                    ) || 0;
+
+                return (
+                    minutes >=
+                        12 * 60 &&
+                    minutes <
+                        17 * 60
+                );
+            },
         );
 
-    const evening =
-        useMemo(
-            () =>
-                allSlots.filter(
-                    slot => {
-                        const minutes =
-                            timeToMinutes(
-                                slot.startTime,
-                            );
 
-                        return (
-                            minutes !==
-                                null &&
-                            minutes >=
-                                17 *
-                                    60
-                        );
-                    },
-                ),
-            [allSlots],
+    const eveningSlots =
+        allSlots.filter(
+            slot => {
+                const minutes =
+                    timeToMinutes(
+                        slot.startTime,
+                    ) || 0;
+
+                return minutes >=
+                    17 * 60;
+            },
         );
 
-    /*
-    ================================================================
-    SELECTED SLOT OBJECT
-    ================================================================
-    */
 
-    const selectedSlotObject =
-        useMemo(
-            () =>
-                allSlots.find(
-                    slot =>
-                        slot.time ===
-                        selectedSlot,
-                ),
-            [
-                allSlots,
-                selectedSlot,
-            ],
-        );
+    /* ============================================================
+       OPEN PICKER
+    ============================================================ */
 
-    /*
-    ================================================================
-    DAY PRESS
-    ================================================================
-    */
-
-    const onDayPress = (
-        day: any,
-    ) => {
-        const selected =
-            new Date(
-                `${day.dateString}T12:00:00`,
+    const openPicker =
+        () => {
+            setPickerDate(
+                selectedDate,
             );
 
-        const newDate =
-            createDateItem(
-                selected,
+            setPickerTime(
+                selectedTime,
             );
 
-        setSelectedDate(
-            newDate,
-        );
-
-        /*
-        ------------------------------------------------------------
-        Clear previous time.
-        ------------------------------------------------------------
-        */
-
-        setSelectedSlot(
-            null,
-        );
-
-        /*
-        ------------------------------------------------------------
-        Close calendar after date selection.
-        ------------------------------------------------------------
-        */
-
-        setCalendarVisible(
-            false,
-        );
-
-        /*
-        ------------------------------------------------------------
-        Open time popup.
-
-        The effect is handled with a timeout so the newly selected
-        business hours / slots have time to recalculate.
-        ------------------------------------------------------------
-        */
-
-        setTimeout(() => {
-            setTimeModalVisible(
-                true,
+            setShowFullCalendar(
+                false,
             );
-        }, 150);
-    };
 
-    /*
-    ================================================================
-    OPEN TIME PICKER
-    ================================================================
-    */
+            setShowPicker(true);
+        };
 
-    const openTimePicker = () => {
-        setTimeModalVisible(
-            true,
-        );
-    };
 
-    /*
-    ================================================================
-    SLOT SELECTION
-    ================================================================
-    */
+    /* ============================================================
+       CLOSE PICKER
+    ============================================================ */
 
-    const handleSlotPress = (
-        slot: Slot,
-    ) => {
-        if (
-            !slot.available
-        ) {
-            return;
-        }
+    const closePicker =
+        () => {
+            setShowPicker(
+                false,
+            );
+        };
 
-        setSelectedSlot(
-            slot.time,
-        );
 
-        setTimeModalVisible(
-            false,
-        );
-    };
+    /* ============================================================
+       PICKER DATE CHANGE
+    ============================================================ */
 
-    /*
-    ================================================================
-    RENDER TIME SLOT
-    ================================================================
-    */
+    const handlePickerDateChange =
+        (
+            dateString: string,
+        ) => {
+            const parsed =
+                new Date(
+                    `${dateString}T00:00:00`,
+                );
 
-    const renderSlot = (
-        item: Slot,
-    ) => {
-        const selected =
-            selectedSlot ===
-            item.time;
+            if (
+                Number.isNaN(
+                    parsed.getTime(),
+                )
+            ) {
+                return;
+            }
 
-        return (
-            <TouchableOpacity
-                key={
-                    item.id
+            setPickerDate(
+                parsed,
+            );
+
+            /*
+             * Changing date clears the
+             * previously selected time.
+             *
+             * This prevents accidentally
+             * carrying a time that isn't
+             * available on the new day.
+             */
+            setPickerTime(
+                null,
+            );
+
+            setShowFullCalendar(
+                false,
+            );
+        };
+
+
+    /* ============================================================
+       DATE CHIP
+    ============================================================ */
+
+    const handleDateChipPress =
+        (
+            item: DateItem,
+        ) => {
+            setPickerDate(
+                item.date,
+            );
+
+            setPickerTime(
+                null,
+            );
+        };
+
+
+    /* ============================================================
+       TIME
+    ============================================================ */
+
+    const handleTimePress =
+        (
+            slot: Slot,
+        ) => {
+            setPickerTime(
+                slot,
+            );
+        };
+
+
+    /* ============================================================
+       CONFIRM DATE/TIME
+    ============================================================ */
+
+    const handleConfirmPicker =
+        () => {
+            if (
+                !pickerTime
+            ) {
+                Alert.alert(
+                    'Select a time',
+                    'Please select your preferred appointment time.',
+                );
+
+                return;
+            }
+
+            setSelectedDate(
+                pickerDate,
+            );
+
+            setSelectedTime(
+                pickerTime,
+            );
+
+            setShowPicker(
+                false,
+            );
+        };
+
+
+    /* ============================================================
+       START TIME CONVERSION
+    ============================================================ */
+
+    const convertToBackendTime =
+        (
+            value: string,
+        ) => {
+            if (
+                /^\d{2}:\d{2}$/.test(
+                    value,
+                )
+            ) {
+                return value;
+            }
+
+            const [
+                clock,
+                period,
+            ] =
+                value.split(' ');
+
+            let [
+                hour,
+                minute,
+            ] =
+                clock.split(':');
+
+            let h =
+                parseInt(
+                    hour,
+                    10,
+                );
+
+            if (
+                period === 'PM' &&
+                h !== 12
+            ) {
+                h += 12;
+            }
+
+            if (
+                period === 'AM' &&
+                h === 12
+            ) {
+                h = 0;
+            }
+
+            return `${String(
+                h,
+            ).padStart(
+                2,
+                '0',
+            )}:${minute}`;
+        };
+
+
+    /* ============================================================
+       REQUEST BOOKING
+    ============================================================ */
+
+    const requestBooking =
+        async () => {
+            try {
+                if (
+                    !salonId &&
+                    !salon?.salonId &&
+                    !salon?.id
+                ) {
+                    Alert.alert(
+                        'Unable to continue',
+                        'Salon information is missing.',
+                    );
+
+                    return;
                 }
-                disabled={
-                    !item.available
+
+                if (
+                    !customerUserId
+                ) {
+                    Alert.alert(
+                        'Unable to continue',
+                        'Customer information is missing.',
+                    );
+
+                    return;
                 }
-                activeOpacity={
-                    0.8
+
+                if (
+                    normalizedServices.length ===
+                    0
+                ) {
+                    Alert.alert(
+                        'No services selected',
+                        'Please select at least one service.',
+                    );
+
+                    return;
                 }
-                onPress={() =>
-                    handleSlotPress(
-                        item,
-                    )
+
+                if (
+                    !selectedTime
+                ) {
+                    Alert.alert(
+                        'Select time',
+                        'Please select your preferred appointment time.',
+                    );
+
+                    return;
                 }
-                style={[
-                    styles.slotCard,
 
-                    selected &&
-                        styles.slotCardSelected,
 
-                    !item.available &&
-                        styles.slotDisabled,
-                ]}
-            >
-                <Text
-                    style={[
-                        styles.slotText,
+                const finalSalonId =
+                    salonId ||
+                    salon?.salonId ||
+                    salon?.id;
 
-                        selected &&
-                            styles.slotTextSelected,
 
-                        !item.available &&
-                            styles.slotDisabledText,
-                    ]}
-                >
+                const bookingDate =
+                    selectedDateString;
+
+
+                const startTime =
+                    convertToBackendTime(
+                        selectedTime.startTime ||
+                            selectedTime.time,
+                    );
+
+
+                const finalOfferId =
+                    normalizedOffer
+                        ?.offerId ||
+                    normalizedOffer?.id ||
+                    offer?.offerId ||
+                    offer?.id;
+
+
+                console.log(
+                    '[Appointment] CREATE BOOKING:',
                     {
-                        item.time
-                    }
-                </Text>
+                        salonId:
+                            finalSalonId,
 
-                {!item.available && (
-                    <Text
-                        style={
-                            styles.bookedText
-                        }
-                    >
-                        {item.reason ||
-                            'Unavailable'}
-                    </Text>
-                )}
-            </TouchableOpacity>
-        );
-    };
+                        customerUserId,
 
-    /*
-    ================================================================
-    TIME SECTION
-    ================================================================
-    */
+                        bookingDate,
 
-    const renderTimeSection = (
-        title: string,
-        slots: Slot[],
-    ) => {
-        if (
-            slots.length ===
-            0
-        ) {
-            return null;
-        }
+                        startTime,
 
-        return (
-            <View
-                style={
-                    styles.timeSection
+                        services:
+                            normalizedServices.map(
+                                service => ({
+                                    serviceId:
+                                        getServiceId(
+                                            service,
+                                        ),
+                                }),
+                            ),
+
+                        offerId:
+                            finalOfferId,
+
+                        discountedServicesTotal,
+                    },
+                );
+
+
+                /*
+                 * IMPORTANT
+                 *
+                 * There is NO payment here.
+                 *
+                 * The booking is only a request.
+                 *
+                 * Salon must accept first.
+                 *
+                 * Only after acceptance:
+                 * customer gets 15 minutes
+                 * to pay ₹9.
+                 */
+
+                const response =
+                    await createBooking({
+                        variables: {
+                            input: {
+                                salonId:
+                                    finalSalonId,
+
+                                customerUserId,
+
+                                bookingDate,
+
+                                startTime,
+
+                                paymentMethod:
+                                    'PAY_AT_SALON',
+
+                                services:
+                                    normalizedServices.map(
+                                        service => ({
+                                            serviceId:
+                                                getServiceId(
+                                                    service,
+                                                ),
+                                        }),
+                                    ),
+
+                                notes: '',
+
+                                ...(finalOfferId
+                                    ? {
+                                          offerId:
+                                              finalOfferId,
+                                      }
+                                    : {}),
+                            },
+                        },
+                    });
+
+
+                console.log(
+                    '[Appointment] CREATE BOOKING RESPONSE:',
+                    response.data,
+                );
+
+
+                if (
+                    response.data
+                        ?.createBooking
+                        ?.success
+                ) {
+                    const booking =
+                        response.data
+                            ?.createBooking
+                            ?.booking;
+
+
+                    /*
+                     * Do NOT open payment here.
+                     *
+                     * Customer only waits for
+                     * salon acceptance.
+                     */
+
+                    navigation.replace(
+                        'BookingRequestSent',
+                        {
+                            booking,
+
+                            bookingFee:
+                                BOOKING_FEE,
+
+                            serviceTotal:
+                                discountedServicesTotal,
+
+                            amountToPayNow:
+                                BOOKING_FEE,
+
+                            amountAtSalon:
+                                discountedServicesTotal,
+
+                            paymentStatus:
+                                'WAITING_FOR_SALON_CONFIRMATION',
+
+                            paymentWindowMinutes:
+                                PAYMENT_WINDOW_MINUTES,
+                        },
+                    );
+
+                    return;
                 }
-            >
-                <Text
-                    style={
-                        styles.timeSectionTitle
-                    }
-                >
-                    {
-                        title
-                    }
-                </Text>
 
+
+                Alert.alert(
+                    response.data
+                        ?.createBooking
+                        ?.message ||
+                        'Unable to send booking request.',
+                );
+            } catch (
+                error: any
+            ) {
+                console.error(
+                    '[Appointment] CREATE BOOKING ERROR:',
+                    error,
+                );
+
+                Alert.alert(
+                    'Unable to send request',
+                    error?.message ||
+                        'Something went wrong while sending your booking request.',
+                );
+            }
+        };
+
+
+    /* ============================================================
+       SALON HOURS DISPLAY
+    ============================================================ */
+
+    const selectedOpening =
+        getOpeningMinutes(
+            selectedBusinessDay,
+        );
+
+    const selectedClosing =
+        getClosingMinutes(
+            selectedBusinessDay,
+        );
+
+
+    const selectedSalonIsOpen =
+        Boolean(
+            selectedBusinessDay &&
+                selectedBusinessDay.isOpen !==
+                    false,
+        );
+
+
+    /* ============================================================
+       RENDER SLOT SECTION
+    ============================================================ */
+
+    const renderSlotSection =
+        (
+            title: string,
+            slots: Slot[],
+        ) => {
+            if (
+                slots.length === 0
+            ) {
+                return null;
+            }
+
+            return (
                 <View
                     style={
-                        styles.slotGrid
+                        styles.slotSection
                     }
                 >
-                    {slots.map(
-                        renderSlot,
-                    )}
-                </View>
-            </View>
-        );
-    };
+                    <Text
+                        style={
+                            styles.slotSectionTitle
+                        }
+                    >
+                        {title}
+                    </Text>
 
-    /*
-    ================================================================
-    RENDER
-    ================================================================
-    */
+                    <View
+                        style={
+                            styles.slotGrid
+                        }
+                    >
+                        {slots.map(
+                            slot => {
+                                const isSelected =
+                                    pickerTime?.id ===
+                                    slot.id;
+
+                                return (
+                                    <TouchableOpacity
+                                        key={
+                                            slot.id
+                                        }
+                                        activeOpacity={
+                                            0.75
+                                        }
+                                        onPress={() =>
+                                            handleTimePress(
+                                                slot,
+                                            )
+                                        }
+                                        style={[
+                                            styles.timeChip,
+                                            isSelected &&
+                                                styles.timeChipSelected,
+                                        ]}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.timeChipText,
+                                                isSelected &&
+                                                    styles.timeChipTextSelected,
+                                            ]}
+                                        >
+                                            {
+                                                slot.time
+                                            }
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            },
+                        )}
+                    </View>
+                </View>
+            );
+        };
+
+
+    /* ============================================================
+       RENDER
+    ============================================================ */
 
     return (
         <SafeAreaView
@@ -1859,9 +1913,9 @@ export default function BookingDateTimeScreen({
                 styles.container
             }
         >
-            {/* ===================================================== */}
+            {/* ==================================================== */}
             {/* HEADER */}
-            {/* ===================================================== */}
+            {/* ==================================================== */}
 
             <View
                 style={
@@ -1872,17 +1926,16 @@ export default function BookingDateTimeScreen({
                     onPress={() =>
                         navigation.goBack()
                     }
+                    activeOpacity={0.7}
                     style={
                         styles.backButton
                     }
                 >
-                    <Text
-                        style={
-                            styles.back
-                        }
-                    >
-                        ←
-                    </Text>
+                    <Icon
+                        name="arrow-back"
+                        size={24}
+                        color="#171717"
+                    />
                 </TouchableOpacity>
 
                 <View
@@ -1892,819 +1945,309 @@ export default function BookingDateTimeScreen({
                 >
                     <Text
                         style={
-                            styles.title
+                            styles.headerTitle
                         }
                     >
-                        Select Appointment
+                        Appointment
                     </Text>
 
                     <Text
                         style={
-                            styles.subtitle
+                            styles.headerSubtitle
                         }
                     >
-                        Choose a date and
-                        time that works for
-                        you
+                        Choose your preferred
+                        date & time
                     </Text>
                 </View>
             </View>
 
-            {/* ===================================================== */}
-            {/* OFFER */}
-            {/* ===================================================== */}
 
-            {normalizedOffer && (
-                <View
-                    style={
-                        styles.offerBanner
-                    }
-                >
-                    <Text
-                        style={
-                            styles.offerTitle
-                        }
-                    >
-                        {
-                            normalizedOffer.title
-                        }
-                    </Text>
-
-                    {offerApplied ? (
-                        <Text
-                            style={
-                                styles.offerAppliedText
-                            }
-                        >
-                            Offer applied •
-                            Save ₹
-                            {discountAmount.toFixed(
-                                0,
-                            )}
-                        </Text>
-                    ) : (
-                        offerMessage && (
-                            <Text
-                                style={
-                                    styles.offerMessage
-                                }
-                            >
-                                {
-                                    offerMessage
-                                }
-                            </Text>
-                        )
-                    )}
-                </View>
-            )}
-
-            {/* ===================================================== */}
-            {/* SELECTED DATE CARD */}
-            {/* ===================================================== */}
-
-            <View
-                style={
-                    styles.selectedDateCard
-                }
-            >
-                <View
-                    style={
-                        styles.selectedDateLeft
-                    }
-                >
-                    <View
-                        style={
-                            styles.calendarIcon
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.calendarIconText
-                            }
-                        >
-                            📅
-                        </Text>
-                    </View>
-
-                    <View
-                        style={
-                            styles.selectedDateInfo
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.selectedDateLabel
-                            }
-                        >
-                            {
-                                selectedDate.label
-                            }
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.selectedDateValue
-                            }
-                        >
-                            {
-                                selectedDate.day
-                            }
-                            ,{' '}
-                            {
-                                selectedDate.dayNumber
-                            }{' '}
-                            {
-                                selectedDate.month
-                            }{' '}
-                            {
-                                selectedDate.date.getFullYear()
-                            }
-                        </Text>
-                    </View>
-                </View>
-
-                <TouchableOpacity
-                    activeOpacity={
-                        0.8
-                    }
-                    style={
-                        styles.changeDateButton
-                    }
-                    onPress={() =>
-                        setCalendarVisible(
-                            previous =>
-                                !previous,
-                        )
-                    }
-                >
-                    <Text
-                        style={
-                            styles.changeDateText
-                        }
-                    >
-                        {calendarVisible
-                            ? 'Close'
-                            : 'Change'}
-                    </Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* ===================================================== */}
-            {/* CALENDAR TOGGLE */}
-            {/* ===================================================== */}
-
-            {calendarVisible && (
-                <View
-                    style={
-                        styles.calendarWrapper
-                    }
-                >
-                    <Calendar
-                        minDate={
-                            today
-                        }
-
-                        /*
-                        ------------------------------------------------
-                        Allow future dates for one year.
-                        ------------------------------------------------
-                        */
-
-                        maxDate={formatDate(
-                            dates[
-                                dates.length -
-                                    1
-                            ].date,
-                        )}
-
-                        enableSwipeMonths
-
-                        hideExtraDays={
-                            false
-                        }
-
-                        firstDay={
-                            1
-                        }
-
-                        onDayPress={
-                            onDayPress
-                        }
-
-                        markedDates={{
-                            [
-                                selectedDateString
-                            ]: {
-                                selected:
-                                    true,
-
-                                selectedColor:
-                                    PRIMARY,
-                            },
-                        }}
-
-                        theme={{
-                            backgroundColor:
-                                '#fff',
-
-                            calendarBackground:
-                                '#fff',
-
-                            monthTextColor:
-                                '#111',
-
-                            textMonthFontSize:
-                                20,
-
-                            textMonthFontWeight:
-                                '700',
-
-                            dayTextColor:
-                                '#222',
-
-                            textDayFontWeight:
-                                '600',
-
-                            textDayHeaderFontWeight:
-                                '700',
-
-                            textDayHeaderFontSize:
-                                12,
-
-                            selectedDayBackgroundColor:
-                                PRIMARY,
-
-                            selectedDayTextColor:
-                                '#fff',
-
-                            todayTextColor:
-                                PRIMARY,
-
-                            arrowColor:
-                                PRIMARY,
-
-                            textDisabledColor:
-                                '#D2D2D2',
-                        }}
-                    />
-                </View>
-            )}
-
-            {/* ===================================================== */}
-            {/* SELECTED TIME CARD */}
-            {/* ===================================================== */}
-
-            <TouchableOpacity
-                activeOpacity={
-                    0.8
-                }
-                style={[
-                    styles.selectedTimeCard,
-
-                    selectedSlot &&
-                        styles.selectedTimeCardActive,
-                ]}
-                onPress={
-                    openTimePicker
-                }
-            >
-                <View
-                    style={
-                        styles.timeIcon
-                    }
-                >
-                    <Text
-                        style={
-                            styles.timeIconText
-                        }
-                    >
-                        🕐
-                    </Text>
-                </View>
-
-                <View
-                    style={
-                        styles.selectedTimeInfo
-                    }
-                >
-                    <Text
-                        style={
-                            styles.selectedTimeLabel
-                        }
-                    >
-                        {selectedSlot
-                            ? 'Selected time'
-                            : 'Choose a time'}
-                    </Text>
-
-                    <Text
-                        style={
-                            styles.selectedTimeValue
-                        }
-                    >
-                        {selectedSlot ||
-                            'Tap to view available times'}
-                    </Text>
-                </View>
-
-                <Text
-                    style={
-                        styles.changeTimeText
-                    }
-                >
-                    {selectedSlot
-                        ? 'Change'
-                        : 'Select'}
-                </Text>
-            </TouchableOpacity>
-
-            {/* ===================================================== */}
-            {/* SALON HOURS */}
-            {/* ===================================================== */}
-
-            <View
-                style={
-                    styles.hoursBanner
-                }
-            >
-                <View
-                    style={
-                        styles.hoursLeft
-                    }
-                >
-                    <Text
-                        style={
-                            styles.hoursTitle
-                        }
-                    >
-                        {
-                            selectedDate.label
-                        }
-                    </Text>
-
-                    {businessHours ? (
-                        <Text
-                            style={
-                                styles.hoursText
-                            }
-                        >
-                            Salon hours:{' '}
-                            {
-                                formatTime(
-                                    businessHours.open,
-                                )
-                            }{' '}
-                            -{' '}
-                            {
-                                formatTime(
-                                    businessHours.close,
-                                )
-                            }
-                        </Text>
-                    ) : (
-                        <Text
-                            style={
-                                styles.closedText
-                            }
-                        >
-                            Salon is closed on
-                            this day
-                        </Text>
-                    )}
-                </View>
-
-                <TouchableOpacity
-                    onPress={
-                        openTimePicker
-                    }
-                    activeOpacity={
-                        0.8
-                    }
-                    style={
-                        styles.hoursTimeButton
-                    }
-                >
-                    <Text
-                        style={
-                            styles.hoursTimeButtonText
-                        }
-                    >
-                        View times
-                    </Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* ===================================================== */}
-            {/* MAIN CONTENT */}
-            {/* ===================================================== */}
+            {/* ==================================================== */}
+            {/* CONTENT */}
+            {/* ==================================================== */}
 
             <ScrollView
                 showsVerticalScrollIndicator={
                     false
                 }
-                contentContainerStyle={{
-                    paddingBottom:
-                        180,
-                }}
+                contentContainerStyle={
+                    styles.content
+                }
             >
                 {/* ================================================= */}
-                {/* SELECTED TIME SUMMARY */}
+                {/* REQUEST INFORMATION */}
                 {/* ================================================= */}
 
-                {selectedSlot && (
+                <View
+                    style={
+                        styles.requestInfoCard
+                    }
+                >
                     <View
                         style={
-                            styles.confirmedTimeCard
+                            styles.requestInfoIcon
                         }
                     >
-                        <View>
-                            <Text
-                                style={
-                                    styles.confirmedTimeLabel
-                                }
-                            >
-                                Your appointment
-                            </Text>
+                        <Icon
+                            name="checkmark"
+                            size={21}
+                            color="#FFF"
+                        />
+                    </View>
 
-                            <Text
-                                style={
-                                    styles.confirmedTimeValue
-                                }
-                            >
-                                {
-                                    selectedDate.label
-                                }{' '}
-                                •{' '}
-                                {
-                                    selectedSlot
-                                }
-                            </Text>
-                        </View>
+                    <View
+                        style={
+                            styles.requestInfoContent
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.requestInfoTitle
+                            }
+                        >
+                            Request first, pay later
+                        </Text>
+
+                        <Text
+                            style={
+                                styles.requestInfoText
+                            }
+                        >
+                            Send your request to the
+                            salon first. You only pay
+                            the ₹{BOOKING_FEE} Clavata
+                            booking fee after the salon
+                            accepts.
+                        </Text>
+                    </View>
+                </View>
+
+
+                {/* ================================================= */}
+                {/* SALON */}
+                {/* ================================================= */}
+
+                <View
+                    style={
+                        styles.card
+                    }
+                >
+                    <Text
+                        style={
+                            styles.salonName
+                        }
+                    >
+                        {salon?.name ||
+                            salon?.salonName ||
+                            'Salon'}
+                    </Text>
+
+                    {(salon
+                        ?.address
+                        ?.addressLine ||
+                        salon
+                            ?.address
+                            ?.city) && (
+                        <Text
+                            style={
+                                styles.address
+                            }
+                        >
+                            <Icon
+                                name="location-outline"
+                                size={15}
+                                color="#777"
+                            />{' '}
+                            {salon
+                                ?.address
+                                ?.addressLine ||
+                                ''}
+
+                            {salon
+                                ?.address
+                                ?.city
+                                ? `, ${salon.address.city}`
+                                : ''}
+                        </Text>
+                    )}
+                </View>
+
+
+                {/* ================================================= */}
+                {/* APPOINTMENT DATE/TIME */}
+                {/* ================================================= */}
+
+                <View
+                    style={
+                        styles.card
+                    }
+                >
+                    <View
+                        style={
+                            styles.cardHeaderRow
+                        }
+                    >
+                        <Text
+                            style={
+                                styles.sectionTitle
+                            }
+                        >
+                            Appointment
+                        </Text>
 
                         <TouchableOpacity
                             onPress={
-                                openTimePicker
+                                openPicker
                             }
-                            style={
-                                styles.confirmedChangeButton
-                            }
+                            activeOpacity={0.7}
                         >
                             <Text
                                 style={
-                                    styles.confirmedChangeText
+                                    styles.changeText
                                 }
                             >
                                 Change
                             </Text>
                         </TouchableOpacity>
                     </View>
-                )}
 
-                {/* ================================================= */}
-                {/* NO TIME */}
-                {/* ================================================= */}
-
-                {!businessHours ? (
                     <View
                         style={
-                            styles.noSlotsCard
+                            styles.appointmentSummary
                         }
                     >
-                        <Text
+                        <View
                             style={
-                                styles.noSlotsIcon
+                                styles.appointmentSummaryIcon
                             }
                         >
-                            🕐
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.noSlotsTitle
-                            }
-                        >
-                            Salon is closed
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.noSlotsText
-                            }
-                        >
-                            Please choose another
-                            date.
-                        </Text>
-                    </View>
-                ) : allSlots.length ===
-                  0 ? (
-                    <View
-                        style={
-                            styles.noSlotsCard
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.noSlotsIcon
-                            }
-                        >
-                            🕐
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.noSlotsTitle
-                            }
-                        >
-                            No appointment times
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.noSlotsText
-                            }
-                        >
-                            The selected services
-                            cannot fit within the
-                            salon's working hours.
-                        </Text>
-                    </View>
-                ) : (
-                    <View
-                        style={
-                            styles.availableTimesCard
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.availableTimesTitle
-                            }
-                        >
-                            Available times
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.availableTimesSub
-                            }
-                        >
-                            Tap “View times” or
-                            “Select” above to choose
-                            your appointment time.
-                        </Text>
-                    </View>
-                )}
-
-                {/* ================================================= */}
-                {/* BOOKING SUMMARY */}
-                {/* ================================================= */}
-
-                <View
-                    style={
-                        styles.summaryCard
-                    }
-                >
-                    <View>
-                        <Text
-                            style={
-                                styles.summaryTitle
-                            }
-                        >
-                            Booking Summary
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.summarySub
-                            }
-                        >
-                            {
-                                services.length
-                            }{' '}
-                            {services.length ===
-                            1
-                                ? 'Service'
-                                : 'Services'}
-                        </Text>
-
-                        {offerApplied && (
-                            <Text
-                                style={
-                                    styles.summaryOffer
+                            <Icon
+                                name="calendar-outline"
+                                size={22}
+                                color={
+                                    PRIMARY
                                 }
-                            >
-                                Offer discount applied
-                            </Text>
-                        )}
-                    </View>
-
-                    <View
-                        style={
-                            styles.summaryRight
-                        }
-                    >
-                        {offerApplied && (
-                            <Text
-                                style={
-                                    styles.summaryOriginalPrice
-                                }
-                            >
-                                ₹
-                                {subtotal.toFixed(
-                                    0,
-                                )}
-                            </Text>
-                        )}
-
-                        <Text
-                            style={
-                                styles.summaryPrice
-                            }
-                        >
-                            ₹
-                            {totalPrice.toFixed(
-                                0,
-                            )}
-                        </Text>
-
-                        {offerApplied && (
-                            <Text
-                                style={
-                                    styles.summaryDiscount
-                                }
-                            >
-                                -₹
-                                {discountAmount.toFixed(
-                                    0,
-                                )}
-                            </Text>
-                        )}
-
-                        <Text
-                            style={
-                                styles.summarySub
-                            }
-                        >
-                            {
-                                totalDuration
-                            }{' '}
-                            mins
-                        </Text>
-                    </View>
-                </View>
-
-                {/* ================================================= */}
-                {/* PAYMENT BREAKDOWN */}
-                {/* ================================================= */}
-
-                {/* <View
-                    style={
-                        styles.paymentCard
-                    }
-                >
-                    <Text
-                        style={
-                            styles.paymentTitle
-                        }
-                    >
-                        Payment
-                    </Text>
-
-                    <View
-                        style={
-                            styles.paymentRow
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.paymentLabel
-                            }
-                        >
-                            Services
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.paymentValue
-                            }
-                        >
-                            ₹
-                            {totalPrice.toFixed(
-                                0,
-                            )}
-                        </Text>
-                    </View>
-
-                    <View
-                        style={
-                            styles.paymentRow
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.paymentLabel
-                            }
-                        >
-                            Clavata booking fee
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.bookingFeeValue
-                            }
-                        >
-                            ₹9
-                        </Text>
-                    </View>
-
-                    <View
-                        style={
-                            styles.paymentDivider
-                        }
-                    />
-
-                    <View
-                        style={
-                            styles.paymentRow
-                        }
-                    >
-                        <View>
-                            <Text
-                                style={
-                                    styles.payNowLabel
-                                }
-                            >
-                                Pay now
-                            </Text>
-
-                            <Text
-                                style={
-                                    styles.payNowSub
-                                }
-                            >
-                                Booking fee
-                            </Text>
+                            />
                         </View>
 
-                        <Text
+                        <View
                             style={
-                                styles.payNowValue
+                                styles.appointmentSummaryContent
                             }
                         >
-                            ₹9
-                        </Text>
+                            <Text
+                                style={
+                                    styles.appointmentSummaryDate
+                                }
+                            >
+                                {selectedDate.toLocaleDateString(
+                                    'en-US',
+                                    {
+                                        weekday:
+                                            'long',
+                                        month:
+                                            'long',
+                                        day:
+                                            'numeric',
+                                        year:
+                                            'numeric',
+                                    },
+                                )}
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.appointmentSummaryTime
+                                }
+                            >
+                                {selectedTime
+                                    ?.time ||
+                                    'Select a preferred time'}
+                            </Text>
+                        </View>
                     </View>
 
-                    <View
-                        style={
-                            styles.paymentRow
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.paymentLabel
-                            }
-                        >
-                            Pay at salon
-                        </Text>
+                    {selectedSalonIsOpen &&
+                        selectedOpening !==
+                            null &&
+                        selectedClosing !==
+                            null && (
+                            <Text
+                                style={
+                                    styles.hoursText
+                                }
+                            >
+                                Salon hours:{' '}
+                                {formatTime(
+                                    selectedOpening,
+                                )}{' '}
+                                –{' '}
+                                {formatTime(
+                                    selectedClosing,
+                                )}
+                            </Text>
+                        )}
 
+                    {!selectedSalonIsOpen && (
                         <Text
                             style={
-                                styles.paymentValue
+                                styles.closedText
                             }
                         >
-                            ₹
-                            {totalPrice.toFixed(
-                                0,
-                            )}
+                            Salon is closed on this
+                            day.
                         </Text>
-                    </View>
-                </View> */}
+                    )}
+                </View>
+
 
                 {/* ================================================= */}
-                {/* SERVICE PRICE BREAKDOWN */}
+                {/* SELECTED SERVICES */}
                 {/* ================================================= */}
 
                 <View
                     style={
-                        styles.servicePriceCard
+                        styles.servicesCard
                     }
                 >
-                    <Text
+                    <View
                         style={
-                            styles.servicePriceTitle
+                            styles.cardHeaderRow
                         }
                     >
-                        Selected Services
-                    </Text>
+                        <Text
+                            style={
+                                styles.sectionTitle
+                            }
+                        >
+                            Selected Services
+                        </Text>
 
-                    {services.map(
+                        <Text
+                            style={
+                                styles.serviceCount
+                            }
+                        >
+                            {
+                                normalizedServices.length
+                            }{' '}
+                            {normalizedServices.length ===
+                            1
+                                ? 'service'
+                                : 'services'}
+                        </Text>
+                    </View>
+
+
+                    {normalizedServices.map(
                         (
-                            service: Service,
+                            service,
+                            index,
                         ) => {
                             const originalPrice =
-                                Number(
-                                    service.price ||
-                                        0,
+                                getServicePrice(
+                                    service,
                                 );
 
                             const displayPrice =
@@ -2712,28 +2255,33 @@ export default function BookingDateTimeScreen({
                                     service,
                                 );
 
-                            const serviceHasDiscount =
+                            const hasDiscount =
                                 displayPrice <
                                 originalPrice;
 
+                            const eligible =
+                                isServiceEligibleForOffer(
+                                    service,
+                                );
+
                             return (
                                 <View
-                                    key={
-                                        service.serviceId
-                                    }
-                                    style={
-                                        styles.serviceRow
-                                    }
+                                    key={`${getServiceId(
+                                        service,
+                                    )}-${index}`}
+                                    style={[
+                                        styles.serviceRow,
+                                        index >
+                                            0 &&
+                                            styles.serviceRowBorder,
+                                    ]}
                                 >
                                     <View
                                         style={
-                                            styles.serviceRowLeft
+                                            styles.serviceInfo
                                         }
                                     >
                                         <Text
-                                            numberOfLines={
-                                                1
-                                            }
                                             style={
                                                 styles.serviceName
                                             }
@@ -2743,30 +2291,41 @@ export default function BookingDateTimeScreen({
                                             }
                                         </Text>
 
+                                        <Text
+                                            style={
+                                                styles.serviceDuration
+                                            }
+                                        >
+                                            {
+                                                getServiceDuration(
+                                                    service,
+                                                )
+                                            }{' '}
+                                            mins
+                                        </Text>
+
                                         {offerApplied &&
-                                            isServiceEligibleForOffer(
-                                                service,
-                                            ) && (
+                                            eligible && (
                                                 <Text
                                                     style={
-                                                        styles.eligibleText
+                                                        styles.offerAppliedSmall
                                                     }
                                                 >
-                                                    Offer
-                                                    eligible
+                                                    ✓ Offer
+                                                    applied
                                                 </Text>
                                             )}
                                     </View>
 
                                     <View
                                         style={
-                                            styles.servicePriceRight
+                                            styles.servicePriceContainer
                                         }
                                     >
-                                        {serviceHasDiscount && (
+                                        {hasDiscount && (
                                             <Text
                                                 style={
-                                                    styles.serviceOriginalPrice
+                                                    styles.originalPrice
                                                 }
                                             >
                                                 ₹
@@ -2779,9 +2338,8 @@ export default function BookingDateTimeScreen({
                                         <Text
                                             style={[
                                                 styles.servicePrice,
-
-                                                serviceHasDiscount &&
-                                                    styles.serviceDiscountedPrice,
+                                                hasDiscount &&
+                                                    styles.discountedPrice,
                                             ]}
                                         >
                                             ₹
@@ -2795,22 +2353,635 @@ export default function BookingDateTimeScreen({
                         },
                     )}
                 </View>
+
+
+                {/* ================================================= */}
+                {/* OFFER */}
+                {/* ================================================= */}
+
+                {normalizedOffer && (
+                    <View
+                        style={
+                            styles.offerCard
+                        }
+                    >
+                        <View
+                            style={
+                                styles.offerIcon
+                            }
+                        >
+                            <Icon
+                                name="pricetag-outline"
+                                size={19}
+                                color={
+                                    PRIMARY
+                                }
+                            />
+                        </View>
+
+                        <View
+                            style={
+                                styles.offerContent
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.offerTitle
+                                }
+                            >
+                                {normalizedOffer.title ||
+                                    'Special Offer'}
+                            </Text>
+
+                            {offerMessage && (
+                                <Text
+                                    style={
+                                        styles.offerMessage
+                                    }
+                                >
+                                    {
+                                        offerMessage
+                                    }
+                                </Text>
+                            )}
+
+                            {normalizedOffer.description && (
+                                <Text
+                                    style={
+                                        styles.offerDescription
+                                    }
+                                >
+                                    {
+                                        normalizedOffer.description
+                                    }
+                                </Text>
+                            )}
+                        </View>
+
+                        {offerApplied && (
+                            <Text
+                                style={
+                                    styles.offerDiscount
+                                }
+                            >
+                                -₹
+                                {discountAmount.toFixed(
+                                    0,
+                                )}
+                            </Text>
+                        )}
+                    </View>
+                )}
+
+
+                {/* ================================================= */}
+                {/* DURATION */}
+                {/* ================================================= */}
+
+                <View
+                    style={
+                        styles.card
+                    }
+                >
+                    <View
+                        style={
+                            styles.simpleRow
+                        }
+                    >
+                        <View>
+                            <Text
+                                style={
+                                    styles.sectionTitleSmall
+                                }
+                            >
+                                Total Duration
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.mutedText
+                                }
+                            >
+                                Combined duration of
+                                selected services
+                            </Text>
+                        </View>
+
+                        <Text
+                            style={
+                                styles.durationValue
+                            }
+                        >
+                            {
+                                totalDuration
+                            }{' '}
+                            mins
+                        </Text>
+                    </View>
+                </View>
+
+
+                {/* ================================================= */}
+                {/* PAYMENT SUMMARY */}
+                {/* ================================================= */}
+
+                <View
+                    style={
+                        styles.card
+                    }
+                >
+                    <Text
+                        style={
+                            styles.sectionTitle
+                        }
+                    >
+                        Payment
+                    </Text>
+
+
+                    {/* SERVICES */}
+
+                    <View
+                        style={
+                            styles.paymentRow
+                        }
+                    >
+                        <View>
+                            <Text
+                                style={
+                                    styles.paymentLabel
+                                }
+                            >
+                                Services
+                            </Text>
+
+                            {offerApplied && (
+                                <Text
+                                    style={
+                                        styles.paymentSubLabel
+                                    }
+                                >
+                                    After discount
+                                </Text>
+                            )}
+                        </View>
+
+                        <View
+                            style={
+                                styles.paymentPriceContainer
+                            }
+                        >
+                            {offerApplied && (
+                                <Text
+                                    style={
+                                        styles.paymentOriginalPrice
+                                    }
+                                >
+                                    ₹
+                                    {subtotal.toFixed(
+                                        0,
+                                    )}
+                                </Text>
+                            )}
+
+                            <Text
+                                style={
+                                    styles.paymentAmount
+                                }
+                            >
+                                ₹
+                                {discountedServicesTotal.toFixed(
+                                    0,
+                                )}
+                            </Text>
+                        </View>
+                    </View>
+
+
+                    {/* DISCOUNT */}
+
+                    {offerApplied && (
+                        <View
+                            style={
+                                styles.paymentRow
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.discountLabel
+                                }
+                            >
+                                Offer Discount
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.discountValue
+                                }
+                            >
+                                -₹
+                                {discountAmount.toFixed(
+                                    0,
+                                )}
+                            </Text>
+                        </View>
+                    )}
+
+
+                    {!offerApplied &&
+                        normalizedOffer &&
+                        !minimumBookingAmountMet && (
+                            <Text
+                                style={
+                                    styles.minimumAmountText
+                                }
+                            >
+                                This offer cannot be
+                                applied because the
+                                minimum booking amount
+                                has not been met.
+                            </Text>
+                        )}
+
+
+                    <View
+                        style={
+                            styles.divider
+                        }
+                    />
+
+
+                    {/* BOOKING FEE */}
+
+                    <View
+                        style={
+                            styles.bookingFeeRow
+                        }
+                    >
+                        <View
+                            style={
+                                styles.bookingFeeInfo
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.bookingFeeTitle
+                                }
+                            >
+                                Clavata booking fee
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.bookingFeeSubtitle
+                                }
+                            >
+                                ₹{BOOKING_FEE} paid only
+                                after salon accepts
+                            </Text>
+                        </View>
+
+                        <Text
+                            style={
+                                styles.bookingFeeAmount
+                            }
+                        >
+                            ₹{BOOKING_FEE}
+                        </Text>
+                    </View>
+
+
+                    {/* SALON PAYMENT */}
+
+                    <View
+                        style={
+                            styles.salonPaymentBox
+                        }
+                    >
+                        <View
+                            style={
+                                styles.salonPaymentIcon
+                            }
+                        >
+                            <Icon
+                                name="storefront-outline"
+                                size={20}
+                                color={
+                                    PRIMARY
+                                }
+                            />
+                        </View>
+
+                        <View
+                            style={{
+                                flex: 1,
+                            }}
+                        >
+                            <Text
+                                style={
+                                    styles.salonPaymentTitle
+                                }
+                            >
+                                Remaining amount at salon
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.salonPaymentText
+                                }
+                            >
+                                ₹
+                                {discountedServicesTotal.toFixed(
+                                    0,
+                                )}{' '}
+                                will be paid directly
+                                to the salon.
+                            </Text>
+                        </View>
+                    </View>
+
+
+                    {/* SAVINGS */}
+
+                    {offerApplied && (
+                        <Text
+                            style={
+                                styles.savingsText
+                            }
+                        >
+                            You save ₹
+                            {discountAmount.toFixed(
+                                0,
+                            )}{' '}
+                            with this offer.
+                        </Text>
+                    )}
+                </View>
+
+
+                {/* ================================================= */}
+                {/* HOW IT WORKS */}
+                {/* ================================================= */}
+
+                <View
+                    style={
+                        styles.howItWorksCard
+                    }
+                >
+                    <Text
+                        style={
+                            styles.howItWorksTitle
+                        }
+                    >
+                        How your booking works
+                    </Text>
+
+
+                    <View
+                        style={
+                            styles.stepRow
+                        }
+                    >
+                        <View
+                            style={
+                                styles.stepCircle
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.stepNumber
+                                }
+                            >
+                                1
+                            </Text>
+                        </View>
+
+                        <Text
+                            style={
+                                styles.stepText
+                            }
+                        >
+                            Send your booking request
+                            with your preferred date
+                            and time.
+                        </Text>
+                    </View>
+
+
+                    <View
+                        style={
+                            styles.stepRow
+                        }
+                    >
+                        <View
+                            style={
+                                styles.stepCircle
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.stepNumber
+                                }
+                            >
+                                2
+                            </Text>
+                        </View>
+
+                        <Text
+                            style={
+                                styles.stepText
+                            }
+                        >
+                            The salon reviews and
+                            accepts or rejects your
+                            request.
+                        </Text>
+                    </View>
+
+
+                    <View
+                        style={
+                            styles.stepRow
+                        }
+                    >
+                        <View
+                            style={
+                                styles.stepCircle
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.stepNumber
+                                }
+                            >
+                                3
+                            </Text>
+                        </View>
+
+                        <Text
+                            style={
+                                styles.stepText
+                            }
+                        >
+                            If accepted, you get 15
+                            minutes to pay the ₹
+                            {BOOKING_FEE} Clavata
+                            booking fee.
+                        </Text>
+                    </View>
+
+
+                    <View
+                        style={[
+                            styles.stepRow,
+                            {
+                                marginBottom: 0,
+                            },
+                        ]}
+                    >
+                        <View
+                            style={
+                                styles.stepCircle
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.stepNumber
+                                }
+                            >
+                                4
+                            </Text>
+                        </View>
+
+                        <Text
+                            style={
+                                styles.stepText
+                            }
+                        >
+                            Pay the remaining ₹
+                            {discountedServicesTotal.toFixed(
+                                0,
+                            )}{' '}
+                            directly at the salon.
+                        </Text>
+                    </View>
+                </View>
+
+
+                {/* ================================================= */}
+                {/* FINAL INFO */}
+                {/* ================================================= */}
+
+                <View
+                    style={
+                        styles.finalInfo
+                    }
+                >
+                    <Icon
+                        name="information-circle-outline"
+                        size={19}
+                        color="#777"
+                    />
+
+                    <Text
+                        style={
+                            styles.finalInfoText
+                        }
+                    >
+                        No payment is required now.
+                        Your request will be sent to
+                        the salon first.
+                    </Text>
+                </View>
+
+
+                {/* ================================================= */}
+                {/* REQUEST BUTTON */}
+                {/* ================================================= */}
+
+                <TouchableOpacity
+                    style={[
+                        styles.requestButton,
+                        creatingBooking &&
+                            styles.requestButtonDisabled,
+                    ]}
+                    disabled={
+                        creatingBooking
+                    }
+                    onPress={
+                        requestBooking
+                    }
+                    activeOpacity={0.85}
+                >
+                    {creatingBooking ? (
+                        <>
+                            <ActivityIndicator
+                                color="#FFF"
+                                size="small"
+                            />
+
+                            <Text
+                                style={
+                                    styles.requestButtonText
+                                }
+                            >
+                                Sending request...
+                            </Text>
+                        </>
+                    ) : (
+                        <>
+                            <View
+                                style={{
+                                    flex: 1,
+                                }}
+                            >
+                                <Text
+                                    style={
+                                        styles.requestButtonText
+                                    }
+                                >
+                                    Request Booking
+                                </Text>
+
+                                <Text
+                                    style={
+                                        styles.requestButtonSubText
+                                    }
+                                >
+                                    No payment required yet
+                                </Text>
+                            </View>
+
+                            <Icon
+                                name="arrow-forward"
+                                size={24}
+                                color="#FFF"
+                            />
+                        </>
+                    )}
+                </TouchableOpacity>
+
+
+                <View
+                    style={{
+                        height: 30,
+                    }}
+                />
             </ScrollView>
 
-            {/* ===================================================== */}
-            {/* TIME SELECTION MODAL */}
-            {/* ===================================================== */}
+
+            {/* ==================================================== */}
+            {/* COMBINED DATE + TIME BOTTOM SHEET */}
+            {/* ==================================================== */}
 
             <Modal
                 visible={
-                    timeModalVisible
+                    showPicker
                 }
                 transparent
                 animationType="slide"
-                onRequestClose={() =>
-                    setTimeModalVisible(
-                        false,
-                    )
+                onRequestClose={
+                    closePicker
                 }
             >
                 <View
@@ -2818,143 +2989,409 @@ export default function BookingDateTimeScreen({
                         styles.modalOverlay
                     }
                 >
-                    <TouchableOpacity
-                        activeOpacity={1}
-                        style={
-                            styles.modalBackdrop
-                        }
-                        onPress={() =>
-                            setTimeModalVisible(
-                                false,
-                            )
-                        }
-                    />
-
                     <View
-                        style={
-                            styles.timeModal
-                        }
+                        style={[
+                            styles.bottomSheet,
+                            {
+                                maxHeight:
+                                    SCREEN_HEIGHT *
+                                    0.92,
+                            },
+                        ]}
                     >
-                        <View
-                            style={
-                                styles.modalHandle
-                            }
-                        />
-
-                        {/* HEADER */}
+                        {/* ========================================= */}
+                        {/* SHEET HEADER */}
+                        {/* ========================================= */}
 
                         <View
                             style={
-                                styles.timeModalHeader
+                                styles.sheetHeader
                             }
                         >
-                            <View
-                                style={
-                                    styles.timeModalHeaderText
-                                }
-                            >
+                            <View>
                                 <Text
                                     style={
-                                        styles.timeModalTitle
+                                        styles.sheetTitle
                                     }
                                 >
-                                    Choose a time
+                                    Select date & time
                                 </Text>
 
                                 <Text
                                     style={
-                                        styles.timeModalSubtitle
+                                        styles.sheetSubtitle
                                     }
                                 >
-                                    {
-                                        selectedDate.day
-                                    }
-                                    ,{' '}
-                                    {
-                                        selectedDate.dayNumber
-                                    }{' '}
-                                    {
-                                        selectedDate.month
-                                    }
+                                    Choose your preferred
+                                    appointment time
                                 </Text>
                             </View>
 
                             <TouchableOpacity
-                                onPress={() =>
-                                    setTimeModalVisible(
-                                        false,
-                                    )
+                                onPress={
+                                    closePicker
                                 }
                                 style={
-                                    styles.modalCloseButton
+                                    styles.closeButton
                                 }
+                                activeOpacity={0.7}
                             >
-                                <Text
-                                    style={
-                                        styles.modalCloseText
-                                    }
-                                >
-                                    ×
-                                </Text>
+                                <Icon
+                                    name="close"
+                                    size={22}
+                                    color="#333"
+                                />
                             </TouchableOpacity>
                         </View>
 
-                        {/* SALON HOURS */}
-
-                        {businessHours && (
-                            <View
-                                style={
-                                    styles.modalHours
-                                }
-                            >
-                                <Text
-                                    style={
-                                        styles.modalHoursText
-                                    }
-                                >
-                                    Open{' '}
-                                    {
-                                        formatTime(
-                                            businessHours.open,
-                                        )
-                                    }{' '}
-                                    –{' '}
-                                    {
-                                        formatTime(
-                                            businessHours.close,
-                                        )
-                                    }
-                                </Text>
-                            </View>
-                        )}
-
-                        {/* TIMES */}
 
                         <ScrollView
                             showsVerticalScrollIndicator={
                                 false
                             }
                             contentContainerStyle={
-                                styles.timeModalContent
+                                styles.sheetContent
                             }
                         >
-                            {!businessHours ? (
+                            {/* ===================================== */}
+                            {/* CURRENT SELECTION */}
+                            {/* ===================================== */}
+
+                            <View
+                                style={
+                                    styles.selectedSummary
+                                }
+                            >
                                 <View
                                     style={
-                                        styles.modalEmpty
+                                        styles.selectedSummaryIcon
                                     }
+                                >
+                                    <Icon
+                                        name="calendar-outline"
+                                        size={20}
+                                        color={
+                                            PRIMARY
+                                        }
+                                    />
+                                </View>
+
+                                <View
+                                    style={{
+                                        flex: 1,
+                                    }}
                                 >
                                     <Text
                                         style={
-                                            styles.modalEmptyIcon
+                                            styles.selectedSummaryLabel
                                         }
                                     >
-                                        🕐
+                                        Selected
                                     </Text>
 
                                     <Text
                                         style={
-                                            styles.modalEmptyTitle
+                                            styles.selectedSummaryValue
+                                        }
+                                    >
+                                        {pickerDate.toLocaleDateString(
+                                            'en-US',
+                                            {
+                                                weekday:
+                                                    'long',
+                                                month:
+                                                    'short',
+                                                day:
+                                                    'numeric',
+                                            },
+                                        )}
+
+                                        {pickerTime
+                                            ? ` • ${pickerTime.time}`
+                                            : ''}
+                                    </Text>
+                                </View>
+                            </View>
+
+
+                            {/* ===================================== */}
+                            {/* CALENDAR TOGGLE */}
+                            {/* ===================================== */}
+
+                            <TouchableOpacity
+                                activeOpacity={0.7}
+                                onPress={() =>
+                                    setShowFullCalendar(
+                                        value =>
+                                            !value,
+                                    )
+                                }
+                                style={
+                                    styles.calendarToggle
+                                }
+                            >
+                                <Icon
+                                    name="calendar"
+                                    size={18}
+                                    color={
+                                        PRIMARY
+                                    }
+                                />
+
+                                <Text
+                                    style={
+                                        styles.calendarToggleText
+                                    }
+                                >
+                                    {showFullCalendar
+                                        ? 'Hide calendar'
+                                        : 'Choose from calendar'}
+                                </Text>
+
+                                <Icon
+                                    name={
+                                        showFullCalendar
+                                            ? 'chevron-up'
+                                            : 'chevron-down'
+                                    }
+                                    size={18}
+                                    color="#666"
+                                />
+                            </TouchableOpacity>
+
+
+                            {/* ===================================== */}
+                            {/* FULL CALENDAR */}
+                            {/* ===================================== */}
+
+                            {showFullCalendar && (
+                                <View
+                                    style={
+                                        styles.calendarContainer
+                                    }
+                                >
+                                    <Calendar
+                                        current={
+                                            pickerDateString
+                                        }
+
+                                        minDate={
+                                            formatDate(
+                                                today,
+                                            )
+                                        }
+
+                                        maxDate={
+                                            formatDate(
+                                                futureDates[
+                                                    futureDates.length -
+                                                        1
+                                                ].date,
+                                            )
+                                        }
+
+                                        markedDates={{
+                                            [pickerDateString]:
+                                                {
+                                                    selected:
+                                                        true,
+
+                                                    selectedColor:
+                                                        PRIMARY,
+
+                                                    selectedTextColor:
+                                                        '#fff',
+                                                },
+                                        }}
+
+                                        onDayPress={day =>
+                                            handlePickerDateChange(
+                                                day.dateString,
+                                            )
+                                        }
+
+                                        theme={{
+                                            todayTextColor:
+                                                PRIMARY,
+
+                                            arrowColor:
+                                                PRIMARY,
+
+                                            textDayFontSize:
+                                                14,
+
+                                            textMonthFontSize:
+                                                16,
+
+                                            textDayHeaderFontSize:
+                                                12,
+                                        }}
+                                    />
+                                </View>
+                            )}
+
+
+                            {/* ===================================== */}
+                            {/* DATE CHIPS */}
+                            {/* ===================================== */}
+
+                            <Text
+                                style={
+                                    styles.sheetSectionTitle
+                                }
+                            >
+                                Date
+                            </Text>
+
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={
+                                    false
+                                }
+                                contentContainerStyle={{
+                                    paddingRight: 10,
+                                }}
+                            >
+                                {futureDates
+                                    .slice(
+                                        0,
+                                        14,
+                                    )
+                                    .map(
+                                        item => {
+                                            const selected =
+                                                pickerDateString ===
+                                                item.dateString;
+
+                                            return (
+                                                <TouchableOpacity
+                                                    key={
+                                                        item.dateString
+                                                    }
+                                                    activeOpacity={
+                                                        0.75
+                                                    }
+                                                    onPress={() =>
+                                                        handleDateChipPress(
+                                                            item,
+                                                        )
+                                                    }
+                                                    style={[
+                                                        styles.dateChip,
+                                                        selected &&
+                                                            styles.dateChipSelected,
+                                                    ]}
+                                                >
+                                                    <Text
+                                                        style={[
+                                                            styles.dateChipDay,
+                                                            selected &&
+                                                                styles.dateChipDaySelected,
+                                                        ]}
+                                                    >
+                                                        {
+                                                            item.dayName
+                                                        }
+                                                    </Text>
+
+                                                    <Text
+                                                        style={[
+                                                            styles.dateChipNumber,
+                                                            selected &&
+                                                                styles.dateChipNumberSelected,
+                                                        ]}
+                                                    >
+                                                        {
+                                                            item.dayNumber
+                                                        }
+                                                    </Text>
+
+                                                    <Text
+                                                        style={[
+                                                            styles.dateChipMonth,
+                                                            selected &&
+                                                                styles.dateChipMonthSelected,
+                                                        ]}
+                                                    >
+                                                        {
+                                                            item.month
+                                                        }
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        },
+                                    )}
+                            </ScrollView>
+
+
+                            {/* ===================================== */}
+                            {/* SALON HOURS */}
+                            {/* ===================================== */}
+
+                            {pickerSalonIsOpen &&
+                                pickerOpeningMinutes !==
+                                    null &&
+                                pickerClosingMinutes !==
+                                    null && (
+                                    <View
+                                        style={
+                                            styles.hoursBox
+                                        }
+                                    >
+                                        <Icon
+                                            name="time-outline"
+                                            size={18}
+                                            color={
+                                                PRIMARY
+                                            }
+                                        />
+
+                                        <Text
+                                            style={
+                                                styles.hoursBoxText
+                                            }
+                                        >
+                                            Salon hours:{' '}
+                                            {formatTime(
+                                                pickerOpeningMinutes,
+                                            )}{' '}
+                                            –{' '}
+                                            {formatTime(
+                                                pickerClosingMinutes,
+                                            )}
+                                        </Text>
+                                    </View>
+                                )}
+
+
+                            {/* ===================================== */}
+                            {/* TIME */}
+                            {/* ===================================== */}
+
+                            <Text
+                                style={
+                                    styles.sheetSectionTitle
+                                }
+                            >
+                                Preferred time
+                            </Text>
+
+
+                            {!pickerSalonIsOpen ? (
+                                <View
+                                    style={
+                                        styles.closedBox
+                                    }
+                                >
+                                    <Icon
+                                        name="calendar-outline"
+                                        size={25}
+                                        color="#999"
+                                    />
+
+                                    <Text
+                                        style={
+                                            styles.closedTitle
                                         }
                                     >
                                         Salon is closed
@@ -2962,31 +3399,29 @@ export default function BookingDateTimeScreen({
 
                                     <Text
                                         style={
-                                            styles.modalEmptyText
+                                            styles.closedMessage
                                         }
                                     >
-                                        Please choose
-                                        another date.
+                                        Please choose another
+                                        date.
                                     </Text>
                                 </View>
                             ) : allSlots.length ===
                               0 ? (
                                 <View
                                     style={
-                                        styles.modalEmpty
+                                        styles.closedBox
                                     }
                                 >
-                                    <Text
-                                        style={
-                                            styles.modalEmptyIcon
-                                        }
-                                    >
-                                        🕐
-                                    </Text>
+                                    <Icon
+                                        name="time-outline"
+                                        size={25}
+                                        color="#999"
+                                    />
 
                                     <Text
                                         style={
-                                            styles.modalEmptyTitle
+                                            styles.closedTitle
                                         }
                                     >
                                         No times available
@@ -2994,275 +3429,203 @@ export default function BookingDateTimeScreen({
 
                                     <Text
                                         style={
-                                            styles.modalEmptyText
+                                            styles.closedMessage
                                         }
                                     >
-                                        Please choose
-                                        another date.
+                                        Please choose another
+                                        date.
                                     </Text>
                                 </View>
                             ) : (
                                 <>
-                                    {
-                                        renderTimeSection(
-                                            'Morning',
-                                            morning,
-                                        )
-                                    }
+                                    {renderSlotSection(
+                                        'Morning',
+                                        morningSlots,
+                                    )}
 
-                                    {
-                                        renderTimeSection(
-                                            'Afternoon',
-                                            afternoon,
-                                        )
-                                    }
+                                    {renderSlotSection(
+                                        'Afternoon',
+                                        afternoonSlots,
+                                    )}
 
-                                    {
-                                        renderTimeSection(
-                                            'Evening',
-                                            evening,
-                                        )
-                                    }
-
-                                    {allSlots.length >
-                                        0 &&
-                                        !allSlots.some(
-                                            slot =>
-                                                slot.available,
-                                        ) && (
-                                            <View
-                                                style={
-                                                    styles.noAvailableTimes
-                                                }
-                                            >
-                                                <Text
-                                                    style={
-                                                        styles.noAvailableTimesTitle
-                                                    }
-                                                >
-                                                    All times are booked
-                                                </Text>
-
-                                                <Text
-                                                    style={
-                                                        styles.noAvailableTimesText
-                                                    }
-                                                >
-                                                    Please choose another
-                                                    date.
-                                                </Text>
-                                            </View>
-                                        )}
+                                    {renderSlotSection(
+                                        'Evening',
+                                        eveningSlots,
+                                    )}
                                 </>
                             )}
                         </ScrollView>
+
+
+                        {/* ========================================= */}
+                        {/* SHEET FOOTER */}
+                        {/* ========================================= */}
+
+                        <View
+                            style={
+                                styles.sheetFooter
+                            }
+                        >
+                            <View
+                                style={
+                                    styles.sheetSelectionFooter
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.sheetFooterLabel
+                                    }
+                                >
+                                    Your selection
+                                </Text>
+
+                                <Text
+                                    style={
+                                        styles.sheetFooterValue
+                                    }
+                                >
+                                    {pickerDate.toLocaleDateString(
+                                        'en-US',
+                                        {
+                                            month:
+                                                'short',
+                                            day:
+                                                'numeric',
+                                        },
+                                    )}
+
+                                    {pickerTime
+                                        ? ` • ${pickerTime.time}`
+                                        : ' • Select time'}
+                                </Text>
+                            </View>
+
+                            <TouchableOpacity
+                                activeOpacity={
+                                    0.85
+                                }
+                                onPress={
+                                    handleConfirmPicker
+                                }
+                                disabled={
+                                    !pickerTime
+                                }
+                                style={[
+                                    styles.confirmPickerButton,
+                                    !pickerTime &&
+                                        styles.confirmPickerDisabled,
+                                ]}
+                            >
+                                <Text
+                                    style={
+                                        styles.confirmPickerText
+                                    }
+                                >
+                                    Confirm
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
-
-            {/* ===================================================== */}
-            {/* BOTTOM BAR */}
-            {/* ===================================================== */}
-
-            <View
-                style={
-                    styles.bottomBar
-                }
-            >
-                <View
-                    style={
-                        styles.bottomPriceContainer
-                    }
-                >
-                    {offerApplied && (
-                        <Text
-                            style={
-                                styles.bottomOriginalPrice
-                            }
-                        >
-                            ₹
-                            {subtotal.toFixed(
-                                0,
-                            )}
-                        </Text>
-                    )}
-
-                    <Text
-                        style={
-                            styles.bottomPrice
-                        }
-                    >
-                        ₹9
-                    </Text>
-
-                    <Text
-                        style={
-                            styles.bottomBookingFee
-                        }
-                    >
-                        Booking fee
-                    </Text>
-
-                    <Text
-                        style={
-                            styles.bottomServices
-                        }
-                    >
-                        ₹
-                        {totalPrice.toFixed(
-                            0,
-                        )}{' '}
-                        at salon
-                    </Text>
-
-                    {offerApplied && (
-                        <Text
-                            style={
-                                styles.bottomDiscount
-                            }
-                        >
-                            Save ₹
-                            {discountAmount.toFixed(
-                                0,
-                            )}
-                        </Text>
-                    )}
-                </View>
-
-                <TouchableOpacity
-                    disabled={
-                        !selectedSlot ||
-                        !selectedSlotObject?.available
-                    }
-                    activeOpacity={
-                        0.85
-                    }
-                    style={[
-                        styles.continueButton,
-
-                        (!selectedSlot ||
-                            !selectedSlotObject?.available) && {
-                            opacity: 0.5,
-                        },
-                    ]}
-                    onPress={() => {
-                        if (
-                            !selectedSlot ||
-                            !selectedSlotObject?.available
-                        ) {
-                            return;
-                        }
-
-                        navigation.navigate(
-                            'BookingSummary',
-                            {
-                                salonId,
-
-                                salon,
-
-                                customerUserId,
-
-                                services,
-
-                                date:
-                                    selectedDate,
-
-                                bookingDate:
-                                    selectedDateString,
-
-                                time:
-                                    selectedSlot,
-
-                                startTime:
-                                    selectedSlotObject.startTime,
-
-                                offer:
-                                    normalizedOffer ||
-                                    undefined,
-
-                                offerId:
-                                    normalizedOffer?.offerId ||
-                                    undefined,
-
-                                subtotal,
-
-                                discountAmount,
-
-                                totalPrice,
-
-                                offerApplied,
-
-                                totalDuration,
-
-                                /*
-                                Fixed Clavata booking fee.
-                                This is separate from service
-                                amount.
-                                */
-                                bookingFee:
-                                    BOOKING_FEE,
-                            },
-                        );
-                    }}
-                >
-                    <Text
-                        style={
-                            styles.continueText
-                        }
-                    >
-                        Continue
-                    </Text>
-
-                    <Text
-                        style={
-                            styles.continueArrow
-                        }
-                    >
-                        →
-                    </Text>
-                </TouchableOpacity>
-            </View>
         </SafeAreaView>
     );
 }
 
-/*
-================================================================
-STYLES
-================================================================
-*/
+
+/* ================================================================
+   STYLES
+================================================================ */
 
 const styles =
     StyleSheet.create({
         container: {
             flex: 1,
             backgroundColor:
-                '#F6F7FB',
+                '#F5F6FA',
         },
 
-        /*
-        ================================================================
-        HEADER
-        ================================================================
-        */
+        /* ========================================================
+           HEADER
+        ======================================================== */
 
         header: {
-            paddingHorizontal:
-                18,
-            paddingTop: 14,
-            paddingBottom: 8,
             flexDirection:
                 'row',
             alignItems:
                 'center',
+            paddingHorizontal:
+                8,
+            paddingTop:
+                4,
+            paddingBottom:
+                10,
+            backgroundColor:
+                '#FFF',
         },
 
         backButton: {
-            width: 42,
-            height: 42,
-            borderRadius: 21,
+            width: 44,
+            height: 44,
+            alignItems:
+                'center',
+            justifyContent:
+                'center',
+        },
+
+        headerTextContainer: {
+            flex: 1,
+            paddingLeft: 4,
+        },
+
+        headerTitle: {
+            fontSize: 24,
+            fontWeight:
+                '800',
+            color:
+                '#171717',
+        },
+
+        headerSubtitle: {
+            marginTop: 2,
+            fontSize: 13,
+            color:
+                '#777',
+        },
+
+        /* ========================================================
+           CONTENT
+        ======================================================== */
+
+        content: {
+            paddingTop: 14,
+            paddingBottom: 30,
+        },
+
+        /* ========================================================
+           REQUEST INFO
+        ======================================================== */
+
+        requestInfoCard: {
+            marginHorizontal: 15,
+            marginBottom: 15,
+            padding: 16,
+            borderRadius: 16,
             backgroundColor:
-                '#FFF',
+                '#EAF8F3',
+            borderWidth: 1,
+            borderColor:
+                '#B9E5D5',
+            flexDirection:
+                'row',
+        },
+
+        requestInfoIcon: {
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor:
+                PRIMARY,
             alignItems:
                 'center',
             justifyContent:
@@ -3270,747 +3633,609 @@ const styles =
             marginRight: 12,
         },
 
-        back: {
-            fontSize: 25,
-            fontWeight:
-                '700',
-            color: '#222',
-        },
-
-        headerTextContainer: {
+        requestInfoContent: {
             flex: 1,
         },
 
-        title: {
+        requestInfoTitle: {
+            fontSize: 16,
+            fontWeight:
+                '800',
+            color:
+                '#176B53',
+        },
+
+        requestInfoText: {
+            marginTop: 5,
+            fontSize: 13,
+            lineHeight: 19,
+            color:
+                '#39705F',
+        },
+
+        /* ========================================================
+           CARD
+        ======================================================== */
+
+        card: {
+            marginHorizontal: 15,
+            marginBottom: 15,
+            padding: 18,
+            borderRadius: 14,
+            backgroundColor:
+                '#FFF',
+        },
+
+        salonName: {
             fontSize: 20,
             fontWeight:
                 '800',
-            color: '#111',
+            color:
+                '#171717',
         },
 
-        subtitle: {
-            marginTop: 3,
+        address: {
+            marginTop: 8,
+            color:
+                '#666',
             fontSize: 13,
-            color: '#777',
+            lineHeight: 20,
         },
 
-        /*
-        ================================================================
-        OFFER
-        ================================================================
-        */
-
-        offerBanner: {
-            marginHorizontal:
-                16,
-            marginBottom: 10,
-            backgroundColor:
-                '#E8F7F2',
-            borderRadius: 14,
-            paddingHorizontal:
-                15,
-            paddingVertical:
-                11,
-            borderWidth: 1,
-            borderColor:
-                '#BFE7D9',
-        },
-
-        offerTitle: {
-            fontSize: 14,
-            fontWeight:
-                '800',
-            color: PRIMARY,
-        },
-
-        offerAppliedText: {
-            marginTop: 4,
-            fontSize: 12,
-            fontWeight:
-                '600',
-            color: '#176B53',
-        },
-
-        offerMessage: {
-            marginTop: 4,
-            fontSize: 12,
-            color: '#666',
-        },
-
-        /*
-        ================================================================
-        SELECTED DATE
-        ================================================================
-        */
-
-        selectedDateCard: {
-            marginHorizontal:
-                16,
-            marginTop: 4,
-            backgroundColor:
-                '#FFF',
-            borderRadius: 16,
-            padding: 14,
+        cardHeaderRow: {
             flexDirection:
                 'row',
-            alignItems:
-                'center',
             justifyContent:
                 'space-between',
-            borderWidth: 1,
-            borderColor:
-                '#E7EAEA',
-        },
-
-        selectedDateLeft: {
-            flexDirection:
-                'row',
             alignItems:
                 'center',
-            flex: 1,
         },
 
-        calendarIcon: {
-            width: 44,
-            height: 44,
-            borderRadius: 14,
-            backgroundColor:
-                '#E8F7F2',
-            alignItems:
-                'center',
-            justifyContent:
-                'center',
-        },
-
-        calendarIconText: {
-            fontSize: 21,
-        },
-
-        selectedDateInfo: {
-            marginLeft: 11,
-        },
-
-        selectedDateLabel: {
-            fontSize: 12,
+        sectionTitle: {
+            fontSize: 18,
             fontWeight:
                 '700',
-            color: PRIMARY,
+            color:
+                '#171717',
         },
 
-        selectedDateValue: {
-            marginTop: 2,
-            fontSize: 15,
+        changeText: {
+            color:
+                PRIMARY,
+            fontSize: 14,
             fontWeight:
-                '800',
-            color: '#222',
+                '700',
         },
 
-        changeDateButton: {
-            paddingHorizontal:
-                14,
-            paddingVertical:
-                9,
-            borderRadius: 18,
-            backgroundColor:
-                '#E8F7F2',
-        },
+        /* ========================================================
+           APPOINTMENT
+        ======================================================== */
 
-        changeDateText: {
-            color: PRIMARY,
-            fontSize: 12,
-            fontWeight:
-                '800',
-        },
-
-        /*
-        ================================================================
-        CALENDAR
-        ================================================================
-        */
-
-        calendarWrapper: {
-            backgroundColor:
-                '#FFF',
-            marginHorizontal:
-                16,
-            marginTop: 8,
-            borderRadius: 18,
-            overflow:
-                'hidden',
-            borderWidth: 1,
-            borderColor:
-                '#E8E8E8',
-        },
-
-        /*
-        ================================================================
-        SELECTED TIME
-        ================================================================
-        */
-
-        selectedTimeCard: {
-            marginHorizontal:
-                16,
-            marginTop: 10,
-            backgroundColor:
-                '#FFF',
-            borderRadius: 16,
+        appointmentSummary: {
+            marginTop: 14,
             padding: 14,
+            borderRadius: 13,
+            backgroundColor:
+                '#F7FAFA',
+            borderWidth: 1,
+            borderColor:
+                '#E1EEEE',
             flexDirection:
                 'row',
             alignItems:
                 'center',
-            borderWidth: 1,
-            borderColor:
-                '#E5E5E5',
         },
 
-        selectedTimeCardActive: {
-            borderColor:
-                '#BFE7D9',
+        appointmentSummaryIcon: {
+            width: 42,
+            height: 42,
+            borderRadius: 21,
             backgroundColor:
-                '#F8FFFC',
-        },
-
-        timeIcon: {
-            width: 44,
-            height: 44,
-            borderRadius: 14,
-            backgroundColor:
-                '#F1F7F6',
+                '#EAF8F3',
             alignItems:
                 'center',
             justifyContent:
                 'center',
+            marginRight: 12,
         },
 
-        timeIconText: {
-            fontSize: 21,
-        },
-
-        selectedTimeInfo: {
+        appointmentSummaryContent: {
             flex: 1,
-            marginLeft: 11,
         },
 
-        selectedTimeLabel: {
-            fontSize: 11,
-            color: '#777',
-            fontWeight:
-                '600',
-        },
-
-        selectedTimeValue: {
-            marginTop: 2,
+        appointmentSummaryDate: {
             fontSize: 15,
             fontWeight:
-                '800',
-            color: '#222',
+                '700',
+            color:
+                '#222',
         },
 
-        changeTimeText: {
-            color: PRIMARY,
-            fontSize: 12,
+        appointmentSummaryTime: {
+            marginTop: 4,
+            fontSize: 14,
+            color:
+                PRIMARY,
             fontWeight:
-                '800',
-        },
-
-        /*
-        ================================================================
-        HOURS
-        ================================================================
-        */
-
-        hoursBanner: {
-            marginHorizontal:
-                16,
-            marginTop: 10,
-            paddingHorizontal:
-                14,
-            paddingVertical:
-                11,
-            backgroundColor:
-                '#FFF',
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor:
-                '#EAEAEA',
-            flexDirection:
-                'row',
-            alignItems:
-                'center',
-            justifyContent:
-                'space-between',
-        },
-
-        hoursLeft: {
-            flex: 1,
-        },
-
-        hoursTitle: {
-            fontSize: 13,
-            fontWeight:
-                '800',
-            color: '#222',
+                '700',
         },
 
         hoursText: {
-            marginTop: 3,
+            marginTop: 10,
             fontSize: 12,
-            color: PRIMARY,
-            fontWeight:
-                '600',
+            color:
+                '#777',
         },
 
         closedText: {
-            marginTop: 3,
-            fontSize: 12,
-            color: '#E53935',
-            fontWeight:
-                '600',
-        },
-
-        hoursTimeButton: {
-            paddingHorizontal:
-                12,
-            paddingVertical:
-                8,
-            borderRadius: 16,
-            backgroundColor:
-                '#F1F7F6',
-        },
-
-        hoursTimeButtonText: {
-            fontSize: 11,
-            fontWeight:
-                '800',
-            color: PRIMARY,
-        },
-
-        /*
-        ================================================================
-        CONFIRMED TIME
-        ================================================================
-        */
-
-        confirmedTimeCard: {
-            marginHorizontal:
-                16,
-            marginTop: 16,
-            backgroundColor:
-                '#E8F7F2',
-            borderRadius: 16,
-            padding: 15,
-            flexDirection:
-                'row',
-            alignItems:
-                'center',
-            justifyContent:
-                'space-between',
-            borderWidth: 1,
-            borderColor:
-                '#BFE7D9',
-        },
-
-        confirmedTimeLabel: {
-            fontSize: 11,
-            color: '#47796E',
-            fontWeight:
-                '600',
-        },
-
-        confirmedTimeValue: {
-            marginTop: 3,
-            fontSize: 15,
-            color: '#155D4D',
-            fontWeight:
-                '800',
-        },
-
-        confirmedChangeButton: {
-            paddingHorizontal:
-                12,
-            paddingVertical:
-                8,
-            backgroundColor:
-                '#FFF',
-            borderRadius: 16,
-        },
-
-        confirmedChangeText: {
-            color: PRIMARY,
-            fontSize: 11,
-            fontWeight:
-                '800',
-        },
-
-        /*
-        ================================================================
-        AVAILABLE TIMES
-        ================================================================
-        */
-
-        availableTimesCard: {
-            marginHorizontal:
-                16,
-            marginTop: 18,
-            padding: 18,
-            backgroundColor:
-                '#FFF',
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor:
-                '#EEEEEE',
-        },
-
-        availableTimesTitle: {
-            fontSize: 16,
-            fontWeight:
-                '800',
-            color: '#222',
-        },
-
-        availableTimesSub: {
-            marginTop: 5,
-            fontSize: 12,
-            color: '#777',
-            lineHeight: 18,
-        },
-
-        /*
-        ================================================================
-        NO SLOTS
-        ================================================================
-        */
-
-        noSlotsCard: {
-            marginHorizontal:
-                16,
-            marginTop: 20,
-            padding: 22,
-            backgroundColor:
-                '#FFF',
-            borderRadius: 16,
-            alignItems:
-                'center',
-            borderWidth: 1,
-            borderColor:
-                '#EEEEEE',
-        },
-
-        noSlotsIcon: {
-            fontSize: 28,
-            marginBottom: 7,
-        },
-
-        noSlotsTitle: {
-            fontSize: 17,
-            fontWeight:
-                '800',
-            color: '#222',
-        },
-
-        noSlotsText: {
-            marginTop: 6,
-            textAlign:
-                'center',
-            fontSize: 13,
-            color: '#777',
-            lineHeight: 19,
-        },
-
-        /*
-        ================================================================
-        SUMMARY
-        ================================================================
-        */
-
-        summaryCard: {
-            marginHorizontal:
-                16,
-            marginTop: 18,
-            marginBottom: 10,
-            backgroundColor:
-                '#FFF',
-            borderRadius: 16,
-            padding: 17,
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
-            alignItems:
-                'center',
-            borderWidth: 1,
-            borderColor:
-                '#EEEEEE',
-        },
-
-        summaryTitle: {
-            fontSize: 16,
-            fontWeight:
-                '800',
-            color: '#111',
-        },
-
-        summarySub: {
-            marginTop: 4,
-            color: '#777',
-            fontSize: 12,
-        },
-
-        summaryOffer: {
-            marginTop: 5,
-            color: PRIMARY,
-            fontSize: 11,
-            fontWeight:
-                '700',
-        },
-
-        summaryRight: {
-            alignItems:
-                'flex-end',
-        },
-
-        summaryOriginalPrice: {
-            fontSize: 12,
-            color: '#999',
-            textDecorationLine:
-                'line-through',
-        },
-
-        summaryPrice: {
-            marginTop: 1,
-            fontSize: 21,
-            fontWeight:
-                '800',
-            color: PRIMARY,
-        },
-
-        summaryDiscount: {
-            marginTop: 2,
-            fontSize: 12,
-            color: '#16845E',
-            fontWeight:
-                '700',
-        },
-
-        /*
-        ================================================================
-        PAYMENT
-        ================================================================
-        */
-
-        paymentCard: {
-            marginHorizontal:
-                16,
-            marginTop: 4,
-            backgroundColor:
-                '#FFF',
-            borderRadius: 16,
-            padding: 17,
-            borderWidth: 1,
-            borderColor:
-                '#EEEEEE',
-        },
-
-        paymentTitle: {
-            fontSize: 16,
-            fontWeight:
-                '800',
-            color: '#111',
-            marginBottom: 10,
-        },
-
-        paymentRow: {
-            flexDirection:
-                'row',
-            alignItems:
-                'center',
-            justifyContent:
-                'space-between',
-            paddingVertical:
-                6,
-        },
-
-        paymentLabel: {
-            fontSize: 13,
-            color: '#666',
-        },
-
-        paymentValue: {
-            fontSize: 13,
-            color: '#222',
-            fontWeight:
-                '700',
-        },
-
-        bookingFeeValue: {
-            fontSize: 13,
-            color: PRIMARY,
-            fontWeight:
-                '800',
-        },
-
-        paymentDivider: {
-            height: 1,
-            backgroundColor:
-                '#EEEEEE',
-            marginVertical: 7,
-        },
-
-        payNowLabel: {
-            fontSize: 14,
-            fontWeight:
-                '800',
-            color: '#222',
-        },
-
-        payNowSub: {
-            marginTop: 2,
-            fontSize: 10,
-            color: '#888',
-        },
-
-        payNowValue: {
-            fontSize: 18,
-            fontWeight:
-                '800',
-            color: PRIMARY,
-        },
-
-        /*
-        ================================================================
-        SERVICE PRICE
-        ================================================================
-        */
-
-        servicePriceCard: {
-            marginHorizontal:
-                16,
             marginTop: 10,
-            marginBottom: 20,
-            backgroundColor:
-                '#FFF',
-            borderRadius: 16,
-            padding: 17,
-            borderWidth: 1,
-            borderColor:
-                '#EEEEEE',
+            color:
+                '#B45F00',
+            fontSize: 12,
+            fontWeight:
+                '600',
         },
 
-        servicePriceTitle: {
-            fontSize: 16,
+        /* ========================================================
+           SERVICES
+        ======================================================== */
+
+        servicesCard: {
+            marginHorizontal: 15,
+            marginBottom: 15,
+            padding: 18,
+            borderRadius: 14,
+            backgroundColor:
+                '#FFF',
+        },
+
+        serviceCount: {
+            fontSize: 13,
             fontWeight:
-                '800',
-            color: '#111',
-            marginBottom: 10,
+                '600',
+            color:
+                '#777',
         },
 
         serviceRow: {
+            paddingVertical: 14,
             flexDirection:
                 'row',
             justifyContent:
                 'space-between',
             alignItems:
                 'center',
-            paddingVertical:
-                10,
-            borderBottomWidth:
-                1,
-            borderBottomColor:
-                '#F0F0F0',
         },
 
-        serviceRowLeft: {
+        serviceRowBorder: {
+            borderTopWidth: 1,
+            borderTopColor:
+                '#EEEEEE',
+        },
+
+        serviceInfo: {
             flex: 1,
-            paddingRight: 10,
+            paddingRight: 12,
         },
 
         serviceName: {
-            fontSize: 14,
-            fontWeight:
-                '600',
-            color: '#222',
-        },
-
-        eligibleText: {
-            marginTop: 3,
-            fontSize: 10,
-            color: PRIMARY,
+            fontSize: 16,
             fontWeight:
                 '700',
+            color:
+                '#222',
         },
 
-        servicePriceRight: {
+        serviceDuration: {
+            marginTop: 4,
+            fontSize: 13,
+            color:
+                '#777',
+        },
+
+        offerAppliedSmall: {
+            marginTop: 4,
+            fontSize: 11,
+            fontWeight:
+                '700',
+            color:
+                PRIMARY,
+        },
+
+        servicePriceContainer: {
             alignItems:
                 'flex-end',
         },
 
-        serviceOriginalPrice: {
-            fontSize: 11,
-            color: '#999',
+        originalPrice: {
+            fontSize: 12,
+            color:
+                '#999',
             textDecorationLine:
                 'line-through',
         },
 
         servicePrice: {
-            fontSize: 14,
+            marginTop: 2,
+            fontSize: 17,
             fontWeight:
                 '800',
-            color: '#222',
+            color:
+                '#222',
         },
 
-        serviceDiscountedPrice: {
-            color: PRIMARY,
+        discountedPrice: {
+            color:
+                PRIMARY,
         },
 
-        /*
-        ================================================================
-        TIME MODAL
-        ================================================================
-        */
+        /* ========================================================
+           OFFER
+        ======================================================== */
 
-        modalOverlay: {
-            flex: 1,
-            justifyContent:
-                'flex-end',
+        offerCard: {
+            marginHorizontal: 15,
+            marginBottom: 15,
+            padding: 15,
+            borderRadius: 14,
             backgroundColor:
-                'rgba(0,0,0,0.35)',
+                '#EAF8F3',
+            borderWidth: 1,
+            borderColor:
+                '#B9E5D5',
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
         },
 
-        modalBackdrop: {
-            ...StyleSheet.absoluteFillObject,
-        },
-
-        timeModal: {
+        offerIcon: {
+            width: 38,
+            height: 38,
+            borderRadius: 19,
             backgroundColor:
                 '#FFF',
-            borderTopLeftRadius:
-                24,
-            borderTopRightRadius:
-                24,
-            maxHeight:
-                '82%',
-            paddingTop:
-                10,
-            paddingHorizontal:
-                18,
-            paddingBottom:
-                20,
-        },
-
-        modalHandle: {
-            width: 42,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor:
-                '#D7D7D7',
-            alignSelf:
+            alignItems:
                 'center',
-            marginBottom: 15,
+            justifyContent:
+                'center',
+            marginRight: 10,
         },
 
-        timeModalHeader: {
+        offerContent: {
+            flex: 1,
+        },
+
+        offerTitle: {
+            fontSize: 15,
+            fontWeight:
+                '800',
+            color:
+                PRIMARY,
+        },
+
+        offerMessage: {
+            marginTop: 4,
+            fontSize: 12,
+            color:
+                '#39705F',
+        },
+
+        offerDescription: {
+            marginTop: 4,
+            fontSize: 12,
+            color:
+                '#666',
+        },
+
+        offerDiscount: {
+            marginLeft: 10,
+            fontSize: 17,
+            fontWeight:
+                '800',
+            color:
+                PRIMARY,
+        },
+
+        /* ========================================================
+           DURATION
+        ======================================================== */
+
+        simpleRow: {
+            flexDirection:
+                'row',
+            justifyContent:
+                'space-between',
+            alignItems:
+                'center',
+        },
+
+        sectionTitleSmall: {
+            fontSize: 16,
+            fontWeight:
+                '700',
+            color:
+                '#171717',
+        },
+
+        mutedText: {
+            marginTop: 4,
+            fontSize: 12,
+            color:
+                '#777',
+        },
+
+        durationValue: {
+            fontSize: 17,
+            fontWeight:
+                '800',
+            color:
+                PRIMARY,
+        },
+
+        /* ========================================================
+           PAYMENT
+        ======================================================== */
+
+        paymentRow: {
+            marginVertical: 7,
+            flexDirection:
+                'row',
+            justifyContent:
+                'space-between',
+            alignItems:
+                'center',
+        },
+
+        paymentLabel: {
+            fontSize: 15,
+            fontWeight:
+                '500',
+            color:
+                '#222',
+        },
+
+        paymentSubLabel: {
+            marginTop: 2,
+            fontSize: 11,
+            color:
+                '#888',
+        },
+
+        paymentPriceContainer: {
+            alignItems:
+                'flex-end',
+        },
+
+        paymentOriginalPrice: {
+            fontSize: 12,
+            color:
+                '#999',
+            textDecorationLine:
+                'line-through',
+        },
+
+        paymentAmount: {
+            marginTop: 2,
+            fontSize: 16,
+            fontWeight:
+                '800',
+            color:
+                '#222',
+        },
+
+        discountLabel: {
+            fontWeight:
+                '600',
+            color:
+                PRIMARY,
+        },
+
+        discountValue: {
+            fontWeight:
+                '700',
+            color:
+                PRIMARY,
+        },
+
+        minimumAmountText: {
+            marginTop: 8,
+            color:
+                '#B06A00',
+            fontSize: 12,
+            lineHeight: 18,
+        },
+
+        divider: {
+            height: 1,
+            backgroundColor:
+                '#EEEEEE',
+            marginVertical: 14,
+        },
+
+        bookingFeeRow: {
+            flexDirection:
+                'row',
+            justifyContent:
+                'space-between',
+            alignItems:
+                'center',
+        },
+
+        bookingFeeInfo: {
+            flex: 1,
+            paddingRight: 10,
+        },
+
+        bookingFeeTitle: {
+            fontSize: 16,
+            fontWeight:
+                '700',
+            color:
+                '#222',
+        },
+
+        bookingFeeSubtitle: {
+            marginTop: 3,
+            fontSize: 12,
+            lineHeight: 17,
+            color:
+                '#777',
+        },
+
+        bookingFeeAmount: {
+            fontSize: 18,
+            fontWeight:
+                '800',
+            color:
+                PRIMARY,
+        },
+
+        salonPaymentBox: {
+            marginTop: 15,
+            padding: 13,
+            borderRadius: 12,
+            backgroundColor:
+                '#F7F7F7',
+            borderWidth: 1,
+            borderColor:
+                '#E7E7E7',
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+        },
+
+        salonPaymentIcon: {
+            width: 38,
+            height: 38,
+            borderRadius: 19,
+            backgroundColor:
+                '#FFF',
+            alignItems:
+                'center',
+            justifyContent:
+                'center',
+            marginRight: 10,
+        },
+
+        salonPaymentTitle: {
+            fontSize: 14,
+            fontWeight:
+                '700',
+            color:
+                '#222',
+        },
+
+        salonPaymentText: {
+            marginTop: 3,
+            fontSize: 12,
+            lineHeight: 17,
+            color:
+                '#666',
+        },
+
+        savingsText: {
+            marginTop: 12,
+            fontSize: 13,
+            fontWeight:
+                '700',
+            color:
+                '#16845E',
+        },
+
+        /* ========================================================
+           HOW IT WORKS
+        ======================================================== */
+
+        howItWorksCard: {
+            marginHorizontal: 15,
+            marginBottom: 15,
+            padding: 16,
+            borderRadius: 14,
+            backgroundColor:
+                '#F8FAFA',
+            borderWidth: 1,
+            borderColor:
+                '#E5EEEE',
+        },
+
+        howItWorksTitle: {
+            marginBottom: 12,
+            fontSize: 15,
+            fontWeight:
+                '800',
+            color:
+                '#222',
+        },
+
+        stepRow: {
+            flexDirection:
+                'row',
+            alignItems:
+                'flex-start',
+            marginBottom: 11,
+        },
+
+        stepCircle: {
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            backgroundColor:
+                PRIMARY,
+            alignItems:
+                'center',
+            justifyContent:
+                'center',
+            marginRight: 10,
+        },
+
+        stepNumber: {
+            fontSize: 12,
+            fontWeight:
+                '800',
+            color:
+                '#FFF',
+        },
+
+        stepText: {
+            flex: 1,
+            paddingTop: 2,
+            fontSize: 12,
+            lineHeight: 18,
+            color:
+                '#666',
+        },
+
+        finalInfo: {
+            marginHorizontal: 20,
+            marginBottom: 14,
+            flexDirection:
+                'row',
+            alignItems:
+                'flex-start',
+        },
+
+        finalInfoText: {
+            flex: 1,
+            marginLeft: 7,
+            fontSize: 12,
+            lineHeight: 18,
+            color:
+                '#777',
+        },
+
+        /* ========================================================
+           REQUEST BUTTON
+        ======================================================== */
+
+        requestButton: {
+            marginHorizontal: 20,
+            minHeight: 64,
+            paddingHorizontal: 20,
+            borderRadius: 18,
+            backgroundColor:
+                PRIMARY,
             flexDirection:
                 'row',
             alignItems:
@@ -4019,29 +4244,84 @@ const styles =
                 'space-between',
         },
 
-        timeModalHeaderText: {
-            flex: 1,
+        requestButtonDisabled: {
+            opacity:
+                0.65,
         },
 
-        timeModalTitle: {
+        requestButtonText: {
+            fontSize: 17,
+            fontWeight:
+                '800',
+            color:
+                '#FFF',
+        },
+
+        requestButtonSubText: {
+            marginTop: 3,
+            fontSize: 12,
+            color:
+                '#E7FFFA',
+        },
+
+        /* ========================================================
+           MODAL
+        ======================================================== */
+
+        modalOverlay: {
+            flex: 1,
+            backgroundColor:
+                'rgba(0,0,0,0.35)',
+            justifyContent:
+                'flex-end',
+        },
+
+        bottomSheet: {
+            width: '100%',
+            backgroundColor:
+                '#FFF',
+            borderTopLeftRadius:
+                26,
+            borderTopRightRadius:
+                26,
+            overflow:
+                'hidden',
+        },
+
+        sheetHeader: {
+            paddingHorizontal: 20,
+            paddingTop: 18,
+            paddingBottom: 14,
+            flexDirection:
+                'row',
+            justifyContent:
+                'space-between',
+            alignItems:
+                'center',
+            borderBottomWidth: 1,
+            borderBottomColor:
+                '#EEEEEE',
+        },
+
+        sheetTitle: {
             fontSize: 20,
             fontWeight:
                 '800',
-            color: '#111',
+            color:
+                '#171717',
         },
 
-        timeModalSubtitle: {
+        sheetSubtitle: {
             marginTop: 3,
             fontSize: 12,
-            color: '#777',
-            fontWeight:
-                '600',
+            color:
+                '#777',
         },
 
-        modalCloseButton: {
-            width: 36,
-            height: 36,
-            borderRadius: 18,
+        closeButton: {
+            width: 38,
+            height: 38,
+            borderRadius: 19,
             backgroundColor:
                 '#F4F4F4',
             alignItems:
@@ -4050,45 +4330,212 @@ const styles =
                 'center',
         },
 
-        modalCloseText: {
-            fontSize: 25,
-            color: '#555',
-            lineHeight: 27,
+        sheetContent: {
+            paddingHorizontal: 20,
+            paddingTop: 15,
+            paddingBottom: 20,
         },
 
-        modalHours: {
+        /* ========================================================
+           SELECTED SUMMARY
+        ======================================================== */
+
+        selectedSummary: {
+            padding: 13,
+            borderRadius: 13,
+            backgroundColor:
+                '#F7FAFA',
+            borderWidth: 1,
+            borderColor:
+                '#E1EEEE',
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+        },
+
+        selectedSummaryIcon: {
+            width: 38,
+            height: 38,
+            borderRadius: 19,
+            backgroundColor:
+                '#EAF8F3',
+            alignItems:
+                'center',
+            justifyContent:
+                'center',
+            marginRight: 10,
+        },
+
+        selectedSummaryLabel: {
+            fontSize: 11,
+            color:
+                '#888',
+        },
+
+        selectedSummaryValue: {
+            marginTop: 2,
+            fontSize: 14,
+            fontWeight:
+                '700',
+            color:
+                '#222',
+        },
+
+        /* ========================================================
+           CALENDAR
+        ======================================================== */
+
+        calendarToggle: {
             marginTop: 12,
-            paddingHorizontal:
-                12,
-            paddingVertical:
-                9,
+            paddingVertical: 11,
+            paddingHorizontal: 13,
             borderRadius: 11,
             backgroundColor:
-                '#F1F7F6',
+                '#FFF',
+            borderWidth: 1,
+            borderColor:
+                '#DDDDDD',
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
         },
 
-        modalHoursText: {
-            color: PRIMARY,
+        calendarToggleText: {
+            flex: 1,
+            marginLeft: 8,
+            fontSize: 13,
+            fontWeight:
+                '600',
+            color:
+                '#333',
+        },
+
+        calendarContainer: {
+            marginTop: 10,
+            borderRadius: 13,
+            overflow:
+                'hidden',
+            borderWidth: 1,
+            borderColor:
+                '#EEEEEE',
+        },
+
+        /* ========================================================
+           SHEET DATE
+        ======================================================== */
+
+        sheetSectionTitle: {
+            marginTop: 18,
+            marginBottom: 10,
+            fontSize: 15,
+            fontWeight:
+                '800',
+            color:
+                '#222',
+        },
+
+        dateChip: {
+            width: 68,
+            height: 78,
+            marginRight: 9,
+            borderRadius: 13,
+            backgroundColor:
+                '#F7F7F7',
+            borderWidth: 1,
+            borderColor:
+                '#E5E5E5',
+            alignItems:
+                'center',
+            justifyContent:
+                'center',
+        },
+
+        dateChipSelected: {
+            backgroundColor:
+                PRIMARY,
+            borderColor:
+                PRIMARY,
+        },
+
+        dateChipDay: {
+            fontSize: 11,
+            fontWeight:
+                '600',
+            color:
+                '#777',
+        },
+
+        dateChipDaySelected: {
+            color:
+                '#DFFFFA',
+        },
+
+        dateChipNumber: {
+            marginTop: 4,
+            fontSize: 21,
+            fontWeight:
+                '800',
+            color:
+                '#222',
+        },
+
+        dateChipNumberSelected: {
+            color:
+                '#FFF',
+        },
+
+        dateChipMonth: {
+            marginTop: 2,
+            fontSize: 10,
+            color:
+                '#888',
+        },
+
+        dateChipMonthSelected: {
+            color:
+                '#E7FFFA',
+        },
+
+        /* ========================================================
+           HOURS
+        ======================================================== */
+
+        hoursBox: {
+            marginTop: 14,
+            padding: 11,
+            borderRadius: 11,
+            backgroundColor:
+                '#F7FAFA',
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+        },
+
+        hoursBoxText: {
+            marginLeft: 8,
+            fontSize: 12,
+            color:
+                '#666',
+        },
+
+        /* ========================================================
+           TIME SLOTS
+        ======================================================== */
+
+        slotSection: {
+            marginTop: 4,
+        },
+
+        slotSectionTitle: {
+            marginBottom: 8,
             fontSize: 12,
             fontWeight:
                 '700',
-        },
-
-        timeModalContent: {
-            paddingTop: 8,
-            paddingBottom: 12,
-        },
-
-        timeSection: {
-            marginTop: 12,
-        },
-
-        timeSectionTitle: {
-            fontSize: 14,
-            fontWeight:
-                '800',
-            color: '#222',
-            marginBottom: 9,
+            color:
+                '#888',
         },
 
         slotGrid: {
@@ -4096,212 +4543,140 @@ const styles =
                 'row',
             flexWrap:
                 'wrap',
-            justifyContent:
-                'flex-start',
         },
 
-        slotCard: {
-            width: '31%',
-            marginRight: '3.5%',
-            marginBottom: 10,
+        timeChip: {
+            minWidth: 92,
+            marginRight: 8,
+            marginBottom: 8,
+            paddingVertical: 11,
+            paddingHorizontal: 10,
+            borderRadius: 11,
             backgroundColor:
                 '#FFF',
-            borderRadius: 12,
-            paddingVertical:
-                13,
+            borderWidth: 1,
+            borderColor:
+                '#DDDDDD',
             alignItems:
                 'center',
             justifyContent:
                 'center',
-            borderWidth: 1,
-            borderColor:
-                '#E4E4E4',
         },
 
-        slotCardSelected: {
+        timeChipSelected: {
             backgroundColor:
                 PRIMARY,
             borderColor:
                 PRIMARY,
         },
 
-        slotDisabled: {
-            backgroundColor:
-                '#F3F3F3',
-            borderColor:
-                '#ECECEC',
-        },
-
-        slotText: {
-            fontWeight:
-                '700',
+        timeChipText: {
             fontSize: 13,
-            color: '#222',
-        },
-
-        slotTextSelected: {
-            color: '#FFF',
-        },
-
-        slotDisabledText: {
-            color: '#AAA',
-        },
-
-        bookedText: {
-            marginTop: 3,
-            color: '#D94A4A',
-            fontSize: 9,
             fontWeight:
                 '600',
+            color:
+                '#333',
         },
 
-        modalEmpty: {
-            alignItems:
-                'center',
-            paddingVertical:
-                45,
-        },
-
-        modalEmptyIcon: {
-            fontSize: 30,
-            marginBottom: 8,
-        },
-
-        modalEmptyTitle: {
-            fontSize: 17,
+        timeChipTextSelected: {
+            color:
+                '#FFF',
             fontWeight:
                 '800',
-            color: '#222',
         },
 
-        modalEmptyText: {
+        /* ========================================================
+           CLOSED
+        ======================================================== */
+
+        closedBox: {
             marginTop: 5,
-            fontSize: 13,
-            color: '#777',
-            textAlign:
-                'center',
-        },
-
-        noAvailableTimes: {
-            marginTop: 15,
+            padding: 25,
+            borderRadius: 13,
             backgroundColor:
-                '#FFF7F7',
-            borderRadius: 14,
-            padding: 15,
+                '#F7F7F7',
             alignItems:
                 'center',
         },
 
-        noAvailableTimesTitle: {
+        closedTitle: {
+            marginTop: 8,
+            fontSize: 15,
+            fontWeight:
+                '700',
+            color:
+                '#444',
+        },
+
+        closedMessage: {
+            marginTop: 4,
+            fontSize: 12,
+            color:
+                '#888',
+        },
+
+        /* ========================================================
+           SHEET FOOTER
+        ======================================================== */
+
+        sheetFooter: {
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: 18,
+            borderTopWidth: 1,
+            borderTopColor:
+                '#EEEEEE',
+            flexDirection:
+                'row',
+            alignItems:
+                'center',
+            backgroundColor:
+                '#FFF',
+        },
+
+        sheetSelectionFooter: {
+            flex: 1,
+            paddingRight: 12,
+        },
+
+        sheetFooterLabel: {
+            fontSize: 11,
+            color:
+                '#888',
+        },
+
+        sheetFooterValue: {
+            marginTop: 3,
+            fontSize: 14,
+            fontWeight:
+                '700',
+            color:
+                '#222',
+        },
+
+        confirmPickerButton: {
+            minWidth: 110,
+            height: 48,
+            borderRadius: 13,
+            backgroundColor:
+                PRIMARY,
+            alignItems:
+                'center',
+            justifyContent:
+                'center',
+            paddingHorizontal: 18,
+        },
+
+        confirmPickerDisabled: {
+            backgroundColor:
+                '#C8D5D3',
+        },
+
+        confirmPickerText: {
+            color:
+                '#FFF',
             fontSize: 14,
             fontWeight:
                 '800',
-            color: '#B33A3A',
-        },
-
-        noAvailableTimesText: {
-            marginTop: 4,
-            fontSize: 12,
-            color: '#777',
-        },
-
-        /*
-        ================================================================
-        BOTTOM BAR
-        ================================================================
-        */
-
-        bottomBar: {
-            position:
-                'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor:
-                '#FFF',
-            borderTopWidth:
-                1,
-            borderTopColor:
-                '#EAEAEA',
-            paddingHorizontal:
-                18,
-            paddingVertical:
-                12,
-            flexDirection:
-                'row',
-            justifyContent:
-                'space-between',
-            alignItems:
-                'center',
-        },
-
-        bottomPriceContainer: {
-            flex: 1,
-        },
-
-        bottomOriginalPrice: {
-            fontSize: 11,
-            color: '#999',
-            textDecorationLine:
-                'line-through',
-        },
-
-        bottomPrice: {
-            fontSize: 22,
-            fontWeight:
-                '800',
-            color: PRIMARY,
-        },
-
-        bottomBookingFee: {
-            marginTop: -1,
-            fontSize: 10,
-            color: '#777',
-            fontWeight:
-                '600',
-        },
-
-        bottomServices: {
-            marginTop: 3,
-            color: '#666',
-            fontSize: 11,
-        },
-
-        bottomDiscount: {
-            marginTop: 2,
-            color: '#16845E',
-            fontSize: 10,
-            fontWeight:
-                '700',
-        },
-
-        continueButton: {
-            backgroundColor:
-                PRIMARY,
-            paddingHorizontal:
-                28,
-            paddingVertical:
-                14,
-            borderRadius: 28,
-            flexDirection:
-                'row',
-            alignItems:
-                'center',
-            marginLeft: 12,
-        },
-
-        continueText: {
-            color: '#FFF',
-            fontWeight:
-                '800',
-            fontSize: 15,
-        },
-
-        continueArrow: {
-            marginLeft: 7,
-            color: '#FFF',
-            fontSize: 18,
-            fontWeight:
-                '700',
         },
     });
