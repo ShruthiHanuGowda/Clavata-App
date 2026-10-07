@@ -312,24 +312,34 @@ export const CUSTOMER_BOOKINGS = gql`
       bookingId
       salonId
       customerUserId
+
       salonName
       customerName
+
       bookingDate
       startTime
       endTime
+
       reviewSubmitted
       rating
       review
       reviewedAt
+
       bookingStatus
+
       paymentMethod
       paymentStatus
       preferredPaymentMethod
+
       bookingFee
       bookingFeeStatus
       bookingFeePaidAt
+
       remainingAmount
       totalAmount
+
+      bookingFeePaymentDeadline
+      bookingFeePaymentWindowMinutes
 
       services {
         serviceId
@@ -345,7 +355,6 @@ export const CUSTOMER_BOOKINGS = gql`
     }
   }
 `;
-
 export const UPDATE_BUSINESS_HOURS = gql`
   mutation UpdateBusinessHours(
     $input: UpdateBusinessHoursInput!

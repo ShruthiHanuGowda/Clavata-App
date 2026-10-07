@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, {
+    useEffect,
+    useState,
+} from 'react';
 
 import {
     NativeStackNavigationProp,
@@ -31,128 +34,112 @@ import { useNavigation } from '@react-navigation/native';
 
 import { WalletStackParamList } from '../../../../types';
 
-
+import {
+    CUSTOMER_BOOKINGS,
+    REQUEST_REFUND,
+} from '../../../graphql/queries';
 // ============================================================
 // CUSTOMER BOOKINGS QUERY
 // ============================================================
-//
-// IMPORTANT:
-//
-// DynamoDB stores:
-//
-// serviceName
-// categoryName
-// subcategoryName
-// durationMinutes
-// price
-// audience
-//
-// Backend customerBookings resolver maps those to:
-//
-// name
-// category
-// subcategory
-// duration
-// price
-// audience
-//
-// ============================================================
 
-const CUSTOMER_BOOKINGS = gql`
-    query CustomerBookings(
-        $customerUserId: ID!
-    ) {
-        customerBookings(
-            customerUserId: $customerUserId
-        ) {
-            bookingId
-            salonId
-            customerUserId
+// const CUSTOMER_BOOKINGS = gql`
+//     query CustomerBookings(
+//         $customerUserId: ID!
+//     ) {
+//         customerBookings(
+//             customerUserId: $customerUserId
+//         ) {
+//             bookingId
+//             salonId
+//             customerUserId
 
-            salonName
-            customerName
+//             salonName
+//             customerName
 
-            bookingDate
-            startTime
-            endTime
+//             bookingDate
+//             startTime
+//             endTime
 
-            reviewSubmitted
-            rating
-            review
-            reviewedAt
+//             reviewSubmitted
+//             rating
+//             review
+//             reviewedAt
 
-            bookingStatus
+//             bookingStatus
 
-            paymentMethod
-            paymentStatus
-            preferredPaymentMethod
+//             paymentMethod
+//             paymentStatus
+//             preferredPaymentMethod
 
-            bookingFee
-            bookingFeeStatus
-            bookingFeePaidAt
+//             bookingFee
+//             bookingFeeStatus
+//             bookingFeePaidAt
 
-            remainingAmount
-            totalAmount
+//             remainingAmount
+//             totalAmount
 
-            services {
-                serviceId
-                name
-                category
-                subcategory
-                duration
-                price
-                audience
-            }
-        }
-    }
-`;
+//             bookingFeePaymentDeadline
+//             bookingFeePaymentWindowMinutes
+
+//             services {
+//                 serviceId
+//                 name
+//                 category
+//                 subcategory
+//                 duration
+//                 price
+//                 audience
+//             }
+//         }
+//     }
+// `;
 
 
 // ============================================================
 // REQUEST REFUND
 // ============================================================
 
-const REQUEST_REFUND = gql`
-    mutation RequestRefund(
-        $input: RequestRefundInput!
-    ) {
-        requestRefund(input: $input) {
-            success
-            message
+// const REQUEST_REFUND = gql`
+//     mutation RequestRefund(
+//         $input: RequestRefundInput!
+//     ) {
+//         requestRefund(input: $input) {
+//             success
+//             message
 
-            refund {
-                refundId
-                bookingId
-                paymentTransactionId
+//             refund {
+//                 refundId
+//                 bookingId
+//                 paymentTransactionId
 
-                customerUserId
-                customerName
-                customerPhone
+//                 customerUserId
+//                 customerName
+//                 customerPhone
 
-                salonId
-                salonName
+//                 salonId
+//                 salonName
 
-                originalAmount
-                refundAmount
-                clavataAmount
-                salonAmount
+//                 originalAmount
+//                 refundAmount
+//                 clavataAmount
+//                 salonAmount
 
-                reason
-                status
+//                 reason
+//                 status
 
-                paymentMethod
-                razorpayPaymentId
-                razorpayRefundId
+//                 paymentMethod
+//                 razorpayPaymentId
+//                 razorpayRefundId
 
-                requestedAt
-                processedAt
+//                 requestedAt
+//                 processedAt
 
-                createdAt
-                updatedAt
-            }
-        }
-    }
-`;
+//                 createdAt
+//                 updatedAt
+//             }
+//         }
+//     }
+// `;
 
 
 // ============================================================
@@ -193,6 +180,74 @@ type BookingNavigationProp =
 
 
 // ============================================================
+// COUNTDOWN HELPER
+// ============================================================
+
+function getRemainingMilliseconds(
+    deadline: string | null | undefined,
+): number {
+
+    if (!deadline) {
+        return 0;
+    }
+
+    const deadlineTime =
+        new Date(deadline).getTime();
+
+    if (
+        Number.isNaN(
+            deadlineTime,
+        )
+    ) {
+        return 0;
+    }
+
+    return Math.max(
+        0,
+        deadlineTime - Date.now(),
+    );
+}
+
+
+// ============================================================
+// FORMAT COUNTDOWN
+// ============================================================
+
+function formatCountdown(
+    milliseconds: number,
+): string {
+
+    const totalSeconds =
+        Math.max(
+            0,
+            Math.floor(
+                milliseconds / 1000,
+            ),
+        );
+
+    const minutes =
+        Math.floor(
+            totalSeconds / 60,
+        );
+
+    const seconds =
+        totalSeconds % 60;
+
+    return `${String(
+        minutes,
+    ).padStart(
+        2,
+        '0',
+    )}:${String(
+        seconds,
+    ).padStart(
+        2,
+        '0',
+    )}`;
+}
+
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
@@ -216,8 +271,12 @@ export default function BookingPage() {
         useState(false);
 
 
-    const [cancellingBookingId, setCancellingBookingId] =
-        useState<string | null>(null);
+    const [
+        cancellingBookingId,
+        setCancellingBookingId,
+    ] = useState<string | null>(
+        null,
+    );
 
 
     const { currentUser } =
@@ -248,6 +307,31 @@ export default function BookingPage() {
                 'network-only',
         },
     );
+
+
+    // ============================================================
+    // DEBUG BOOKINGS
+    // ============================================================
+
+    useEffect(() => {
+
+        console.log(
+            '========== CUSTOMER BOOKINGS =========='
+        );
+
+        console.log(
+            JSON.stringify(
+                data?.customerBookings,
+                null,
+                2,
+            ),
+        );
+
+        console.log(
+            '========================================'
+        );
+
+    }, [data]);
 
 
     // ============================================================
@@ -285,11 +369,11 @@ export default function BookingPage() {
 
                 await refetch();
 
-            } catch (error) {
+            } catch (refreshError) {
 
                 console.log(
                     'Booking refresh error:',
-                    error,
+                    refreshError,
                 );
 
             } finally {
@@ -314,10 +398,10 @@ export default function BookingPage() {
 
                     return (
                         booking.bookingStatus ===
-                        'PENDING' ||
+                            'PENDING' ||
 
                         booking.bookingStatus ===
-                        'CONFIRMED'
+                            'CONFIRMED'
                     );
                 }
 
@@ -339,7 +423,10 @@ export default function BookingPage() {
 
                     return (
                         booking.bookingStatus ===
-                        'CANCELLED'
+                            'CANCELLED' ||
+
+                        booking.bookingStatus ===
+                            'EXPIRED'
                     );
                 }
 
@@ -459,6 +546,30 @@ export default function BookingPage() {
             }
 
 
+            if (
+                booking.bookingStatus ===
+                'EXPIRED'
+            ) {
+
+                return {
+
+                    text:
+                        'Payment expired',
+
+                    color:
+                        '#A33A3A',
+
+                    background:
+                        '#FBEFEF',
+
+                    border:
+                        '#EBCACA',
+
+                };
+
+            }
+
+
             return {
 
                 text:
@@ -499,20 +610,6 @@ export default function BookingPage() {
             const refundAmount =
                 Number(
                     refund?.refundAmount ??
-                    0,
-                );
-
-
-            const clavataAmount =
-                Number(
-                    refund?.clavataAmount ??
-                    0,
-                );
-
-
-            const salonAmount =
-                Number(
-                    refund?.salonAmount ??
                     0,
                 );
 
@@ -674,10 +771,6 @@ export default function BookingPage() {
                                     );
 
 
-                                    // =================================================
-                                    // STEP 1
-                                    // =================================================
-
                                     await cancelBookingMutation(
                                         {
                                             variables: {
@@ -686,10 +779,6 @@ export default function BookingPage() {
                                         },
                                     );
 
-
-                                    // =================================================
-                                    // STEP 2
-                                    // =================================================
 
                                     if (
                                         bookingFeePaid &&
@@ -793,19 +882,19 @@ export default function BookingPage() {
                                     }
 
                                 } catch (
-                                    e: any
+                                    cancelError: any
                                 ) {
 
                                     console.error(
                                         'Cancel booking error:',
-                                        e,
+                                        cancelError,
                                     );
 
 
                                     Alert.alert(
                                         'Unable to Cancel',
 
-                                        e?.message ||
+                                        cancelError?.message ||
                                         'Something went wrong while cancelling your booking.',
                                     );
 
@@ -831,21 +920,6 @@ export default function BookingPage() {
 
     const bookAgain =
         (booking: any) => {
-
-            console.log(
-                'BOOK AGAIN:',
-                {
-                    bookingId:
-                        booking?.bookingId,
-
-                    salonId:
-                        booking?.salonId,
-
-                    services:
-                        booking?.services,
-                },
-            );
-
 
             if (!booking?.salonId) {
 
@@ -928,17 +1002,7 @@ export default function BookingPage() {
                         }),
                     )
                     .filter(
-                        (
-                            service: {
-                                serviceId: string;
-                                name: string;
-                                category: string;
-                                subcategory: string;
-                                audience: string;
-                                price: number;
-                                duration: number;
-                            },
-                        ) =>
+                        (service: any) =>
                             Boolean(
                                 service.serviceId,
                             ),
@@ -956,20 +1020,6 @@ export default function BookingPage() {
 
                 return;
             }
-
-
-            console.log(
-                'BOOK AGAIN NAVIGATION:',
-                {
-                    salonId:
-                        booking.salonId,
-
-                    customerUserId:
-                        currentUser.userId,
-
-                    services,
-                },
-            );
 
 
             const parentNavigation =
@@ -1016,21 +1066,12 @@ export default function BookingPage() {
     const viewBooking =
         (booking: any) => {
 
-            console.log(
-                'VIEW BOOKING:',
-                JSON.stringify(
-                    booking,
-                    null,
-                    2,
-                ),
-            );
-
-
             navigation.navigate(
                 'BookingDetails',
                 {
                     bookingId:
                         booking.bookingId,
+
                     booking,
                 },
             );
@@ -1076,7 +1117,6 @@ export default function BookingPage() {
             </SafeAreaView>
 
         );
-
     }
 
 
@@ -1159,7 +1199,6 @@ export default function BookingPage() {
             </SafeAreaView>
 
         );
-
     }
 
 
@@ -1176,38 +1215,28 @@ export default function BookingPage() {
         >
 
             <ScrollView
-
                 showsVerticalScrollIndicator={
                     false
                 }
-
                 contentContainerStyle={
                     styles.scrollContent
                 }
-
                 refreshControl={
-
                     <RefreshControl
                         refreshing={
                             refreshing
                         }
-
                         onRefresh={
                             handleRefresh
                         }
-
                         tintColor={
                             COLORS.primary
                         }
                     />
-
                 }
-
             >
 
-                {/* ================================================= */}
                 {/* HEADER */}
-                {/* ================================================= */}
 
                 <View
                     style={
@@ -1224,7 +1253,6 @@ export default function BookingPage() {
                         >
                             Bookings
                         </Text>
-
 
                         <Text
                             style={
@@ -1256,9 +1284,7 @@ export default function BookingPage() {
                 </View>
 
 
-                {/* ================================================= */}
                 {/* TABS */}
-                {/* ================================================= */}
 
                 <View
                     style={
@@ -1280,37 +1306,30 @@ export default function BookingPage() {
                             return (
 
                                 <TouchableOpacity
-
                                     key={
                                         item
                                     }
-
                                     activeOpacity={
                                         0.8
                                     }
-
                                     style={[
                                         styles.tab,
-
                                         selected &&
                                         styles.activeTab,
                                     ]}
-
                                     onPress={() =>
                                         setTab(
                                             item as
-                                            | 'Upcoming'
-                                            | 'Completed'
-                                            | 'Cancelled',
+                                                | 'Upcoming'
+                                                | 'Completed'
+                                                | 'Cancelled',
                                         )
                                     }
-
                                 >
 
                                     <Text
                                         style={[
                                             styles.tabText,
-
                                             selected &&
                                             styles.activeTabText,
                                         ]}
@@ -1321,41 +1340,36 @@ export default function BookingPage() {
                                 </TouchableOpacity>
 
                             );
-
                         },
                     )}
 
                 </View>
 
 
-                {/* ================================================= */}
                 {/* BOOKING COUNT */}
-                {/* ================================================= */}
 
                 {filteredBookings.length >
                     0 && (
 
-                        <Text
-                            style={
-                                styles.resultText
-                            }
-                        >
-                            {filteredBookings.length}{' '}
-                            {filteredBookings.length ===
-                                1
-                                ? 'booking'
-                                : 'bookings'}
-                        </Text>
+                    <Text
+                        style={
+                            styles.resultText
+                        }
+                    >
+                        {filteredBookings.length}{' '}
+                        {filteredBookings.length ===
+                        1
+                            ? 'booking'
+                            : 'bookings'}
+                    </Text>
 
-                    )}
+                )}
 
 
-                {/* ================================================= */}
-                {/* EMPTY STATE */}
-                {/* ================================================= */}
+                {/* BOOKINGS */}
 
                 {filteredBookings.length ===
-                    0 ? (
+                0 ? (
 
                     <View
                         style={
@@ -1396,12 +1410,12 @@ export default function BookingPage() {
                             }
                         >
                             {tab ===
-                                'Upcoming'
+                            'Upcoming'
                                 ? 'Your upcoming salon appointments will appear here.'
                                 : tab ===
-                                    'Completed'
-                                    ? 'Completed appointments will appear here.'
-                                    : 'Cancelled appointments will appear here.'}
+                                  'Completed'
+                                ? 'Completed appointments will appear here.'
+                                : 'Cancelled appointments will appear here.'}
                         </Text>
 
                     </View>
@@ -1454,13 +1468,6 @@ export default function BookingPage() {
                                     );
 
 
-                                    console.log(
-                                        'PAYMENT PREFERRED METHOD:',
-                                        item?.preferredPaymentMethod ||
-                                        'NOT SET',
-                                    );
-
-
                                     navigation.navigate(
                                         'BookingPayment',
                                         {
@@ -1476,6 +1483,10 @@ export default function BookingPage() {
                                     )
                                 }
 
+                                onExpired={() =>
+                                    refetch()
+                                }
+
                                 isCancelling={
                                     cancellingBookingId ===
                                     item.bookingId
@@ -1488,34 +1499,29 @@ export default function BookingPage() {
                 )}
 
 
-                {/* ================================================= */}
-                {/* FOOTER */}
-                {/* ================================================= */}
-
                 {filteredBookings.length >
                     0 && (
 
-                        <Text
-                            style={
-                                styles.footer
-                            }
-                        >
-                            Keep your appointments organised
-                            with Clavata.
-                        </Text>
+                    <Text
+                        style={
+                            styles.footer
+                        }
+                    >
+                        Keep your appointments organised
+                        with Clavata.
+                    </Text>
 
-                    )}
+                )}
 
             </ScrollView>
 
         </SafeAreaView>
-
     );
 }
 
 
 // ============================================================
-// BOOKING CARD
+// BOOKING CARD PROPS
 // ============================================================
 
 type BookingCardProps = {
@@ -1530,9 +1536,9 @@ type BookingCardProps = {
     };
 
     tab:
-    | 'Upcoming'
-    | 'Completed'
-    | 'Cancelled';
+        | 'Upcoming'
+        | 'Completed'
+        | 'Cancelled';
 
     onCancel: () => void;
 
@@ -1542,9 +1548,15 @@ type BookingCardProps = {
 
     onBookAgain: () => void;
 
+    onExpired: () => void;
+
     isCancelling: boolean;
 };
 
+
+// ============================================================
+// BOOKING CARD
+// ============================================================
 
 function BookingCard({
     booking,
@@ -1554,9 +1566,9 @@ function BookingCard({
     onView,
     onPay,
     onBookAgain,
+    onExpired,
     isCancelling,
 }: BookingCardProps) {
-
 
     const services =
         Array.isArray(
@@ -1564,6 +1576,246 @@ function BookingCard({
         )
             ? booking.services
             : [];
+
+
+    // ============================================================
+    // COUNTDOWN STATE
+    // ============================================================
+
+    const [
+        remainingMilliseconds,
+        setRemainingMilliseconds,
+    ] = useState<number>(
+        () =>
+            getRemainingMilliseconds(
+                booking?.bookingFeePaymentDeadline,
+            ),
+    );
+
+
+    // ============================================================
+    // COUNTDOWN
+    // ============================================================
+
+    useEffect(() => {
+
+        const isConfirmed =
+            booking?.bookingStatus ===
+            'CONFIRMED';
+
+
+        const isPaid =
+            booking?.bookingFeeStatus ===
+            'PAID';
+
+
+        if (
+            !isConfirmed ||
+            isPaid
+        ) {
+
+            setRemainingMilliseconds(0);
+
+            return;
+        }
+
+
+        const deadline =
+            booking?.bookingFeePaymentDeadline;
+
+
+        // --------------------------------------------------------
+        // NO DEADLINE
+        // --------------------------------------------------------
+
+        if (!deadline) {
+
+            setRemainingMilliseconds(0);
+
+            console.warn(
+                'BOOKING PAYMENT DEADLINE MISSING:',
+                {
+                    bookingId:
+                        booking?.bookingId,
+
+                    bookingStatus:
+                        booking?.bookingStatus,
+
+                    bookingFeeStatus:
+                        booking?.bookingFeeStatus,
+
+                    bookingFee:
+                        booking?.bookingFee,
+
+                    bookingFeePaymentWindowMinutes:
+                        booking?.bookingFeePaymentWindowMinutes,
+                },
+            );
+
+            return;
+        }
+
+
+        const deadlineTime =
+            new Date(
+                deadline,
+            ).getTime();
+
+
+        // --------------------------------------------------------
+        // INVALID DEADLINE
+        // --------------------------------------------------------
+
+        if (
+            Number.isNaN(
+                deadlineTime,
+            )
+        ) {
+
+            setRemainingMilliseconds(0);
+
+            console.warn(
+                'INVALID BOOKING PAYMENT DEADLINE:',
+                deadline,
+            );
+
+            return;
+        }
+
+
+        let expiredHandled =
+            false;
+
+
+        // --------------------------------------------------------
+        // UPDATE COUNTDOWN
+        // --------------------------------------------------------
+
+        const updateCountdown =
+            () => {
+
+                const remaining =
+                    Math.max(
+                        0,
+                        deadlineTime -
+                            Date.now(),
+                    );
+
+
+                setRemainingMilliseconds(
+                    remaining,
+                );
+
+
+                if (
+                    remaining <= 0 &&
+                    !expiredHandled
+                ) {
+
+                    expiredHandled =
+                        true;
+
+
+                    console.log(
+                        'BOOKING PAYMENT WINDOW EXPIRED:',
+                        booking?.bookingId,
+                    );
+
+
+                    onExpired();
+                }
+            };
+
+
+        // IMPORTANT:
+        // Run once immediately BEFORE creating interval.
+
+        updateCountdown();
+
+
+        // IMPORTANT:
+        // Interval is declared BEFORE cleanup can use it.
+
+        const intervalId =
+            setInterval(
+                updateCountdown,
+                1000,
+            );
+
+
+        return () =>
+            clearInterval(
+                intervalId,
+            );
+
+    }, [
+        booking?.bookingId,
+        booking?.bookingStatus,
+        booking?.bookingFeeStatus,
+        booking?.bookingFeePaymentDeadline,
+    ]);
+
+
+    // ============================================================
+    // CONFIRMED + UNPAID
+    // ============================================================
+
+    const paymentRequired =
+        booking?.bookingStatus ===
+            'CONFIRMED' &&
+
+        booking?.bookingFeeStatus !==
+            'PAID';
+
+
+    // ============================================================
+    // VALID PAYMENT DEADLINE
+    // ============================================================
+
+    const hasPaymentDeadline =
+        Boolean(
+            booking?.bookingFeePaymentDeadline,
+        );
+
+
+    // ============================================================
+    // PAYMENT WINDOW ACTIVE
+    // ============================================================
+
+    const paymentWindowActive =
+        paymentRequired &&
+
+        hasPaymentDeadline &&
+
+        remainingMilliseconds > 0;
+
+
+    // ============================================================
+    // PAYMENT WINDOW EXPIRED
+    //
+    // IMPORTANT:
+    // We only call it expired if a deadline actually exists.
+    //
+    // If the backend has not returned a deadline, we DO NOT
+    // pretend the payment window has expired.
+    // ============================================================
+
+    const paymentWindowExpired =
+        paymentRequired &&
+
+        hasPaymentDeadline &&
+
+        remainingMilliseconds <= 0;
+
+
+    // ============================================================
+    // DEADLINE MISSING
+    // ============================================================
+
+    const paymentDeadlineMissing =
+        paymentRequired &&
+
+        !hasPaymentDeadline;
 
 
     return (
@@ -1627,7 +1879,7 @@ function BookingCard({
                     >
                         {services.length}{' '}
                         {services.length ===
-                            1
+                        1
                             ? 'service'
                             : 'services'}
                     </Text>
@@ -1638,7 +1890,6 @@ function BookingCard({
                 <View
                     style={[
                         styles.statusBadge,
-
                         {
                             backgroundColor:
                                 status.background,
@@ -1652,7 +1903,6 @@ function BookingCard({
                     <Text
                         style={[
                             styles.statusText,
-
                             {
                                 color:
                                     status.color,
@@ -1701,10 +1951,6 @@ function BookingCard({
                                 }
                             >
 
-                                {/* ============================== */}
-                                {/* SERVICE TOP ROW */}
-                                {/* ============================== */}
-
                                 <View
                                     style={
                                         styles.serviceTopRow
@@ -1732,30 +1978,26 @@ function BookingCard({
                                     {audience.length >
                                         0 && (
 
-                                            <View
+                                        <View
+                                            style={
+                                                styles.audienceBadge
+                                            }
+                                        >
+
+                                            <Text
                                                 style={
-                                                    styles.audienceBadge
+                                                    styles.audienceBadgeText
                                                 }
                                             >
+                                                {audience}
+                                            </Text>
 
-                                                <Text
-                                                    style={
-                                                        styles.audienceBadgeText
-                                                    }
-                                                >
-                                                    {audience}
-                                                </Text>
+                                        </View>
 
-                                            </View>
-
-                                        )}
+                                    )}
 
                                 </View>
 
-
-                                {/* ============================== */}
-                                {/* CATEGORY */}
-                                {/* ============================== */}
 
                                 <Text
                                     style={
@@ -1771,17 +2013,11 @@ function BookingCard({
                                 </Text>
 
 
-                                {/* ============================== */}
-                                {/* SERVICE INFO */}
-                                {/* ============================== */}
-
                                 <View
                                     style={
                                         styles.serviceInfoRow
                                     }
                                 >
-
-                                    {/* PRICE */}
 
                                     <View
                                         style={
@@ -1813,16 +2049,12 @@ function BookingCard({
                                     </View>
 
 
-                                    {/* DIVIDER */}
-
                                     <View
                                         style={
                                             styles.serviceInfoDivider
                                         }
                                     />
 
-
-                                    {/* DURATION */}
 
                                     <View
                                         style={
@@ -1858,7 +2090,6 @@ function BookingCard({
                             </View>
 
                         );
-
                     },
                 )}
 
@@ -1989,55 +2220,76 @@ function BookingCard({
             {/* PAYMENT REQUIRED */}
             {/* ================================================= */}
 
-            {booking.bookingStatus ===
-                'CONFIRMED' &&
+            {paymentRequired && (
 
-                booking.bookingFeeStatus ===
-                'PENDING' && (
+                <View
+                    style={
+                        styles.paymentCard
+                    }
+                >
+
+                    {/* PAYMENT HEADER */}
 
                     <View
                         style={
-                            styles.paymentCard
+                            styles.paymentHeader
                         }
                     >
 
                         <View
-                            style={
-                                styles.paymentHeader
-                            }
-                        >
+                            style={[
+                                styles.paymentIndicator,
 
-                            <View
-                                style={
-                                    styles.paymentIndicator
-                                }
-                            />
-
-
-                            <Text
-                                style={
-                                    styles.paymentTitle
-                                }
-                            >
-                                Payment required
-                            </Text>
-
-                        </View>
+                                paymentWindowExpired &&
+                                styles.paymentIndicatorExpired,
+                            ]}
+                        />
 
 
                         <Text
-                            style={
-                                styles.paymentMessage
-                            }
+                            style={[
+                                styles.paymentTitle,
+
+                                paymentWindowExpired &&
+                                styles.paymentTitleExpired,
+                            ]}
                         >
-                            Your appointment has been
-                            accepted by the salon.
+                            {paymentWindowExpired
+                                ? 'Payment window expired'
+                                : 'Payment required'}
                         </Text>
 
+                    </View>
+
+
+                    {/* MESSAGE */}
+
+                    <Text
+                        style={
+                            styles.paymentMessage
+                        }
+                    >
+                        {paymentWindowExpired
+
+                            ? 'The 15-minute payment window has expired. This booking can no longer be paid.'
+
+                            : paymentDeadlineMissing
+
+                            ? 'Your booking is confirmed. The timer is unavailable. Please continue.'
+
+                            : 'Your appointment has been accepted by the salon. Pay the ₹9 Clavata booking fee within 15 minutes to confirm your appointment.'}
+                    </Text>
+
+
+                    {/* ================================================= */}
+                    {/* COUNTDOWN */}
+                    {/* ================================================= */}
+
+                    {paymentWindowActive && (
 
                         <View
                             style={
-                                styles.paymentAmountRow
+                                styles.countdownCard
                             }
                         >
 
@@ -2045,22 +2297,62 @@ function BookingCard({
 
                                 <Text
                                     style={
-                                        styles.paymentLabel
+                                        styles.countdownLabel
                                     }
                                 >
-                                    Booking fee
+                                    PAY WITHIN
                                 </Text>
 
                                 <Text
                                     style={
-                                        styles.paymentAmount
+                                        styles.countdownSubtext
                                     }
                                 >
-                                    ₹
-                                    {
-                                        booking.bookingFee ??
-                                        0
+                                    ₹9 Clavata booking fee
+                                </Text>
+
+                            </View>
+
+
+                            <Text
+                                style={
+                                    styles.countdownValue
+                                }
+                            >
+                                {formatCountdown(
+                                    remainingMilliseconds,
+                                )}
+                            </Text>
+
+                        </View>
+
+                    )}
+
+
+                    {/* ================================================= */}
+                    {/* TIMER UNAVAILABLE */}
+                    {/* ================================================= */}
+
+                    {paymentDeadlineMissing && (
+
+                        <View
+                            style={
+                                styles.timerUnavailableCard
+                            }
+                        >
+
+                            <View
+                                style={
+                                    styles.timerUnavailableIcon
+                                }
+                            >
+
+                                <Text
+                                    style={
+                                        styles.timerUnavailableIconText
                                     }
+                                >
+                                    !
                                 </Text>
 
                             </View>
@@ -2068,34 +2360,156 @@ function BookingCard({
 
                             <View
                                 style={
-                                    styles.remainingBox
+                                    styles.timerUnavailableContent
                                 }
                             >
 
                                 <Text
                                     style={
-                                        styles.remainingLabel
+                                        styles.timerUnavailableTitle
                                     }
                                 >
-                                    Pay at salon
+                                    Payment timer unavailable
                                 </Text>
+
 
                                 <Text
                                     style={
-                                        styles.remainingAmount
+                                        styles.timerUnavailableText
                                     }
                                 >
-                                    ₹
-                                    {
-                                        booking.remainingAmount ??
-                                        0
-                                    }
+                                    Your booking is confirmed. The timer is unavailable. Please continue.
                                 </Text>
 
                             </View>
 
                         </View>
 
+                    )}
+
+
+                    {/* ================================================= */}
+                    {/* EXPIRED */}
+                    {/* ================================================= */}
+
+                    {paymentWindowExpired && (
+
+                        <View
+                            style={
+                                styles.expiredCard
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.expiredIcon
+                                }
+                            >
+                                !
+                            </Text>
+
+
+                            <View
+                                style={
+                                    styles.expiredContent
+                                }
+                            >
+
+                                <Text
+                                    style={
+                                        styles.expiredTitle
+                                    }
+                                >
+                                    Payment window expired
+                                </Text>
+
+
+                                <Text
+                                    style={
+                                        styles.expiredText
+                                    }
+                                >
+                                    The booking will be updated automatically.
+                                </Text>
+
+                            </View>
+
+                        </View>
+
+                    )}
+
+
+                    {/* ================================================= */}
+                    {/* AMOUNTS */}
+                    {/* ================================================= */}
+
+                    <View
+                        style={
+                            styles.paymentAmountRow
+                        }
+                    >
+
+                        <View>
+
+                            <Text
+                                style={
+                                    styles.paymentLabel
+                                }
+                            >
+                                Booking fee
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.paymentAmount
+                                }
+                            >
+                                ₹
+                                {
+                                    booking.bookingFee ??
+                                    9
+                                }
+                            </Text>
+
+                        </View>
+
+
+                        <View
+                            style={
+                                styles.remainingBox
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.remainingLabel
+                                }
+                            >
+                                Pay at salon
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.remainingAmount
+                                }
+                            >
+                                ₹
+                                {
+                                    booking.remainingAmount ??
+                                    0
+                                }
+                            </Text>
+
+                        </View>
+
+                    </View>
+
+
+                    {/* ================================================= */}
+                    {/* PAY BUTTON */}
+                    {/* ================================================= */}
+
+                    {!paymentWindowExpired && (
 
                         <TouchableOpacity
                             style={
@@ -2114,7 +2528,7 @@ function BookingCard({
                                     styles.payNowText
                                 }
                             >
-                                Pay booking fee
+                                Pay ₹9 booking fee
                             </Text>
 
 
@@ -2128,9 +2542,36 @@ function BookingCard({
 
                         </TouchableOpacity>
 
-                    </View>
+                    )}
 
-                )}
+
+                    {/* ================================================= */}
+                    {/* EXPIRED BUTTON */}
+                    {/* ================================================= */}
+
+                    {paymentWindowExpired && (
+
+                        <View
+                            style={
+                                styles.expiredButton
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.expiredButtonText
+                                }
+                            >
+                                Payment unavailable
+                            </Text>
+
+                        </View>
+
+                    )}
+
+                </View>
+
+            )}
 
 
             {/* ================================================= */}
@@ -2268,7 +2709,7 @@ function BookingCard({
 
 
             {/* ================================================= */}
-            {/* CANCELLED BUT NO REFUND / STILL PROCESSING */}
+            {/* CANCELLED BUT PAID */}
             {/* ================================================= */}
 
             {tab ===
@@ -2336,11 +2777,76 @@ function BookingCard({
 
 
             {/* ================================================= */}
+            {/* EXPIRED INFORMATION */}
+            {/* ================================================= */}
+
+            {tab ===
+                'Cancelled' &&
+
+                booking.bookingStatus ===
+                'EXPIRED' && (
+
+                    <View
+                        style={
+                            styles.expiredHistoryCard
+                        }
+                    >
+
+                        <View
+                            style={
+                                styles.expiredHistoryIcon
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.expiredHistoryIconText
+                                }
+                            >
+                                !
+                            </Text>
+
+                        </View>
+
+
+                        <View
+                            style={
+                                styles.expiredHistoryContent
+                            }
+                        >
+
+                            <Text
+                                style={
+                                    styles.expiredHistoryTitle
+                                }
+                            >
+                                Booking expired
+                            </Text>
+
+
+                            <Text
+                                style={
+                                    styles.expiredHistoryText
+                                }
+                            >
+                                The ₹9 Clavata booking fee was not
+                                paid within the required payment
+                                window.
+                            </Text>
+
+                        </View>
+
+                    </View>
+
+                )}
+
+
+            {/* ================================================= */}
             {/* ACTIONS */}
             {/* ================================================= */}
 
             {tab ===
-                'Upcoming' ? (
+            'Upcoming' ? (
 
                 <View
                     style={
@@ -2454,7 +2960,6 @@ function BookingCard({
             )}
 
         </View>
-
     );
 }
 
@@ -2465,10 +2970,6 @@ function BookingCard({
 
 const styles =
     StyleSheet.create({
-
-        // ======================================================
-        // CONTAINER
-        // ======================================================
 
         container: {
             flex: 1,
@@ -2488,17 +2989,10 @@ const styles =
         // ======================================================
 
         header: {
-            flexDirection:
-                'row',
-
-            alignItems:
-                'center',
-
-            justifyContent:
-                'space-between',
-
-            marginBottom:
-                22,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 22,
         },
 
         title: {
@@ -2518,24 +3012,15 @@ const styles =
             width: 44,
             height: 44,
             borderRadius: 14,
-            backgroundColor:
-                COLORS.primary,
-
-            alignItems:
-                'center',
-
-            justifyContent:
-                'center',
+            backgroundColor: COLORS.primary,
+            alignItems: 'center',
+            justifyContent: 'center',
         },
 
         headerIconText: {
-            color:
-                COLORS.white,
-
+            color: COLORS.white,
             fontSize: 18,
-
-            fontWeight:
-                '800',
+            fontWeight: '800',
         },
 
 
@@ -2544,65 +3029,36 @@ const styles =
         // ======================================================
 
         tabsContainer: {
-            flexDirection:
-                'row',
-
-            backgroundColor:
-                COLORS.surface,
-
-            borderRadius:
-                13,
-
-            padding:
-                4,
-
-            borderWidth:
-                1,
-
-            borderColor:
-                COLORS.border,
-
-            marginBottom:
-                14,
+            flexDirection: 'row',
+            backgroundColor: COLORS.surface,
+            borderRadius: 13,
+            padding: 4,
+            borderWidth: 1,
+            borderColor: COLORS.border,
+            marginBottom: 14,
         },
 
         tab: {
             flex: 1,
-
             height: 40,
-
-            alignItems:
-                'center',
-
-            justifyContent:
-                'center',
-
-            borderRadius:
-                10,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 10,
         },
 
         activeTab: {
-            backgroundColor:
-                COLORS.primary,
+            backgroundColor: COLORS.primary,
         },
 
         tabText: {
-            fontSize:
-                12,
-
-            fontWeight:
-                '600',
-
-            color:
-                COLORS.textSecondary,
+            fontSize: 12,
+            fontWeight: '600',
+            color: COLORS.textSecondary,
         },
 
         activeTabText: {
-            color:
-                COLORS.white,
-
-            fontWeight:
-                '700',
+            color: COLORS.white,
+            fontWeight: '700',
         },
 
 
@@ -2611,17 +3067,10 @@ const styles =
         // ======================================================
 
         resultText: {
-            fontSize:
-                12,
-
-            color:
-                COLORS.textMuted,
-
-            marginBottom:
-                10,
-
-            marginLeft:
-                2,
+            fontSize: 12,
+            color: COLORS.textMuted,
+            marginBottom: 10,
+            marginLeft: 2,
         },
 
 
@@ -2630,40 +3079,23 @@ const styles =
         // ======================================================
 
         card: {
-            backgroundColor:
-                COLORS.surface,
+            backgroundColor: COLORS.surface,
+            borderRadius: 18,
+            padding: 15,
+            marginBottom: 13,
+            borderWidth: 1,
+            borderColor: COLORS.border,
 
-            borderRadius:
-                18,
-
-            padding:
-                15,
-
-            marginBottom:
-                13,
-
-            borderWidth:
-                1,
-
-            borderColor:
-                COLORS.border,
-
-            shadowColor:
-                '#000',
+            shadowColor: '#000',
 
             shadowOffset: {
                 width: 0,
                 height: 2,
             },
 
-            shadowOpacity:
-                0.04,
-
-            shadowRadius:
-                8,
-
-            elevation:
-                2,
+            shadowOpacity: 0.04,
+            shadowRadius: 8,
+            elevation: 2,
         },
 
 
@@ -2672,41 +3104,24 @@ const styles =
         // ======================================================
 
         cardHeader: {
-            flexDirection:
-                'row',
-
-            alignItems:
-                'center',
+            flexDirection: 'row',
+            alignItems: 'center',
         },
 
         salonIcon: {
             width: 48,
             height: 48,
-
             borderRadius: 14,
-
-            backgroundColor:
-                COLORS.badgeColor,
-
-            alignItems:
-                'center',
-
-            justifyContent:
-                'center',
-
-            marginRight:
-                11,
+            backgroundColor: COLORS.badgeColor,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: 11,
         },
 
         salonIconText: {
-            fontSize:
-                17,
-
-            fontWeight:
-                '800',
-
-            color:
-                COLORS.primary,
+            fontSize: 17,
+            fontWeight: '800',
+            color: COLORS.primary,
         },
 
         salonInfo: {
@@ -2715,28 +3130,16 @@ const styles =
         },
 
         salonName: {
-            fontSize:
-                16,
-
-            fontWeight:
-                '700',
-
-            color:
-                COLORS.text,
+            fontSize: 16,
+            fontWeight: '700',
+            color: COLORS.text,
         },
 
         serviceCountText: {
-            marginTop:
-                4,
-
-            fontSize:
-                12,
-
-            lineHeight:
-                17,
-
-            color:
-                COLORS.textSecondary,
+            marginTop: 4,
+            fontSize: 12,
+            lineHeight: 17,
+            color: COLORS.textSecondary,
         },
 
 
@@ -2745,34 +3148,18 @@ const styles =
         // ======================================================
 
         statusBadge: {
-            paddingHorizontal:
-                8,
-
-            paddingVertical:
-                5,
-
-            borderRadius:
-                8,
-
-            borderWidth:
-                1,
-
-            marginLeft:
-                8,
-
-            maxWidth:
-                115,
+            paddingHorizontal: 8,
+            paddingVertical: 5,
+            borderRadius: 8,
+            borderWidth: 1,
+            marginLeft: 8,
+            maxWidth: 125,
         },
 
         statusText: {
-            fontSize:
-                9,
-
-            fontWeight:
-                '700',
-
-            textAlign:
-                'center',
+            fontSize: 9,
+            fontWeight: '700',
+            textAlign: 'center',
         },
 
 
@@ -2781,167 +3168,88 @@ const styles =
         // ======================================================
 
         servicesContainer: {
-            marginTop:
-                13,
+            marginTop: 13,
         },
 
         serviceCard: {
-            backgroundColor:
-                '#FAFAFA',
-
-            borderWidth:
-                1,
-
-            borderColor:
-                COLORS.border,
-
-            borderRadius:
-                12,
-
-            padding:
-                11,
-
-            marginBottom:
-                8,
+            backgroundColor: '#FAFAFA',
+            borderWidth: 1,
+            borderColor: COLORS.border,
+            borderRadius: 12,
+            padding: 11,
+            marginBottom: 8,
         },
 
         serviceTopRow: {
-            flexDirection:
-                'row',
-
-            alignItems:
-                'center',
-
-            justifyContent:
-                'space-between',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
         },
 
         serviceTitleContainer: {
-            flex:
-                1,
-
-            paddingRight:
-                8,
+            flex: 1,
+            paddingRight: 8,
         },
 
         serviceName: {
-            fontSize:
-                14,
-
-            fontWeight:
-                '700',
-
-            color:
-                COLORS.text,
+            fontSize: 14,
+            fontWeight: '700',
+            color: COLORS.text,
         },
 
         audienceBadge: {
-            paddingHorizontal:
-                8,
-
-            paddingVertical:
-                4,
-
-            borderRadius:
-                7,
-
-            backgroundColor:
-                COLORS.badgeColor,
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 7,
+            backgroundColor: COLORS.badgeColor,
         },
 
         audienceBadgeText: {
-            fontSize:
-                9,
-
-            fontWeight:
-                '800',
-
-            color:
-                COLORS.primary,
-
-            letterSpacing:
-                0.4,
+            fontSize: 9,
+            fontWeight: '800',
+            color: COLORS.primary,
+            letterSpacing: 0.4,
         },
 
         categoryPath: {
-            marginTop:
-                4,
-
-            fontSize:
-                11,
-
-            color:
-                COLORS.textSecondary,
-
-            fontWeight:
-                '500',
+            marginTop: 4,
+            fontSize: 11,
+            color: COLORS.textSecondary,
+            fontWeight: '500',
         },
 
         serviceInfoRow: {
-            flexDirection:
-                'row',
-
-            alignItems:
-                'center',
-
-            marginTop:
-                10,
-
-            paddingTop:
-                9,
-
-            borderTopWidth:
-                1,
-
-            borderTopColor:
-                COLORS.border,
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginTop: 10,
+            paddingTop: 9,
+            borderTopWidth: 1,
+            borderTopColor: COLORS.border,
         },
 
         serviceInfoItem: {
-            flex:
-                1,
+            flex: 1,
         },
 
         serviceInfoLabel: {
-            fontSize:
-                8,
-
-            fontWeight:
-                '700',
-
-            color:
-                COLORS.textMuted,
-
-            letterSpacing:
-                0.5,
-
-            marginBottom:
-                3,
+            fontSize: 8,
+            fontWeight: '700',
+            color: COLORS.textMuted,
+            letterSpacing: 0.5,
+            marginBottom: 3,
         },
 
         serviceInfoValue: {
-            fontSize:
-                13,
-
-            fontWeight:
-                '700',
-
-            color:
-                COLORS.text,
+            fontSize: 13,
+            fontWeight: '700',
+            color: COLORS.text,
         },
 
         serviceInfoDivider: {
-            width:
-                1,
-
-            height:
-                25,
-
-            backgroundColor:
-                COLORS.border,
-
-            marginHorizontal:
-                12,
+            width: 1,
+            height: 25,
+            backgroundColor: COLORS.border,
+            marginHorizontal: 12,
         },
 
 
@@ -2950,14 +3258,9 @@ const styles =
         // ======================================================
 
         divider: {
-            height:
-                1,
-
-            backgroundColor:
-                COLORS.border,
-
-            marginVertical:
-                13,
+            height: 1,
+            backgroundColor: COLORS.border,
+            marginVertical: 13,
         },
 
 
@@ -2966,74 +3269,43 @@ const styles =
         // ======================================================
 
         detailsRow: {
-            flexDirection:
-                'row',
-
-            alignItems:
-                'center',
+            flexDirection: 'row',
+            alignItems: 'center',
         },
 
         detailItem: {
-            flex:
-                1,
+            flex: 1,
         },
 
         amountItem: {
-            alignItems:
-                'flex-end',
+            alignItems: 'flex-end',
         },
 
         detailLabel: {
-            fontSize:
-                9,
-
-            fontWeight:
-                '700',
-
-            color:
-                COLORS.textMuted,
-
-            letterSpacing:
-                0.5,
-
-            marginBottom:
-                4,
+            fontSize: 9,
+            fontWeight: '700',
+            color: COLORS.textMuted,
+            letterSpacing: 0.5,
+            marginBottom: 4,
         },
 
         detailValue: {
-            fontSize:
-                12,
-
-            fontWeight:
-                '600',
-
-            color:
-                COLORS.text,
+            fontSize: 12,
+            fontWeight: '600',
+            color: COLORS.text,
         },
 
         amountValue: {
-            fontSize:
-                14,
-
-            fontWeight:
-                '800',
-
-            color:
-                COLORS.text,
+            fontSize: 14,
+            fontWeight: '800',
+            color: COLORS.text,
         },
 
         detailDivider: {
-            width:
-                1,
-
-            height:
-                27,
-
-            backgroundColor:
-                COLORS.border,
-
-            marginHorizontal:
-                10,
+            width: 1,
+            height: 27,
+            backgroundColor: COLORS.border,
+            marginHorizontal: 10,
         },
 
 
@@ -3042,181 +3314,296 @@ const styles =
         // ======================================================
 
         paymentCard: {
-            marginTop:
-                13,
-
-            backgroundColor:
-                '#FFF8EF',
-
-            borderWidth:
-                1,
-
-            borderColor:
-                '#F1D2AE',
-
-            borderRadius:
-                13,
-
-            padding:
-                12,
+            marginTop: 13,
+            backgroundColor: '#FFF8EF',
+            borderWidth: 1,
+            borderColor: '#F1D2AE',
+            borderRadius: 13,
+            padding: 12,
         },
 
         paymentHeader: {
-            flexDirection:
-                'row',
-
-            alignItems:
-                'center',
-
-            marginBottom:
-                5,
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 5,
         },
 
         paymentIndicator: {
-            width:
-                7,
+            width: 7,
+            height: 7,
+            borderRadius: 4,
+            backgroundColor: '#B86618',
+            marginRight: 7,
+        },
 
-            height:
-                7,
-
-            borderRadius:
-                4,
-
-            backgroundColor:
-                '#B86618',
-
-            marginRight:
-                7,
+        paymentIndicatorExpired: {
+            backgroundColor: '#A33A3A',
         },
 
         paymentTitle: {
-            fontSize:
-                14,
+            fontSize: 14,
+            fontWeight: '700',
+            color: '#8B4A10',
+        },
 
-            fontWeight:
-                '700',
-
-            color:
-                '#8B4A10',
+        paymentTitleExpired: {
+            color: '#A33A3A',
         },
 
         paymentMessage: {
-            fontSize:
-                12,
-
-            lineHeight:
-                17,
-
-            color:
-                COLORS.textSecondary,
-
-            marginBottom:
-                12,
+            fontSize: 12,
+            lineHeight: 17,
+            color: COLORS.textSecondary,
+            marginBottom: 12,
         },
 
+
+        // ======================================================
+        // COUNTDOWN
+        // ======================================================
+
+        countdownCard: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+
+            backgroundColor: COLORS.white,
+
+            borderWidth: 1,
+            borderColor: '#F1D2AE',
+
+            borderRadius: 11,
+
+            paddingHorizontal: 11,
+            paddingVertical: 10,
+
+            marginBottom: 12,
+        },
+
+        countdownLabel: {
+            fontSize: 9,
+            fontWeight: '800',
+            color: '#8B4A10',
+            letterSpacing: 0.7,
+        },
+
+        countdownSubtext: {
+            marginTop: 3,
+            fontSize: 10,
+            color: COLORS.textMuted,
+        },
+
+        countdownValue: {
+            fontSize: 20,
+            fontWeight: '800',
+            color: '#8B4A10',
+            letterSpacing: 0.5,
+        },
+
+
+        // ======================================================
+        // TIMER UNAVAILABLE
+        // ======================================================
+
+        timerUnavailableCard: {
+            flexDirection: 'row',
+            alignItems: 'center',
+
+            backgroundColor: '#FFFDF9',
+
+            borderWidth: 1,
+            borderColor: '#E9D9C6',
+
+            borderRadius: 10,
+
+            padding: 10,
+
+            marginBottom: 12,
+        },
+
+        timerUnavailableIcon: {
+            width: 27,
+            height: 27,
+            borderRadius: 14,
+
+            backgroundColor: '#8B4A10',
+
+            alignItems: 'center',
+            justifyContent: 'center',
+
+            marginRight: 9,
+        },
+
+        timerUnavailableIconText: {
+            color: COLORS.white,
+            fontSize: 14,
+            fontWeight: '800',
+        },
+
+        timerUnavailableContent: {
+            flex: 1,
+        },
+
+        timerUnavailableTitle: {
+            fontSize: 12,
+            fontWeight: '700',
+            color: '#8B4A10',
+        },
+
+        timerUnavailableText: {
+            marginTop: 2,
+            fontSize: 10,
+            lineHeight: 15,
+            color: COLORS.textSecondary,
+        },
+
+
+        // ======================================================
+        // EXPIRED
+        // ======================================================
+
+        expiredCard: {
+            flexDirection: 'row',
+            alignItems: 'center',
+
+            backgroundColor: '#FBEFEF',
+
+            borderWidth: 1,
+            borderColor: '#EBCACA',
+
+            borderRadius: 10,
+
+            padding: 10,
+
+            marginBottom: 12,
+        },
+
+        expiredIcon: {
+            width: 27,
+            height: 27,
+            borderRadius: 14,
+
+            backgroundColor: '#A33A3A',
+
+            color: COLORS.white,
+
+            textAlign: 'center',
+            lineHeight: 27,
+
+            fontSize: 14,
+            fontWeight: '800',
+
+            marginRight: 9,
+        },
+
+        expiredContent: {
+            flex: 1,
+        },
+
+        expiredTitle: {
+            fontSize: 12,
+            fontWeight: '700',
+            color: '#A33A3A',
+        },
+
+        expiredText: {
+            marginTop: 2,
+            fontSize: 10,
+            color: COLORS.textSecondary,
+        },
+
+        expiredButton: {
+            height: 43,
+            borderRadius: 10,
+            backgroundColor: '#E5E5E5',
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+
+        expiredButtonText: {
+            fontSize: 13,
+            fontWeight: '700',
+            color: '#888888',
+        },
+
+
+        // ======================================================
+        // PAYMENT AMOUNT
+        // ======================================================
+
         paymentAmountRow: {
-            flexDirection:
-                'row',
-
-            justifyContent:
-                'space-between',
-
-            alignItems:
-                'center',
-
-            marginBottom:
-                12,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 12,
         },
 
         paymentLabel: {
-            fontSize:
-                10,
-
-            color:
-                COLORS.textMuted,
-
-            marginBottom:
-                2,
+            fontSize: 10,
+            color: COLORS.textMuted,
+            marginBottom: 2,
         },
 
         paymentAmount: {
-            fontSize:
-                18,
-
-            fontWeight:
-                '800',
-
-            color:
-                COLORS.text,
+            fontSize: 18,
+            fontWeight: '800',
+            color: COLORS.text,
         },
 
         remainingBox: {
-            alignItems:
-                'flex-end',
+            alignItems: 'flex-end',
         },
 
         remainingLabel: {
-            fontSize:
-                10,
-
-            color:
-                COLORS.textMuted,
-
-            marginBottom:
-                2,
+            fontSize: 10,
+            color: COLORS.textMuted,
+            marginBottom: 2,
         },
 
         remainingAmount: {
-            fontSize:
-                14,
-
-            fontWeight:
-                '700',
-
-            color:
-                COLORS.textSecondary,
+            fontSize: 14,
+            fontWeight: '700',
+            color: COLORS.textSecondary,
         },
 
+
+        // ======================================================
+        // PAY BUTTON
+        // ======================================================
+
         payNowButton: {
-            height:
-                43,
+            height: 46,
 
             backgroundColor:
                 COLORS.primary,
 
-            borderRadius:
-                10,
+            borderRadius: 11,
 
-            flexDirection:
-                'row',
+            flexDirection: 'row',
 
-            alignItems:
-                'center',
+            alignItems: 'center',
 
-            justifyContent:
-                'center',
+            justifyContent: 'center',
+
+            marginTop: 2,
         },
 
         payNowText: {
             color:
                 COLORS.white,
 
-            fontSize:
-                13,
+            fontSize: 13,
 
-            fontWeight:
-                '700',
+            fontWeight: '800',
         },
 
         payNowArrow: {
             color:
                 COLORS.white,
 
-            fontSize:
-                17,
+            fontSize: 18,
 
-            marginLeft:
-                7,
+            marginLeft: 7,
         },
 
 
@@ -3225,90 +3612,68 @@ const styles =
         // ======================================================
 
         confirmedCard: {
-            marginTop:
-                13,
+            marginTop: 13,
 
-            backgroundColor:
-                '#F5F5F5',
+            backgroundColor: '#F5F5F5',
 
-            borderWidth:
-                1,
+            borderWidth: 1,
 
             borderColor:
                 COLORS.border,
 
-            borderRadius:
-                13,
+            borderRadius: 13,
 
-            padding:
-                12,
+            padding: 12,
 
-            flexDirection:
-                'row',
+            flexDirection: 'row',
 
             alignItems:
                 'flex-start',
         },
 
         confirmedIcon: {
-            width:
-                28,
+            width: 28,
+            height: 28,
 
-            height:
-                28,
-
-            borderRadius:
-                14,
+            borderRadius: 14,
 
             backgroundColor:
                 COLORS.primary,
 
-            alignItems:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
 
-            justifyContent:
-                'center',
-
-            marginRight:
-                9,
+            marginRight: 9,
         },
 
         confirmedIconText: {
             color:
                 COLORS.white,
 
-            fontSize:
-                13,
+            fontSize: 13,
 
-            fontWeight:
-                '800',
+            fontWeight: '800',
         },
 
         confirmedContent: {
-            flex:
-                1,
+            flex: 1,
         },
 
         confirmedTitle: {
-            fontSize:
-                13,
+            fontSize: 13,
 
-            fontWeight:
-                '700',
+            fontWeight: '700',
 
             color:
                 COLORS.text,
 
-            marginBottom:
-                3,
+            marginBottom: 3,
         },
 
         confirmedMessage: {
-            fontSize:
-                11,
+            fontSize: 11,
 
-            lineHeight:
-                16,
+            lineHeight: 16,
 
             color:
                 COLORS.textSecondary,
@@ -3320,164 +3685,199 @@ const styles =
         // ======================================================
 
         refundCompletedCard: {
-            marginTop:
-                13,
+            marginTop: 13,
 
             backgroundColor:
                 '#F5F5F5',
 
-            borderWidth:
-                1,
+            borderWidth: 1,
 
             borderColor:
                 COLORS.border,
 
-            borderRadius:
-                13,
+            borderRadius: 13,
 
-            padding:
-                12,
+            padding: 12,
 
-            flexDirection:
-                'row',
+            flexDirection: 'row',
 
             alignItems:
                 'flex-start',
         },
 
         refundIcon: {
-            width:
-                28,
+            width: 28,
+            height: 28,
 
-            height:
-                28,
-
-            borderRadius:
-                14,
+            borderRadius: 14,
 
             backgroundColor:
                 COLORS.primary,
 
-            alignItems:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
 
-            justifyContent:
-                'center',
-
-            marginRight:
-                9,
+            marginRight: 9,
         },
 
         refundIconText: {
             color:
                 COLORS.white,
 
-            fontSize:
-                13,
+            fontSize: 13,
 
-            fontWeight:
-                '800',
+            fontWeight: '800',
         },
 
         refundPendingCard: {
-            marginTop:
-                13,
+            marginTop: 13,
 
             backgroundColor:
                 '#FFF8EF',
 
-            borderWidth:
-                1,
+            borderWidth: 1,
 
             borderColor:
                 '#F1D2AE',
 
-            borderRadius:
-                13,
+            borderRadius: 13,
 
-            padding:
-                12,
+            padding: 12,
 
-            flexDirection:
-                'row',
+            flexDirection: 'row',
 
             alignItems:
                 'flex-start',
         },
 
         refundPendingIcon: {
-            width:
-                28,
+            width: 28,
+            height: 28,
 
-            height:
-                28,
-
-            borderRadius:
-                14,
+            borderRadius: 14,
 
             backgroundColor:
                 '#8B4A10',
 
-            alignItems:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
 
-            justifyContent:
-                'center',
-
-            marginRight:
-                9,
+            marginRight: 9,
         },
 
         refundPendingIconText: {
             color:
                 COLORS.white,
 
-            fontSize:
-                12,
+            fontSize: 12,
 
-            fontWeight:
-                '800',
+            fontWeight: '800',
         },
 
         refundContent: {
-            flex:
-                1,
+            flex: 1,
         },
 
         refundTitle: {
-            fontSize:
-                13,
+            fontSize: 13,
 
-            fontWeight:
-                '700',
+            fontWeight: '700',
 
             color:
                 COLORS.text,
 
-            marginBottom:
-                3,
+            marginBottom: 3,
         },
 
         refundPendingTitle: {
-            fontSize:
-                13,
+            fontSize: 13,
 
-            fontWeight:
-                '700',
+            fontWeight: '700',
 
             color:
                 '#8B4A10',
 
-            marginBottom:
-                3,
+            marginBottom: 3,
         },
 
         refundMessage: {
-            fontSize:
-                11,
+            fontSize: 11,
 
-            lineHeight:
-                16,
+            lineHeight: 16,
+
+            color:
+                COLORS.textSecondary,
+        },
+
+
+        // ======================================================
+        // EXPIRED HISTORY
+        // ======================================================
+
+        expiredHistoryCard: {
+            marginTop: 13,
+
+            backgroundColor:
+                '#FBEFEF',
+
+            borderWidth: 1,
+
+            borderColor:
+                '#EBCACA',
+
+            borderRadius: 13,
+
+            padding: 12,
+
+            flexDirection: 'row',
+
+            alignItems:
+                'flex-start',
+        },
+
+        expiredHistoryIcon: {
+            width: 28,
+            height: 28,
+
+            borderRadius: 14,
+
+            backgroundColor:
+                '#A33A3A',
+
+            alignItems: 'center',
+            justifyContent: 'center',
+
+            marginRight: 9,
+        },
+
+        expiredHistoryIconText: {
+            color:
+                COLORS.white,
+
+            fontSize: 13,
+
+            fontWeight: '800',
+        },
+
+        expiredHistoryContent: {
+            flex: 1,
+        },
+
+        expiredHistoryTitle: {
+            fontSize: 13,
+
+            fontWeight: '700',
+
+            color:
+                '#A33A3A',
+
+            marginBottom: 3,
+        },
+
+        expiredHistoryText: {
+            fontSize: 11,
+
+            lineHeight: 16,
 
             color:
                 COLORS.textSecondary,
@@ -3489,120 +3889,89 @@ const styles =
         // ======================================================
 
         buttons: {
-            flexDirection:
-                'row',
-
-            marginTop:
-                13,
-
-            gap:
-                9,
+            flexDirection: 'row',
+            marginTop: 13,
+            gap: 9,
         },
 
         cancelButton: {
-            flex:
-                0.8,
+            flex: 0.8,
 
-            height:
-                42,
+            height: 42,
 
-            borderRadius:
-                10,
+            borderRadius: 10,
 
-            borderWidth:
-                1,
+            borderWidth: 1,
 
             borderColor:
                 COLORS.borderStrong,
 
-            alignItems:
-                'center',
-
-            justifyContent:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
 
             backgroundColor:
                 COLORS.white,
         },
 
         cancelButtonText: {
-            fontSize:
-                12,
+            fontSize: 12,
 
-            fontWeight:
-                '700',
+            fontWeight: '700',
 
             color:
                 COLORS.textSecondary,
         },
 
         viewButton: {
-            flex:
-                1.4,
+            flex: 1.4,
 
-            height:
-                42,
+            height: 42,
 
-            borderRadius:
-                10,
+            borderRadius: 10,
 
             backgroundColor:
                 COLORS.primary,
 
-            flexDirection:
-                'row',
+            flexDirection: 'row',
 
-            alignItems:
-                'center',
-
-            justifyContent:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
         },
 
         viewButtonText: {
-            fontSize:
-                12,
+            fontSize: 12,
 
-            fontWeight:
-                '700',
+            fontWeight: '700',
 
             color:
                 COLORS.white,
         },
 
         viewButtonArrow: {
-            fontSize:
-                16,
+            fontSize: 16,
 
             color:
                 COLORS.white,
 
-            marginLeft:
-                6,
+            marginLeft: 6,
         },
 
         disabledButton: {
-            opacity:
-                0.55,
+            opacity: 0.55,
         },
 
         disabledButtonDark: {
-            opacity:
-                0.55,
+            opacity: 0.55,
         },
 
         bookAgainButton: {
-            marginTop:
-                13,
+            marginTop: 13,
 
-            height:
-                42,
+            height: 42,
 
-            borderRadius:
-                10,
+            borderRadius: 10,
 
-            borderWidth:
-                1,
+            borderWidth: 1,
 
             borderColor:
                 COLORS.primary,
@@ -3610,33 +3979,25 @@ const styles =
             backgroundColor:
                 COLORS.white,
 
-            flexDirection:
-                'row',
+            flexDirection: 'row',
 
-            alignItems:
-                'center',
-
-            justifyContent:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
         },
 
         bookAgainText: {
-            fontSize:
-                12,
+            fontSize: 12,
 
-            fontWeight:
-                '700',
+            fontWeight: '700',
 
             color:
                 COLORS.primary,
         },
 
         bookAgainArrow: {
-            marginLeft:
-                6,
+            marginLeft: 6,
 
-            fontSize:
-                16,
+            fontSize: 16,
 
             color:
                 COLORS.primary,
@@ -3648,82 +4009,60 @@ const styles =
         // ======================================================
 
         emptyContainer: {
-            alignItems:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
 
-            justifyContent:
-                'center',
+            paddingVertical: 70,
 
-            paddingVertical:
-                70,
-
-            paddingHorizontal:
-                30,
+            paddingHorizontal: 30,
         },
 
         emptyIcon: {
-            width:
-                68,
+            width: 68,
+            height: 68,
 
-            height:
-                68,
-
-            borderRadius:
-                22,
+            borderRadius: 22,
 
             backgroundColor:
                 COLORS.badgeColor,
 
-            alignItems:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
 
-            justifyContent:
-                'center',
-
-            marginBottom:
-                16,
+            marginBottom: 16,
         },
 
         emptyIconText: {
-            fontSize:
-                28,
+            fontSize: 28,
 
             color:
                 COLORS.primary,
 
-            fontWeight:
-                '700',
+            fontWeight: '700',
         },
 
         emptyTitle: {
-            fontSize:
-                18,
+            fontSize: 18,
 
-            fontWeight:
-                '700',
+            fontWeight: '700',
 
             color:
                 COLORS.text,
         },
 
         emptyText: {
-            marginTop:
-                7,
+            marginTop: 7,
 
-            fontSize:
-                13,
+            fontSize: 13,
 
-            lineHeight:
-                19,
+            lineHeight: 19,
 
             color:
                 COLORS.textSecondary,
 
-            textAlign:
-                'center',
+            textAlign: 'center',
 
-            maxWidth:
-                290,
+            maxWidth: 290,
         },
 
 
@@ -3732,28 +4071,19 @@ const styles =
         // ======================================================
 
         loadingContainer: {
-            flex:
-                1,
+            flex: 1,
 
-            alignItems:
-                'center',
-
-            justifyContent:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
         },
 
         loadingCircle: {
-            width:
-                34,
+            width: 34,
+            height: 34,
 
-            height:
-                34,
+            borderRadius: 17,
 
-            borderRadius:
-                17,
-
-            borderWidth:
-                3,
+            borderWidth: 3,
 
             borderColor:
                 COLORS.borderStrong,
@@ -3761,13 +4091,11 @@ const styles =
             borderTopColor:
                 COLORS.primary,
 
-            marginBottom:
-                12,
+            marginBottom: 12,
         },
 
         loadingText: {
-            fontSize:
-                13,
+            fontSize: 13,
 
             color:
                 COLORS.textSecondary,
@@ -3779,113 +4107,83 @@ const styles =
         // ======================================================
 
         errorContainer: {
-            flex:
-                1,
+            flex: 1,
 
-            alignItems:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
 
-            justifyContent:
-                'center',
-
-            padding:
-                30,
+            padding: 30,
         },
 
         errorIcon: {
-            width:
-                54,
+            width: 54,
+            height: 54,
 
-            height:
-                54,
-
-            borderRadius:
-                18,
+            borderRadius: 18,
 
             backgroundColor:
                 COLORS.badgeColor,
 
-            alignItems:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
 
-            justifyContent:
-                'center',
-
-            marginBottom:
-                14,
+            marginBottom: 14,
         },
 
         errorIconText: {
-            fontSize:
-                22,
+            fontSize: 22,
 
-            fontWeight:
-                '800',
+            fontWeight: '800',
 
             color:
                 '#A33A3A',
         },
 
         errorTitle: {
-            fontSize:
-                18,
+            fontSize: 18,
 
-            fontWeight:
-                '700',
+            fontWeight: '700',
 
             color:
                 COLORS.text,
 
-            marginBottom:
-                6,
+            marginBottom: 6,
         },
 
         errorMessage: {
-            fontSize:
-                12,
+            fontSize: 12,
 
-            lineHeight:
-                18,
+            lineHeight: 18,
 
             color:
                 COLORS.textSecondary,
 
-            textAlign:
-                'center',
+            textAlign: 'center',
         },
 
         retryButton: {
-            marginTop:
-                18,
+            marginTop: 18,
 
-            paddingHorizontal:
-                24,
+            paddingHorizontal: 24,
 
-            height:
-                42,
+            height: 42,
 
-            borderRadius:
-                10,
+            borderRadius: 10,
 
             backgroundColor:
                 COLORS.primary,
 
-            alignItems:
-                'center',
-
-            justifyContent:
-                'center',
+            alignItems: 'center',
+            justifyContent: 'center',
         },
 
         retryText: {
             color:
                 COLORS.white,
 
-            fontSize:
-                13,
+            fontSize: 13,
 
-            fontWeight:
-                '700',
+            fontWeight: '700',
         },
 
 
@@ -3894,23 +4192,18 @@ const styles =
         // ======================================================
 
         footer: {
-            textAlign:
-                'center',
+            textAlign: 'center',
 
-            marginTop:
-                10,
+            marginTop: 10,
 
-            fontSize:
-                11,
+            fontSize: 11,
 
             color:
                 COLORS.textMuted,
 
-            paddingHorizontal:
-                20,
+            paddingHorizontal: 20,
 
-            lineHeight:
-                17,
+            lineHeight: 17,
         },
 
     });
