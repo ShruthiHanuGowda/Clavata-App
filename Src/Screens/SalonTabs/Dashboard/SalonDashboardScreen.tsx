@@ -1754,7 +1754,7 @@ export default function SalonDashboardScreen() {
     const handlePendingRequestsPress =
         () => {
             navigation.navigate(
-                'Bookings' as never,
+                'Appointments' as never,
             );
         };
 

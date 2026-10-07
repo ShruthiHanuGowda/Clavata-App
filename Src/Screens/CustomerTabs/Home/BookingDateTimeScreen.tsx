@@ -1975,59 +1975,6 @@ export default function BookingDateTimeScreen() {
                     styles.content
                 }
             >
-                {/* ================================================= */}
-                {/* REQUEST INFORMATION */}
-                {/* ================================================= */}
-
-                <View
-                    style={
-                        styles.requestInfoCard
-                    }
-                >
-                    <View
-                        style={
-                            styles.requestInfoIcon
-                        }
-                    >
-                        <Icon
-                            name="checkmark"
-                            size={21}
-                            color="#FFF"
-                        />
-                    </View>
-
-                    <View
-                        style={
-                            styles.requestInfoContent
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.requestInfoTitle
-                            }
-                        >
-                            Request first, pay later
-                        </Text>
-
-                        <Text
-                            style={
-                                styles.requestInfoText
-                            }
-                        >
-                            Send your request to the
-                            salon first. You only pay
-                            the ₹{BOOKING_FEE} Clavata
-                            booking fee after the salon
-                            accepts.
-                        </Text>
-                    </View>
-                </View>
-
-
-                {/* ================================================= */}
-                {/* SALON */}
-                {/* ================================================= */}
-
                 <View
                     style={
                         styles.card
