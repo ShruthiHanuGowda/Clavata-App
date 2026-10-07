@@ -1,4 +1,5 @@
 import React, {
+    useEffect,
     useMemo,
     useState,
 } from 'react';
@@ -13,9 +14,14 @@ import {
     TouchableOpacity,
     Modal,
     Pressable,
+    Alert,
 } from 'react-native';
 
-import { useQuery } from '@apollo/client';
+import {
+    useQuery,
+    useMutation,
+} from '@apollo/client';
+
 import { useNavigation } from '@react-navigation/native';
 
 import styles from './styles';
@@ -28,6 +34,10 @@ import ReviewCard from './ReviewCard';
 import {
     SALON_DASHBOARD_QUERY,
     GET_SALON,
+} from '../../../graphql/queries';
+
+import {
+    SALON_RESPOND_TO_BOOKING,
 } from '../../../graphql/queries';
 
 
@@ -88,6 +98,17 @@ type Booking = {
     rating?: number;
     review?: string;
     reviewedAt?: string;
+
+    bookingCancellationReason?: string;
+
+    // Salon response
+    salonResponseStatus: string;
+    salonResponseDeadline: string;
+    salonResponseWindowMinutes: number;
+
+    // Customer booking-fee payment
+    bookingFeePaymentDeadline?: string;
+    bookingFeePaymentWindowMinutes?: number;
 
     createdAt: string;
     updatedAt: string;
@@ -203,6 +224,67 @@ const getMondayBasedDayIndex = (
 
 /*
  * ================================================================
+ * COUNTDOWN HELPERS
+ * ================================================================
+ */
+
+const getRemainingSeconds = (
+    deadline?: string | null,
+    nowMs?: number,
+): number => {
+    if (!deadline) {
+        return 0;
+    }
+
+    const deadlineMs =
+        new Date(deadline).getTime();
+
+    if (
+        !Number.isFinite(
+            deadlineMs,
+        )
+    ) {
+        return 0;
+    }
+
+    const currentMs =
+        nowMs ?? Date.now();
+
+    return Math.max(
+        0,
+        Math.ceil(
+            (deadlineMs - currentMs) /
+                1000,
+        ),
+    );
+};
+
+
+const formatCountdown = (
+    seconds: number,
+): string => {
+    const safeSeconds =
+        Math.max(
+            0,
+            seconds,
+        );
+
+    const minutes =
+        Math.floor(
+            safeSeconds / 60,
+        );
+
+    const remainingSeconds =
+        safeSeconds % 60;
+
+    return `${minutes}:${String(
+        remainingSeconds,
+    ).padStart(2, '0')}`;
+};
+
+
+/*
+ * ================================================================
  * FORMAT HELPERS
  * ================================================================
  */
@@ -217,8 +299,10 @@ const formatBookingStatus = (
     return status
         .replace(/_/g, ' ')
         .toLowerCase()
-        .replace(/\b\w/g, letter =>
-            letter.toUpperCase(),
+        .replace(
+            /\b\w/g,
+            letter =>
+                letter.toUpperCase(),
         );
 };
 
@@ -233,8 +317,10 @@ const formatPaymentStatus = (
     return status
         .replace(/_/g, ' ')
         .toLowerCase()
-        .replace(/\b\w/g, letter =>
-            letter.toUpperCase(),
+        .replace(
+            /\b\w/g,
+            letter =>
+                letter.toUpperCase(),
         );
 };
 
@@ -249,8 +335,10 @@ const formatPaymentMethod = (
     return method
         .replace(/_/g, ' ')
         .toLowerCase()
-        .replace(/\b\w/g, letter =>
-            letter.toUpperCase(),
+        .replace(
+            /\b\w/g,
+            letter =>
+                letter.toUpperCase(),
         );
 };
 
@@ -265,8 +353,10 @@ const formatAudience = (
     return audience
         .replace(/_/g, ' ')
         .toLowerCase()
-        .replace(/\b\w/g, letter =>
-            letter.toUpperCase(),
+        .replace(
+            /\b\w/g,
+            letter =>
+                letter.toUpperCase(),
         );
 };
 
@@ -284,21 +374,13 @@ const getSalonLocation = (
         return 'Location not available';
     }
 
-    /*
-     * If address is already a string.
-     */
-
     if (
         typeof salon.address ===
-        'string' &&
+            'string' &&
         salon.address.trim()
     ) {
         return salon.address.trim();
     }
-
-    /*
-     * Handle object based address.
-     */
 
     const address =
         salon.address;
@@ -335,10 +417,6 @@ const getSalonLocation = (
                 .join(', ');
         }
     }
-
-    /*
-     * Handle flat salon fields.
-     */
 
     const parts = [
         salon.addressLine1,
@@ -382,7 +460,6 @@ const getServiceCategory = (
 ): string => {
     return (
         service.category ||
-        service.category ||
         'Category not available'
     );
 };
@@ -393,7 +470,6 @@ const getServiceSubcategory = (
 ): string => {
     return (
         service.subcategory ||
-        service.subcategory ||
         'Subcategory not available'
     );
 };
@@ -403,7 +479,6 @@ const getServiceDuration = (
     service: Service,
 ): number => {
     return (
-        service.duration ??
         service.duration ??
         0
     );
@@ -479,6 +554,55 @@ export default function SalonDashboardScreen() {
                 'network-only',
         },
     );
+
+
+    /*
+     * ============================================================
+     * SALON RESPONSE MUTATION
+     * ============================================================
+     */
+
+    const [
+        salonRespondToBooking,
+        {
+            loading:
+                respondingToBooking,
+        },
+    ] = useMutation(
+        SALON_RESPOND_TO_BOOKING,
+    );
+
+
+    /*
+     * ============================================================
+     * CURRENT TIME
+     *
+     * Used for the live 15-minute timers.
+     * ============================================================
+     */
+
+    const [
+        nowMs,
+        setNowMs,
+    ] = useState(
+        Date.now(),
+    );
+
+
+    useEffect(() => {
+        const timer =
+            setInterval(() => {
+                setNowMs(
+                    Date.now(),
+                );
+            }, 1000);
+
+        return () => {
+            clearInterval(
+                timer,
+            );
+        };
+    }, []);
 
 
     /*
@@ -569,8 +693,6 @@ export default function SalonDashboardScreen() {
     /*
      * ============================================================
      * SELECTED BOOKING
-     *
-     * Used by the appointment details modal.
      * ============================================================
      */
 
@@ -580,6 +702,20 @@ export default function SalonDashboardScreen() {
     ] = useState<Booking | null>(
         null,
     );
+
+
+    /*
+     * ============================================================
+     * RESPONDING BOOKING ID
+     * ============================================================
+     */
+
+    const [
+        respondingBookingId,
+        setRespondingBookingId,
+    ] = useState<
+        string | null
+    >(null);
 
 
     /*
@@ -680,16 +816,23 @@ export default function SalonDashboardScreen() {
 
     /*
      * ============================================================
-     * TODAY'S COMPLETED BOOKINGS
+     * TODAY'S CONFIRMED / PAID BOOKINGS
+     *
+     * There is no salon "Mark as Completed" action.
+     * A booking becomes relevant to the dashboard's financial
+     * figures once the salon accepted it and the customer paid
+     * the Clavata booking fee.
      * ============================================================
      */
 
-    const todaysCompletedBookings =
+    const todaysPaidBookings =
         useMemo(() => {
             return todaysBookings.filter(
                 booking =>
                     booking.bookingStatus ===
-                    'COMPLETED',
+                        'CONFIRMED' &&
+                    booking.bookingFeeStatus ===
+                        'PAID',
             );
         }, [
             todaysBookings,
@@ -699,12 +842,17 @@ export default function SalonDashboardScreen() {
     /*
      * ============================================================
      * TODAY'S REVENUE
+     *
+     * This represents the confirmed service value associated
+     * with customers who completed the ₹9 Clavata booking fee.
+     *
+     * Clavata does not track service completion.
      * ============================================================
      */
 
     const todaysRevenue =
         useMemo(() => {
-            return todaysCompletedBookings.reduce(
+            return todaysPaidBookings.reduce(
                 (
                     total,
                     booking,
@@ -715,42 +863,30 @@ export default function SalonDashboardScreen() {
                 0,
             );
         }, [
-            todaysCompletedBookings,
+            todaysPaidBookings,
         ]);
 
 
     /*
      * ============================================================
      * PAID VIA CLAVATA
-     *
-     * This is the fixed booking fee.
      * ============================================================
      */
 
     const todaysClavataPaid =
         useMemo(() => {
-            return todaysCompletedBookings.reduce(
+            return todaysPaidBookings.reduce(
                 (
                     total,
                     booking,
-                ) => {
-                    if (
-                        booking.bookingFeeStatus ===
-                        'PAID'
-                    ) {
-                        return (
-                            total +
-                            (booking.bookingFee ||
-                                0)
-                        );
-                    }
-
-                    return total;
-                },
+                ) =>
+                    total +
+                    (booking.bookingFee ||
+                        0),
                 0,
             );
         }, [
-            todaysCompletedBookings,
+            todaysPaidBookings,
         ]);
 
 
@@ -776,18 +912,37 @@ export default function SalonDashboardScreen() {
     /*
      * ============================================================
      * PENDING REQUESTS
+     *
+     * Only requests whose salon response window is still open.
      * ============================================================
      */
 
     const pendingRequests =
         useMemo(() => {
-            return bookings.filter(
-                booking =>
-                    booking.bookingStatus ===
-                    'PENDING',
-            );
+            return bookings
+                .filter(
+                    booking =>
+                        booking.bookingStatus ===
+                            'PENDING' &&
+                        booking.salonResponseStatus ===
+                            'PENDING' &&
+                        getRemainingSeconds(
+                            booking.salonResponseDeadline,
+                            nowMs,
+                        ) > 0,
+                )
+                .sort(
+                    (a, b) =>
+                        new Date(
+                            a.salonResponseDeadline,
+                        ).getTime() -
+                        new Date(
+                            b.salonResponseDeadline,
+                        ).getTime(),
+                );
         }, [
             bookings,
+            nowMs,
         ]);
 
 
@@ -1133,8 +1288,7 @@ export default function SalonDashboardScreen() {
                 (days.length % 7);
 
             if (
-                remaining <
-                7
+                remaining < 7
             ) {
                 for (
                     let index = 1;
@@ -1366,8 +1520,6 @@ export default function SalonDashboardScreen() {
     /*
      * ============================================================
      * APPOINTMENT PRESS
-     *
-     * Open the full details modal.
      * ============================================================
      */
 
@@ -1397,7 +1549,205 @@ export default function SalonDashboardScreen() {
 
     /*
      * ============================================================
-     * PENDING REQUESTS
+     * ACCEPT / REJECT BOOKING
+     * ============================================================
+     */
+
+    const handleSalonResponse =
+        async (
+            booking: Booking,
+            response:
+                | 'ACCEPT'
+                | 'REJECT',
+        ) => {
+            const remainingSeconds =
+                getRemainingSeconds(
+                    booking.salonResponseDeadline,
+                    nowMs,
+                );
+
+            if (
+                booking.bookingStatus !==
+                    'PENDING' ||
+                booking.salonResponseStatus !==
+                    'PENDING'
+            ) {
+                Alert.alert(
+                    'Request unavailable',
+                    'This booking request is no longer waiting for your response.',
+                );
+
+                await refetch();
+
+                return;
+            }
+
+            if (
+                remainingSeconds <= 0
+            ) {
+                Alert.alert(
+                    'Response window expired',
+                    'The 15-minute response window for this booking has expired.',
+                );
+
+                await refetch();
+
+                return;
+            }
+
+            try {
+                setRespondingBookingId(
+                    booking.bookingId,
+                );
+
+                const result =
+                    await salonRespondToBooking({
+                        variables: {
+                            input: {
+                                bookingId:
+                                    booking.bookingId,
+                                response,
+                            },
+                        },
+                    });
+
+                const responseData =
+                    result.data
+                        ?.salonRespondToBooking;
+
+                if (
+                    !responseData
+                        ?.success
+                ) {
+                    throw new Error(
+                        responseData
+                            ?.message ||
+                            'Unable to update the booking.',
+                    );
+                }
+
+                if (
+                    responseData.booking
+                ) {
+                    setSelectedBooking(
+                        responseData.booking,
+                    );
+                }
+
+                await refetch();
+
+                const successMessage =
+                    responseData.message ||
+                    (
+                        response ===
+                        'ACCEPT'
+                            ? 'Booking accepted successfully.'
+                            : 'Booking rejected successfully.'
+                    );
+
+                Alert.alert(
+                    response ===
+                        'ACCEPT'
+                        ? 'Booking Accepted'
+                        : 'Booking Rejected',
+                    successMessage,
+                );
+            } catch (
+                responseError: any
+            ) {
+                console.log(
+                    'Salon booking response error:',
+                    responseError,
+                );
+
+                Alert.alert(
+                    'Unable to update booking',
+                    responseError?.message ||
+                        'Something went wrong. Please try again.',
+                );
+            } finally {
+                setRespondingBookingId(
+                    null,
+                );
+            }
+        };
+
+
+    /*
+     * ============================================================
+     * ACCEPT CONFIRMATION
+     * ============================================================
+     */
+
+    const handleAcceptPress =
+        (
+            booking: Booking,
+        ) => {
+            Alert.alert(
+                'Accept booking request?',
+                `Accept ${booking.customerName || 'this customer'}'s booking request for ${booking.bookingDate} at ${booking.startTime}?`,
+                [
+                    {
+                        text:
+                            'Cancel',
+                        style:
+                            'cancel',
+                    },
+                    {
+                        text:
+                            'Accept',
+                        onPress:
+                            () =>
+                                handleSalonResponse(
+                                    booking,
+                                    'ACCEPT',
+                                ),
+                    },
+                ],
+            );
+        };
+
+
+    /*
+     * ============================================================
+     * REJECT CONFIRMATION
+     * ============================================================
+     */
+
+    const handleRejectPress =
+        (
+            booking: Booking,
+        ) => {
+            Alert.alert(
+                'Reject booking request?',
+                `Reject ${booking.customerName || 'this customer'}'s booking request?`,
+                [
+                    {
+                        text:
+                            'Keep',
+                        style:
+                            'cancel',
+                    },
+                    {
+                        text:
+                            'Reject',
+                        style:
+                            'destructive',
+                        onPress:
+                            () =>
+                                handleSalonResponse(
+                                    booking,
+                                    'REJECT',
+                                ),
+                    },
+                ],
+            );
+        };
+
+
+    /*
+     * ============================================================
+     * PENDING REQUESTS PRESS
      * ============================================================
      */
 
@@ -1428,6 +1778,82 @@ export default function SalonDashboardScreen() {
                 );
             }
         };
+
+
+    /*
+     * ============================================================
+     * AUTO REFRESH AFTER A TIMER EXPIRES
+     *
+     * This allows the UI to immediately pick up backend
+     * expiration once the local countdown reaches zero.
+     * ============================================================
+     */
+
+    useEffect(() => {
+        const hasExpiredActiveTimer =
+            bookings.some(
+                booking => {
+                    if (
+                        booking.bookingStatus ===
+                            'PENDING' &&
+                        booking.salonResponseStatus ===
+                            'PENDING' &&
+                        booking.salonResponseDeadline
+                    ) {
+                        return (
+                            getRemainingSeconds(
+                                booking.salonResponseDeadline,
+                                nowMs,
+                            ) === 0
+                        );
+                    }
+
+                    if (
+                        booking.bookingStatus ===
+                            'CONFIRMED' &&
+                        booking.bookingFeeStatus ===
+                            'PENDING' &&
+                        booking.bookingFeePaymentDeadline
+                    ) {
+                        return (
+                            getRemainingSeconds(
+                                booking.bookingFeePaymentDeadline,
+                                nowMs,
+                            ) === 0
+                        );
+                    }
+
+                    return false;
+                },
+            );
+
+        if (
+            hasExpiredActiveTimer
+        ) {
+            const timeout =
+                setTimeout(() => {
+                    refetch().catch(
+                        refreshError =>
+                            console.log(
+                                'Timer expiry refresh error:',
+                                refreshError,
+                            ),
+                    );
+                }, 1000);
+
+            return () => {
+                clearTimeout(
+                    timeout,
+                );
+            };
+        }
+
+        return undefined;
+    }, [
+        bookings,
+        nowMs,
+        refetch,
+    ]);
 
 
     /*
@@ -1695,7 +2121,7 @@ export default function SalonDashboardScreen() {
                                     flex:
                                         1,
                                 }}>
-                                Today's completed
+                                Today's confirmed
                                 service value
                             </Text>
 
@@ -2295,6 +2721,31 @@ export default function SalonDashboardScreen() {
                             const firstService =
                                 item.services?.[0];
 
+                            const responseSeconds =
+                                getRemainingSeconds(
+                                    item.salonResponseDeadline,
+                                    nowMs,
+                                );
+
+                            const isPendingResponse =
+                                item.bookingStatus ===
+                                    'PENDING' &&
+                                item.salonResponseStatus ===
+                                    'PENDING' &&
+                                responseSeconds >
+                                    0;
+
+                            const isPaymentPending =
+                                item.bookingStatus ===
+                                    'CONFIRMED' &&
+                                item.bookingFeeStatus ===
+                                    'PENDING' &&
+                                !!item.bookingFeePaymentDeadline &&
+                                getRemainingSeconds(
+                                    item.bookingFeePaymentDeadline,
+                                    nowMs,
+                                ) > 0;
+
                             return (
                                 <TouchableOpacity
                                     key={
@@ -2320,9 +2771,13 @@ export default function SalonDashboardScreen() {
                                         backgroundColor:
                                             '#FFFFFF',
                                         borderWidth:
-                                            1,
+                                            isPendingResponse
+                                                ? 1.5
+                                                : 1,
                                         borderColor:
-                                            '#EEEEEE',
+                                            isPendingResponse
+                                                ? '#F0D98A'
+                                                : '#EEEEEE',
                                         shadowColor:
                                             '#000',
                                         shadowOffset:
@@ -2373,12 +2828,14 @@ export default function SalonDashboardScreen() {
                                                 borderRadius:
                                                     8,
                                                 backgroundColor:
-                                                    item.bookingStatus ===
-                                                    'COMPLETED'
+                                                    isPendingResponse
+                                                        ? '#FFF8E7'
+                                                        : item.bookingStatus ===
+                                                          'CONFIRMED'
                                                         ? '#E8F7F5'
                                                         : item.bookingStatus ===
-                                                          'PENDING'
-                                                        ? '#FFF8E7'
+                                                          'EXPIRED'
+                                                        ? '#F3F3F3'
                                                         : '#F3F3F3',
                                             }}>
 
@@ -2389,20 +2846,93 @@ export default function SalonDashboardScreen() {
                                                     fontWeight:
                                                         '700',
                                                     color:
-                                                        item.bookingStatus ===
-                                                        'COMPLETED'
-                                                            ? PRIMARY_COLOR
-                                                            : item.bookingStatus ===
-                                                              'PENDING'
+                                                        isPendingResponse
                                                             ? '#A87500'
+                                                            : item.bookingStatus ===
+                                                              'CONFIRMED'
+                                                            ? PRIMARY_COLOR
                                                             : '#666',
                                                 }}>
-                                                {formatBookingStatus(
-                                                    item.bookingStatus,
-                                                )}
+                                                {isPendingResponse
+                                                    ? 'Awaiting Response'
+                                                    : formatBookingStatus(
+                                                          item.bookingStatus,
+                                                      )}
                                             </Text>
                                         </View>
                                     </View>
+
+
+                                    {/* RESPONSE COUNTDOWN */}
+
+                                    {isPendingResponse && (
+                                        <View
+                                            style={{
+                                                marginTop:
+                                                    9,
+                                                padding:
+                                                    9,
+                                                borderRadius:
+                                                    9,
+                                                backgroundColor:
+                                                    '#FFF8E7',
+                                            }}>
+
+                                            <Text
+                                                style={{
+                                                    fontSize:
+                                                        12,
+                                                    fontWeight:
+                                                        '700',
+                                                    color:
+                                                        '#A87500',
+                                                }}>
+                                                Response required •{' '}
+                                                {formatCountdown(
+                                                    responseSeconds,
+                                                )}{' '}
+                                                remaining
+                                            </Text>
+                                        </View>
+                                    )}
+
+
+                                    {/* PAYMENT COUNTDOWN */}
+
+                                    {isPaymentPending && (
+                                        <View
+                                            style={{
+                                                marginTop:
+                                                    9,
+                                                padding:
+                                                    9,
+                                                borderRadius:
+                                                    9,
+                                                backgroundColor:
+                                                    '#F0ECFF',
+                                            }}>
+
+                                            <Text
+                                                style={{
+                                                    fontSize:
+                                                        12,
+                                                    fontWeight:
+                                                        '700',
+                                                    color:
+                                                        '#6652A8',
+                                                }}>
+                                                Waiting for ₹9
+                                                booking fee •{' '}
+                                                {formatCountdown(
+                                                    getRemainingSeconds(
+                                                        item.bookingFeePaymentDeadline,
+                                                        nowMs,
+                                                    ),
+                                                )}{' '}
+                                                remaining
+                                            </Text>
+                                        </View>
+                                    )}
 
 
                                     {/* CUSTOMER */}
@@ -2585,6 +3115,165 @@ export default function SalonDashboardScreen() {
                             Action Required
                         </Text>
 
+                        {pendingRequests.map(
+                            booking => {
+                                const remainingSeconds =
+                                    getRemainingSeconds(
+                                        booking.salonResponseDeadline,
+                                        nowMs,
+                                    );
+
+                                return (
+                                    <TouchableOpacity
+                                        key={
+                                            booking.bookingId
+                                        }
+                                        activeOpacity={
+                                            0.82
+                                        }
+                                        onPress={() =>
+                                            handleAppointmentPress(
+                                                booking,
+                                            )
+                                        }
+                                        style={{
+                                            marginHorizontal:
+                                                20,
+                                            marginBottom:
+                                                10,
+                                            padding:
+                                                16,
+                                            borderRadius:
+                                                14,
+                                            backgroundColor:
+                                                '#FFF8E7',
+                                            borderWidth:
+                                                1,
+                                            borderColor:
+                                                '#F0D98A',
+                                        }}>
+
+                                        <View
+                                            style={{
+                                                flexDirection:
+                                                    'row',
+                                                alignItems:
+                                                    'flex-start',
+                                                justifyContent:
+                                                    'space-between',
+                                            }}>
+
+                                            <View
+                                                style={{
+                                                    flex:
+                                                        1,
+                                                    paddingRight:
+                                                        10,
+                                                }}>
+
+                                                <Text
+                                                    style={{
+                                                        fontSize:
+                                                            15,
+                                                        fontWeight:
+                                                            '700',
+                                                        color:
+                                                            '#333',
+                                                    }}>
+                                                    {
+                                                        booking.customerName ||
+                                                        'Customer'
+                                                    }
+                                                </Text>
+
+                                                <Text
+                                                    style={{
+                                                        marginTop:
+                                                            4,
+                                                        fontSize:
+                                                            13,
+                                                        color:
+                                                            '#777',
+                                                    }}>
+                                                    {
+                                                        booking.bookingDate
+                                                    }{' '}
+                                                    •{' '}
+                                                    {
+                                                        booking.startTime
+                                                    }{' '}
+                                                    -{' '}
+                                                    {
+                                                        booking.endTime
+                                                    }
+                                                </Text>
+
+                                                <Text
+                                                    style={{
+                                                        marginTop:
+                                                            7,
+                                                        fontSize:
+                                                            12,
+                                                        fontWeight:
+                                                            '700',
+                                                        color:
+                                                            '#A87500',
+                                                    }}>
+                                                    Respond within{' '}
+                                                    {formatCountdown(
+                                                        remainingSeconds,
+                                                    )}
+                                                </Text>
+                                            </View>
+
+                                            <View
+                                                style={{
+                                                    width:
+                                                        36,
+                                                    height:
+                                                        36,
+                                                    borderRadius:
+                                                        18,
+                                                    alignItems:
+                                                        'center',
+                                                    justifyContent:
+                                                        'center',
+                                                    backgroundColor:
+                                                        PRIMARY_COLOR,
+                                                }}>
+
+                                                <Text
+                                                    style={{
+                                                        color:
+                                                            '#FFFFFF',
+                                                        fontSize:
+                                                            20,
+                                                        fontWeight:
+                                                            '700',
+                                                    }}>
+                                                    →
+                                                </Text>
+                                            </View>
+                                        </View>
+
+                                        <Text
+                                            style={{
+                                                marginTop:
+                                                    9,
+                                                fontSize:
+                                                    12,
+                                                color:
+                                                    '#666',
+                                            }}>
+                                            Tap to view the
+                                            booking and accept
+                                            or reject it.
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            },
+                        )}
+
                         <TouchableOpacity
                             activeOpacity={
                                 0.8
@@ -2595,95 +3284,25 @@ export default function SalonDashboardScreen() {
                             style={{
                                 marginHorizontal:
                                     20,
-                                padding:
-                                    16,
-                                borderRadius:
-                                    14,
-                                backgroundColor:
-                                    '#FFF8E7',
-                                borderWidth:
-                                    1,
-                                borderColor:
-                                    '#F0D98A',
-                                flexDirection:
-                                    'row',
+                                marginTop:
+                                    2,
+                                paddingVertical:
+                                    11,
                                 alignItems:
                                     'center',
-                                justifyContent:
-                                    'space-between',
                             }}>
 
-                            <View
+                            <Text
                                 style={{
-                                    flex:
-                                        1,
-                                    paddingRight:
-                                        10,
-                                }}>
-
-                                <Text
-                                    style={{
-                                        fontSize:
-                                            15,
-                                        fontWeight:
-                                            '700',
-                                        color:
-                                            '#333',
-                                    }}>
-                                    Pending booking
-                                    requests
-                                </Text>
-
-                                <Text
-                                    style={{
-                                        marginTop:
-                                            5,
-                                        fontSize:
-                                            13,
-                                        color:
-                                            '#777',
-                                    }}>
-                                    {
-                                        pendingRequests.length
-                                    }{' '}
-                                    request
-                                    {pendingRequests.length !==
-                                    1
-                                        ? 's'
-                                        : ''}{' '}
-                                    waiting for your
-                                    response.
-                                </Text>
-                            </View>
-
-                            <View
-                                style={{
-                                    width:
-                                        36,
-                                    height:
-                                        36,
-                                    borderRadius:
-                                        18,
-                                    alignItems:
-                                        'center',
-                                    justifyContent:
-                                        'center',
-                                    backgroundColor:
+                                    color:
                                         PRIMARY_COLOR,
+                                    fontWeight:
+                                        '600',
+                                    fontSize:
+                                        13,
                                 }}>
-
-                                <Text
-                                    style={{
-                                        color:
-                                            '#FFFFFF',
-                                        fontSize:
-                                            20,
-                                        fontWeight:
-                                            '700',
-                                    }}>
-                                    →
-                                </Text>
-                            </View>
+                                View all bookings →
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -2748,8 +3367,8 @@ export default function SalonDashboardScreen() {
                                     'center',
                             }}>
                             Customer reviews will
-                            appear here after
-                            completed bookings.
+                            appear here when
+                            customers submit them.
                         </Text>
                     </View>
                 ) : (
@@ -3145,7 +3764,7 @@ export default function SalonDashboardScreen() {
                                 </View>
 
 
-                                {/* DATE / TIME / STATUS */}
+                                {/* DATE / TIME */}
 
                                 <View
                                     style={{
@@ -3245,7 +3864,429 @@ export default function SalonDashboardScreen() {
                                 </View>
 
 
-                                {/* STATUS */}
+                                {/* ==================================================
+                                    SALON RESPONSE SECTION
+                                ================================================== */}
+
+                                {selectedBooking.bookingStatus ===
+                                    'PENDING' &&
+                                    selectedBooking.salonResponseStatus ===
+                                        'PENDING' && (
+                                        (() => {
+                                            const remainingSeconds =
+                                                getRemainingSeconds(
+                                                    selectedBooking.salonResponseDeadline,
+                                                    nowMs,
+                                                );
+
+                                            const isResponding =
+                                                respondingBookingId ===
+                                                selectedBooking.bookingId;
+
+                                            if (
+                                                remainingSeconds >
+                                                0
+                                            ) {
+                                                return (
+                                                    <View
+                                                        style={{
+                                                            marginTop:
+                                                                14,
+                                                            padding:
+                                                                15,
+                                                            borderRadius:
+                                                                14,
+                                                            backgroundColor:
+                                                                '#FFF8E7',
+                                                            borderWidth:
+                                                                1,
+                                                            borderColor:
+                                                                '#F0D98A',
+                                                        }}>
+
+                                                        <Text
+                                                            style={{
+                                                                fontSize:
+                                                                    12,
+                                                                fontWeight:
+                                                                    '700',
+                                                                color:
+                                                                    '#A87500',
+                                                            }}>
+                                                            ACTION REQUIRED
+                                                        </Text>
+
+                                                        <Text
+                                                            style={{
+                                                                marginTop:
+                                                                    5,
+                                                                fontSize:
+                                                                    15,
+                                                                fontWeight:
+                                                                    '700',
+                                                                color:
+                                                                    '#333',
+                                                            }}>
+                                                            Customer is
+                                                            waiting for
+                                                            your response
+                                                        </Text>
+
+                                                        <Text
+                                                            style={{
+                                                                marginTop:
+                                                                    5,
+                                                                fontSize:
+                                                                    13,
+                                                                color:
+                                                                    '#777',
+                                                            }}>
+                                                            You have{' '}
+                                                            {formatCountdown(
+                                                                remainingSeconds,
+                                                            )}{' '}
+                                                            remaining to
+                                                            accept or
+                                                            reject this
+                                                            booking request.
+                                                        </Text>
+
+                                                        <View
+                                                            style={{
+                                                                flexDirection:
+                                                                    'row',
+                                                                marginTop:
+                                                                    14,
+                                                                gap:
+                                                                    10,
+                                                            }}>
+
+                                                            <TouchableOpacity
+                                                                activeOpacity={
+                                                                    0.8
+                                                                }
+                                                                disabled={
+                                                                    isResponding
+                                                                }
+                                                                onPress={() =>
+                                                                    handleRejectPress(
+                                                                        selectedBooking,
+                                                                    )
+                                                                }
+                                                                style={{
+                                                                    flex:
+                                                                        1,
+                                                                    paddingVertical:
+                                                                        13,
+                                                                    borderRadius:
+                                                                        11,
+                                                                    alignItems:
+                                                                        'center',
+                                                                    justifyContent:
+                                                                        'center',
+                                                                    backgroundColor:
+                                                                        '#F3F3F3',
+                                                                    opacity:
+                                                                        isResponding
+                                                                            ? 0.6
+                                                                            : 1,
+                                                                }}>
+
+                                                                <Text
+                                                                    style={{
+                                                                        fontSize:
+                                                                            14,
+                                                                        fontWeight:
+                                                                            '700',
+                                                                        color:
+                                                                            '#555',
+                                                                    }}>
+                                                                    Reject
+                                                                </Text>
+                                                            </TouchableOpacity>
+
+                                                            <TouchableOpacity
+                                                                activeOpacity={
+                                                                    0.8
+                                                                }
+                                                                disabled={
+                                                                    isResponding
+                                                                }
+                                                                onPress={() =>
+                                                                    handleAcceptPress(
+                                                                        selectedBooking,
+                                                                    )
+                                                                }
+                                                                style={{
+                                                                    flex:
+                                                                        1,
+                                                                    paddingVertical:
+                                                                        13,
+                                                                    borderRadius:
+                                                                        11,
+                                                                    alignItems:
+                                                                        'center',
+                                                                    justifyContent:
+                                                                        'center',
+                                                                    backgroundColor:
+                                                                        PRIMARY_COLOR,
+                                                                    opacity:
+                                                                        isResponding
+                                                                            ? 0.6
+                                                                            : 1,
+                                                                }}>
+
+                                                                {isResponding ? (
+                                                                    <ActivityIndicator
+                                                                        color="#FFFFFF"
+                                                                    />
+                                                                ) : (
+                                                                    <Text
+                                                                        style={{
+                                                                            fontSize:
+                                                                                14,
+                                                                            fontWeight:
+                                                                                '700',
+                                                                            color:
+                                                                                '#FFFFFF',
+                                                                        }}>
+                                                                        Accept
+                                                                    </Text>
+                                                                )}
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </View>
+                                                );
+                                            }
+
+                                            return (
+                                                <View
+                                                    style={{
+                                                        marginTop:
+                                                            14,
+                                                        padding:
+                                                            15,
+                                                        borderRadius:
+                                                            14,
+                                                        backgroundColor:
+                                                            '#F5F5F5',
+                                                    }}>
+
+                                                    <Text
+                                                        style={{
+                                                            fontSize:
+                                                                12,
+                                                            fontWeight:
+                                                                '700',
+                                                            color:
+                                                                '#777',
+                                                        }}>
+                                                        RESPONSE WINDOW
+                                                    </Text>
+
+                                                    <Text
+                                                        style={{
+                                                            marginTop:
+                                                                5,
+                                                            fontSize:
+                                                                14,
+                                                            fontWeight:
+                                                                '700',
+                                                            color:
+                                                                '#555',
+                                                        }}>
+                                                        Response window
+                                                        expired
+                                                    </Text>
+
+                                                    <Text
+                                                        style={{
+                                                            marginTop:
+                                                                5,
+                                                            fontSize:
+                                                                13,
+                                                            color:
+                                                                '#888',
+                                                        }}>
+                                                        This request is
+                                                        no longer
+                                                        available for
+                                                        acceptance.
+                                                    </Text>
+                                                </View>
+                                            );
+                                        })()
+                                    )}
+
+
+                                {/* ==================================================
+                                    CONFIRMED / PAYMENT WINDOW
+                                ================================================== */}
+
+                                {selectedBooking.bookingStatus ===
+                                    'CONFIRMED' && (
+                                    <View
+                                        style={{
+                                            marginTop:
+                                                14,
+                                            padding:
+                                                15,
+                                            borderRadius:
+                                                14,
+                                            backgroundColor:
+                                                '#E8F7F5',
+                                            borderWidth:
+                                                1,
+                                            borderColor:
+                                                '#CBEDE9',
+                                        }}>
+
+                                        <Text
+                                            style={{
+                                                fontSize:
+                                                    12,
+                                                fontWeight:
+                                                    '700',
+                                                color:
+                                                    PRIMARY_COLOR,
+                                            }}>
+                                            BOOKING CONFIRMED
+                                        </Text>
+
+                                        {selectedBooking.bookingFeeStatus ===
+                                            'PENDING' &&
+                                        selectedBooking.bookingFeePaymentDeadline ? (
+                                            <View>
+                                                <Text
+                                                    style={{
+                                                        marginTop:
+                                                            5,
+                                                        fontSize:
+                                                            14,
+                                                        fontWeight:
+                                                            '700',
+                                                        color:
+                                                            '#333',
+                                                    }}>
+                                                    Waiting for customer
+                                                    to pay the ₹9 Clavata
+                                                    booking fee
+                                                </Text>
+
+                                                <Text
+                                                    style={{
+                                                        marginTop:
+                                                            5,
+                                                        fontSize:
+                                                            13,
+                                                        color:
+                                                            '#666',
+                                                    }}>
+                                                    Payment window:{' '}
+                                                    {formatCountdown(
+                                                        getRemainingSeconds(
+                                                            selectedBooking.bookingFeePaymentDeadline,
+                                                            nowMs,
+                                                        ),
+                                                    )}{' '}
+                                                    remaining
+                                                </Text>
+                                            </View>
+                                        ) : selectedBooking.bookingFeeStatus ===
+                                          'PAID' ? (
+                                            <View>
+                                                <Text
+                                                    style={{
+                                                        marginTop:
+                                                            5,
+                                                        fontSize:
+                                                            14,
+                                                        fontWeight:
+                                                            '700',
+                                                        color:
+                                                            PRIMARY_COLOR,
+                                                    }}>
+                                                    ₹9 Clavata booking
+                                                    fee paid
+                                                </Text>
+
+                                                <Text
+                                                    style={{
+                                                        marginTop:
+                                                            5,
+                                                        fontSize:
+                                                            13,
+                                                        color:
+                                                            '#666',
+                                                    }}>
+                                                    Remaining{' '}
+                                                    {formatCurrency(
+                                                        selectedBooking.remainingAmount,
+                                                    )}{' '}
+                                                    is to be collected
+                                                    directly at the salon.
+                                                </Text>
+                                            </View>
+                                        ) : null}
+                                    </View>
+                                )}
+
+
+                                {/* ==================================================
+                                    CANCELLED / EXPIRY INFORMATION
+                                ================================================== */}
+
+                                {(selectedBooking.bookingStatus ===
+                                    'CANCELLED' ||
+                                    selectedBooking.bookingStatus ===
+                                        'EXPIRED') &&
+                                    selectedBooking.bookingCancellationReason && (
+                                        <View
+                                            style={{
+                                                marginTop:
+                                                    14,
+                                                padding:
+                                                    15,
+                                                borderRadius:
+                                                    14,
+                                                backgroundColor:
+                                                    '#F7F7F7',
+                                            }}>
+
+                                            <Text
+                                                style={{
+                                                    fontSize:
+                                                        11,
+                                                    color:
+                                                        '#888',
+                                                    fontWeight:
+                                                        '600',
+                                                }}>
+                                                CANCELLATION / EXPIRY
+                                            </Text>
+
+                                            <Text
+                                                style={{
+                                                    marginTop:
+                                                        5,
+                                                    fontSize:
+                                                        14,
+                                                    fontWeight:
+                                                        '700',
+                                                    color:
+                                                        '#555',
+                                                }}>
+                                                {
+                                                    selectedBooking.bookingCancellationReason
+                                                }
+                                            </Text>
+                                        </View>
+                                    )}
+
+
+                                {/* ==================================================
+                                    BOOKING STATUS
+                                ================================================== */}
 
                                 <View
                                     style={{
@@ -3257,7 +4298,7 @@ export default function SalonDashboardScreen() {
                                             12,
                                         backgroundColor:
                                             selectedBooking.bookingStatus ===
-                                            'COMPLETED'
+                                            'CONFIRMED'
                                                 ? '#E8F7F5'
                                                 : selectedBooking.bookingStatus ===
                                                   'PENDING'
@@ -3287,18 +4328,42 @@ export default function SalonDashboardScreen() {
                                                 '700',
                                             color:
                                                 selectedBooking.bookingStatus ===
-                                                'COMPLETED'
+                                                'CONFIRMED'
                                                     ? PRIMARY_COLOR
                                                     : '#555',
                                         }}>
-                                        {formatBookingStatus(
-                                            selectedBooking.bookingStatus,
-                                        )}
+                                        {selectedBooking.bookingStatus ===
+                                            'PENDING' &&
+                                        selectedBooking.salonResponseStatus ===
+                                            'PENDING'
+                                            ? 'Awaiting Your Response'
+                                            : formatBookingStatus(
+                                                  selectedBooking.bookingStatus,
+                                              )}
                                     </Text>
+
+                                    {selectedBooking.salonResponseStatus && (
+                                        <Text
+                                            style={{
+                                                marginTop:
+                                                    4,
+                                                fontSize:
+                                                    12,
+                                                color:
+                                                    '#777',
+                                            }}>
+                                            Salon response:{' '}
+                                            {formatBookingStatus(
+                                                selectedBooking.salonResponseStatus,
+                                            )}
+                                        </Text>
+                                    )}
                                 </View>
 
 
-                                {/* SERVICES */}
+                                {/* ==================================================
+                                    SERVICES
+                                ================================================== */}
 
                                 <Text
                                     style={{
@@ -3346,8 +4411,6 @@ export default function SalonDashboardScreen() {
                                                     borderColor:
                                                         '#EEEEEE',
                                                 }}>
-
-                                                {/* SERVICE NAME */}
 
                                                 <View
                                                     style={{
@@ -3585,7 +4648,9 @@ export default function SalonDashboardScreen() {
                                 </View>
 
 
-                                {/* PRICING */}
+                                {/* ==================================================
+                                    PRICING
+                                ================================================== */}
 
                                 <Text
                                     style={{
@@ -3804,7 +4869,9 @@ export default function SalonDashboardScreen() {
                                 </View>
 
 
-                                {/* PAYMENT DETAILS */}
+                                {/* ==================================================
+                                    PAYMENT DETAILS
+                                ================================================== */}
 
                                 <View
                                     style={{
@@ -3917,6 +4984,42 @@ export default function SalonDashboardScreen() {
                                             )}
                                         </Text>
                                     </View>
+
+
+                                    {selectedBooking.bookingFeePaidAt && (
+                                        <View
+                                            style={{
+                                                flexDirection:
+                                                    'row',
+                                                justifyContent:
+                                                    'space-between',
+                                                marginTop:
+                                                    9,
+                                            }}>
+
+                                            <Text
+                                                style={{
+                                                    color:
+                                                        '#777',
+                                                }}>
+                                                Fee paid at
+                                            </Text>
+
+                                            <Text
+                                                style={{
+                                                    fontWeight:
+                                                        '600',
+                                                    color:
+                                                        '#333',
+                                                }}>
+                                                {new Date(
+                                                    selectedBooking.bookingFeePaidAt,
+                                                ).toLocaleString(
+                                                    'en-IN',
+                                                )}
+                                            </Text>
+                                        </View>
+                                    )}
                                 </View>
 
 
@@ -4135,6 +5238,8 @@ export default function SalonDashboardScreen() {
                                                 'row',
                                             justifyContent:
                                                 'space-between',
+                                            marginBottom:
+                                                8,
                                         }}>
 
                                         <Text
@@ -4160,6 +5265,40 @@ export default function SalonDashboardScreen() {
                                                 selectedBooking.salonName ||
                                                 salonName
                                             }
+                                        </Text>
+                                    </View>
+
+
+                                    <View
+                                        style={{
+                                            flexDirection:
+                                                'row',
+                                            justifyContent:
+                                                'space-between',
+                                        }}>
+
+                                        <Text
+                                            style={{
+                                                color:
+                                                    '#777',
+                                            }}>
+                                            Response status
+                                        </Text>
+
+                                        <Text
+                                            style={{
+                                                maxWidth:
+                                                    '60%',
+                                                textAlign:
+                                                    'right',
+                                                fontWeight:
+                                                    '600',
+                                                color:
+                                                    '#333',
+                                            }}>
+                                            {formatBookingStatus(
+                                                selectedBooking.salonResponseStatus,
+                                            )}
                                         </Text>
                                     </View>
                                 </View>

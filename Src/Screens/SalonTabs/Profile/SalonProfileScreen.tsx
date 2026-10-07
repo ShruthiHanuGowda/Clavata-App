@@ -846,7 +846,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
-
+{/* 
                     <MenuItem
                         title="Staff Management"
                         onPress={() =>
@@ -854,7 +854,7 @@ export default function SalonProfileScreen() {
                                 'StaffManagement',
                             )
                         }
-                    />
+                    /> */}
 
                     {/* <MenuItem
                         title="Manage Services"

@@ -613,6 +613,15 @@ export const SALON_DASHBOARD_QUERY = gql`
       review
       reviewedAt
 
+      # Salon response window
+      salonResponseStatus
+      salonResponseDeadline
+      salonResponseWindowMinutes
+
+      # Customer ₹9 payment window
+      bookingFeePaymentDeadline
+      bookingFeePaymentWindowMinutes
+
       createdAt
       updatedAt
     }
@@ -1887,4 +1896,81 @@ export const GET_ACTIVE_SUBCATEGORIES = gql`
       totalCount
     }
   }
+`;
+
+export const SALON_RESPOND_TO_BOOKING = gql`
+    mutation SalonRespondToBooking(
+        $input: SalonRespondToBookingInput!
+    ) {
+        salonRespondToBooking(input: $input) {
+            success
+            message
+
+            booking {
+                bookingId
+                salonId
+                customerUserId
+
+                salonName
+                customerName
+                customerPhone
+
+                bookingDate
+                startTime
+                endTime
+
+                services {
+                    serviceId
+                    name
+                    audience
+                    category
+                    subcategory
+                    categoryId
+                    subcategoryId
+                    duration
+                    price
+                }
+
+                totalDuration
+                subtotal
+                discount
+                totalAmount
+
+                paymentMethod
+                paymentStatus
+                bookingStatus
+
+                notes
+                salonNote
+
+                bookingFee
+                bookingFeeStatus
+                bookingFeePaidAt
+                remainingAmount
+
+                razorpayOrderId
+                razorpayPaymentId
+                paymentGateway
+
+                reviewSubmitted
+                rating
+                review
+                reviewedAt
+
+                bookingCancellationReason
+
+                # Salon response window
+                salonResponseStatus
+                salonResponseDeadline
+                salonResponseWindowMinutes
+
+                # Customer ₹9 payment window
+                bookingFeePaymentDeadline
+                bookingFeePaymentWindowMinutes
+
+                createdAt
+                updatedAt
+            }
+        }
+    }
 `;
