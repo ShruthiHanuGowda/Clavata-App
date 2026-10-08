@@ -29,15 +29,77 @@ import {
     useNavigation,
 } from '@react-navigation/native';
 
+import { gql } from '@apollo/client';
+
 import { useUser } from '../../../context/UserContext';
 
 import {
     CANCEL_BOOKING,
-    CUSTOMER_BOOKINGS,
     REQUEST_REFUND,
 } from '../../../graphql/queries';
 
 import { WalletStackParamList } from '../../../../types';
+
+
+// ============================================================
+// CUSTOMER BOOKINGS QUERY
+// ============================================================
+
+const CUSTOMER_BOOKINGS = gql`
+    query CustomerBookings($customerUserId: ID!) {
+        customerBookings(
+            customerUserId: $customerUserId
+        ) {
+            bookingId
+            salonId
+            customerUserId
+
+            salonName
+            customerName
+
+            bookingDate
+            startTime
+            endTime
+
+            reviewSubmitted
+            rating
+            review
+            reviewedAt
+
+            bookingStatus
+
+            salonResponseStatus
+            salonResponseDeadline
+            salonResponseWindowMinutes
+
+            paymentMethod
+            paymentStatus
+            preferredPaymentMethod
+
+            bookingFee
+            bookingFeeStatus
+            bookingFeePaidAt
+
+            remainingAmount
+            totalAmount
+
+            bookingFeePaymentDeadline
+            bookingFeePaymentWindowMinutes
+
+            services {
+                serviceId
+                name
+                audience
+                category
+                subcategory
+                categoryId
+                subcategoryId
+                duration
+                price
+            }
+        }
+    }
+`;
 
 
 // ============================================================
@@ -75,6 +137,17 @@ type BookingNavigationProp =
         WalletStackParamList,
         'explore'
     >;
+
+
+// ============================================================
+// TAB TYPE
+// ============================================================
+
+type BookingTab =
+    | 'Upcoming'
+    | 'Completed'
+    | 'Cancelled'
+    | 'Expired';
 
 
 // ============================================================
@@ -155,18 +228,18 @@ export default function BookingPage() {
         useNavigation<BookingNavigationProp>();
 
 
-    const [tab, setTab] =
-        useState<
-            'Upcoming' |
-            'Completed' |
-            'Cancelled'
-        >(
-            'Upcoming',
-        );
+    const [
+        tab,
+        setTab,
+    ] = useState<BookingTab>(
+        'Upcoming',
+    );
 
 
-    const [refreshing, setRefreshing] =
-        useState(false);
+    const [
+        refreshing,
+        setRefreshing,
+    ] = useState(false);
 
 
     const [
@@ -211,7 +284,7 @@ export default function BookingPage() {
 
 
     // ============================================================
-    // REFRESH WHEN CUSTOMER RETURNS
+    // REFRESH WHEN CUSTOMER RETURNS TO SCREEN
     // ============================================================
 
     useFocusEffect(
@@ -239,6 +312,59 @@ export default function BookingPage() {
             refetch,
         ]),
     );
+
+
+    // ============================================================
+    // AUTOMATIC BOOKING REFRESH
+    //
+    // Required because EventBridge/Lambda updates DynamoDB
+    // after the 15-minute salon response window.
+    //
+    // This allows:
+    //
+    // PENDING + PENDING
+    //        ↓
+    // EXPIRED + EXPIRED
+    //
+    // to appear automatically in the customer app.
+    // ============================================================
+
+    useEffect(() => {
+
+        if (
+            !currentUser?.userId
+        ) {
+            return;
+        }
+
+        const intervalId =
+            setInterval(
+                () => {
+
+                    refetch().catch(
+                        refreshError => {
+
+                            console.log(
+                                'Automatic booking refresh error:',
+                                refreshError,
+                            );
+
+                        },
+                    );
+
+                },
+                10000,
+            );
+
+        return () =>
+            clearInterval(
+                intervalId,
+            );
+
+    }, [
+        currentUser?.userId,
+        refetch,
+    ]);
 
 
     // ============================================================
@@ -291,6 +417,16 @@ export default function BookingPage() {
 
                             bookingFeePaymentWindowMinutes:
                                 booking?.bookingFeePaymentWindowMinutes,
+
+                            calculatedRemainingSalonResponse:
+                                getRemainingMilliseconds(
+                                    booking?.salonResponseDeadline,
+                                ),
+
+                            calculatedRemainingPayment:
+                                getRemainingMilliseconds(
+                                    booking?.bookingFeePaymentDeadline,
+                                ),
                         },
                     );
 
@@ -364,7 +500,16 @@ export default function BookingPage() {
             (booking: any) => {
 
                 const bookingStatus =
-                    booking?.bookingStatus;
+                    String(
+                        booking?.bookingStatus ??
+                        '',
+                    ).toUpperCase();
+
+                const salonResponseStatus =
+                    String(
+                        booking?.salonResponseStatus ??
+                        '',
+                    ).toUpperCase();
 
 
                 // ====================================================
@@ -376,8 +521,12 @@ export default function BookingPage() {
                 ) {
 
                     return (
-                        bookingStatus ===
-                            'PENDING' ||
+                        (
+                            bookingStatus ===
+                                'PENDING' &&
+                            salonResponseStatus ===
+                                'PENDING'
+                        ) ||
 
                         bookingStatus ===
                             'CONFIRMED'
@@ -410,10 +559,22 @@ export default function BookingPage() {
 
                     return (
                         bookingStatus ===
-                            'CANCELLED' ||
+                        'CANCELLED'
+                    );
+                }
 
+
+                // ====================================================
+                // EXPIRED
+                // ====================================================
+
+                if (
+                    tab === 'Expired'
+                ) {
+
+                    return (
                         bookingStatus ===
-                            'EXPIRED'
+                        'EXPIRED'
                     );
                 }
 
@@ -453,21 +614,148 @@ export default function BookingPage() {
 
 
             // ====================================================
-            // IMPORTANT:
+            // SALON DID NOT RESPOND
             //
-            // A newly created booking is PENDING.
-            //
-            // salonResponseStatus can temporarily be null /
-            // undefined depending on what the backend returns.
-            //
-            // PENDING itself is enough to identify:
-            // "Waiting for salon"
-            //
-            // NEVER fall through to "Cancelled".
+            // PENDING + PENDING
+            //      ↓
+            // EXPIRED + EXPIRED
             // ====================================================
 
             if (
-                bookingStatus === 'PENDING'
+                bookingStatus ===
+                    'EXPIRED' &&
+                salonResponseStatus ===
+                    'EXPIRED'
+            ) {
+
+                return {
+
+                    text:
+                        'Salon not available',
+
+                    color:
+                        '#A33A3A',
+
+                    background:
+                        '#FBEFEF',
+
+                    border:
+                        '#EBCACA',
+
+                };
+            }
+
+
+            // ====================================================
+            // PAYMENT WINDOW EXPIRED
+            //
+            // Salon accepted, but customer did not pay.
+            //
+            // EXPIRED + ACCEPTED
+            // ====================================================
+
+            if (
+                bookingStatus ===
+                    'EXPIRED' &&
+                salonResponseStatus ===
+                    'ACCEPTED'
+            ) {
+
+                return {
+
+                    text:
+                        'Payment expired',
+
+                    color:
+                        '#A33A3A',
+
+                    background:
+                        '#FBEFEF',
+
+                    border:
+                        '#EBCACA',
+
+                };
+            }
+
+
+            // ====================================================
+            // SALON REJECTED
+            // ====================================================
+
+            if (
+                bookingStatus ===
+                    'CANCELLED' &&
+                salonResponseStatus ===
+                    'REJECTED'
+            ) {
+
+                return {
+
+                    text:
+                        'Salon declined',
+
+                    color:
+                        '#A33A3A',
+
+                    background:
+                        '#FBEFEF',
+
+                    border:
+                        '#EBCACA',
+
+                };
+            }
+
+
+            // ====================================================
+            // CUSTOMER REQUEST STILL WAITING
+            //
+            // IMPORTANT:
+            //
+            // PENDING alone is NOT enough.
+            //
+            // We require:
+            //
+            // bookingStatus = PENDING
+            // salonResponseStatus = PENDING
+            // ====================================================
+
+            if (
+                bookingStatus ===
+                    'PENDING' &&
+                salonResponseStatus ===
+                    'PENDING'
+            ) {
+
+                return {
+
+                    text:
+                        'Waiting for salon',
+
+                    color:
+                        '#8A5A00',
+
+                    background:
+                        '#FFF8E7',
+
+                    border:
+                        '#F3D38A',
+
+                };
+            }
+
+
+            // ====================================================
+            // DEFENSIVE PENDING
+            //
+            // If salonResponseStatus is temporarily missing,
+            // do not claim the booking is expired/cancelled.
+            // ====================================================
+
+            if (
+                bookingStatus ===
+                'PENDING'
             ) {
 
                 return {
@@ -555,12 +843,7 @@ export default function BookingPage() {
 
 
             // ====================================================
-            // CONFIRMED
-            //
-            // Defensive fallback.
-            //
-            // If backend returns CONFIRMED but salonResponseStatus
-            // is temporarily missing, it is still NOT cancelled.
+            // CONFIRMED DEFENSIVE FALLBACK
             // ====================================================
 
             if (
@@ -638,37 +921,7 @@ export default function BookingPage() {
 
 
             // ====================================================
-            // EXPIRED
-            // ====================================================
-
-            if (
-                bookingStatus ===
-                'EXPIRED'
-            ) {
-
-                return {
-
-                    text:
-                        'Payment expired',
-
-                    color:
-                        '#A33A3A',
-
-                    background:
-                        '#FBEFEF',
-
-                    border:
-                        '#EBCACA',
-
-                };
-            }
-
-
-            // ====================================================
             // CANCELLED
-            //
-            // IMPORTANT:
-            // Only explicitly CANCELLED should say Cancelled.
             // ====================================================
 
             if (
@@ -695,9 +948,34 @@ export default function BookingPage() {
 
 
             // ====================================================
-            // UNKNOWN / TEMPORARY STATE
-            //
-            // Do NOT call an unknown state "Cancelled".
+            // EXPIRED DEFENSIVE FALLBACK
+            // ====================================================
+
+            if (
+                bookingStatus ===
+                'EXPIRED'
+            ) {
+
+                return {
+
+                    text:
+                        'Booking expired',
+
+                    color:
+                        '#A33A3A',
+
+                    background:
+                        '#FBEFEF',
+
+                    border:
+                        '#EBCACA',
+
+                };
+            }
+
+
+            // ====================================================
+            // UNKNOWN
             // ====================================================
 
             return {
@@ -1212,7 +1490,10 @@ export default function BookingPage() {
     // LOADING
     // ============================================================
 
-    if (loading && !data) {
+    if (
+        loading &&
+        !data
+    ) {
 
         return (
 
@@ -1254,7 +1535,10 @@ export default function BookingPage() {
     // ERROR
     // ============================================================
 
-    if (error && !data) {
+    if (
+        error &&
+        !data
+    ) {
 
         return (
 
@@ -1426,6 +1710,7 @@ export default function BookingPage() {
                         'Upcoming',
                         'Completed',
                         'Cancelled',
+                        'Expired',
                     ].map(
                         item => {
 
@@ -1449,10 +1734,7 @@ export default function BookingPage() {
                                     ]}
                                     onPress={() =>
                                         setTab(
-                                            item as
-                                                | 'Upcoming'
-                                                | 'Completed'
-                                                | 'Cancelled',
+                                            item as BookingTab,
                                         )
                                     }
                                 >
@@ -1463,6 +1745,9 @@ export default function BookingPage() {
                                             selected &&
                                             styles.activeTabText,
                                         ]}
+                                        numberOfLines={
+                                            1
+                                        }
                                     >
                                         {item}
                                     </Text>
@@ -1545,7 +1830,10 @@ export default function BookingPage() {
                                 : tab ===
                                   'Completed'
                                 ? 'Completed appointments will appear here.'
-                                : 'Cancelled appointments will appear here.'}
+                                : tab ===
+                                  'Cancelled'
+                                ? 'Cancelled appointments will appear here.'
+                                : 'Bookings that expired because the salon did not respond or the payment window ended will appear here.'}
                         </Text>
 
                     </View>
@@ -1665,10 +1953,7 @@ type BookingCardProps = {
         border: string;
     };
 
-    tab:
-        | 'Upcoming'
-        | 'Completed'
-        | 'Cancelled';
+    tab: BookingTab;
 
     onCancel: () => void;
 
@@ -1709,7 +1994,178 @@ function BookingCard({
 
 
     // ============================================================
-    // COUNTDOWN STATE
+    // NORMALIZED STATUS
+    // ============================================================
+
+    const bookingStatus =
+        String(
+            booking?.bookingStatus ??
+            '',
+        ).toUpperCase();
+
+
+    const salonResponseStatus =
+        String(
+            booking?.salonResponseStatus ??
+            '',
+        ).toUpperCase();
+
+
+    const bookingFeeStatus =
+        String(
+            booking?.bookingFeeStatus ??
+            '',
+        ).toUpperCase();
+
+
+    // ============================================================
+    // SALON RESPONSE COUNTDOWN
+    //
+    // This is the first 15-minute timer.
+    //
+    // It is only active while:
+    //
+    // PENDING + PENDING
+    // ============================================================
+
+    const [
+        salonRemainingMilliseconds,
+        setSalonRemainingMilliseconds,
+    ] = useState<number>(
+        () =>
+            getRemainingMilliseconds(
+                booking?.salonResponseDeadline,
+            ),
+    );
+
+
+    useEffect(() => {
+
+        const waitingForSalon =
+            bookingStatus ===
+                'PENDING' &&
+            salonResponseStatus ===
+                'PENDING';
+
+
+        if (
+            !waitingForSalon
+        ) {
+
+            setSalonRemainingMilliseconds(
+                0,
+            );
+
+            return;
+        }
+
+
+        const deadline =
+            booking?.salonResponseDeadline;
+
+
+        if (!deadline) {
+
+            setSalonRemainingMilliseconds(
+                0,
+            );
+
+            return;
+        }
+
+
+        const deadlineTime =
+            new Date(
+                deadline,
+            ).getTime();
+
+
+        if (
+            Number.isNaN(
+                deadlineTime,
+            )
+        ) {
+
+            setSalonRemainingMilliseconds(
+                0,
+            );
+
+            return;
+        }
+
+
+        let expiredHandled =
+            false;
+
+
+        const updateCountdown =
+            () => {
+
+                const remaining =
+                    Math.max(
+                        0,
+                        deadlineTime -
+                            Date.now(),
+                    );
+
+
+                setSalonRemainingMilliseconds(
+                    remaining,
+                );
+
+
+                if (
+                    remaining <= 0 &&
+                    !expiredHandled
+                ) {
+
+                    expiredHandled =
+                        true;
+
+
+                    console.log(
+                        'SALON RESPONSE WINDOW EXPIRED:',
+                        booking?.bookingId,
+                    );
+
+
+                    onExpired();
+                }
+
+            };
+
+
+        updateCountdown();
+
+
+        const intervalId =
+            setInterval(
+                updateCountdown,
+                1000,
+            );
+
+
+        return () =>
+            clearInterval(
+                intervalId,
+            );
+
+    }, [
+        booking?.bookingId,
+        booking?.bookingStatus,
+        booking?.salonResponseStatus,
+        booking?.salonResponseDeadline,
+    ]);
+
+
+    // ============================================================
+    // PAYMENT COUNTDOWN
+    //
+    // This is the second 15-minute timer.
+    //
+    // It starts ONLY after:
+    //
+    // CONFIRMED + ACCEPTED + bookingFeeStatus !== PAID
     // ============================================================
 
     const [
@@ -1723,22 +2179,18 @@ function BookingCard({
     );
 
 
-    // ============================================================
-    // COUNTDOWN
-    // ============================================================
-
     useEffect(() => {
 
         const isAccepted =
-            booking?.bookingStatus ===
+            bookingStatus ===
                 'CONFIRMED' &&
 
-            booking?.salonResponseStatus ===
+            salonResponseStatus ===
                 'ACCEPTED';
 
 
         const isPaid =
-            booking?.bookingFeeStatus ===
+            bookingFeeStatus ===
             'PAID';
 
 
@@ -1747,7 +2199,9 @@ function BookingCard({
             isPaid
         ) {
 
-            setRemainingMilliseconds(0);
+            setRemainingMilliseconds(
+                0,
+            );
 
             return;
         }
@@ -1757,13 +2211,11 @@ function BookingCard({
             booking?.bookingFeePaymentDeadline;
 
 
-        // ========================================================
-        // NO DEADLINE
-        // ========================================================
-
         if (!deadline) {
 
-            setRemainingMilliseconds(0);
+            setRemainingMilliseconds(
+                0,
+            );
 
             console.warn(
                 'BOOKING PAYMENT DEADLINE MISSING:',
@@ -1771,14 +2223,11 @@ function BookingCard({
                     bookingId:
                         booking?.bookingId,
 
-                    bookingStatus:
-                        booking?.bookingStatus,
+                    bookingStatus,
 
-                    salonResponseStatus:
-                        booking?.salonResponseStatus,
+                    salonResponseStatus,
 
-                    bookingFeeStatus:
-                        booking?.bookingFeeStatus,
+                    bookingFeeStatus,
 
                     bookingFee:
                         booking?.bookingFee,
@@ -1798,17 +2247,15 @@ function BookingCard({
             ).getTime();
 
 
-        // ========================================================
-        // INVALID DEADLINE
-        // ========================================================
-
         if (
             Number.isNaN(
                 deadlineTime,
             )
         ) {
 
-            setRemainingMilliseconds(0);
+            setRemainingMilliseconds(
+                0,
+            );
 
             console.warn(
                 'INVALID BOOKING PAYMENT DEADLINE:',
@@ -1822,10 +2269,6 @@ function BookingCard({
         let expiredHandled =
             false;
 
-
-        // ========================================================
-        // UPDATE COUNTDOWN
-        // ========================================================
 
         const updateCountdown =
             () => {
@@ -1860,6 +2303,7 @@ function BookingCard({
 
                     onExpired();
                 }
+
             };
 
 
@@ -1892,10 +2336,10 @@ function BookingCard({
     // ============================================================
 
     const salonAccepted =
-        booking?.bookingStatus ===
+        bookingStatus ===
             'CONFIRMED' &&
 
-        booking?.salonResponseStatus ===
+        salonResponseStatus ===
             'ACCEPTED';
 
 
@@ -1906,7 +2350,7 @@ function BookingCard({
     const paymentRequired =
         salonAccepted &&
 
-        booking?.bookingFeeStatus !==
+        bookingFeeStatus !==
             'PAID';
 
 
@@ -1952,6 +2396,70 @@ function BookingCard({
         paymentRequired &&
 
         !hasPaymentDeadline;
+
+
+    // ============================================================
+    // WAITING FOR SALON
+    // ============================================================
+
+    const waitingForSalon =
+        bookingStatus ===
+            'PENDING' &&
+
+        salonResponseStatus ===
+            'PENDING';
+
+
+    // ============================================================
+    // SALON RESPONSE TIMER ACTIVE
+    // ============================================================
+
+    const salonResponseTimerActive =
+        waitingForSalon &&
+
+        Boolean(
+            booking?.salonResponseDeadline,
+        ) &&
+
+        salonRemainingMilliseconds > 0;
+
+
+    // ============================================================
+    // SALON RESPONSE TIMER EXPIRED LOCALLY
+    // ============================================================
+
+    const salonResponseTimerExpired =
+        waitingForSalon &&
+
+        Boolean(
+            booking?.salonResponseDeadline,
+        ) &&
+
+        salonRemainingMilliseconds <= 0;
+
+
+    // ============================================================
+    // SALON DID NOT RESPOND
+    // ============================================================
+
+    const salonUnavailable =
+        bookingStatus ===
+            'EXPIRED' &&
+
+        salonResponseStatus ===
+            'EXPIRED';
+
+
+    // ============================================================
+    // PAYMENT EXPIRED
+    // ============================================================
+
+    const paymentExpired =
+        bookingStatus ===
+            'EXPIRED' &&
+
+        salonResponseStatus ===
+            'ACCEPTED';
 
 
     return (
@@ -2353,6 +2861,208 @@ function BookingCard({
 
 
             {/* ================================================= */}
+            {/* WAITING FOR SALON */}
+            {/* ================================================= */}
+
+            {waitingForSalon && (
+
+                <View
+                    style={
+                        styles.waitingCard
+                    }
+                >
+
+                    <View
+                        style={
+                            styles.waitingHeader
+                        }
+                    >
+
+                        <View
+                            style={
+                                styles.waitingIndicator
+                            }
+                        />
+
+                        <Text
+                            style={
+                                styles.waitingTitle
+                            }
+                        >
+                            Waiting for salon
+                        </Text>
+
+                    </View>
+
+
+                    <Text
+                        style={
+                            styles.waitingMessage
+                        }
+                    >
+                        Your booking request has been sent to the
+                        salon. The salon has 15 minutes to respond.
+                    </Text>
+
+
+                    {salonResponseTimerActive && (
+
+                        <View
+                            style={
+                                styles.countdownCard
+                            }
+                        >
+
+                            <View>
+
+                                <Text
+                                    style={
+                                        styles.countdownLabel
+                                    }
+                                >
+                                    SALON RESPONSE WITHIN
+                                </Text>
+
+                                <Text
+                                    style={
+                                        styles.countdownSubtext
+                                    }
+                                >
+                                    Waiting for salon confirmation
+                                </Text>
+
+                            </View>
+
+
+                            <Text
+                                style={
+                                    styles.countdownValue
+                                }
+                            >
+                                {formatCountdown(
+                                    salonRemainingMilliseconds,
+                                )}
+                            </Text>
+
+                        </View>
+
+                    )}
+
+
+                    {salonResponseTimerExpired && (
+
+                        <View
+                            style={
+                                styles.timerUnavailableCard
+                            }
+                        >
+
+                            <View
+                                style={
+                                    styles.timerUnavailableIcon
+                                }
+                            >
+
+                                <Text
+                                    style={
+                                        styles.timerUnavailableIconText
+                                    }
+                                >
+                                    !
+                                </Text>
+
+                            </View>
+
+
+                            <View
+                                style={
+                                    styles.timerUnavailableContent
+                                }
+                            >
+
+                                <Text
+                                    style={
+                                        styles.timerUnavailableTitle
+                                    }
+                                >
+                                    Checking salon response
+                                </Text>
+
+
+                                <Text
+                                    style={
+                                        styles.timerUnavailableText
+                                    }
+                                >
+                                    The response window has ended.
+                                    Refreshing the booking status...
+                                </Text>
+
+                            </View>
+
+                        </View>
+
+                    )}
+
+                </View>
+
+            )}
+
+
+            {/* ================================================= */}
+            {/* SALON NOT AVAILABLE */}
+            {/* ================================================= */}
+
+            {salonUnavailable && (
+
+                <View
+                    style={
+                        styles.expiredCard
+                    }
+                >
+
+                    <Text
+                        style={
+                            styles.expiredIcon
+                        }
+                    >
+                        !
+                    </Text>
+
+
+                    <View
+                        style={
+                            styles.expiredContent
+                        }
+                    >
+
+                        <Text
+                            style={
+                                styles.expiredTitle
+                            }
+                        >
+                            Salon not available
+                        </Text>
+
+
+                        <Text
+                            style={
+                                styles.expiredText
+                            }
+                        >
+                            The salon did not respond to your booking
+                            request within 15 minutes. No payment was
+                            required for this request.
+                        </Text>
+
+                    </View>
+
+                </View>
+
+            )}
+
+
+            {/* ================================================= */}
             {/* PAYMENT REQUIRED */}
             {/* ================================================= */}
 
@@ -2506,7 +3216,9 @@ function BookingCard({
                                         styles.timerUnavailableText
                                     }
                                 >
-                                    Your booking has been accepted by the salon, but the payment deadline has not been returned yet.
+                                    Your booking has been accepted by
+                                    the salon, but the payment deadline
+                                    has not been returned yet.
                                 </Text>
 
                             </View>
@@ -2555,7 +3267,8 @@ function BookingCard({
                                         styles.expiredText
                                     }
                                 >
-                                    The booking will be updated automatically.
+                                    The booking will be updated
+                                    automatically.
                                 </Text>
 
                             </View>
@@ -2700,7 +3413,7 @@ function BookingCard({
 
             {salonAccepted &&
 
-                booking.bookingFeeStatus ===
+                bookingFeeStatus ===
                 'PAID' && (
 
                     <View
@@ -2769,7 +3482,7 @@ function BookingCard({
             {tab ===
                 'Cancelled' &&
 
-                booking.bookingFeeStatus ===
+                bookingFeeStatus ===
                 'REFUNDED' && (
 
                     <View
@@ -2834,10 +3547,10 @@ function BookingCard({
             {tab ===
                 'Cancelled' &&
 
-                booking.bookingFeeStatus !==
+                bookingFeeStatus !==
                 'REFUNDED' &&
 
-                booking.bookingFeeStatus ===
+                bookingFeeStatus ===
                 'PAID' && (
 
                     <View
@@ -2896,13 +3609,13 @@ function BookingCard({
 
 
             {/* ================================================= */}
-            {/* EXPIRED INFORMATION */}
+            {/* EXPIRED HISTORY */}
             {/* ================================================= */}
 
             {tab ===
-                'Cancelled' &&
+                'Expired' &&
 
-                booking.bookingStatus ===
+                bookingStatus ===
                 'EXPIRED' && (
 
                     <View
@@ -2937,9 +3650,13 @@ function BookingCard({
                             <Text
                                 style={
                                     styles.expiredHistoryTitle
-                                }
+                            }
                             >
-                                Booking expired
+                                {salonUnavailable
+                                    ? 'Salon did not respond'
+                                    : paymentExpired
+                                    ? 'Payment window expired'
+                                    : 'Booking expired'}
                             </Text>
 
 
@@ -2948,9 +3665,11 @@ function BookingCard({
                                     styles.expiredHistoryText
                                 }
                             >
-                                The ₹9 Clavata booking fee was not
-                                paid within the required payment
-                                window.
+                                {salonUnavailable
+                                    ? 'The salon did not respond within the 15-minute booking request window. No booking fee was required.'
+                                    : paymentExpired
+                                    ? 'The salon accepted your request, but the ₹9 Clavata booking fee was not paid within the 15-minute payment window.'
+                                    : 'This booking expired and is no longer active.'}
                             </Text>
 
                         </View>
@@ -3153,6 +3872,7 @@ const styles =
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: 10,
+            paddingHorizontal: 2,
         },
 
         activeTab: {
@@ -3160,7 +3880,7 @@ const styles =
         },
 
         tabText: {
-            fontSize: 12,
+            fontSize: 10,
             fontWeight: '600',
             color: COLORS.textSecondary,
         },
@@ -3379,6 +4099,50 @@ const styles =
             marginHorizontal: 10,
         },
 
+        // ========================================================
+        // WAITING
+        // ========================================================
+
+        waitingCard: {
+            marginTop: 13,
+            backgroundColor: '#FFF8E7',
+            borderWidth: 1,
+            borderColor: '#F3D38A',
+            borderRadius: 13,
+            padding: 12,
+        },
+
+        waitingHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 5,
+        },
+
+        waitingIndicator: {
+            width: 7,
+            height: 7,
+            borderRadius: 4,
+            backgroundColor: '#B07800',
+            marginRight: 7,
+        },
+
+        waitingTitle: {
+            fontSize: 14,
+            fontWeight: '700',
+            color: '#8A5A00',
+        },
+
+        waitingMessage: {
+            fontSize: 12,
+            lineHeight: 17,
+            color: COLORS.textSecondary,
+            marginBottom: 12,
+        },
+
+        // ========================================================
+        // PAYMENT
+        // ========================================================
+
         paymentCard: {
             marginTop: 13,
             backgroundColor: '#FFF8EF',
@@ -3508,6 +4272,7 @@ const styles =
             borderColor: '#EBCACA',
             borderRadius: 10,
             padding: 10,
+            marginTop: 13,
             marginBottom: 12,
         },
 
@@ -3538,6 +4303,7 @@ const styles =
             marginTop: 2,
             fontSize: 10,
             color: COLORS.textSecondary,
+            lineHeight: 15,
         },
 
         expiredButton: {
@@ -3611,6 +4377,10 @@ const styles =
             marginLeft: 7,
         },
 
+        // ========================================================
+        // CONFIRMED
+        // ========================================================
+
         confirmedCard: {
             marginTop: 13,
             backgroundColor: '#F5F5F5',
@@ -3654,6 +4424,10 @@ const styles =
             lineHeight: 16,
             color: COLORS.textSecondary,
         },
+
+        // ========================================================
+        // REFUND
+        // ========================================================
 
         refundCompletedCard: {
             marginTop: 13,
@@ -3733,6 +4507,10 @@ const styles =
             color: COLORS.textSecondary,
         },
 
+        // ========================================================
+        // EXPIRED HISTORY
+        // ========================================================
+
         expiredHistoryCard: {
             marginTop: 13,
             backgroundColor: '#FBEFEF',
@@ -3776,6 +4554,10 @@ const styles =
             lineHeight: 16,
             color: COLORS.textSecondary,
         },
+
+        // ========================================================
+        // BUTTONS
+        // ========================================================
 
         buttons: {
             flexDirection: 'row',
@@ -3854,6 +4636,10 @@ const styles =
             color: COLORS.primary,
         },
 
+        // ========================================================
+        // EMPTY
+        // ========================================================
+
         emptyContainer: {
             alignItems: 'center',
             justifyContent: 'center',
@@ -3892,6 +4678,10 @@ const styles =
             maxWidth: 290,
         },
 
+        // ========================================================
+        // LOADING
+        // ========================================================
+
         loadingContainer: {
             flex: 1,
             alignItems: 'center',
@@ -3912,6 +4702,10 @@ const styles =
             fontSize: 13,
             color: COLORS.textSecondary,
         },
+
+        // ========================================================
+        // ERROR
+        // ========================================================
 
         errorContainer: {
             flex: 1,
@@ -3965,6 +4759,10 @@ const styles =
             fontSize: 13,
             fontWeight: '700',
         },
+
+        // ========================================================
+        // FOOTER
+        // ========================================================
 
         footer: {
             textAlign: 'center',
