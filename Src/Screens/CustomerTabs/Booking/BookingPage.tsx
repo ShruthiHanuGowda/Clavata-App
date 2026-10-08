@@ -247,20 +247,14 @@ function formatCountdown(
 }
 
 
-// ============================================================
-// DEADLINE EXPIRY HELPER
-// ============================================================
-
 function isDeadlineExpired(
     deadline: string | null | undefined,
 ): boolean {
-
     if (!deadline) {
         return false;
     }
 
-    const deadlineTime =
-        new Date(deadline).getTime();
+    const deadlineTime = new Date(deadline).getTime();
 
     if (Number.isNaN(deadlineTime)) {
         return false;
@@ -292,12 +286,6 @@ export default function BookingPage() {
 
     const [refreshing, setRefreshing] =
         useState(false);
-
-
-    // Keeps the Upcoming tab synchronized with countdown deadlines.
-    // This is a presentation guard only; backend remains the source of truth.
-    const [currentTime, setCurrentTime] =
-        useState(() => Date.now());
 
 
     const [
@@ -339,19 +327,18 @@ export default function BookingPage() {
 
 
     // ============================================================
-    // LIVE DEADLINE CLOCK
+    // LIVE CLOCK
     // ============================================================
 
+    const [currentTime, setCurrentTime] =
+        useState<number>(Date.now());
+
     useEffect(() => {
+        const intervalId = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, 1000);
 
-        const intervalId =
-            setInterval(() => {
-                setCurrentTime(Date.now());
-            }, 1000);
-
-        return () =>
-            clearInterval(intervalId);
-
+        return () => clearInterval(intervalId);
     }, []);
 
 
@@ -359,28 +346,25 @@ export default function BookingPage() {
     // BACKEND REFRESH
     // ============================================================
 
-    // The UI hides an expired active booking immediately when its deadline
-    // passes. This refresh lets the backend eventually move it to EXPIRED.
     useEffect(() => {
-
         if (!currentUser?.userId) {
             return;
         }
 
-        const intervalId =
-            setInterval(() => {
-                refetch().catch((refreshError) => {
-                    console.log(
-                        'Automatic booking refresh error:',
-                        refreshError,
-                    );
-                });
-            }, 10000);
+        const intervalId = setInterval(() => {
+            refetch().catch((refreshError) => {
+                console.log(
+                    'Automatic booking refresh error:',
+                    refreshError,
+                );
+            });
+        }, 10000);
 
-        return () =>
-            clearInterval(intervalId);
-
-    }, [currentUser?.userId, refetch]);
+        return () => clearInterval(intervalId);
+    }, [
+        currentUser?.userId,
+        refetch,
+    ]);
 
 
     // ============================================================
@@ -466,72 +450,47 @@ export default function BookingPage() {
         data?.customerBookings?.filter(
             (booking: any) => {
 
-                const bookingStatus =
-                    String(
-                        booking?.bookingStatus ??
-                        '',
-                    ).toUpperCase();
-
-                const salonResponseStatus =
-                    String(
-                        booking?.salonResponseStatus ??
-                        '',
-                    ).toUpperCase();
-
-                const bookingFeeStatus =
-                    String(
-                        booking?.bookingFeeStatus ??
-                        '',
-                    ).toUpperCase();
-
-                // ----------------------------------------------------
-                // UPCOMING
-                // ----------------------------------------------------
-                // IMPORTANT: Do not wait for the backend to update the
-                // booking before removing it from the Upcoming tab.
-                // If the salon response deadline has passed, hide it
-                // immediately, exactly like the Home screen.
-                // ----------------------------------------------------
-
                 if (tab === 'Upcoming') {
 
-                    const waitingForSalon =
-                        bookingStatus === 'PENDING' &&
-                        salonResponseStatus === 'PENDING';
+                    if (booking.bookingStatus === 'PENDING') {
+                        const waitingForSalon =
+                            booking?.salonResponseStatus === 'PENDING' ||
+                            !booking?.salonResponseStatus;
 
-                    if (waitingForSalon) {
-
-                        const salonDeadline =
+                        const deadline =
                             booking?.salonResponseDeadline;
 
-                        if (
-                            salonDeadline &&
-                            new Date(salonDeadline).getTime() <=
-                                currentTime
-                        ) {
-                            return false;
+                        if (waitingForSalon && deadline) {
+                            const deadlineTime =
+                                new Date(deadline).getTime();
+
+                            if (
+                                !Number.isNaN(deadlineTime) &&
+                                deadlineTime <= currentTime
+                            ) {
+                                return false;
+                            }
                         }
 
-                        return true;
+                        return waitingForSalon;
                     }
 
-                    // A confirmed booking remains visible until its
-                    // booking-fee payment window expires.
-                    if (bookingStatus === 'CONFIRMED') {
-
+                    if (booking.bookingStatus === 'CONFIRMED') {
                         const unpaid =
-                            bookingFeeStatus !== 'PAID';
+                            booking?.bookingFeeStatus !== 'PAID';
 
-                        const paymentDeadline =
-                            booking?.bookingFeePaymentDeadline;
+                        if (unpaid && booking?.bookingFeePaymentDeadline) {
+                            const deadlineTime =
+                                new Date(
+                                    booking.bookingFeePaymentDeadline,
+                                ).getTime();
 
-                        if (
-                            unpaid &&
-                            paymentDeadline &&
-                            new Date(paymentDeadline).getTime() <=
-                                currentTime
-                        ) {
-                            return false;
+                            if (
+                                !Number.isNaN(deadlineTime) &&
+                                deadlineTime <= currentTime
+                            ) {
+                                return false;
+                            }
                         }
 
                         return true;
@@ -540,23 +499,20 @@ export default function BookingPage() {
                     return false;
                 }
 
-
                 if (tab === 'Completed') {
-                    return bookingStatus === 'COMPLETED';
+                    return booking.bookingStatus === 'COMPLETED';
                 }
-
 
                 if (tab === 'Cancelled') {
                     return (
-                        bookingStatus === 'CANCELLED' ||
-                        bookingStatus === 'EXPIRED'
+                        booking.bookingStatus === 'CANCELLED' ||
+                        booking.bookingStatus === 'EXPIRED'
                     );
                 }
 
                 return false;
             },
         ) || [];
-
 
     // ============================================================
     // STATUS
@@ -1713,42 +1669,57 @@ function BookingCard({
             ),
     );
 
+    const [
+        salonResponseRemainingMilliseconds,
+        setSalonResponseRemainingMilliseconds,
+    ] = useState<number>(
+        () =>
+            getRemainingMilliseconds(
+                booking?.salonResponseDeadline,
+            ),
+    );
+
 
     // ============================================================
-    // SALON RESPONSE DEADLINE
+    // SALON RESPONSE COUNTDOWN
     // ============================================================
 
     useEffect(() => {
-
         const waitingForSalon =
             booking?.bookingStatus === 'PENDING' &&
-            booking?.salonResponseStatus === 'PENDING';
+            (booking?.salonResponseStatus === 'PENDING' ||
+                !booking?.salonResponseStatus);
 
         if (!waitingForSalon) {
+            setSalonResponseRemainingMilliseconds(0);
             return;
         }
 
-        const deadline =
-            booking?.salonResponseDeadline;
+        const deadline = booking?.salonResponseDeadline;
 
         if (!deadline) {
+            setSalonResponseRemainingMilliseconds(0);
             return;
         }
 
-        const deadlineTime =
-            new Date(deadline).getTime();
+        const deadlineTime = new Date(deadline).getTime();
 
         if (Number.isNaN(deadlineTime)) {
+            setSalonResponseRemainingMilliseconds(0);
             return;
         }
 
         let expiredHandled = false;
 
-        const checkDeadline = () => {
-            const expired =
-                deadlineTime <= Date.now();
+        const updateCountdown = () => {
+            const remaining = Math.max(
+                0,
+                deadlineTime - Date.now(),
+            );
 
-            if (expired && !expiredHandled) {
+            setSalonResponseRemainingMilliseconds(remaining);
+
+            if (remaining <= 0 && !expiredHandled) {
                 expiredHandled = true;
 
                 console.log(
@@ -1760,14 +1731,14 @@ function BookingCard({
             }
         };
 
-        checkDeadline();
+        updateCountdown();
 
-        const intervalId =
-            setInterval(checkDeadline, 1000);
+        const intervalId = setInterval(
+            updateCountdown,
+            1000,
+        );
 
-        return () =>
-            clearInterval(intervalId);
-
+        return () => clearInterval(intervalId);
     }, [
         booking?.bookingId,
         booking?.bookingStatus,
@@ -1777,7 +1748,7 @@ function BookingCard({
 
 
     // ============================================================
-    // COUNTDOWN
+    // PAYMENT COUNTDOWN
     // ============================================================
 
     useEffect(() => {
@@ -1940,6 +1911,28 @@ function BookingCard({
 
 
     // ============================================================
+    // SALON RESPONSE STATE
+    // ============================================================
+
+    const waitingForSalon =
+        booking?.bookingStatus === 'PENDING' &&
+        (booking?.salonResponseStatus === 'PENDING' ||
+            !booking?.salonResponseStatus);
+
+    const hasSalonResponseDeadline =
+        Boolean(booking?.salonResponseDeadline);
+
+    const salonResponseTimerActive =
+        waitingForSalon &&
+        hasSalonResponseDeadline &&
+        salonResponseRemainingMilliseconds > 0;
+
+    const salonResponseTimerUnavailable =
+        waitingForSalon &&
+        !hasSalonResponseDeadline;
+
+
+    // ============================================================
     // CONFIRMED + UNPAID
     // ============================================================
 
@@ -2000,24 +1993,19 @@ function BookingCard({
 
         !hasPaymentDeadline;
 
+    const paymentWindowMinutes =
+        Number(
+            booking?.bookingFeePaymentWindowMinutes ??
+            15,
+        );
 
-    // ------------------------------------------------------------
-    // IMMEDIATE UPCOMING-TAB EXPIRY GUARD
-    // ------------------------------------------------------------
-    // Parent filtering normally removes the card on the next render.
-    // This extra guard prevents a stale card from being rendered even
-    // for one frame while the backend is still returning PENDING.
 
-    const waitingForSalon =
-        booking?.bookingStatus === 'PENDING' &&
-        booking?.salonResponseStatus === 'PENDING';
-
+    // Do not locally mutate booking status. This only hides a known
+    // expired request until the next backend refresh changes status.
     if (
         tab === 'Upcoming' &&
         waitingForSalon &&
-        isDeadlineExpired(
-            booking?.salonResponseDeadline,
-        )
+        isDeadlineExpired(booking?.salonResponseDeadline)
     ) {
         return null;
     }
@@ -2422,6 +2410,129 @@ function BookingCard({
 
 
             {/* ================================================= */}
+            {/* SALON RESPONSE */}
+            {/* ================================================= */}
+
+            {waitingForSalon && (
+
+                <View
+                    style={
+                        styles.salonResponseCard
+                    }
+                >
+
+                    <View
+                        style={
+                            styles.salonResponseHeader
+                        }
+                    >
+                        <View
+                            style={
+                                styles.salonResponseIndicator
+                            }
+                        />
+
+                        <Text
+                            style={
+                                styles.salonResponseTitle
+                            }
+                        >
+                            Waiting for salon to confirm
+                        </Text>
+                    </View>
+
+                    <Text
+                        style={
+                            styles.salonResponseMessage
+                        }
+                    >
+                        The salon needs to confirm your booking request before you can pay the ₹9 Clavata booking fee.
+                    </Text>
+
+                    {salonResponseTimerActive && (
+                        <View
+                            style={
+                                styles.salonResponseCountdown
+                            }
+                        >
+                            <View>
+                                <Text
+                                    style={
+                                        styles.salonResponseCountdownLabel
+                                    }
+                                >
+                                    SALON RESPONSE TIME LEFT
+                                </Text>
+
+                                <Text
+                                    style={
+                                        styles.salonResponseCountdownSubtext
+                                    }
+                                >
+                                    Waiting for salon confirmation
+                                </Text>
+                            </View>
+
+                            <Text
+                                style={
+                                    styles.salonResponseCountdownValue
+                                }
+                            >
+                                {formatCountdown(
+                                    salonResponseRemainingMilliseconds,
+                                )}
+                            </Text>
+                        </View>
+                    )}
+
+                    {salonResponseTimerUnavailable && (
+                        <View
+                            style={
+                                styles.salonTimerUnavailable
+                            }
+                        >
+                            <View
+                                style={
+                                    styles.salonTimerUnavailableIcon
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.salonTimerUnavailableIconText
+                                    }
+                                >
+                                    !
+                                </Text>
+                            </View>
+
+                            <View
+                                style={
+                                    styles.salonTimerUnavailableContent
+                                }
+                            >
+                                <Text
+                                    style={
+                                        styles.salonTimerUnavailableTitle
+                                    }
+                                >
+                                    Response timer unavailable
+                                </Text>
+
+                                <Text
+                                    style={
+                                        styles.salonTimerUnavailableText
+                                    }
+                                >
+                                    Your request is still waiting for salon confirmation.
+                                </Text>
+                            </View>
+                        </View>
+                    )}
+                </View>
+            )}
+
+
+            {/* ================================================= */}
             {/* PAYMENT REQUIRED */}
             {/* ================================================= */}
 
@@ -2476,13 +2587,13 @@ function BookingCard({
                     >
                         {paymentWindowExpired
 
-                            ? 'The 15-minute payment window has expired. This booking can no longer be paid.'
+                            ? `The ${paymentWindowMinutes}-minute payment window has expired. This booking can no longer be paid.`
 
                             : paymentDeadlineMissing
 
                             ? 'Your booking is confirmed. The timer is unavailable. Please continue.'
 
-                            : 'Your appointment has been accepted by the salon. Pay the ₹9 Clavata booking fee within 15 minutes to confirm your appointment.'}
+                            : `Your appointment has been accepted by the salon. Pay the ₹9 Clavata booking fee within ${paymentWindowMinutes} minutes to confirm your appointment.`}
                     </Text>
 
 
@@ -2505,7 +2616,7 @@ function BookingCard({
                                         styles.countdownLabel
                                     }
                                 >
-                                    PAY WITHIN
+                                    PAY ₹9 BOOKING FEE • PAYMENT TIME LEFT
                                 </Text>
 
                                 <Text
@@ -3511,6 +3622,122 @@ const styles =
             height: 27,
             backgroundColor: COLORS.border,
             marginHorizontal: 10,
+        },
+
+
+        // ======================================================
+        // SALON RESPONSE
+        // ======================================================
+
+        salonResponseCard: {
+            marginTop: 13,
+            backgroundColor: '#F7F4FF',
+            borderWidth: 1,
+            borderColor: '#DDD4F5',
+            borderRadius: 13,
+            padding: 12,
+        },
+
+        salonResponseHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 5,
+        },
+
+        salonResponseIndicator: {
+            width: 7,
+            height: 7,
+            borderRadius: 4,
+            backgroundColor: '#7656A6',
+            marginRight: 7,
+        },
+
+        salonResponseTitle: {
+            fontSize: 14,
+            fontWeight: '700',
+            color: '#5D4388',
+        },
+
+        salonResponseMessage: {
+            fontSize: 12,
+            lineHeight: 17,
+            color: COLORS.textSecondary,
+            marginBottom: 12,
+        },
+
+        salonResponseCountdown: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: COLORS.white,
+            borderWidth: 1,
+            borderColor: '#DDD4F5',
+            borderRadius: 11,
+            paddingHorizontal: 11,
+            paddingVertical: 10,
+        },
+
+        salonResponseCountdownLabel: {
+            fontSize: 9,
+            fontWeight: '800',
+            color: '#5D4388',
+            letterSpacing: 0.5,
+        },
+
+        salonResponseCountdownSubtext: {
+            marginTop: 3,
+            fontSize: 10,
+            color: COLORS.textMuted,
+        },
+
+        salonResponseCountdownValue: {
+            fontSize: 20,
+            fontWeight: '800',
+            color: '#5D4388',
+            letterSpacing: 0.5,
+        },
+
+        salonTimerUnavailable: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#FCFAFF',
+            borderWidth: 1,
+            borderColor: '#E3DDF0',
+            borderRadius: 10,
+            padding: 10,
+        },
+
+        salonTimerUnavailableIcon: {
+            width: 27,
+            height: 27,
+            borderRadius: 14,
+            backgroundColor: '#7656A6',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: 9,
+        },
+
+        salonTimerUnavailableIconText: {
+            color: COLORS.white,
+            fontSize: 14,
+            fontWeight: '800',
+        },
+
+        salonTimerUnavailableContent: {
+            flex: 1,
+        },
+
+        salonTimerUnavailableTitle: {
+            fontSize: 12,
+            fontWeight: '700',
+            color: '#5D4388',
+        },
+
+        salonTimerUnavailableText: {
+            marginTop: 2,
+            fontSize: 10,
+            lineHeight: 15,
+            color: COLORS.textSecondary,
         },
 
 
