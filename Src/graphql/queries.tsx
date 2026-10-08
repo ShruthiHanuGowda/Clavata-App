@@ -326,6 +326,8 @@ export const CUSTOMER_BOOKINGS = gql`
       reviewedAt
 
       bookingStatus
+      salonResponseStatus
+      salonResponseDeadline
 
       paymentMethod
       paymentStatus
