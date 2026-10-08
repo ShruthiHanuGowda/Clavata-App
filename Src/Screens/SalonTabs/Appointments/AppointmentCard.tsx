@@ -742,6 +742,34 @@ const AppointmentCard: React.FC<
     !hasPaymentDeadline;
 
   // ==========================================================
+  // IMPORTANT:
+  // REMOVE EXPIRED SALON RESPONSE REQUEST
+  // ==========================================================
+  //
+  // Do NOT place this return before hooks.
+  //
+  // When the salon response deadline passes, the local clock
+  // makes salonResponseExpired true. The card immediately
+  // disappears, even if the backend has not yet changed
+  // bookingStatus to EXPIRED.
+  //
+  // The timer expiry effect above already calls onTimerExpired()
+  // so the parent can refetch and the backend can transition
+  // the booking to EXPIRED.
+  //
+  // This ONLY applies to:
+  //
+  // PENDING + PENDING + expired salon response deadline.
+  //
+  // Confirmed bookings are NOT affected by this guard.
+  // Missing deadline is NOT treated as expired.
+  // ==========================================================
+
+  if (salonResponseExpired) {
+    return null;
+  }
+
+  // ==========================================================
   // ACTION HANDLER
   // ==========================================================
 
@@ -1241,36 +1269,6 @@ const AppointmentCard: React.FC<
           </View>
         )}
 
-        {/* SALON RESPONSE EXPIRED */}
-
-        {salonResponseExpired && (
-          <View
-            style={
-              styles.salonResponseExpiredBox
-            }
-          >
-
-            <Text
-              style={
-                styles.salonResponseExpiredTitle
-              }
-            >
-              Booking request expired
-            </Text>
-
-            <Text
-              style={
-                styles.salonResponseExpiredText
-              }
-            >
-              The response window has expired.
-              This booking can no longer be
-              accepted.
-            </Text>
-
-          </View>
-        )}
-
         {/* SALON RESPONSE UNAVAILABLE */}
 
         {salonResponseTimerUnavailable && (
@@ -1450,7 +1448,6 @@ const AppointmentCard: React.FC<
 
         {bookingStatus ===
           'PENDING' &&
-          !salonResponseExpired &&
           !salonResponseTimerUnavailable && (
             <View
               style={
@@ -1795,33 +1792,6 @@ const AppointmentCard: React.FC<
                     Accept or reject this booking
                     before the response window
                     expires.
-                  </Text>
-
-                </View>
-              )}
-
-              {salonResponseExpired && (
-                <View
-                  style={
-                    styles.modalSalonExpiredBox
-                  }
-                >
-
-                  <Text
-                    style={
-                      styles.salonResponseExpiredTitle
-                    }
-                  >
-                    Booking request expired
-                  </Text>
-
-                  <Text
-                    style={
-                      styles.salonResponseExpiredText
-                    }
-                  >
-                    The salon response window has
-                    expired.
                   </Text>
 
                 </View>
@@ -2387,7 +2357,6 @@ const AppointmentCard: React.FC<
 
             {bookingStatus ===
               'PENDING' &&
-              !salonResponseExpired &&
               !salonResponseTimerUnavailable && (
                 <View
                   style={
