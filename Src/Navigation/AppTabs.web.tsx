@@ -371,21 +371,6 @@ function WebSidebar({
             navigateTo('Home')
           }
         />
-
-
-        {/* <SidebarItem
-          icon="✦"
-          label="Clavata"
-          active={
-            currentRoute === 'Clavata'
-          }
-          collapsed={collapsed}
-          onPress={() =>
-            navigateTo('Clavata')
-          }
-        /> */}
-
-
         <SidebarItem
           icon="□"
           label="Bookings"
@@ -397,8 +382,6 @@ function WebSidebar({
             navigateTo('Bookings')
           }
         />
-
-
         <SidebarItem
           icon="◇"
           label="Offers"

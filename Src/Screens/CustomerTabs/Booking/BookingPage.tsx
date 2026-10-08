@@ -1,4 +1,5 @@
 import React, {
+    useCallback,
     useEffect,
     useState,
 } from 'react';
@@ -19,131 +20,28 @@ import {
 } from 'react-native';
 
 import {
-    gql,
     useMutation,
     useQuery,
 } from '@apollo/client';
+
+import {
+    useFocusEffect,
+    useNavigation,
+} from '@react-navigation/native';
 
 import { useUser } from '../../../context/UserContext';
 
 import {
     CANCEL_BOOKING,
-} from '../../../graphql/queries';
-
-import { useNavigation } from '@react-navigation/native';
-
-import { WalletStackParamList } from '../../../../types';
-
-import {
     CUSTOMER_BOOKINGS,
     REQUEST_REFUND,
 } from '../../../graphql/queries';
-// ============================================================
-// CUSTOMER BOOKINGS QUERY
-// ============================================================
 
-// const CUSTOMER_BOOKINGS = gql`
-//     query CustomerBookings(
-//         $customerUserId: ID!
-//     ) {
-//         customerBookings(
-//             customerUserId: $customerUserId
-//         ) {
-//             bookingId
-//             salonId
-//             customerUserId
-
-//             salonName
-//             customerName
-
-//             bookingDate
-//             startTime
-//             endTime
-
-//             reviewSubmitted
-//             rating
-//             review
-//             reviewedAt
-
-//             bookingStatus
-
-//             paymentMethod
-//             paymentStatus
-//             preferredPaymentMethod
-
-//             bookingFee
-//             bookingFeeStatus
-//             bookingFeePaidAt
-
-//             remainingAmount
-//             totalAmount
-
-//             bookingFeePaymentDeadline
-//             bookingFeePaymentWindowMinutes
-
-//             services {
-//                 serviceId
-//                 name
-//                 category
-//                 subcategory
-//                 duration
-//                 price
-//                 audience
-//             }
-//         }
-//     }
-// `;
+import { WalletStackParamList } from '../../../../types';
 
 
 // ============================================================
-// REQUEST REFUND
-// ============================================================
-
-// const REQUEST_REFUND = gql`
-//     mutation RequestRefund(
-//         $input: RequestRefundInput!
-//     ) {
-//         requestRefund(input: $input) {
-//             success
-//             message
-
-//             refund {
-//                 refundId
-//                 bookingId
-//                 paymentTransactionId
-
-//                 customerUserId
-//                 customerName
-//                 customerPhone
-
-//                 salonId
-//                 salonName
-
-//                 originalAmount
-//                 refundAmount
-//                 clavataAmount
-//                 salonAmount
-
-//                 reason
-//                 status
-
-//                 paymentMethod
-//                 razorpayPaymentId
-//                 razorpayRefundId
-
-//                 requestedAt
-//                 processedAt
-
-//                 createdAt
-//                 updatedAt
-//             }
-//         }
-//     }
-// `;
-
-
-// ============================================================
-// DESIGN SYSTEM
+// COLORS
 // ============================================================
 
 const COLORS = {
@@ -305,7 +203,41 @@ export default function BookingPage() {
 
             fetchPolicy:
                 'network-only',
+
+            notifyOnNetworkStatusChange:
+                true,
         },
+    );
+
+
+    // ============================================================
+    // REFRESH WHEN CUSTOMER RETURNS
+    // ============================================================
+
+    useFocusEffect(
+        useCallback(() => {
+
+            if (
+                !currentUser?.userId
+            ) {
+                return;
+            }
+
+            refetch().catch(
+                refreshError => {
+
+                    console.log(
+                        'Booking focus refresh error:',
+                        refreshError,
+                    );
+
+                },
+            );
+
+        }, [
+            currentUser?.userId,
+            refetch,
+        ]),
     );
 
 
@@ -316,7 +248,7 @@ export default function BookingPage() {
     useEffect(() => {
 
         console.log(
-            '========== CUSTOMER BOOKINGS =========='
+            '========== CUSTOMER BOOKINGS ==========',
         );
 
         console.log(
@@ -327,8 +259,47 @@ export default function BookingPage() {
             ),
         );
 
+        if (
+            Array.isArray(
+                data?.customerBookings,
+            )
+        ) {
+
+            data.customerBookings.forEach(
+                (booking: any) => {
+
+                    console.log(
+                        'CUSTOMER BOOKING STATE:',
+                        {
+                            bookingId:
+                                booking?.bookingId,
+
+                            bookingStatus:
+                                booking?.bookingStatus,
+
+                            salonResponseStatus:
+                                booking?.salonResponseStatus,
+
+                            salonResponseDeadline:
+                                booking?.salonResponseDeadline,
+
+                            bookingFeeStatus:
+                                booking?.bookingFeeStatus,
+
+                            bookingFeePaymentDeadline:
+                                booking?.bookingFeePaymentDeadline,
+
+                            bookingFeePaymentWindowMinutes:
+                                booking?.bookingFeePaymentWindowMinutes,
+                        },
+                    );
+
+                },
+            );
+        }
+
         console.log(
-            '========================================'
+            '========================================',
         );
 
     }, [data]);
@@ -392,40 +363,56 @@ export default function BookingPage() {
         data?.customerBookings?.filter(
             (booking: any) => {
 
+                const bookingStatus =
+                    booking?.bookingStatus;
+
+
+                // ====================================================
+                // UPCOMING
+                // ====================================================
+
                 if (
                     tab === 'Upcoming'
                 ) {
 
                     return (
-                        booking.bookingStatus ===
+                        bookingStatus ===
                             'PENDING' ||
 
-                        booking.bookingStatus ===
+                        bookingStatus ===
                             'CONFIRMED'
                     );
                 }
 
+
+                // ====================================================
+                // COMPLETED
+                // ====================================================
 
                 if (
                     tab === 'Completed'
                 ) {
 
                     return (
-                        booking.bookingStatus ===
+                        bookingStatus ===
                         'COMPLETED'
                     );
                 }
 
+
+                // ====================================================
+                // CANCELLED
+                // ====================================================
 
                 if (
                     tab === 'Cancelled'
                 ) {
 
                     return (
-                        booking.bookingStatus ===
+                        bookingStatus ===
                             'CANCELLED' ||
 
-                        booking.bookingStatus ===
+                        bookingStatus ===
                             'EXPIRED'
                     );
                 }
@@ -444,9 +431,43 @@ export default function BookingPage() {
     const getBookingStatus =
         (booking: any) => {
 
+            const bookingStatus =
+                String(
+                    booking?.bookingStatus ??
+                    '',
+                ).toUpperCase();
+
+
+            const salonResponseStatus =
+                String(
+                    booking?.salonResponseStatus ??
+                    '',
+                ).toUpperCase();
+
+
+            const bookingFeeStatus =
+                String(
+                    booking?.bookingFeeStatus ??
+                    '',
+                ).toUpperCase();
+
+
+            // ====================================================
+            // IMPORTANT:
+            //
+            // A newly created booking is PENDING.
+            //
+            // salonResponseStatus can temporarily be null /
+            // undefined depending on what the backend returns.
+            //
+            // PENDING itself is enough to identify:
+            // "Waiting for salon"
+            //
+            // NEVER fall through to "Cancelled".
+            // ====================================================
+
             if (
-                booking.bookingStatus ===
-                'PENDING'
+                bookingStatus === 'PENDING'
             ) {
 
                 return {
@@ -464,16 +485,22 @@ export default function BookingPage() {
                         '#F3D38A',
 
                 };
-
             }
 
 
-            if (
-                booking.bookingStatus ===
-                'CONFIRMED' &&
+            // ====================================================
+            // SALON ACCEPTED + PAYMENT REQUIRED
+            // ====================================================
 
-                booking.bookingFeeStatus !==
-                'PAID'
+            if (
+                bookingStatus ===
+                    'CONFIRMED' &&
+
+                salonResponseStatus ===
+                    'ACCEPTED' &&
+
+                bookingFeeStatus !==
+                    'PAID'
             ) {
 
                 return {
@@ -491,16 +518,22 @@ export default function BookingPage() {
                         '#F1C49A',
 
                 };
-
             }
 
 
-            if (
-                booking.bookingStatus ===
-                'CONFIRMED' &&
+            // ====================================================
+            // CONFIRMED + PAID
+            // ====================================================
 
-                booking.bookingFeeStatus ===
-                'PAID'
+            if (
+                bookingStatus ===
+                    'CONFIRMED' &&
+
+                salonResponseStatus ===
+                    'ACCEPTED' &&
+
+                bookingFeeStatus ===
+                    'PAID'
             ) {
 
                 return {
@@ -518,12 +551,71 @@ export default function BookingPage() {
                         '#D8D8D8',
 
                 };
-
             }
 
 
+            // ====================================================
+            // CONFIRMED
+            //
+            // Defensive fallback.
+            //
+            // If backend returns CONFIRMED but salonResponseStatus
+            // is temporarily missing, it is still NOT cancelled.
+            // ====================================================
+
             if (
-                booking.bookingStatus ===
+                bookingStatus ===
+                'CONFIRMED'
+            ) {
+
+                if (
+                    bookingFeeStatus ===
+                    'PAID'
+                ) {
+
+                    return {
+
+                        text:
+                            'Booking confirmed',
+
+                        color:
+                            '#3F3F3F',
+
+                        background:
+                            '#F2F2F2',
+
+                        border:
+                            '#D8D8D8',
+
+                    };
+
+                }
+
+
+                return {
+
+                    text:
+                        'Payment required',
+
+                    color:
+                        '#A64B00',
+
+                    background:
+                        '#FFF4E8',
+
+                    border:
+                        '#F1C49A',
+
+                };
+            }
+
+
+            // ====================================================
+            // COMPLETED
+            // ====================================================
+
+            if (
+                bookingStatus ===
                 'COMPLETED'
             ) {
 
@@ -542,12 +634,15 @@ export default function BookingPage() {
                         '#D8D8D8',
 
                 };
-
             }
 
 
+            // ====================================================
+            // EXPIRED
+            // ====================================================
+
             if (
-                booking.bookingStatus ===
+                bookingStatus ===
                 'EXPIRED'
             ) {
 
@@ -566,23 +661,58 @@ export default function BookingPage() {
                         '#EBCACA',
 
                 };
-
             }
 
+
+            // ====================================================
+            // CANCELLED
+            //
+            // IMPORTANT:
+            // Only explicitly CANCELLED should say Cancelled.
+            // ====================================================
+
+            if (
+                bookingStatus ===
+                'CANCELLED'
+            ) {
+
+                return {
+
+                    text:
+                        'Cancelled',
+
+                    color:
+                        '#A33A3A',
+
+                    background:
+                        '#FBEFEF',
+
+                    border:
+                        '#EBCACA',
+
+                };
+            }
+
+
+            // ====================================================
+            // UNKNOWN / TEMPORARY STATE
+            //
+            // Do NOT call an unknown state "Cancelled".
+            // ====================================================
 
             return {
 
                 text:
-                    'Cancelled',
+                    'Booking pending',
 
                 color:
-                    '#A33A3A',
+                    '#6B5A00',
 
                 background:
-                    '#FBEFEF',
+                    '#FFFBEA',
 
                 border:
-                    '#EBCACA',
+                    '#E8DFA8',
 
             };
 
@@ -1082,7 +1212,7 @@ export default function BookingPage() {
     // LOADING
     // ============================================================
 
-    if (loading) {
+    if (loading && !data) {
 
         return (
 
@@ -1124,7 +1254,7 @@ export default function BookingPage() {
     // ERROR
     // ============================================================
 
-    if (error) {
+    if (error && !data) {
 
         return (
 
@@ -1599,9 +1729,12 @@ function BookingCard({
 
     useEffect(() => {
 
-        const isConfirmed =
+        const isAccepted =
             booking?.bookingStatus ===
-            'CONFIRMED';
+                'CONFIRMED' &&
+
+            booking?.salonResponseStatus ===
+                'ACCEPTED';
 
 
         const isPaid =
@@ -1610,7 +1743,7 @@ function BookingCard({
 
 
         if (
-            !isConfirmed ||
+            !isAccepted ||
             isPaid
         ) {
 
@@ -1624,9 +1757,9 @@ function BookingCard({
             booking?.bookingFeePaymentDeadline;
 
 
-        // --------------------------------------------------------
+        // ========================================================
         // NO DEADLINE
-        // --------------------------------------------------------
+        // ========================================================
 
         if (!deadline) {
 
@@ -1640,6 +1773,9 @@ function BookingCard({
 
                     bookingStatus:
                         booking?.bookingStatus,
+
+                    salonResponseStatus:
+                        booking?.salonResponseStatus,
 
                     bookingFeeStatus:
                         booking?.bookingFeeStatus,
@@ -1662,9 +1798,9 @@ function BookingCard({
             ).getTime();
 
 
-        // --------------------------------------------------------
+        // ========================================================
         // INVALID DEADLINE
-        // --------------------------------------------------------
+        // ========================================================
 
         if (
             Number.isNaN(
@@ -1687,9 +1823,9 @@ function BookingCard({
             false;
 
 
-        // --------------------------------------------------------
+        // ========================================================
         // UPDATE COUNTDOWN
-        // --------------------------------------------------------
+        // ========================================================
 
         const updateCountdown =
             () => {
@@ -1727,14 +1863,8 @@ function BookingCard({
             };
 
 
-        // IMPORTANT:
-        // Run once immediately BEFORE creating interval.
-
         updateCountdown();
 
-
-        // IMPORTANT:
-        // Interval is declared BEFORE cleanup can use it.
 
         const intervalId =
             setInterval(
@@ -1751,9 +1881,22 @@ function BookingCard({
     }, [
         booking?.bookingId,
         booking?.bookingStatus,
+        booking?.salonResponseStatus,
         booking?.bookingFeeStatus,
         booking?.bookingFeePaymentDeadline,
     ]);
+
+
+    // ============================================================
+    // SALON ACCEPTED
+    // ============================================================
+
+    const salonAccepted =
+        booking?.bookingStatus ===
+            'CONFIRMED' &&
+
+        booking?.salonResponseStatus ===
+            'ACCEPTED';
 
 
     // ============================================================
@@ -1761,8 +1904,7 @@ function BookingCard({
     // ============================================================
 
     const paymentRequired =
-        booking?.bookingStatus ===
-            'CONFIRMED' &&
+        salonAccepted &&
 
         booking?.bookingFeeStatus !==
             'PAID';
@@ -1792,12 +1934,6 @@ function BookingCard({
 
     // ============================================================
     // PAYMENT WINDOW EXPIRED
-    //
-    // IMPORTANT:
-    // We only call it expired if a deadline actually exists.
-    //
-    // If the backend has not returned a deadline, we DO NOT
-    // pretend the payment window has expired.
     // ============================================================
 
     const paymentWindowExpired =
@@ -2228,8 +2364,6 @@ function BookingCard({
                     }
                 >
 
-                    {/* PAYMENT HEADER */}
-
                     <View
                         style={
                             styles.paymentHeader
@@ -2262,8 +2396,6 @@ function BookingCard({
                     </View>
 
 
-                    {/* MESSAGE */}
-
                     <Text
                         style={
                             styles.paymentMessage
@@ -2275,15 +2407,13 @@ function BookingCard({
 
                             : paymentDeadlineMissing
 
-                            ? 'Your booking is confirmed. The timer is unavailable. Please continue.'
+                            ? 'Your booking is confirmed and accepted by the salon. The payment timer is currently unavailable.'
 
                             : 'Your appointment has been accepted by the salon. Pay the ₹9 Clavata booking fee within 15 minutes to confirm your appointment.'}
                     </Text>
 
 
-                    {/* ================================================= */}
                     {/* COUNTDOWN */}
-                    {/* ================================================= */}
 
                     {paymentWindowActive && (
 
@@ -2329,9 +2459,7 @@ function BookingCard({
                     )}
 
 
-                    {/* ================================================= */}
                     {/* TIMER UNAVAILABLE */}
-                    {/* ================================================= */}
 
                     {paymentDeadlineMissing && (
 
@@ -2378,7 +2506,7 @@ function BookingCard({
                                         styles.timerUnavailableText
                                     }
                                 >
-                                    Your booking is confirmed. The timer is unavailable. Please continue.
+                                    Your booking has been accepted by the salon, but the payment deadline has not been returned yet.
                                 </Text>
 
                             </View>
@@ -2388,9 +2516,7 @@ function BookingCard({
                     )}
 
 
-                    {/* ================================================= */}
                     {/* EXPIRED */}
-                    {/* ================================================= */}
 
                     {paymentWindowExpired && (
 
@@ -2439,9 +2565,7 @@ function BookingCard({
                     )}
 
 
-                    {/* ================================================= */}
                     {/* AMOUNTS */}
-                    {/* ================================================= */}
 
                     <View
                         style={
@@ -2505,9 +2629,7 @@ function BookingCard({
                     </View>
 
 
-                    {/* ================================================= */}
                     {/* PAY BUTTON */}
-                    {/* ================================================= */}
 
                     {!paymentWindowExpired && (
 
@@ -2545,9 +2667,7 @@ function BookingCard({
                     )}
 
 
-                    {/* ================================================= */}
                     {/* EXPIRED BUTTON */}
-                    {/* ================================================= */}
 
                     {paymentWindowExpired && (
 
@@ -2578,8 +2698,7 @@ function BookingCard({
             {/* PAYMENT COMPLETED */}
             {/* ================================================= */}
 
-            {booking.bookingStatus ===
-                'CONFIRMED' &&
+            {salonAccepted &&
 
                 booking.bookingFeeStatus ===
                 'PAID' && (
@@ -2983,11 +3102,6 @@ const styles =
             paddingBottom: 40,
         },
 
-
-        // ======================================================
-        // HEADER
-        // ======================================================
-
         header: {
             flexDirection: 'row',
             alignItems: 'center',
@@ -3023,11 +3137,6 @@ const styles =
             fontWeight: '800',
         },
 
-
-        // ======================================================
-        // TABS
-        // ======================================================
-
         tabsContainer: {
             flexDirection: 'row',
             backgroundColor: COLORS.surface,
@@ -3061,22 +3170,12 @@ const styles =
             fontWeight: '700',
         },
 
-
-        // ======================================================
-        // RESULT COUNT
-        // ======================================================
-
         resultText: {
             fontSize: 12,
             color: COLORS.textMuted,
             marginBottom: 10,
             marginLeft: 2,
         },
-
-
-        // ======================================================
-        // CARD
-        // ======================================================
 
         card: {
             backgroundColor: COLORS.surface,
@@ -3085,23 +3184,15 @@ const styles =
             marginBottom: 13,
             borderWidth: 1,
             borderColor: COLORS.border,
-
             shadowColor: '#000',
-
             shadowOffset: {
                 width: 0,
                 height: 2,
             },
-
             shadowOpacity: 0.04,
             shadowRadius: 8,
             elevation: 2,
         },
-
-
-        // ======================================================
-        // CARD HEADER
-        // ======================================================
 
         cardHeader: {
             flexDirection: 'row',
@@ -3142,11 +3233,6 @@ const styles =
             color: COLORS.textSecondary,
         },
 
-
-        // ======================================================
-        // STATUS
-        // ======================================================
-
         statusBadge: {
             paddingHorizontal: 8,
             paddingVertical: 5,
@@ -3161,11 +3247,6 @@ const styles =
             fontWeight: '700',
             textAlign: 'center',
         },
-
-
-        // ======================================================
-        // SERVICES
-        // ======================================================
 
         servicesContainer: {
             marginTop: 13,
@@ -3252,21 +3333,11 @@ const styles =
             marginHorizontal: 12,
         },
 
-
-        // ======================================================
-        // DIVIDER
-        // ======================================================
-
         divider: {
             height: 1,
             backgroundColor: COLORS.border,
             marginVertical: 13,
         },
-
-
-        // ======================================================
-        // DETAILS
-        // ======================================================
 
         detailsRow: {
             flexDirection: 'row',
@@ -3307,11 +3378,6 @@ const styles =
             backgroundColor: COLORS.border,
             marginHorizontal: 10,
         },
-
-
-        // ======================================================
-        // PAYMENT
-        // ======================================================
 
         paymentCard: {
             marginTop: 13,
@@ -3357,26 +3423,16 @@ const styles =
             marginBottom: 12,
         },
 
-
-        // ======================================================
-        // COUNTDOWN
-        // ======================================================
-
         countdownCard: {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-
             backgroundColor: COLORS.white,
-
             borderWidth: 1,
             borderColor: '#F1D2AE',
-
             borderRadius: 11,
-
             paddingHorizontal: 11,
             paddingVertical: 10,
-
             marginBottom: 12,
         },
 
@@ -3400,24 +3456,14 @@ const styles =
             letterSpacing: 0.5,
         },
 
-
-        // ======================================================
-        // TIMER UNAVAILABLE
-        // ======================================================
-
         timerUnavailableCard: {
             flexDirection: 'row',
             alignItems: 'center',
-
             backgroundColor: '#FFFDF9',
-
             borderWidth: 1,
             borderColor: '#E9D9C6',
-
             borderRadius: 10,
-
             padding: 10,
-
             marginBottom: 12,
         },
 
@@ -3425,12 +3471,9 @@ const styles =
             width: 27,
             height: 27,
             borderRadius: 14,
-
             backgroundColor: '#8B4A10',
-
             alignItems: 'center',
             justifyContent: 'center',
-
             marginRight: 9,
         },
 
@@ -3457,24 +3500,14 @@ const styles =
             color: COLORS.textSecondary,
         },
 
-
-        // ======================================================
-        // EXPIRED
-        // ======================================================
-
         expiredCard: {
             flexDirection: 'row',
             alignItems: 'center',
-
             backgroundColor: '#FBEFEF',
-
             borderWidth: 1,
             borderColor: '#EBCACA',
-
             borderRadius: 10,
-
             padding: 10,
-
             marginBottom: 12,
         },
 
@@ -3482,17 +3515,12 @@ const styles =
             width: 27,
             height: 27,
             borderRadius: 14,
-
             backgroundColor: '#A33A3A',
-
             color: COLORS.white,
-
             textAlign: 'center',
             lineHeight: 27,
-
             fontSize: 14,
             fontWeight: '800',
-
             marginRight: 9,
         },
 
@@ -3525,11 +3553,6 @@ const styles =
             fontWeight: '700',
             color: '#888888',
         },
-
-
-        // ======================================================
-        // PAYMENT AMOUNT
-        // ======================================================
 
         paymentAmountRow: {
             flexDirection: 'row',
@@ -3566,92 +3589,52 @@ const styles =
             color: COLORS.textSecondary,
         },
 
-
-        // ======================================================
-        // PAY BUTTON
-        // ======================================================
-
         payNowButton: {
             height: 46,
-
-            backgroundColor:
-                COLORS.primary,
-
+            backgroundColor: COLORS.primary,
             borderRadius: 11,
-
             flexDirection: 'row',
-
             alignItems: 'center',
-
             justifyContent: 'center',
-
             marginTop: 2,
         },
 
         payNowText: {
-            color:
-                COLORS.white,
-
+            color: COLORS.white,
             fontSize: 13,
-
             fontWeight: '800',
         },
 
         payNowArrow: {
-            color:
-                COLORS.white,
-
+            color: COLORS.white,
             fontSize: 18,
-
             marginLeft: 7,
         },
 
-
-        // ======================================================
-        // CONFIRMED
-        // ======================================================
-
         confirmedCard: {
             marginTop: 13,
-
             backgroundColor: '#F5F5F5',
-
             borderWidth: 1,
-
-            borderColor:
-                COLORS.border,
-
+            borderColor: COLORS.border,
             borderRadius: 13,
-
             padding: 12,
-
             flexDirection: 'row',
-
-            alignItems:
-                'flex-start',
+            alignItems: 'flex-start',
         },
 
         confirmedIcon: {
             width: 28,
             height: 28,
-
             borderRadius: 14,
-
-            backgroundColor:
-                COLORS.primary,
-
+            backgroundColor: COLORS.primary,
             alignItems: 'center',
             justifyContent: 'center',
-
             marginRight: 9,
         },
 
         confirmedIconText: {
-            color:
-                COLORS.white,
-
+            color: COLORS.white,
             fontSize: 13,
-
             fontWeight: '800',
         },
 
@@ -3661,116 +3644,68 @@ const styles =
 
         confirmedTitle: {
             fontSize: 13,
-
             fontWeight: '700',
-
-            color:
-                COLORS.text,
-
+            color: COLORS.text,
             marginBottom: 3,
         },
 
         confirmedMessage: {
             fontSize: 11,
-
             lineHeight: 16,
-
-            color:
-                COLORS.textSecondary,
+            color: COLORS.textSecondary,
         },
-
-
-        // ======================================================
-        // REFUND
-        // ======================================================
 
         refundCompletedCard: {
             marginTop: 13,
-
-            backgroundColor:
-                '#F5F5F5',
-
+            backgroundColor: '#F5F5F5',
             borderWidth: 1,
-
-            borderColor:
-                COLORS.border,
-
+            borderColor: COLORS.border,
             borderRadius: 13,
-
             padding: 12,
-
             flexDirection: 'row',
-
-            alignItems:
-                'flex-start',
+            alignItems: 'flex-start',
         },
 
         refundIcon: {
             width: 28,
             height: 28,
-
             borderRadius: 14,
-
-            backgroundColor:
-                COLORS.primary,
-
+            backgroundColor: COLORS.primary,
             alignItems: 'center',
             justifyContent: 'center',
-
             marginRight: 9,
         },
 
         refundIconText: {
-            color:
-                COLORS.white,
-
+            color: COLORS.white,
             fontSize: 13,
-
             fontWeight: '800',
         },
 
         refundPendingCard: {
             marginTop: 13,
-
-            backgroundColor:
-                '#FFF8EF',
-
+            backgroundColor: '#FFF8EF',
             borderWidth: 1,
-
-            borderColor:
-                '#F1D2AE',
-
+            borderColor: '#F1D2AE',
             borderRadius: 13,
-
             padding: 12,
-
             flexDirection: 'row',
-
-            alignItems:
-                'flex-start',
+            alignItems: 'flex-start',
         },
 
         refundPendingIcon: {
             width: 28,
             height: 28,
-
             borderRadius: 14,
-
-            backgroundColor:
-                '#8B4A10',
-
+            backgroundColor: '#8B4A10',
             alignItems: 'center',
             justifyContent: 'center',
-
             marginRight: 9,
         },
 
         refundPendingIconText: {
-            color:
-                COLORS.white,
-
+            color: COLORS.white,
             fontSize: 12,
-
             fontWeight: '800',
         },
 
@@ -3780,82 +3715,48 @@ const styles =
 
         refundTitle: {
             fontSize: 13,
-
             fontWeight: '700',
-
-            color:
-                COLORS.text,
-
+            color: COLORS.text,
             marginBottom: 3,
         },
 
         refundPendingTitle: {
             fontSize: 13,
-
             fontWeight: '700',
-
-            color:
-                '#8B4A10',
-
+            color: '#8B4A10',
             marginBottom: 3,
         },
 
         refundMessage: {
             fontSize: 11,
-
             lineHeight: 16,
-
-            color:
-                COLORS.textSecondary,
+            color: COLORS.textSecondary,
         },
-
-
-        // ======================================================
-        // EXPIRED HISTORY
-        // ======================================================
 
         expiredHistoryCard: {
             marginTop: 13,
-
-            backgroundColor:
-                '#FBEFEF',
-
+            backgroundColor: '#FBEFEF',
             borderWidth: 1,
-
-            borderColor:
-                '#EBCACA',
-
+            borderColor: '#EBCACA',
             borderRadius: 13,
-
             padding: 12,
-
             flexDirection: 'row',
-
-            alignItems:
-                'flex-start',
+            alignItems: 'flex-start',
         },
 
         expiredHistoryIcon: {
             width: 28,
             height: 28,
-
             borderRadius: 14,
-
-            backgroundColor:
-                '#A33A3A',
-
+            backgroundColor: '#A33A3A',
             alignItems: 'center',
             justifyContent: 'center',
-
             marginRight: 9,
         },
 
         expiredHistoryIconText: {
-            color:
-                COLORS.white,
-
+            color: COLORS.white,
             fontSize: 13,
-
             fontWeight: '800',
         },
 
@@ -3865,28 +3766,16 @@ const styles =
 
         expiredHistoryTitle: {
             fontSize: 13,
-
             fontWeight: '700',
-
-            color:
-                '#A33A3A',
-
+            color: '#A33A3A',
             marginBottom: 3,
         },
 
         expiredHistoryText: {
             fontSize: 11,
-
             lineHeight: 16,
-
-            color:
-                COLORS.textSecondary,
+            color: COLORS.textSecondary,
         },
-
-
-        // ======================================================
-        // BUTTONS
-        // ======================================================
 
         buttons: {
             flexDirection: 'row',
@@ -3896,63 +3785,40 @@ const styles =
 
         cancelButton: {
             flex: 0.8,
-
             height: 42,
-
             borderRadius: 10,
-
             borderWidth: 1,
-
-            borderColor:
-                COLORS.borderStrong,
-
+            borderColor: COLORS.borderStrong,
             alignItems: 'center',
             justifyContent: 'center',
-
-            backgroundColor:
-                COLORS.white,
+            backgroundColor: COLORS.white,
         },
 
         cancelButtonText: {
             fontSize: 12,
-
             fontWeight: '700',
-
-            color:
-                COLORS.textSecondary,
+            color: COLORS.textSecondary,
         },
 
         viewButton: {
             flex: 1.4,
-
             height: 42,
-
             borderRadius: 10,
-
-            backgroundColor:
-                COLORS.primary,
-
+            backgroundColor: COLORS.primary,
             flexDirection: 'row',
-
             alignItems: 'center',
             justifyContent: 'center',
         },
 
         viewButtonText: {
             fontSize: 12,
-
             fontWeight: '700',
-
-            color:
-                COLORS.white,
+            color: COLORS.white,
         },
 
         viewButtonArrow: {
             fontSize: 16,
-
-            color:
-                COLORS.white,
-
+            color: COLORS.white,
             marginLeft: 6,
         },
 
@@ -3966,113 +3832,68 @@ const styles =
 
         bookAgainButton: {
             marginTop: 13,
-
             height: 42,
-
             borderRadius: 10,
-
             borderWidth: 1,
-
-            borderColor:
-                COLORS.primary,
-
-            backgroundColor:
-                COLORS.white,
-
+            borderColor: COLORS.primary,
+            backgroundColor: COLORS.white,
             flexDirection: 'row',
-
             alignItems: 'center',
             justifyContent: 'center',
         },
 
         bookAgainText: {
             fontSize: 12,
-
             fontWeight: '700',
-
-            color:
-                COLORS.primary,
+            color: COLORS.primary,
         },
 
         bookAgainArrow: {
             marginLeft: 6,
-
             fontSize: 16,
-
-            color:
-                COLORS.primary,
+            color: COLORS.primary,
         },
-
-
-        // ======================================================
-        // EMPTY
-        // ======================================================
 
         emptyContainer: {
             alignItems: 'center',
             justifyContent: 'center',
-
             paddingVertical: 70,
-
             paddingHorizontal: 30,
         },
 
         emptyIcon: {
             width: 68,
             height: 68,
-
             borderRadius: 22,
-
-            backgroundColor:
-                COLORS.badgeColor,
-
+            backgroundColor: COLORS.badgeColor,
             alignItems: 'center',
             justifyContent: 'center',
-
             marginBottom: 16,
         },
 
         emptyIconText: {
             fontSize: 28,
-
-            color:
-                COLORS.primary,
-
+            color: COLORS.primary,
             fontWeight: '700',
         },
 
         emptyTitle: {
             fontSize: 18,
-
             fontWeight: '700',
-
-            color:
-                COLORS.text,
+            color: COLORS.text,
         },
 
         emptyText: {
             marginTop: 7,
-
             fontSize: 13,
-
             lineHeight: 19,
-
-            color:
-                COLORS.textSecondary,
-
+            color: COLORS.textSecondary,
             textAlign: 'center',
-
             maxWidth: 290,
         },
 
-
-        // ======================================================
-        // LOADING
-        // ======================================================
-
         loadingContainer: {
             flex: 1,
-
             alignItems: 'center',
             justifyContent: 'center',
         },
@@ -4080,129 +3901,77 @@ const styles =
         loadingCircle: {
             width: 34,
             height: 34,
-
             borderRadius: 17,
-
             borderWidth: 3,
-
-            borderColor:
-                COLORS.borderStrong,
-
-            borderTopColor:
-                COLORS.primary,
-
+            borderColor: COLORS.borderStrong,
+            borderTopColor: COLORS.primary,
             marginBottom: 12,
         },
 
         loadingText: {
             fontSize: 13,
-
-            color:
-                COLORS.textSecondary,
+            color: COLORS.textSecondary,
         },
-
-
-        // ======================================================
-        // ERROR
-        // ======================================================
 
         errorContainer: {
             flex: 1,
-
             alignItems: 'center',
             justifyContent: 'center',
-
             padding: 30,
         },
 
         errorIcon: {
             width: 54,
             height: 54,
-
             borderRadius: 18,
-
-            backgroundColor:
-                COLORS.badgeColor,
-
+            backgroundColor: COLORS.badgeColor,
             alignItems: 'center',
             justifyContent: 'center',
-
             marginBottom: 14,
         },
 
         errorIconText: {
             fontSize: 22,
-
             fontWeight: '800',
-
-            color:
-                '#A33A3A',
+            color: '#A33A3A',
         },
 
         errorTitle: {
             fontSize: 18,
-
             fontWeight: '700',
-
-            color:
-                COLORS.text,
-
+            color: COLORS.text,
             marginBottom: 6,
         },
 
         errorMessage: {
             fontSize: 12,
-
             lineHeight: 18,
-
-            color:
-                COLORS.textSecondary,
-
+            color: COLORS.textSecondary,
             textAlign: 'center',
         },
 
         retryButton: {
             marginTop: 18,
-
             paddingHorizontal: 24,
-
             height: 42,
-
             borderRadius: 10,
-
-            backgroundColor:
-                COLORS.primary,
-
+            backgroundColor: COLORS.primary,
             alignItems: 'center',
             justifyContent: 'center',
         },
 
         retryText: {
-            color:
-                COLORS.white,
-
+            color: COLORS.white,
             fontSize: 13,
-
             fontWeight: '700',
         },
 
-
-        // ======================================================
-        // FOOTER
-        // ======================================================
-
         footer: {
             textAlign: 'center',
-
             marginTop: 10,
-
             fontSize: 11,
-
-            color:
-                COLORS.textMuted,
-
+            color: COLORS.textMuted,
             paddingHorizontal: 20,
-
             lineHeight: 17,
         },
 

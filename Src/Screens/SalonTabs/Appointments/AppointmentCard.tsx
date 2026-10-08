@@ -84,7 +84,6 @@ export type Booking = {
 
   remainingAmount?: number | null;
 
-  // Customer payment window
   bookingFeePaymentDeadline?: string | null;
   bookingFeePaymentWindowMinutes?: number | null;
 
@@ -134,12 +133,6 @@ type AppointmentCardProps = {
 
   onComplete: () => Promise<void>;
 
-  /**
-   * Called when the salon response countdown reaches zero.
-   *
-   * Parent screen should call refetch() here so the backend
-   * can return the booking's latest expired state.
-   */
   onTimerExpired?: () => void | Promise<void>;
 };
 
@@ -263,15 +256,6 @@ const getStatusColor = (
 // DEADLINE HELPERS
 // ============================================================
 
-/**
- * Converts backend deadline into milliseconds.
- *
- * Supports:
- *
- * - ISO strings
- * - numeric timestamps
- * - numeric strings
- */
 const getDeadlineMs = (
   deadline?: string | number | null,
 ): number => {
@@ -293,7 +277,6 @@ const getDeadlineMs = (
   const value =
     String(deadline);
 
-  // Numeric timestamp
   if (/^\d+$/.test(value)) {
     const numericValue =
       Number(value);
@@ -315,11 +298,6 @@ const getDeadlineMs = (
     : 0;
 };
 
-/**
- * Returns remaining seconds until deadline.
- *
- * Same calculation used by Dashboard.
- */
 const getRemainingSeconds = (
   deadline?: string | number | null,
   nowMs: number = Date.now(),
@@ -343,18 +321,6 @@ const getRemainingSeconds = (
   );
 };
 
-/**
- * Formats:
- *
- * 65 seconds
- * -> 01:05
- *
- * 10 minutes
- * -> 10:00
- *
- * 1 hour 5 minutes
- * -> 1:05:00
- */
 const formatCountdown = (
   totalSeconds: number,
 ): string => {
@@ -417,7 +383,6 @@ const AppointmentCard: React.FC<
     setDetailsVisible,
   ] = React.useState(false);
 
-
   // ==========================================================
   // ACTION LOADING
   // ==========================================================
@@ -427,19 +392,10 @@ const AppointmentCard: React.FC<
     setActionLoading,
   ] = React.useState(false);
 
-
   // ==========================================================
   // LOCAL CLOCK
   // ==========================================================
 
-  /**
-   * Updates every second.
-   *
-   * This drives:
-   *
-   * 1. Salon response timer
-   * 2. Customer ₹9 payment timer
-   */
   const [
     nowMs,
     setNowMs,
@@ -447,29 +403,16 @@ const AppointmentCard: React.FC<
     () => Date.now(),
   );
 
-
   React.useEffect(() => {
-
     const timer =
       setInterval(() => {
-
-        setNowMs(
-          Date.now(),
-        );
-
+        setNowMs(Date.now());
       }, 1000);
 
-
     return () => {
-
-      clearInterval(
-        timer,
-      );
-
+      clearInterval(timer);
     };
-
   }, []);
-
 
   // ==========================================================
   // SERVICES
@@ -477,14 +420,12 @@ const AppointmentCard: React.FC<
 
   const services =
     React.useMemo(() => {
-
       const rawServices =
         Array.isArray(
           booking?.services,
         )
           ? booking.services
           : [];
-
 
       return rawServices.map(
         (
@@ -531,11 +472,9 @@ const AppointmentCard: React.FC<
             null,
         }),
       );
-
     }, [
       booking?.services,
     ]);
-
 
   // ==========================================================
   // STATUS
@@ -547,13 +486,11 @@ const AppointmentCard: React.FC<
         '',
     ).toUpperCase();
 
-
   const bookingFeeStatus =
     String(
       booking?.bookingFeeStatus ||
         '',
     ).toUpperCase();
-
 
   const salonResponseStatus =
     String(
@@ -561,60 +498,32 @@ const AppointmentCard: React.FC<
         '',
     ).toUpperCase();
 
-
   const statusColor =
     getStatusColor(
       bookingStatus,
     );
 
-
   // ==========================================================
-  // COMPLETION STATE
+  // COMPLETION
   // ==========================================================
 
-  /**
-   * Salon can mark completed ONLY when:
-   *
-   * bookingStatus === CONFIRMED
-   *
-   * AND
-   *
-   * bookingFeeStatus === PAID
-   */
   const bookingFeePaid =
     bookingFeeStatus === 'PAID';
-
 
   const canMarkCompleted =
     bookingStatus ===
       'CONFIRMED' &&
     bookingFeePaid;
 
-
   // ==========================================================
-  // SALON RESPONSE TIMER
+  // SALON RESPONSE DEADLINE
   // ==========================================================
-
-  /**
-   * IMPORTANT:
-   *
-   * This is the salon acceptance/rejection timer.
-   *
-   * Source of truth:
-   *
-   * booking.salonResponseDeadline
-   *
-   * There is intentionally NO createdAt fallback here.
-   *
-   * This matches Dashboard exactly.
-   */
 
   const salonResponseDeadline =
     booking?.salonResponseDeadline;
 
-
   // ==========================================================
-  // SALON RESPONSE REMAINING
+  // SALON RESPONSE TIMER
   // ==========================================================
 
   const salonResponseRemainingSeconds =
@@ -627,7 +536,6 @@ const AppointmentCard: React.FC<
         return 0;
       }
 
-
       if (
         salonResponseStatus !==
         'PENDING'
@@ -635,13 +543,11 @@ const AppointmentCard: React.FC<
         return 0;
       }
 
-
       if (
         !salonResponseDeadline
       ) {
         return 0;
       }
-
 
       return getRemainingSeconds(
         salonResponseDeadline,
@@ -655,14 +561,8 @@ const AppointmentCard: React.FC<
       nowMs,
     ]);
 
-
-  // ==========================================================
-  // SALON TIMER STATES
-  // ==========================================================
-
   const hasSalonResponseTimer =
     !!salonResponseDeadline;
-
 
   const salonResponseExpired =
     bookingStatus ===
@@ -673,7 +573,6 @@ const AppointmentCard: React.FC<
     salonResponseRemainingSeconds <=
       0;
 
-
   const showSalonResponseTimer =
     bookingStatus ===
       'PENDING' &&
@@ -683,7 +582,6 @@ const AppointmentCard: React.FC<
     salonResponseRemainingSeconds >
       0;
 
-
   const salonResponseTimerUnavailable =
     bookingStatus ===
       'PENDING' &&
@@ -691,48 +589,22 @@ const AppointmentCard: React.FC<
       'PENDING' &&
     !hasSalonResponseTimer;
 
-
   // ==========================================================
-  // NOTIFY PARENT WHEN TIMER EXPIRES
+  // TIMER EXPIRY CALLBACK
   // ==========================================================
-
-  /**
-   * The AppointmentCard itself must NOT attempt to change
-   * bookingStatus.
-   *
-   * The backend is the source of truth.
-   *
-   * Therefore:
-   *
-   * Card reaches 00:00
-   *        ↓
-   * onTimerExpired()
-   *        ↓
-   * Parent refetch()
-   *        ↓
-   * Backend returns latest booking state
-   */
 
   const timerExpiryNotifiedRef =
     React.useRef(false);
 
-
   React.useEffect(() => {
-
-    /**
-     * Reset notification state whenever the booking
-     * gets a new deadline/status.
-     */
     timerExpiryNotifiedRef.current =
       false;
-
   }, [
     booking?.bookingId,
     salonResponseDeadline,
     salonResponseStatus,
     bookingStatus,
   ]);
-
 
   React.useEffect(() => {
 
@@ -743,7 +615,6 @@ const AppointmentCard: React.FC<
       return;
     }
 
-
     if (
       salonResponseStatus !==
       'PENDING'
@@ -751,13 +622,11 @@ const AppointmentCard: React.FC<
       return;
     }
 
-
     if (
       !salonResponseDeadline
     ) {
       return;
     }
-
 
     if (
       salonResponseRemainingSeconds >
@@ -766,39 +635,31 @@ const AppointmentCard: React.FC<
       return;
     }
 
-
     if (
       timerExpiryNotifiedRef.current
     ) {
       return;
     }
 
-
     timerExpiryNotifiedRef.current =
       true;
-
 
     console.log(
       '[AppointmentCard] salon response timer expired:',
       booking?.bookingId,
     );
 
-
     if (onTimerExpired) {
-
       Promise.resolve(
         onTimerExpired(),
       ).catch(
         error => {
-
           console.log(
             '[AppointmentCard] timer expiry callback error:',
             error,
           );
-
         },
       );
-
     }
 
   }, [
@@ -810,24 +671,12 @@ const AppointmentCard: React.FC<
     onTimerExpired,
   ]);
 
-
   // ==========================================================
   // CUSTOMER ₹9 PAYMENT TIMER
   // ==========================================================
 
-  /**
-   * This timer starts ONLY after salon confirmation.
-   *
-   * CONFIRMED
-   * +
-   * bookingFeeStatus === PENDING
-   * +
-   * bookingFeePaymentDeadline
-   */
-
   const paymentDeadline =
     booking?.bookingFeePaymentDeadline;
-
 
   const paymentRemainingSeconds =
     React.useMemo(() => {
@@ -839,7 +688,6 @@ const AppointmentCard: React.FC<
         return 0;
       }
 
-
       if (
         bookingFeeStatus !==
         'PENDING'
@@ -847,13 +695,11 @@ const AppointmentCard: React.FC<
         return 0;
       }
 
-
       if (
         !paymentDeadline
       ) {
         return 0;
       }
-
 
       return getRemainingSeconds(
         paymentDeadline,
@@ -867,10 +713,8 @@ const AppointmentCard: React.FC<
       nowMs,
     ]);
 
-
   const hasPaymentDeadline =
     !!paymentDeadline;
-
 
   const paymentWindowExpired =
     bookingStatus ===
@@ -881,7 +725,6 @@ const AppointmentCard: React.FC<
     paymentRemainingSeconds <=
       0;
 
-
   const showPaymentTimer =
     bookingStatus ===
       'CONFIRMED' &&
@@ -891,7 +734,6 @@ const AppointmentCard: React.FC<
     paymentRemainingSeconds >
       0;
 
-
   const showPaymentPendingWithoutDeadline =
     bookingStatus ===
       'CONFIRMED' &&
@@ -899,31 +741,8 @@ const AppointmentCard: React.FC<
       'PENDING' &&
     !hasPaymentDeadline;
 
-
   // ==========================================================
-  // COMPLETE
-  // ==========================================================
-
-  const handleComplete =
-    async () => {
-
-      // Completion is impossible before ₹9 is paid.
-      if (
-        !canMarkCompleted
-      ) {
-        return;
-      }
-
-
-      await handleAction(
-        onComplete,
-      );
-
-    };
-
-
-  // ==========================================================
-  // ACTION
+  // ACTION HANDLER
   // ==========================================================
 
   const handleAction =
@@ -931,37 +750,31 @@ const AppointmentCard: React.FC<
       action: () => Promise<void>,
     ) => {
 
-      if (
-        actionLoading
-      ) {
+      if (actionLoading) {
         return;
       }
 
-
       try {
 
-        setActionLoading(
-          true,
-        );
-
+        setActionLoading(true);
 
         await action();
 
+        setDetailsVisible(false);
 
-        setDetailsVisible(
-          false,
+      } catch (error) {
+
+        console.log(
+          '[AppointmentCard] ACTION ERROR:',
+          error,
         );
 
       } finally {
 
-        setActionLoading(
-          false,
-        );
+        setActionLoading(false);
 
       }
-
     };
-
 
   // ==========================================================
   // ACCEPT
@@ -970,46 +783,110 @@ const AppointmentCard: React.FC<
   const handleAccept =
     async () => {
 
-      /**
-       * Never allow acceptance if booking is not pending.
-       */
+      console.log(
+        '====================================================',
+      );
+
+      console.log(
+        '[AppointmentCard] ACCEPT BUTTON PRESSED',
+      );
+
+      console.log(
+        '[AppointmentCard] bookingId:',
+        booking?.bookingId,
+      );
+
+      console.log(
+        '[AppointmentCard] bookingStatus:',
+        bookingStatus,
+      );
+
+      console.log(
+        '[AppointmentCard] salonResponseStatus:',
+        salonResponseStatus,
+      );
+
+      console.log(
+        '[AppointmentCard] salonResponseDeadline:',
+        salonResponseDeadline,
+      );
+
+      console.log(
+        '[AppointmentCard] salonResponseRemainingSeconds:',
+        salonResponseRemainingSeconds,
+      );
+
+      console.log(
+        '[AppointmentCard] salonResponseExpired:',
+        salonResponseExpired,
+      );
+
+      console.log(
+        '[AppointmentCard] salonResponseTimerUnavailable:',
+        salonResponseTimerUnavailable,
+      );
+
+      console.log(
+        '[AppointmentCard] actionLoading:',
+        actionLoading,
+      );
+
+      console.log(
+        '====================================================',
+      );
+
       if (
         bookingStatus !==
         'PENDING'
       ) {
+
+        console.log(
+          '[AppointmentCard] ACCEPT BLOCKED: booking is not PENDING',
+        );
+
         return;
       }
 
-
-      /**
-       * Never allow acceptance after timer expiry.
-       */
       if (
         salonResponseExpired
       ) {
+
+        console.log(
+          '[AppointmentCard] ACCEPT BLOCKED: response timer expired',
+        );
+
         return;
       }
 
-
-      /**
-       * Never allow acceptance when there is no
-       * backend response deadline.
-       *
-       * This prevents an apparently unlimited request.
-       */
       if (
         salonResponseTimerUnavailable
       ) {
+
+        console.log(
+          '[AppointmentCard] ACCEPT BLOCKED: response timer unavailable',
+        );
+
         return;
       }
 
+      if (actionLoading) {
+
+        console.log(
+          '[AppointmentCard] ACCEPT BLOCKED: action already loading',
+        );
+
+        return;
+      }
+
+      console.log(
+        '[AppointmentCard] CALLING onAccept()',
+      );
 
       await handleAction(
         onAccept,
       );
 
     };
-
 
   // ==========================================================
   // REJECT
@@ -1018,27 +895,48 @@ const AppointmentCard: React.FC<
   const handleReject =
     async () => {
 
+      console.log(
+        '[AppointmentCard] REJECT BUTTON PRESSED:',
+        booking?.bookingId,
+      );
+
       if (
         bookingStatus !==
         'PENDING'
       ) {
+
+        console.log(
+          '[AppointmentCard] REJECT BLOCKED: booking is not PENDING',
+        );
+
         return;
       }
-
 
       if (
         salonResponseExpired
       ) {
+
+        console.log(
+          '[AppointmentCard] REJECT BLOCKED: timer expired',
+        );
+
         return;
       }
-
 
       if (
         salonResponseTimerUnavailable
       ) {
+
+        console.log(
+          '[AppointmentCard] REJECT BLOCKED: timer unavailable',
+        );
+
         return;
       }
 
+      if (actionLoading) {
+        return;
+      }
 
       await handleAction(
         onReject,
@@ -1046,10 +944,45 @@ const AppointmentCard: React.FC<
 
     };
 
+  // ==========================================================
+  // COMPLETE
+  // ==========================================================
+
+  const handleComplete =
+    async () => {
+
+      console.log(
+        '[AppointmentCard] COMPLETE PRESSED:',
+        booking?.bookingId,
+      );
+
+      if (
+        !canMarkCompleted
+      ) {
+
+        console.log(
+          '[AppointmentCard] COMPLETE BLOCKED:',
+          {
+            bookingStatus,
+            bookingFeeStatus,
+          },
+        );
+
+        return;
+      }
+
+      await handleAction(
+        onComplete,
+      );
+
+    };
+
+  // ==========================================================
+  // SERVICE COUNT
+  // ==========================================================
 
   const serviceCount =
     services.length;
-
 
   // ==========================================================
   // MAIN CARD
@@ -1061,9 +994,7 @@ const AppointmentCard: React.FC<
         style={styles.card}
       >
 
-        {/* ==================================================
-            TOP ROW
-        ================================================== */}
+        {/* TOP ROW */}
 
         <View
           style={styles.topRow}
@@ -1096,7 +1027,6 @@ const AppointmentCard: React.FC<
 
           </View>
 
-
           <View
             style={[
               styles.statusBadge,
@@ -1124,10 +1054,7 @@ const AppointmentCard: React.FC<
 
         </View>
 
-
-        {/* ==================================================
-            DATE / TIME
-        ================================================== */}
+        {/* DATE / TIME */}
 
         <View
           style={styles.infoRow}
@@ -1156,7 +1083,6 @@ const AppointmentCard: React.FC<
             </Text>
 
           </View>
-
 
           <View
             style={styles.infoItem}
@@ -1187,10 +1113,7 @@ const AppointmentCard: React.FC<
 
         </View>
 
-
-        {/* ==================================================
-            BOTTOM SUMMARY
-        ================================================== */}
+        {/* SUMMARY */}
 
         <View
           style={
@@ -1221,7 +1144,6 @@ const AppointmentCard: React.FC<
 
           </View>
 
-
           <View
             style={
               styles.totalSection
@@ -1250,13 +1172,9 @@ const AppointmentCard: React.FC<
 
         </View>
 
-
-        {/* ==================================================
-            SALON RESPONSE TIMER
-        ================================================== */}
+        {/* SALON RESPONSE TIMER */}
 
         {showSalonResponseTimer && (
-
           <View
             style={
               styles.salonResponseTimerBox
@@ -1285,7 +1203,6 @@ const AppointmentCard: React.FC<
 
             </View>
 
-
             <View
               style={
                 styles.salonResponseTimerContent
@@ -1300,7 +1217,6 @@ const AppointmentCard: React.FC<
                 Time remaining
               </Text>
 
-
               <Text
                 style={
                   styles.salonResponseTimerValue
@@ -1313,7 +1229,6 @@ const AppointmentCard: React.FC<
 
             </View>
 
-
             <Text
               style={
                 styles.salonResponseTimerHint
@@ -1324,16 +1239,11 @@ const AppointmentCard: React.FC<
             </Text>
 
           </View>
-
         )}
 
-
-        {/* ==================================================
-            SALON RESPONSE TIMER EXPIRED
-        ================================================== */}
+        {/* SALON RESPONSE EXPIRED */}
 
         {salonResponseExpired && (
-
           <View
             style={
               styles.salonResponseExpiredBox
@@ -1348,7 +1258,6 @@ const AppointmentCard: React.FC<
               Booking request expired
             </Text>
 
-
             <Text
               style={
                 styles.salonResponseExpiredText
@@ -1360,16 +1269,11 @@ const AppointmentCard: React.FC<
             </Text>
 
           </View>
-
         )}
 
-
-        {/* ==================================================
-            SALON RESPONSE TIMER UNAVAILABLE
-        ================================================== */}
+        {/* SALON RESPONSE UNAVAILABLE */}
 
         {salonResponseTimerUnavailable && (
-
           <View
             style={
               styles.salonResponseUnavailableBox
@@ -1384,7 +1288,6 @@ const AppointmentCard: React.FC<
               Response timer unavailable
             </Text>
 
-
             <Text
               style={
                 styles.salonResponseUnavailableText
@@ -1396,16 +1299,11 @@ const AppointmentCard: React.FC<
             </Text>
 
           </View>
-
         )}
 
-
-        {/* ==================================================
-            ₹9 CUSTOMER PAYMENT TIMER
-        ================================================== */}
+        {/* CUSTOMER PAYMENT TIMER */}
 
         {showPaymentTimer && (
-
           <View
             style={
               styles.paymentTimerBox
@@ -1434,7 +1332,6 @@ const AppointmentCard: React.FC<
 
             </View>
 
-
             <View
               style={
                 styles.paymentTimerContent
@@ -1449,7 +1346,6 @@ const AppointmentCard: React.FC<
                 Customer payment window
               </Text>
 
-
               <Text
                 style={
                   styles.paymentTimerValue
@@ -1463,16 +1359,11 @@ const AppointmentCard: React.FC<
             </View>
 
           </View>
-
         )}
 
-
-        {/* ==================================================
-            PAYMENT WINDOW EXPIRED
-        ================================================== */}
+        {/* PAYMENT WINDOW EXPIRED */}
 
         {paymentWindowExpired && (
-
           <View
             style={
               styles.paymentExpiredBox
@@ -1487,7 +1378,6 @@ const AppointmentCard: React.FC<
               ₹9 payment window expired
             </Text>
 
-
             <Text
               style={
                 styles.paymentExpiredText
@@ -1499,16 +1389,11 @@ const AppointmentCard: React.FC<
             </Text>
 
           </View>
-
         )}
 
-
-        {/* ==================================================
-            CONFIRMED BUT NO PAYMENT DEADLINE
-        ================================================== */}
+        {/* CONFIRMED BUT NO PAYMENT DEADLINE */}
 
         {showPaymentPendingWithoutDeadline && (
-
           <View
             style={
               styles.paymentWaitingBox
@@ -1523,7 +1408,6 @@ const AppointmentCard: React.FC<
               Waiting for customer payment
             </Text>
 
-
             <Text
               style={
                 styles.paymentWaitingText
@@ -1534,13 +1418,9 @@ const AppointmentCard: React.FC<
             </Text>
 
           </View>
-
         )}
 
-
-        {/* ==================================================
-            VIEW DETAILS
-        ================================================== */}
+        {/* VIEW DETAILS */}
 
         <TouchableOpacity
           style={
@@ -1548,9 +1428,7 @@ const AppointmentCard: React.FC<
           }
           activeOpacity={0.8}
           onPress={() =>
-            setDetailsVisible(
-              true,
-            )
+            setDetailsVisible(true)
           }
         >
 
@@ -1568,16 +1446,12 @@ const AppointmentCard: React.FC<
 
         </TouchableOpacity>
 
-
-        {/* ==================================================
-            MAIN CARD ACTIONS
-        ================================================== */}
+        {/* MAIN ACTIONS */}
 
         {bookingStatus ===
           'PENDING' &&
           !salonResponseExpired &&
           !salonResponseTimerUnavailable && (
-
             <View
               style={
                 styles.actionsRow
@@ -1601,13 +1475,10 @@ const AppointmentCard: React.FC<
               >
 
                 {actionLoading ? (
-
                   <ActivityIndicator
                     size="small"
                   />
-
                 ) : (
-
                   <Text
                     style={
                       styles.rejectText
@@ -1615,11 +1486,9 @@ const AppointmentCard: React.FC<
                   >
                     Reject
                   </Text>
-
                 )}
 
               </TouchableOpacity>
-
 
               {/* ACCEPT */}
 
@@ -1641,14 +1510,11 @@ const AppointmentCard: React.FC<
               >
 
                 {actionLoading ? (
-
                   <ActivityIndicator
                     size="small"
                     color="#FFFFFF"
                   />
-
                 ) : (
-
                   <Text
                     style={
                       styles.acceptText
@@ -1656,22 +1522,16 @@ const AppointmentCard: React.FC<
                   >
                     Accept
                   </Text>
-
                 )}
 
               </TouchableOpacity>
 
             </View>
-
           )}
 
-
-        {/* ==================================================
-            CONFIRMED + PAID
-        ================================================== */}
+        {/* CONFIRMED + PAID */}
 
         {canMarkCompleted && (
-
           <TouchableOpacity
             style={[
               styles.completeButton,
@@ -1690,14 +1550,11 @@ const AppointmentCard: React.FC<
           >
 
             {actionLoading ? (
-
               <ActivityIndicator
                 size="small"
                 color="#FFFFFF"
               />
-
             ) : (
-
               <Text
                 style={
                   styles.completeText
@@ -1705,17 +1562,12 @@ const AppointmentCard: React.FC<
               >
                 Mark as Completed
               </Text>
-
             )}
 
           </TouchableOpacity>
-
         )}
 
-
-        {/* ==================================================
-            CONFIRMED BUT CUSTOMER HAS NOT PAID
-        ================================================== */}
+        {/* CONFIRMED BUT NOT PAID */}
 
         {bookingStatus ===
           'CONFIRMED' &&
@@ -1723,7 +1575,6 @@ const AppointmentCard: React.FC<
           !showPaymentTimer &&
           !paymentWindowExpired &&
           !showPaymentPendingWithoutDeadline && (
-
             <View
               style={
                 styles.paymentWaitingBox
@@ -1738,7 +1589,6 @@ const AppointmentCard: React.FC<
                 Waiting for customer payment
               </Text>
 
-
               <Text
                 style={
                   styles.paymentWaitingText
@@ -1750,15 +1600,13 @@ const AppointmentCard: React.FC<
               </Text>
 
             </View>
-
           )}
 
       </View>
 
-
-      {/* ====================================================
+      {/* ======================================================
           DETAILS MODAL
-      ==================================================== */}
+      ====================================================== */}
 
       <Modal
         visible={
@@ -1767,9 +1615,7 @@ const AppointmentCard: React.FC<
         transparent
         animationType="slide"
         onRequestClose={() =>
-          setDetailsVisible(
-            false,
-          )
+          setDetailsVisible(false)
         }
       >
 
@@ -1785,9 +1631,7 @@ const AppointmentCard: React.FC<
             }
           >
 
-            {/* ==================================================
-                MODAL HEADER
-            ================================================== */}
+            {/* HEADER */}
 
             <View
               style={
@@ -1802,7 +1646,6 @@ const AppointmentCard: React.FC<
               >
                 Appointment Details
               </Text>
-
 
               <TouchableOpacity
                 onPress={() =>
@@ -1828,7 +1671,6 @@ const AppointmentCard: React.FC<
 
             </View>
 
-
             <ScrollView
               showsVerticalScrollIndicator={
                 false
@@ -1838,9 +1680,7 @@ const AppointmentCard: React.FC<
               }
             >
 
-              {/* ==================================================
-                  CUSTOMER
-              ================================================== */}
+              {/* CUSTOMER */}
 
               <View
                 style={
@@ -1856,7 +1696,6 @@ const AppointmentCard: React.FC<
                   Customer
                 </Text>
 
-
                 <Text
                   style={
                     styles.detailValue
@@ -1866,25 +1705,21 @@ const AppointmentCard: React.FC<
                     '—'}
                 </Text>
 
-
                 {!!booking?.customerPhone && (
-
                   <Text
                     style={
                       styles.detailSubValue
                     }
                   >
-                    {booking.customerPhone}
+                    {
+                      booking.customerPhone
+                    }
                   </Text>
-
                 )}
 
               </View>
 
-
-              {/* ==================================================
-                  APPOINTMENT
-              ================================================== */}
+              {/* APPOINTMENT */}
 
               <View
                 style={
@@ -1900,7 +1735,6 @@ const AppointmentCard: React.FC<
                   Appointment
                 </Text>
 
-
                 <Text
                   style={
                     styles.detailValue
@@ -1910,7 +1744,6 @@ const AppointmentCard: React.FC<
                     booking?.bookingDate,
                   )}
                 </Text>
-
 
                 <Text
                   style={
@@ -1927,13 +1760,9 @@ const AppointmentCard: React.FC<
 
               </View>
 
-
-              {/* ==================================================
-                  SALON RESPONSE TIMER
-              ================================================== */}
+              {/* SALON TIMER */}
 
               {showSalonResponseTimer && (
-
                 <View
                   style={
                     styles.modalSalonTimerBox
@@ -1948,7 +1777,6 @@ const AppointmentCard: React.FC<
                     Salon response required
                   </Text>
 
-
                   <Text
                     style={
                       styles.modalSalonTimerValue
@@ -1958,7 +1786,6 @@ const AppointmentCard: React.FC<
                       salonResponseRemainingSeconds,
                     )}
                   </Text>
-
 
                   <Text
                     style={
@@ -1971,12 +1798,9 @@ const AppointmentCard: React.FC<
                   </Text>
 
                 </View>
-
               )}
 
-
               {salonResponseExpired && (
-
                 <View
                   style={
                     styles.modalSalonExpiredBox
@@ -1991,7 +1815,6 @@ const AppointmentCard: React.FC<
                     Booking request expired
                   </Text>
 
-
                   <Text
                     style={
                       styles.salonResponseExpiredText
@@ -2002,16 +1825,9 @@ const AppointmentCard: React.FC<
                   </Text>
 
                 </View>
-
               )}
 
-
-              {/* ==================================================
-                  SALON RESPONSE TIMER UNAVAILABLE
-              ================================================== */}
-
               {salonResponseTimerUnavailable && (
-
                 <View
                   style={
                     styles.modalSalonExpiredBox
@@ -2026,7 +1842,6 @@ const AppointmentCard: React.FC<
                     Response timer unavailable
                   </Text>
 
-
                   <Text
                     style={
                       styles.salonResponseUnavailableText
@@ -2038,13 +1853,9 @@ const AppointmentCard: React.FC<
                   </Text>
 
                 </View>
-
               )}
 
-
-              {/* ==================================================
-                  SERVICES
-              ================================================== */}
+              {/* SERVICES */}
 
               <View
                 style={
@@ -2060,9 +1871,7 @@ const AppointmentCard: React.FC<
                   Services
                 </Text>
 
-
                 {services.length === 0 ? (
-
                   <Text
                     style={
                       styles.emptyText
@@ -2070,15 +1879,12 @@ const AppointmentCard: React.FC<
                   >
                     No services available
                   </Text>
-
                 ) : (
-
                   services.map(
                     (
                       service,
                       index,
                     ) => (
-
                       <View
                         key={
                           service?.serviceId ||
@@ -2088,8 +1894,6 @@ const AppointmentCard: React.FC<
                           styles.serviceItem
                         }
                       >
-
-                        {/* CATEGORY > SUBCATEGORY */}
 
                         <Text
                           style={
@@ -2104,9 +1908,6 @@ const AppointmentCard: React.FC<
                           {service?.subcategory ||
                             'Subcategory not available'}
                         </Text>
-
-
-                        {/* SERVICE */}
 
                         <View
                           style={
@@ -2128,7 +1929,6 @@ const AppointmentCard: React.FC<
                               {service?.name ||
                                 'Service'}
                             </Text>
-
 
                             <View
                               style={[
@@ -2158,7 +1958,6 @@ const AppointmentCard: React.FC<
 
                           </View>
 
-
                           <Text
                             style={
                               styles.servicePrice
@@ -2171,7 +1970,6 @@ const AppointmentCard: React.FC<
 
                         </View>
 
-
                         <Text
                           style={
                             styles.durationText
@@ -2183,18 +1981,13 @@ const AppointmentCard: React.FC<
                         </Text>
 
                       </View>
-
                     ),
                   )
-
                 )}
 
               </View>
 
-
-              {/* ==================================================
-                  PRICE DETAILS
-              ================================================== */}
+              {/* PRICE */}
 
               <View
                 style={
@@ -2210,7 +2003,6 @@ const AppointmentCard: React.FC<
                   Payment Details
                 </Text>
 
-
                 <View
                   style={
                     styles.priceRow
@@ -2225,7 +2017,6 @@ const AppointmentCard: React.FC<
                     Subtotal
                   </Text>
 
-
                   <Text
                     style={
                       styles.priceValue
@@ -2237,7 +2028,6 @@ const AppointmentCard: React.FC<
                   </Text>
 
                 </View>
-
 
                 <View
                   style={
@@ -2253,7 +2043,6 @@ const AppointmentCard: React.FC<
                     Discount
                   </Text>
 
-
                   <Text
                     style={
                       styles.priceValue
@@ -2265,7 +2054,6 @@ const AppointmentCard: React.FC<
                   </Text>
 
                 </View>
-
 
                 <View
                   style={[
@@ -2282,7 +2070,6 @@ const AppointmentCard: React.FC<
                     Total
                   </Text>
 
-
                   <Text
                     style={
                       styles.modalTotal
@@ -2294,7 +2081,6 @@ const AppointmentCard: React.FC<
                   </Text>
 
                 </View>
-
 
                 <View
                   style={
@@ -2310,7 +2096,6 @@ const AppointmentCard: React.FC<
                     Booking Fee
                   </Text>
 
-
                   <Text
                     style={
                       styles.priceValue
@@ -2322,7 +2107,6 @@ const AppointmentCard: React.FC<
                   </Text>
 
                 </View>
-
 
                 <View
                   style={
@@ -2338,7 +2122,6 @@ const AppointmentCard: React.FC<
                     Remaining at Salon
                   </Text>
 
-
                   <Text
                     style={
                       styles.priceValue
@@ -2351,9 +2134,7 @@ const AppointmentCard: React.FC<
 
                 </View>
 
-
                 {!!booking?.bookingFeeStatus && (
-
                   <Text
                     style={[
                       styles.paymentStatus,
@@ -2367,16 +2148,9 @@ const AppointmentCard: React.FC<
                       booking.bookingFeeStatus
                     }
                   </Text>
-
                 )}
 
-
-                {/* ==================================================
-                    CUSTOMER PAYMENT COUNTDOWN
-                ================================================== */}
-
                 {showPaymentTimer && (
-
                   <View
                     style={
                       styles.modalPaymentTimerBox
@@ -2392,7 +2166,6 @@ const AppointmentCard: React.FC<
                       pending
                     </Text>
 
-
                     <Text
                       style={
                         styles.modalPaymentTimerValue
@@ -2402,7 +2175,6 @@ const AppointmentCard: React.FC<
                         paymentRemainingSeconds,
                       )}
                     </Text>
-
 
                     <Text
                       style={
@@ -2415,12 +2187,9 @@ const AppointmentCard: React.FC<
                     </Text>
 
                   </View>
-
                 )}
 
-
                 {paymentWindowExpired && (
-
                   <View
                     style={
                       styles.modalPaymentExpiredBox
@@ -2435,7 +2204,6 @@ const AppointmentCard: React.FC<
                       ₹9 payment window expired
                     </Text>
 
-
                     <Text
                       style={
                         styles.paymentExpiredText
@@ -2448,18 +2216,13 @@ const AppointmentCard: React.FC<
                     </Text>
 
                   </View>
-
                 )}
-
-
-                {/* CUSTOMER PAYMENT MESSAGE */}
 
                 {bookingStatus ===
                   'CONFIRMED' &&
                   !bookingFeePaid &&
                   !showPaymentTimer &&
                   !paymentWindowExpired && (
-
                     <View
                       style={
                         styles.modalPaymentWaitingBox
@@ -2474,7 +2237,6 @@ const AppointmentCard: React.FC<
                         Customer payment pending
                       </Text>
 
-
                       <Text
                         style={
                           styles.modalPaymentWaitingText
@@ -2487,18 +2249,13 @@ const AppointmentCard: React.FC<
                       </Text>
 
                     </View>
-
                   )}
 
               </View>
 
-
-              {/* ==================================================
-                  PAYMENT METHOD
-              ================================================== */}
+              {/* PAYMENT METHOD */}
 
               {!!booking?.paymentMethod && (
-
                 <View
                   style={
                     styles.section
@@ -2513,7 +2270,6 @@ const AppointmentCard: React.FC<
                     Payment Method
                   </Text>
 
-
                   <Text
                     style={
                       styles.detailValue
@@ -2525,16 +2281,11 @@ const AppointmentCard: React.FC<
                   </Text>
 
                 </View>
-
               )}
 
-
-              {/* ==================================================
-                  NOTES
-              ================================================== */}
+              {/* NOTES */}
 
               {!!booking?.notes && (
-
                 <View
                   style={
                     styles.section
@@ -2549,7 +2300,6 @@ const AppointmentCard: React.FC<
                     Customer Note
                   </Text>
 
-
                   <Text
                     style={
                       styles.noteText
@@ -2559,16 +2309,11 @@ const AppointmentCard: React.FC<
                   </Text>
 
                 </View>
-
               )}
 
-
-              {/* ==================================================
-                  SALON NOTE
-              ================================================== */}
+              {/* SALON NOTE */}
 
               {!!booking?.salonNote && (
-
                 <View
                   style={
                     styles.section
@@ -2583,7 +2328,6 @@ const AppointmentCard: React.FC<
                     Salon Note
                   </Text>
 
-
                   <Text
                     style={
                       styles.noteText
@@ -2593,16 +2337,11 @@ const AppointmentCard: React.FC<
                   </Text>
 
                 </View>
-
               )}
 
-
-              {/* ==================================================
-                  REVIEW
-              ================================================== */}
+              {/* REVIEW */}
 
               {!!booking?.reviewSubmitted && (
-
                 <View
                   style={
                     styles.section
@@ -2617,9 +2356,7 @@ const AppointmentCard: React.FC<
                     Customer Review
                   </Text>
 
-
                   {!!booking?.rating && (
-
                     <Text
                       style={
                         styles.ratingText
@@ -2629,12 +2366,9 @@ const AppointmentCard: React.FC<
                         booking.rating,
                       )}
                     </Text>
-
                   )}
 
-
                   {!!booking?.review && (
-
                     <Text
                       style={
                         styles.noteText
@@ -2642,34 +2376,24 @@ const AppointmentCard: React.FC<
                     >
                       {booking.review}
                     </Text>
-
                   )}
 
                 </View>
-
               )}
 
             </ScrollView>
 
-
-            {/* ==================================================
-                MODAL ACTIONS
-            ================================================== */}
-
-            {/* PENDING */}
+            {/* MODAL ACTIONS */}
 
             {bookingStatus ===
               'PENDING' &&
               !salonResponseExpired &&
               !salonResponseTimerUnavailable && (
-
                 <View
                   style={
                     styles.modalActions
                   }
                 >
-
-                  {/* REJECT */}
 
                   <TouchableOpacity
                     style={[
@@ -2685,13 +2409,10 @@ const AppointmentCard: React.FC<
                   >
 
                     {actionLoading ? (
-
                       <ActivityIndicator
                         size="small"
                       />
-
                     ) : (
-
                       <Text
                         style={
                           styles.rejectText
@@ -2699,13 +2420,9 @@ const AppointmentCard: React.FC<
                       >
                         Reject
                       </Text>
-
                     )}
 
                   </TouchableOpacity>
-
-
-                  {/* ACCEPT */}
 
                   <TouchableOpacity
                     style={[
@@ -2724,14 +2441,11 @@ const AppointmentCard: React.FC<
                   >
 
                     {actionLoading ? (
-
                       <ActivityIndicator
                         size="small"
                         color="#FFFFFF"
                       />
-
                     ) : (
-
                       <Text
                         style={
                           styles.acceptText
@@ -2739,22 +2453,16 @@ const AppointmentCard: React.FC<
                       >
                         Accept
                       </Text>
-
                     )}
 
                   </TouchableOpacity>
 
                 </View>
-
               )}
 
-
-            {/* ==================================================
-                MODAL: CONFIRMED + PAID
-            ================================================== */}
+            {/* CONFIRMED + PAID */}
 
             {canMarkCompleted && (
-
               <TouchableOpacity
                 style={[
                   styles.completeButton,
@@ -2772,14 +2480,11 @@ const AppointmentCard: React.FC<
               >
 
                 {actionLoading ? (
-
                   <ActivityIndicator
                     size="small"
                     color="#FFFFFF"
                   />
-
                 ) : (
-
                   <Text
                     style={
                       styles.completeText
@@ -2787,22 +2492,16 @@ const AppointmentCard: React.FC<
                   >
                     Mark as Completed
                   </Text>
-
                 )}
 
               </TouchableOpacity>
-
             )}
 
-
-            {/* ==================================================
-                MODAL: CONFIRMED + NOT PAID
-            ================================================== */}
+            {/* CONFIRMED + NOT PAID */}
 
             {bookingStatus ===
               'CONFIRMED' &&
               !bookingFeePaid && (
-
                 <View
                   style={
                     styles.disabledCompleteContainer
@@ -2827,7 +2526,6 @@ const AppointmentCard: React.FC<
 
                   </TouchableOpacity>
 
-
                   <Text
                     style={
                       styles.disabledCompleteHint
@@ -2838,7 +2536,6 @@ const AppointmentCard: React.FC<
                   </Text>
 
                 </View>
-
               )}
 
           </View>
@@ -2856,10 +2553,6 @@ const AppointmentCard: React.FC<
 
 const styles =
   StyleSheet.create({
-
-    // ========================================================
-    // CARD
-    // ========================================================
 
     card: {
       backgroundColor: '#FFFFFF',
@@ -2880,19 +2573,16 @@ const styles =
       elevation: 3,
     },
 
-
     topRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
 
-
     customerSection: {
       flex: 1,
       marginRight: 10,
     },
-
 
     customerName: {
       fontSize: 16,
@@ -2900,13 +2590,11 @@ const styles =
       color: '#222222',
     },
 
-
     bookingId: {
       fontSize: 11,
       color: '#888888',
       marginTop: 2,
     },
-
 
     statusBadge: {
       borderRadius: 20,
@@ -2914,27 +2602,19 @@ const styles =
       paddingVertical: 5,
     },
 
-
     statusText: {
       fontSize: 10,
       fontWeight: '700',
     },
-
-
-    // ========================================================
-    // DATE / TIME
-    // ========================================================
 
     infoRow: {
       flexDirection: 'row',
       marginTop: 12,
     },
 
-
     infoItem: {
       flex: 1,
     },
-
 
     infoLabel: {
       fontSize: 10,
@@ -2942,17 +2622,11 @@ const styles =
       marginBottom: 2,
     },
 
-
     infoValue: {
       fontSize: 13,
       fontWeight: '600',
       color: '#333333',
     },
-
-
-    // ========================================================
-    // SUMMARY
-    // ========================================================
 
     summaryRow: {
       flexDirection: 'row',
@@ -2967,29 +2641,21 @@ const styles =
       borderTopColor: '#EEEEEE',
     },
 
-
     summaryValue: {
       fontSize: 13,
       fontWeight: '600',
       color: '#333333',
     },
 
-
     totalSection: {
       alignItems: 'flex-end',
     },
-
 
     totalAmount: {
       fontSize: 16,
       fontWeight: '800',
       color: '#222222',
     },
-
-
-    // ========================================================
-    // DETAILS
-    // ========================================================
 
     detailsButton: {
       marginTop: 11,
@@ -3006,23 +2672,16 @@ const styles =
       borderRadius: 9,
     },
 
-
     detailsButtonText: {
       fontSize: 12,
       fontWeight: '700',
     },
-
-
-    // ========================================================
-    // ACTIONS
-    // ========================================================
 
     actionsRow: {
       flexDirection: 'row',
       gap: 10,
       marginTop: 10,
     },
-
 
     actionButton: {
       flex: 1,
@@ -3035,7 +2694,6 @@ const styles =
       justifyContent: 'center',
     },
 
-
     rejectButton: {
       backgroundColor: '#FFFFFF',
 
@@ -3043,7 +2701,6 @@ const styles =
 
       borderColor: '#C62828',
     },
-
 
     rejectText: {
       color: '#C62828',
@@ -3053,7 +2710,6 @@ const styles =
       fontWeight: '700',
     },
 
-
     acceptText: {
       color: '#FFFFFF',
 
@@ -3061,7 +2717,6 @@ const styles =
 
       fontWeight: '700',
     },
-
 
     completeButton: {
       marginTop: 10,
@@ -3074,7 +2729,6 @@ const styles =
       justifyContent: 'center',
     },
 
-
     completeText: {
       color: '#FFFFFF',
 
@@ -3082,11 +2736,6 @@ const styles =
 
       fontWeight: '700',
     },
-
-
-    // ========================================================
-    // SALON RESPONSE TIMER
-    // ========================================================
 
     salonResponseTimerBox: {
       marginTop: 11,
@@ -3103,13 +2752,10 @@ const styles =
       borderColor: '#FFE0A3',
     },
 
-
     salonResponseTimerHeader: {
       flexDirection: 'row',
-
       alignItems: 'center',
     },
-
 
     salonResponseTimerDot: {
       width: 7,
@@ -3122,7 +2768,6 @@ const styles =
       marginRight: 7,
     },
 
-
     salonResponseTimerTitle: {
       fontSize: 12,
 
@@ -3130,7 +2775,6 @@ const styles =
 
       color: '#8D6200',
     },
-
 
     salonResponseTimerContent: {
       marginTop: 7,
@@ -3143,7 +2787,6 @@ const styles =
         'space-between',
     },
 
-
     salonResponseTimerLabel: {
       flex: 1,
 
@@ -3151,7 +2794,6 @@ const styles =
 
       color: '#8A7A42',
     },
-
 
     salonResponseTimerValue: {
       fontSize: 20,
@@ -3163,7 +2805,6 @@ const styles =
       letterSpacing: 0.5,
     },
 
-
     salonResponseTimerHint: {
       fontSize: 10,
 
@@ -3173,11 +2814,6 @@ const styles =
 
       marginTop: 5,
     },
-
-
-    // ========================================================
-    // SALON RESPONSE EXPIRED
-    // ========================================================
 
     salonResponseExpiredBox: {
       marginTop: 10,
@@ -3194,7 +2830,6 @@ const styles =
       borderColor: '#F2C2C2',
     },
 
-
     salonResponseExpiredTitle: {
       fontSize: 12,
 
@@ -3202,7 +2837,6 @@ const styles =
 
       color: '#C62828',
     },
-
 
     salonResponseExpiredText: {
       fontSize: 11,
@@ -3213,11 +2847,6 @@ const styles =
 
       marginTop: 3,
     },
-
-
-    // ========================================================
-    // SALON RESPONSE UNAVAILABLE
-    // ========================================================
 
     salonResponseUnavailableBox: {
       marginTop: 10,
@@ -3234,7 +2863,6 @@ const styles =
       borderColor: '#FFE082',
     },
 
-
     salonResponseUnavailableTitle: {
       fontSize: 12,
 
@@ -3242,7 +2870,6 @@ const styles =
 
       color: '#8D6E00',
     },
-
 
     salonResponseUnavailableText: {
       fontSize: 11,
@@ -3253,11 +2880,6 @@ const styles =
 
       marginTop: 3,
     },
-
-
-    // ========================================================
-    // CUSTOMER PAYMENT TIMER
-    // ========================================================
 
     paymentTimerBox: {
       marginTop: 11,
@@ -3274,13 +2896,11 @@ const styles =
       borderColor: '#FFE0A3',
     },
 
-
     paymentTimerHeader: {
       flexDirection: 'row',
 
       alignItems: 'center',
     },
-
 
     paymentTimerDot: {
       width: 7,
@@ -3293,7 +2913,6 @@ const styles =
       marginRight: 7,
     },
 
-
     paymentTimerTitle: {
       fontSize: 12,
 
@@ -3301,7 +2920,6 @@ const styles =
 
       color: '#8D6200',
     },
-
 
     paymentTimerContent: {
       marginTop: 7,
@@ -3314,7 +2932,6 @@ const styles =
         'space-between',
     },
 
-
     paymentTimerLabel: {
       flex: 1,
 
@@ -3322,7 +2939,6 @@ const styles =
 
       color: '#8A7A42',
     },
-
 
     paymentTimerValue: {
       fontSize: 17,
@@ -3333,11 +2949,6 @@ const styles =
 
       letterSpacing: 0.5,
     },
-
-
-    // ========================================================
-    // PAYMENT EXPIRED
-    // ========================================================
 
     paymentExpiredBox: {
       marginTop: 10,
@@ -3354,7 +2965,6 @@ const styles =
       borderColor: '#F2C2C2',
     },
 
-
     paymentExpiredTitle: {
       fontSize: 12,
 
@@ -3362,7 +2972,6 @@ const styles =
 
       color: '#C62828',
     },
-
 
     paymentExpiredText: {
       fontSize: 11,
@@ -3373,11 +2982,6 @@ const styles =
 
       marginTop: 3,
     },
-
-
-    // ========================================================
-    // PAYMENT WAITING
-    // ========================================================
 
     paymentWaitingBox: {
       marginTop: 10,
@@ -3394,7 +2998,6 @@ const styles =
       borderColor: '#FFE082',
     },
 
-
     paymentWaitingTitle: {
       fontSize: 12,
 
@@ -3402,7 +3005,6 @@ const styles =
 
       color: '#8D6E00',
     },
-
 
     paymentWaitingText: {
       fontSize: 11,
@@ -3414,11 +3016,6 @@ const styles =
       marginTop: 3,
     },
 
-
-    // ========================================================
-    // MODAL
-    // ========================================================
-
     modalOverlay: {
       flex: 1,
 
@@ -3428,7 +3025,6 @@ const styles =
       justifyContent:
         'flex-end',
     },
-
 
     modalContainer: {
       backgroundColor: '#FFFFFF',
@@ -3446,7 +3042,6 @@ const styles =
       paddingBottom: 18,
     },
 
-
     modalHeader: {
       flexDirection: 'row',
 
@@ -3463,7 +3058,6 @@ const styles =
         '#EEEEEE',
     },
 
-
     modalTitle: {
       fontSize: 18,
 
@@ -3472,20 +3066,17 @@ const styles =
       color: '#222222',
     },
 
-
     closeText: {
       fontSize: 22,
 
       fontWeight: '500',
     },
 
-
     modalContent: {
       paddingVertical: 8,
 
       paddingBottom: 20,
     },
-
 
     section: {
       paddingVertical: 12,
@@ -3495,7 +3086,6 @@ const styles =
       borderBottomColor:
         '#EEEEEE',
     },
-
 
     sectionTitle: {
       fontSize: 13,
@@ -3507,7 +3097,6 @@ const styles =
       marginBottom: 7,
     },
 
-
     detailValue: {
       fontSize: 14,
 
@@ -3516,7 +3105,6 @@ const styles =
       color: '#333333',
     },
 
-
     detailSubValue: {
       fontSize: 12,
 
@@ -3524,11 +3112,6 @@ const styles =
 
       marginTop: 3,
     },
-
-
-    // ========================================================
-    // MODAL SALON TIMER
-    // ========================================================
 
     modalSalonTimerBox: {
       marginTop: 12,
@@ -3545,7 +3128,6 @@ const styles =
       borderColor: '#FFE0A3',
     },
 
-
     modalSalonTimerTitle: {
       fontSize: 12,
 
@@ -3553,7 +3135,6 @@ const styles =
 
       color: '#8D6200',
     },
-
 
     modalSalonTimerValue: {
       fontSize: 22,
@@ -3565,7 +3146,6 @@ const styles =
       marginTop: 4,
     },
 
-
     modalSalonTimerText: {
       fontSize: 11,
 
@@ -3575,7 +3155,6 @@ const styles =
 
       marginTop: 4,
     },
-
 
     modalSalonExpiredBox: {
       marginTop: 12,
@@ -3592,11 +3171,6 @@ const styles =
       borderColor: '#F2C2C2',
     },
 
-
-    // ========================================================
-    // SERVICES
-    // ========================================================
-
     serviceItem: {
       paddingVertical: 9,
 
@@ -3606,7 +3180,6 @@ const styles =
         '#F1F1F1',
     },
 
-
     categoryPath: {
       fontSize: 11,
 
@@ -3614,7 +3187,6 @@ const styles =
 
       marginBottom: 5,
     },
-
 
     serviceHeader: {
       flexDirection: 'row',
@@ -3625,13 +3197,11 @@ const styles =
         'space-between',
     },
 
-
     serviceNameSection: {
       flex: 1,
 
       marginRight: 10,
     },
-
 
     serviceName: {
       fontSize: 14,
@@ -3640,7 +3210,6 @@ const styles =
 
       color: '#222222',
     },
-
 
     audienceBadge: {
       alignSelf:
@@ -3655,13 +3224,11 @@ const styles =
       paddingVertical: 3,
     },
 
-
     audienceText: {
       fontSize: 9,
 
       fontWeight: '700',
     },
-
 
     servicePrice: {
       fontSize: 14,
@@ -3671,7 +3238,6 @@ const styles =
       color: '#222222',
     },
 
-
     durationText: {
       fontSize: 11,
 
@@ -3680,17 +3246,11 @@ const styles =
       marginTop: 4,
     },
 
-
     emptyText: {
       fontSize: 13,
 
       color: '#888888',
     },
-
-
-    // ========================================================
-    // PRICE DETAILS
-    // ========================================================
 
     priceRow: {
       flexDirection: 'row',
@@ -3703,13 +3263,11 @@ const styles =
       marginTop: 7,
     },
 
-
     priceLabel: {
       fontSize: 12,
 
       color: '#777777',
     },
-
 
     priceValue: {
       fontSize: 12,
@@ -3718,7 +3276,6 @@ const styles =
 
       color: '#333333',
     },
-
 
     totalRow: {
       marginTop: 11,
@@ -3731,7 +3288,6 @@ const styles =
         '#EEEEEE',
     },
 
-
     totalLabel: {
       fontSize: 14,
 
@@ -3739,7 +3295,6 @@ const styles =
 
       color: '#222222',
     },
-
 
     modalTotal: {
       fontSize: 16,
@@ -3749,27 +3304,19 @@ const styles =
       color: '#222222',
     },
 
-
     paymentStatus: {
       fontSize: 11,
 
       marginTop: 9,
     },
 
-
     paymentStatusPaid: {
       color: '#2E7D32',
     },
 
-
     paymentStatusPending: {
       color: '#EF6C00',
     },
-
-
-    // ========================================================
-    // MODAL PAYMENT TIMER
-    // ========================================================
 
     modalPaymentTimerBox: {
       marginTop: 12,
@@ -3786,7 +3333,6 @@ const styles =
       borderColor: '#FFE0A3',
     },
 
-
     modalPaymentTimerTitle: {
       fontSize: 12,
 
@@ -3794,7 +3340,6 @@ const styles =
 
       color: '#8D6200',
     },
-
 
     modalPaymentTimerValue: {
       fontSize: 22,
@@ -3806,7 +3351,6 @@ const styles =
       marginTop: 4,
     },
 
-
     modalPaymentTimerText: {
       fontSize: 11,
 
@@ -3816,7 +3360,6 @@ const styles =
 
       marginTop: 4,
     },
-
 
     modalPaymentExpiredBox: {
       marginTop: 12,
@@ -3833,11 +3376,6 @@ const styles =
       borderColor: '#F2C2C2',
     },
 
-
-    // ========================================================
-    // MODAL PAYMENT WAITING
-    // ========================================================
-
     modalPaymentWaitingBox: {
       marginTop: 12,
 
@@ -3853,7 +3391,6 @@ const styles =
       borderColor: '#FFE082',
     },
 
-
     modalPaymentWaitingTitle: {
       fontSize: 12,
 
@@ -3861,7 +3398,6 @@ const styles =
 
       color: '#8D6E00',
     },
-
 
     modalPaymentWaitingText: {
       fontSize: 11,
@@ -3873,20 +3409,13 @@ const styles =
       marginTop: 4,
     },
 
-
-    // ========================================================
-    // DISABLED COMPLETION
-    // ========================================================
-
     disabledCompleteContainer: {
       marginTop: 10,
     },
 
-
     disabledCompleteButton: {
       backgroundColor: '#D6D6D6',
     },
-
 
     disabledCompleteText: {
       color: '#888888',
@@ -3895,7 +3424,6 @@ const styles =
 
       fontWeight: '700',
     },
-
 
     disabledCompleteHint: {
       textAlign: 'center',
@@ -3907,11 +3435,6 @@ const styles =
       marginTop: 5,
     },
 
-
-    // ========================================================
-    // NOTES / REVIEW
-    // ========================================================
-
     noteText: {
       fontSize: 13,
 
@@ -3919,7 +3442,6 @@ const styles =
 
       color: '#555555',
     },
-
 
     ratingText: {
       fontSize: 16,
@@ -3929,11 +3451,6 @@ const styles =
       marginBottom: 5,
     },
 
-
-    // ========================================================
-    // MODAL ACTIONS
-    // ========================================================
-
     modalActions: {
       flexDirection: 'row',
 
@@ -3942,6 +3459,5 @@ const styles =
       paddingTop: 10,
     },
   });
-
 
 export default AppointmentCard;

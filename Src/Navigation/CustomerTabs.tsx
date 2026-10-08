@@ -26,13 +26,13 @@ export default function Tabs() {
         options={{ headerShown: false }}
       />
       <Tab.Screen
-        name="Offers"
-        component={ExploreStack}
+        name="Bookings"
+        component={BookingStack}
         options={{ headerShown: false }}
       />
       <Tab.Screen
-        name="Bookings"
-        component={BookingStack}
+        name="Offers"
+        component={ExploreStack}
         options={{ headerShown: false }}
       />
       <Tab.Screen

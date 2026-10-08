@@ -1251,7 +1251,7 @@ const SalonDashboardScreen =
                 }
 
                 navigation.navigate(
-                    'Bookings',
+                    'Appointments',
                 );
             };
 
@@ -1802,7 +1802,7 @@ const SalonDashboardScreen =
         const handlePendingRequestsPress =
             () => {
                 navigation.navigate(
-                    'Bookings',
+                    'Appointments',
                 );
             };
 

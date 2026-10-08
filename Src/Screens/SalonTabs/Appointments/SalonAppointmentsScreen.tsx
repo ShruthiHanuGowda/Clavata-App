@@ -27,7 +27,7 @@ import AppointmentCard, {
 
 import AppointmentFilter from './AppointmentFilter';
 
-import {useUser} from '../../../context/UserContext';
+import { useUser } from '../../../context/UserContext';
 
 import {
   ACCEPT_BOOKING,
@@ -163,29 +163,6 @@ export default function SalonAppointmentsScreen() {
     currentUser?.salonId;
 
 
-  console.log(
-    '===================================================='
-  );
-
-  console.log(
-    '[SalonAppointments] currentUser:',
-    JSON.stringify(
-      currentUser,
-      null,
-      2
-    )
-  );
-
-  console.log(
-    '[SalonAppointments] salonId:',
-    salonId
-  );
-
-  console.log(
-    '===================================================='
-  );
-
-
   // ============================================================
   // FILTER
   // ============================================================
@@ -199,15 +176,15 @@ export default function SalonAppointmentsScreen() {
   // ============================================================
   // LIVE CLOCK
   //
-  // This is required so AppointmentCard receives fresh booking
-  // data / rerenders every second through its own timer.
+  // This updates once every second so the salon response
+  // countdown can continue to update.
   // ============================================================
 
   const [
     nowMs,
     setNowMs,
   ] = useState(
-    () => Date.now()
+    () => Date.now(),
   );
 
 
@@ -217,7 +194,7 @@ export default function SalonAppointmentsScreen() {
       setInterval(() => {
 
         setNowMs(
-          Date.now()
+          Date.now(),
         );
 
       }, 1000);
@@ -226,7 +203,7 @@ export default function SalonAppointmentsScreen() {
     return () => {
 
       clearInterval(
-        timer
+        timer,
       );
 
     };
@@ -259,24 +236,15 @@ export default function SalonAppointmentsScreen() {
         true,
 
       onCompleted: (
-        responseData
+        responseData,
       ) => {
 
         console.log(
-          '===================================================='
+          '====================================================',
         );
 
         console.log(
-          '[SalonAppointments] SALON_DASHBOARD_QUERY SUCCESS'
-        );
-
-        console.log(
-          '[SalonAppointments] response:',
-          JSON.stringify(
-            responseData,
-            null,
-            2
-          )
+          '[SalonAppointments] SALON_DASHBOARD_QUERY SUCCESS',
         );
 
         console.log(
@@ -304,11 +272,14 @@ export default function SalonAppointmentsScreen() {
 
                 bookingFeePaymentDeadline:
                   booking.bookingFeePaymentDeadline,
-              })
+
+                bookingFeePaymentWindowMinutes:
+                  booking.bookingFeePaymentWindowMinutes,
+              }),
             ),
             null,
-            2
-          )
+            2,
+          ),
         );
 
         console.log(
@@ -321,34 +292,34 @@ export default function SalonAppointmentsScreen() {
 
                 services:
                   booking.services,
-              })
+              }),
             ),
             null,
-            2
-          )
+            2,
+          ),
         );
 
         console.log(
-          '===================================================='
+          '====================================================',
         );
 
       },
 
       onError: (
-        queryError
+        queryError,
       ) => {
 
         console.log(
-          '===================================================='
+          '====================================================',
         );
 
         console.log(
-          '[SalonAppointments] SALON_DASHBOARD_QUERY ERROR'
+          '[SalonAppointments] SALON_DASHBOARD_QUERY ERROR',
         );
 
         console.log(
           '[SalonAppointments] message:',
-          queryError.message
+          queryError.message,
         );
 
         console.log(
@@ -356,21 +327,21 @@ export default function SalonAppointmentsScreen() {
           JSON.stringify(
             queryError.graphQLErrors,
             null,
-            2
-          )
+            2,
+          ),
         );
 
         console.log(
           '[SalonAppointments] networkError:',
-          queryError.networkError
+          queryError.networkError,
         );
 
         console.log(
-          '===================================================='
+          '====================================================',
         );
 
       },
-    }
+    },
   );
 
 
@@ -381,21 +352,21 @@ export default function SalonAppointmentsScreen() {
   const [
     completeBookingMutation,
   ] = useMutation(
-    COMPLETE_BOOKING
+    COMPLETE_BOOKING,
   );
 
 
   const [
     acceptBookingMutation,
   ] = useMutation(
-    ACCEPT_BOOKING
+    ACCEPT_BOOKING,
   );
 
 
   const [
     rejectBookingMutation,
   ] = useMutation(
-    REJECT_BOOKING
+    REJECT_BOOKING,
   );
 
 
@@ -408,90 +379,120 @@ export default function SalonAppointmentsScreen() {
 
 
   // ============================================================
-  // DEBUG
+  // CONTROLLED DEBUG LOGGING
+  //
+  // IMPORTANT:
+  // These logs are NOT inside the component body.
+  //
+  // nowMs changes every second, causing a render every second.
+  // Keeping console.log() directly in the component body would
+  // therefore print the same booking every second.
   // ============================================================
 
-  console.log(
-    '[SalonAppointments] bookings:',
-    JSON.stringify(
-      bookings,
-      null,
-      2
-    )
-  );
+  useEffect(() => {
 
+    console.log(
+      '====================================================',
+    );
 
-  console.log(
-    '[SalonAppointments] booking count:',
-    bookings.length
-  );
+    console.log(
+      '[SalonAppointments] currentUser:',
+      JSON.stringify(
+        currentUser,
+        null,
+        2,
+      ),
+    );
 
+    console.log(
+      '[SalonAppointments] salonId:',
+      salonId,
+    );
 
-  console.log(
-    '[SalonAppointments] selected filter:',
-    selectedFilter
-  );
+    console.log(
+      '[SalonAppointments] booking count:',
+      bookings.length,
+    );
 
+    console.log(
+      '[SalonAppointments] selected filter:',
+      selectedFilter,
+    );
 
-  // ============================================================
-  // BOOKING SERVICES DEBUG
-  // ============================================================
+    console.log(
+      '[SalonAppointments] bookings:',
+      JSON.stringify(
+        bookings,
+        null,
+        2,
+      ),
+    );
 
-  console.log(
-    '[SalonAppointments] booking services:',
-    JSON.stringify(
+    console.log(
+      '[SalonAppointments] statuses:',
       bookings.map(
         booking => ({
           bookingId:
             booking.bookingId,
 
-          services:
-            booking.services,
-        })
+          bookingStatus:
+            booking.bookingStatus,
+
+          salonResponseStatus:
+            booking.salonResponseStatus,
+
+          salonResponseDeadline:
+            booking.salonResponseDeadline,
+
+          bookingFeeStatus:
+            booking.bookingFeeStatus,
+
+          bookingFeePaymentDeadline:
+            booking.bookingFeePaymentDeadline,
+
+          bookingDate:
+            booking.bookingDate,
+
+          salonId:
+            booking.salonId,
+        }),
       ),
-      null,
-      2
-    )
-  );
+    );
 
+    console.log(
+      '[SalonAppointments] booking services:',
+      JSON.stringify(
+        bookings.map(
+          booking => ({
+            bookingId:
+              booking.bookingId,
 
-  // ============================================================
-  // BOOKING STATUS DEBUG
-  // ============================================================
+            services:
+              booking.services,
+          }),
+        ),
+        null,
+        2,
+      ),
+    );
 
-  console.log(
-    '[SalonAppointments] statuses:',
-    bookings.map(
-      booking => ({
-        bookingId:
-          booking.bookingId,
+    console.log(
+      '====================================================',
+    );
 
-        bookingStatus:
-          booking.bookingStatus,
-
-        salonResponseStatus:
-          booking.salonResponseStatus,
-
-        salonResponseDeadline:
-          booking.salonResponseDeadline,
-
-        bookingDate:
-          booking.bookingDate,
-
-        salonId:
-          booking.salonId,
-      })
-    )
-  );
+  }, [
+    currentUser,
+    salonId,
+    bookings,
+    selectedFilter,
+  ]);
 
 
   // ============================================================
   // AUTOMATIC RESPONSE TIMER EXPIRY REFRESH
   //
-  // Same behavior as Dashboard.
-  //
-  // When a PENDING request reaches zero, refetch the backend.
-  // The backend is responsible for returning the expired state.
+  // When a PENDING request reaches zero, refresh the backend.
+  // Backend is responsible for changing the expired booking state.
   // ============================================================
 
   useEffect(() => {
@@ -502,12 +503,13 @@ export default function SalonAppointmentsScreen() {
 
           const status =
             String(
-              booking.bookingStatus ?? ''
+              booking.bookingStatus ?? '',
             ).toUpperCase();
+
 
           const responseStatus =
             String(
-              booking.salonResponseStatus ?? ''
+              booking.salonResponseStatus ?? '',
             ).toUpperCase();
 
 
@@ -533,7 +535,7 @@ export default function SalonAppointmentsScreen() {
             ) === 0
           );
 
-        }
+        },
       );
 
 
@@ -545,7 +547,7 @@ export default function SalonAppointmentsScreen() {
 
 
     console.log(
-      '[SalonAppointments] salon response timer expired - refreshing bookings'
+      '[SalonAppointments] salon response timer expired - refreshing bookings',
     );
 
 
@@ -557,10 +559,10 @@ export default function SalonAppointmentsScreen() {
 
             console.log(
               '[SalonAppointments] timer expiry refresh error:',
-              refreshError
+              refreshError,
             );
 
-          }
+          },
         );
 
       }, 1000);
@@ -569,7 +571,7 @@ export default function SalonAppointmentsScreen() {
     return () => {
 
       clearTimeout(
-        timeout
+        timeout,
       );
 
     };
@@ -593,7 +595,7 @@ export default function SalonAppointmentsScreen() {
       bookings.find(
         item =>
           item.bookingId ===
-          bookingId
+          bookingId,
       );
 
 
@@ -605,7 +607,7 @@ export default function SalonAppointmentsScreen() {
 
       Alert.alert(
         'Booking unavailable',
-        'This booking could not be found.'
+        'This booking could not be found.',
       );
 
       return;
@@ -613,16 +615,20 @@ export default function SalonAppointmentsScreen() {
     }
 
 
+    // ==========================================================
+    // ONLY CONFIRMED BOOKINGS CAN BE COMPLETED
+    // ==========================================================
+
     if (
       String(
-        booking.bookingStatus ?? ''
+        booking.bookingStatus ?? '',
       ).toUpperCase() !==
       'CONFIRMED'
     ) {
 
       Alert.alert(
         'Cannot complete booking',
-        'Only confirmed bookings can be completed.'
+        'Only confirmed bookings can be completed.',
       );
 
       return;
@@ -630,16 +636,20 @@ export default function SalonAppointmentsScreen() {
     }
 
 
+    // ==========================================================
+    // ₹9 BOOKING FEE MUST BE PAID
+    // ==========================================================
+
     if (
       String(
-        booking.bookingFeeStatus ?? ''
+        booking.bookingFeeStatus ?? '',
       ).toUpperCase() !==
       'PAID'
     ) {
 
       Alert.alert(
         'Payment required',
-        'The customer must pay the ₹9 Clavata booking fee before the service can be marked as completed.'
+        'The customer must pay the ₹9 Clavata booking fee before the service can be marked as completed.',
       );
 
       return;
@@ -697,12 +707,12 @@ export default function SalonAppointmentsScreen() {
                 await refetch();
 
               } catch (
-                mutationError: any
+              mutationError: any
               ) {
 
                 console.log(
                   '[SalonAppointments] COMPLETE ERROR:',
-                  mutationError
+                  mutationError,
                 );
 
                 Alert.alert(
@@ -713,9 +723,7 @@ export default function SalonAppointmentsScreen() {
               }
 
             },
-
         },
-
       ],
     );
 
@@ -734,7 +742,7 @@ export default function SalonAppointmentsScreen() {
       bookings.find(
         item =>
           item.bookingId ===
-          bookingId
+          bookingId,
       );
 
 
@@ -742,7 +750,7 @@ export default function SalonAppointmentsScreen() {
 
       Alert.alert(
         'Request unavailable',
-        'This booking request is no longer available.'
+        'This booking request is no longer available.',
       );
 
       await refetch();
@@ -760,19 +768,19 @@ export default function SalonAppointmentsScreen() {
 
 
     // ==========================================================
-    // FRONTEND TIMER GUARD
+    // BOOKING MUST STILL BE PENDING
     // ==========================================================
 
     if (
       String(
-        booking.bookingStatus ?? ''
+        booking.bookingStatus ?? '',
       ).toUpperCase() !==
       'PENDING'
     ) {
 
       Alert.alert(
         'Request unavailable',
-        'This booking request is no longer waiting for your response.'
+        'This booking request is no longer waiting for your response.',
       );
 
       await refetch();
@@ -781,17 +789,21 @@ export default function SalonAppointmentsScreen() {
 
     }
 
+
+    // ==========================================================
+    // RESPONSE MUST STILL BE PENDING
+    // ==========================================================
 
     if (
       String(
-        booking.salonResponseStatus ?? ''
+        booking.salonResponseStatus ?? '',
       ).toUpperCase() !==
       'PENDING'
     ) {
 
       Alert.alert(
         'Request unavailable',
-        'This booking request has already been processed.'
+        'This booking request has already been processed.',
       );
 
       await refetch();
@@ -800,6 +812,10 @@ export default function SalonAppointmentsScreen() {
 
     }
 
+
+    // ==========================================================
+    // RESPONSE WINDOW MUST STILL BE ACTIVE
+    // ==========================================================
 
     if (
       remainingSeconds <= 0
@@ -807,7 +823,7 @@ export default function SalonAppointmentsScreen() {
 
       Alert.alert(
         'Response window expired',
-        'The response window for this booking has expired.'
+        'The response window for this booking has expired.',
       );
 
       await refetch();
@@ -818,25 +834,80 @@ export default function SalonAppointmentsScreen() {
 
 
     console.log(
-      '[SalonAppointments] accepting booking:',
-      bookingId
+      '====================================================',
+    );
+
+    console.log(
+      '[SalonAppointments] ACCEPT START',
+    );
+
+    console.log(
+      '[SalonAppointments] bookingId:',
+      bookingId,
+    );
+
+    console.log(
+      '[SalonAppointments] bookingStatus:',
+      booking.bookingStatus,
+    );
+
+    console.log(
+      '[SalonAppointments] salonResponseStatus:',
+      booking.salonResponseStatus,
+    );
+
+    console.log(
+      '[SalonAppointments] salonResponseDeadline:',
+      booking.salonResponseDeadline,
+    );
+
+    console.log(
+      '[SalonAppointments] now:',
+      new Date().toISOString(),
+    );
+
+    console.log(
+      '[SalonAppointments] remainingSeconds:',
+      remainingSeconds,
+    );
+
+    console.log(
+      '====================================================',
     );
 
 
     try {
 
-      await acceptBookingMutation({
+      const result =
+        await acceptBookingMutation({
 
-        variables: {
+          variables: {
 
-          bookingId,
+            input: {
 
-          salonNote:
-            'See you at your appointment.',
+              bookingId,
 
-        },
+              response:
+                'ACCEPT',
 
-      });
+              salonNote:
+                'See you at your appointment.',
+
+            },
+
+          },
+
+        });
+
+
+      console.log(
+        '[SalonAppointments] ACCEPT RESPONSE:',
+        JSON.stringify(
+          result?.data,
+          null,
+          2,
+        ),
+      );
 
 
       Alert.alert(
@@ -848,18 +919,37 @@ export default function SalonAppointmentsScreen() {
       await refetch();
 
     } catch (
-      mutationError: any
+    mutationError: any
     ) {
 
-      console.log(
+      console.error(
         '[SalonAppointments] ACCEPT ERROR:',
-        mutationError
+        mutationError,
       );
 
+      console.error(
+        '[SalonAppointments] ACCEPT ERROR MESSAGE:',
+        mutationError?.message,
+      );
+
+      console.error(
+        '[SalonAppointments] ACCEPT GRAPHQL ERRORS:',
+        JSON.stringify(
+          mutationError?.graphQLErrors,
+          null,
+          2,
+        ),
+      );
+
+      console.error(
+        '[SalonAppointments] ACCEPT NETWORK ERROR:',
+        mutationError?.networkError,
+      );
 
       Alert.alert(
-        'Error',
-        mutationError.message,
+        'Accept failed',
+        mutationError?.message ||
+        'Unable to accept this booking.',
       );
 
     }
@@ -879,7 +969,7 @@ export default function SalonAppointmentsScreen() {
       bookings.find(
         item =>
           item.bookingId ===
-          bookingId
+          bookingId,
       );
 
 
@@ -887,7 +977,7 @@ export default function SalonAppointmentsScreen() {
 
       Alert.alert(
         'Request unavailable',
-        'This booking request is no longer available.'
+        'This booking request is no longer available.',
       );
 
       await refetch();
@@ -904,16 +994,20 @@ export default function SalonAppointmentsScreen() {
       );
 
 
+    // ==========================================================
+    // BOOKING MUST STILL BE PENDING
+    // ==========================================================
+
     if (
       String(
-        booking.bookingStatus ?? ''
+        booking.bookingStatus ?? '',
       ).toUpperCase() !==
       'PENDING'
     ) {
 
       Alert.alert(
         'Request unavailable',
-        'This booking request is no longer waiting for your response.'
+        'This booking request is no longer waiting for your response.',
       );
 
       await refetch();
@@ -923,16 +1017,20 @@ export default function SalonAppointmentsScreen() {
     }
 
 
+    // ==========================================================
+    // RESPONSE MUST STILL BE PENDING
+    // ==========================================================
+
     if (
       String(
-        booking.salonResponseStatus ?? ''
+        booking.salonResponseStatus ?? '',
       ).toUpperCase() !==
       'PENDING'
     ) {
 
       Alert.alert(
         'Request unavailable',
-        'This booking request has already been processed.'
+        'This booking request has already been processed.',
       );
 
       await refetch();
@@ -941,6 +1039,10 @@ export default function SalonAppointmentsScreen() {
 
     }
 
+
+    // ==========================================================
+    // RESPONSE WINDOW MUST STILL BE ACTIVE
+    // ==========================================================
 
     if (
       remainingSeconds <= 0
@@ -948,7 +1050,7 @@ export default function SalonAppointmentsScreen() {
 
       Alert.alert(
         'Response window expired',
-        'The response window for this booking has expired.'
+        'The response window for this booking has expired.',
       );
 
       await refetch();
@@ -964,7 +1066,6 @@ export default function SalonAppointmentsScreen() {
       'Are you sure you want to reject this booking?',
 
       [
-
         {
           text: 'No',
 
@@ -981,35 +1082,53 @@ export default function SalonAppointmentsScreen() {
 
               try {
 
-                await rejectBookingMutation({
+                const result =
+                  await rejectBookingMutation({
 
-                  variables: {
+                    variables: {
 
-                    bookingId,
+                      input: {
 
-                    salonNote:
-                      'Salon unavailable.',
+                        bookingId,
 
-                  },
+                        response:
+                          'REJECT',
 
-                });
+                        salonNote:
+                          'Salon unavailable.',
+
+                      },
+
+                    },
+
+                  });
+
+
+                console.log(
+                  '[SalonAppointments] REJECT RESPONSE:',
+                  JSON.stringify(
+                    result?.data,
+                    null,
+                    2,
+                  ),
+                );
 
 
                 Alert.alert(
-                  'Cancelled',
-                  'Appointment cancelled.',
+                  'Rejected',
+                  'Appointment rejected.',
                 );
 
 
                 await refetch();
 
               } catch (
-                mutationError: any
+              mutationError: any
               ) {
 
                 console.log(
                   '[SalonAppointments] REJECT ERROR:',
-                  mutationError
+                  mutationError,
                 );
 
 
@@ -1021,9 +1140,7 @@ export default function SalonAppointmentsScreen() {
               }
 
             },
-
         },
-
       ],
     );
 
@@ -1038,30 +1155,25 @@ export default function SalonAppointmentsScreen() {
     useMemo(
       () => {
 
-        console.log(
-          '[SalonAppointments] filtering:',
-          {
-            selectedFilter,
-            totalBookings:
-              bookings.length,
-          }
-        );
-
-
         const result =
           bookings.filter(
             item => {
 
               const status =
                 String(
-                  item.bookingStatus ??
-                    ''
+                  item.bookingStatus ?? '',
                 ).toUpperCase();
 
 
               switch (
-                selectedFilter
+              selectedFilter
               ) {
+
+                // ==================================================
+                // REQUESTS
+                //
+                // Only bookings waiting for salon response.
+                // ==================================================
 
                 case 'Requests':
 
@@ -1071,13 +1183,28 @@ export default function SalonAppointmentsScreen() {
                   );
 
 
+                // ==================================================
+                // CONFIRMED
+                //
+                // Confirmed bookings are shown here.
+                // AppointmentCard itself controls whether the
+                // completion action is available based on the
+                // ₹9 booking fee payment status.
+                // ==================================================
+
                 case 'Confirmed':
 
                   return (
-                    status ===
-                    'CONFIRMED'
+                    status === 'CONFIRMED' &&
+                    String(
+                      item.bookingFeeStatus ?? '',
+                    ).toUpperCase() === 'PAID'
                   );
 
+
+                // ==================================================
+                // COMPLETED
+                // ==================================================
 
                 case 'Completed':
 
@@ -1086,6 +1213,10 @@ export default function SalonAppointmentsScreen() {
                     'COMPLETED'
                   );
 
+
+                // ==================================================
+                // CANCELLED
+                // ==================================================
 
                 case 'Cancelled':
 
@@ -1101,14 +1232,8 @@ export default function SalonAppointmentsScreen() {
 
               }
 
-            }
+            },
           );
-
-
-        console.log(
-          '[SalonAppointments] filtered count:',
-          result.length
-        );
 
 
         return result;
@@ -1118,7 +1243,7 @@ export default function SalonAppointmentsScreen() {
       [
         bookings,
         selectedFilter,
-      ]
+      ],
     );
 
 
@@ -1431,46 +1556,61 @@ export default function SalonAppointmentsScreen() {
           <AppointmentCard
             booking={item}
 
-            /*
-             * IMPORTANT:
-             * AppointmentCard calls this when its salon
-             * response countdown reaches zero.
-             */
+            // ==================================================
+            // SALON RESPONSE TIMER EXPIRED
+            // ==================================================
+
             onTimerExpired={() => {
 
               console.log(
                 '[SalonAppointments] AppointmentCard timer expired:',
-                item.bookingId
+                item.bookingId,
               );
+
 
               refetch().catch(
                 refreshError => {
 
                   console.log(
                     '[SalonAppointments] AppointmentCard expiry refetch error:',
-                    refreshError
+                    refreshError,
                   );
 
-                }
+                },
               );
 
             }}
 
+
+            // ==================================================
+            // ACCEPT
+            // ==================================================
+
             onAccept={() =>
               acceptBooking(
-                item.bookingId
+                item.bookingId,
               )
             }
+
+
+            // ==================================================
+            // REJECT
+            // ==================================================
 
             onReject={() =>
               rejectBooking(
-                item.bookingId
+                item.bookingId,
               )
             }
 
+
+            // ==================================================
+            // COMPLETE
+            // ==================================================
+
             onComplete={() =>
               completeBooking(
-                item.bookingId
+                item.bookingId,
               )
             }
           />

@@ -477,76 +477,106 @@ export const LIST_BOOKINGS = gql`query SalonBookings($salonId: ID!) {
 }`;
 
 export const ACCEPT_BOOKING = gql`
-mutation AcceptBooking(
-  $bookingId: ID!,
-  $salonNote: String
-) {
-  updateBookingStatus(
-    input: {
-      bookingId: $bookingId
-      bookingStatus: CONFIRMED
-      salonNote: $salonNote
-    }
+  mutation AcceptBooking(
+    $input: SalonRespondToBookingInput!
   ) {
-    success
-    message
-    booking {
-      bookingId
-      bookingStatus
-      salonNote
+    salonRespondToBooking(
+      input: $input
+    ) {
+      success
+      message
+
+      booking {
+        bookingId
+        salonId
+        customerUserId
+
+        salonName
+        customerName
+        customerPhone
+
+        bookingDate
+        startTime
+        endTime
+
+        bookingStatus
+        salonResponseStatus
+        salonResponseDeadline
+        salonResponseWindowMinutes
+
+        bookingFee
+        bookingFeeStatus
+        bookingFeePaidAt
+        bookingFeePaymentDeadline
+        bookingFeePaymentWindowMinutes
+
+        remainingAmount
+        totalAmount
+
+        paymentMethod
+        paymentStatus
+
+        salonNote
+
+        updatedAt
+      }
     }
   }
-}
 `;
 
 export const REJECT_BOOKING = gql`
-mutation RejectBooking(
-  $bookingId: ID!,
-  $salonNote: String
-) {
-  updateBookingStatus(
-    input: {
-      bookingId: $bookingId
-      bookingStatus: CANCELLED
-      salonNote: $salonNote
-    }
+  mutation RejectBooking(
+    $input: SalonRespondToBookingInput!
   ) {
-    success
-    message
-    booking {
-      bookingStatus
-      salonNote
+    salonRespondToBooking(
+      input: $input
+    ) {
+      success
+      message
+
+      booking {
+        bookingId
+        bookingStatus
+        salonResponseStatus
+        salonResponseDeadline
+        salonResponseWindowMinutes
+        salonNote
+        updatedAt
+      }
     }
   }
-}
 `;
 
 export const CANCEL_BOOKING = gql`
-mutation CancelBooking(
-  $bookingId: ID!,
-  $salonNote: String
-) {
-  updateBookingStatus(
-    input: {
-      bookingId: $bookingId
-      bookingStatus: CANCELLED
-      salonNote: $salonNote
-    }
+  mutation CancelBooking(
+    $bookingId: ID!,
+    $salonNote: String
   ) {
-    success
-    message
-    booking {
-      bookingId
-      bookingStatus
-      salonNote
+    updateBookingStatus(
+      input: {
+        bookingId: $bookingId
+        bookingStatus: CANCELLED
+        salonNote: $salonNote
+      }
+    ) {
+      success
+      message
+      booking {
+        bookingId
+        bookingStatus
+        salonNote
+      }
     }
   }
-}
 `;
 
 export const COMPLETE_BOOKING = gql`
-  mutation CompleteBooking($input: UpdateBookingStatusInput!) {
-    updateBookingStatus(input: $input) {
+  mutation CompleteBooking(
+    $input: UpdateBookingStatusInput!
+  ) {
+    updateBookingStatus(
+      input: $input
+    ) {
       success
       message
       booking {
@@ -557,7 +587,6 @@ export const COMPLETE_BOOKING = gql`
     }
   }
 `;
-
 export const CREATE_REVIEW = gql`
 mutation CreateReview($input: CreateReviewInput!) {
   createReview(input: $input) {
