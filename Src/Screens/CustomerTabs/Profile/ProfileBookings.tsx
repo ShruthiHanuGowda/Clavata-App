@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -107,20 +106,25 @@ const MONTHS = [
     'December',
 ];
 
-const WEEK_DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const WEEK_DAYS = [
+    'SUN',
+    'MON',
+    'TUE',
+    'WED',
+    'THU',
+    'FRI',
+    'SAT',
+];
 
-function pad(value: number) {
+const PRIMARY = '#009D94';
+
+function pad(value: number): string {
     return String(value).padStart(2, '0');
 }
 
-/**
- * Backend bookingDate is expected to be:
- *
- * 2026-08-11
- *
- * We normalize it so comparisons are reliable.
- */
-function normalizeDate(date?: string | null): string {
+function normalizeDate(
+    date?: string | null,
+): string {
     if (!date) {
         return '';
     }
@@ -128,18 +132,15 @@ function normalizeDate(date?: string | null): string {
     return date.substring(0, 10);
 }
 
-/**
- * Convert:
- *
- * 09:00 -> 09:00 AM
- * 17:30 -> 05:30 PM
- */
-function formatTime(time?: string | null): string {
+function formatTime(
+    time?: string | null,
+): string {
     if (!time) {
         return '';
     }
 
-    const [hourString, minuteString] = time.split(':');
+    const [hourString, minuteString] =
+        time.split(':');
 
     let hour = Number(hourString);
     const minute = minuteString || '00';
@@ -159,35 +160,31 @@ function formatTime(time?: string | null): string {
     return `${pad(hour)}:${minute} ${period}`;
 }
 
-/**
- * Format:
- *
- * 2026-08-11 -> 11 Aug 2026
- */
-function formatDate(dateString: string): string {
-    const date = new Date(`${dateString}T00:00:00`);
+function formatDate(
+    dateString: string,
+): string {
+    const date = new Date(
+        `${dateString}T00:00:00`,
+    );
 
     if (Number.isNaN(date.getTime())) {
         return dateString;
     }
 
-    return `${date.getDate()} ${MONTHS[date.getMonth()].substring(0, 3)
-        } ${date.getFullYear()}`;
+    return `${date.getDate()} ${
+        MONTHS[date.getMonth()].substring(0, 3)
+    } ${date.getFullYear()}`;
 }
 
-/**
- * Get YYYY-MM-DD from Date.
- */
 function toDateKey(date: Date): string {
     return `${date.getFullYear()}-${pad(
         date.getMonth() + 1,
     )}-${pad(date.getDate())}`;
 }
 
-/**
- * Status display.
- */
-function getStatusLabel(status: BookingStatus) {
+function getStatusLabel(
+    status: BookingStatus,
+): string {
     switch (status) {
         case 'PENDING':
             return 'Pending';
@@ -209,7 +206,9 @@ function getStatusLabel(status: BookingStatus) {
     }
 }
 
-function getStatusStyle(status: BookingStatus) {
+function getStatusStyle(
+    status: BookingStatus,
+) {
     switch (status) {
         case 'CONFIRMED':
             return {
@@ -260,27 +259,18 @@ export default function ProfileBookings() {
 
     const today = new Date();
 
-    /**
-     * Calendar month currently displayed.
-     */
-    const [currentMonth, setCurrentMonth] = useState(
-        new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            1,
-        ),
-    );
+    const [currentMonth, setCurrentMonth] =
+        useState(
+            new Date(
+                today.getFullYear(),
+                today.getMonth(),
+                1,
+            ),
+        );
 
-    /**
-     * Selected calendar date.
-     */
-    const [selectedDate, setSelectedDate] = useState(
-        toDateKey(today),
-    );
+    const [selectedDate, setSelectedDate] =
+        useState(toDateKey(today));
 
-    /**
-     * Load customer's bookings.
-     */
     const {
         data,
         loading,
@@ -297,16 +287,70 @@ export default function ProfileBookings() {
             skip: !currentUser?.userId,
 
             fetchPolicy: 'network-only',
+
+            // Refresh booking payment status when
+            // returning to this screen manually
+            notifyOnNetworkStatusChange: true,
         },
     );
 
-    const bookings = data?.customerBookings || [];
+    /* =====================================================
+       PAYMENT FILTER — IMPORTANT
+
+       Only show bookings whose Clavata booking fee
+       has been successfully paid.
+
+       PENDING, FAILED, REFUNDED and other statuses
+       will not appear in the calendar or booking list.
+    ===================================================== */
+
+    const allBookings =
+        data?.customerBookings || [];
+
+    const bookings = useMemo(() => {
+        return allBookings.filter(
+            booking =>
+                String(
+                    booking.bookingFeeStatus || '',
+                )
+                    .trim()
+                    .toUpperCase() === 'PAID',
+        );
+    }, [allBookings]);
+
     console.log(
-        'CUSTOMER BOOKINGS:',
-        JSON.stringify(bookings, null, 2),
+        '[ProfileBookings] TOTAL BOOKINGS:',
+        allBookings.length,
     );
+
+    console.log(
+        '[ProfileBookings] PAID BOOKINGS:',
+        bookings.length,
+    );
+
+    console.log(
+        '[ProfileBookings] EXCLUDED UNPAID BOOKINGS:',
+        allBookings
+            .filter(
+                booking =>
+                    String(
+                        booking.bookingFeeStatus || '',
+                    )
+                        .trim()
+                        .toUpperCase() !== 'PAID',
+            )
+            .map(booking => ({
+                bookingId: booking.bookingId,
+                bookingFeeStatus:
+                    booking.bookingFeeStatus,
+            })),
+    );
+
     /* =====================================================
        BOOKINGS GROUPED BY DATE
+
+       Because this uses the filtered bookings,
+       calendar dots only appear for paid bookings.
     ===================================================== */
 
     const bookingsByDate = useMemo(() => {
@@ -328,6 +372,16 @@ export default function ProfileBookings() {
             result[date].push(booking);
         });
 
+        Object.values(result).forEach(
+            dateBookings => {
+                dateBookings.sort((a, b) =>
+                    a.startTime.localeCompare(
+                        b.startTime,
+                    ),
+                );
+            },
+        );
+
         return result;
     }, [bookings]);
 
@@ -337,7 +391,6 @@ export default function ProfileBookings() {
 
     const calendarDays = useMemo(() => {
         const year = currentMonth.getFullYear();
-
         const month = currentMonth.getMonth();
 
         const firstDay = new Date(
@@ -352,31 +405,23 @@ export default function ProfileBookings() {
             0,
         ).getDate();
 
-        const days: Array<
-            Date | null
-        > = [];
+        const days: Array<Date | null> = [];
 
-        /**
-         * Empty cells before first day.
-         */
-        for (let i = 0; i < firstDay; i++) {
+        for (
+            let i = 0;
+            i < firstDay;
+            i++
+        ) {
             days.push(null);
         }
 
-        /**
-         * Actual days.
-         */
         for (
             let day = 1;
             day <= daysInMonth;
             day++
         ) {
             days.push(
-                new Date(
-                    year,
-                    month,
-                    day,
-                ),
+                new Date(year, month, day),
             );
         }
 
@@ -425,9 +470,7 @@ export default function ProfileBookings() {
             ),
         );
 
-        setSelectedDate(
-            toDateKey(now),
-        );
+        setSelectedDate(toDateKey(now));
     };
 
     /* =====================================================
@@ -441,7 +484,6 @@ export default function ProfileBookings() {
             'BookingDetails',
             {
                 bookingId: booking.bookingId,
-                // booking,
             },
         );
     };
@@ -456,38 +498,26 @@ export default function ProfileBookings() {
                 style={styles.container}
             >
                 <View
-                    style={
-                        styles.errorContainer
-                    }
+                    style={styles.errorContainer}
                 >
                     <Text
-                        style={
-                            styles.errorTitle
-                        }
+                        style={styles.errorTitle}
                     >
                         Unable to load bookings
                     </Text>
 
                     <Text
-                        style={
-                            styles.errorMessage
-                        }
+                        style={styles.errorMessage}
                     >
                         {error.message}
                     </Text>
 
                     <TouchableOpacity
-                        style={
-                            styles.retryButton
-                        }
-                        onPress={() =>
-                            refetch()
-                        }
+                        style={styles.retryButton}
+                        onPress={() => refetch()}
                     >
                         <Text
-                            style={
-                                styles.retryText
-                            }
+                            style={styles.retryText}
                         >
                             Try Again
                         </Text>
@@ -502,115 +532,61 @@ export default function ProfileBookings() {
             style={styles.container}
         >
             <ScrollView
-                showsVerticalScrollIndicator={
-                    false
-                }
-                contentContainerStyle={
-                    styles.content
-                }
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.content}
             >
-                {/* =================================================
-                    HEADER
-                ================================================= */}
+                {/* HEADER */}
 
-                <View
-                    style={styles.header}
-                >
+                <View style={styles.header}>
                     <TouchableOpacity
                         onPress={() =>
                             navigation.goBack()
                         }
-                        style={
-                            styles.backButton
-                        }
+                        style={styles.backButton}
                     >
-                        <Text
-                            style={styles.back}
-                        >
+                        <Text style={styles.back}>
                             ←
                         </Text>
                     </TouchableOpacity>
 
-                    <Text
-                        style={styles.title}
-                    >
+                    <Text style={styles.title}>
                         My Bookings
                     </Text>
                 </View>
 
-                {/* =================================================
-                    CALENDAR
-                ================================================= */}
+                {/* CALENDAR */}
 
-                <View
-                    style={styles.calendarCard}
-                >
-                    {/* MONTH HEADER */}
-
-                    <View
-                        style={
-                            styles.monthHeader
-                        }
-                    >
+                <View style={styles.calendarCard}>
+                    <View style={styles.monthHeader}>
                         <TouchableOpacity
-                            style={
-                                styles.monthArrow
-                            }
-                            onPress={
-                                previousMonth
-                            }
+                            style={styles.monthArrow}
+                            onPress={previousMonth}
                         >
-                            <Text
-                                style={
-                                    styles.arrowText
-                                }
-                            >
+                            <Text style={styles.arrowText}>
                                 ‹
                             </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            onPress={
-                                goToToday
-                            }
+                            onPress={goToToday}
                         >
-                            <Text
-                                style={
-                                    styles.monthTitle
-                                }
-                            >
-                                {
-                                    MONTHS[
+                            <Text style={styles.monthTitle}>
+                                {MONTHS[
                                     currentMonth.getMonth()
-                                    ]
-                                }{' '}
-                                {
-                                    currentMonth.getFullYear()
-                                }
+                                ]}{' '}
+                                {currentMonth.getFullYear()}
                             </Text>
 
-                            <Text
-                                style={
-                                    styles.todayText
-                                }
-                            >
+                            <Text style={styles.todayText}>
                                 Tap to go to today
                             </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={
-                                styles.monthArrow
-                            }
-                            onPress={
-                                nextMonth
-                            }
+                            style={styles.monthArrow}
+                            onPress={nextMonth}
                         >
-                            <Text
-                                style={
-                                    styles.arrowText
-                                }
-                            >
+                            <Text style={styles.arrowText}>
                                 ›
                             </Text>
                         </TouchableOpacity>
@@ -618,56 +594,40 @@ export default function ProfileBookings() {
 
                     {/* WEEK DAYS */}
 
-                    <View
-                        style={
-                            styles.weekRow
-                        }
-                    >
-                        {WEEK_DAYS.map(
-                            day => (
-                                <View
-                                    key={day}
-                                    style={
-                                        styles.weekDay
-                                    }
+                    <View style={styles.weekRow}>
+                        {WEEK_DAYS.map(day => (
+                            <View
+                                key={day}
+                                style={styles.weekDay}
+                            >
+                                <Text
+                                    style={styles.weekDayText}
                                 >
-                                    <Text
-                                        style={
-                                            styles.weekDayText
-                                        }
-                                    >
-                                        {day}
-                                    </Text>
-                                </View>
-                            ),
-                        )}
+                                    {day}
+                                </Text>
+                            </View>
+                        ))}
                     </View>
 
                     {/* CALENDAR GRID */}
 
-                    <View
-                        style={
-                            styles.calendarGrid
-                        }
-                    >
+                    <View style={styles.calendarGrid}>
                         {calendarDays.map(
                             (date, index) => {
                                 if (!date) {
                                     return (
                                         <View
                                             key={`empty-${index}`}
-                                            style={
-                                                styles.calendarDay
-                                            }
+                                            style={styles.calendarDay}
                                         />
                                     );
                                 }
 
                                 const dateKey =
-                                    toDateKey(
-                                        date,
-                                    );
+                                    toDateKey(date);
 
+                                // Only paid bookings
+                                // create calendar dots.
                                 const hasBookings =
                                     Boolean(
                                         bookingsByDate[
@@ -676,23 +636,16 @@ export default function ProfileBookings() {
                                     );
 
                                 const isSelected =
-                                    selectedDate ===
-                                    dateKey;
+                                    selectedDate === dateKey;
 
                                 const isToday =
-                                    toDateKey(
-                                        today,
-                                    ) ===
+                                    toDateKey(today) ===
                                     dateKey;
 
                                 return (
                                     <TouchableOpacity
-                                        key={
-                                            dateKey
-                                        }
-                                        style={
-                                            styles.calendarDay
-                                        }
+                                        key={dateKey}
+                                        style={styles.calendarDay}
                                         onPress={() =>
                                             setSelectedDate(
                                                 dateKey,
@@ -702,25 +655,21 @@ export default function ProfileBookings() {
                                         <View
                                             style={[
                                                 styles.dateCircle,
-
                                                 isSelected &&
-                                                styles.selectedDateCircle,
-
+                                                    styles.selectedDateCircle,
                                                 isToday &&
-                                                !isSelected &&
-                                                styles.todayCircle,
+                                                    !isSelected &&
+                                                    styles.todayCircle,
                                             ]}
                                         >
                                             <Text
                                                 style={[
                                                     styles.dateText,
-
                                                     isSelected &&
-                                                    styles.selectedDateText,
-
+                                                        styles.selectedDateText,
                                                     isToday &&
-                                                    !isSelected &&
-                                                    styles.todayTextNumber,
+                                                        !isSelected &&
+                                                        styles.todayTextNumber,
                                                 ]}
                                             >
                                                 {date.getDate()}
@@ -729,9 +678,7 @@ export default function ProfileBookings() {
 
                                         {hasBookings ? (
                                             <View
-                                                style={
-                                                    styles.bookingDot
-                                                }
+                                                style={styles.bookingDot}
                                             />
                                         ) : null}
                                     </TouchableOpacity>
@@ -741,330 +688,236 @@ export default function ProfileBookings() {
                     </View>
                 </View>
 
-                {/* =================================================
-                    SELECTED DATE
-                ================================================= */}
+                {/* SELECTED DATE */}
 
                 <View
-                    style={
-                        styles.selectedDateHeader
-                    }
+                    style={styles.selectedDateHeader}
                 >
                     <View>
                         <Text
-                            style={
-                                styles.selectedDateTitle
-                            }
+                            style={styles.selectedDateTitle}
                         >
-                            {formatDate(
-                                selectedDate,
-                            )}
+                            {formatDate(selectedDate)}
                         </Text>
 
                         <Text
-                            style={
-                                styles.selectedDateSubtitle
-                            }
+                            style={styles.selectedDateSubtitle}
                         >
-                            {selectedBookings.length ===
-                                0
-                                ? 'No bookings'
-                                : `${selectedBookings.length} ${selectedBookings.length ===
-                                    1
-                                    ? 'booking'
-                                    : 'bookings'
-                                }`}
+                            {selectedBookings.length === 0
+                                ? 'No paid bookings'
+                                : `${selectedBookings.length} ${
+                                      selectedBookings.length === 1
+                                          ? 'booking'
+                                          : 'bookings'
+                                  }`}
                         </Text>
                     </View>
                 </View>
 
-                {/* =================================================
-                    LOADING
-                ================================================= */}
+                {/* LOADING */}
 
                 {loading ? (
                     <View
-                        style={
-                            styles.loadingContainer
-                        }
+                        style={styles.loadingContainer}
                     >
                         <ActivityIndicator
                             size="small"
-                            color="#009D94"
+                            color={PRIMARY}
                         />
 
                         <Text
-                            style={
-                                styles.loadingText
-                            }
+                            style={styles.loadingText}
                         >
                             Loading bookings...
                         </Text>
                     </View>
                 ) : null}
 
-                {/* =================================================
-                    NO BOOKINGS
-                ================================================= */}
+                {/* NO BOOKINGS */}
 
                 {!loading &&
-                    selectedBookings.length ===
-                    0 ? (
-                    <View
-                        style={
-                            styles.emptyCard
-                        }
-                    >
-                        <Text
-                            style={
-                                styles.emptyIcon
-                            }
-                        >
+                selectedBookings.length === 0 ? (
+                    <View style={styles.emptyCard}>
+                        <Text style={styles.emptyIcon}>
                             📅
                         </Text>
 
-                        <Text
-                            style={
-                                styles.emptyTitle
-                            }
-                        >
-                            No bookings
+                        <Text style={styles.emptyTitle}>
+                            No paid bookings
                         </Text>
 
-                        <Text
-                            style={
-                                styles.emptyText
-                            }
-                        >
-                            You don't have any
-                            bookings on this
-                            date.
+                        <Text style={styles.emptyText}>
+                            Bookings will appear here
+                            after your Clavata booking
+                            fee payment is successful.
                         </Text>
                     </View>
                 ) : null}
 
-                {/* =================================================
-                    BOOKINGS
-                ================================================= */}
+                {/* PAID BOOKINGS ONLY */}
 
                 {!loading &&
-                    selectedBookings.map(
-                        booking => {
-                            const statusStyle =
-                                getStatusStyle(
-                                    booking.bookingStatus,
-                                );
+                    selectedBookings.map(booking => {
+                        const statusStyle =
+                            getStatusStyle(
+                                booking.bookingStatus,
+                            );
 
-                            return (
-                                <View
-                                    key={
-                                        booking.bookingId
-                                    }
-                                    style={
-                                        styles.bookingCard
-                                    }
-                                >
-                                    {/* SALON */}
+                        return (
+                            <View
+                                key={booking.bookingId}
+                                style={styles.bookingCard}
+                            >
+                                {/* SALON */}
+
+                                <View style={styles.bookingTop}>
+                                    <View
+                                        style={styles.salonIcon}
+                                    >
+                                        <Text>✂️</Text>
+                                    </View>
 
                                     <View
-                                        style={
-                                            styles.bookingTop
-                                        }
+                                        style={styles.salonInfo}
                                     >
-                                        <View
-                                            style={
-                                                styles.salonIcon
-                                            }
+                                        <Text
+                                            style={styles.salonName}
                                         >
-                                            <Text>
-                                                ✂️
-                                            </Text>
-                                        </View>
+                                            {booking.salonName}
+                                        </Text>
 
-                                        <View
-                                            style={
-                                                styles.salonInfo
-                                            }
+                                        <Text
+                                            style={styles.bookingTime}
                                         >
-                                            <Text
-                                                style={
-                                                    styles.salonName
-                                                }
-                                            >
-                                                {
-                                                    booking.salonName
-                                                }
-                                            </Text>
+                                            {formatTime(
+                                                booking.startTime,
+                                            )}{' '}
+                                            -{' '}
+                                            {formatTime(
+                                                booking.endTime,
+                                            )}
+                                        </Text>
+                                    </View>
 
-                                            <Text
-                                                style={
-                                                    styles.bookingTime
-                                                }
-                                            >
-                                                {formatTime(
-                                                    booking.startTime,
-                                                )}{' '}
-                                                -{' '}
-                                                {formatTime(
-                                                    booking.endTime,
-                                                )}
-                                            </Text>
-                                        </View>
-
-                                        <View
+                                    <View
+                                        style={[
+                                            styles.statusBadge,
+                                            {
+                                                backgroundColor:
+                                                    statusStyle.backgroundColor,
+                                            },
+                                        ]}
+                                    >
+                                        <Text
                                             style={[
-                                                styles.statusBadge,
+                                                styles.statusText,
                                                 {
-                                                    backgroundColor:
-                                                        statusStyle.backgroundColor,
+                                                    color:
+                                                        statusStyle.color,
                                                 },
                                             ]}
                                         >
-                                            <Text
-                                                style={[
-                                                    styles.statusText,
-                                                    {
-                                                        color:
-                                                            statusStyle.color,
-                                                    },
-                                                ]}
-                                            >
-                                                {getStatusLabel(
-                                                    booking.bookingStatus,
-                                                )}
-                                            </Text>
-                                        </View>
-                                    </View>
-
-                                    {/* SERVICES */}
-
-                                    <View
-                                        style={
-                                            styles.servicesContainer
-                                        }
-                                    >
-                                        {booking.services.map(
-                                            (
-                                                service,
-                                                index,
-                                            ) => (
-                                                <View
-                                                    key={
-                                                        service.serviceId
-                                                    }
-                                                    style={
-                                                        styles.serviceRow
-                                                    }
-                                                >
-                                                    <Text
-                                                        style={
-                                                            styles.serviceName
-                                                        }
-                                                    >
-                                                        {
-                                                            service.name
-                                                        }
-                                                    </Text>
-
-                                                    <Text
-                                                        style={
-                                                            styles.servicePrice
-                                                        }
-                                                    >
-                                                        ₹
-                                                        {service.price.toFixed(
-                                                            0,
-                                                        )}
-                                                    </Text>
-                                                </View>
-                                            ),
-                                        )}
-                                    </View>
-
-                                    {/* TOTAL */}
-
-                                    <View
-                                        style={
-                                            styles.totalRow
-                                        }
-                                    >
-                                        <Text
-                                            style={
-                                                styles.totalLabel
-                                            }
-                                        >
-                                            Total
-                                        </Text>
-
-                                        <Text
-                                            style={
-                                                styles.totalAmount
-                                            }
-                                        >
-                                            ₹
-                                            {booking.totalAmount.toFixed(
-                                                0,
+                                            {getStatusLabel(
+                                                booking.bookingStatus,
                                             )}
                                         </Text>
                                     </View>
-
-                                    {/* PAYMENT */}
-
-                                    <View
-                                        style={
-                                            styles.paymentRow
-                                        }
-                                    >
-                                        <Text
-                                            style={
-                                                styles.paymentLabel
-                                            }
-                                        >
-                                            Payment
-                                        </Text>
-
-                                        <Text
-                                            style={
-                                                styles.paymentValue
-                                            }
-                                        >
-                                            {booking.paymentStatus.replace(
-                                                '_',
-                                                ' ',
-                                            )}
-                                        </Text>
-                                    </View>
-
-                                    {/* DETAILS */}
-
-                                    <TouchableOpacity
-                                        style={
-                                            styles.detailsButton
-                                        }
-                                        onPress={() =>
-                                            handleViewDetails(
-                                                booking,
-                                            )
-                                        }
-                                    >
-                                        <Text
-                                            style={
-                                                styles.detailsButtonText
-                                            }
-                                        >
-                                            View Details
-                                        </Text>
-                                    </TouchableOpacity>
                                 </View>
-                            );
-                        },
-                    )}
 
-                <View
-                    style={{
-                        height: 30,
-                    }}
-                />
+                                {/* SERVICES */}
+
+                                <View
+                                    style={styles.servicesContainer}
+                                >
+                                    {(
+                                        booking.services || []
+                                    ).map(
+                                        (service, index) => (
+                                            <View
+                                                key={
+                                                    service.serviceId ||
+                                                    `${service.name}-${index}`
+                                                }
+                                                style={styles.serviceRow}
+                                            >
+                                                <Text
+                                                    style={styles.serviceName}
+                                                >
+                                                    {service.name}
+                                                </Text>
+
+                                                <Text
+                                                    style={styles.servicePrice}
+                                                >
+                                                    ₹
+                                                    {Number(
+                                                        service.price || 0,
+                                                    ).toFixed(0)}
+                                                </Text>
+                                            </View>
+                                        ),
+                                    )}
+                                </View>
+
+                                {/* TOTAL */}
+
+                                <View style={styles.totalRow}>
+                                    <Text
+                                        style={styles.totalLabel}
+                                    >
+                                        Total
+                                    </Text>
+
+                                    <Text
+                                        style={styles.totalAmount}
+                                    >
+                                        ₹
+                                        {Number(
+                                            booking.totalAmount || 0,
+                                        ).toFixed(0)}
+                                    </Text>
+                                </View>
+
+                                {/* BOOKING FEE PAYMENT */}
+
+                                <View style={styles.paymentRow}>
+                                    <Text
+                                        style={styles.paymentLabel}
+                                    >
+                                        Clavata booking fee
+                                    </Text>
+
+                                    <Text
+                                        style={[
+                                            styles.paymentValue,
+                                            styles.paidPaymentValue,
+                                        ]}
+                                    >
+                                        PAID
+                                    </Text>
+                                </View>
+
+                                {/* DETAILS */}
+
+                                <TouchableOpacity
+                                    style={styles.detailsButton}
+                                    onPress={() =>
+                                        handleViewDetails(booking)
+                                    }
+                                >
+                                    <Text
+                                        style={
+                                            styles.detailsButtonText
+                                        }
+                                    >
+                                        View Details
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        );
+                    })}
+
+                <View style={{ height: 30 }} />
             </ScrollView>
         </SafeAreaView>
     );
@@ -1073,8 +926,6 @@ export default function ProfileBookings() {
 /* ============================================================
    STYLES
 ============================================================ */
-
-const PRIMARY = '#009D94';
 
 const styles = StyleSheet.create({
     container: {
@@ -1112,17 +963,11 @@ const styles = StyleSheet.create({
         marginLeft: 4,
     },
 
-    /* ========================================================
-       CALENDAR
-    ======================================================== */
-
     calendarCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 18,
         padding: 16,
-
         elevation: 2,
-
         shadowColor: '#000',
         shadowOpacity: 0.05,
         shadowRadius: 6,
@@ -1238,10 +1083,6 @@ const styles = StyleSheet.create({
         backgroundColor: PRIMARY,
     },
 
-    /* ========================================================
-       SELECTED DATE
-    ======================================================== */
-
     selectedDateHeader: {
         marginTop: 24,
         marginBottom: 12,
@@ -1259,10 +1100,6 @@ const styles = StyleSheet.create({
         color: '#6B7280',
     },
 
-    /* ========================================================
-       LOADING
-    ======================================================== */
-
     loadingContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1275,10 +1112,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#6B7280',
     },
-
-    /* ========================================================
-       EMPTY
-    ======================================================== */
 
     emptyCard: {
         backgroundColor: '#FFFFFF',
@@ -1304,20 +1137,15 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#6B7280',
         textAlign: 'center',
+        lineHeight: 20,
     },
-
-    /* ========================================================
-       BOOKING CARD
-    ======================================================== */
 
     bookingCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
         padding: 16,
         marginBottom: 14,
-
         elevation: 2,
-
         shadowColor: '#000',
         shadowOpacity: 0.04,
         shadowRadius: 5,
@@ -1433,6 +1261,10 @@ const styles = StyleSheet.create({
         color: '#6B7280',
     },
 
+    paidPaymentValue: {
+        color: '#16A34A',
+    },
+
     detailsButton: {
         marginTop: 15,
         height: 44,
@@ -1447,10 +1279,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '700',
     },
-
-    /* ========================================================
-       ERROR
-    ======================================================== */
 
     errorContainer: {
         flex: 1,
@@ -1485,4 +1313,3 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
 });
-
