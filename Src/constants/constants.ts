@@ -19,8 +19,16 @@ export const COLORS = {
   themeColor: '#009D94',
   // themeColor: '#17769c',
   secondaryColor: '#009D94',
+  heighlightColor: '#6F4BB8',
 };
 
+export const GRADIENTS = {
+  SKY_BLUE: ['#38BDF8', '#0EA5E9', '#0284C7'] as const,
+  SOFT_PURPLE: ['#C084FC', '#A78BFA', '#8B5CF6'] as const,
+  TEAL_BLUE: ['#14B8A6', '#0891B2', '#0369A1'] as const,
+  ORANGE: ['#FDBA74', '#F97316', '#EA580C'] as const,
+  TEAL: ['#34B8AD', '#009D94', '#007F75'] as const,
+};
 
 export const FONTS = {
   regular: 'System',

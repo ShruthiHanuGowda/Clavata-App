@@ -31,116 +31,10 @@ import {
 } from '../../../graphql/queries';
 
 import { useNavigation } from '@react-navigation/native';
-
+import { CUSTOMER_BOOKINGS, REQUEST_REFUND } from '../../../graphql/queries';
 import { WalletStackParamList } from '../../../../types';
-
-
-// ============================================================
-// CUSTOMER BOOKINGS QUERY
-// ============================================================
-
-const CUSTOMER_BOOKINGS = gql`
-    query CustomerBookings(
-        $customerUserId: ID!
-    ) {
-        customerBookings(
-            customerUserId: $customerUserId
-        ) {
-            bookingId
-            salonId
-            customerUserId
-
-            salonName
-            customerName
-
-            bookingDate
-            startTime
-            endTime
-
-            reviewSubmitted
-            rating
-            review
-            reviewedAt
-
-            bookingStatus
-            salonResponseStatus
-            salonResponseDeadline
-            salonResponseWindowMinutes
-
-            paymentMethod
-            paymentStatus
-            preferredPaymentMethod
-
-            bookingFee
-            bookingFeeStatus
-            bookingFeePaidAt
-
-            remainingAmount
-            totalAmount
-
-            bookingFeePaymentDeadline
-            bookingFeePaymentWindowMinutes
-
-            services {
-                serviceId
-                name
-                category
-                subcategory
-                duration
-                price
-                audience
-            }
-        }
-    }
-`;
-
-
-// ============================================================
-// REQUEST REFUND
-// ============================================================
-
-const REQUEST_REFUND = gql`
-    mutation RequestRefund(
-        $input: RequestRefundInput!
-    ) {
-        requestRefund(input: $input) {
-            success
-            message
-
-            refund {
-                refundId
-                bookingId
-                paymentTransactionId
-
-                customerUserId
-                customerName
-                customerPhone
-
-                salonId
-                salonName
-
-                originalAmount
-                refundAmount
-                clavataAmount
-                salonAmount
-
-                reason
-                status
-
-                paymentMethod
-                razorpayPaymentId
-                razorpayRefundId
-
-                requestedAt
-                processedAt
-
-                createdAt
-                updatedAt
-            }
-        }
-    }
-`;
-
+import AppGradient from '../../../common/AppGradient';
+import { GRADIENTS } from '../../../constants/constants';
 
 // ============================================================
 // DESIGN SYSTEM
@@ -1253,22 +1147,13 @@ export default function BookingPage() {
 
 
                     <TouchableOpacity
-                        style={
-                            styles.retryButton
-                        }
-                        onPress={() =>
-                            refetch()
-                        }
+                        style={styles.retryButton}
+                        onPress={() => refetch()}
+                        activeOpacity={0.85}
                     >
-
-                        <Text
-                            style={
-                                styles.retryText
-                            }
-                        >
-                            Try Again
-                        </Text>
-
+                        <AppGradient colors={[...GRADIENTS.SOFT_PURPLE]} style={styles.primaryButtonGradient}>
+                            <Text style={styles.retryText}>Try Again</Text>
+                        </AppGradient>
                     </TouchableOpacity>
 
                 </View>
@@ -1342,21 +1227,12 @@ export default function BookingPage() {
                     </View>
 
 
-                    <View
-                        style={
-                            styles.headerIcon
-                        }
+                    {/* <AppGradient
+                        colors={[...GRADIENTS.SOFT_PURPLE]}
+                        style={styles.headerIcon}
                     >
-
-                        <Text
-                            style={
-                                styles.headerIconText
-                            }
-                        >
-                            ✓
-                        </Text>
-
-                    </View>
+                        <Text style={styles.headerIconText}>✓</Text>
+                    </AppGradient> */}
 
                 </View>
 
@@ -1404,15 +1280,16 @@ export default function BookingPage() {
                                     }
                                 >
 
-                                    <Text
-                                        style={[
-                                            styles.tabText,
-                                            selected &&
-                                            styles.activeTabText,
-                                        ]}
-                                    >
-                                        {item}
-                                    </Text>
+                                    {selected ? (
+                                        <AppGradient
+                                            colors={[...GRADIENTS.SOFT_PURPLE]}
+                                            style={styles.activeTabGradient}
+                                        >
+                                            <Text style={[styles.tabText, styles.activeTabText]}>{item}</Text>
+                                        </AppGradient>
+                                    ) : (
+                                        <Text style={styles.tabText}>{item}</Text>
+                                    )}
 
                                 </TouchableOpacity>
 
@@ -1453,7 +1330,7 @@ export default function BookingPage() {
                             styles.emptyContainer
                         }
                     >
-
+{/* 
                         <View
                             style={
                                 styles.emptyIcon
@@ -1469,7 +1346,7 @@ export default function BookingPage() {
                             </Text>
 
                         </View>
-
+ */}
 
                         <Text
                             style={
@@ -1488,7 +1365,7 @@ export default function BookingPage() {
                         >
                             {tab ===
                             'Upcoming'
-                                ? 'Your upcoming salon appointments will appear here.'
+                                ? 'Your upcoming appointments will appear here.'
                                 : tab ===
                                   'Completed'
                                 ? 'Completed appointments will appear here.'
@@ -2838,24 +2715,10 @@ function BookingCard({
                                 onPay
                             }
                         >
-
-                            <Text
-                                style={
-                                    styles.payNowText
-                                }
-                            >
-                                Pay ₹9 booking fee
-                            </Text>
-
-
-                            <Text
-                                style={
-                                    styles.payNowArrow
-                                }
-                            >
-                                →
-                            </Text>
-
+                            <AppGradient colors={[...GRADIENTS.SOFT_PURPLE]} style={styles.primaryButtonGradient}>
+                                <Text style={styles.payNowText}>Pay ₹9 booking fee</Text>
+                                <Text style={styles.payNowArrow}>→</Text>
+                            </AppGradient>
                         </TouchableOpacity>
 
                     )}
@@ -3218,24 +3081,10 @@ function BookingCard({
                             isCancelling
                         }
                     >
-
-                        <Text
-                            style={
-                                styles.viewButtonText
-                            }
-                        >
-                            View booking
-                        </Text>
-
-
-                        <Text
-                            style={
-                                styles.viewButtonArrow
-                            }
-                        >
-                            →
-                        </Text>
-
+                        <AppGradient colors={[...GRADIENTS.SOFT_PURPLE]} style={styles.primaryButtonGradient}>
+                            <Text style={styles.viewButtonText}>View booking</Text>
+                            <Text style={styles.viewButtonArrow}>→</Text>
+                        </AppGradient>
                     </TouchableOpacity>
 
                 </View>
@@ -3328,9 +3177,9 @@ const styles =
             width: 44,
             height: 44,
             borderRadius: 14,
-            backgroundColor: COLORS.primary,
             alignItems: 'center',
             justifyContent: 'center',
+            overflow: 'hidden',
         },
 
         headerIconText: {
@@ -3360,10 +3209,19 @@ const styles =
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: 10,
+            overflow: 'hidden',
         },
 
         activeTab: {
-            backgroundColor: COLORS.primary,
+            backgroundColor: 'transparent',
+        },
+
+        activeTabGradient: {
+            flex: 1,
+            width: '100%',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 10,
         },
 
         tabText: {
@@ -4005,19 +3863,20 @@ const styles =
 
         payNowButton: {
             height: 46,
-
-            backgroundColor:
-                COLORS.primary,
-
             borderRadius: 11,
-
-            flexDirection: 'row',
-
-            alignItems: 'center',
-
-            justifyContent: 'center',
-
+            overflow: 'hidden',
             marginTop: 2,
+        },
+
+        primaryButtonGradient: {
+            flex: 1,
+            minHeight: 42,
+            width: '100%',
+            borderRadius: 11,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 12,
         },
 
         payNowText: {
@@ -4356,18 +4215,9 @@ const styles =
 
         viewButton: {
             flex: 1.4,
-
             height: 42,
-
             borderRadius: 10,
-
-            backgroundColor:
-                COLORS.primary,
-
-            flexDirection: 'row',
-
-            alignItems: 'center',
-            justifyContent: 'center',
+            overflow: 'hidden',
         },
 
         viewButtonText: {
@@ -4595,18 +4445,10 @@ const styles =
 
         retryButton: {
             marginTop: 18,
-
             paddingHorizontal: 24,
-
             height: 42,
-
             borderRadius: 10,
-
-            backgroundColor:
-                COLORS.primary,
-
-            alignItems: 'center',
-            justifyContent: 'center',
+            overflow: 'hidden',
         },
 
         retryText: {
