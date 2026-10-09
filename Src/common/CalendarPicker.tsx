@@ -10,6 +10,8 @@ import {
     StyleProp,
 } from 'react-native';
 
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
 interface CalendarPickerProps {
     selectedDate: string;
     onDateSelect: (date: string) => void;
@@ -19,6 +21,8 @@ interface CalendarPickerProps {
     minDate?: string;
     maxDate?: string;
     disablePastDates?: boolean;
+    defaultExpanded?: boolean;
+    onExpandedChange?: (expanded: boolean) => void;
 }
 
 const MONTHS = [
@@ -69,6 +73,18 @@ function parseDateKey(dateKey: string): Date | null {
     return date;
 }
 
+function formatSelectedDate(dateKey: string): string {
+    const date = parseDateKey(dateKey);
+
+    if (!date) {
+        return dateKey;
+    }
+
+    return `${date.getDate()} ${
+        MONTHS[date.getMonth()].substring(0, 3)
+    } ${date.getFullYear()}`;
+}
+
 function isBeforeDate(
     dateKey: string,
     otherDateKey: string,
@@ -85,30 +101,44 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({
     minDate,
     maxDate,
     disablePastDates = false,
+    defaultExpanded = false,
+    onExpandedChange,
 }) => {
-    const [todayKey, setTodayKey] = useState(() =>
-        toDateKey(new Date()),
+    const [expanded, setExpanded] = useState(defaultExpanded);
+
+    const [todayKey, setTodayKey] = useState(
+        () => toDateKey(new Date()),
     );
 
-    const initialSelectedDate =
+    const initialDate =
         parseDateKey(selectedDate) || new Date();
 
     const [currentMonth, setCurrentMonth] = useState(
         () => new Date(
-            initialSelectedDate.getFullYear(),
-            initialSelectedDate.getMonth(),
+            initialDate.getFullYear(),
+            initialDate.getMonth(),
             1,
         ),
     );
 
-    // Refresh today's date when the app returns to this
-    // component through a normal React render cycle.
+    const markedDateSet = useMemo(
+        () => new Set(markedDates),
+        [markedDates],
+    );
+
+    // Refresh today's date when the app becomes active.
     useEffect(() => {
+        const refreshToday = () => {
+            setTodayKey(toDateKey(new Date()));
+        };
+
+        refreshToday();
+
         const subscription = AppState.addEventListener(
             'change',
             state => {
                 if (state === 'active') {
-                    setTodayKey(toDateKey(new Date()));
+                    refreshToday();
                 }
             },
         );
@@ -116,8 +146,8 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({
         return () => subscription.remove();
     }, []);
 
-    // If the parent selects a date outside the displayed
-    // month, show that date's month.
+    // Keep the calendar month synchronized with a date
+    // selected externally by the parent screen.
     useEffect(() => {
         const selected = parseDateKey(selectedDate);
 
@@ -127,8 +157,10 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({
 
         setCurrentMonth(previous => {
             if (
-                previous.getFullYear() === selected.getFullYear() &&
-                previous.getMonth() === selected.getMonth()
+                previous.getFullYear() ===
+                    selected.getFullYear() &&
+                previous.getMonth() ===
+                    selected.getMonth()
             ) {
                 return previous;
             }
@@ -144,16 +176,28 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({
     const effectiveMinDate =
         minDate || (disablePastDates ? todayKey : undefined);
 
-    const markedDateSet = useMemo(
-        () => new Set(markedDates),
-        [markedDates],
-    );
+    const selectedDateHasBookings =
+        markedDateSet.has(selectedDate);
+
+    const setCalendarExpanded = (value: boolean) => {
+        setExpanded(value);
+        onExpandedChange?.(value);
+    };
+
+    const toggleCalendar = () => {
+        setCalendarExpanded(!expanded);
+    };
 
     const calendarDays = useMemo(() => {
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth();
 
-        const firstDay = new Date(year, month, 1).getDay();
+        const firstDay = new Date(
+            year,
+            month,
+            1,
+        ).getDay();
+
         const daysInMonth = new Date(
             year,
             month + 1,
@@ -189,6 +233,33 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({
         ));
     };
 
+    const isDateDisabled = (dateKey: string) => {
+        if (
+            effectiveMinDate &&
+            isBeforeDate(dateKey, effectiveMinDate)
+        ) {
+            return true;
+        }
+
+        if (maxDate && isBeforeDate(maxDate, dateKey)) {
+            return true;
+        }
+
+        return false;
+    };
+
+    const handleDateSelect = (dateKey: string) => {
+        if (isDateDisabled(dateKey)) {
+            return;
+        }
+
+        onDateSelect(dateKey);
+
+        // Collapse after selecting a date so the bookings
+        // list becomes visible immediately.
+        setCalendarExpanded(false);
+    };
+
     const goToToday = () => {
         const now = new Date();
         const nowKey = toDateKey(now);
@@ -205,202 +276,285 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({
             (!maxDate || nowKey <= maxDate)
         ) {
             onDateSelect(nowKey);
+            setCalendarExpanded(false);
         }
-    };
-
-    const isDateDisabled = (dateKey: string) => {
-        if (effectiveMinDate && isBeforeDate(
-            dateKey,
-            effectiveMinDate,
-        )) {
-            return true;
-        }
-
-        if (maxDate && isBeforeDate(maxDate, dateKey)) {
-            return true;
-        }
-
-        return false;
     };
 
     return (
-        <View style={[styles.calendarCard, style]}>
-            {/* MONTH HEADER */}
+        <View style={[styles.container, style]}>
+            {/* COLLAPSED HEADER / TOGGLE */}
 
-            <View style={styles.monthHeader}>
-                <TouchableOpacity
-                    style={styles.monthArrow}
-                    onPress={previousMonth}
-                    accessibilityRole="button"
-                    accessibilityLabel="Previous month"
+            <TouchableOpacity
+                style={styles.toggleHeader}
+                onPress={toggleCalendar}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel={
+                    expanded
+                        ? 'Collapse calendar'
+                        : 'Expand calendar'
+                }
+                accessibilityState={{
+                    expanded,
+                }}
+            >
+                <View
+                    style={[
+                        styles.calendarIconContainer,
+                        { backgroundColor: `${primaryColor}15` },
+                    ]}
                 >
-                    <Text
-                        style={[
-                            styles.arrowText,
-                            { color: primaryColor },
-                        ]}
-                    >
-                        ‹
-                    </Text>
-                </TouchableOpacity>
+                    <Ionicons
+                        name="calendar-outline"
+                        size={21}
+                        color={primaryColor}
+                    />
+                </View>
 
-                <TouchableOpacity
-                    style={styles.monthTitleContainer}
-                    onPress={goToToday}
-                    accessibilityRole="button"
-                    accessibilityLabel="Go to today"
-                >
-                    <Text
-                        style={styles.monthTitle}
-                        numberOfLines={1}
-                    >
-                        {MONTHS[currentMonth.getMonth()]}{' '}
-                        {currentMonth.getFullYear()}
+                <View style={styles.headerTextContainer}>
+                    <Text style={styles.selectedDateLabel}>
+                        Selected date
                     </Text>
 
-                    <Text style={styles.todayHint}>
-                        Tap to go to today
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.monthArrow}
-                    onPress={nextMonth}
-                    accessibilityRole="button"
-                    accessibilityLabel="Next month"
-                >
-                    <Text
-                        style={[
-                            styles.arrowText,
-                            { color: primaryColor },
-                        ]}
-                    >
-                        ›
-                    </Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* WEEK DAYS */}
-
-            <View style={styles.weekRow}>
-                {WEEK_DAYS.map(day => (
-                    <View
-                        key={day}
-                        style={styles.weekDay}
-                    >
-                        <Text style={styles.weekDayText}>
-                            {day}
-                        </Text>
-                    </View>
-                ))}
-            </View>
-
-            {/* CALENDAR GRID */}
-
-            <View style={styles.calendarGrid}>
-                {calendarDays.map((date, index) => {
-                    if (!date) {
-                        return (
-                            <View
-                                key={`empty-${index}`}
-                                style={styles.calendarDay}
-                            />
-                        );
-                    }
-
-                    const dateKey = toDateKey(date);
-                    const isSelected =
-                        selectedDate === dateKey;
-                    const isToday =
-                        todayKey === dateKey;
-                    const hasBookings =
-                        markedDateSet.has(dateKey);
-                    const disabled =
-                        isDateDisabled(dateKey);
-
-                    return (
-                        <TouchableOpacity
-                            key={dateKey}
-                            style={styles.calendarDay}
-                            onPress={() => {
-                                if (!disabled) {
-                                    onDateSelect(dateKey);
-                                }
-                            }}
-                            disabled={disabled}
-                            activeOpacity={0.7}
-                            accessibilityRole="button"
-                            accessibilityLabel={
-                                `${date.getDate()} ` +
-                                `${MONTHS[date.getMonth()]} ` +
-                                `${date.getFullYear()}` +
-                                (hasBookings
-                                    ? ', has bookings'
-                                    : '')
-                            }
-                            accessibilityState={{
-                                selected: isSelected,
-                                disabled,
-                            }}
+                    <View style={styles.selectedDateRow}>
+                        <Text
+                            style={styles.selectedDateText}
+                            numberOfLines={1}
                         >
+                            {formatSelectedDate(selectedDate)}
+                        </Text>
+
+                        {selectedDateHasBookings ? (
                             <View
                                 style={[
-                                    styles.dateCircle,
-                                    isSelected && {
-                                        backgroundColor: primaryColor,
-                                    },
-                                    isToday &&
-                                    !isSelected && {
-                                        borderColor: primaryColor,
-                                        borderWidth: 1,
-                                    },
+                                    styles.bookingIndicator,
+                                    { backgroundColor: primaryColor },
                                 ]}
+                            />
+                        ) : null}
+                    </View>
+
+                    <Text style={styles.toggleHint}>
+                        {expanded
+                            ? 'Hide calendar'
+                            : 'Tap to choose another date'}
+                    </Text>
+                </View>
+
+                <View style={styles.toggleAction}>
+                    <Ionicons
+                        name={expanded ? 'chevron-up' : 'chevron-down'}
+                        size={21}
+                        color="#6B7280"
+                    />
+                </View>
+            </TouchableOpacity>
+
+            {/* EXPANDABLE CALENDAR */}
+
+            {expanded ? (
+                <View style={styles.calendarContent}>
+                    <View style={styles.separator} />
+
+                    {/* MONTH NAVIGATION */}
+
+                    <View style={styles.monthHeader}>
+                        <TouchableOpacity
+                            style={styles.monthArrow}
+                            onPress={previousMonth}
+                            accessibilityRole="button"
+                            accessibilityLabel="Previous month"
+                        >
+                            <Ionicons
+                                name="chevron-back"
+                                size={20}
+                                color={primaryColor}
+                            />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.monthTitleContainer}
+                            onPress={goToToday}
+                            accessibilityRole="button"
+                            accessibilityLabel="Go to today"
+                        >
+                            <Text
+                                style={styles.monthTitle}
+                                numberOfLines={1}
                             >
-                                <Text
-                                    style={[
-                                        styles.dateText,
-                                        isSelected &&
-                                        styles.selectedDateText,
-                                        isToday &&
-                                        !isSelected && {
-                                            color: primaryColor,
-                                        },
-                                        disabled && styles.disabledDateText,
-                                    ]}
-                                >
-                                    {date.getDate()}
+                                {MONTHS[currentMonth.getMonth()]}{' '}
+                                {currentMonth.getFullYear()}
+                            </Text>
+
+                            <Text style={styles.todayHint}>
+                                Tap to go to today
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.monthArrow}
+                            onPress={nextMonth}
+                            accessibilityRole="button"
+                            accessibilityLabel="Next month"
+                        >
+                            <Ionicons
+                                name="chevron-forward"
+                                size={20}
+                                color={primaryColor}
+                            />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* WEEK DAYS */}
+
+                    <View style={styles.weekRow}>
+                        {WEEK_DAYS.map(day => (
+                            <View
+                                key={day}
+                                style={styles.weekDay}
+                            >
+                                <Text style={styles.weekDayText}>
+                                    {day}
                                 </Text>
                             </View>
+                        ))}
+                    </View>
 
-                            {hasBookings ? (
-                                <View
-                                    style={[
-                                        styles.bookingDot,
-                                        {
-                                            backgroundColor:
-                                                primaryColor,
-                                        },
-                                    ]}
-                                />
-                            ) : null}
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
+                    {/* CALENDAR GRID */}
 
-            {/* BOOKING DOT LEGEND */}
+                    <View style={styles.calendarGrid}>
+                        {calendarDays.map((date, index) => {
+                            if (!date) {
+                                return (
+                                    <View
+                                        key={`empty-${index}`}
+                                        style={styles.calendarDay}
+                                    />
+                                );
+                            }
 
-            {markedDateSet.size > 0 ? (
-                <View style={styles.legend}>
-                    <View
-                        style={[
-                            styles.legendDot,
-                            { backgroundColor: primaryColor },
-                        ]}
-                    />
-                    <Text style={styles.legendText}>
-                        Dates with bookings
-                    </Text>
+                            const dateKey = toDateKey(date);
+                            const isSelected =
+                                selectedDate === dateKey;
+                            const isToday =
+                                todayKey === dateKey;
+                            const hasBookings =
+                                markedDateSet.has(dateKey);
+                            const disabled =
+                                isDateDisabled(dateKey);
+
+                            return (
+                                <TouchableOpacity
+                                    key={dateKey}
+                                    style={styles.calendarDay}
+                                    onPress={() =>
+                                        handleDateSelect(dateKey)
+                                    }
+                                    disabled={disabled}
+                                    activeOpacity={0.7}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={
+                                        `${date.getDate()} ` +
+                                        `${MONTHS[date.getMonth()]} ` +
+                                        `${date.getFullYear()}` +
+                                        (hasBookings
+                                            ? ', has bookings'
+                                            : '')
+                                    }
+                                    accessibilityState={{
+                                        selected: isSelected,
+                                        disabled,
+                                    }}
+                                >
+                                    <View
+                                        style={[
+                                            styles.dateCircle,
+                                            isSelected && {
+                                                backgroundColor:
+                                                    primaryColor,
+                                            },
+                                            isToday &&
+                                                !isSelected && {
+                                                    borderColor:
+                                                        primaryColor,
+                                                    borderWidth: 1,
+                                                },
+                                        ]}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.dateText,
+                                                isSelected &&
+                                                    styles.selectedDateText,
+                                                isToday &&
+                                                    !isSelected && {
+                                                        color: primaryColor,
+                                                    },
+                                                disabled &&
+                                                    styles.disabledDateText,
+                                            ]}
+                                        >
+                                            {date.getDate()}
+                                        </Text>
+                                    </View>
+
+                                    {hasBookings ? (
+                                        <View
+                                            style={[
+                                                styles.bookingDot,
+                                                {
+                                                    backgroundColor:
+                                                        primaryColor,
+                                                },
+                                            ]}
+                                        />
+                                    ) : null}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    {/* LEGEND */}
+
+                    {markedDateSet.size > 0 ? (
+                        <View style={styles.legend}>
+                            <View
+                                style={[
+                                    styles.legendDot,
+                                    {
+                                        backgroundColor: primaryColor,
+                                    },
+                                ]}
+                            />
+
+                            <Text style={styles.legendText}>
+                                Dates with bookings
+                            </Text>
+                        </View>
+                    ) : null}
+
+                    {/* COLLAPSE ACTION */}
+
+                    <TouchableOpacity
+                        style={styles.doneButton}
+                        onPress={() => setCalendarExpanded(false)}
+                        activeOpacity={0.8}
+                    >
+                        <Text
+                            style={[
+                                styles.doneButtonText,
+                                { color: primaryColor },
+                            ]}
+                        >
+                            Done
+                        </Text>
+
+                        <Ionicons
+                            name="checkmark"
+                            size={17}
+                            color={primaryColor}
+                        />
+                    </TouchableOpacity>
                 </View>
             ) : null}
         </View>
@@ -408,10 +562,9 @@ const CalendarPicker: React.FC<CalendarPickerProps> = ({
 };
 
 const styles = StyleSheet.create({
-    calendarCard: {
+    container: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 18,
-        padding: 16,
+        borderRadius: 16,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: '#E5E7EB',
         elevation: 2,
@@ -422,40 +575,109 @@ const styles = StyleSheet.create({
             width: 0,
             height: 2,
         },
+        overflow: 'hidden',
+    },
+
+    toggleHeader: {
+        minHeight: 84,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+    },
+
+    calendarIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 13,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    headerTextContainer: {
+        flex: 1,
+        marginLeft: 12,
+        minWidth: 0,
+    },
+
+    selectedDateLabel: {
+        fontSize: 11,
+        color: '#8A8A8A',
+        fontWeight: '500',
+    },
+
+    selectedDateRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 3,
+        gap: 7,
+    },
+
+    selectedDateText: {
+        flexShrink: 1,
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#111827',
+    },
+
+    bookingIndicator: {
+        width: 7,
+        height: 7,
+        borderRadius: 4,
+    },
+
+    toggleHint: {
+        marginTop: 3,
+        fontSize: 11,
+        color: '#6B7280',
+    },
+
+    toggleAction: {
+        width: 34,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 4,
+    },
+
+    calendarContent: {
+        paddingHorizontal: 14,
+        paddingBottom: 12,
+    },
+
+    separator: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: '#E5E7EB',
+        marginBottom: 12,
     },
 
     monthHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 18,
+        marginBottom: 16,
         gap: 6,
     },
 
     monthArrow: {
-        width: 40,
-        height: 40,
+        width: 38,
+        height: 38,
         flexShrink: 0,
-        borderRadius: 20,
+        borderRadius: 19,
         backgroundColor: '#F3F8F7',
         alignItems: 'center',
         justifyContent: 'center',
     },
 
-    arrowText: {
-        fontSize: 28,
-        lineHeight: 30,
-    },
-
     monthTitleContainer: {
         flex: 1,
+        minWidth: 0,
         alignItems: 'center',
         justifyContent: 'center',
-        minWidth: 0,
     },
 
     monthTitle: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: '700',
         color: '#111827',
         textAlign: 'center',
@@ -470,7 +692,7 @@ const styles = StyleSheet.create({
 
     weekRow: {
         flexDirection: 'row',
-        marginBottom: 6,
+        marginBottom: 5,
     },
 
     weekDay: {
@@ -479,7 +701,7 @@ const styles = StyleSheet.create({
     },
 
     weekDayText: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: '700',
         color: '#9CA3AF',
     },
@@ -491,29 +713,29 @@ const styles = StyleSheet.create({
 
     calendarDay: {
         width: '14.2857%',
-        height: 52,
+        height: 46,
         alignItems: 'center',
         justifyContent: 'center',
     },
 
     dateCircle: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
         alignItems: 'center',
         justifyContent: 'center',
     },
 
     dateText: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
         color: '#374151',
     },
 
-    selectedDateText: {
-        color: '#FFFFFF',
-        fontWeight: '700',
-    },
+    // selectedDateText: {
+    //     color: '#FFFFFF',
+    //     fontWeight: '700',
+    // },
 
     disabledDateText: {
         color: '#D1D5DB',
@@ -521,7 +743,7 @@ const styles = StyleSheet.create({
 
     bookingDot: {
         position: 'absolute',
-        bottom: 1,
+        bottom: 0,
         width: 5,
         height: 5,
         borderRadius: 3,
@@ -531,7 +753,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 12,
+        marginTop: 8,
         gap: 6,
     },
 
@@ -544,6 +766,22 @@ const styles = StyleSheet.create({
     legendText: {
         fontSize: 11,
         color: '#6B7280',
+    },
+
+    doneButton: {
+        alignSelf: 'flex-end',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        gap: 5,
+    },
+
+    doneButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
     },
 });
 
