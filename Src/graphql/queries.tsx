@@ -843,12 +843,28 @@ export const GET_FAVORITE_SALONS = gql`
       userId
       salonId
       createdAt
+
       salon {
         salonId
         salonName
-        logoUrl
+
         averageRating
         totalReviews
+
+        logoMedia {
+          imageId
+          mediaType
+          objectUrl
+          status
+        }
+
+        coverMedia {
+          imageId
+          mediaType
+          objectUrl
+          status
+        }
+
         address {
           addressLine
           city
@@ -859,6 +875,8 @@ export const GET_FAVORITE_SALONS = gql`
     }
   }
 `;
+
+
 
 export const IS_FAVORITE_SALON = gql`
     query IsFavoriteSalon(
