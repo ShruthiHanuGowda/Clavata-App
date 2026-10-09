@@ -1,3 +1,4 @@
+
 import React, {
   useEffect,
   useMemo,
@@ -28,10 +29,7 @@ import {
   GET_ACTIVE_SUBCATEGORIES,
 } from '../../../graphql/queries';
 
-type ServiceAudience =
-  | 'FEMALE'
-  | 'MALE'
-  | 'KIDS';
+type ServiceAudience = 'FEMALE' | 'MALE' | 'KIDS';
 
 type Category = {
   categoryId: string;
@@ -48,15 +46,7 @@ type Subcategory = {
   description?: string | null;
   servicesCount: number;
   status: 'ACTIVE' | 'INACTIVE';
-
-  /*
-   * IMPORTANT:
-   * GraphQL now exposes:
-   *
-   * audiences: [ServiceAudience!]!
-   */
   audiences: ServiceAudience[];
-
   businessTypeIds?: string[];
 };
 
@@ -78,80 +68,107 @@ type GetActiveSubcategoriesResponse = {
   };
 };
 
+type AudienceSelection = {
+  audience: ServiceAudience;
+  subcategoryIds: string[];
+};
+
 type Props = {
   onSelect: (selection: {
     categoryId: string;
     category: string;
     subcategoryIds: string[];
-    audienceSubcategorySelections?: Array<{
-      audience: ServiceAudience;
-      subcategoryIds: string[];
-    }>;
+    audienceSubcategorySelections?: AudienceSelection[];
   }) => void;
 
   selectedCategoryId?: string;
-
   selectedCategory?: string;
-
   selectedSubcategoryIds?: string[];
-
-  /**
-   * Audience-specific selections.
-   *
-   * IMPORTANT:
-   * A subcategory ID can be valid for multiple audiences.
-   * Therefore the real selection identity is:
-   *
-   * audience + subcategoryId
-   *
-   * Example:
-   * FEMALE + haircut-id
-   * MALE + haircut-id
-   *
-   * are two different selections.
-   */
-  selectedAudienceSubcategorySelections?: Array<{
-    audience: ServiceAudience;
-    subcategoryIds: string[];
-  }>;
-
+  selectedAudienceSubcategorySelections?: AudienceSelection[];
   selectedAudiences?: ServiceAudience[];
 };
 
 /* =========================================================
-   CATEGORY ICONS
+   AUDIENCE-SPECIFIC CATEGORY IMAGES
+
+   All images are JPG files in:
+   ../../../assets/category/
+
+   IMPORTANT:
+   These require() filenames must match your actual files.
 ========================================================= */
 
-const categoryIcons: Record<string, any> = {
-  "hair": require('../../../assets/category/Hair&styling.png'),
-  "facial & skin care": require('../../../assets/category/Facials&skin.png'),
-  // "hair color & treatments": require('../../../assets/category/Haircolor&treatments.png'),
-  "nails": require('../../../assets/category/NailsHand&feet.png'),
-  "makeup & bridal": require('../../../assets/category/Makeup.png'),
-  "threading & hair removal": require('../../../assets/category/Waxing.png'),
-  "lashes & brows": require('../../../assets/category/Threading.png'),
-  "spa & massage": require('../../../assets/category/BridalIcon.png'),
-  "body care & wellness": require('../../../assets/category/Facials&skin.png'),
+const categoryAudienceIcons: Record<
+  ServiceAudience,
+  Record<string, any>
+> = {
+  FEMALE: {
+    hair: require('../../../assets/category/Hair&styling-female.jpg'),
+    'facial & skin care': require('../../../assets/category/Facials&skin-female.jpg'),
+    nails: require('../../../assets/category/nails-female.jpg'),
+    'makeup & bridal': require('../../../assets/category/Makeup-female.png'),
+    'threading & hair removal': require('../../../assets/category/Waxing-female.png'),
+    'lashes & brows': require('../../../assets/category/lash&eyebrow-female.jpg'),
+    'spa & massage': require('../../../assets/category/massage-female.jpg'),
+    'body care & wellness': require('../../../assets/category/bodycare&wellness-female.jpg'),
+  },
+
+  MALE: {
+    hair: require('../../../assets/category/hair-male.png'),
+    'facial & skin care': require('../../../assets/category/face-male.png'),
+    nails: require('../../../assets/category/nails-male.jpg'),
+    'makeup & bridal': require('../../../assets/category/makeup-male.jpg'),
+    'threading & hair removal': require('../../../assets/category/Waxing-male.png'),
+    'lashes & brows': require('../../../assets/category/lash&eyebrow-male.jpg'),
+    'spa & massage': require('../../../assets/category/massage-male.jpg'),
+    'body care & wellness': require('../../../assets/category/bodycare-male.jpg'),
+  },
+
+  KIDS: {
+    hair: require('../../../assets/category/hair-kid.png'),
+    // 'facial & skin care': require('../../../assets/category/Facials&skin-kids.jpg'),
+    // nails: require('../../../assets/category/nails-kids.jpg'),
+    // 'makeup & bridal': require('../../../assets/category/Makeup-kids.jpg'),
+    // 'threading & hair removal': require('../../../assets/category/Waxing-kids.jpg'),
+    // 'lashes & brows': require('../../../assets/category/lash&eyebrow-kids.jpg'),
+    // 'spa & massage': require('../../../assets/category/massage-kids.jpg'),
+    // 'body care & wellness': require('../../../assets/category/bodycare&wellness-kids.jpg'),
+  },
+};
+
+/* Existing generic JPGs are retained as fallbacks. */
+const categoryFallbackIcons: Record<string, any> = {
+  hair: require('../../../assets/category/Hair&styling-female.jpg'),
+    'facial & skin care': require('../../../assets/category/Facials&skin-female.jpg'),
+    nails: require('../../../assets/category/nails-female.jpg'),
+    'makeup & bridal': require('../../../assets/category/Makeup-female.png'),
+    'threading & hair removal': require('../../../assets/category/Waxing-female.png'),
+    'lashes & brows': require('../../../assets/category/lash&eyebrow-female.jpg'),
+    'spa & massage': require('../../../assets/category/massage-female.jpg'),
+    'body care & wellness': require('../../../assets/category/bodycare&wellness-female.jpg'),
 };
 
 const fallbackIcon =
-  require('../../../assets/category/Facials&skin.png');
+  require('../../../assets/category/fallback.jpg');
+
+const AUDIENCES: ServiceAudience[] = [
+  'FEMALE',
+  'MALE',
+  'KIDS',
+];
+
+const EMPTY_SELECTIONS: Record<ServiceAudience, string[]> = {
+  FEMALE: [],
+  MALE: [],
+  KIDS: [],
+};
 
 /* =========================================================
    HELPERS
 ========================================================= */
 
-const normalizeCategoryName = (
-  value: string,
-): string =>
-  value
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ');
-
-/* =========================================================
-   NORMALIZE AUDIENCES
-========================================================= */
+const normalizeCategoryName = (value: string): string =>
+  value.trim().toLowerCase().replace(/\s+/g, ' ');
 
 const normalizeAudienceList = (
   value: unknown,
@@ -162,94 +179,41 @@ const normalizeAudienceList = (
       ? [value]
       : [];
 
-  return values.filter(
-    (
-      item,
-    ): item is ServiceAudience =>
-      item === 'FEMALE' ||
-      item === 'MALE' ||
-      item === 'KIDS',
+  return Array.from(
+    new Set(
+      values.filter(
+        (item): item is ServiceAudience =>
+          item === 'FEMALE' ||
+          item === 'MALE' ||
+          item === 'KIDS',
+      ),
+    ),
   );
 };
 
-/* =========================================================
-   CATEGORY ICON
-========================================================= */
-
 const getCategoryIcon = (
   categoryName: string,
+  audience: ServiceAudience,
 ) => {
-  const normalizedName =
-    normalizeCategoryName(categoryName);
+  const normalizedName = normalizeCategoryName(categoryName);
 
   return (
-    categoryIcons[normalizedName] ||
+    categoryAudienceIcons[audience]?.[normalizedName] ||
+    categoryFallbackIcons[normalizedName] ||
     fallbackIcon
   );
 };
 
-/* =========================================================
-   MATCH SELECTED AUDIENCES
-========================================================= */
-
-/**
- * OR behaviour:
- *
- * Female selected
- * → show Female services
- *
- * Female + Kids selected
- * → show services supporting Female OR Kids
- *
- * A subcategory supporting:
- * FEMALE + KIDS
- *
- * will appear under both audience sections.
- */
 const matchesSelectedAudiences = (
   subcategory: Subcategory,
   selectedAudiences: ServiceAudience[],
 ): boolean => {
-  if (
-    !Array.isArray(selectedAudiences) ||
-    selectedAudiences.length === 0
-  ) {
-    return false;
-  }
+  const audiences = normalizeAudienceList(subcategory.audiences);
 
-  /*
-   * IMPORTANT:
-   *
-   * GraphQL field is now:
-   *
-   * audiences
-   *
-   * NOT:
-   *
-   * audience
-   */
-  const subcategoryAudiences =
-    normalizeAudienceList(
-      subcategory?.audiences,
-    );
-
-  if (
-    subcategoryAudiences.length === 0
-  ) {
-    return false;
-  }
-
-  return selectedAudiences.some(
-    selectedAudience =>
-      subcategoryAudiences.includes(
-        selectedAudience,
-      ),
+  return selectedAudiences.some(audience =>
+    audiences.includes(audience),
   );
 };
-
-/* =========================================================
-   AUDIENCE LABEL
-========================================================= */
 
 const getAudienceLabel = (
   audience: ServiceAudience,
@@ -257,17 +221,20 @@ const getAudienceLabel = (
   switch (audience) {
     case 'FEMALE':
       return 'Female';
-
     case 'MALE':
       return 'Male';
-
     case 'KIDS':
       return 'Kids';
-
     default:
       return '';
   }
 };
+
+const createEmptySelections = (): Record<ServiceAudience, string[]> => ({
+  FEMALE: [],
+  MALE: [],
+  KIDS: [],
+});
 
 /* =========================================================
    COMPONENT
@@ -281,939 +248,457 @@ const ServiceChips: React.FC<Props> = ({
   selectedAudienceSubcategorySelections,
   selectedAudiences,
 }) => {
-  /* =======================================================
-     GRAPHQL
-  ======================================================= */
-
   const {
     data,
     loading: categoriesLoading,
     error: categoriesError,
-  } =
-    useQuery<GetActiveCategoriesResponse>(
-      GET_ACTIVE_CATEGORIES,
-      {
-        fetchPolicy: 'cache-and-network',
-      },
-    );
+  } = useQuery<GetActiveCategoriesResponse>(
+    GET_ACTIVE_CATEGORIES,
+    { fetchPolicy: 'cache-and-network' },
+  );
 
   const {
     data: subcategoryData,
     loading: subcategoriesLoading,
     error: subcategoriesError,
-  } =
-    useQuery<GetActiveSubcategoriesResponse>(
-      GET_ACTIVE_SUBCATEGORIES,
-      {
-        fetchPolicy: 'network-only',
-      },
-    );
+  } = useQuery<GetActiveSubcategoriesResponse>(
+    GET_ACTIVE_SUBCATEGORIES,
+    { fetchPolicy: 'network-only' },
+  );
 
-  /* =======================================================
-     STATE
-  ======================================================= */
-
-  const [
-    categories,
-    setCategories,
-  ] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [
     subcategoriesByCategory,
     setSubcategoriesByCategory,
-  ] = useState<
-    Record<string, Subcategory[]>
-  >({});
+  ] = useState<Record<string, Subcategory[]>>({});
 
-  const [
-    modalVisible,
-    setModalVisible,
-  ] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
 
-  const [
-    activeCategory,
-    setActiveCategory,
-  ] = useState<Category | null>(
-    null,
-  );
-
-  /**
-   * IMPORTANT:
-   * Do NOT store modal selections as only string IDs.
-   *
-   * The same subcategory can appear under multiple audience
-   * sections. The selection must therefore include audience.
-   */
   const [
     internalSelectedAudienceSubcategories,
     setInternalSelectedAudienceSubcategories,
-  ] = useState<
-    Record<ServiceAudience, string[]>
-  >({
-    FEMALE: [],
-    MALE: [],
-    KIDS: [],
-  });
+  ] = useState<Record<ServiceAudience, string[]>>(
+    createEmptySelections,
+  );
 
   const [
     modalSelectedAudienceSubcategories,
     setModalSelectedAudienceSubcategories,
-  ] = useState<
-    Record<ServiceAudience, string[]>
-  >({
-    FEMALE: [],
-    MALE: [],
-    KIDS: [],
-  });
+  ] = useState<Record<ServiceAudience, string[]>>(
+    createEmptySelections,
+  );
 
-  /* =======================================================
-     NORMALIZED AUDIENCES
-  ======================================================= */
+  const normalizedSelectedAudiences = useMemo(
+    () =>
+      Array.from(
+        new Set(normalizeAudienceList(selectedAudiences)),
+      ),
+    [selectedAudiences],
+  );
 
-  const normalizedSelectedAudiences =
-    useMemo(() => {
-      if (
-        !Array.isArray(
-          selectedAudiences,
-        )
-      ) {
-        return [];
-      }
+  const activeCategoryId = activeCategory?.categoryId || '';
 
-      return Array.from(
-        new Set(
-          selectedAudiences.filter(
-            audience =>
-              audience === 'FEMALE' ||
-              audience === 'MALE' ||
-              audience === 'KIDS',
-          ),
-        ),
-      );
-    }, [selectedAudiences]);
-
-  /* =======================================================
-     ACTIVE CATEGORY ID
-  ======================================================= */
-
-  const activeCategoryId =
-    activeCategory?.categoryId || '';
-
-  /* =======================================================
-     CATEGORY DATA
-  ======================================================= */
+  /* =========================================================
+     LOAD CATEGORIES
+  ========================================================= */
 
   useEffect(() => {
-    const apiCategories =
-      data?.categories?.categories;
+    const apiCategories = data?.categories?.categories;
 
-    if (
-      !Array.isArray(apiCategories)
-    ) {
+    if (!Array.isArray(apiCategories)) {
       setCategories([]);
       return;
     }
 
-    const activeCategories =
+    setCategories(
       apiCategories.filter(
         item =>
           item &&
           item.status === 'ACTIVE' &&
-          typeof item.name === 'string' &&
-          item.name.trim().length > 0 &&
           typeof item.categoryId === 'string' &&
-          item.categoryId.trim().length > 0,
-      );
-
-    setCategories(activeCategories);
-
-    console.log(
-      '========================================',
-    );
-
-    console.log(
-      'SERVICE CHIPS - ACTIVE CATEGORIES',
-    );
-
-    console.log(
-      activeCategories.map(
-        item => ({
-          id: item.categoryId,
-          name: item.name,
-        }),
+          item.categoryId.trim().length > 0 &&
+          typeof item.name === 'string' &&
+          item.name.trim().length > 0,
       ),
-    );
-
-    console.log(
-      '========================================',
     );
   }, [data]);
 
-  /* =======================================================
-     SUBCATEGORY DATA
-  ======================================================= */
+  /* =========================================================
+     LOAD AND GROUP SUBCATEGORIES
+  ========================================================= */
 
   useEffect(() => {
     const apiSubcategories =
-      subcategoryData
-        ?.subcategories
-        ?.subcategories;
+      subcategoryData?.subcategories?.subcategories;
 
-    console.log(
-      '========================================',
-    );
-
-    console.log(
-      'SERVICE CHIPS - RAW SUBCATEGORIES',
-    );
-
-    console.log(
-      JSON.stringify(
-        apiSubcategories,
-        null,
-        2,
-      ),
-    );
-
-    console.log(
-      '========================================',
-    );
-
-    if (
-      !Array.isArray(
-        apiSubcategories,
-      )
-    ) {
+    if (!Array.isArray(apiSubcategories)) {
       setSubcategoriesByCategory({});
       return;
     }
 
-    const grouped =
-      apiSubcategories.reduce<
-        Record<string, Subcategory[]>
-      >(
-        (
-          result,
-          item,
-        ) => {
-          if (
-            !item ||
-            item.status !== 'ACTIVE' ||
-            typeof item.categoryId !==
-            'string' ||
-            typeof item.name !==
-            'string' ||
-            item.name.trim().length === 0
-          ) {
-            return result;
-          }
+    const grouped = apiSubcategories.reduce<
+      Record<string, Subcategory[]>
+    >((result, item) => {
+      if (
+        !item ||
+        item.status !== 'ACTIVE' ||
+        typeof item.categoryId !== 'string' ||
+        typeof item.subcategoryId !== 'string' ||
+        typeof item.name !== 'string' ||
+        !item.name.trim()
+      ) {
+        return result;
+      }
 
-          const categoryId =
-            String(
-              item.categoryId,
-            ).trim();
+      const categoryId = item.categoryId.trim();
+      const audiences = normalizeAudienceList(item.audiences);
 
-          if (!categoryId) {
-            return result;
-          }
+      if (!categoryId || audiences.length === 0) {
+        return result;
+      }
 
-          /*
-           * IMPORTANT:
-           *
-           * Read GraphQL `audiences`.
-           */
-          const normalizedAudiences =
-            normalizeAudienceList(
-              item.audiences,
-            );
+      if (!result[categoryId]) {
+        result[categoryId] = [];
+      }
 
-          console.log(
-            'SUBCATEGORY:',
-            item.name,
-            'SUBCATEGORY ID:',
-            item.subcategoryId,
-            'CATEGORY ID:',
-            categoryId,
-            'RAW AUDIENCES:',
-            item.audiences,
-            'NORMALIZED AUDIENCES:',
-            normalizedAudiences,
-          );
+      result[categoryId].push({
+        ...item,
+        categoryId,
+        audiences,
+      });
 
-          if (
-            normalizedAudiences.length === 0
-          ) {
-            console.warn(
-              'SUBCATEGORY HAS NO VALID AUDIENCES:',
-              item.name,
-              item.audiences,
-            );
+      return result;
+    }, {});
 
-            return result;
-          }
-
-          if (
-            !result[categoryId]
-          ) {
-            result[categoryId] = [];
-          }
-
-          result[categoryId].push({
-            ...item,
-
-            categoryId,
-
-            /*
-             * IMPORTANT:
-             *
-             * Store as `audiences`.
-             */
-            audiences:
-              normalizedAudiences,
-          });
-
-          return result;
-        },
-        {},
-      );
-
-    console.log(
-      '========================================',
-    );
-
-    console.log(
-      'GROUPED SUBCATEGORIES',
-    );
-
-    console.log(
-      JSON.stringify(
-        grouped,
-        null,
-        2,
-      ),
-    );
-
-    console.log(
-      '========================================',
-    );
-
-    setSubcategoriesByCategory(
-      grouped,
-    );
+    setSubcategoriesByCategory(grouped);
   }, [subcategoryData]);
 
-  /* =======================================================
-     SYNC SELECTED SUBCATEGORIES
-  ======================================================= */
+  /* =========================================================
+     SYNC PARENT SELECTIONS
+  ========================================================= */
 
   useEffect(() => {
-    /*
-     * Prefer the new audience-specific value when supplied.
-     *
-     * We keep selectedSubcategoryIds as a compatibility fallback
-     * for callers that have not yet been updated.
-     */
-    if (
-      Array.isArray(
-        selectedAudienceSubcategorySelections,
-      )
-    ) {
-      const next: Record<
-        ServiceAudience,
-        string[]
-      > = {
-        FEMALE: [],
-        MALE: [],
-        KIDS: [],
-      };
+    if (Array.isArray(selectedAudienceSubcategorySelections)) {
+      const next = createEmptySelections();
 
-      selectedAudienceSubcategorySelections.forEach(
-        selection => {
-          if (
-            !selection ||
-            !(
-              selection.audience === 'FEMALE' ||
-              selection.audience === 'MALE' ||
-              selection.audience === 'KIDS'
-            )
-          ) {
-            return;
-          }
+      selectedAudienceSubcategorySelections.forEach(selection => {
+        if (!selection || !AUDIENCES.includes(selection.audience)) {
+          return;
+        }
 
-          next[selection.audience] =
-            Array.from(
-              new Set(
-                Array.isArray(
-                  selection.subcategoryIds,
-                )
-                  ? selection.subcategoryIds.map(
-                      id => String(id),
-                    )
-                  : [],
-              ),
-            );
-        },
-      );
+        next[selection.audience] = Array.from(
+          new Set(
+            Array.isArray(selection.subcategoryIds)
+              ? selection.subcategoryIds.map(String)
+              : [],
+          ),
+        );
+      });
 
-      setInternalSelectedAudienceSubcategories(
-        next,
-      );
-
+      setInternalSelectedAudienceSubcategories(next);
       return;
     }
 
-    /*
-     * Backward-compatible fallback.
-     *
-     * If the parent still supplies only IDs, those IDs are
-     * considered selected for the currently selected audiences.
-     *
-     * Once the parent starts passing
-     * selectedAudienceSubcategorySelections, each audience
-     * will be completely independent.
-     */
-    const nextIds =
-      Array.isArray(
-        selectedSubcategoryIds,
-      )
-        ? selectedSubcategoryIds.map(id =>
-            String(id),
-          )
-        : [];
+    const ids = Array.isArray(selectedSubcategoryIds)
+      ? selectedSubcategoryIds.map(String)
+      : [];
 
-    const next: Record<
-      ServiceAudience,
-      string[]
-    > = {
-      FEMALE: [],
-      MALE: [],
-      KIDS: [],
-    };
+    const next = createEmptySelections();
 
-    normalizedSelectedAudiences.forEach(
-      audience => {
-        next[audience] = [...nextIds];
-      },
-    );
+    normalizedSelectedAudiences.forEach(audience => {
+      next[audience] = [...ids];
+    });
 
-    setInternalSelectedAudienceSubcategories(
-      next,
-    );
+    setInternalSelectedAudienceSubcategories(next);
   }, [
     selectedSubcategoryIds,
     selectedAudienceSubcategorySelections,
     normalizedSelectedAudiences,
   ]);
 
-  /* =======================================================
-     CLEAR INVALID SELECTIONS WHEN
-     AUDIENCE CHANGES
-  ======================================================= */
+  /* =========================================================
+     CLEAR AUDIENCES THAT ARE NO LONGER SELECTED
+  ========================================================= */
 
   useEffect(() => {
-    if (
-      normalizedSelectedAudiences.length === 0
-    ) {
-      setInternalSelectedAudienceSubcategories({
-        FEMALE: [],
-        MALE: [],
-        KIDS: [],
-      });
-
-      setModalSelectedAudienceSubcategories({
-        FEMALE: [],
-        MALE: [],
-        KIDS: [],
-      });
-
+    if (normalizedSelectedAudiences.length === 0) {
+      setInternalSelectedAudienceSubcategories(createEmptySelections());
+      setModalSelectedAudienceSubcategories(createEmptySelections());
       setActiveCategory(null);
       setModalVisible(false);
-
       return;
     }
 
-    setInternalSelectedAudienceSubcategories(
-      previous => {
-        const next: Record<
-          ServiceAudience,
-          string[]
-        > = {
-          FEMALE: [],
-          MALE: [],
-          KIDS: [],
-        };
+    setInternalSelectedAudienceSubcategories(previous => {
+      const next = createEmptySelections();
 
-        (
-          ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
-        ).forEach(audience => {
-          if (
-            !normalizedSelectedAudiences.includes(
-              audience,
-            )
-          ) {
-            return;
-          }
+      AUDIENCES.forEach(audience => {
+        if (!normalizedSelectedAudiences.includes(audience)) {
+          return;
+        }
 
-          const validIds =
-            new Set<string>();
+        const validIds = new Set<string>();
 
-          Object.values(
-            subcategoriesByCategory,
-          ).forEach(
-            subcategories => {
-              subcategories.forEach(
-                subcategory => {
-                  const audiences =
-                    normalizeAudienceList(
-                      subcategory.audiences,
-                    );
-
-                  if (
-                    audiences.includes(
-                      audience,
-                    )
-                  ) {
-                    validIds.add(
-                      String(
-                        subcategory.subcategoryId,
-                      ),
-                    );
-                  }
-                },
-              );
-            },
-          );
-
-          next[audience] =
-            previous[audience].filter(id =>
-              validIds.has(String(id)),
-            );
-        });
-
-        return next;
-      },
-    );
-  }, [
-    normalizedSelectedAudiences,
-    subcategoriesByCategory,
-  ]);
-
-  /* =======================================================
-     DISPLAY CATEGORIES
-  ======================================================= */
-
-  const displayCategories =
-    useMemo(() => {
-      if (
-        normalizedSelectedAudiences.length ===
-        0
-      ) {
-        return [];
-      }
-
-      const seen =
-        new Set<string>();
-
-      const result =
-        categories.filter(
-          category => {
-            const categoryId =
-              String(
-                category.categoryId ?? '',
-              ).trim();
-
-            const normalizedName =
-              normalizeCategoryName(
-                category.name,
-              );
-
+        Object.values(subcategoriesByCategory).forEach(subcategories => {
+          subcategories.forEach(subcategory => {
             if (
-              !categoryId ||
-              seen.has(
-                normalizedName,
+              normalizeAudienceList(subcategory.audiences).includes(
+                audience,
               )
             ) {
-              return false;
+              validIds.add(String(subcategory.subcategoryId));
             }
+          });
+        });
 
-            const categorySubcategories =
-              subcategoriesByCategory[
-              categoryId
-              ] ?? [];
-
-            const hasMatchingSubcategory =
-              categorySubcategories.some(
-                subcategory =>
-                  matchesSelectedAudiences(
-                    subcategory,
-                    normalizedSelectedAudiences,
-                  ),
-              );
-
-            console.log(
-              'CATEGORY CHECK:',
-              category.name,
-              'CATEGORY ID:',
-              categoryId,
-              'SELECTED AUDIENCES:',
-              normalizedSelectedAudiences,
-              'SUBCATEGORY COUNT:',
-              categorySubcategories.length,
-              'MATCH:',
-              hasMatchingSubcategory,
-            );
-
-            if (
-              !hasMatchingSubcategory
-            ) {
-              return false;
-            }
-
-            seen.add(
-              normalizedName,
-            );
-
-            return true;
-          },
+        next[audience] = (previous[audience] || []).filter(id =>
+          validIds.has(String(id)),
         );
+      });
 
-      console.log(
-        'DISPLAY CATEGORIES:',
-        result.map(
-          category => ({
-            id: category.categoryId,
-            name: category.name,
-          }),
-        ),
-      );
+      return next;
+    });
 
-      return result;
-    }, [
-      categories,
-      subcategoriesByCategory,
-      normalizedSelectedAudiences,
-    ]);
+    setModalSelectedAudienceSubcategories(previous => {
+      const next = createEmptySelections();
 
-  /* =======================================================
-     CURRENT SUBCATEGORIES
-  ======================================================= */
+      AUDIENCES.forEach(audience => {
+        if (normalizedSelectedAudiences.includes(audience)) {
+          next[audience] = previous[audience] || [];
+        }
+      });
 
-  const currentSubcategories =
-    useMemo(() => {
-      if (
-        !activeCategoryId ||
-        normalizedSelectedAudiences.length ===
-        0
-      ) {
-        return [];
+      return next;
+    });
+  }, [normalizedSelectedAudiences, subcategoriesByCategory]);
+
+  /* =========================================================
+     DISPLAY CATEGORIES
+  ========================================================= */
+
+  const displayCategories = useMemo(() => {
+    if (normalizedSelectedAudiences.length === 0) {
+      return [];
+    }
+
+    const seen = new Set<string>();
+
+    return categories.filter(category => {
+      const categoryId = String(category.categoryId).trim();
+      const normalizedName = normalizeCategoryName(category.name);
+
+      if (!categoryId || seen.has(normalizedName)) {
+        return false;
       }
 
       const subcategories =
-        subcategoriesByCategory[
-        activeCategoryId
-        ] ?? [];
+        subcategoriesByCategory[categoryId] || [];
 
-      return subcategories.filter(
-        subcategory =>
-          matchesSelectedAudiences(
-            subcategory,
-            normalizedSelectedAudiences,
-          ),
-      );
-    }, [
-      activeCategoryId,
-      subcategoriesByCategory,
-      normalizedSelectedAudiences,
-    ]);
-
-  /* =======================================================
-     GROUP CURRENT SUBCATEGORIES BY AUDIENCE
-  ======================================================= */
-
-  const subcategoriesByAudience =
-    useMemo(() => {
-      const result: Record<
-        ServiceAudience,
-        Subcategory[]
-      > = {
-        FEMALE: [],
-        MALE: [],
-        KIDS: [],
-      };
-
-      normalizedSelectedAudiences.forEach(
-        audience => {
-          result[audience] =
-            currentSubcategories.filter(
-              subcategory =>
-                normalizeAudienceList(
-                  subcategory.audiences,
-                ).includes(
-                  audience,
-                ),
-            );
-        },
-      );
-
-      return result;
-    }, [
-      currentSubcategories,
-      normalizedSelectedAudiences,
-    ]);
-
-  /* =======================================================
-     SELECTED COUNT
-  ======================================================= */
-
-  const getSelectedCount = (
-    categoryId: string,
-  ) => {
-    const categorySubcategories =
-      subcategoriesByCategory[
-        categoryId
-      ] ?? [];
-
-    const categorySubcategoryIds =
-      new Set(
-        categorySubcategories.map(
-          subcategory =>
-            String(
-              subcategory.subcategoryId,
-            ),
+      const hasMatchingSubcategory = subcategories.some(subcategory =>
+        matchesSelectedAudiences(
+          subcategory,
+          normalizedSelectedAudiences,
         ),
       );
 
+      if (!hasMatchingSubcategory) {
+        return false;
+      }
+
+      seen.add(normalizedName);
+      return true;
+    });
+  }, [
+    categories,
+    subcategoriesByCategory,
+    normalizedSelectedAudiences,
+  ]);
+
+  /* =========================================================
+     CATEGORY AUDIENCES
+
+     Only display icons for audiences that actually have
+     subcategories in that category.
+  ========================================================= */
+
+  const getCategoryAudiences = (
+    category: Category,
+  ): ServiceAudience[] => {
+    const subcategories =
+      subcategoriesByCategory[String(category.categoryId)] || [];
+
+    return normalizedSelectedAudiences.filter(audience =>
+      subcategories.some(subcategory =>
+        normalizeAudienceList(subcategory.audiences).includes(
+          audience,
+        ),
+      ),
+    );
+  };
+
+  /* =========================================================
+     CURRENT SUBCATEGORIES
+  ========================================================= */
+
+  const currentSubcategories = useMemo(() => {
+    if (!activeCategoryId || normalizedSelectedAudiences.length === 0) {
+      return [];
+    }
+
+    return (
+      subcategoriesByCategory[activeCategoryId] || []
+    ).filter(subcategory =>
+      matchesSelectedAudiences(
+        subcategory,
+        normalizedSelectedAudiences,
+      ),
+    );
+  }, [
+    activeCategoryId,
+    subcategoriesByCategory,
+    normalizedSelectedAudiences,
+  ]);
+
+  const subcategoriesByAudience = useMemo(() => {
+    const result: Record<ServiceAudience, Subcategory[]> = {
+      FEMALE: [],
+      MALE: [],
+      KIDS: [],
+    };
+
+    normalizedSelectedAudiences.forEach(audience => {
+      result[audience] = currentSubcategories.filter(subcategory =>
+        normalizeAudienceList(subcategory.audiences).includes(
+          audience,
+        ),
+      );
+    });
+
+    return result;
+  }, [currentSubcategories, normalizedSelectedAudiences]);
+
+  /* =========================================================
+     SELECTED COUNT
+  ========================================================= */
+
+  const getSelectedCount = (categoryId: string) => {
+    const ids = new Set(
+      (subcategoriesByCategory[categoryId] || []).map(item =>
+        String(item.subcategoryId),
+      ),
+    );
+
     return normalizedSelectedAudiences.reduce(
-      (count, audience) =>
-        count +
-        internalSelectedAudienceSubcategories[
-          audience
-        ].filter(id =>
-          categorySubcategoryIds.has(
-            String(id),
-          ),
+      (total, audience) =>
+        total +
+        (internalSelectedAudienceSubcategories[audience] || []).filter(
+          id => ids.has(String(id)),
         ).length,
       0,
     );
   };
 
-  /* =======================================================
+  /* =========================================================
      CLEAR CATEGORY
-  ======================================================= */
+  ========================================================= */
 
-  const clearCategory = (
-    category: Category,
-  ) => {
-    const categoryId =
-      String(
-        category.categoryId,
-      ).trim();
-
-    const categorySubcategories =
-      subcategoriesByCategory[
-        categoryId
-      ] ?? [];
-
-    const categorySubcategoryIds =
-      new Set(
-        categorySubcategories.map(
-          subcategory =>
-            String(
-              subcategory.subcategoryId,
-            ),
-        ),
-      );
-
-    const next: Record<
-      ServiceAudience,
-      string[]
-    > = {
-      FEMALE: [],
-      MALE: [],
-      KIDS: [],
-    };
-
-    (
-      ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
-    ).forEach(audience => {
-      next[audience] =
-        internalSelectedAudienceSubcategories[
-          audience
-        ].filter(
-          id =>
-            !categorySubcategoryIds.has(
-              String(id),
-            ),
-        );
-    });
-
-    setInternalSelectedAudienceSubcategories(
-      next,
+  const clearCategory = (category: Category) => {
+    const categoryIds = new Set(
+      (subcategoriesByCategory[category.categoryId] || []).map(item =>
+        String(item.subcategoryId),
+      ),
     );
 
-    const flattenedIds =
-      Array.from(
-        new Set(
-          Object.values(next).flat(),
-        ),
-      );
+    const next = createEmptySelections();
+
+    AUDIENCES.forEach(audience => {
+      next[audience] = (
+        internalSelectedAudienceSubcategories[audience] || []
+      ).filter(id => !categoryIds.has(String(id)));
+    });
+
+    setInternalSelectedAudienceSubcategories(next);
 
     onSelect({
       categoryId: '',
       category: '',
-      subcategoryIds:
-        flattenedIds,
-      audienceSubcategorySelections:
-        (
-          ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
-        ).map(audience => ({
-          audience,
-          subcategoryIds:
-            next[audience],
-        })),
+      subcategoryIds: Array.from(
+        new Set(Object.values(next).flat()),
+      ),
+      audienceSubcategorySelections: AUDIENCES.map(audience => ({
+        audience,
+        subcategoryIds: next[audience],
+      })),
     });
   };
 
-  /* =======================================================
-     CATEGORY SELECT
-  ======================================================= */
+  /* =========================================================
+     OPEN CATEGORY MODAL
+  ========================================================= */
 
-  const handleCategorySelect = (
-    category: Category,
-  ) => {
-    const selectedCount =
-      getSelectedCount(
-        category.categoryId,
-      );
-
-    if (selectedCount > 0) {
+  const handleCategorySelect = (category: Category) => {
+    if (getSelectedCount(category.categoryId) > 0) {
       clearCategory(category);
       return;
     }
 
     const categorySubcategories =
-      subcategoriesByCategory[
-        category.categoryId
-      ] ?? [];
+      subcategoriesByCategory[category.categoryId] || [];
 
-    const modalState: Record<
-      ServiceAudience,
-      string[]
-    > = {
-      FEMALE: [],
-      MALE: [],
-      KIDS: [],
-    };
+    const modalState = createEmptySelections();
 
-    /*
-     * IMPORTANT:
-     * Load selections independently for every audience.
-     *
-     * Female haircut and Male haircut can have the same
-     * subcategoryId, but they are still separate selections.
-     */
-    normalizedSelectedAudiences.forEach(
-      audience => {
-        const validCategoryIds =
-          new Set(
-            categorySubcategories
-              .filter(subcategory =>
-                normalizeAudienceList(
-                  subcategory.audiences,
-                ).includes(audience),
-              )
-              .map(
-                subcategory =>
-                  String(
-                    subcategory.subcategoryId,
-                  ),
-              ),
-          );
-
-        modalState[audience] =
-          internalSelectedAudienceSubcategories[
-            audience
-          ].filter(id =>
-            validCategoryIds.has(
-              String(id),
+    normalizedSelectedAudiences.forEach(audience => {
+      const validIds = new Set(
+        categorySubcategories
+          .filter(subcategory =>
+            normalizeAudienceList(subcategory.audiences).includes(
+              audience,
             ),
-          );
-      },
-    );
+          )
+          .map(item => String(item.subcategoryId)),
+      );
 
-    setActiveCategory(
-      category,
-    );
+      modalState[audience] = (
+        internalSelectedAudienceSubcategories[audience] || []
+      ).filter(id => validIds.has(String(id)));
+    });
 
-    setModalSelectedAudienceSubcategories(
-      modalState,
-    );
-
+    setActiveCategory(category);
+    setModalSelectedAudienceSubcategories(modalState);
     setModalVisible(true);
   };
 
-  /* =======================================================
-     SUBCATEGORY TOGGLE
-  ======================================================= */
+  /* =========================================================
+     TOGGLE SUBCATEGORY
+
+     Audience + subcategory ID are treated as the selection
+     identity, so selecting Female does not select Male/Kids.
+  ========================================================= */
 
   const handleSubcategoryToggle = (
     audience: ServiceAudience,
     subcategoryId: string,
   ) => {
-    const normalizedId =
-      String(
-        subcategoryId,
-      );
+    const id = String(subcategoryId);
 
-    /*
-     * CRITICAL FIX:
-     *
-     * The audience is part of the selection identity.
-     *
-     * Before:
-     *   [subcategoryId]
-     *
-     * After:
-     *   {
-     *     FEMALE: [subcategoryId],
-     *     MALE: [],
-     *   }
-     *
-     * This means selecting Haircut for Female no longer
-     * selects Haircut for Male.
-     */
-    setModalSelectedAudienceSubcategories(
-      previous => {
-        const current =
-          previous[audience] ?? [];
+    setModalSelectedAudienceSubcategories(previous => {
+      const current = previous[audience] || [];
+      const exists = current.some(item => String(item) === id);
 
-        const alreadySelected =
-          current.some(
-            id =>
-              String(id) ===
-              normalizedId,
-          );
-
-        return {
-          ...previous,
-          [audience]: alreadySelected
-            ? current.filter(
-                id =>
-                  String(id) !==
-                  normalizedId,
-              )
-            : [
-                ...current,
-                normalizedId,
-              ],
-        };
-      },
-    );
+      return {
+        ...previous,
+        [audience]: exists
+          ? current.filter(item => String(item) !== id)
+          : [...current, id],
+      };
+    });
   };
 
-  /* =======================================================
-     DONE
-  ======================================================= */
+  /* =========================================================
+     SAVE SELECTIONS
+  ========================================================= */
 
   const handleDone = () => {
     if (!activeCategory) {
@@ -1221,716 +706,352 @@ const ServiceChips: React.FC<Props> = ({
       return;
     }
 
-    const activeCategoryId =
-      String(
-        activeCategory.categoryId,
-      ).trim();
+    const categoryId = String(activeCategory.categoryId);
+    const categorySubcategories =
+      subcategoriesByCategory[categoryId] || [];
 
-    const currentCategorySubcategories =
-      subcategoriesByCategory[
-        activeCategoryId
-      ] ?? [];
-
-    const validSelections: Record<
-      ServiceAudience,
-      string[]
-    > = {
-      FEMALE: [],
-      MALE: [],
-      KIDS: [],
-    };
-
-    /*
-     * Validate each audience separately.
-     *
-     * A subcategory can be shared by multiple audiences,
-     * so validation must never merge the audience buckets.
-     */
-    (
-      ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
-    ).forEach(audience => {
-      const validIds =
-        new Set(
-          currentCategorySubcategories
-            .filter(subcategory =>
-              normalizeAudienceList(
-                subcategory.audiences,
-              ).includes(audience),
-            )
-            .map(
-              subcategory =>
-                String(
-                  subcategory.subcategoryId,
-                ),
-            ),
-        );
-
-      validSelections[audience] =
-        (
-          modalSelectedAudienceSubcategories[
-            audience
-          ] ?? []
-        ).filter(id =>
-          validIds.has(String(id)),
-        );
-    });
-
-    /*
-     * Keep selections from OTHER categories for each
-     * audience independently.
-     */
-    const next: Record<
-      ServiceAudience,
-      string[]
-    > = {
-      FEMALE: [],
-      MALE: [],
-      KIDS: [],
-    };
-
-    (
-      ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
-    ).forEach(audience => {
-      const currentCategoryIds =
-        new Set(
-          currentCategorySubcategories.map(
-            subcategory =>
-              String(
-                subcategory.subcategoryId,
-              ),
-          ),
-        );
-
-      const otherCategorySelections =
-        internalSelectedAudienceSubcategories[
-          audience
-        ].filter(
-          id =>
-            !currentCategoryIds.has(
-              String(id),
-            ),
-        );
-
-      next[audience] =
-        Array.from(
-          new Set([
-            ...otherCategorySelections,
-            ...validSelections[audience],
-          ]),
-        );
-    });
-
-    setInternalSelectedAudienceSubcategories(
-      next,
+    const categoryIds = new Set(
+      categorySubcategories.map(item => String(item.subcategoryId)),
     );
 
-    /*
-     * Keep the old flattened subcategoryIds output for
-     * compatibility with existing parent code.
-     *
-     * The NEW audienceSubcategorySelections field is the
-     * authoritative value when the parent needs to know
-     * exactly which audience owns which subcategory.
-     */
-    const flattenedIds =
-      Array.from(
-        new Set(
-          Object.values(next).flat(),
-        ),
+    const next = createEmptySelections();
+
+    AUDIENCES.forEach(audience => {
+      const validIds = new Set(
+        categorySubcategories
+          .filter(subcategory =>
+            normalizeAudienceList(subcategory.audiences).includes(
+              audience,
+            ),
+          )
+          .map(item => String(item.subcategoryId)),
       );
 
+      const existingOtherCategoryIds = (
+        internalSelectedAudienceSubcategories[audience] || []
+      ).filter(id => !categoryIds.has(String(id)));
+
+      const selectedForCategory = (
+        modalSelectedAudienceSubcategories[audience] || []
+      ).filter(id => validIds.has(String(id)));
+
+      next[audience] = Array.from(
+        new Set([
+          ...existingOtherCategoryIds,
+          ...selectedForCategory,
+        ]),
+      );
+    });
+
+    setInternalSelectedAudienceSubcategories(next);
+
     onSelect({
-      categoryId:
-        activeCategoryId,
-
-      category:
-        activeCategory.name.trim(),
-
-      subcategoryIds:
-        flattenedIds,
-
-      audienceSubcategorySelections:
-        (
-          ['FEMALE', 'MALE', 'KIDS'] as ServiceAudience[]
-        ).map(audience => ({
-          audience,
-          subcategoryIds:
-            next[audience],
-        })),
+      categoryId,
+      category: activeCategory.name.trim(),
+      subcategoryIds: Array.from(
+        new Set(Object.values(next).flat()),
+      ),
+      audienceSubcategorySelections: AUDIENCES.map(audience => ({
+        audience,
+        subcategoryIds: next[audience],
+      })),
     });
 
     setModalVisible(false);
   };
-
-  /* =======================================================
-     CLOSE MODAL
-  ======================================================= */
 
   const handleCloseModal = () => {
     setModalVisible(false);
-
-    setModalSelectedAudienceSubcategories({
-      FEMALE: [],
-      MALE: [],
-      KIDS: [],
-    });
-
+    setModalSelectedAudienceSubcategories(createEmptySelections());
     setActiveCategory(null);
   };
 
-  /* =======================================================
-     LOADING
-  ======================================================= */
+  const loading = categoriesLoading || subcategoriesLoading;
 
-  const loading =
-    categoriesLoading ||
-    subcategoriesLoading;
-
-  /* =======================================================
-     NO AUDIENCE
-  ======================================================= */
-
-  if (
-    normalizedSelectedAudiences.length ===
-    0
-  ) {
+  if (normalizedSelectedAudiences.length === 0) {
     return null;
   }
 
-  /* =======================================================
-     ERROR LOGGING
-  ======================================================= */
-
   if (categoriesError) {
-    console.warn(
-      'GET_ACTIVE_CATEGORIES ERROR:',
-      categoriesError,
-    );
+    console.warn('GET_ACTIVE_CATEGORIES ERROR:', categoriesError);
   }
 
   if (subcategoriesError) {
-    console.warn(
-      'GET_ACTIVE_SUBCATEGORIES ERROR:',
-      subcategoriesError,
-    );
+    console.warn('GET_ACTIVE_SUBCATEGORIES ERROR:', subcategoriesError);
   }
 
-  /* =======================================================
+  /* =========================================================
      RENDER
-  ======================================================= */
+  ========================================================= */
 
   return (
     <View style={styles.container}>
-
-      {/* =================================================
-          HEADER
-      ================================================= */}
-
       <View style={styles.headerRow}>
-        {/* <Text style={styles.title}>
-          Choose a Service
-        </Text> */}
-
         <Text style={styles.subtitle}>
-          {normalizedSelectedAudiences
-            .map(
-              getAudienceLabel,
-            )
-            .join(', ')}
+          {normalizedSelectedAudiences.map(getAudienceLabel).join(', ')}
         </Text>
       </View>
-
-      {/* =================================================
-          LOADING
-      ================================================= */}
 
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator
             size="small"
-            color={
-              COLORS.themeColor
-            }
+            color={COLORS.themeColor}
           />
-
-          <Text
-            style={
-              styles.loadingText
-            }
-          >
+          <Text style={styles.loadingText}>
             Loading services...
           </Text>
         </View>
-      ) : displayCategories.length ===
-        0 ? (
-        <View
-          style={
-            styles.emptyContainer
-          }
-        >
-          <Text
-            style={
-              styles.emptyText
-            }
-          >
-            No services available for the
-            selected audience.
+      ) : displayCategories.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            No services available for the selected audience.
           </Text>
         </View>
       ) : (
-        /* ===============================================
-           CATEGORY GRID
-        =============================================== */
-
         <View style={styles.categoryGrid}>
-          {displayCategories.map(
-            category => {
-              const selectedCount =
-                getSelectedCount(
-                  category.categoryId,
-                );
+          {displayCategories.map(category => {
+            const selectedCount = getSelectedCount(
+              category.categoryId,
+            );
 
-              const isSelected =
-                selectedCount > 0;
+            const isSelected = selectedCount > 0;
 
-              return (
-                <TouchableOpacity
-                  key={
-                    category.categoryId
-                  }
-                  activeOpacity={0.8}
+            const categoryAudiences =
+              getCategoryAudiences(category);
+
+            return (
+              <TouchableOpacity
+                key={category.categoryId}
+                activeOpacity={0.8}
+                style={[
+                  styles.categoryCard,
+                  isSelected && styles.categoryCardSelected,
+                ]}
+                onPress={() => handleCategorySelect(category)}
+              >
+                {/* DIFFERENT IMAGE FOR EACH SUPPORTED AUDIENCE */}
+                <View
                   style={[
-                    styles.categoryCard,
-                    isSelected &&
-                    styles.categoryCardSelected,
+                    styles.iconContainer,
+                    isSelected && styles.iconContainerSelected,
                   ]}
-                  onPress={() =>
-                    handleCategorySelect(
-                      category,
-                    )
-                  }
                 >
-                  {/* ICON */}
-
-                  <View
-                    style={[
-                      styles.iconContainer,
-                      isSelected &&
-                      styles.iconContainerSelected,
-                    ]}
-                  >
+                  {categoryAudiences.length === 1 ? (
                     <Image
                       source={getCategoryIcon(
                         category.name,
+                        categoryAudiences[0],
                       )}
-                      style={
-                        styles.categoryIcon
-                      }
+                      style={styles.categoryIcon}
                       resizeMode="contain"
                     />
-                  </View>
-
-                  {/* NAME */}
-
-                  <Text
-                    numberOfLines={2}
-                    style={[
-                      styles.categoryName,
-                      isSelected &&
-                      styles.categoryNameSelected,
-                    ]}
-                  >
-                    {category.name}
-                  </Text>
-
-                  {/* SELECTED COUNT */}
-
-                  {selectedCount > 0 && (
-                    <View
-                      style={
-                        styles.countBadge
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.countBadgeText
-                        }
-                      >
-                        {selectedCount}
-                      </Text>
+                  ) : (
+                    <View style={styles.audienceIconRow}>
+                      {categoryAudiences.map(audience => (
+                        <Image
+                          key={`${category.categoryId}-${audience}`}
+                          source={getCategoryIcon(
+                            category.name,
+                            audience,
+                          )}
+                          style={styles.audienceCategoryIcon}
+                          resizeMode="contain"
+                        />
+                      ))}
                     </View>
                   )}
-                </TouchableOpacity>
-              );
-            },
-          )}
+                </View>
+
+                <Text
+                  numberOfLines={2}
+                  style={[
+                    styles.categoryName,
+                    isSelected && styles.categoryNameSelected,
+                  ]}
+                >
+                  {category.name}
+                </Text>
+
+                {selectedCount > 0 && (
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countBadgeText}>
+                      {selectedCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
-
-      {/* =================================================
-          SUBCATEGORY MODAL
-      ================================================= */}
 
       <Modal
         visible={modalVisible}
         transparent
         animationType="slide"
-        onRequestClose={
-          handleCloseModal
-        }
+        onRequestClose={handleCloseModal}
       >
-        <View
-          style={
-            styles.modalOverlay
-          }
-        >
+        <View style={styles.modalOverlay}>
           <Pressable
-            style={
-              styles.modalBackgroundPressable
-            }
-            onPress={
-              handleCloseModal
-            }
+            style={styles.modalBackgroundPressable}
+            onPress={handleCloseModal}
           />
 
-          <View
-            style={
-              styles.modalContainer
-            }
-          >
-
-            {/* =========================================
-                MODAL HEADER
-            ========================================= */}
-
-            <View
-              style={
-                styles.modalHeader
-              }
-            >
-              <View
-                style={
-                  styles.modalTitleContainer
-                }
-              >
-                <Text
-                  style={
-                    styles.modalTitle
-                  }
-                >
-                  {activeCategory?.name ||
-                    'Select Services'}
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleContainer}>
+                <Text style={styles.modalTitle}>
+                  {activeCategory?.name || 'Select Services'}
                 </Text>
 
-                <Text
-                  style={
-                    styles.modalSubtitle
-                  }
-                >
+                <Text style={styles.modalSubtitle}>
                   Select one or more services
                 </Text>
               </View>
 
               <TouchableOpacity
-                style={
-                  styles.closeButton
-                }
-                onPress={
-                  handleCloseModal
-                }
+                style={styles.closeButton}
+                onPress={handleCloseModal}
               >
-                <Text
-                  style={
-                    styles.closeButtonText
-                  }
-                >
-                  ×
-                </Text>
+                <Text style={styles.closeButtonText}>×</Text>
               </TouchableOpacity>
             </View>
 
-            {/* =========================================
-                SELECTED AUDIENCES
-            ========================================= */}
-
-            <View
-              style={
-                styles.audienceInfo
-              }
-            >
-              <Text
-                style={
-                  styles.audienceInfoLabel
-                }
-              >
+            <View style={styles.audienceInfo}>
+              <Text style={styles.audienceInfoLabel}>
                 Services for
               </Text>
 
-              <View
-                style={
-                  styles.audiencePills
-                }
-              >
-                {normalizedSelectedAudiences.map(
-                  audience => (
-                    <View
-                      key={audience}
-                      style={
-                        styles.audiencePill
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.audiencePillText
-                        }
-                      >
-                        {getAudienceLabel(
-                          audience,
-                        )}
-                      </Text>
-                    </View>
-                  ),
-                )}
+              <View style={styles.audiencePills}>
+                {normalizedSelectedAudiences.map(audience => (
+                  <View key={audience} style={styles.audiencePill}>
+                    <Text style={styles.audiencePillText}>
+                      {getAudienceLabel(audience)}
+                    </Text>
+                  </View>
+                ))}
               </View>
             </View>
 
-            {/* =========================================
-                GROUPED SUBCATEGORY LIST
-            ========================================= */}
-
-            {currentSubcategories.length ===
-              0 ? (
-              <View
-                style={
-                  styles.modalEmptyContainer
-                }
-              >
-                <Text
-                  style={
-                    styles.modalEmptyText
-                  }
-                >
-                  No services available for the
-                  selected audience.
+            {currentSubcategories.length === 0 ? (
+              <View style={styles.modalEmptyContainer}>
+                <Text style={styles.modalEmptyText}>
+                  No services available for the selected audience.
                 </Text>
               </View>
             ) : (
               <ScrollView
-                style={
-                  styles.subcategoryScroll
-                }
-                contentContainerStyle={
-                  styles.subcategoryContent
-                }
-                showsVerticalScrollIndicator={
-                  false
-                }
+                style={styles.subcategoryScroll}
+                contentContainerStyle={styles.subcategoryContent}
+                showsVerticalScrollIndicator={false}
               >
-                {normalizedSelectedAudiences.map(
-                  audience => {
-                    const audienceSubcategories =
-                      subcategoriesByAudience[
-                      audience
-                      ] ?? [];
+                {normalizedSelectedAudiences.map(audience => {
+                  const audienceSubcategories =
+                    subcategoriesByAudience[audience] || [];
 
-                    if (
-                      audienceSubcategories.length ===
-                      0
-                    ) {
-                      return null;
-                    }
+                  if (audienceSubcategories.length === 0) {
+                    return null;
+                  }
 
-                    return (
-                      <View
-                        key={audience}
-                        style={
-                          styles.audienceSection
-                        }
-                      >
+                  return (
+                    <View
+                      key={audience}
+                      style={styles.audienceSection}
+                    >
+                      <View style={styles.audienceSectionHeader}>
+                        <View style={styles.audienceHeadingLine} />
+                        <Text style={styles.audienceSectionTitle}>
+                          {getAudienceLabel(audience)}
+                        </Text>
+                        <View style={styles.audienceHeadingLine} />
+                      </View>
 
-                        {/* =================================
-                            AUDIENCE HEADING
-                        ================================= */}
+                      {audienceSubcategories.map(subcategory => {
+                        const id = String(subcategory.subcategoryId);
 
-                        <View
-                          style={
-                            styles.audienceSectionHeader
-                          }
-                        >
-                          <View
-                            style={
-                              styles.audienceHeadingLine
-                            }
-                          />
+                        const selected = (
+                          modalSelectedAudienceSubcategories[
+                            audience
+                          ] || []
+                        ).some(selectedId => String(selectedId) === id);
 
-                          <Text
-                            style={
-                              styles.audienceSectionTitle
+                        return (
+                          <TouchableOpacity
+                            key={`${audience}-${id}`}
+                            activeOpacity={0.8}
+                            style={[
+                              styles.subcategoryRow,
+                              selected &&
+                                styles.subcategoryRowSelected,
+                            ]}
+                            onPress={() =>
+                              handleSubcategoryToggle(audience, id)
                             }
                           >
-                            {getAudienceLabel(
-                              audience,
-                            )}
-                          </Text>
+                            <View
+                              style={[
+                                styles.checkbox,
+                                selected && styles.checkboxSelected,
+                              ]}
+                            >
+                              {selected && (
+                                <Text style={styles.checkmark}>
+                                  ✓
+                                </Text>
+                              )}
+                            </View>
 
-                          <View
-                            style={
-                              styles.audienceHeadingLine
-                            }
-                          />
-                        </View>
-
-                        {/* =================================
-                            AUDIENCE SUBCATEGORIES
-                        ================================= */}
-
-                        {audienceSubcategories.map(
-                          subcategory => {
-                            const id =
-                              String(
-                                subcategory.subcategoryId,
-                              );
-
-                            const selected =
-                              (
-                                modalSelectedAudienceSubcategories[
-                                  audience
-                                ] ?? []
-                              ).some(
-                                selectedId =>
-                                  String(
-                                    selectedId,
-                                  ) === id,
-                              );
-
-                            return (
-                              <TouchableOpacity
-                                key={`${audience}-${id}`}
-                                activeOpacity={0.8}
+                            <View style={styles.subcategoryTextContainer}>
+                              <Text
                                 style={[
-                                  styles.subcategoryRow,
+                                  styles.subcategoryName,
                                   selected &&
-                                  styles.subcategoryRowSelected,
+                                    styles.subcategoryNameSelected,
                                 ]}
-                                onPress={() =>
-                                  handleSubcategoryToggle(
-                                    audience,
-                                    id,
-                                  )
-                                }
                               >
+                                {subcategory.name}
+                              </Text>
 
-                                {/* CHECKBOX */}
-
-                                <View
-                                  style={[
-                                    styles.checkbox,
-                                    selected &&
-                                    styles.checkboxSelected,
-                                  ]}
+                              {subcategory.description ? (
+                                <Text
+                                  numberOfLines={2}
+                                  style={styles.subcategoryDescription}
                                 >
-                                  {selected && (
-                                    <Text
-                                      style={
-                                        styles.checkmark
-                                      }
-                                    >
-                                      ✓
-                                    </Text>
-                                  )}
-                                </View>
-
-                                {/* TEXT */}
-
-                                <View
-                                  style={
-                                    styles.subcategoryTextContainer
-                                  }
-                                >
-                                  <Text
-                                    style={[
-                                      styles.subcategoryName,
-                                      selected &&
-                                      styles.subcategoryNameSelected,
-                                    ]}
-                                  >
-                                    {
-                                      subcategory.name
-                                    }
-                                  </Text>
-
-                                  {subcategory.description ? (
-                                    <Text
-                                      numberOfLines={
-                                        2
-                                      }
-                                      style={
-                                        styles.subcategoryDescription
-                                      }
-                                    >
-                                      {
-                                        subcategory.description
-                                      }
-                                    </Text>
-                                  ) : null}
-                                </View>
-                              </TouchableOpacity>
-                            );
-                          },
-                        )}
-                      </View>
-                    );
-                  },
-                )}
+                                  {subcategory.description}
+                                </Text>
+                              ) : null}
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  );
+                })}
               </ScrollView>
             )}
 
-            {/* =========================================
-                MODAL FOOTER
-            ========================================= */}
-
-            <View
-              style={
-                styles.modalFooter
-              }
-            >
+            <View style={styles.modalFooter}>
               <TouchableOpacity
                 activeOpacity={0.85}
-                style={
-                  styles.cancelButton
-                }
-                onPress={
-                  handleCloseModal
-                }
+                style={styles.cancelButton}
+                onPress={handleCloseModal}
               >
-                <Text
-                  style={
-                    styles.cancelButtonText
-                  }
-                >
+                <Text style={styles.cancelButtonText}>
                   Cancel
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 activeOpacity={0.85}
-                style={
-                  styles.doneButton
-                }
-                onPress={
-                  handleDone
-                }
+                style={styles.doneButton}
+                onPress={handleDone}
               >
-                <Text
-                  style={
-                    styles.doneButtonText
-                  }
-                >
+                <Text style={styles.doneButtonText}>
                   Done
                 </Text>
               </TouchableOpacity>
             </View>
-
           </View>
         </View>
       </Modal>
@@ -1945,23 +1066,14 @@ const ServiceChips: React.FC<Props> = ({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginTop:
-      SPACING?.small ?? 8,
+    marginTop: SPACING?.small ?? 8,
   },
 
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent:
-      'space-between',
-    marginBottom:
-      SPACING?.medium ?? 12,
-  },
-
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.primary,
+    justifyContent: 'space-between',
+    marginBottom: SPACING?.medium ?? 12,
   },
 
   subtitle: {
@@ -1979,8 +1091,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 8,
     fontSize: 13,
-    color:
-      COLORS.textSecondary,
+    color: COLORS.textSecondary,
   },
 
   emptyContainer: {
@@ -1993,16 +1104,13 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     fontSize: 14,
-    color:
-      COLORS.textSecondary,
+    color: COLORS.textSecondary,
   },
 
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent:
-      'flex-start',
-    // paddingHorizontal: 2,
+    justifyContent: 'flex-start',
   },
 
   categoryCard: {
@@ -2034,14 +1142,25 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  iconContainerSelected: {
-    // backgroundColor:
-    //   COLORS.themeColor + '20',
-  },
+  iconContainerSelected: {},
 
   categoryIcon: {
     width: 60,
     height: 60,
+  },
+
+  audienceIconRow: {
+    width: '100%',
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  audienceCategoryIcon: {
+    width: 30,
+    height: 48,
+    marginHorizontal: 1,
   },
 
   categoryName: {
@@ -2053,8 +1172,7 @@ const styles = StyleSheet.create({
   },
 
   categoryNameSelected: {
-    color:
-      COLORS.themeColor,
+    color: COLORS.themeColor,
     fontWeight: '700',
   },
 
@@ -2068,8 +1186,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 5,
-    backgroundColor:
-      COLORS.themeColor,
+    backgroundColor: COLORS.themeColor,
   },
 
   countBadgeText: {
@@ -2078,27 +1195,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  /* =====================================================
-     MODAL
-  ===================================================== */
-
   modalOverlay: {
     flex: 1,
-    justifyContent:
-      'flex-end',
+    justifyContent: 'flex-end',
   },
 
   modalBackgroundPressable: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor:
-      'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
 
   modalContainer: {
     width: '100%',
     maxHeight: '82%',
-    backgroundColor:
-      COLORS.background,
+    backgroundColor: COLORS.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
@@ -2107,8 +1217,7 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent:
-      'space-between',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 12,
@@ -2128,8 +1237,7 @@ const styles = StyleSheet.create({
   modalSubtitle: {
     marginTop: 4,
     fontSize: 13,
-    color:
-      COLORS.textSecondary,
+    color: COLORS.textSecondary,
   },
 
   closeButton: {
@@ -2138,21 +1246,15 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor:
-      COLORS.themeColor + '12',
+    backgroundColor: COLORS.themeColor + '12',
   },
 
   closeButtonText: {
-    color:
-      COLORS.themeColor,
+    color: COLORS.themeColor,
     fontSize: 27,
     lineHeight: 30,
     fontWeight: '400',
   },
-
-  /* =====================================================
-     AUDIENCE INFO
-  ===================================================== */
 
   audienceInfo: {
     paddingHorizontal: 20,
@@ -2162,8 +1264,7 @@ const styles = StyleSheet.create({
   audienceInfoLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color:
-      COLORS.textSecondary,
+    color: COLORS.textSecondary,
     marginBottom: 7,
   },
 
@@ -2178,20 +1279,14 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginRight: 7,
     marginBottom: 5,
-    backgroundColor:
-      COLORS.themeColor + '15',
+    backgroundColor: COLORS.themeColor + '15',
   },
 
   audiencePillText: {
-    color:
-      COLORS.themeColor,
+    color: COLORS.themeColor,
     fontSize: 12,
     fontWeight: '700',
   },
-
-  /* =====================================================
-     GROUPED AUDIENCE SECTIONS
-  ===================================================== */
 
   audienceSection: {
     marginBottom: 18,
@@ -2207,21 +1302,15 @@ const styles = StyleSheet.create({
   audienceHeadingLine: {
     flex: 1,
     height: 1,
-    backgroundColor:
-      COLORS.themeColor + '35',
+    backgroundColor: COLORS.themeColor + '35',
   },
 
   audienceSectionTitle: {
     marginHorizontal: 12,
     fontSize: 16,
     fontWeight: '800',
-    color:
-      COLORS.themeColor,
+    color: COLORS.themeColor,
   },
-
-  /* =====================================================
-     SUBCATEGORIES
-  ===================================================== */
 
   subcategoryScroll: {
     flexGrow: 0,
@@ -2241,18 +1330,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor:
-      COLORS.border ||
-      'rgba(0,0,0,0.08)',
-    backgroundColor:
-      COLORS.background,
+    borderColor: COLORS.border || 'rgba(0,0,0,0.08)',
+    backgroundColor: COLORS.background,
   },
 
   subcategoryRowSelected: {
-    borderColor:
-      COLORS.themeColor,
-    backgroundColor:
-      COLORS.themeColor + '10',
+    borderColor: COLORS.themeColor,
+    backgroundColor: COLORS.themeColor + '10',
   },
 
   checkbox: {
@@ -2260,18 +1344,15 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 7,
     borderWidth: 1.5,
-    borderColor:
-      COLORS.textSecondary,
+    borderColor: COLORS.textSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
 
   checkboxSelected: {
-    backgroundColor:
-      COLORS.themeColor,
-    borderColor:
-      COLORS.themeColor,
+    backgroundColor: COLORS.themeColor,
+    borderColor: COLORS.themeColor,
   },
 
   checkmark: {
@@ -2291,8 +1372,7 @@ const styles = StyleSheet.create({
   },
 
   subcategoryNameSelected: {
-    color:
-      COLORS.themeColor,
+    color: COLORS.themeColor,
     fontWeight: '700',
   },
 
@@ -2300,8 +1380,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
     fontSize: 11,
     lineHeight: 15,
-    color:
-      COLORS.textSecondary,
+    color: COLORS.textSecondary,
   },
 
   modalEmptyContainer: {
@@ -2313,13 +1392,8 @@ const styles = StyleSheet.create({
   modalEmptyText: {
     textAlign: 'center',
     fontSize: 14,
-    color:
-      COLORS.textSecondary,
+    color: COLORS.textSecondary,
   },
-
-  /* =====================================================
-     FOOTER
-  ===================================================== */
 
   modalFooter: {
     flexDirection: 'row',
@@ -2327,9 +1401,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 20,
     borderTopWidth: 1,
-    borderTopColor:
-      COLORS.border ||
-      'rgba(0,0,0,0.08)',
+    borderTopColor: COLORS.border || 'rgba(0,0,0,0.08)',
   },
 
   cancelButton: {
@@ -2340,13 +1412,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 8,
     borderWidth: 1,
-    borderColor:
-      COLORS.themeColor,
+    borderColor: COLORS.themeColor,
   },
 
   cancelButtonText: {
-    color:
-      COLORS.themeColor,
+    color: COLORS.themeColor,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -2358,8 +1428,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
-    backgroundColor:
-      COLORS.themeColor,
+    backgroundColor: COLORS.themeColor,
   },
 
   doneButtonText: {

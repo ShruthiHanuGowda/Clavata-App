@@ -975,7 +975,7 @@ export default function OffersScreen() {
                                 styles.headerSubtitle
                             }
                         >
-                            Exclusive beauty deals near you
+                            Exclusive deals near you
                         </Text>
 
                     </View>

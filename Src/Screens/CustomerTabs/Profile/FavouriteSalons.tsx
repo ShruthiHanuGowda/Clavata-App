@@ -338,7 +338,7 @@ export default function FavouriteSalons() {
                 <View style={styles.center}>
                     <ActivityIndicator
                         size="large"
-                        color="#7C3AED"
+                        color="#009D94"
                     />
 
                     <Text style={styles.loadingText}>
@@ -357,10 +357,10 @@ export default function FavouriteSalons() {
                         No Favourite Salons
                     </Text>
 
-                    <Text style={styles.emptyText}>
+                    {/* <Text style={styles.emptyText}>
                         Salons you favourite will appear
                         here.
-                    </Text>
+                    </Text> */}
                 </View>
             ) : (
                 <FlatList
