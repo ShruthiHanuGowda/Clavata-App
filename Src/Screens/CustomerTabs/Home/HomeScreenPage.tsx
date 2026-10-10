@@ -26,7 +26,7 @@ import {
 import {
   DEFAULT_LOCATION_RADIUS,
   USE_HARDCODED_LOCATION,
-} from '../../../constants/locationConfig';
+} from '../../../constants/config';
 import { CUSTOMER_BOOKINGS } from '../../../graphql/queries';
 import { useUser } from '../../../context/UserContext';
 import { COLORS, GRADIENTS, SPACING } from '../../../constants/constants';

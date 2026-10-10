@@ -4,7 +4,7 @@ import Geolocation from '@react-native-community/geolocation';
 import {
   USE_HARDCODED_LOCATION,
   HARDCODED_LOCATION,
-} from '../constants/locationConfig';
+} from '../constants/config';
 
 // ============================================================
 // TYPES

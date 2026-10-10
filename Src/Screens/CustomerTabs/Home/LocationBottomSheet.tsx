@@ -39,7 +39,7 @@ import {
     SavedLocation,
     LocationData,
 } from '../../../services/locationStorage';
-import { USE_HARDCODED_LOCATION } from '../../../constants/locationConfig';
+import { USE_HARDCODED_LOCATION } from '../../../constants/config';
 
 // import {
 //     USE_HARDCODED_LOCATION,

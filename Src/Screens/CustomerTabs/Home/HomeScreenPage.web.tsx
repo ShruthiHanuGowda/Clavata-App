@@ -36,7 +36,7 @@ import {
 import {
   DEFAULT_LOCATION_RADIUS,
   USE_HARDCODED_LOCATION,
-} from '../../../constants/locationConfig';
+} from '../../../constants/config';
 
 import {
   GET_NEARBY_SALONS,

@@ -2032,3 +2032,47 @@ export const SALON_RESPOND_TO_BOOKING = gql`
         }
     }
 `;
+
+export const GENERATE_CUSTOMER_PHOTO_UPLOAD_URL = gql`
+    mutation GenerateCustomerPhotoUploadUrl(
+        $input: GenerateCustomerPhotoUploadUrlInput!
+    ) {
+        generateCustomerPhotoUploadUrl(input: $input) {
+            success
+            message
+            uploadUrl
+            key
+            contentType
+            expiresIn
+        }
+    }
+`;
+
+export const UPDATE_CUSTOMER_PROFILE_PHOTO = gql`
+    mutation UpdateCustomerProfilePhoto(
+        $input: UpdateCustomerProfilePhotoInput!
+    ) {
+        updateCustomerProfilePhoto(input: $input) {
+            success
+            message
+            profilePhotoKey
+        }
+    }
+`;
+
+export const GET_CUSTOMER_PROFILE_PHOTO = gql`
+    query GetCustomerProfilePhoto(
+        $userId: ID!
+        $phoneNumber: String!
+    ) {
+        getCustomerProfilePhoto(
+            userId: $userId
+            phoneNumber: $phoneNumber
+        ) {
+            success
+            message
+            viewUrl
+            expiresIn
+        }
+    }
+`;
