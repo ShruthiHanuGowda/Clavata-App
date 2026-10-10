@@ -2076,3 +2076,59 @@ export const GET_CUSTOMER_PROFILE_PHOTO = gql`
         }
     }
 `;
+
+
+export const UPDATE_CUSTOMER_PROFILE = gql`
+  mutation UpdateCustomerProfile(
+    $input: UpdateCustomerProfileInput!
+  ) {
+    updateCustomerProfile(input: $input) {
+      success
+      message
+      user {
+        userId
+        phoneNumber
+        fullName
+        role
+        providerStatus
+        salonId
+        createdAt
+        updatedAt
+        preferredPaymentMethod
+      }
+    }
+  }
+`;
+
+export const SEND_PHONE_CHANGE_OTP = gql`
+  mutation SendPhoneChangeOTP(
+    $input: SendPhoneChangeOTPInput!
+  ) {
+    sendPhoneChangeOTP(input: $input) {
+      success
+      message
+    }
+  }
+`;
+
+export const VERIFY_PHONE_CHANGE_OTP = gql`
+  mutation VerifyPhoneChangeOTP(
+    $input: VerifyPhoneChangeOTPInput!
+  ) {
+    verifyPhoneChangeOTP(input: $input) {
+      success
+      message
+      user {
+        userId
+        phoneNumber
+        fullName
+        role
+        providerStatus
+        salonId
+        createdAt
+        updatedAt
+        preferredPaymentMethod
+      }
+    }
+  }
+`;

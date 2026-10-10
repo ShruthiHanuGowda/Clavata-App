@@ -11,12 +11,22 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useApolloClient, gql } from '@apollo/client';
+import {
+  useFocusEffect,
+  useNavigation,
+} from '@react-navigation/native';
+import {
+  useApolloClient,
+  gql,
+} from '@apollo/client';
+
 import { useUser } from '../../../context/UserContext';
 import secureStorage from '../../../utils/secureStorage';
 import { navReset } from '../../../Navigation/NavigationFunctions';
-import { COLORS, GRADIENTS } from '../../../constants/constants';
+import {
+  COLORS,
+  GRADIENTS,
+} from '../../../constants/constants';
 import AppGradient from '../../../common/AppGradient';
 
 const GET_CUSTOMER_PROFILE_PHOTO = gql`
@@ -37,17 +47,49 @@ const GET_CUSTOMER_PROFILE_PHOTO = gql`
 `;
 
 const menuItems = [
-  { title: 'My Bookings', icon: '📅', screen: 'ProfileBookings' },
-  { title: 'Favourite Salons', icon: '❤️', screen: 'FavouriteSalons' },
-  { title: 'Payment History', icon: '🏦', screen: 'Payments' },
-  { title: 'Payment Method', icon: '💳', screen: 'PaymentMethod' },
-  { title: 'Offers & Rewards', icon: '🎁', screen: 'OffersRewards' },
+  {
+    title: 'My Bookings',
+    icon: '📅',
+    screen: 'ProfileBookings',
+  },
+  {
+    title: 'Favourite Salons',
+    icon: '❤️',
+    screen: 'FavouriteSalons',
+  },
+  {
+    title: 'Payment History',
+    icon: '🏦',
+    screen: 'Payments',
+  },
+  {
+    title: 'Payment Method',
+    icon: '💳',
+    screen: 'PaymentMethod',
+  },
+  {
+    title: 'Offers & Rewards',
+    icon: '🎁',
+    screen: 'OffersRewards',
+  },
 ];
 
 const settingsItems = [
-  { title: 'Settings', icon: '⚙️', screen: 'Settings' },
-  { title: 'Help & Support', icon: '❓', screen: 'HelpSupport' },
-  { title: 'Privacy Policy', icon: '📄', screen: 'PrivacyPolicy' },
+  {
+    title: 'Settings',
+    icon: '⚙️',
+    screen: 'Settings',
+  },
+  {
+    title: 'Help & Support',
+    icon: '❓',
+    screen: 'HelpSupport',
+  },
+  {
+    title: 'Privacy Policy',
+    icon: '📄',
+    screen: 'PrivacyPolicy',
+  },
 ];
 
 type ProfileMenuItem = {
@@ -59,13 +101,17 @@ type ProfileMenuItem = {
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
   const client = useApolloClient();
+
   const { currentUser, setCurrentUser } = useUser();
 
+  const [photoUrl, setPhotoUrl] = useState<string | null>(
+    currentUser?.profileImageUrl || null,
+  );
   const [photoLoading, setPhotoLoading] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
 
   // =========================================================
-  // LOAD / REFRESH PROFILE PHOTO WHEN SCREEN GETS FOCUS
+  // REFRESH PROFILE PHOTO WHEN SCREEN GETS FOCUS
   // =========================================================
 
   useFocusEffect(
@@ -79,8 +125,11 @@ export default function ProfileScreen() {
         if (
           !userId ||
           !phoneNumber ||
-          currentUser?.role === 'PROVIDER'
+          currentUser?.role !== 'CUSTOMER'
         ) {
+          setPhotoUrl(null);
+          setPhotoFailed(false);
+          setPhotoLoading(false);
           return;
         }
 
@@ -105,25 +154,16 @@ export default function ProfileScreen() {
             response.data?.getCustomerProfilePhoto;
 
           if (!photoData?.success) {
-            console.warn(
-              '[ProfileScreen] Profile photo unavailable:',
-              photoData?.message,
-            );
-            setPhotoFailed(true);
+            setPhotoUrl(null);
+            setPhotoFailed(false);
             return;
           }
 
-          const viewUrl = photoData.viewUrl || null;
+          const freshViewUrl: string | null =
+            photoData.viewUrl || null;
 
-          setCurrentUser({
-            ...currentUser!,
-            profileImageUrl: viewUrl,
-          });
-
-          console.log(
-            '[ProfileScreen] Profile photo URL retrieved:',
-            Boolean(viewUrl),
-          );
+          setPhotoUrl(freshViewUrl);
+          setPhotoFailed(false);
         } catch (error) {
           if (!active) {
             return;
@@ -134,7 +174,9 @@ export default function ProfileScreen() {
             error,
           );
 
-          setPhotoFailed(true);
+          // Fall back to the existing cached photo URL.
+          setPhotoUrl(currentUser?.profileImageUrl || null);
+          setPhotoFailed(false);
         } finally {
           if (active) {
             setPhotoLoading(false);
@@ -152,7 +194,7 @@ export default function ProfileScreen() {
       currentUser?.userId,
       currentUser?.phoneNumber,
       currentUser?.role,
-      setCurrentUser,
+      currentUser?.profileImageUrl,
     ]),
   );
 
@@ -178,6 +220,9 @@ export default function ProfileScreen() {
 
               setCurrentUser(null);
 
+              setPhotoUrl(null);
+              setPhotoFailed(false);
+
               navReset('LoginScreen', {
                 mode: 'SIGN_IN',
                 hideBackButton: true,
@@ -197,6 +242,14 @@ export default function ProfileScreen() {
         },
       ],
     );
+  };
+
+  // =========================================================
+  // OPEN EDIT PROFILE
+  // =========================================================
+
+  const openEditProfile = () => {
+    navigation.navigate('EditProfile');
   };
 
   // =========================================================
@@ -258,16 +311,16 @@ export default function ProfileScreen() {
   // PROFILE DATA
   // =========================================================
 
-  const userName = currentUser?.fullName || 'User';
+  const userName = currentUser?.fullName?.trim() || 'User';
   const phoneNumber = currentUser?.phoneNumber || '';
 
   const firstLetter =
-    userName.trim().charAt(0).toUpperCase() || 'U';
+    userName.charAt(0).toUpperCase() || 'U';
 
-  const isSalon = currentUser?.role === 'PROVIDER';
-  const roleText = isSalon ? 'Salon' : 'Customer';
+  const isCustomer = currentUser?.role === 'CUSTOMER';
+  const roleText = isCustomer ? 'Customer' : 'Salon';
 
-  const profileImageUrl = currentUser?.profileImageUrl;
+  const profileImageUrl = photoUrl;
 
   // =========================================================
   // MENU ITEM
@@ -279,6 +332,8 @@ export default function ProfileScreen() {
       style={styles.row}
       activeOpacity={0.72}
       onPress={() => handleProfileNavigation(item)}
+      accessibilityRole="button"
+      accessibilityLabel={item.title}
     >
       <View style={styles.menuIconContainer}>
         <Text style={styles.leftIcon}>{item.icon}</Text>
@@ -296,7 +351,10 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         <AppGradient
           colors={[...GRADIENTS.SOFT_PURPLE]}
           style={styles.header}
@@ -304,7 +362,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.avatarOuter}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('EditProfile')}
+            onPress={openEditProfile}
             accessibilityRole="button"
             accessibilityLabel="Edit profile photo"
           >
@@ -315,16 +373,7 @@ export default function ProfileScreen() {
                   source={{ uri: profileImageUrl }}
                   style={styles.avatarImage}
                   resizeMode="cover"
-                  onLoad={() => {
-                    console.log(
-                      '[ProfileScreen] Profile image displayed.',
-                    );
-                  }}
-                  onError={(event) => {
-                    console.warn(
-                      '[ProfileScreen] Image failed:',
-                      event.nativeEvent.error,
-                    );
+                  onError={() => {
                     setPhotoFailed(true);
                   }}
                 />
@@ -348,23 +397,28 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{userName}</Text>
 
           {phoneNumber ? (
-            <Text style={styles.phone}>{phoneNumber}</Text>
+            <Text style={styles.phone}>
+              {phoneNumber}
+            </Text>
           ) : null}
 
           <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{roleText}</Text>
+            <Text style={styles.roleText}>
+              {roleText}
+            </Text>
           </View>
 
           <TouchableOpacity
-            style={styles.editButtonWrapper}
+            style={styles.editButton}
             activeOpacity={0.82}
-            onPress={() => navigation.navigate('EditProfile')}
+            onPress={openEditProfile}
+            accessibilityRole="button"
+            accessibilityLabel="Edit profile"
           >
-            <View style={styles.editButton}>
-              <Text style={styles.editButtonText}>
-                Edit Profile
-              </Text>
-            </View>
+            <Text style={styles.editButtonText}>
+              Edit Profile
+            </Text>
+            <Text style={styles.editArrow}>›</Text>
           </TouchableOpacity>
         </AppGradient>
 
@@ -380,12 +434,16 @@ export default function ProfileScreen() {
           style={styles.logoutButtonWrapper}
           activeOpacity={0.8}
           onPress={onLogout}
+          accessibilityRole="button"
+          accessibilityLabel="Logout"
         >
           <AppGradient
             colors={[...GRADIENTS.SOFT_PURPLE]}
             style={styles.logoutGradient}
           >
-            <Text style={styles.logoutText}>Logout</Text>
+            <Text style={styles.logoutText}>
+              Logout
+            </Text>
           </AppGradient>
         </TouchableOpacity>
 
@@ -404,6 +462,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 8,
+  },
+
   header: {
     alignItems: 'center',
     paddingTop: 30,
@@ -414,6 +478,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 26,
     overflow: 'hidden',
   },
+
   avatarOuter: {
     width: 98,
     height: 98,
@@ -424,24 +489,28 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.65)',
   },
+
   avatar: {
     width: 84,
     height: 84,
     borderRadius: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.96)',
+    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
   },
+
   avatarImage: {
     width: '100%',
     height: '100%',
   },
+
   avatarText: {
     color: '#8B5CF6',
     fontSize: 36,
     fontWeight: '800',
   },
+
   photoEditBadge: {
     position: 'absolute',
     right: 0,
@@ -455,24 +524,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5DDF8',
   },
+
   photoEditIcon: {
     color: '#7650C8',
     fontSize: 19,
     fontWeight: '700',
     marginTop: -2,
   },
+
   name: {
     marginTop: 15,
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 23,
+    fontWeight: '700',
     color: '#FFFFFF',
     textAlign: 'center',
   },
+
   phone: {
     marginTop: 6,
     color: 'rgba(255,255,255,0.92)',
-    fontSize: 15,
+    fontSize: 14,
+    fontWeight: '500',
   },
+
   roleBadge: {
     marginTop: 12,
     backgroundColor: 'rgba(255,255,255,0.94)',
@@ -480,32 +554,40 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 20,
   },
+
   roleText: {
     color: '#7C3AED',
     fontWeight: '700',
     fontSize: 13,
   },
-  editButtonWrapper: {
-    marginTop: 18,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
+
   editButton: {
-    minWidth: 150,
-    paddingHorizontal: 25,
-    paddingVertical: 11,
+    marginTop: 18,
+    minWidth: 154,
+    minHeight: 44,
+    paddingHorizontal: 20,
     borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.65)',
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
+
   editButtonText: {
     color: '#FFFFFF',
-    fontWeight: '700',
+    fontWeight: '600',
     fontSize: 14,
   },
+
+  editArrow: {
+    marginLeft: 8,
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '400',
+  },
+
   section: {
     backgroundColor: COLORS.surface,
     marginBottom: 14,
@@ -515,6 +597,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -523,6 +606,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: COLORS.border,
   },
+
   menuIconContainer: {
     width: 38,
     height: 38,
@@ -532,37 +616,44 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: 'rgba(167,139,250,0.13)',
   },
+
   leftIcon: {
     fontSize: 19,
   },
+
   rowTitle: {
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
   },
+
   arrow: {
     fontSize: 25,
     color: COLORS.textMuted,
     marginLeft: 10,
   },
+
   logoutButtonWrapper: {
     marginHorizontal: 14,
     borderRadius: 14,
     overflow: 'hidden',
     elevation: 2,
   },
+
   logoutGradient: {
     minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 14,
   },
+
   logoutText: {
     color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 16,
+    fontWeight: '700',
+    fontSize: 15,
   },
+
   bottomSpace: {
     height: 30,
   },
