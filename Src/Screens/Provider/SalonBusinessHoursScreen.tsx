@@ -5,70 +5,72 @@ import {
     View,
     Text,
     TouchableOpacity,
-    Switch,
-    Alert,
 } from 'react-native';
+
 import DatePicker from 'react-native-date-picker';
+
+import AppGradient from '../../common/AppGradient';
+
 import {
     COLORS,
     FONTS,
     FONT_SIZES,
     SPACING,
     RADIUS,
+    GRADIENTS,
 } from '../../constants/constants';
+
 import {
     useSalonRegistration,
     BusinessHours,
     DayKey,
 } from '../../context/SalonRegistrationContext';
+
 const DAYS: {
     key: DayKey;
     label: string;
 }[] = [
-        { key: 'MONDAY', label: 'Monday' },
-        { key: 'TUESDAY', label: 'Tuesday' },
-        { key: 'WEDNESDAY', label: 'Wednesday' },
-        { key: 'THURSDAY', label: 'Thursday' },
-        { key: 'FRIDAY', label: 'Friday' },
-        { key: 'SATURDAY', label: 'Saturday' },
-        { key: 'SUNDAY', label: 'Sunday' },
-    ];
+    { key: 'MONDAY', label: 'Monday' },
+    { key: 'TUESDAY', label: 'Tuesday' },
+    { key: 'WEDNESDAY', label: 'Wednesday' },
+    { key: 'THURSDAY', label: 'Thursday' },
+    { key: 'FRIDAY', label: 'Friday' },
+    { key: 'SATURDAY', label: 'Saturday' },
+    { key: 'SUNDAY', label: 'Sunday' },
+];
+
 function parseTime(time: string): Date {
-    const [hoursString, minutesString] =
-        time.split(':');
+    const [hoursString, minutesString] = time.split(':');
+
     const hours = Number(hoursString);
     const minutes = Number(minutesString);
+
     const date = new Date();
+
     date.setHours(
         Number.isFinite(hours) ? hours : 9,
         Number.isFinite(minutes) ? minutes : 0,
         0,
         0,
     );
+
     return date;
 }
 
 function formatTime(date: Date): string {
-    const hours = String(
-        date.getHours(),
-    ).padStart(2, '0');
-
-    const minutes = String(
-        date.getMinutes(),
-    ).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
 
     return `${hours}:${minutes}`;
 }
 
 function displayTime(time: string): string {
-    const [hourString, minuteString] =
-        time.split(':');
+    const [hourString, minuteString] = time.split(':');
 
     let hour = Number(hourString);
     const minute = minuteString || '00';
 
-    const period =
-        hour >= 12 ? 'PM' : 'AM';
+    const period = hour >= 12 ? 'PM' : 'AM';
 
     hour = hour % 12;
 
@@ -76,22 +78,17 @@ function displayTime(time: string): string {
         hour = 12;
     }
 
-    return `${String(hour).padStart(
-        2,
-        '0',
-    )}:${minute} ${period}`;
+    return `${String(hour).padStart(2, '0')}:${minute} ${period}`;
 }
 
 export default function SalonBusinessHoursScreen({
     navigation,
 }: any) {
-    const { data, updateData } =
-        useSalonRegistration();
+    const { data, updateData } = useSalonRegistration();
 
-    const [hours, setHours] =
-        useState<BusinessHours>(
-            data.businessHours,
-        );
+    const [hours, setHours] = useState<BusinessHours>(
+        data.businessHours,
+    );
 
     const [picker, setPicker] = useState<{
         day: DayKey;
@@ -101,7 +98,6 @@ export default function SalonBusinessHoursScreen({
     const toggleDay = (day: DayKey) => {
         setHours(prev => ({
             ...prev,
-
             [day]: {
                 ...prev[day],
                 isOpen: !prev[day].isOpen,
@@ -113,25 +109,18 @@ export default function SalonBusinessHoursScreen({
         day: DayKey,
         type: 'open' | 'close',
     ) => {
-        setPicker({
-            day,
-            type,
-        });
+        setPicker({ day, type });
     };
 
-    const handleTimeConfirm = (
-        selectedDate: Date,
-    ) => {
+    const handleTimeConfirm = (selectedDate: Date) => {
         if (!picker) {
             return;
         }
 
-        const value =
-            formatTime(selectedDate);
+        const value = formatTime(selectedDate);
 
         setHours(prev => ({
             ...prev,
-
             [picker.day]: {
                 ...prev[picker.day],
                 [picker.type]: value,
@@ -141,59 +130,7 @@ export default function SalonBusinessHoursScreen({
         setPicker(null);
     };
 
-    const validateHours = () => {
-        for (const day of DAYS) {
-            const value = hours[day.key];
-
-            // Closed day — no validation needed
-            if (!value.isOpen) {
-                continue;
-            }
-
-            const [openHour, openMinute] =
-                value.open.split(':').map(Number);
-
-            const [closeHour, closeMinute] =
-                value.close.split(':').map(Number);
-
-            const openMinutes =
-                openHour * 60 + openMinute;
-
-            const closeMinutes =
-                closeHour * 60 + closeMinute;
-
-            // Same time = 24 hours
-            if (openMinutes === closeMinutes) {
-                continue;
-            }
-
-            // Different times are always valid.
-            //
-            // Examples:
-            // 09:00 → 18:00  = same day
-            // 09:00 → 00:00  = midnight
-            // 18:00 → 02:00  = overnight
-            // 22:00 → 04:00  = overnight
-            //
-            // Therefore we don't reject close time merely
-            // because it is numerically smaller.
-        }
-
-        return true;
-    };
     const handleNext = () => {
-        if (!validateHours()) {
-            return;
-        }
-
-        /*
-         * Store business hours in the
-         * registration context.
-         *
-         * DO NOT call the backend here.
-         *
-         * The salon does not exist yet.
-         */
         updateData({
             businessHours: hours,
         });
@@ -202,29 +139,24 @@ export default function SalonBusinessHoursScreen({
     };
 
     const pickerDate = picker
-        ? parseTime(
-            hours[picker.day][picker.type],
-        )
+        ? parseTime(hours[picker.day][picker.type])
         : new Date();
 
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={
-                    styles.content
-                }
+                contentContainerStyle={styles.content}
             >
+                {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity
-                        onPress={() =>
-                            navigation.goBack()
-                        }
+                        onPress={() => navigation.goBack()}
                         style={styles.backButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back"
                     >
-                        <Text style={styles.back}>
-                            ‹
-                        </Text>
+                        <Text style={styles.back}>‹</Text>
                     </TouchableOpacity>
 
                     <View style={styles.headerText}>
@@ -233,162 +165,141 @@ export default function SalonBusinessHoursScreen({
                         </Text>
 
                         <Text style={styles.subtitle}>
-                            Set your weekly operating
-                            hours
+                            Set your weekly operating hours
                         </Text>
                     </View>
                 </View>
 
+                {/* Weekly schedule */}
                 <View style={styles.card}>
-                    {DAYS.map(
-                        (day, index) => {
-                            const value =
-                                hours[day.key];
+                    {DAYS.map((day, index) => {
+                        const value = hours[day.key];
 
-                            return (
-                                <View
-                                    key={day.key}
-                                    style={[
-                                        styles.dayContainer,
-
-                                        index ===
-                                        DAYS.length - 1 &&
+                        return (
+                            <View
+                                key={day.key}
+                                style={[
+                                    styles.dayContainer,
+                                    index === DAYS.length - 1 &&
                                         styles.lastDay,
-                                    ]}
-                                >
-                                    <View
-                                        style={
-                                            styles.dayHeader
-                                        }
-                                    >
-                                        <Text
-                                            style={
-                                                styles.dayName
-                                            }
-                                        >
-                                            {day.label}
-                                        </Text>
+                                ]}
+                            >
+                                <View style={styles.dayHeader}>
+                                    <Text style={styles.dayName}>
+                                        {day.label}
+                                    </Text>
 
-                                        <Switch
-                                            value={
+                                    {/* Linear-gradient day toggle */}
+                                    <TouchableOpacity
+                                        activeOpacity={0.85}
+                                        onPress={() =>
+                                            toggleDay(day.key)
+                                        }
+                                        style={[
+                                            styles.customSwitch,
+                                            !value.isOpen &&
+                                                styles.customSwitchOff,
+                                        ]}
+                                        accessibilityRole="switch"
+                                        accessibilityState={{
+                                            checked: value.isOpen,
+                                        }}
+                                        accessibilityLabel={`${day.label} business hours`}
+                                    >
+                                        {value.isOpen && (
+                                            <AppGradient
+                                                colors={[
+                                                    ...GRADIENTS.SOFT_PURPLE,
+                                                ]}
+                                                style={styles.switchGradient} children={undefined}                                            />
+                                        )}
+
+                                        <View
+                                            style={[
+                                                styles.switchThumb,
                                                 value.isOpen
-                                            }
-                                            onValueChange={() =>
-                                                toggleDay(
+                                                    ? styles.switchThumbOn
+                                                    : styles.switchThumbOff,
+                                            ]}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {value.isOpen ? (
+                                    <View style={styles.timeRow}>
+                                        <TouchableOpacity
+                                            style={styles.timeButton}
+                                            onPress={() =>
+                                                openTimePicker(
                                                     day.key,
+                                                    'open',
                                                 )
                                             }
-                                            trackColor={{
-                                                false:
-                                                    COLORS.borderStrong,
-                                                true:
-                                                    COLORS.themeColor,
-                                            }}
-                                            thumbColor={
-                                                COLORS.white
-                                            }
-                                        />
-                                    </View>
-
-                                    {value.isOpen ? (
-                                        <View
-                                            style={
-                                                styles.timeRow
-                                            }
+                                            accessibilityRole="button"
+                                            accessibilityLabel={`Set ${day.label} opening time`}
                                         >
-                                            <TouchableOpacity
-                                                style={
-                                                    styles.timeButton
-                                                }
-                                                onPress={() =>
-                                                    openTimePicker(
-                                                        day.key,
-                                                        'open',
-                                                    )
-                                                }
-                                            >
-                                                <Text
-                                                    style={
-                                                        styles.timeLabel
-                                                    }
-                                                >
-                                                    Opens
-                                                </Text>
-
-                                                <Text
-                                                    style={
-                                                        styles.timeValue
-                                                    }
-                                                >
-                                                    {displayTime(
-                                                        value.open,
-                                                    )}
-                                                </Text>
-                                            </TouchableOpacity>
-
-                                            <Text
-                                                style={
-                                                    styles.separator
-                                                }
-                                            >
-                                                —
+                                            <Text style={styles.timeLabel}>
+                                                Opens
                                             </Text>
 
-                                            <TouchableOpacity
-                                                style={
-                                                    styles.timeButton
-                                                }
-                                                onPress={() =>
-                                                    openTimePicker(
-                                                        day.key,
-                                                        'close',
-                                                    )
-                                                }
-                                            >
-                                                <Text
-                                                    style={
-                                                        styles.timeLabel
-                                                    }
-                                                >
-                                                    Closes
-                                                </Text>
+                                            <Text style={styles.timeValue}>
+                                                {displayTime(value.open)}
+                                            </Text>
+                                        </TouchableOpacity>
 
-                                                <Text
-                                                    style={
-                                                        styles.timeValue
-                                                    }
-                                                >
-                                                    {displayTime(
-                                                        value.close,
-                                                    )}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    ) : (
-                                        <Text
-                                            style={
-                                                styles.closedLabel
-                                            }
-                                        >
-                                            Closed
+                                        <Text style={styles.separator}>
+                                            —
                                         </Text>
-                                    )}
-                                </View>
-                            );
-                        },
-                    )}
+
+                                        <TouchableOpacity
+                                            style={styles.timeButton}
+                                            onPress={() =>
+                                                openTimePicker(
+                                                    day.key,
+                                                    'close',
+                                                )
+                                            }
+                                            accessibilityRole="button"
+                                            accessibilityLabel={`Set ${day.label} closing time`}
+                                        >
+                                            <Text style={styles.timeLabel}>
+                                                Closes
+                                            </Text>
+
+                                            <Text style={styles.timeValue}>
+                                                {displayTime(value.close)}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : (
+                                    <Text style={styles.closedLabel}>
+                                        Closed
+                                    </Text>
+                                )}
+                            </View>
+                        );
+                    })}
                 </View>
 
+                {/* Gradient Continue button */}
                 <TouchableOpacity
-                    style={styles.button}
                     onPress={handleNext}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel="Continue to salon services"
                 >
-                    <Text style={styles.buttonText}>
-                        Continue
-                    </Text>
+                    <AppGradient
+                        colors={[...GRADIENTS.SOFT_PURPLE]}
+                        style={styles.button}
+                    >
+                        <Text style={styles.buttonText}>
+                            Continue
+                        </Text>
+                    </AppGradient>
                 </TouchableOpacity>
             </ScrollView>
 
+            {/* Time picker */}
             <DatePicker
                 modal
                 open={picker !== null}
@@ -402,12 +313,8 @@ export default function SalonBusinessHoursScreen({
                 }
                 confirmText="Confirm"
                 cancelText="Cancel"
-                onConfirm={
-                    handleTimeConfirm
-                }
-                onCancel={() =>
-                    setPicker(null)
-                }
+                onConfirm={handleTimeConfirm}
+                onCancel={() => setPicker(null)}
             />
         </SafeAreaView>
     );
@@ -416,8 +323,7 @@ export default function SalonBusinessHoursScreen({
 const styles = {
     container: {
         flex: 1,
-        backgroundColor:
-            COLORS.background,
+        backgroundColor: COLORS.background,
     },
 
     content: {
@@ -429,6 +335,7 @@ const styles = {
         flexDirection: 'row' as const,
         alignItems: 'center' as const,
         marginBottom: SPACING.xl,
+        paddingVertical: SPACING.small,
     },
 
     backButton: {
@@ -468,17 +375,14 @@ const styles = {
         backgroundColor: COLORS.surface,
         borderRadius: RADIUS.large,
         paddingHorizontal: SPACING.large,
-
         borderWidth: 1,
         borderColor: COLORS.border,
     },
 
     dayContainer: {
         paddingVertical: SPACING.large,
-
         borderBottomWidth: 1,
-        borderBottomColor:
-            COLORS.border,
+        borderBottomColor: COLORS.border,
     },
 
     lastDay: {
@@ -488,8 +392,7 @@ const styles = {
     dayHeader: {
         flexDirection: 'row' as const,
         alignItems: 'center' as const,
-        justifyContent:
-            'space-between' as const,
+        justifyContent: 'space-between' as const,
     },
 
     dayName: {
@@ -507,8 +410,7 @@ const styles = {
 
     timeButton: {
         flex: 1,
-        backgroundColor:
-            COLORS.background,
+        backgroundColor: COLORS.background,
         borderRadius: RADIUS.medium,
         padding: SPACING.medium,
         borderWidth: 1,
@@ -543,14 +445,54 @@ const styles = {
         height: 52,
         marginTop: SPACING.xl,
         borderRadius: RADIUS.medium,
-        backgroundColor: COLORS.themeColor,
         alignItems: 'center' as const,
         justifyContent: 'center' as const,
+        overflow: 'hidden' as const,
     },
 
     buttonText: {
         color: COLORS.white,
+        fontFamily: FONTS.semiBold,
         fontSize: FONT_SIZES.body,
         fontWeight: '700' as const,
     },
+    customSwitch: {
+    width: 42,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center' as const,
+    overflow: 'hidden' as const,
+    backgroundColor: COLORS.borderStrong,
+},
+
+customSwitchOff: {
+    backgroundColor: COLORS.borderStrong,
+},
+
+switchGradient: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 12,
+},
+
+switchThumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: COLORS.white,
+    position: 'absolute' as const,
+    top: 3,
+},
+
+switchThumbOn: {
+    right: 3,
+},
+
+switchThumbOff: {
+    left: 3,
+},
 };
+

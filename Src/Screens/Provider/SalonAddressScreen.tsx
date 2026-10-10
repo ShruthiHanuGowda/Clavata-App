@@ -10,6 +10,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Linking,
+  Modal,
+  FlatList,
   PermissionsAndroid,
   Platform,
   SafeAreaView,
@@ -34,6 +36,8 @@ import { reverseGeocode } from '../../services/locationService';
 
 import { Header } from '../../components';
 
+import AppGradient from '../../common/AppGradient';
+
 import { useSalonRegistration } from '../../context/SalonRegistrationContext';
 
 import {
@@ -42,6 +46,7 @@ import {
   FONT_SIZES,
   SPACING,
   RADIUS,
+  GRADIENTS,
 } from '../../constants/constants';
 
 
@@ -77,6 +82,17 @@ const DEFAULT_DELTA = {
   longitudeDelta: 0.01,
 };
 
+// All Indian states and union territories.
+const INDIA_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
+];
+
 
 // ============================================================
 // COMPONENT
@@ -102,6 +118,17 @@ export default function SalonAddressScreen({
     useState<string>('');
 
   const [pincode, setPincode] =
+    useState<string>('');
+
+  const [selectionModal, setSelectionModal] =
+    useState<'city' | 'state' | null>(null);
+  const [selectionSearch, setSelectionSearch] =
+    useState<string>('');
+  const [cityOptions, setCityOptions] =
+    useState<string[]>([]);
+  const [loadingCities, setLoadingCities] =
+    useState<boolean>(false);
+  const [cityLoadError, setCityLoadError] =
     useState<string>('');
 
 
@@ -496,6 +523,63 @@ export default function SalonAddressScreen({
     );
 
 
+  const visibleSelectionOptions = useMemo(() => {
+    const options = selectionModal === 'state' ? INDIA_STATES : cityOptions;
+    const query = selectionSearch.trim().toLowerCase();
+    return options.filter(item => item.toLowerCase().includes(query));
+  }, [selectionModal, selectionSearch, cityOptions]);
+
+  const loadCitiesForState = useCallback(async (stateName: string) => {
+    setLoadingCities(true);
+    setCityLoadError('');
+    setCityOptions([]);
+    try {
+      const response = await fetch(
+        'https://countriesnow.space/api/v0.1/countries/state/cities',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ country: 'India', state: stateName }),
+        },
+      );
+      const result = await response.json();
+      if (!response.ok || result?.error || !Array.isArray(result?.data)) {
+        throw new Error('City list unavailable');
+      }
+      setCityOptions(
+        [...new Set<string>(result.data.filter((item: unknown) => typeof item === 'string' && item.trim()).map((item: string) => item.trim()))]
+          .sort((a, b) => a.localeCompare(b)),
+      );
+    } catch (error) {
+      setCityLoadError('Could not load cities. Please check your internet connection and try again.');
+    } finally {
+      setLoadingCities(false);
+    }
+  }, []);
+
+  const openSelectionModal = useCallback((type: 'city' | 'state') => {
+    if (locationLocked) return;
+    setSelectionSearch('');
+    setSelectionModal(type);
+    if (type === 'city' && state.trim() && cityOptions.length === 0) {
+      loadCitiesForState(state.trim());
+    }
+  }, [locationLocked, state, cityOptions.length, loadCitiesForState]);
+
+  const selectAddressOption = useCallback((value: string) => {
+    if (selectionModal === 'state') {
+      setState(value);
+      setCity('');
+      setCityOptions([]);
+      setCityLoadError('');
+      loadCitiesForState(value);
+    } else if (selectionModal === 'city') {
+      setCity(value);
+    }
+    setSelectionModal(null);
+    setSelectionSearch('');
+  }, [selectionModal, loadCitiesForState]);
+
   // ==========================================================
   // ADDRESS FIELD CHANGE
   // ==========================================================
@@ -782,12 +866,12 @@ export default function SalonAddressScreen({
         }
 
         const newCoordinates: Coordinates =
-          {
-            latitude:
-              result.latitude,
-            longitude:
-              result.longitude,
-          };
+        {
+          latitude:
+            result.latitude,
+          longitude:
+            result.longitude,
+        };
 
 
         /**
@@ -868,10 +952,10 @@ export default function SalonAddressScreen({
           event.nativeEvent.coordinate;
 
         const newCoordinates: Coordinates =
-          {
-            latitude,
-            longitude,
-          };
+        {
+          latitude,
+          longitude,
+        };
 
         const success =
           await updateSelectedLocation(
@@ -912,10 +996,10 @@ export default function SalonAddressScreen({
           event.nativeEvent.coordinate;
 
         const newCoordinates: Coordinates =
-          {
-            latitude,
-            longitude,
-          };
+        {
+          latitude,
+          longitude,
+        };
 
         const success =
           await updateSelectedLocation(
@@ -1218,7 +1302,7 @@ export default function SalonAddressScreen({
               >
                 Use your current location if you
                 are at your business, or enter the
-                address manually.
+                address manually
               </Text>
 
 
@@ -1230,10 +1314,10 @@ export default function SalonAddressScreen({
                 style={[
                   styles.methodCard,
                   locationMode ===
-                    'current' &&
-                    styles.methodCardSelected,
+                  'current' &&
+                  styles.methodCardSelected,
                   gettingLocation &&
-                    styles.methodCardDisabled,
+                  styles.methodCardDisabled,
                 ]}
                 onPress={
                   handleUseCurrentLocation
@@ -1244,6 +1328,14 @@ export default function SalonAddressScreen({
                 }
                 activeOpacity={0.85}
               >
+                {locationMode === 'current' && (
+                  <AppGradient
+                    colors={[...GRADIENTS.SOFT_PURPLE]}
+                    style={styles.selectedMethodGradient}
+                  >
+                    <View style={styles.selectedMethodGradientInner} />
+                  </AppGradient>
+                )}
                 <View
                   style={
                     styles.methodIcon
@@ -1277,7 +1369,7 @@ export default function SalonAddressScreen({
                     }
                   >
                     Best if you are currently at
-                    your business.
+                    your business
                   </Text>
                 </View>
 
@@ -1308,8 +1400,8 @@ export default function SalonAddressScreen({
                 style={[
                   styles.methodCard,
                   locationMode ===
-                    'address' &&
-                    styles.methodCardSelected,
+                  'address' &&
+                  styles.methodCardSelected,
                 ]}
                 onPress={
                   handleSelectAddressMode
@@ -1320,6 +1412,14 @@ export default function SalonAddressScreen({
                 }
                 activeOpacity={0.85}
               >
+                {locationMode === 'address' && (
+                  <AppGradient
+                    colors={[...GRADIENTS.SOFT_PURPLE]}
+                    style={styles.selectedMethodGradient}
+                  >
+                    <View style={styles.selectedMethodGradientInner} />
+                  </AppGradient>
+                )}
                 <View
                   style={
                     styles.methodIcon
@@ -1353,7 +1453,7 @@ export default function SalonAddressScreen({
                     }
                   >
                     Enter your address and find it
-                    on the map.
+                    on the map
                   </Text>
                 </View>
 
@@ -1447,7 +1547,7 @@ export default function SalonAddressScreen({
                     style={[
                       styles.input,
                       locationLocked &&
-                        styles.inputDisabled,
+                      styles.inputDisabled,
                     ]}
                     returnKeyType="next"
                   />
@@ -1476,31 +1576,24 @@ export default function SalonAddressScreen({
                       City
                     </Text>
 
-                    <TextInput
-                      value={
-                        city
-                      }
-                      onChangeText={
-                        value =>
-                          handleAddressFieldChange(
-                            'city',
-                            value,
-                          )
-                      }
-                      placeholder="City"
-                      placeholderTextColor={
-                        COLORS.textMuted
-                      }
-                      editable={
-                        !locationLocked
-                      }
+                    <TouchableOpacity
+                      activeOpacity={0.75}
+                      onPress={() => openSelectionModal('city')}
+                      disabled={locationLocked}
                       style={[
                         styles.input,
-                        locationLocked &&
-                          styles.inputDisabled,
+                        styles.selectInput,
+                        locationLocked && styles.inputDisabled,
                       ]}
-                      returnKeyType="next"
-                    />
+                    >
+                      <Text style={[styles.selectInputText, !city && styles.selectPlaceholder]} numberOfLines={1}>
+                        {city || 'Select city'}
+                      </Text>
+                      <View style={styles.selectChevron}>
+                        <View style={[styles.selectChevronLine, styles.selectChevronLineLeft]} />
+                        <View style={[styles.selectChevronLine, styles.selectChevronLineRight]} />
+                      </View>
+                    </TouchableOpacity>
                   </View>
 
 
@@ -1517,31 +1610,24 @@ export default function SalonAddressScreen({
                       State
                     </Text>
 
-                    <TextInput
-                      value={
-                        state
-                      }
-                      onChangeText={
-                        value =>
-                          handleAddressFieldChange(
-                            'state',
-                            value,
-                          )
-                      }
-                      placeholder="State"
-                      placeholderTextColor={
-                        COLORS.textMuted
-                      }
-                      editable={
-                        !locationLocked
-                      }
+                    <TouchableOpacity
+                      activeOpacity={0.75}
+                      onPress={() => openSelectionModal('state')}
+                      disabled={locationLocked}
                       style={[
                         styles.input,
-                        locationLocked &&
-                          styles.inputDisabled,
+                        styles.selectInput,
+                        locationLocked && styles.inputDisabled,
                       ]}
-                      returnKeyType="next"
-                    />
+                    >
+                      <Text style={[styles.selectInputText, !state && styles.selectPlaceholder]} numberOfLines={1}>
+                        {state || 'Select state'}
+                      </Text>
+                      <View style={styles.selectChevron}>
+                        <View style={[styles.selectChevronLine, styles.selectChevronLineLeft]} />
+                        <View style={[styles.selectChevronLine, styles.selectChevronLineRight]} />
+                      </View>
+                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -1587,7 +1673,7 @@ export default function SalonAddressScreen({
                       styles.input,
                       styles.pincodeInput,
                       locationLocked &&
-                        styles.inputDisabled,
+                      styles.inputDisabled,
                     ]}
                   />
                 </View>
@@ -1658,13 +1744,13 @@ export default function SalonAddressScreen({
 
                   <TouchableOpacity
                     style={[
-                      styles.searchButton,
+                      styles.gradientButtonWrapper,
                       (
                         searchingAddress ||
                         locationLocked ||
                         !searchText.trim()
                       ) &&
-                        styles.buttonDisabled,
+                      styles.buttonDisabled,
                     ]}
                     onPress={
                       handleSearchAddress
@@ -1676,32 +1762,37 @@ export default function SalonAddressScreen({
                     }
                     activeOpacity={0.85}
                   >
-                    {searchingAddress ? (
-                      <>
-                        <ActivityIndicator
-                          size="small"
-                          color={
-                            COLORS.white
-                          }
-                        />
+                    <AppGradient
+                      colors={[...GRADIENTS.SOFT_PURPLE]}
+                      style={styles.searchButton}
+                    >
+                      {searchingAddress ? (
+                        <>
+                          <ActivityIndicator
+                            size="small"
+                            color={
+                              COLORS.white
+                            }
+                          />
 
+                          <Text
+                            style={
+                              styles.searchButtonText
+                            }
+                          >
+                            Finding location...
+                          </Text>
+                        </>
+                      ) : (
                         <Text
                           style={
                             styles.searchButtonText
                           }
                         >
-                          Finding location...
+                          Search
                         </Text>
-                      </>
-                    ) : (
-                      <Text
-                        style={
-                          styles.searchButtonText
-                        }
-                      >
-                        Search
-                      </Text>
-                    )}
+                      )}
+                    </AppGradient>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1724,50 +1815,28 @@ export default function SalonAddressScreen({
                 {/* LOCATION FOUND BANNER */}
                 {/* -------------------------------------------- */}
 
-                <View
-                  style={
-                    styles.foundCard
-                  }
+                <AppGradient
+                  colors={[...GRADIENTS.SOFT_PURPLE]}
+                  style={styles.foundCard}
                 >
-                  <View
-                    style={
-                      styles.foundIcon
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.foundIconText
-                      }
-                    >
+                  <View style={styles.foundIcon}>
+                    <Text style={styles.foundIconText}>
                       ✓
                     </Text>
                   </View>
 
-                  <View
-                    style={
-                      styles.foundContent
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.foundTitle
-                      }
-                    >
+                  <View style={styles.foundContent}>
+                    <Text style={styles.foundTitle}>
                       Location found
                     </Text>
 
-                    <Text
-                      style={
-                        styles.foundDescription
-                      }
-                    >
+                    <Text style={styles.foundDescription}>
                       Please check the map and make
                       sure the pin is at your business
                       location.
                     </Text>
                   </View>
-                </View>
-
+                </AppGradient>
 
                 {/* -------------------------------------------- */}
                 {/* MAP */}
@@ -1830,7 +1899,7 @@ export default function SalonAddressScreen({
                       loadingEnabled
                       moveOnMarkerPress={
                         false
-                    }
+                      }
                     >
                       <Marker
                         coordinate={
@@ -1963,9 +2032,10 @@ export default function SalonAddressScreen({
 
                 <TouchableOpacity
                   style={[
-                    styles.continueButton,
+                    styles.gradientButtonWrapper,
+                    styles.continueButtonWrapper,
                     reverseGeocoding &&
-                      styles.buttonDisabled,
+                    styles.buttonDisabled,
                   ]}
                   onPress={
                     handleConfirmLocation
@@ -1975,32 +2045,37 @@ export default function SalonAddressScreen({
                   }
                   activeOpacity={0.85}
                 >
-                  {reverseGeocoding ? (
-                    <>
-                      <ActivityIndicator
-                        size="small"
-                        color={
-                          COLORS.white
-                        }
-                      />
+                  <AppGradient
+                    colors={[...GRADIENTS.SOFT_PURPLE]}
+                    style={styles.continueButton}
+                  >
+                    {reverseGeocoding ? (
+                      <>
+                        <ActivityIndicator
+                          size="small"
+                          color={
+                            COLORS.white
+                          }
+                        />
 
+                        <Text
+                          style={
+                            styles.continueButtonText
+                          }
+                        >
+                          Updating...
+                        </Text>
+                      </>
+                    ) : (
                       <Text
                         style={
                           styles.continueButtonText
                         }
                       >
-                        Updating...
+                        Verify & Continue
                       </Text>
-                    </>
-                  ) : (
-                    <Text
-                      style={
-                        styles.continueButtonText
-                      }
-                    >
-                      Verify & Continue
-                    </Text>
-                  )}
+                    )}
+                  </AppGradient>
                 </TouchableOpacity>
 
               </View>
@@ -2008,6 +2083,72 @@ export default function SalonAddressScreen({
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={selectionModal !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectionModal(null)}
+      >
+        <View style={styles.selectionModalOverlay}>
+          <View style={styles.selectionModalCard}>
+            <View style={styles.selectionModalHeader}>
+              <Text style={styles.selectionModalTitle}>
+                {selectionModal === 'state' ? 'Select state / union territory' : 'Select city'}
+              </Text>
+              <TouchableOpacity onPress={() => setSelectionModal(null)} hitSlop={10}>
+                <Text style={styles.selectionModalClose}>×</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              value={selectionSearch}
+              onChangeText={setSelectionSearch}
+              placeholder={selectionModal === 'state' ? 'Search state...' : 'Search city...'}
+              placeholderTextColor={COLORS.textMuted}
+              style={styles.selectionSearchInput}
+              autoCorrect={false}
+            />
+            {selectionModal === 'city' && loadingCities ? (
+              <View style={styles.selectionLoading}>
+                <ActivityIndicator color={COLORS.themeColor} />
+                <Text style={styles.selectionMessage}>Loading cities...</Text>
+              </View>
+            ) : selectionModal === 'city' && cityLoadError ? (
+              <View style={styles.selectionLoading}>
+                <Text style={styles.selectionMessage}>{cityLoadError}</Text>
+                <TouchableOpacity style={styles.selectionRetry} onPress={() => state.trim() && loadCitiesForState(state.trim())}>
+                  <Text style={styles.selectionRetryText}>Try again</Text>
+                </TouchableOpacity>
+              </View>
+            ) : selectionModal === 'city' && !state.trim() ? (
+              <View style={styles.selectionLoading}>
+                <Text style={styles.selectionMessage}>Select a state first.</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={visibleSelectionOptions}
+                keyExtractor={item => item}
+                keyboardShouldPersistTaps="handled"
+                initialNumToRender={20}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.selectionOption}
+                    onPress={() => selectAddressOption(item)}
+                  >
+                    <Text style={styles.selectionOptionText}>{item}</Text>
+                    {(selectionModal === 'state' ? state : city) === item ? (
+                      <Text style={styles.selectionCheck}>✓</Text>
+                    ) : null}
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <Text style={styles.selectionMessage}>No matching options found.</Text>
+                }
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -2114,10 +2255,28 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.medium,
 
     marginBottom: SPACING.small,
+    position: 'relative',
   },
 
   methodCardSelected: {
-    borderColor: COLORS.themeColor,
+    borderColor: 'transparent',
+    borderWidth: 0,
+  },
+
+  selectedMethodGradient: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: RADIUS.large,
+    padding: 1.5,
+  },
+
+  selectedMethodGradientInner: {
+    flex: 1,
+    borderRadius: RADIUS.large - 1,
+    backgroundColor: COLORS.surface,
   },
 
   methodCardDisabled: {
@@ -2211,6 +2370,149 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
 
+  selectInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  selectInputText: {
+    flex: 1,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+    marginRight: SPACING.xs,
+  },
+
+  selectPlaceholder: {
+    color: COLORS.textMuted,
+  },
+
+  selectChevron: {
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: SPACING.xs,
+  },
+
+  selectChevronLine: {
+    position: 'absolute',
+    width: 6,
+    height: 1.8,
+    borderRadius: 1,
+    backgroundColor: COLORS.textSecondary,
+    top: 8,
+  },
+
+  selectChevronLineLeft: {
+    left: 3,
+    transform: [{ rotate: '45deg' }],
+  },
+
+  selectChevronLineRight: {
+    right: 3,
+    transform: [{ rotate: '-45deg' }],
+  },
+
+  selectionModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    padding: SPACING.large,
+  },
+
+  selectionModalCard: {
+    maxHeight: '82%',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.large,
+    padding: SPACING.medium,
+  },
+
+  selectionModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.small,
+  },
+
+  selectionModalTitle: {
+    flex: 1,
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.body,
+    color: COLORS.text,
+  },
+
+  selectionModalClose: {
+    fontSize: 30,
+    color: COLORS.textSecondary,
+    paddingHorizontal: SPACING.small,
+  },
+
+  selectionSearchInput: {
+    minHeight: 46,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.medium,
+    paddingHorizontal: SPACING.medium,
+    marginBottom: SPACING.small,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+  },
+
+  selectionOption: {
+    minHeight: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.small,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.border,
+  },
+
+  selectionOptionText: {
+    flex: 1,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+  },
+
+  selectionCheck: {
+    fontSize: 18,
+    color: COLORS.themeColor,
+    marginLeft: SPACING.small,
+  },
+
+  selectionLoading: {
+    minHeight: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.medium,
+  },
+
+  selectionMessage: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    padding: SPACING.medium,
+  },
+
+  selectionRetry: {
+    marginTop: SPACING.small,
+    paddingHorizontal: SPACING.large,
+    paddingVertical: SPACING.small,
+    borderRadius: RADIUS.medium,
+    backgroundColor: COLORS.themeColor,
+  },
+
+  selectionRetryText: {
+    fontFamily: FONTS.medium,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.white,
+  },
+
   inputDisabled: {
     backgroundColor: '#F1F1F3',
     borderColor: '#E2E2E2',
@@ -2280,14 +2582,21 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.small,
   },
 
+  gradientButtonWrapper: {
+    borderRadius: RADIUS.medium,
+    overflow: 'hidden',
+  },
+
+  continueButtonWrapper: {
+    marginTop: SPACING.small,
+  },
+
   searchButton: {
     minHeight: 50,
 
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-
-    backgroundColor: COLORS.themeColor,
 
     borderRadius: RADIUS.medium,
 
@@ -2527,15 +2836,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
 
-    backgroundColor: COLORS.themeColor,
-
     borderRadius: RADIUS.medium,
 
     paddingHorizontal: SPACING.large,
 
     gap: SPACING.small,
-
-    marginTop: SPACING.small,
   },
 
   continueButtonText: {
@@ -2554,19 +2859,19 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   changeLocationButton: {
-  marginTop: SPACING.medium,
-  minHeight: 48,
-  borderRadius: RADIUS.medium,
-  borderWidth: 1,
-  borderColor: COLORS.borderStrong,
-  backgroundColor: COLORS.surface,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
+    marginTop: SPACING.medium,
+    minHeight: 48,
+    borderRadius: RADIUS.medium,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-changeLocationText: {
-  fontFamily: FONTS.medium,
-  fontSize: FONT_SIZES.body,
-  color: COLORS.text,
-},
+  changeLocationText: {
+    fontFamily: FONTS.medium,
+    fontSize: FONT_SIZES.body,
+    color: COLORS.text,
+  },
 });
