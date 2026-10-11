@@ -14,6 +14,7 @@ import {
   Platform,
   Alert,
   Image,
+  StyleSheet,
 } from 'react-native';
 
 import 'react-native-get-random-values';
@@ -33,10 +34,6 @@ import OTPModal from '../../components/OTPModal/OTPModal';
 import styles from './styles';
 
 import {
-  DButton,
-} from '../../components';
-
-import {
   DMobileInput,
 } from '../../components/Dinputs';
 
@@ -45,8 +42,10 @@ import {
 } from '../../graphql/queries';
 
 import {
-  COLORS,
+  GRADIENTS,
 } from '../../constants/constants';
+
+import AppGradient from '../../common/AppGradient';
 
 import {
   useUser,
@@ -61,12 +60,10 @@ type UserRole =
   | 'CUSTOMER'
   | 'PROVIDER';
 
-
 type LoginMode =
   | 'CUSTOMER'
   | 'PROVIDER'
   | 'SIGN_IN';
-
 
 type ProviderStatus =
   | 'NOT_REGISTERED'
@@ -74,39 +71,24 @@ type ProviderStatus =
   | 'APPROVED'
   | 'REJECTED';
 
-
 interface ClavataUser {
   userId?: string;
-
   phoneNumber?: string;
-
   fullName?: string;
-
   role?: UserRole;
-
   providerStatus?: ProviderStatus | null;
-
   salonId?: string | null;
-
   createdAt?: string;
-
   updatedAt?: string;
-
   preferredPaymentMethod?: string | null;
-
   profileImageUrl?: string | null;
-
   salonName?: string | null;
 }
 
-
 interface OTPVerificationResult {
   success?: boolean;
-
   message?: string;
-
   isExistingUser?: boolean;
-
   user?: ClavataUser | null;
 }
 
@@ -117,17 +99,8 @@ interface OTPVerificationResult {
 
 interface LoginRouteParams {
   mode?: LoginMode;
-
-  /**
-   * Role is supplied only when the user explicitly selected
-   * Customer or Service Partner from the Welcome screen.
-   *
-   * SIGN_IN intentionally does not supply a role.
-   */
   role?: UserRole;
-
   phoneNumber?: string;
-
   hideBackButton?: boolean;
 }
 
@@ -147,21 +120,6 @@ export default function LoginScreen() {
 
   // ============================================================
   // USER CONTEXT
-  //
-  // IMPORTANT:
-  //
-  // Existing users must be stored here after OTP verification.
-  //
-  // This is what allows screens such as:
-  //
-  // SalonRegistrationScreen
-  //
-  // to access:
-  //
-  // currentUser.userId
-  // currentUser.phoneNumber
-  // currentUser.role
-  // currentUser.providerStatus
   // ============================================================
 
   const {
@@ -177,15 +135,12 @@ export default function LoginScreen() {
   const routeParams =
     (route.params || {}) as LoginRouteParams;
 
-
   const mode: LoginMode =
     routeParams.mode ||
     'SIGN_IN';
 
-
   const selectedRole =
     routeParams.role;
-
 
   const hideBackButton =
     routeParams.hideBackButton === true;
@@ -200,12 +155,10 @@ export default function LoginScreen() {
     setShowOTP,
   ] = useState(false);
 
-
   const [
     isValid,
     setValid,
   ] = useState(false);
-
 
   const [
     phoneNumber,
@@ -213,7 +166,6 @@ export default function LoginScreen() {
   ] = useState(
     routeParams.phoneNumber || '',
   );
-
 
   const [
     loading,
@@ -303,18 +255,6 @@ export default function LoginScreen() {
     !loading;
 
 
-  /**
-   * Keep the existing visual behavior:
-   *
-   * enabled  -> theme color
-   * disabled -> black
-   */
-  const buttonBackgroundColor =
-    isButtonEnabled
-      ? COLORS.themeColor
-      : COLORS.black;
-
-
   // ============================================================
   // SEND OTP ERROR
   // ============================================================
@@ -324,7 +264,6 @@ export default function LoginScreen() {
     if (!queryError) {
       return;
     }
-
 
     console.error(
       '====================================================',
@@ -347,9 +286,7 @@ export default function LoginScreen() {
       '====================================================',
     );
 
-
     setLoading(false);
-
 
     Alert.alert(
       'Unable to continue',
@@ -377,11 +314,9 @@ export default function LoginScreen() {
           return;
         }
 
-
         try {
 
           setLoading(true);
-
 
           console.log(
             '====================================================',
@@ -410,7 +345,6 @@ export default function LoginScreen() {
             '====================================================',
           );
 
-
           const {
             data,
           } = await sendOTP({
@@ -418,7 +352,6 @@ export default function LoginScreen() {
               phoneNumber,
             },
           });
-
 
           console.log(
             '====================================================',
@@ -440,7 +373,6 @@ export default function LoginScreen() {
             '====================================================',
           );
 
-
           if (
             data?.sendOTP?.success
           ) {
@@ -454,12 +386,10 @@ export default function LoginScreen() {
             return;
           }
 
-
           console.warn(
             '[LoginScreen] SEND OTP FAILED:',
             data?.sendOTP?.message,
           );
-
 
           Alert.alert(
             'Unable to continue',
@@ -484,7 +414,6 @@ export default function LoginScreen() {
           console.error(
             '====================================================',
           );
-
 
           Alert.alert(
             'Something went wrong',
@@ -520,7 +449,6 @@ export default function LoginScreen() {
           '[LoginScreen] BACK PRESSED',
         );
 
-
         if (
           navigation.canGoBack()
         ) {
@@ -530,7 +458,6 @@ export default function LoginScreen() {
           return;
         }
 
-
         console.log(
           '[LoginScreen] NO BACK STACK',
         );
@@ -538,7 +465,6 @@ export default function LoginScreen() {
         console.log(
           '[LoginScreen] FALLBACK → authScreens',
         );
-
 
         navigation.navigate(
           'authScreens',
@@ -549,6 +475,7 @@ export default function LoginScreen() {
         navigation,
       ],
     );
+
 
   const getExistingRole =
     useCallback(
@@ -563,19 +490,15 @@ export default function LoginScreen() {
           user?.role ===
           'CUSTOMER'
         ) {
-
           return 'CUSTOMER';
         }
-
 
         if (
           user?.role ===
           'PROVIDER'
         ) {
-
           return 'PROVIDER';
         }
-
 
         return null;
 
@@ -586,21 +509,6 @@ export default function LoginScreen() {
 
   // ============================================================
   // SAVE VERIFIED USER TO USER CONTEXT
-  //
-  // THIS IS THE IMPORTANT FIX.
-  //
-  // Previously LoginScreen navigated directly to BecomePartner
-  // without putting the backend user into UserContext.
-  //
-  // Therefore SalonRegistrationScreen received:
-  //
-  // currentUser === null
-  //
-  // and displayed:
-  //
-  // "Your user information is unavailable."
-  //
-  // We now save the authenticated user BEFORE navigation.
   // ============================================================
 
   const saveAuthenticatedUser =
@@ -633,11 +541,6 @@ export default function LoginScreen() {
           '====================================================',
         );
 
-
-        // --------------------------------------------------------
-        // USER REQUIRED
-        // --------------------------------------------------------
-
         if (!user) {
 
           console.error(
@@ -646,11 +549,6 @@ export default function LoginScreen() {
 
           return false;
         }
-
-
-        // --------------------------------------------------------
-        // USER ID REQUIRED
-        // --------------------------------------------------------
 
         if (!user.userId) {
 
@@ -666,11 +564,6 @@ export default function LoginScreen() {
           return false;
         }
 
-
-        // --------------------------------------------------------
-        // PHONE REQUIRED
-        // --------------------------------------------------------
-
         if (!user.phoneNumber) {
 
           console.error(
@@ -685,11 +578,6 @@ export default function LoginScreen() {
           return false;
         }
 
-
-        // --------------------------------------------------------
-        // FULL NAME
-        // --------------------------------------------------------
-
         if (!user.fullName) {
 
           console.warn(
@@ -697,14 +585,8 @@ export default function LoginScreen() {
           );
         }
 
-
-        // --------------------------------------------------------
-        // ROLE REQUIRED
-        // --------------------------------------------------------
-
         const role =
           getExistingRole(user);
-
 
         if (!role) {
 
@@ -721,15 +603,9 @@ export default function LoginScreen() {
           return false;
         }
 
-
-        // --------------------------------------------------------
-        // PROVIDER STATUS
-        // --------------------------------------------------------
-
         let providerStatus:
           ProviderStatus | null =
           null;
-
 
         if (
           role ===
@@ -743,7 +619,6 @@ export default function LoginScreen() {
             )
               .trim()
               .toUpperCase();
-
 
           if (
             normalizedStatus ===
@@ -775,13 +650,6 @@ export default function LoginScreen() {
           providerStatus =
             null;
         }
-
-
-        // --------------------------------------------------------
-        // BUILD USER FOR CONTEXT
-        //
-        // This shape matches the NEW UserContext.
-        // --------------------------------------------------------
 
         const authenticatedUser =
         {
@@ -820,7 +688,6 @@ export default function LoginScreen() {
             user.preferredPaymentMethod ??
             null,
         };
-
 
         console.log(
           '====================================================',
@@ -863,20 +730,13 @@ export default function LoginScreen() {
           '====================================================',
         );
 
-
-        // --------------------------------------------------------
-        // SAVE TO CONTEXT
-        // --------------------------------------------------------
-
         setCurrentUser(
           authenticatedUser,
         );
 
-
         console.log(
           '[LoginScreen] USER SUCCESSFULLY SENT TO USER CONTEXT',
         );
-
 
         return true;
 
@@ -950,14 +810,8 @@ export default function LoginScreen() {
           '====================================================',
         );
 
-
-        // ========================================================
-        // VALIDATE ROLE
-        // ========================================================
-
         const existingRole =
           getExistingRole(user);
-
 
         if (!existingRole) {
 
@@ -970,7 +824,6 @@ export default function LoginScreen() {
             ),
           );
 
-
           Alert.alert(
             'Account error',
             'We could not determine your account type. Please contact support.',
@@ -979,20 +832,10 @@ export default function LoginScreen() {
           return;
         }
 
-
-        // ========================================================
-        // IMPORTANT:
-        //
-        // SAVE USER TO CONTEXT BEFORE NAVIGATION.
-        //
-        // This fixes the currentUser === null problem.
-        // ========================================================
-
         const userSaved =
           saveAuthenticatedUser(
             user,
           );
-
 
         if (!userSaved) {
 
@@ -1003,10 +846,7 @@ export default function LoginScreen() {
           return;
         }
 
-
-        // ========================================================
         // CUSTOMER
-        // ========================================================
 
         if (
           existingRole ===
@@ -1021,7 +861,6 @@ export default function LoginScreen() {
             '[LoginScreen] NAVIGATION → CUSTOMER APP',
           );
 
-
           navigation.replace(
             'appScreens',
             {
@@ -1030,14 +869,10 @@ export default function LoginScreen() {
             },
           );
 
-
           return;
         }
 
-
-        // ========================================================
         // PROVIDER
-        // ========================================================
 
         if (
           existingRole ===
@@ -1052,16 +887,12 @@ export default function LoginScreen() {
               .trim()
               .toUpperCase() as ProviderStatus;
 
-
           console.log(
             '[LoginScreen] NORMALIZED PROVIDER STATUS:',
             providerStatus,
           );
 
-
-          // ======================================================
           // PROVIDER - NOT REGISTERED
-          // ======================================================
 
           if (
             providerStatus ===
@@ -1072,19 +903,14 @@ export default function LoginScreen() {
               '[LoginScreen] PROVIDER → BECOME PARTNER',
             );
 
-
             navigation.navigate(
               'BecomePartner',
             );
 
-
             return;
           }
 
-
-          // ======================================================
           // PROVIDER - PENDING
-          // ======================================================
 
           if (
             providerStatus ===
@@ -1095,7 +921,6 @@ export default function LoginScreen() {
               '[LoginScreen] PROVIDER → PENDING VERIFICATION',
             );
 
-
             navigation.replace(
               'BecomePartner',
               {
@@ -1104,14 +929,10 @@ export default function LoginScreen() {
               },
             );
 
-
             return;
           }
 
-
-          // ======================================================
           // PROVIDER - APPROVED
-          // ======================================================
 
           if (
             providerStatus ===
@@ -1121,7 +942,6 @@ export default function LoginScreen() {
             console.log(
               '[LoginScreen] PROVIDER → PROVIDER APP',
             );
-
 
             navigation.replace(
               'BecomePartner',
@@ -1134,10 +954,7 @@ export default function LoginScreen() {
             return;
           }
 
-
-          // ======================================================
           // PROVIDER - REJECTED
-          // ======================================================
 
           if (
             providerStatus ===
@@ -1148,45 +965,38 @@ export default function LoginScreen() {
               '[LoginScreen] PROVIDER → BECOME PARTNER',
             );
 
-
-            navigation.replace('BecomePartner', {
-              screen: 'RejectedScreen',
-            });
-
+            navigation.replace(
+              'BecomePartner',
+              {
+                screen:
+                  'RejectedScreen',
+              },
+            );
 
             return;
           }
 
-
-          // ======================================================
           // UNKNOWN PROVIDER STATUS
-          // ======================================================
 
           console.error(
             '[LoginScreen] UNKNOWN PROVIDER STATUS:',
             providerStatus,
           );
 
-
           Alert.alert(
             'Account status unavailable',
             'We could not determine your provider account status. Please contact support.',
           );
 
-
           return;
         }
 
-
-        // ========================================================
         // SAFETY FALLBACK
-        // ========================================================
 
         console.error(
           '[LoginScreen] UNEXPECTED ACCOUNT ROLE:',
           existingRole,
         );
-
 
         Alert.alert(
           'Account error',
@@ -1274,17 +1084,11 @@ export default function LoginScreen() {
           '====================================================',
         );
 
-
-        // ========================================================
         // CLOSE OTP MODAL
-        // ========================================================
 
         setShowOTP(false);
 
-
-        // ========================================================
         // OTP VERIFICATION FAILED
-        // ========================================================
 
         if (
           result?.success !== true
@@ -1294,21 +1098,16 @@ export default function LoginScreen() {
             '[LoginScreen] OTP VERIFICATION FAILED',
           );
 
-
           Alert.alert(
             'Verification failed',
             result?.message ||
             'OTP verification failed. Please try again.',
           );
 
-
           return;
         }
 
-
-        // ========================================================
         // EXISTING USER
-        // ========================================================
 
         if (
           result?.isExistingUser ===
@@ -1319,10 +1118,8 @@ export default function LoginScreen() {
             '[LoginScreen] EXISTING USER FOUND',
           );
 
-
           const user =
             result?.user;
-
 
           if (!user) {
 
@@ -1330,30 +1127,23 @@ export default function LoginScreen() {
               '[LoginScreen] EXISTING USER FLAG IS TRUE BUT USER IS NULL',
             );
 
-
             Alert.alert(
               'Account error',
               'We found your account, but could not load your account details. Please try again.',
             );
 
-
             return;
           }
 
-
           const existingRole =
             getExistingRole(user);
-
 
           console.log(
             '[LoginScreen] EXISTING USER ROLE:',
             existingRole,
           );
 
-
-          // ======================================================
           // INVALID ROLE
-          // ======================================================
 
           if (!existingRole) {
 
@@ -1366,24 +1156,15 @@ export default function LoginScreen() {
               ),
             );
 
-
             Alert.alert(
               'Account error',
               'Your account does not have a valid account type. Please contact support.',
             );
 
-
             return;
           }
 
-
-          // ======================================================
           // SIGN IN
-          //
-          // Database role is the source of truth.
-          //
-          // selectedRole is intentionally ignored here.
-          // ======================================================
 
           if (
             mode ===
@@ -1394,30 +1175,19 @@ export default function LoginScreen() {
               '[LoginScreen] SIGN IN → EXISTING ACCOUNT',
             );
 
-
             openExistingAccount(
               user,
             );
 
-
             return;
           }
 
-
-          // ======================================================
           // CUSTOMER MODE
-          //
-          // User explicitly selected Customer.
-          // ======================================================
 
           if (
             mode ===
             'CUSTOMER'
           ) {
-
-            // ----------------------------------------------------
-            // Existing Customer
-            // ----------------------------------------------------
 
             if (
               existingRole ===
@@ -1428,26 +1198,16 @@ export default function LoginScreen() {
                 '[LoginScreen] CUSTOMER MODE + EXISTING CUSTOMER',
               );
 
-
               openExistingAccount(
                 user,
               );
 
-
               return;
             }
-
-
-            // ----------------------------------------------------
-            // Existing Provider
-            //
-            // One phone number = one account.
-            // ----------------------------------------------------
 
             console.log(
               '[LoginScreen] CUSTOMER MODE + EXISTING PROVIDER',
             );
-
 
             Alert.alert(
               'Number already registered',
@@ -1462,7 +1222,6 @@ export default function LoginScreen() {
                       '[LoginScreen] USER CHOSE SIGN IN',
                     );
 
-
                     navigation.replace(
                       'LoginScreen',
                       {
@@ -1485,25 +1244,15 @@ export default function LoginScreen() {
               ],
             );
 
-
             return;
           }
 
-
-          // ======================================================
           // PROVIDER MODE
-          //
-          // User explicitly selected Service Partner.
-          // ======================================================
 
           if (
             mode ===
             'PROVIDER'
           ) {
-
-            // ----------------------------------------------------
-            // Existing Provider
-            // ----------------------------------------------------
 
             if (
               existingRole ===
@@ -1514,26 +1263,16 @@ export default function LoginScreen() {
                 '[LoginScreen] PROVIDER MODE + EXISTING PROVIDER',
               );
 
-
               openExistingAccount(
                 user,
               );
 
-
               return;
             }
-
-
-            // ----------------------------------------------------
-            // Existing Customer
-            //
-            // One phone number = one account.
-            // ----------------------------------------------------
 
             console.log(
               '[LoginScreen] PROVIDER MODE + EXISTING CUSTOMER',
             );
-
 
             Alert.alert(
               'Number already registered',
@@ -1548,7 +1287,6 @@ export default function LoginScreen() {
                       '[LoginScreen] USER CHOSE SIGN IN',
                     );
 
-
                     navigation.replace(
                       'LoginScreen',
                       {
@@ -1571,34 +1309,25 @@ export default function LoginScreen() {
               ],
             );
 
-
             return;
           }
 
-
-          // ======================================================
           // SAFETY FALLBACK
-          // ======================================================
 
           console.error(
             '[LoginScreen] UNKNOWN LOGIN MODE:',
             mode,
           );
 
-
           Alert.alert(
             'Unable to continue',
             'We could not determine how to open your account. Please try again.',
           );
 
-
           return;
         }
 
-
-        // ========================================================
         // NEW USER
-        // ========================================================
 
         if (
           result?.isExistingUser ===
@@ -1609,16 +1338,7 @@ export default function LoginScreen() {
             '[LoginScreen] NO EXISTING USER FOUND',
           );
 
-
-          // ======================================================
           // SIGN IN + NEW NUMBER
-          //
-          // Important:
-          //
-          // We cannot assume CUSTOMER or PROVIDER.
-          //
-          // The user must return to the Welcome role selection.
-          // ======================================================
 
           if (
             mode ===
@@ -1633,19 +1353,6 @@ export default function LoginScreen() {
               '[LoginScreen] SIGN IN → RETURN TO WELCOME ROLE SELECTION',
             );
 
-
-            /**
-             * IMPORTANT:
-             *
-             * The exact nested navigation depends on the structure
-             * of authScreens.
-             *
-             * If WelcomeChoiceScreen is directly inside the
-             * authScreens navigator, use this nested navigation.
-             *
-             * Passing phoneNumber allows WelcomeChoiceScreen to
-             * preserve the verified number.
-             */
             navigation.replace(
               'authScreens',
               {
@@ -1658,14 +1365,10 @@ export default function LoginScreen() {
               },
             );
 
-
             return;
           }
 
-
-          // ======================================================
           // CUSTOMER REGISTRATION
-          // ======================================================
 
           if (
             mode ===
@@ -1681,7 +1384,6 @@ export default function LoginScreen() {
               'CUSTOMER',
             );
 
-
             navigation.replace(
               'RegisterUser',
               {
@@ -1692,14 +1394,10 @@ export default function LoginScreen() {
               },
             );
 
-
             return;
           }
 
-
-          // ======================================================
           // PROVIDER REGISTRATION
-          // ======================================================
 
           if (
             mode ===
@@ -1715,7 +1413,6 @@ export default function LoginScreen() {
               'PROVIDER',
             );
 
-
             navigation.replace(
               'RegisterUser',
               {
@@ -1726,34 +1423,25 @@ export default function LoginScreen() {
               },
             );
 
-
             return;
           }
 
-
-          // ======================================================
           // UNKNOWN REGISTRATION MODE
-          // ======================================================
 
           console.error(
             '[LoginScreen] UNKNOWN NEW USER MODE:',
             mode,
           );
 
-
           Alert.alert(
             'Unable to continue',
             'We could not determine your account type. Please return to the welcome screen and try again.',
           );
 
-
           return;
         }
 
-
-        // ========================================================
         // UNKNOWN ACCOUNT STATE
-        // ========================================================
 
         console.error(
           '[LoginScreen] UNKNOWN OTP ACCOUNT STATE:',
@@ -1763,7 +1451,6 @@ export default function LoginScreen() {
             2,
           ),
         );
-
 
         Alert.alert(
           'Unable to continue',
@@ -1814,9 +1501,7 @@ export default function LoginScreen() {
           }
         >
 
-          {/* ==================================================
-              HEADER
-          ================================================== */}
+          {/* HEADER */}
 
           <View
             style={
@@ -1856,7 +1541,6 @@ export default function LoginScreen() {
 
             )}
 
-
             <Image
               source={
                 require(
@@ -1872,9 +1556,7 @@ export default function LoginScreen() {
           </View>
 
 
-          {/* ==================================================
-              PHONE INPUT
-          ================================================== */}
+          {/* PHONE INPUT */}
 
           <View
             style={
@@ -1904,9 +1586,7 @@ export default function LoginScreen() {
             </View>
 
 
-            {/* ==================================================
-                CONTINUE BUTTON
-            ================================================== */}
+            {/* CONTINUE BUTTON — PURPLE GRADIENT */}
 
             <View
               style={
@@ -1914,22 +1594,44 @@ export default function LoginScreen() {
               }
             >
 
-              <DButton
-                type="primary"
-                style={[
-                  styles.loginBtnStyle,
-                  {
-                    backgroundColor:
-                      buttonBackgroundColor,
-                  },
-                ]}
+              <TouchableOpacity
+                activeOpacity={0.85}
                 disabled={
                   !isButtonEnabled
                 }
                 onPress={
                   loginWithPhone
                 }
+                style={[
+                  styles.loginBtnStyle,
+                  {
+                    backgroundColor: 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    opacity: isButtonEnabled ? 1 : 0.55,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Continue"
+                accessibilityState={{
+                  disabled: !isButtonEnabled,
+                  busy: loading,
+                }}
               >
+
+                <AppGradient
+                  colors={[...GRADIENTS.SOFT_PURPLE]}
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                      borderRadius:
+                        styles.loginBtnStyle.borderRadius,
+                    },
+                  ]}
+                >
+                  <View style={StyleSheet.absoluteFillObject} />
+                </AppGradient>
 
                 <Text
                   style={
@@ -1941,16 +1643,14 @@ export default function LoginScreen() {
                     : 'Continue'}
                 </Text>
 
-              </DButton>
+              </TouchableOpacity>
 
             </View>
 
           </View>
 
 
-          {/* ==================================================
-              FOOTER
-          ================================================== */}
+          {/* FOOTER */}
 
           <View
             style={
@@ -1981,9 +1681,7 @@ export default function LoginScreen() {
       </KeyboardAvoidingView>
 
 
-      {/* ======================================================
-          OTP MODAL
-      ====================================================== */}
+      {/* OTP MODAL */}
 
       <OTPModal
         visible={

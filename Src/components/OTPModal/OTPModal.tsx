@@ -13,38 +13,26 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StyleSheet,
 } from 'react-native';
 
 import BlurView from '../BlurView';
+import AppGradient from '../../common/AppGradient';
 
-import {
-  useMutation,
-} from '@apollo/client';
+import { useMutation } from '@apollo/client';
 
 import {
   VERIFY_OTP,
   RESEND_OTP,
 } from '../../graphql/queries';
 
-import {
-  DButton,
-} from '../index';
-
 import styles from './styles';
-
-import {
-  COLORS,
-} from '../../constants/constants';
-
 
 // ============================================================
 // TYPES
 // ============================================================
 
-export type UserRole =
-  | 'CUSTOMER'
-  | 'PROVIDER';
-
+export type UserRole = 'CUSTOMER' | 'PROVIDER';
 
 export type ProviderStatus =
   | 'NOT_REGISTERED'
@@ -52,59 +40,41 @@ export type ProviderStatus =
   | 'APPROVED'
   | 'REJECTED';
 
-
 export type ClavataUser = {
   userId: string;
-
   phoneNumber: string;
-
   fullName: string;
-
   role: UserRole;
-
   providerStatus?: ProviderStatus | null;
-
   salonId?: string | null;
-
   createdAt?: string;
-
   updatedAt?: string;
-
   preferredPaymentMethod?: string | null;
 };
 
-
-// ============================================================
-// OTP RESULT
-// ============================================================
-
 export type OTPResult = {
   success: boolean;
-
   message?: string;
-
   isExistingUser: boolean;
-
   user?: ClavataUser | null;
 };
 
-
-// ============================================================
-// PROPS
-// ============================================================
-
 type OTPModalProps = {
   visible: boolean;
-
   phoneNumber: string;
-
   onClose: () => void;
-
-  onVerified: (
-    result: OTPResult,
-  ) => void;
+  onVerified: (result: OTPResult) => void;
 };
 
+// ============================================================
+// GRADIENT
+// ============================================================
+
+const BUTTON_GRADIENT: [string, ...string[]] = [
+  '#C084FC',
+  '#A78BFA',
+  '#8B5CF6',
+];
 
 // ============================================================
 // COMPONENT
@@ -116,159 +86,65 @@ export default function OTPModal({
   onClose,
   onVerified,
 }: OTPModalProps) {
+  const [otp, setOtp] = useState('');
+  const [error, setError] = useState('');
+  const [resending, setResending] = useState(false);
+
+  const inputRef = useRef<TextInput>(null);
 
   // ==========================================================
-  // STATE
-  // ==========================================================
-
-  const [
-    otp,
-    setOtp,
-  ] = useState('');
-
-  const [
-    error,
-    setError,
-  ] = useState('');
-
-  const [
-    resending,
-    setResending,
-  ] = useState(false);
-
-
-  // ==========================================================
-  // REFS
-  // ==========================================================
-
-  const inputRef =
-    useRef<TextInput>(null);
-
-
-  // ==========================================================
-  // VERIFY OTP MUTATION
+  // MUTATIONS
   // ==========================================================
 
   const [
     verifyOTP,
-    {
-      loading: verifying,
-    },
-  ] = useMutation(
-    VERIFY_OTP,
-  );
-
-
-  // ==========================================================
-  // RESEND OTP MUTATION
-  // ==========================================================
+    { loading: verifying },
+  ] = useMutation(VERIFY_OTP);
 
   const [
     resendOTP,
-    {
-      loading: resendMutationLoading,
-    },
-  ] = useMutation(
-    RESEND_OTP,
-  );
-
-
-  // ==========================================================
-  // COMBINED RESEND STATE
-  // ==========================================================
+    { loading: resendMutationLoading },
+  ] = useMutation(RESEND_OTP);
 
   const isResending =
-    resending ||
-    resendMutationLoading;
-
+    resending || resendMutationLoading;
 
   // ==========================================================
   // MODAL OPEN
   // ==========================================================
 
   useEffect(() => {
-
     if (!visible) {
       return;
     }
 
-
-    console.log(
-      '====================================================',
-    );
-
-    console.log(
-      'OTP MODAL OPEN',
-    );
-
-    console.log(
-      'PHONE:',
-      phoneNumber,
-    );
-
-    console.log(
-      '====================================================',
-    );
-
-
     setOtp('');
-
     setError('');
 
-
-    const timer =
-      setTimeout(() => {
-
-        inputRef.current?.focus();
-
-      }, 400);
-
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 400);
 
     return () => {
-
       clearTimeout(timer);
-
     };
-
-  }, [
-    visible,
-    phoneNumber,
-  ]);
-
+  }, [visible, phoneNumber]);
 
   // ==========================================================
   // OTP CHANGE
   // ==========================================================
 
-  const handleOtpChange = (
-    value: string,
-  ) => {
+  const handleOtpChange = (value: string) => {
+    const numericValue = value
+      .replace(/[^0-9]/g, '')
+      .slice(0, 6);
 
-    const numericValue =
-      value
-        .replace(
-          /[^0-9]/g,
-          '',
-        )
-        .slice(
-          0,
-          6,
-        );
-
-
-    setOtp(
-      numericValue,
-    );
-
+    setOtp(numericValue);
 
     if (error) {
-
       setError('');
-
     }
-
   };
-
 
   // ==========================================================
   // BUTTON STATE
@@ -279,654 +155,220 @@ export default function OTPModal({
     !verifying &&
     !isResending;
 
-
-  const verifyButtonBackgroundColor =
-    isVerifyEnabled
-      ? COLORS.themeColor
-      : COLORS.black;
-
-
   // ==========================================================
   // VERIFY OTP
   // ==========================================================
 
-  const handleVerify =
-    async () => {
+  const handleVerify = async () => {
+    if (otp.length !== 6) {
+      setError('Enter the 6-digit code.');
+      return;
+    }
 
-      // --------------------------------------------------------
-      // VALIDATION
-      // --------------------------------------------------------
+    if (verifying || isResending) {
+      return;
+    }
 
-      if (
-        otp.length !== 6
-      ) {
+    if (!phoneNumber?.trim()) {
+      setError('Phone number is missing.');
+      return;
+    }
 
-        setError(
-          'Enter the 6-digit code.',
-        );
+    try {
+      setError('');
 
-        return;
-      }
+      console.log('VERIFY OTP START');
+      console.log('PHONE:', phoneNumber);
 
-
-      if (
-        verifying ||
-        isResending
-      ) {
-
-        return;
-      }
-
-
-      if (
-        !phoneNumber?.trim()
-      ) {
-
-        setError(
-          'Phone number is missing.',
-        );
-
-        return;
-      }
-
-
-      try {
-
-        setError('');
-
-
-        // ------------------------------------------------------
-        // LOG
-        // ------------------------------------------------------
-
-        console.log(
-          '====================================================',
-        );
-
-        console.log(
-          'VERIFY OTP START',
-        );
-
-        console.log(
-          'PHONE:',
+      const { data } = await verifyOTP({
+        variables: {
           phoneNumber,
-        );
-
-        console.log(
-          'OTP:',
           otp,
-        );
+        },
+      });
 
-        console.log(
-          '====================================================',
-        );
+      const result = data?.verifyOTP;
 
+      console.log(
+        'VERIFY OTP RESULT:',
+        JSON.stringify(result, null, 2),
+      );
 
-        // ------------------------------------------------------
-        // GRAPHQL
-        // ------------------------------------------------------
-
-        const {
-          data,
-        } =
-          await verifyOTP({
-            variables: {
-              phoneNumber,
-              otp,
-            },
-          });
-
-
-        // ------------------------------------------------------
-        // RESULT
-        // ------------------------------------------------------
-
-        const result =
-          data?.verifyOTP;
-
-
-        console.log(
-          '====================================================',
-        );
-
-        console.log(
-          'VERIFY OTP RESULT',
-        );
-
-        console.log(
-          JSON.stringify(
-            result,
-            null,
-            2,
-          ),
-        );
-
-        console.log(
-          '====================================================',
-        );
-
-
-        // ------------------------------------------------------
-        // NO RESULT
-        // ------------------------------------------------------
-
-        if (!result) {
-
-          console.error(
-            'VERIFY OTP RETURNED NO RESULT',
-          );
-
-          setError(
-            'Unable to verify the code. Please try again.',
-          );
-
-          return;
-        }
-
-
-        // ------------------------------------------------------
-        // VERIFICATION FAILED
-        // ------------------------------------------------------
-
-        if (
-          result.success !== true
-        ) {
-
-          console.warn(
-            'OTP VERIFICATION FAILED:',
-            result.message,
-          );
-
-
-          setError(
-            result.message ||
-            'Invalid code. Please try again.',
-          );
-
-
-          setOtp('');
-
-
-          setTimeout(() => {
-
-            inputRef.current?.focus();
-
-          }, 100);
-
-
-          return;
-        }
-
-
-        // ------------------------------------------------------
-        // VALIDATE EXISTING USER FLAG
-        // ------------------------------------------------------
-
-        const isExistingUser =
-          result.isExistingUser === true;
-
-
-        // ------------------------------------------------------
-        // EXISTING USER
-        // ------------------------------------------------------
-
-        if (isExistingUser) {
-
-          const user =
-            result.user;
-
-
-          console.log(
-            '====================================================',
-          );
-
-          console.log(
-            'EXISTING USER FOUND',
-          );
-
-          console.log(
-            'USER:',
-            JSON.stringify(
-              user,
-              null,
-              2,
-            ),
-          );
-
-          console.log(
-            '====================================================',
-          );
-
-
-          // ----------------------------------------------------
-          // Existing user MUST have a user object.
-          // ----------------------------------------------------
-
-          if (!user) {
-
-            console.error(
-              'EXISTING USER = TRUE BUT USER = NULL',
-            );
-
-
-            setError(
-              'We found your account, but could not load your account details. Please try again.',
-            );
-
-            return;
-          }
-
-
-          if (
-            user.role !==
-              'CUSTOMER' &&
-            user.role !==
-              'PROVIDER'
-          ) {
-
-            console.error(
-              'INVALID USER ROLE:',
-              user.role,
-            );
-
-
-            setError(
-              'Unable to determine your account type. Please contact support.',
-            );
-
-            return;
-          }
-
-
-          // ----------------------------------------------------
-          // Provider status validation.
-          //
-          // Customer:
-          //     providerStatus may be null.
-          //
-          // Provider:
-          //     providerStatus should be one of the four
-          //     backend-supported values.
-          // ----------------------------------------------------
-
-          if (
-            user.role ===
-            'PROVIDER'
-          ) {
-
-            const validProviderStatuses = [
-              'NOT_REGISTERED',
-              'PENDING',
-              'APPROVED',
-              'REJECTED',
-            ];
-
-
-            if (
-              user.providerStatus &&
-              !validProviderStatuses.includes(
-                user.providerStatus,
-              )
-            ) {
-
-              console.error(
-                'INVALID PROVIDER STATUS:',
-                user.providerStatus,
-              );
-
-
-              setError(
-                'Your provider account has an invalid status. Please contact support.',
-              );
-
-              return;
-            }
-
-          }
-
-        }
-
-
-        // ------------------------------------------------------
-        // NEW USER
-        // ------------------------------------------------------
-
-        if (!isExistingUser) {
-
-          console.log(
-            '====================================================',
-          );
-
-          console.log(
-            'NEW USER - PHONE NUMBER NOT FOUND',
-          );
-
-          console.log(
-            'The LoginScreen will decide whether to:',
-          );
-
-          console.log(
-            '1. Return to WelcomeChoiceScreen for SIGN_IN',
-          );
-
-          console.log(
-            '2. Register as CUSTOMER',
-          );
-
-          console.log(
-            '3. Register as PROVIDER',
-          );
-
-          console.log(
-            '====================================================',
-          );
-
-        }
-
-
-        // ------------------------------------------------------
-        // PASS RESULT TO LOGIN SCREEN
-        //
-        // OTPModal DOES NOT decide the role.
-        //
-        // LoginScreen is responsible for the next step.
-        // ------------------------------------------------------
-
-        const normalizedResult: OTPResult = {
-          success: true,
-
-          message:
-            result.message ||
-            'OTP verified.',
-
-          isExistingUser,
-
-          user:
-            isExistingUser
-              ? result.user
-              : null,
-        };
-
-
-        console.log(
-          'PASSING OTP RESULT TO LOGIN SCREEN:',
-          JSON.stringify(
-            normalizedResult,
-            null,
-            2,
-          ),
-        );
-
-
-        onVerified(
-          normalizedResult,
-        );
-
-      } catch (err) {
-
-        // ------------------------------------------------------
-        // ERROR
-        // ------------------------------------------------------
-
-        console.error(
-          '====================================================',
-        );
-
-        console.error(
-          'OTP VERIFICATION ERROR',
-        );
-
-        console.error(
-          err,
-        );
-
-        console.error(
-          '====================================================',
-        );
-
-
+      if (!result) {
         setError(
           'Unable to verify the code. Please try again.',
         );
-
+        return;
       }
 
-    };
+      if (result.success !== true) {
+        setError(
+          result.message ||
+            'Invalid code. Please try again.',
+        );
 
+        setOtp('');
+
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
+
+        return;
+      }
+
+      const isExistingUser =
+        result.isExistingUser === true;
+
+      if (isExistingUser) {
+        const user = result.user;
+
+        if (!user) {
+          setError(
+            'We found your account, but could not load your account details. Please try again.',
+          );
+          return;
+        }
+
+        if (
+          user.role !== 'CUSTOMER' &&
+          user.role !== 'PROVIDER'
+        ) {
+          setError(
+            'Unable to determine your account type. Please contact support.',
+          );
+          return;
+        }
+
+        if (user.role === 'PROVIDER') {
+          const validProviderStatuses: ProviderStatus[] = [
+            'NOT_REGISTERED',
+            'PENDING',
+            'APPROVED',
+            'REJECTED',
+          ];
+
+          if (
+            user.providerStatus &&
+            !validProviderStatuses.includes(
+              user.providerStatus,
+            )
+          ) {
+            setError(
+              'Your provider account has an invalid status. Please contact support.',
+            );
+            return;
+          }
+        }
+      }
+
+      const normalizedResult: OTPResult = {
+        success: true,
+        message: result.message || 'OTP verified.',
+        isExistingUser,
+        user: isExistingUser ? result.user : null,
+      };
+
+      onVerified(normalizedResult);
+    } catch (err) {
+      console.error('OTP VERIFICATION ERROR:', err);
+
+      setError(
+        'Unable to verify the code. Please try again.',
+      );
+    }
+  };
 
   // ==========================================================
   // RESEND OTP
   // ==========================================================
 
-  const handleResend =
-    async () => {
+  const handleResend = async () => {
+    if (isResending || verifying) {
+      return;
+    }
 
-      // --------------------------------------------------------
-      // GUARDS
-      // --------------------------------------------------------
+    if (!phoneNumber?.trim()) {
+      setError('Phone number is missing.');
+      return;
+    }
 
-      if (
-        isResending ||
-        verifying
-      ) {
+    try {
+      setResending(true);
+      setError('');
+      setOtp('');
 
-        return;
-      }
+      console.log('RESEND OTP START');
+      console.log('PHONE:', phoneNumber);
 
-
-      if (
-        !phoneNumber?.trim()
-      ) {
-
-        setError(
-          'Phone number is missing.',
-        );
-
-        return;
-      }
-
-
-      try {
-
-        setResending(true);
-
-        setError('');
-
-        setOtp('');
-
-
-        // ------------------------------------------------------
-        // LOG
-        // ------------------------------------------------------
-
-        console.log(
-          '====================================================',
-        );
-
-        console.log(
-          'RESEND OTP START',
-        );
-
-        console.log(
-          'PHONE:',
+      const { data } = await resendOTP({
+        variables: {
           phoneNumber,
-        );
+        },
+      });
 
-        console.log(
-          '====================================================',
-        );
+      const result = data?.resendOTP;
 
+      console.log(
+        'RESEND OTP RESULT:',
+        JSON.stringify(result, null, 2),
+      );
 
-        // ------------------------------------------------------
-        // GRAPHQL
-        // ------------------------------------------------------
-
-        const {
-          data,
-        } =
-          await resendOTP({
-            variables: {
-              phoneNumber,
-            },
-          });
-
-
-        // ------------------------------------------------------
-        // RESULT
-        // ------------------------------------------------------
-
-        const result =
-          data?.resendOTP;
-
-
-        console.log(
-          '====================================================',
-        );
-
-        console.log(
-          'RESEND OTP RESULT',
-        );
-
-        console.log(
-          JSON.stringify(
-            result,
-            null,
-            2,
-          ),
-        );
-
-        console.log(
-          '====================================================',
-        );
-
-
-        // ------------------------------------------------------
-        // NO RESULT
-        // ------------------------------------------------------
-
-        if (!result) {
-
-          setError(
-            'Unable to resend the code. Please try again.',
-          );
-
-          return;
-        }
-
-
-        // ------------------------------------------------------
-        // FAILED
-        // ------------------------------------------------------
-
-        if (
-          result.success !== true
-        ) {
-
-          setError(
-            result.message ||
-            'Unable to resend the code.',
-          );
-
-          return;
-        }
-
-
-        // ------------------------------------------------------
-        // SUCCESS
-        // ------------------------------------------------------
-
-        console.log(
-          'OTP RESENT SUCCESSFULLY',
-        );
-
-
-        setOtp('');
-
-        setError('');
-
-
-        setTimeout(() => {
-
-          inputRef.current?.focus();
-
-        }, 100);
-
-      } catch (err) {
-
-        // ------------------------------------------------------
-        // ERROR
-        // ------------------------------------------------------
-
-        console.error(
-          '====================================================',
-        );
-
-        console.error(
-          'RESEND OTP ERROR',
-        );
-
-        console.error(
-          err,
-        );
-
-        console.error(
-          '====================================================',
-        );
-
-
+      if (!result) {
         setError(
           'Unable to resend the code. Please try again.',
         );
-
-      } finally {
-
-        setResending(false);
-
+        return;
       }
 
-    };
+      if (result.success !== true) {
+        setError(
+          result.message ||
+            'Unable to resend the code.',
+        );
+        return;
+      }
 
+      console.log('OTP RESENT SUCCESSFULLY');
+
+      setOtp('');
+      setError('');
+
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    } catch (err) {
+      console.error('RESEND OTP ERROR:', err);
+
+      setError(
+        'Unable to resend the code. Please try again.',
+      );
+    } finally {
+      setResending(false);
+    }
+  };
 
   // ==========================================================
   // CLOSE MODAL
   // ==========================================================
 
-  const handleClose =
-    () => {
+  const handleClose = () => {
+    if (verifying || isResending) {
+      return;
+    }
 
-      if (
-        verifying ||
-        isResending
-      ) {
+    setOtp('');
+    setError('');
 
-        return;
-      }
-
-
-      console.log(
-        'OTP MODAL CLOSED',
-      );
-
-
-      setOtp('');
-
-      setError('');
-
-      onClose();
-
-    };
-
+    onClose();
+  };
 
   // ==========================================================
   // HIDDEN
   // ==========================================================
 
   if (!visible) {
-
     return null;
-
   }
-
 
   // ==========================================================
   // UI
@@ -938,351 +380,217 @@ export default function OTPModal({
       transparent
       animationType="fade"
       statusBarTranslucent
-      onRequestClose={
-        handleClose
-      }
+      onRequestClose={handleClose}
     >
-
-      {/* ======================================================
-          BACKGROUND BLUR
-      ====================================================== */}
-
       <BlurView
-        style={
-          styles.blur
-        }
+        style={styles.blur}
         blurType="light"
         blurAmount={16}
         reducedTransparencyFallbackColor="rgba(255,255,255,0.94)"
       />
 
-
-      <View
-        style={
-          styles.overlay
-        }
-      >
-
-        {/* ====================================================
-            OUTSIDE PRESS
-        ==================================================== */}
-
+      <View style={styles.overlay}>
         <Pressable
-          style={
-            styles.outside
-          }
-          onPress={
-            handleClose
-          }
-          disabled={
-            verifying ||
-            isResending
-          }
+          style={styles.outside}
+          onPress={handleClose}
+          disabled={verifying || isResending}
         />
 
-
-        {/* ====================================================
-            KEYBOARD
-        ==================================================== */}
-
         <KeyboardAvoidingView
-          style={
-            styles.keyboard
-          }
+          style={styles.keyboard}
           behavior={
             Platform.OS === 'ios'
               ? 'padding'
               : undefined
           }
         >
-
-          {/* ==================================================
-              CARD
-          ================================================== */}
-
-          <View
-            style={
-              styles.card
-            }
-          >
-
-            {/* ==================================================
-                CLOSE
-            ================================================== */}
+          <View style={styles.card}>
+            {/* CLOSE */}
 
             <TouchableOpacity
-              style={
-                styles.closeButton
-              }
-              onPress={
-                handleClose
-              }
+              style={styles.closeButton}
+              onPress={handleClose}
               activeOpacity={0.7}
-              disabled={
-                verifying ||
-                isResending
-              }
+              disabled={verifying || isResending}
             >
-
-              <Text
-                style={
-                  styles.closeText
-                }
-              >
-                ×
-              </Text>
-
+              <Text style={styles.closeText}>×</Text>
             </TouchableOpacity>
 
+            {/* TITLE */}
 
-            {/* ==================================================
-                TITLE
-            ================================================== */}
-
-            <Text
-              style={
-                styles.title
-              }
-            >
+            <Text style={styles.title}>
               Verify number
             </Text>
 
-
-            {/* ==================================================
-                SUBTITLE
-            ================================================== */}
-
-            <Text
-              style={
-                styles.subtitle
-              }
-            >
+            <Text style={styles.subtitle}>
               Enter the code sent to
             </Text>
 
-
-            {/* ==================================================
-                PHONE
-            ================================================== */}
-
-            <Text
-              style={
-                styles.phone
-              }
-            >
+            <Text style={styles.phone}>
               {phoneNumber}
             </Text>
 
+            {/* OTP INPUT */}
 
-            {/* ==================================================
-                OTP INPUT
-            ================================================== */}
+            <View style={styles.otpWrapper}>
+              <View style={styles.otpBoxes}>
+                {Array.from({ length: 6 }).map(
+                  (_, index) => {
+                    const digit = otp[index];
 
-            <View
-              style={
-                styles.otpWrapper
-              }
-            >
+                    const isActive =
+                      index === otp.length &&
+                      otp.length < 6;
 
-              <View
-                style={
-                  styles.otpBoxes
-                }
-              >
-
-                {Array
-                  .from({
-                    length: 6,
-                  })
-                  .map(
-                    (
-                      _,
-                      index,
-                    ) => {
-
-                      const digit =
-                        otp[index];
-
-
-                      const isActive =
-                        index ===
-                          otp.length &&
-                        otp.length <
-                          6;
-
-
-                      return (
-                        <View
-                          key={`otp-${index}`}
-                          style={[
-                            styles.otpBox,
-
-                            isActive &&
-                              styles.otpBoxActive,
-
-                            error &&
-                              styles.otpBoxError,
-                          ]}
-                        >
-
-                          <Text
-                            style={
-                              styles.otpDigit
-                            }
-                          >
-                            {digit || ''}
-                          </Text>
-
-                        </View>
-                      );
-
-                    },
-                  )}
-
+                    return (
+                      <View
+                        key={`otp-${index}`}
+                        style={[
+                          styles.otpBox,
+                          isActive &&
+                            styles.otpBoxActive,
+                          error &&
+                            styles.otpBoxError,
+                        ]}
+                      >
+                        <Text style={styles.otpDigit}>
+                          {digit || ''}
+                        </Text>
+                      </View>
+                    );
+                  },
+                )}
               </View>
 
-
-              {/* =================================================
-                  HIDDEN INPUT
-              ================================================= */}
-
               <TextInput
-                ref={
-                  inputRef
-                }
-                value={
-                  otp
-                }
-                onChangeText={
-                  handleOtpChange
-                }
+                ref={inputRef}
+                value={otp}
+                onChangeText={handleOtpChange}
                 keyboardType="number-pad"
                 maxLength={6}
                 autoComplete="sms-otp"
                 textContentType="oneTimeCode"
                 caretHidden
                 selectionColor="transparent"
-                style={
-                  styles.hiddenInput
-                }
-                editable={
-                  !verifying &&
-                  !isResending
-                }
+                style={styles.hiddenInput}
+                editable={!verifying && !isResending}
               />
-
             </View>
 
-
-            {/* ==================================================
-                ERROR
-            ================================================== */}
+            {/* ERROR */}
 
             {error ? (
-
-              <Text
-                style={
-                  styles.error
-                }
-              >
+              <Text style={styles.error}>
                 {error}
               </Text>
-
             ) : null}
 
+            {/* VERIFY BUTTON */}
 
-            {/* ==================================================
-                VERIFY BUTTON
-            ================================================== */}
-
-            <DButton
-              type="primary"
+            <TouchableOpacity
               style={[
                 styles.verifyButton,
+                localStyles.gradientButton,
                 {
-                  backgroundColor:
-                    verifyButtonBackgroundColor,
+                  opacity: isVerifyEnabled ? 1 : 0.55,
                 },
               ]}
-              disabled={
-                !isVerifyEnabled
-              }
-              onPress={
-                handleVerify
-              }
+              activeOpacity={0.85}
+              disabled={!isVerifyEnabled}
+              onPress={handleVerify}
             >
-
-              <View
-                style={
-                  styles.verifyButtonContent
-                }
+              <AppGradient
+                colors={BUTTON_GRADIENT}
+                style={StyleSheet.absoluteFillObject}
               >
+                <View
+                  style={StyleSheet.absoluteFillObject}
+                />
+              </AppGradient>
 
-                <Text
-                  style={
-                    styles.buttonText
-                  }
-                >
+              <View style={styles.verifyButtonContent}>
+                <Text style={styles.buttonText}>
                   {verifying
                     ? 'Verifying...'
                     : 'Verify & Continue'}
                 </Text>
-
               </View>
+            </TouchableOpacity>
 
-            </DButton>
+            {/* RESEND PROMPT AND SMALL BUTTON */}
 
-
-            {/* ==================================================
-                RESEND
-            ================================================== */}
-
-            <View
-              style={
-                styles.resendContainer
-              }
-            >
-
-              <Text
-                style={
-                  styles.resendText
-                }
-              >
+            <View style={localStyles.resendContainer}>
+              <Text style={styles.resendText}>
                 Didn't receive the code?
               </Text>
 
-
               <TouchableOpacity
-                onPress={
-                  handleResend
-                }
-                disabled={
-                  isResending ||
-                  verifying
-                }
-                activeOpacity={0.7}
+                style={[
+                  localStyles.resendButton,
+                  localStyles.gradientButton,
+                  {
+                    opacity:
+                      isResending || verifying ? 0.55 : 1,
+                  },
+                ]}
+                onPress={handleResend}
+                disabled={isResending || verifying}
+                activeOpacity={0.85}
               >
-
-                <Text
-                  style={
-                    styles.resendLink
-                  }
+                <AppGradient
+                  colors={BUTTON_GRADIENT}
+                  style={StyleSheet.absoluteFillObject}
                 >
+                  <View
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                </AppGradient>
+
+                <Text style={localStyles.resendButtonText}>
                   {isResending
                     ? 'Resending...'
-                    : 'Resend'}
+                    : 'Resend Code'}
                 </Text>
-
               </TouchableOpacity>
-
             </View>
-
           </View>
-
         </KeyboardAvoidingView>
-
       </View>
-
     </Modal>
   );
 }
+
+// ============================================================
+// LOCAL BUTTON STYLES
+// ============================================================
+
+const localStyles = StyleSheet.create({
+  gradientButton: {
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  resendContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginTop: 18,
+    gap: 8,
+  },
+
+  resendButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+
+  resendButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});
