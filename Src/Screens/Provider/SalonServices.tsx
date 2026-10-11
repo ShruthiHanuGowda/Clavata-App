@@ -696,37 +696,14 @@ export default function SalonServices({ navigation }: any) {
               Review prices and durations before continuing.
             </Text>
           </View>
-
-          <TouchableOpacity onPress={openCatalog}>
-            <Text style={styles.textAction}>+ Add</Text>
-          </TouchableOpacity>
         </View>
 
         {selectedServices.length === 0 ? (
           <View style={styles.emptyCard}>
-            <View style={styles.emptySymbol}>
-              <Text style={styles.emptySymbolText}>+</Text>
-            </View>
-
             <Text style={styles.emptyTitle}>No services yet</Text>
             <Text style={styles.emptyText}>
               Select the services your salon provides to get started.
             </Text>
-
-            <AppGradient
-              colors={[...GRADIENTS.SOFT_PURPLE]}
-              style={styles.emptyButtonGradient}
-            >
-              <TouchableOpacity
-                style={styles.emptyButton}
-                onPress={openCatalog}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.emptyButtonText}>
-                  Choose services
-                </Text>
-              </TouchableOpacity>
-            </AppGradient>
           </View>
         ) : (
           availableAudiences.map(audience => {
@@ -1183,7 +1160,7 @@ export default function SalonServices({ navigation }: any) {
                         onChangeText={value =>
                           updateForm('price', value)
                         }
-                        placeholder="500"
+                        placeholder="e.g. 500"
                         placeholderTextColor={COLORS.textMuted}
                         style={styles.input}
                         keyboardType="decimal-pad"
@@ -1200,7 +1177,7 @@ export default function SalonServices({ navigation }: any) {
                         onChangeText={value =>
                           updateForm('durationMinutes', value)
                         }
-                        placeholder="60"
+                        placeholder="e.g. 60"
                         placeholderTextColor={COLORS.textMuted}
                         style={styles.input}
                         keyboardType="number-pad"
@@ -1330,24 +1307,24 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 3,
   },
+smallGradient: {
+  borderRadius: RADIUS.medium,
+  overflow: 'hidden',
+},
 
-  smallGradient: {
-    borderRadius: RADIUS.medium,
-    overflow: 'hidden',
-    marginLeft: SPACING.small,
-  },
-  primarySmall: {
-    paddingHorizontal: SPACING.medium,
-    paddingVertical: SPACING.small,
-    borderRadius: RADIUS.medium,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primarySmallText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.white,
-  },
+primarySmall: {
+  paddingHorizontal: SPACING.medium,
+  paddingVertical: SPACING.small,
+  minHeight: 40,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+primarySmallText: {
+  fontFamily: FONTS.semiBold,
+  fontSize: FONT_SIZES.small,
+  color: COLORS.white,
+},
   sectionTitle: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.body,
@@ -1455,7 +1432,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginTop: SPACING.small,
   },
-  emptyButtonGradient: {
+    emptyButtonGradient: {
     borderRadius: RADIUS.medium,
     overflow: 'hidden',
     marginTop: SPACING.large,
