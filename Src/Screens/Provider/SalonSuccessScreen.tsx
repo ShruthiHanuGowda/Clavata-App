@@ -5,6 +5,8 @@ import {
     View,
     Text,
     StyleSheet,
+    Dimensions,
+    TouchableOpacity,
 } from 'react-native';
 
 import {
@@ -18,8 +20,10 @@ import {
     FONT_SIZES,
     SPACING,
     RADIUS,
+    GRADIENTS,
 } from '../../constants/constants';
-
+import AppGradient from '../../common/AppGradient';
+const { width, height } = Dimensions.get('window');
 export default function SalonSuccessScreen({
     navigation,
     route,
@@ -64,13 +68,9 @@ export default function SalonSuccessScreen({
                 style={styles.content}
             >
                 {/* SUCCESS ICON */}
-                <View
-                    style={styles.iconCircle}
-                >
-                    <Text
-                        style={styles.check}
-                    >
-                        ✓
+                <View style={styles.brandContainer}>
+                    <Text style={styles.brandText}>
+                        Clavata
                     </Text>
                 </View>
 
@@ -102,24 +102,28 @@ export default function SalonSuccessScreen({
                 </Text>
             </View>
 
+
             {/* HOME BUTTON */}
-            <DButton
-                style={styles.button}
-                type="primary"
-                onPress={() => {
-                    navigation.replace('LoginScreen', {
-                        mode: 'SIGN_IN',
-                        phoneNumber: '',
-                        hideBackButton: true,
-                    });
-                }}
-            >
-                <Text
-                    style={styles.buttonText}
-                >
-                    Back to Login
-                </Text>
-            </DButton>
+<TouchableOpacity
+    activeOpacity={0.85}
+    style={styles.button}
+    onPress={() => {
+        navigation.replace('LoginScreen', {
+            mode: 'SIGN_IN',
+            phoneNumber: '',
+            hideBackButton: true,
+        });
+    }}
+>
+    <AppGradient
+        colors={[...GRADIENTS.SOFT_PURPLE]}
+        style={styles.buttonGradient}
+    >
+        <Text style={styles.buttonText}>
+            Back to Login
+        </Text>
+    </AppGradient>
+</TouchableOpacity>
         </SafeAreaView>
     );
 }
@@ -201,7 +205,19 @@ const styles = StyleSheet.create({
         marginBottom:
             SPACING.small,
     },
+   brandContainer: {
+        alignItems: 'center',
+        marginBottom: Math.min(height * 0.055, 42),
+    },
 
+    brandText: {
+        fontFamily: FONTS.bold,
+        fontSize: 40,
+        fontWeight: '800',
+        letterSpacing: 1.2,
+        color: COLORS.primary,
+        includeFontPadding: false,
+    },
     salonName: {
         fontFamily:
             FONTS.semiBold,
@@ -289,4 +305,10 @@ const styles = StyleSheet.create({
         textAlign:
             'center',
     },
+    buttonGradient: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: RADIUS.medium,
+},
 });

@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 
 import {
@@ -40,7 +41,9 @@ import {
   FONT_SIZES,
   SPACING,
   RADIUS,
+  GRADIENTS,
 } from '../../constants/constants';
+import AppGradient from '../../common/AppGradient';
 
 
 // ============================================================
@@ -1053,7 +1056,7 @@ export default function SalonReviewScreen({
 
       Alert.alert(
         'Registration Error',
-        'User information is missing. Please restart registration.',
+        'User information is missing. Please restart registration',
       );
 
       return;
@@ -1347,7 +1350,7 @@ export default function SalonReviewScreen({
 
       Alert.alert(
         'PAN Document Required',
-        'Please upload the PAN document before submitting your salon registration.',
+        'Please upload the PAN document before submitting your salon registration',
       );
 
       return;
@@ -1386,7 +1389,7 @@ export default function SalonReviewScreen({
 
       Alert.alert(
         'Aadhaar Document Required',
-        'Please upload the Aadhaar document before submitting your salon registration.',
+        'Please upload the Aadhaar document before submitting your salon registration',
       );
 
       return;
@@ -1407,7 +1410,7 @@ export default function SalonReviewScreen({
 
       Alert.alert(
         'Salon Registration Required',
-        'Please provide your Shop & Establishment registration number.',
+        'Please provide your Shop & Establishment registration number',
       );
 
       return;
@@ -1420,7 +1423,7 @@ export default function SalonReviewScreen({
 
       Alert.alert(
         'Shop & Establishment Document Required',
-        'Please upload the Shop & Establishment document before submitting your salon registration.',
+        'Please upload the Shop & Establishment document before submitting your salon registration',
       );
 
       return;
@@ -1635,7 +1638,7 @@ export default function SalonReviewScreen({
 
       Alert.alert(
         'Invalid Service',
-        `Service ${invalidServiceIndex + 1} is missing required category, subcategory, service, price, or duration information.`,
+        `Service ${invalidServiceIndex + 1} is missing required category, subcategory, service, price, or duration information`,
       );
 
       return;
@@ -1704,7 +1707,7 @@ export default function SalonReviewScreen({
 
       Alert.alert(
         'KYC Documents Required',
-        'Please upload all required KYC documents before submitting your salon registration.',
+        'Please upload all required KYC documents before submitting your salon registration',
       );
 
       return;
@@ -2146,7 +2149,7 @@ export default function SalonReviewScreen({
               styles.subtitle
             }
           >
-            Please check everything before submitting your business registration.
+            Please check everything before submitting your business registration
           </Text>
 
         </View>
@@ -2308,7 +2311,7 @@ export default function SalonReviewScreen({
               styles.sectionSubtitle
             }
           >
-            PAN, Aadhaar and Shop & Establishment documents are required. GST and Udyam documents are optional.
+            PAN, Aadhaar and Shop & Establishment documents are required. GST and Udyam documents are optional
           </Text>
 
 
@@ -2382,7 +2385,6 @@ export default function SalonReviewScreen({
             styles.sectionCard
           }
         >
-
           <Text
             style={
               styles.sectionTitle
@@ -2391,18 +2393,15 @@ export default function SalonReviewScreen({
             Services provided
           </Text>
 
-
           <Text
             style={
               styles.sectionSubtitle
             }
           >
-            Your services are organized by customer type, category and subcategory.
+            Your services are organized by customer type, category and subcategory
           </Text>
 
-
           {selectedServiceSelections.length === 0 ? (
-
             <Text
               style={
                 styles.emptyText
@@ -2410,192 +2409,180 @@ export default function SalonReviewScreen({
             >
               No services selected.
             </Text>
-
           ) : (
-
             (
               [
                 'FEMALE',
                 'MALE',
                 'KIDS',
               ] as Audience[]
-            ).map(
-              audience => {
+            ).map(audience => {
+              const audienceServices =
+                groupedServices[audience];
 
-                const audienceServices =
-                  groupedServices[
-                  audience
-                  ];
+              if (audienceServices.length === 0) {
+                return null;
+              }
 
+              // Group services by category and subcategory.
+              const categoryGroups = new Map<
+                string,
+                {
+                  categoryName: string;
+                  subcategories: Map<
+                    string,
+                    {
+                      subcategoryName: string;
+                      services: ReviewServiceSelection[];
+                    }
+                  >;
+                }
+              >();
 
-                if (
-                  audienceServices.length === 0
-                ) {
+              audienceServices.forEach(service => {
+                const categoryKey =
+                  service.categoryId;
 
-                  return null;
+                if (!categoryGroups.has(categoryKey)) {
+                  categoryGroups.set(categoryKey, {
+                    categoryName:
+                      service.categoryName ||
+                      service.categoryId,
+                    subcategories: new Map(),
+                  });
                 }
 
+                const categoryGroup =
+                  categoryGroups.get(categoryKey)!;
 
-                return (
+                const subcategoryKey =
+                  service.subcategoryId;
 
-                  <View
-                    key={
-                      audience
-                    }
-                    style={
-                      styles.audienceSection
-                    }
+                if (
+                  !categoryGroup.subcategories.has(
+                    subcategoryKey,
+                  )
+                ) {
+                  categoryGroup.subcategories.set(
+                    subcategoryKey,
+                    {
+                      subcategoryName:
+                        service.subcategoryName ||
+                        service.subcategoryId,
+                      services: [],
+                    },
+                  );
+                }
+
+                categoryGroup.subcategories
+                  .get(subcategoryKey)!
+                  .services.push(service);
+              });
+
+              return (
+                <View
+                  key={audience}
+                  style={styles.audienceSection}
+                >
+                  {/* AUDIENCE */}
+                  <AppGradient
+                    colors={[...GRADIENTS.SOFT_PURPLE]}
+                    style={styles.audienceHeader}
                   >
+                    <Text style={styles.audienceTitle}>
+                      {getAudienceLabel(audience)}
+                    </Text>
+                  </AppGradient>
 
-                    <View
-                      style={
-                        styles.audienceHeader
-                      }
-                    >
-
-                      <Text
-                        style={
-                          styles.audienceTitle
-                        }
+                  {/* CATEGORY */}
+                  {Array.from(categoryGroups.entries()).map(
+                    ([categoryKey, category]) => (
+                      <View
+                        key={categoryKey}
+                        style={styles.serviceCategoryGroup}
                       >
-                        {
-                          getAudienceLabel(
-                            audience,
-                          )
-                        }
-                      </Text>
-
-                    </View>
-
-
-                    {audienceServices.map(
-                      (
-                        service,
-                        index,
-                      ) => (
-
-                        <View
-                          key={
-                            `${service.serviceKey}-${index}`
-                          }
-                          style={
-                            styles.serviceItem
-                          }
-                        >
-
+                        {/* SUBCATEGORY */}
+                        {Array.from(
+                          category.subcategories.entries(),
+                        ).map(([subcategoryKey, subcategory]) => (
                           <View
-                            style={
-                              styles.serviceDot
-                            }
-                          />
-
-
-                          <View
-                            style={
-                              styles.serviceInfo
-                            }
+                            key={subcategoryKey}
+                            style={styles.serviceSubcategoryGroup}
                           >
-
+                            {/* CATEGORY > SUBCATEGORY */}
                             <Text
-                              style={
-                                styles.serviceCategory
-                              }
+                              style={styles.serviceCategoryHeading}
                             >
-                              {
-                                service.categoryName ||
-                                service.categoryId
-                              }
-                            </Text>
-
-
-                            <Text
-                              style={
-                                styles.serviceSubcategory
-                              }
-                            >
-                              {
-                                service.subcategoryName ||
-                                service.subcategoryId
-                              }
-                            </Text>
-
-
-                            <Text
-                              style={
-                                styles.serviceName
-                              }
-                            >
-                              {
-                                service.name ||
-                                'Service name not provided'
-                              }
-                            </Text>
-
-
-                            {service.description ? (
-
+                              {category.categoryName}
                               <Text
-                                style={
-                                  styles.serviceDescription
-                                }
+                                style={styles.serviceHierarchySeparator}
                               >
-                                {
-                                  service.description
-                                }
+                                {' > '}
                               </Text>
-
-                            ) : null}
-
-
-                            {service.durationMinutes !== undefined &&
-                              service.durationMinutes !== null ? (
-
                               <Text
-                                style={
-                                  styles.serviceDuration
-                                }
+                                style={styles.serviceSubcategoryHeading}
                               >
-                                {
-                                  Number(
-                                    service.durationMinutes,
-                                  )
-                                } min
+                                {subcategory.subcategoryName}
                               </Text>
+                            </Text>
 
-                            ) : null}
+                            {/* SERVICE LIST */}
+                            {subcategory.services.map(
+                              (service, index) => (
+                                <View
+                                  key={`${service.serviceKey}-${index}`}
+                                  style={styles.serviceListItem}
+                                >
+                                  <View />
 
+                                  <View style={styles.serviceInfo}>
+                                    <Text style={styles.serviceName}>
+                                      {service.name}
+                                    </Text>
+
+                                    {service.description ? (
+                                      <Text
+                                        style={
+                                          styles.serviceDescription
+                                        }
+                                      >
+                                        {service.description}
+                                      </Text>
+                                    ) : null}
+
+                                    {service.durationMinutes !==
+                                      undefined &&
+                                      service.durationMinutes !== null ? (
+                                      <Text
+                                        style={styles.serviceDuration}
+                                      >
+                                        {Number(
+                                          service.durationMinutes,
+                                        )}{' '}
+                                        min
+                                      </Text>
+                                    ) : null}
+                                  </View>
+
+                                  {service.price !== undefined &&
+                                    service.price !== null ? (
+                                    <Text style={styles.servicePrice}>
+                                      ₹
+                                      {Number(service.price).toFixed(0)}
+                                    </Text>
+                                  ) : null}
+                                </View>
+                              ),
+                            )}
                           </View>
-
-
-                          {service.price !== undefined &&
-                            service.price !== null ? (
-
-                            <Text
-                              style={
-                                styles.servicePrice
-                              }
-                            >
-                              ₹
-                              {
-                                Number(
-                                  service.price,
-                                ).toFixed(0)
-                              }
-                            </Text>
-
-                          ) : null}
-
-                        </View>
-
-                      ),
-                    )}
-
-                  </View>
-                );
-              },
-            )
+                        ))}
+                      </View>
+                    ),
+                  )}
+                </View>
+              );
+            })
           )}
-
         </View>
 
 
@@ -2621,7 +2608,7 @@ export default function SalonReviewScreen({
               styles.noticeText
             }
           >
-            After submission, your business registration will be reviewed. Provider access will be activated only after the required verification and approval process is completed.
+            After submission, your business registration will be reviewed. Provider access will be activated only after the required verification and approval process is completed
           </Text>
 
         </View>
@@ -2629,26 +2616,24 @@ export default function SalonReviewScreen({
 
         {/* SUBMIT */}
 
-        <DButton
-          style={
-            styles.button
-          }
-          onPress={
-            onSubmit
-          }
-          disabled={
-            loading
-          }
-          loading={
-            loading
-          }
+        <TouchableOpacity
+          onPress={onSubmit}
+          disabled={loading}
+          activeOpacity={0.85}
+          style={[
+            styles.button,
+            loading && styles.buttonDisabled,
+          ]}
         >
-          {
-            loading
-              ? 'Submitting...'
-              : 'Submit Registration'
-          }
-        </DButton>
+          <AppGradient
+            colors={[...GRADIENTS.SOFT_PURPLE]}
+            style={styles.buttonGradient}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? 'Submitting...' : 'Submit Registration'}
+            </Text>
+          </AppGradient>
+        </TouchableOpacity>
 
 
         <View
@@ -2735,24 +2720,25 @@ function KycDocumentRow({
             : styles.documentMissing,
         ]}
       >
-
-        <Text
-          style={[
-            styles.documentStatusText,
-            uploaded
-              ? styles.documentUploadedText
-              : styles.documentMissingText,
-          ]}
-        >
-          {
-            uploaded
-              ? 'Uploaded'
-              : required
-                ? 'Required'
-                : 'Optional'
-          }
-        </Text>
-
+        {uploaded ? (
+          <AppGradient
+            colors={[...GRADIENTS.SOFT_PURPLE]}
+            style={styles.documentStatusBadge}
+          >
+            <Text style={styles.documentUploadedText}>
+              Uploaded
+            </Text>
+          </AppGradient>
+        ) : (
+          <Text
+            style={[
+              styles.documentStatusText,
+              styles.documentMissingText,
+            ]}
+          >
+            {required ? 'Required' : 'Optional'}
+          </Text>
+        )}
       </View>
 
     </View>
@@ -3054,10 +3040,11 @@ const styles =
         SPACING.small,
     },
 
-    documentUploaded: {
-      backgroundColor:
-        COLORS.themeColor,
-    },
+ documentUploaded: {
+  backgroundColor: 'transparent',
+  paddingHorizontal: 0,
+  paddingVertical: 0,
+},
 
     documentMissing: {
       backgroundColor:
@@ -3073,9 +3060,10 @@ const styles =
     },
 
     documentUploadedText: {
-      color:
-        COLORS.white,
-    },
+  color: '#FFFFFF',
+  fontFamily: FONTS.semiBold,
+  fontSize: FONT_SIZES.small,
+},
 
     documentMissingText: {
       color:
@@ -3100,7 +3088,18 @@ const styles =
       marginBottom:
         SPACING.large,
     },
+    documentStatusBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 12,
+      alignSelf: 'flex-start',
+    },
 
+    // documentUploadedText: {
+    //   color: '#FFFFFF',
+    //   fontFamily: FONTS.medium,
+    //   fontSize: FONT_SIZES.xs,
+    // },
     audienceHeader: {
       backgroundColor:
         COLORS.themeColor,
@@ -3129,38 +3128,20 @@ const styles =
         COLORS.white,
     },
 
-    serviceItem: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
-      paddingVertical:
-        SPACING.medium,
-
-      borderBottomWidth:
-        1,
-
-      borderBottomColor:
-        COLORS.border,
+    serviceListItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      // Keep your existing spacing and other properties
     },
 
     serviceDot: {
-      width:
-        7,
-
-      height:
-        7,
-
-      borderRadius:
-        4,
-
-      backgroundColor:
-        COLORS.themeColor,
-
-      marginRight:
-        SPACING.small,
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: COLORS.primary,
+      marginRight: SPACING.small,
+      marginTop: 6,
+      flexShrink: 0,
     },
 
     serviceInfo: {
@@ -3284,7 +3265,29 @@ const styles =
       marginBottom:
         SPACING.xs,
     },
+    button: {
+      width: '100%',
+      height: 54,
+      borderRadius: RADIUS.medium,
+      marginTop: SPACING.xl,
+      overflow: 'hidden',
+    },
 
+    buttonGradient: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    buttonText: {
+      fontFamily: FONTS.semiBold,
+      fontSize: FONT_SIZES.body,
+      color: '#FFFFFF',
+    },
+
+    buttonDisabled: {
+      opacity: 0.6,
+    },
     noticeText: {
       fontFamily:
         FONTS.regular,
@@ -3299,26 +3302,62 @@ const styles =
         COLORS.textSecondary,
     },
 
-    button: {
-      width:
-        '100%',
+    // button: {
+    //   width:
+    //     '100%',
 
-      height:
-        54,
+    //   height:
+    //     54,
 
-      borderRadius:
-        RADIUS.medium,
+    //   borderRadius:
+    //     RADIUS.medium,
 
-      marginTop:
-        SPACING.xl,
+    //   marginTop:
+    //     SPACING.xl,
 
-      backgroundColor:
-        COLORS.themeColor,
-    },
+    //   backgroundColor:
+    //     COLORS.themeColor,
+    // },
 
     bottomSpacing: {
       height:
         SPACING.huge,
     },
+    serviceCategoryGroup: {
+      marginTop: SPACING.medium,
+    },
 
+    serviceCategoryHeading: {
+      fontFamily: FONTS.semiBold,
+      fontSize: FONT_SIZES.body,
+      color: COLORS.text,
+      marginBottom: SPACING.small,
+    },
+
+    serviceSubcategoryGroup: {
+      marginLeft: SPACING.small,
+      marginBottom: SPACING.medium,
+      paddingLeft: SPACING.medium,
+      borderLeftWidth: 2,
+      borderLeftColor: '#C084FC',
+    },
+
+    serviceSubcategoryHeading: {
+      fontFamily: FONTS.semiBold,
+      fontSize: FONT_SIZES.small,
+      color: COLORS.textSecondary,
+      marginBottom: SPACING.xs,
+    },
+
+    // serviceListItem: {
+    //   flexDirection: 'row',
+    //   alignItems: 'flex-start',
+    //   paddingVertical: SPACING.small,
+    //   borderBottomWidth: 1,
+    //   borderBottomColor: COLORS.border,
+    // },
+    serviceHierarchySeparator: {
+      color: COLORS.textSecondary,
+      fontFamily: FONTS.regular,
+    },
   });
