@@ -89,19 +89,19 @@ type Props = {
 ========================================================= */
 
 const categoryIcons: Record<string, any> = {
-  hair: require('../../../assets/category/Hair&styling-female.jpg'),
-  'skin & facial': require('../../../assets/category/Facials&skin-female.jpg'),
-  nails: require('../../../assets/category/nails-female.jpg'),
+  hair: require('../../../assets/category/Hair.png'),
+  'skin & facial': require('../../../assets/category/Skin&Facial.png'),
+  nails: require('../../../assets/category/Nails.png'),
   'makeup': require('../../../assets/category/Makeup.png'),
-  'waxing & threading': require('../../../assets/category/Waxing-female.png'),
-  'lashes & brows': require('../../../assets/category/lash&eyebrow-female.jpg'),
-  'spa & massage': require('../../../assets/category/massage-female.jpg'),
-  'body care & wellness': require('../../../assets/category/bodycare&wellness-female.jpg'),
-  'beard & shaving': require('../../../assets/category/hair-male.png'),
-  'bridal & groom styling': require('../../../assets/category/bride&groom.png'),
+  'waxing & threading': require('../../../assets/category/Waxing&Threading.png'),
+  'lashes & brows': require('../../../assets/category/Lashes&Brows.png'),
+  'spa & massage': require('../../../assets/category/Spa&Massage.png'),
+  'body care & wellness': require('../../../assets/category/Bodycare&Wellness.png'),
+  'beard & shaving': require('../../../assets/category/Beard&Shaving.png'),
+  'bridal & groom styling': require('../../../assets/category/Bridal&Groomstyling.png'),
 };
 
-const fallbackIcon = require('../../../assets/category/fallback.jpg');
+const fallbackIcon = require('../../../assets/category/fallback.png');
 
 const AUDIENCES: ServiceAudience[] = [
   'FEMALE',
