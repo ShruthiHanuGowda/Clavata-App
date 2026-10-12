@@ -1,9 +1,4 @@
-
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -19,10 +14,7 @@ import {
 
 import { useQuery } from '@apollo/client';
 
-import {
-  COLORS,
-  SPACING,
-} from '../../../constants/constants';
+import { COLORS, SPACING } from '../../../constants/constants';
 
 import {
   GET_ACTIVE_CATEGORIES,
@@ -80,7 +72,6 @@ type Props = {
     subcategoryIds: string[];
     audienceSubcategorySelections?: AudienceSelection[];
   }) => void;
-
   selectedCategoryId?: string;
   selectedCategory?: string;
   selectedSubcategoryIds?: string[];
@@ -89,67 +80,28 @@ type Props = {
 };
 
 /* =========================================================
-   AUDIENCE-SPECIFIC CATEGORY IMAGES
+   GENERIC CATEGORY ICONS
 
-   All images are JPG files in:
-   ../../../assets/category/
+   One icon per category, regardless of audience.
 
-   IMPORTANT:
-   These require() filenames must match your actual files.
+   These use your existing image files. If you later add
+   dedicated generic 3D assets, replace the paths here only.
 ========================================================= */
 
-const categoryAudienceIcons: Record<
-  ServiceAudience,
-  Record<string, any>
-> = {
-  FEMALE: {
-    hair: require('../../../assets/category/Hair&styling-female.jpg'),
-    'facial & skin care': require('../../../assets/category/Facials&skin-female.jpg'),
-    nails: require('../../../assets/category/nails-female.jpg'),
-    'makeup & bridal': require('../../../assets/category/Makeup-female.png'),
-    'threading & hair removal': require('../../../assets/category/Waxing-female.png'),
-    'lashes & brows': require('../../../assets/category/lash&eyebrow-female.jpg'),
-    'spa & massage': require('../../../assets/category/massage-female.jpg'),
-    'body care & wellness': require('../../../assets/category/bodycare&wellness-female.jpg'),
-  },
-
-  MALE: {
-    hair: require('../../../assets/category/hair-male.png'),
-    'facial & skin care': require('../../../assets/category/face-male.png'),
-    nails: require('../../../assets/category/nails-male.jpg'),
-    'makeup & bridal': require('../../../assets/category/makeup-male.jpg'),
-    'threading & hair removal': require('../../../assets/category/Waxing-male.png'),
-    'lashes & brows': require('../../../assets/category/lash&eyebrow-male.jpg'),
-    'spa & massage': require('../../../assets/category/massage-male.jpg'),
-    'body care & wellness': require('../../../assets/category/bodycare-male.jpg'),
-  },
-
-  KIDS: {
-    hair: require('../../../assets/category/hair-kid.png'),
-    // 'facial & skin care': require('../../../assets/category/Facials&skin-kids.jpg'),
-    // nails: require('../../../assets/category/nails-kids.jpg'),
-    // 'makeup & bridal': require('../../../assets/category/Makeup-kids.jpg'),
-    // 'threading & hair removal': require('../../../assets/category/Waxing-kids.jpg'),
-    // 'lashes & brows': require('../../../assets/category/lash&eyebrow-kids.jpg'),
-    // 'spa & massage': require('../../../assets/category/massage-kids.jpg'),
-    // 'body care & wellness': require('../../../assets/category/bodycare&wellness-kids.jpg'),
-  },
-};
-
-/* Existing generic JPGs are retained as fallbacks. */
-const categoryFallbackIcons: Record<string, any> = {
+const categoryIcons: Record<string, any> = {
   hair: require('../../../assets/category/Hair&styling-female.jpg'),
-    'facial & skin care': require('../../../assets/category/Facials&skin-female.jpg'),
-    nails: require('../../../assets/category/nails-female.jpg'),
-    'makeup & bridal': require('../../../assets/category/Makeup-female.png'),
-    'threading & hair removal': require('../../../assets/category/Waxing-female.png'),
-    'lashes & brows': require('../../../assets/category/lash&eyebrow-female.jpg'),
-    'spa & massage': require('../../../assets/category/massage-female.jpg'),
-    'body care & wellness': require('../../../assets/category/bodycare&wellness-female.jpg'),
+  'skin & facial': require('../../../assets/category/Facials&skin-female.jpg'),
+  nails: require('../../../assets/category/nails-female.jpg'),
+  'makeup': require('../../../assets/category/Makeup.png'),
+  'waxing & threading': require('../../../assets/category/Waxing-female.png'),
+  'lashes & brows': require('../../../assets/category/lash&eyebrow-female.jpg'),
+  'spa & massage': require('../../../assets/category/massage-female.jpg'),
+  'body care & wellness': require('../../../assets/category/bodycare&wellness-female.jpg'),
+  'beard & shaving': require('../../../assets/category/hair-male.png'),
+  'bridal & groom styling': require('../../../assets/category/bride&groom.png'),
 };
 
-const fallbackIcon =
-  require('../../../assets/category/fallback.jpg');
+const fallbackIcon = require('../../../assets/category/fallback.jpg');
 
 const AUDIENCES: ServiceAudience[] = [
   'FEMALE',
@@ -157,11 +109,11 @@ const AUDIENCES: ServiceAudience[] = [
   'KIDS',
 ];
 
-const EMPTY_SELECTIONS: Record<ServiceAudience, string[]> = {
+const createEmptySelections = (): Record<ServiceAudience, string[]> => ({
   FEMALE: [],
   MALE: [],
   KIDS: [],
-};
+});
 
 /* =========================================================
    HELPERS
@@ -191,17 +143,10 @@ const normalizeAudienceList = (
   );
 };
 
-const getCategoryIcon = (
-  categoryName: string,
-  audience: ServiceAudience,
-) => {
+const getCategoryIcon = (categoryName: string) => {
   const normalizedName = normalizeCategoryName(categoryName);
 
-  return (
-    categoryAudienceIcons[audience]?.[normalizedName] ||
-    categoryFallbackIcons[normalizedName] ||
-    fallbackIcon
-  );
+  return categoryIcons[normalizedName] || fallbackIcon;
 };
 
 const matchesSelectedAudiences = (
@@ -215,9 +160,7 @@ const matchesSelectedAudiences = (
   );
 };
 
-const getAudienceLabel = (
-  audience: ServiceAudience,
-): string => {
+const getAudienceLabel = (audience: ServiceAudience): string => {
   switch (audience) {
     case 'FEMALE':
       return 'Female';
@@ -230,20 +173,12 @@ const getAudienceLabel = (
   }
 };
 
-const createEmptySelections = (): Record<ServiceAudience, string[]> => ({
-  FEMALE: [],
-  MALE: [],
-  KIDS: [],
-});
-
 /* =========================================================
    COMPONENT
 ========================================================= */
 
 const ServiceChips: React.FC<Props> = ({
   onSelect,
-  selectedCategoryId,
-  selectedCategory,
   selectedSubcategoryIds,
   selectedAudienceSubcategorySelections,
   selectedAudiences,
@@ -291,10 +226,7 @@ const ServiceChips: React.FC<Props> = ({
   );
 
   const normalizedSelectedAudiences = useMemo(
-    () =>
-      Array.from(
-        new Set(normalizeAudienceList(selectedAudiences)),
-      ),
+    () => Array.from(new Set(normalizeAudienceList(selectedAudiences))),
     [selectedAudiences],
   );
 
@@ -376,7 +308,7 @@ const ServiceChips: React.FC<Props> = ({
   }, [subcategoryData]);
 
   /* =========================================================
-     SYNC PARENT SELECTIONS
+     SYNC SELECTIONS FROM PARENT
   ========================================================= */
 
   useEffect(() => {
@@ -419,7 +351,7 @@ const ServiceChips: React.FC<Props> = ({
   ]);
 
   /* =========================================================
-     CLEAR AUDIENCES THAT ARE NO LONGER SELECTED
+     KEEP SELECTIONS VALID FOR SELECTED AUDIENCES
   ========================================================= */
 
   useEffect(() => {
@@ -493,8 +425,7 @@ const ServiceChips: React.FC<Props> = ({
         return false;
       }
 
-      const subcategories =
-        subcategoriesByCategory[categoryId] || [];
+      const subcategories = subcategoriesByCategory[categoryId] || [];
 
       const hasMatchingSubcategory = subcategories.some(subcategory =>
         matchesSelectedAudiences(
@@ -517,29 +448,7 @@ const ServiceChips: React.FC<Props> = ({
   ]);
 
   /* =========================================================
-     CATEGORY AUDIENCES
-
-     Only display icons for audiences that actually have
-     subcategories in that category.
-  ========================================================= */
-
-  const getCategoryAudiences = (
-    category: Category,
-  ): ServiceAudience[] => {
-    const subcategories =
-      subcategoriesByCategory[String(category.categoryId)] || [];
-
-    return normalizedSelectedAudiences.filter(audience =>
-      subcategories.some(subcategory =>
-        normalizeAudienceList(subcategory.audiences).includes(
-          audience,
-        ),
-      ),
-    );
-  };
-
-  /* =========================================================
-     CURRENT SUBCATEGORIES
+     CURRENT CATEGORY SUBCATEGORIES
   ========================================================= */
 
   const currentSubcategories = useMemo(() => {
@@ -547,13 +456,12 @@ const ServiceChips: React.FC<Props> = ({
       return [];
     }
 
-    return (
-      subcategoriesByCategory[activeCategoryId] || []
-    ).filter(subcategory =>
-      matchesSelectedAudiences(
-        subcategory,
-        normalizedSelectedAudiences,
-      ),
+    return (subcategoriesByCategory[activeCategoryId] || []).filter(
+      subcategory =>
+        matchesSelectedAudiences(
+          subcategory,
+          normalizedSelectedAudiences,
+        ),
     );
   }, [
     activeCategoryId,
@@ -570,9 +478,7 @@ const ServiceChips: React.FC<Props> = ({
 
     normalizedSelectedAudiences.forEach(audience => {
       result[audience] = currentSubcategories.filter(subcategory =>
-        normalizeAudienceList(subcategory.audiences).includes(
-          audience,
-        ),
+        normalizeAudienceList(subcategory.audiences).includes(audience),
       );
     });
 
@@ -601,68 +507,42 @@ const ServiceChips: React.FC<Props> = ({
   };
 
   /* =========================================================
-     CLEAR CATEGORY
-  ========================================================= */
+     OPEN / CLOSE CATEGORY
 
-  const clearCategory = (category: Category) => {
-    const categoryIds = new Set(
-      (subcategoriesByCategory[category.categoryId] || []).map(item =>
-        String(item.subcategoryId),
-      ),
-    );
-
-    const next = createEmptySelections();
-
-    AUDIENCES.forEach(audience => {
-      next[audience] = (
-        internalSelectedAudienceSubcategories[audience] || []
-      ).filter(id => !categoryIds.has(String(id)));
-    });
-
-    setInternalSelectedAudienceSubcategories(next);
-
-    onSelect({
-      categoryId: '',
-      category: '',
-      subcategoryIds: Array.from(
-        new Set(Object.values(next).flat()),
-      ),
-      audienceSubcategorySelections: AUDIENCES.map(audience => ({
-        audience,
-        subcategoryIds: next[audience],
-      })),
-    });
-  };
-
-  /* =========================================================
-     OPEN CATEGORY MODAL
+     Tapping a category never clears its selections.
+     Tapping the currently open category closes its modal.
   ========================================================= */
 
   const handleCategorySelect = (category: Category) => {
-    if (getSelectedCount(category.categoryId) > 0) {
-      clearCategory(category);
+    const isSameCategory =
+      modalVisible &&
+      activeCategory?.categoryId === category.categoryId;
+
+    if (isSameCategory) {
+      setModalVisible(false);
+      setActiveCategory(null);
       return;
     }
 
     const categorySubcategories =
       subcategoriesByCategory[category.categoryId] || [];
 
+    const categoryIds = new Set(
+      categorySubcategories.map(item => String(item.subcategoryId)),
+    );
+
     const modalState = createEmptySelections();
 
-    normalizedSelectedAudiences.forEach(audience => {
-      const validIds = new Set(
-        categorySubcategories
-          .filter(subcategory =>
-            normalizeAudienceList(subcategory.audiences).includes(
-              audience,
-            ),
-          )
-          .map(item => String(item.subcategoryId)),
-      );
+    AUDIENCES.forEach(audience => {
+      if (!normalizedSelectedAudiences.includes(audience)) {
+        return;
+      }
 
+      // Load existing selections for this category only.
+      // Other categories remain untouched.
       modalState[audience] = (
         internalSelectedAudienceSubcategories[audience] || []
-      ).filter(id => validIds.has(String(id)));
+      ).filter(id => categoryIds.has(String(id)));
     });
 
     setActiveCategory(category);
@@ -672,9 +552,6 @@ const ServiceChips: React.FC<Props> = ({
 
   /* =========================================================
      TOGGLE SUBCATEGORY
-
-     Audience + subcategory ID are treated as the selection
-     identity, so selecting Female does not select Male/Kids.
   ========================================================= */
 
   const handleSubcategoryToggle = (
@@ -698,6 +575,9 @@ const ServiceChips: React.FC<Props> = ({
 
   /* =========================================================
      SAVE SELECTIONS
+
+     Update only the active category. Preserve all selections
+     from every other category.
   ========================================================= */
 
   const handleDone = () => {
@@ -717,6 +597,10 @@ const ServiceChips: React.FC<Props> = ({
     const next = createEmptySelections();
 
     AUDIENCES.forEach(audience => {
+      const existingOtherCategoryIds = (
+        internalSelectedAudienceSubcategories[audience] || []
+      ).filter(id => !categoryIds.has(String(id)));
+
       const validIds = new Set(
         categorySubcategories
           .filter(subcategory =>
@@ -727,13 +611,13 @@ const ServiceChips: React.FC<Props> = ({
           .map(item => String(item.subcategoryId)),
       );
 
-      const existingOtherCategoryIds = (
-        internalSelectedAudienceSubcategories[audience] || []
-      ).filter(id => !categoryIds.has(String(id)));
-
-      const selectedForCategory = (
-        modalSelectedAudienceSubcategories[audience] || []
-      ).filter(id => validIds.has(String(id)));
+      const selectedForCategory = normalizedSelectedAudiences.includes(
+        audience,
+      )
+        ? (modalSelectedAudienceSubcategories[audience] || []).filter(id =>
+            validIds.has(String(id)),
+          )
+        : [];
 
       next[audience] = Array.from(
         new Set([
@@ -758,11 +642,13 @@ const ServiceChips: React.FC<Props> = ({
     });
 
     setModalVisible(false);
+    setActiveCategory(null);
   };
 
   const handleCloseModal = () => {
+    // Cancel/close discards unsaved changes in the modal only.
+    // Existing saved selections are not changed.
     setModalVisible(false);
-    setModalSelectedAudienceSubcategories(createEmptySelections());
     setActiveCategory(null);
   };
 
@@ -798,9 +684,7 @@ const ServiceChips: React.FC<Props> = ({
             size="small"
             color={COLORS.themeColor}
           />
-          <Text style={styles.loadingText}>
-            Loading services...
-          </Text>
+          <Text style={styles.loadingText}>Loading services...</Text>
         </View>
       ) : displayCategories.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -811,14 +695,12 @@ const ServiceChips: React.FC<Props> = ({
       ) : (
         <View style={styles.categoryGrid}>
           {displayCategories.map(category => {
-            const selectedCount = getSelectedCount(
-              category.categoryId,
-            );
-
+            const selectedCount = getSelectedCount(category.categoryId);
             const isSelected = selectedCount > 0;
 
-            const categoryAudiences =
-              getCategoryAudiences(category);
+            const isOpen =
+              modalVisible &&
+              activeCategory?.categoryId === category.categoryId;
 
             return (
               <TouchableOpacity
@@ -827,40 +709,21 @@ const ServiceChips: React.FC<Props> = ({
                 style={[
                   styles.categoryCard,
                   isSelected && styles.categoryCardSelected,
+                  isOpen && styles.categoryCardOpen,
                 ]}
                 onPress={() => handleCategorySelect(category)}
               >
-                {/* DIFFERENT IMAGE FOR EACH SUPPORTED AUDIENCE */}
                 <View
                   style={[
                     styles.iconContainer,
                     isSelected && styles.iconContainerSelected,
                   ]}
                 >
-                  {categoryAudiences.length === 1 ? (
-                    <Image
-                      source={getCategoryIcon(
-                        category.name,
-                        categoryAudiences[0],
-                      )}
-                      style={styles.categoryIcon}
-                      resizeMode="contain"
-                    />
-                  ) : (
-                    <View style={styles.audienceIconRow}>
-                      {categoryAudiences.map(audience => (
-                        <Image
-                          key={`${category.categoryId}-${audience}`}
-                          source={getCategoryIcon(
-                            category.name,
-                            audience,
-                          )}
-                          style={styles.audienceCategoryIcon}
-                          resizeMode="contain"
-                        />
-                      ))}
-                    </View>
-                  )}
+                  <Image
+                    source={getCategoryIcon(category.name)}
+                    style={styles.categoryIcon}
+                    resizeMode="contain"
+                  />
                 </View>
 
                 <Text
@@ -878,6 +741,12 @@ const ServiceChips: React.FC<Props> = ({
                     <Text style={styles.countBadgeText}>
                       {selectedCount}
                     </Text>
+                  </View>
+                )}
+
+                {isOpen && (
+                  <View style={styles.openIndicator}>
+                    <Text style={styles.openIndicatorText}>−</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -906,7 +775,7 @@ const ServiceChips: React.FC<Props> = ({
                 </Text>
 
                 <Text style={styles.modalSubtitle}>
-                  Select one or more services
+                  Select or deselect services
                 </Text>
               </View>
 
@@ -919,9 +788,7 @@ const ServiceChips: React.FC<Props> = ({
             </View>
 
             <View style={styles.audienceInfo}>
-              <Text style={styles.audienceInfoLabel}>
-                Services for
-              </Text>
+              <Text style={styles.audienceInfoLabel}>Services for</Text>
 
               <View style={styles.audiencePills}>
                 {normalizedSelectedAudiences.map(audience => (
@@ -955,10 +822,7 @@ const ServiceChips: React.FC<Props> = ({
                   }
 
                   return (
-                    <View
-                      key={audience}
-                      style={styles.audienceSection}
-                    >
+                    <View key={audience} style={styles.audienceSection}>
                       <View style={styles.audienceSectionHeader}>
                         <View style={styles.audienceHeadingLine} />
                         <Text style={styles.audienceSectionTitle}>
@@ -971,9 +835,7 @@ const ServiceChips: React.FC<Props> = ({
                         const id = String(subcategory.subcategoryId);
 
                         const selected = (
-                          modalSelectedAudienceSubcategories[
-                            audience
-                          ] || []
+                          modalSelectedAudienceSubcategories[audience] || []
                         ).some(selectedId => String(selectedId) === id);
 
                         return (
@@ -982,8 +844,7 @@ const ServiceChips: React.FC<Props> = ({
                             activeOpacity={0.8}
                             style={[
                               styles.subcategoryRow,
-                              selected &&
-                                styles.subcategoryRowSelected,
+                              selected && styles.subcategoryRowSelected,
                             ]}
                             onPress={() =>
                               handleSubcategoryToggle(audience, id)
@@ -996,9 +857,7 @@ const ServiceChips: React.FC<Props> = ({
                               ]}
                             >
                               {selected && (
-                                <Text style={styles.checkmark}>
-                                  ✓
-                                </Text>
+                                <Text style={styles.checkmark}>✓</Text>
                               )}
                             </View>
 
@@ -1006,8 +865,7 @@ const ServiceChips: React.FC<Props> = ({
                               <Text
                                 style={[
                                   styles.subcategoryName,
-                                  selected &&
-                                    styles.subcategoryNameSelected,
+                                  selected && styles.subcategoryNameSelected,
                                 ]}
                               >
                                 {subcategory.name}
@@ -1037,9 +895,7 @@ const ServiceChips: React.FC<Props> = ({
                 style={styles.cancelButton}
                 onPress={handleCloseModal}
               >
-                <Text style={styles.cancelButtonText}>
-                  Cancel
-                </Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1047,9 +903,7 @@ const ServiceChips: React.FC<Props> = ({
                 style={styles.doneButton}
                 onPress={handleDone}
               >
-                <Text style={styles.doneButtonText}>
-                  Done
-                </Text>
+                <Text style={styles.doneButtonText}>Done</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1134,6 +988,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
+  categoryCardOpen: {
+    borderColor: COLORS.themeColor,
+    backgroundColor: COLORS.themeColor + '08',
+  },
+
   iconContainer: {
     width: 60,
     height: 60,
@@ -1147,20 +1006,6 @@ const styles = StyleSheet.create({
   categoryIcon: {
     width: 60,
     height: 60,
-  },
-
-  audienceIconRow: {
-    width: '100%',
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  audienceCategoryIcon: {
-    width: 30,
-    height: 48,
-    marginHorizontal: 1,
   },
 
   categoryName: {
@@ -1192,6 +1037,25 @@ const styles = StyleSheet.create({
   countBadgeText: {
     color: '#FFFFFF',
     fontSize: 11,
+    fontWeight: '700',
+  },
+
+  openIndicator: {
+    position: 'absolute',
+    left: 5,
+    top: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.themeColor + '15',
+  },
+
+  openIndicatorText: {
+    color: COLORS.themeColor,
+    fontSize: 16,
+    lineHeight: 18,
     fontWeight: '700',
   },
 
