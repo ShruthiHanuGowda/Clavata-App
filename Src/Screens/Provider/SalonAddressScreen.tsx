@@ -2,6 +2,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -29,6 +30,7 @@ import MapView, {
   MapPressEvent,
   Marker,
   MarkerDragStartEndEvent,
+  PROVIDER_GOOGLE,
   Region,
 } from 'react-native-maps';
 
@@ -67,6 +69,11 @@ const DEFAULT_COORDINATES: Coordinates = {
 const DEFAULT_DELTA = {
   latitudeDelta: 0.01,
   longitudeDelta: 0.01,
+};
+
+const SELECTED_LOCATION_DELTA = {
+  latitudeDelta: 0.003,
+  longitudeDelta: 0.003,
 };
 
 const INDIA_STATES = [
@@ -113,6 +120,8 @@ export default function SalonAddressScreen({
 }: any) {
   const { updateData } = useSalonRegistration();
 
+  const mapRef = useRef<MapView>(null);
+
   // Address
   const [addressLine, setAddressLine] = useState('');
   const [city, setCity] = useState('');
@@ -144,6 +153,7 @@ export default function SalonAddressScreen({
 
   // Search
   const [searchText, setSearchText] = useState('');
+  const [selectedDisplayName, setSelectedDisplayName] = useState('');
 
   // Map
   const [mapRegion, setMapRegion] = useState<Region>({
@@ -160,8 +170,6 @@ export default function SalonAddressScreen({
     !!state.trim() &&
     /^\d{6}$/.test(pincode.trim());
 
-  // Lock fields only when the address is complete.
-  // This lets the user fill in missing details after selecting a pin.
   const locationLocked =
     locationFound && coordinates !== null && addressComplete;
 
@@ -209,7 +217,7 @@ export default function SalonAddressScreen({
         const url =
           'https://nominatim.openstreetmap.org/search?' +
           `q=${encodeURIComponent(trimmedQuery)}` +
-          '&format=jsonv2&limit=1&countrycodes=in';
+          '&format=jsonv2&limit=1&addressdetails=1&countrycodes=in';
 
         const response = await fetch(url, {
           method: 'GET',
@@ -220,7 +228,9 @@ export default function SalonAddressScreen({
         });
 
         if (!response.ok) {
-          throw new Error(`Geocoding failed: ${response.status}`);
+          throw new Error(
+            `Geocoding failed with status ${response.status}`,
+          );
         }
 
         const data: unknown = await response.json();
@@ -252,7 +262,7 @@ export default function SalonAddressScreen({
         return {
           latitude,
           longitude,
-          displayName: result.display_name || '',
+          displayName: result.display_name || trimmedQuery,
         };
       } catch (error) {
         console.error('GEOCODE ADDRESS ERROR:', error);
@@ -299,6 +309,7 @@ export default function SalonAddressScreen({
           address.town ||
           address.village ||
           address.municipality ||
+          address.county ||
           '';
 
         const newState = address.state || '';
@@ -325,6 +336,7 @@ export default function SalonAddressScreen({
 
         if (!preserveSearchText && displayName.trim()) {
           setSearchText(displayName.trim());
+          setSelectedDisplayName(displayName.trim());
         }
 
         return true;
@@ -360,27 +372,51 @@ export default function SalonAddressScreen({
         return false;
       }
 
-      // Update the coordinates immediately so the map and pin appear.
-      setCoordinates({ latitude, longitude });
+      const validCoordinates = { latitude, longitude };
 
-      setMapRegion({
-        latitude,
-        longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      });
+      const newRegion: Region = {
+        ...validCoordinates,
+        ...SELECTED_LOCATION_DELTA,
+      };
 
+      // Update the marker coordinates immediately.
+      setCoordinates(validCoordinates);
+      setMapRegion(newRegion);
       setLocationFound(true);
 
-      // Reverse geocoding is helpful but must not be required
-      // to display the map or save valid coordinates.
+      // Animate if the map is already mounted.
+      requestAnimationFrame(() => {
+        mapRef.current?.animateToRegion(newRegion, 500);
+      });
+
       return applyReverseGeocode(
-        { latitude, longitude },
+        validCoordinates,
         preserveSearchText,
       );
     },
     [applyReverseGeocode],
   );
+
+  // Recenter the map after it mounts or the selected location changes.
+  useEffect(() => {
+    if (!locationFound || !coordinates) {
+      return;
+    }
+
+    const region: Region = {
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
+      ...SELECTED_LOCATION_DELTA,
+    };
+
+    setMapRegion(region);
+
+    const frame = requestAnimationFrame(() => {
+      mapRef.current?.animateToRegion(region, 500);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [coordinates, locationFound]);
 
   // ----------------------------------------------------------
   // LOAD CITIES
@@ -430,6 +466,8 @@ export default function SalonAddressScreen({
 
         setCityOptions(cities);
       } catch (error) {
+        console.error('LOAD CITIES ERROR:', error);
+
         setCityLoadError(
           'Could not load cities. Please check your internet connection and try again.',
         );
@@ -506,15 +544,12 @@ export default function SalonAddressScreen({
         case 'address':
           setAddressLine(value);
           break;
-
         case 'city':
           setCity(value);
           break;
-
         case 'state':
           setState(value);
           break;
-
         case 'pincode':
           setPincode(value.replace(/\D/g, '').slice(0, 6));
           break;
@@ -628,7 +663,7 @@ export default function SalonAddressScreen({
       if (!success) {
         Alert.alert(
           'Address unavailable',
-          'Your map pin has been placed. Please complete any missing address details below.',
+          'The map pin has been placed. Please complete any missing address details manually.',
         );
       }
     } catch (error) {
@@ -653,26 +688,49 @@ export default function SalonAddressScreen({
 
     if (!query) {
       Alert.alert(
-        'Enter an address',
-        'Please enter your business address to search.',
+        'Enter Address',
+        'Please enter your salon address.',
       );
       return;
     }
 
-    if (locationLocked) {
-      return;
-    }
+    setSearchingAddress(true);
+    setLocationMode('address');
 
     try {
-      setLocationMode('address');
-      setSearchingAddress(true);
+      const queries = [
+        query,
+        query.toLowerCase().includes('india')
+          ? query
+          : `${query}, India`,
+        [
+          addressLine.trim(),
+          city.trim(),
+          state.trim(),
+          pincode.trim(),
+          'India',
+        ]
+          .filter(Boolean)
+          .join(', '),
+      ].filter(
+        (item, index, all) =>
+          item && all.indexOf(item) === index,
+      );
 
-      const result = await geocodeAddress(query);
+      let result: GeocodeResult | null = null;
+
+      for (const searchQuery of queries) {
+        result = await geocodeAddress(searchQuery);
+
+        if (result) {
+          break;
+        }
+      }
 
       if (!result) {
         Alert.alert(
-          'Address not found',
-          'We could not find this address. Try adding the area, city, state or pincode.',
+          'Address Not Found',
+          'We could not find that address. Try searching with the area, city and PIN code, for example: Indiranagar, Bengaluru, Karnataka, 560038.',
         );
         return;
       }
@@ -682,34 +740,45 @@ export default function SalonAddressScreen({
         longitude: result.longitude,
       };
 
-      const success = await updateSelectedLocation(
+      const newRegion: Region = {
+        ...newCoordinates,
+        ...SELECTED_LOCATION_DELTA,
+      };
+
+      setSelectedDisplayName(result.displayName);
+      setCoordinates(newCoordinates);
+      setMapRegion(newRegion);
+      setLocationFound(true);
+
+      const reverseSuccess = await applyReverseGeocode(
         newCoordinates,
         true,
       );
 
-      setSearchText(query);
-
-      if (!success) {
+      if (!reverseSuccess) {
         Alert.alert(
-          'Address unavailable',
-          'The map pin has been placed at the searched coordinates. Please check or complete your address details.',
+          'Location Found',
+          'The map has been positioned at the search result. Please check the pin and complete the address details manually.',
         );
       }
     } catch (error) {
       console.error('SEARCH ADDRESS ERROR:', error);
 
       Alert.alert(
-        'Unable to find address',
-        'Something went wrong while searching for this address. Please try again.',
+        'Search Failed',
+        'Please check your internet connection and try again.',
       );
     } finally {
       setSearchingAddress(false);
     }
   }, [
     searchText,
-    locationLocked,
+    addressLine,
+    city,
+    state,
+    pincode,
     geocodeAddress,
-    updateSelectedLocation,
+    applyReverseGeocode,
   ]);
 
   // ----------------------------------------------------------
@@ -789,6 +858,7 @@ export default function SalonAddressScreen({
     setState('');
     setPincode('');
     setSearchText('');
+    setSelectedDisplayName('');
 
     setMapRegion({
       ...DEFAULT_COORDINATES,
@@ -868,8 +938,6 @@ export default function SalonAddressScreen({
     [addressLine, city, state, pincode],
   );
 
-  // Show address fields before searching, and after selecting a
-  // location if any required address details are still missing.
   const showAddressFields =
     (locationMode === 'address' && !locationFound) ||
     (locationFound && !addressComplete);
@@ -1104,10 +1172,8 @@ export default function SalonAddressScreen({
 
                   <Text style={styles.searchDescription}>
                     Search using your address, area, landmark or pincode.
-                    You can edit the search text if needed.
                   </Text>
 
-                  {/* The search input was missing in your previous code. */}
                   <TextInput
                     value={searchText}
                     onChangeText={setSearchText}
@@ -1142,7 +1208,6 @@ export default function SalonAddressScreen({
                             size="small"
                             color={COLORS.white}
                           />
-
                           <Text style={styles.searchButtonText}>
                             Finding location...
                           </Text>
@@ -1176,7 +1241,7 @@ export default function SalonAddressScreen({
 
                   <Text style={styles.foundDescription}>
                     Check the map and ensure the pin is at your business.
-                    Complete any missing address details above.
+                    Drag the pin to correct its position if needed.
                   </Text>
                 </View>
               </View>
@@ -1193,11 +1258,19 @@ export default function SalonAddressScreen({
 
                 <View style={styles.mapContainer}>
                   <MapView
-                    style={styles.map}
-                    region={mapRegion}
-                    onRegionChangeComplete={
-                      handleRegionChangeComplete
+                    ref={mapRef}
+                    provider={
+                      Platform.OS === 'android'
+                        ? PROVIDER_GOOGLE
+                        : undefined
                     }
+                    style={styles.map}
+                    initialRegion={{
+                      ...coordinates,
+                      ...SELECTED_LOCATION_DELTA,
+                    }}
+                    region={mapRegion}
+                    onRegionChangeComplete={handleRegionChangeComplete}
                     onPress={handleMapPress}
                     showsUserLocation={locationMode === 'current'}
                     showsMyLocationButton={false}
@@ -1205,13 +1278,15 @@ export default function SalonAddressScreen({
                     loadingEnabled
                     moveOnMarkerPress={false}
                   >
+                    {/* Use the native map marker, not a custom emoji view. */}
                     <Marker
-                      key={`${coordinates.latitude},${coordinates.longitude}`}
                       coordinate={coordinates}
-                      draggable={!reverseGeocoding}
+                      title="Salon location"
+                      description="Your selected salon location"
+                      draggable
                       onDragEnd={handleMarkerDragEnd}
-                      title="Business location"
-                      description="Drag the pin to your exact business location"
+                      anchor={{ x: 0.5, y: 1 }}
+                      zIndex={1000}
                     />
                   </MapView>
 
@@ -1221,7 +1296,6 @@ export default function SalonAddressScreen({
                         size="small"
                         color={COLORS.themeColor}
                       />
-
                       <Text style={styles.mapLoadingText}>
                         Updating address...
                       </Text>
@@ -1230,7 +1304,9 @@ export default function SalonAddressScreen({
                 </View>
 
                 <Text style={styles.mapHint}>
-                  Tap the map or drag the pin to adjust the exact location.
+                  {selectedDisplayName
+                    ? `Search result: ${selectedDisplayName}`
+                    : 'Tap the map or drag the pin to adjust the exact location.'}
                 </Text>
               </View>
 
@@ -1287,7 +1363,6 @@ export default function SalonAddressScreen({
                         size="small"
                         color={COLORS.white}
                       />
-
                       <Text style={styles.continueButtonText}>
                         Updating...
                       </Text>
@@ -1311,7 +1386,6 @@ export default function SalonAddressScreen({
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* STATE / CITY MODAL */}
       <Modal
         visible={selectionModal !== null}
         transparent
@@ -1396,9 +1470,9 @@ export default function SalonAddressScreen({
                     </Text>
 
                     {(selectionModal === 'state' ? state : city) ===
-                    item ? (
+                      item && (
                       <Text style={styles.selectionCheck}>✓</Text>
-                    ) : null}
+                    )}
                   </TouchableOpacity>
                 )}
                 ListEmptyComponent={
@@ -1420,52 +1494,43 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-
   flex: {
     flex: 1,
   },
-
   content: {
     paddingHorizontal: SPACING.large,
     paddingTop: SPACING.large,
     paddingBottom: SPACING.huge,
   },
-
   introSection: {
     marginBottom: SPACING.xl,
   },
-
   pageTitle: {
     fontFamily: FONTS.bold,
     fontSize: FONT_SIZES.title,
     color: COLORS.text,
     marginBottom: SPACING.small,
   },
-
   pageSubtitle: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.small,
     lineHeight: 21,
     color: COLORS.textSecondary,
   },
-
   methodSection: {
     marginBottom: SPACING.large,
   },
-
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: SPACING.small,
   },
-
   sectionTitle: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.medium,
     color: COLORS.text,
   },
-
   sectionSubtitle: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.xs,
@@ -1474,13 +1539,11 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
     marginBottom: SPACING.medium,
   },
-
   requiredText: {
     fontFamily: FONTS.medium,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textMuted,
   },
-
   methodCard: {
     minHeight: 78,
     flexDirection: 'row',
@@ -1494,12 +1557,10 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.small,
     position: 'relative',
   },
-
   methodCardSelected: {
     borderColor: 'transparent',
     borderWidth: 0,
   },
-
   selectedMethodGradient: {
     position: 'absolute',
     top: 0,
@@ -1509,17 +1570,14 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.large,
     padding: 1.5,
   },
-
   selectedMethodGradientInner: {
     flex: 1,
     borderRadius: RADIUS.large - 1,
     backgroundColor: COLORS.surface,
   },
-
   methodCardDisabled: {
     opacity: 0.5,
   },
-
   methodIcon: {
     width: 42,
     height: 42,
@@ -1531,54 +1589,45 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     marginRight: SPACING.medium,
   },
-
   methodIconText: {
     fontFamily: FONTS.medium,
     fontSize: 21,
     color: COLORS.text,
   },
-
   methodContent: {
     flex: 1,
     paddingRight: SPACING.small,
   },
-
   methodTitle: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.small,
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
-
   methodDescription: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.xs,
     lineHeight: 17,
     color: COLORS.textSecondary,
   },
-
   chevron: {
     fontFamily: FONTS.regular,
     fontSize: 26,
     color: COLORS.textMuted,
   },
-
   addressSection: {
     marginTop: SPACING.small,
     marginBottom: SPACING.large,
   },
-
   inputGroup: {
     marginBottom: SPACING.medium,
   },
-
   inputLabel: {
     fontFamily: FONTS.medium,
     fontSize: FONT_SIZES.xs,
     color: COLORS.text,
     marginBottom: SPACING.small,
   },
-
   input: {
     minHeight: 48,
     backgroundColor: COLORS.surface,
@@ -1591,13 +1640,11 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.small,
     color: COLORS.text,
   },
-
   selectInput: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-
   selectInputText: {
     flex: 1,
     fontFamily: FONTS.regular,
@@ -1605,51 +1652,42 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginRight: SPACING.xs,
   },
-
   selectPlaceholder: {
     color: COLORS.textMuted,
   },
-
   selectArrow: {
     fontSize: 20,
     color: COLORS.textSecondary,
     marginLeft: SPACING.xs,
   },
-
   row: {
     flexDirection: 'row',
     gap: SPACING.medium,
     marginBottom: SPACING.medium,
   },
-
   halfInput: {
     flex: 1,
   },
-
   inputDisabled: {
     backgroundColor: '#F1F1F3',
     borderColor: '#E2E2E2',
     color: COLORS.textMuted,
   },
-
   pincodeInput: {
     maxWidth: 180,
   },
-
   searchSection: {
     marginTop: SPACING.large,
     paddingTop: SPACING.large,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
-
   searchTitle: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.body,
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
-
   searchDescription: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.xs,
@@ -1657,7 +1695,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: SPACING.medium,
   },
-
   searchInput: {
     minHeight: 52,
     backgroundColor: COLORS.surface,
@@ -1671,12 +1708,10 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: SPACING.small,
   },
-
   gradientButtonWrapper: {
     borderRadius: RADIUS.medium,
     overflow: 'hidden',
   },
-
   searchButton: {
     minHeight: 50,
     flexDirection: 'row',
@@ -1686,17 +1721,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.large,
     gap: SPACING.small,
   },
-
   searchButtonText: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.small,
     color: COLORS.white,
   },
-
   locationFoundSection: {
     marginTop: SPACING.small,
   },
-
   foundCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1706,7 +1738,6 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     marginBottom: SPACING.large,
   },
-
   foundIcon: {
     width: 38,
     height: 38,
@@ -1716,35 +1747,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: SPACING.medium,
   },
-
   foundIconText: {
     fontFamily: FONTS.bold,
     fontSize: 18,
     color: COLORS.white,
   },
-
   foundContent: {
     flex: 1,
   },
-
   foundTitle: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.small,
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
-
   foundDescription: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.xs,
     lineHeight: 17,
     color: COLORS.textSecondary,
   },
-
   mapSection: {
     marginBottom: SPACING.large,
   },
-
   mapInstruction: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.xs,
@@ -1753,7 +1778,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
     marginBottom: SPACING.small,
   },
-
   mapContainer: {
     height: 270,
     overflow: 'hidden',
@@ -1762,11 +1786,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     backgroundColor: COLORS.background,
   },
-
   map: {
     flex: 1,
   },
-
   mapLoading: {
     position: 'absolute',
     top: SPACING.small,
@@ -1787,14 +1809,12 @@ const styles = StyleSheet.create({
       height: 2,
     },
   },
-
   mapLoadingText: {
     fontFamily: FONTS.medium,
     fontSize: FONT_SIZES.xs,
     color: COLORS.text,
     marginLeft: SPACING.small,
   },
-
   mapHint: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.xs,
@@ -1803,7 +1823,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: SPACING.small,
   },
-
   summaryCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1814,7 +1833,6 @@ const styles = StyleSheet.create({
     padding: SPACING.medium,
     marginBottom: SPACING.medium,
   },
-
   summaryIcon: {
     width: 38,
     height: 38,
@@ -1826,38 +1844,32 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     marginRight: SPACING.medium,
   },
-
   summaryIconText: {
     fontFamily: FONTS.medium,
     fontSize: 19,
     color: COLORS.text,
   },
-
   summaryContent: {
     flex: 1,
   },
-
   summaryTitle: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.small,
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },
-
   summaryAddress: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.small,
     lineHeight: 19,
     color: COLORS.textSecondary,
   },
-
   coordinatesText: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.xs,
     color: COLORS.textMuted,
     marginTop: SPACING.xs,
   },
-
   changeLocationButton: {
     marginTop: SPACING.medium,
     minHeight: 48,
@@ -1868,17 +1880,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   changeLocationText: {
     fontFamily: FONTS.medium,
     fontSize: FONT_SIZES.body,
     color: COLORS.text,
   },
-
   continueButtonWrapper: {
     marginTop: SPACING.small,
   },
-
   continueButton: {
     minHeight: 52,
     flexDirection: 'row',
@@ -1888,17 +1897,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.large,
     gap: SPACING.small,
   },
-
   continueButtonText: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.small,
     color: COLORS.white,
   },
-
   buttonDisabled: {
     opacity: 0.5,
   },
-
   validationHint: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.xs,
@@ -1907,41 +1913,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: SPACING.small,
   },
-
   selectionModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
     padding: SPACING.large,
   },
-
   selectionModalCard: {
     maxHeight: '82%',
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.large,
     padding: SPACING.medium,
   },
-
   selectionModalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: SPACING.small,
   },
-
   selectionModalTitle: {
     flex: 1,
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.body,
     color: COLORS.text,
   },
-
   selectionModalClose: {
     fontSize: 30,
     color: COLORS.textSecondary,
     paddingHorizontal: SPACING.small,
   },
-
   selectionSearchInput: {
     minHeight: 46,
     borderWidth: 1,
@@ -1953,7 +1953,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.small,
     color: COLORS.text,
   },
-
   selectionOption: {
     minHeight: 46,
     flexDirection: 'row',
@@ -1963,27 +1962,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: COLORS.border,
   },
-
   selectionOptionText: {
     flex: 1,
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.small,
     color: COLORS.text,
   },
-
   selectionCheck: {
     fontSize: 18,
     color: COLORS.themeColor,
     marginLeft: SPACING.small,
   },
-
   selectionLoading: {
     minHeight: 100,
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACING.medium,
   },
-
   selectionMessage: {
     fontFamily: FONTS.regular,
     fontSize: FONT_SIZES.small,
@@ -1991,7 +1986,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: SPACING.medium,
   },
-
   selectionRetry: {
     marginTop: SPACING.small,
     paddingHorizontal: SPACING.large,
@@ -1999,7 +1993,6 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.medium,
     backgroundColor: COLORS.themeColor,
   },
-
   selectionRetryText: {
     fontFamily: FONTS.medium,
     fontSize: FONT_SIZES.small,
