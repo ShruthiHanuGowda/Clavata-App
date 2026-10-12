@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -80,25 +81,78 @@ type Props = {
 };
 
 /* =========================================================
-   GENERIC CATEGORY ICONS
+   CATEGORY DISPLAY ORDER
 
-   One icon per category, regardless of audience.
+   Categories are sorted using this list, not API order.
+   Any unlisted categories appear after these categories.
+========================================================= */
 
-   These use your existing image files. If you later add
-   dedicated generic 3D assets, replace the paths here only.
+const CATEGORY_ORDER = [
+  'hair',
+  'makeup',
+  'waxing & threading',
+  'skin & facial',
+  'beard & shaving',
+  'lashes & brows',
+  'nails',
+  'spa & massage',
+  'body care wellness',
+  'bridal & groom',
+];
+
+const getCategoryOrder = (categoryName: string): number => {
+  const normalizedName = normalizeCategoryName(categoryName);
+
+  const index = CATEGORY_ORDER.findIndex(
+    name => normalizeCategoryName(name) === normalizedName,
+  );
+
+  // Support common existing category naming variations.
+  if (index !== -1) {
+    return index;
+  }
+
+  const aliases: Record<string, string> = {
+    'waxing and threading': 'waxing & threading',
+    'skin and facial': 'skin & facial',
+    'beard and shaving': 'beard & shaving',
+    'spa and massage': 'spa & massage',
+    'body care & wellness': 'body care wellness',
+    'bodycare & wellness': 'body care wellness',
+    'bridal & groom styling': 'bridal & groom',
+    'bridal and groom': 'bridal & groom',
+    'bridal and groom styling': 'bridal & groom',
+  };
+
+  const canonicalName =
+    aliases[normalizedName] || normalizedName;
+
+  const canonicalIndex = CATEGORY_ORDER.findIndex(
+    name => normalizeCategoryName(name) === canonicalName,
+  );
+
+  return canonicalIndex === -1
+    ? CATEGORY_ORDER.length
+    : canonicalIndex;
+};
+
+/* =========================================================
+   CATEGORY ICONS
 ========================================================= */
 
 const categoryIcons: Record<string, any> = {
   hair: require('../../../assets/category/Hair.png'),
   'skin & facial': require('../../../assets/category/Skin&Facial.png'),
   nails: require('../../../assets/category/Nails.png'),
-  'makeup': require('../../../assets/category/Makeup.png'),
+  makeup: require('../../../assets/category/Makeup.png'),
   'waxing & threading': require('../../../assets/category/Waxing&Threading.png'),
   'lashes & brows': require('../../../assets/category/Lashes&Brows.png'),
   'spa & massage': require('../../../assets/category/Spa&Massage.png'),
   'body care & wellness': require('../../../assets/category/Bodycare&Wellness.png'),
+  'body care wellness': require('../../../assets/category/Bodycare&Wellness.png'),
   'beard & shaving': require('../../../assets/category/Beard&Shaving.png'),
   'bridal & groom styling': require('../../../assets/category/Bridal&Groomstyling.png'),
+  'bridal & groom': require('../../../assets/category/Bridal&Groomstyling.png'),
 };
 
 const fallbackIcon = require('../../../assets/category/fallback.png');
@@ -146,7 +200,18 @@ const normalizeAudienceList = (
 const getCategoryIcon = (categoryName: string) => {
   const normalizedName = normalizeCategoryName(categoryName);
 
-  return categoryIcons[normalizedName] || fallbackIcon;
+  const aliases: Record<string, string> = {
+    'waxing and threading': 'waxing & threading',
+    'skin and facial': 'skin & facial',
+    'beard and shaving': 'beard & shaving',
+    'spa and massage': 'spa & massage',
+    'body care wellness': 'body care wellness',
+    'bridal & groom': 'bridal & groom',
+  };
+
+  const key = aliases[normalizedName] || normalizedName;
+
+  return categoryIcons[key] || fallbackIcon;
 };
 
 const matchesSelectedAudiences = (
@@ -209,7 +274,8 @@ const ServiceChips: React.FC<Props> = ({
   ] = useState<Record<string, Subcategory[]>>({});
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const [activeCategory, setActiveCategory] =
+    useState<Category | null>(null);
 
   const [
     internalSelectedAudienceSubcategories,
@@ -407,7 +473,7 @@ const ServiceChips: React.FC<Props> = ({
   }, [normalizedSelectedAudiences, subcategoriesByCategory]);
 
   /* =========================================================
-     DISPLAY CATEGORIES
+     DISPLAY CATEGORIES IN REQUESTED ORDER
   ========================================================= */
 
   const displayCategories = useMemo(() => {
@@ -417,7 +483,7 @@ const ServiceChips: React.FC<Props> = ({
 
     const seen = new Set<string>();
 
-    return categories.filter(category => {
+    const matchingCategories = categories.filter(category => {
       const categoryId = String(category.categoryId).trim();
       const normalizedName = normalizeCategoryName(category.name);
 
@@ -440,6 +506,18 @@ const ServiceChips: React.FC<Props> = ({
 
       seen.add(normalizedName);
       return true;
+    });
+
+    return [...matchingCategories].sort((a, b) => {
+      const orderDifference =
+        getCategoryOrder(a.name) - getCategoryOrder(b.name);
+
+      if (orderDifference !== 0) {
+        return orderDifference;
+      }
+
+      // Stable alphabetical order for categories not in CATEGORY_ORDER.
+      return a.name.localeCompare(b.name);
     });
   }, [
     categories,
@@ -508,9 +586,6 @@ const ServiceChips: React.FC<Props> = ({
 
   /* =========================================================
      OPEN / CLOSE CATEGORY
-
-     Tapping a category never clears its selections.
-     Tapping the currently open category closes its modal.
   ========================================================= */
 
   const handleCategorySelect = (category: Category) => {
@@ -538,8 +613,6 @@ const ServiceChips: React.FC<Props> = ({
         return;
       }
 
-      // Load existing selections for this category only.
-      // Other categories remain untouched.
       modalState[audience] = (
         internalSelectedAudienceSubcategories[audience] || []
       ).filter(id => categoryIds.has(String(id)));
@@ -575,9 +648,6 @@ const ServiceChips: React.FC<Props> = ({
 
   /* =========================================================
      SAVE SELECTIONS
-
-     Update only the active category. Preserve all selections
-     from every other category.
   ========================================================= */
 
   const handleDone = () => {
@@ -646,8 +716,6 @@ const ServiceChips: React.FC<Props> = ({
   };
 
   const handleCloseModal = () => {
-    // Cancel/close discards unsaved changes in the modal only.
-    // Existing saved selections are not changed.
     setModalVisible(false);
     setActiveCategory(null);
   };

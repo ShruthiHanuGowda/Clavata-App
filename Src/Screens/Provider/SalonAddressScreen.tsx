@@ -1,4 +1,3 @@
-
 import React, {
   useCallback,
   useEffect,
@@ -47,10 +46,6 @@ import {
   GRADIENTS,
 } from '../../constants/constants';
 
-// ============================================================
-// TYPES
-// ============================================================
-
 type Coordinates = {
   latitude: number;
   longitude: number;
@@ -63,10 +58,6 @@ type GeocodeResult = {
   longitude: number;
   displayName: string;
 };
-
-// ============================================================
-// DEFAULT MAP LOCATION
-// ============================================================
 
 const DEFAULT_COORDINATES: Coordinates = {
   latitude: 12.9716,
@@ -117,112 +108,74 @@ const INDIA_STATES = [
   'Puducherry',
 ];
 
-// ============================================================
-// COMPONENT
-// ============================================================
-
 export default function SalonAddressScreen({
   navigation,
 }: any) {
   const { updateData } = useSalonRegistration();
 
-  // ==========================================================
-  // ADDRESS STATE
-  // ==========================================================
+  // Address
+  const [addressLine, setAddressLine] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [pincode, setPincode] = useState('');
 
-  const [addressLine, setAddressLine] = useState<string>('');
-  const [city, setCity] = useState<string>('');
-  const [state, setState] = useState<string>('');
-  const [pincode, setPincode] = useState<string>('');
-
+  // State and city selection
   const [selectionModal, setSelectionModal] =
     useState<'city' | 'state' | null>(null);
 
-  const [selectionSearch, setSelectionSearch] =
-    useState<string>('');
+  const [selectionSearch, setSelectionSearch] = useState('');
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [cityLoadError, setCityLoadError] = useState('');
 
-  const [cityOptions, setCityOptions] =
-    useState<string[]>([]);
-
-  const [loadingCities, setLoadingCities] =
-    useState<boolean>(false);
-
-  const [cityLoadError, setCityLoadError] =
-    useState<string>('');
-
-  // ==========================================================
-  // LOCATION STATE
-  // ==========================================================
-
+  // Location
   const [coordinates, setCoordinates] =
     useState<Coordinates | null>(null);
 
   const [locationMode, setLocationMode] =
     useState<LocationMode>(null);
 
-  const [locationFound, setLocationFound] =
-    useState<boolean>(false);
+  const [locationFound, setLocationFound] = useState(false);
 
-  // ==========================================================
-  // LOADING STATE
-  // ==========================================================
+  // Loading
+  const [searchingAddress, setSearchingAddress] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [reverseGeocoding, setReverseGeocoding] = useState(false);
 
-  const [searchingAddress, setSearchingAddress] =
-    useState<boolean>(false);
+  // Search
+  const [searchText, setSearchText] = useState('');
 
-  const [gettingLocation, setGettingLocation] =
-    useState<boolean>(false);
-
-  const [reverseGeocoding, setReverseGeocoding] =
-    useState<boolean>(false);
-
-  // ==========================================================
-  // SEARCH STATE
-  // ==========================================================
-
-  const [searchText, setSearchText] =
-    useState<string>('');
-
-  // ==========================================================
-  // MAP STATE
-  // ==========================================================
-
+  // Map
   const [mapRegion, setMapRegion] = useState<Region>({
     ...DEFAULT_COORDINATES,
     ...DEFAULT_DELTA,
   });
 
-  // ==========================================================
-  // DERIVED STATE
-  // ==========================================================
-
   const isLocationBusy =
-    gettingLocation ||
-    searchingAddress ||
-    reverseGeocoding;
+    gettingLocation || searchingAddress || reverseGeocoding;
 
+  const addressComplete =
+    !!addressLine.trim() &&
+    !!city.trim() &&
+    !!state.trim() &&
+    /^\d{6}$/.test(pincode.trim());
+
+  // Lock fields only when the address is complete.
+  // This lets the user fill in missing details after selecting a pin.
   const locationLocked =
-    locationFound && coordinates !== null;
-
-  // ==========================================================
-  // BUILD SEARCH QUERY
-  // ==========================================================
+    locationFound && coordinates !== null && addressComplete;
 
   const buildAddressSearchQuery = useCallback(() => {
-    const parts = [
+    return [
       addressLine.trim(),
       city.trim(),
       state.trim(),
       pincode.trim(),
       'India',
-    ].filter(Boolean);
-
-    return parts.join(', ');
+    ]
+      .filter(Boolean)
+      .join(', ');
   }, [addressLine, city, state, pincode]);
-
-  // ==========================================================
-  // AUTOMATICALLY POPULATE SEARCH BOX
-  // ==========================================================
 
   useEffect(() => {
     if (locationMode !== 'address' || locationFound) {
@@ -240,9 +193,9 @@ export default function SalonAddressScreen({
     buildAddressSearchQuery,
   ]);
 
-  // ==========================================================
-  // GEOCODE ADDRESS
-  // ==========================================================
+  // ----------------------------------------------------------
+  // FORWARD GEOCODING
+  // ----------------------------------------------------------
 
   const geocodeAddress = useCallback(
     async (query: string): Promise<GeocodeResult | null> => {
@@ -254,9 +207,9 @@ export default function SalonAddressScreen({
         }
 
         const url =
-          `https://nominatim.openstreetmap.org/search?` +
+          'https://nominatim.openstreetmap.org/search?' +
           `q=${encodeURIComponent(trimmedQuery)}` +
-          `&format=jsonv2&limit=1&countrycodes=in`;
+          '&format=jsonv2&limit=1&countrycodes=in';
 
         const response = await fetch(url, {
           method: 'GET',
@@ -267,9 +220,7 @@ export default function SalonAddressScreen({
         });
 
         if (!response.ok) {
-          throw new Error(
-            `Geocoding failed: ${response.status}`,
-          );
+          throw new Error(`Geocoding failed: ${response.status}`);
         }
 
         const data: unknown = await response.json();
@@ -289,7 +240,11 @@ export default function SalonAddressScreen({
 
         if (
           !Number.isFinite(latitude) ||
-          !Number.isFinite(longitude)
+          !Number.isFinite(longitude) ||
+          latitude < -90 ||
+          latitude > 90 ||
+          longitude < -180 ||
+          longitude > 180
         ) {
           return null;
         }
@@ -307,9 +262,9 @@ export default function SalonAddressScreen({
     [],
   );
 
-  // ==========================================================
-  // REVERSE GEOCODE
-  // ==========================================================
+  // ----------------------------------------------------------
+  // REVERSE GEOCODING
+  // ----------------------------------------------------------
 
   const applyReverseGeocode = useCallback(
     async (
@@ -363,7 +318,9 @@ export default function SalonAddressScreen({
         }
 
         if (newPincode.trim()) {
-          setPincode(newPincode.trim());
+          setPincode(
+            newPincode.replace(/\D/g, '').slice(0, 6),
+          );
         }
 
         if (!preserveSearchText && displayName.trim()) {
@@ -381,54 +338,53 @@ export default function SalonAddressScreen({
     [],
   );
 
-  // ==========================================================
-  // UPDATE SELECTED LOCATION
-  // ==========================================================
+  // ----------------------------------------------------------
+  // UPDATE LOCATION AND MAP PIN
+  // ----------------------------------------------------------
 
   const updateSelectedLocation = useCallback(
     async (
       newCoordinates: Coordinates,
       preserveSearchText = false,
     ): Promise<boolean> => {
-      setCoordinates(newCoordinates);
+      const { latitude, longitude } = newCoordinates;
+
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180
+      ) {
+        return false;
+      }
+
+      // Update the coordinates immediately so the map and pin appear.
+      setCoordinates({ latitude, longitude });
 
       setMapRegion({
-        latitude: newCoordinates.latitude,
-        longitude: newCoordinates.longitude,
+        latitude,
+        longitude,
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
       });
 
-      const success = await applyReverseGeocode(
-        newCoordinates,
+      setLocationFound(true);
+
+      // Reverse geocoding is helpful but must not be required
+      // to display the map or save valid coordinates.
+      return applyReverseGeocode(
+        { latitude, longitude },
         preserveSearchText,
       );
-
-      if (success) {
-        setLocationFound(true);
-      }
-
-      return success;
     },
     [applyReverseGeocode],
   );
 
-  // ==========================================================
-  // STATE AND CITY SELECTION
-  // ==========================================================
-
-  const visibleSelectionOptions = useMemo(() => {
-    const options =
-      selectionModal === 'state'
-        ? INDIA_STATES
-        : cityOptions;
-
-    const query = selectionSearch.trim().toLowerCase();
-
-    return options.filter(item =>
-      item.toLowerCase().includes(query),
-    );
-  }, [selectionModal, selectionSearch, cityOptions]);
+  // ----------------------------------------------------------
+  // LOAD CITIES
+  // ----------------------------------------------------------
 
   const loadCitiesForState = useCallback(
     async (stateName: string) => {
@@ -484,6 +440,17 @@ export default function SalonAddressScreen({
     [],
   );
 
+  const visibleSelectionOptions = useMemo(() => {
+    const options =
+      selectionModal === 'state' ? INDIA_STATES : cityOptions;
+
+    const query = selectionSearch.trim().toLowerCase();
+
+    return options.filter(item =>
+      item.toLowerCase().includes(query),
+    );
+  }, [selectionModal, selectionSearch, cityOptions]);
+
   const openSelectionModal = useCallback(
     (type: 'city' | 'state') => {
       if (locationLocked) {
@@ -501,12 +468,7 @@ export default function SalonAddressScreen({
         loadCitiesForState(state.trim());
       }
     },
-    [
-      locationLocked,
-      state,
-      cityOptions.length,
-      loadCitiesForState,
-    ],
+    [locationLocked, state, cityOptions.length, loadCitiesForState],
   );
 
   const selectAddressOption = useCallback(
@@ -527,9 +489,9 @@ export default function SalonAddressScreen({
     [selectionModal, loadCitiesForState],
   );
 
-  // ==========================================================
-  // ADDRESS FIELD CHANGE
-  // ==========================================================
+  // ----------------------------------------------------------
+  // ADDRESS FIELD CHANGES
+  // ----------------------------------------------------------
 
   const handleAddressFieldChange = useCallback(
     (
@@ -554,18 +516,16 @@ export default function SalonAddressScreen({
           break;
 
         case 'pincode':
-          setPincode(
-            value.replace(/\D/g, '').slice(0, 6),
-          );
+          setPincode(value.replace(/\D/g, '').slice(0, 6));
           break;
       }
     },
     [locationLocked],
   );
 
-  // ==========================================================
+  // ----------------------------------------------------------
   // SELECT ADDRESS MODE
-  // ==========================================================
+  // ----------------------------------------------------------
 
   const handleSelectAddressMode = useCallback(() => {
     if (isLocationBusy || locationFound) {
@@ -579,15 +539,11 @@ export default function SalonAddressScreen({
     if (query) {
       setSearchText(query);
     }
-  }, [
-    isLocationBusy,
-    locationFound,
-    buildAddressSearchQuery,
-  ]);
+  }, [isLocationBusy, locationFound, buildAddressSearchQuery]);
 
-  // ==========================================================
-  // USE CURRENT LOCATION
-  // ==========================================================
+  // ----------------------------------------------------------
+  // CURRENT LOCATION
+  // ----------------------------------------------------------
 
   const handleUseCurrentLocation = useCallback(async () => {
     if (gettingLocation || locationFound) {
@@ -599,31 +555,23 @@ export default function SalonAddressScreen({
       setGettingLocation(true);
 
       if (Platform.OS === 'android') {
-        const permission =
-          await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS
-              .ACCESS_FINE_LOCATION,
-            {
-              title: 'Location Permission',
-              message:
-                'Clavata uses your location to place your business accurately on the map.',
-              buttonPositive: 'Allow',
-              buttonNegative: 'Cancel',
-            },
-          );
+        const permission = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message:
+              'Clavata uses your location to place your business accurately on the map.',
+            buttonPositive: 'Allow',
+            buttonNegative: 'Cancel',
+          },
+        );
 
-        if (
-          permission !==
-          PermissionsAndroid.RESULTS.GRANTED
-        ) {
+        if (permission !== PermissionsAndroid.RESULTS.GRANTED) {
           Alert.alert(
             'Location Permission Required',
             'Please allow location access to use your current location.',
             [
-              {
-                text: 'Cancel',
-                style: 'cancel',
-              },
+              { text: 'Cancel', style: 'cancel' },
               {
                 text: 'Settings',
                 onPress: () => Linking.openSettings(),
@@ -663,10 +611,7 @@ export default function SalonAddressScreen({
           'Location unavailable',
           'We could not determine your current location. Make sure your device location is turned on and try again.',
           [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
+            { text: 'Cancel', style: 'cancel' },
             {
               text: 'Settings',
               onPress: () => Linking.openSettings(),
@@ -683,10 +628,8 @@ export default function SalonAddressScreen({
       if (!success) {
         Alert.alert(
           'Address unavailable',
-          'We found your location, but could not read the business address. Please try again or enter your address manually.',
+          'Your map pin has been placed. Please complete any missing address details below.',
         );
-
-        setLocationFound(false);
       }
     } catch (error) {
       console.error('CURRENT LOCATION ERROR:', error);
@@ -701,9 +644,9 @@ export default function SalonAddressScreen({
     }
   }, [gettingLocation, locationFound, updateSelectedLocation]);
 
-  // ==========================================================
+  // ----------------------------------------------------------
   // SEARCH ADDRESS
-  // ==========================================================
+  // ----------------------------------------------------------
 
   const handleSearchAddress = useCallback(async () => {
     const query = searchText.trim();
@@ -744,17 +687,14 @@ export default function SalonAddressScreen({
         true,
       );
 
+      setSearchText(query);
+
       if (!success) {
         Alert.alert(
           'Address unavailable',
-          'We found the location, but could not read its address. Please try another search.',
+          'The map pin has been placed at the searched coordinates. Please check or complete your address details.',
         );
-
-        setLocationFound(false);
-        return;
       }
-
-      setSearchText(query);
     } catch (error) {
       console.error('SEARCH ADDRESS ERROR:', error);
 
@@ -772,9 +712,9 @@ export default function SalonAddressScreen({
     updateSelectedLocation,
   ]);
 
-  // ==========================================================
-  // MAP REGION CHANGE
-  // ==========================================================
+  // ----------------------------------------------------------
+  // MAP EVENTS
+  // ----------------------------------------------------------
 
   const handleRegionChangeComplete = useCallback(
     (region: Region) => {
@@ -783,20 +723,14 @@ export default function SalonAddressScreen({
     [],
   );
 
-  // ==========================================================
-  // MAP PRESS
-  // ==========================================================
-
   const handleMapPress = useCallback(
     async (event: MapPressEvent) => {
       if (reverseGeocoding) {
         return;
       }
 
-      const {
-        latitude,
-        longitude,
-      } = event.nativeEvent.coordinate;
+      const { latitude, longitude } =
+        event.nativeEvent.coordinate;
 
       const success = await updateSelectedLocation({
         latitude,
@@ -806,16 +740,12 @@ export default function SalonAddressScreen({
       if (!success) {
         Alert.alert(
           'Address unavailable',
-          'We could not read the address at this location. Please move the pin to another location.',
+          'The pin has been moved. Please complete any missing address details manually.',
         );
       }
     },
     [reverseGeocoding, updateSelectedLocation],
   );
-
-  // ==========================================================
-  // MARKER DRAG
-  // ==========================================================
 
   const handleMarkerDragEnd = useCallback(
     async (event: MarkerDragStartEndEvent) => {
@@ -823,10 +753,8 @@ export default function SalonAddressScreen({
         return;
       }
 
-      const {
-        latitude,
-        longitude,
-      } = event.nativeEvent.coordinate;
+      const { latitude, longitude } =
+        event.nativeEvent.coordinate;
 
       const success = await updateSelectedLocation({
         latitude,
@@ -836,16 +764,16 @@ export default function SalonAddressScreen({
       if (!success) {
         Alert.alert(
           'Address unavailable',
-          'We could not read the address at this location. Please move the pin to another location.',
+          'The pin has been moved. Please complete any missing address details manually.',
         );
       }
     },
     [reverseGeocoding, updateSelectedLocation],
   );
 
-  // ==========================================================
+  // ----------------------------------------------------------
   // CHANGE LOCATION
-  // ==========================================================
+  // ----------------------------------------------------------
 
   const handleChangeLocation = useCallback(() => {
     if (isLocationBusy) {
@@ -855,6 +783,7 @@ export default function SalonAddressScreen({
     setCoordinates(null);
     setLocationFound(false);
     setLocationMode(null);
+
     setAddressLine('');
     setCity('');
     setState('');
@@ -867,9 +796,9 @@ export default function SalonAddressScreen({
     });
   }, [isLocationBusy]);
 
-  // ==========================================================
+  // ----------------------------------------------------------
   // CONFIRM LOCATION
-  // ==========================================================
+  // ----------------------------------------------------------
 
   const handleConfirmLocation = useCallback(() => {
     if (!coordinates) {
@@ -889,18 +818,12 @@ export default function SalonAddressScreen({
     }
 
     if (!city.trim()) {
-      Alert.alert(
-        'City required',
-        'Please enter your city.',
-      );
+      Alert.alert('City required', 'Please enter your city.');
       return;
     }
 
     if (!state.trim()) {
-      Alert.alert(
-        'State required',
-        'Please enter your state.',
-      );
+      Alert.alert('State required', 'Please enter your state.');
       return;
     }
 
@@ -921,16 +844,6 @@ export default function SalonAddressScreen({
       longitude: coordinates.longitude,
     });
 
-    console.log('======================================');
-    console.log('SALON LOCATION CONFIRMED');
-    console.log('ADDRESS:', addressLine.trim());
-    console.log('CITY:', city.trim());
-    console.log('STATE:', state.trim());
-    console.log('PINCODE:', pincode.trim());
-    console.log('LATITUDE:', coordinates.latitude);
-    console.log('LONGITUDE:', coordinates.longitude);
-    console.log('======================================');
-
     navigation.navigate('SalonBusinessHours');
   }, [
     coordinates,
@@ -942,24 +855,24 @@ export default function SalonAddressScreen({
     navigation,
   ]);
 
-  // ==========================================================
-  // LOCATION SUMMARY
-  // ==========================================================
+  const locationSummary = useMemo(
+    () =>
+      [
+        addressLine.trim(),
+        city.trim(),
+        state.trim(),
+        pincode.trim(),
+      ]
+        .filter(Boolean)
+        .join(', '),
+    [addressLine, city, state, pincode],
+  );
 
-  const locationSummary = useMemo(() => {
-    return [
-      addressLine.trim(),
-      city.trim(),
-      state.trim(),
-      pincode.trim(),
-    ]
-      .filter(Boolean)
-      .join(', ');
-  }, [addressLine, city, state, pincode]);
-
-  // ==========================================================
-  // RENDER
-  // ==========================================================
+  // Show address fields before searching, and after selecting a
+  // location if any required address details are still missing.
+  const showAddressFields =
+    (locationMode === 'address' && !locationFound) ||
+    (locationFound && !addressComplete);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -974,19 +887,15 @@ export default function SalonAddressScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* INTRO */}
-
           <View style={styles.introSection}>
             <Text style={styles.pageTitle}>
               Find your business location
             </Text>
 
             <Text style={styles.pageSubtitle}>
-              Add your business location so customers can easily find
+              Add your business location so customers can easily find it.
             </Text>
           </View>
-
-          {/* LOCATION METHOD */}
 
           {!locationFound && (
             <View style={styles.methodSection}>
@@ -996,10 +905,8 @@ export default function SalonAddressScreen({
 
               <Text style={styles.sectionSubtitle}>
                 Use your current location if you are at your business,
-                or enter the address manually
+                or enter the address manually.
               </Text>
-
-              {/* CURRENT LOCATION */}
 
               <TouchableOpacity
                 style={[
@@ -1009,7 +916,7 @@ export default function SalonAddressScreen({
                   gettingLocation && styles.methodCardDisabled,
                 ]}
                 onPress={handleUseCurrentLocation}
-                disabled={isLocationBusy || locationFound}
+                disabled={isLocationBusy}
                 activeOpacity={0.85}
               >
                 {locationMode === 'current' && (
@@ -1031,7 +938,7 @@ export default function SalonAddressScreen({
                   </Text>
 
                   <Text style={styles.methodDescription}>
-                    Best if you are currently at your business
+                    Best if you are currently at your business.
                   </Text>
                 </View>
 
@@ -1045,8 +952,6 @@ export default function SalonAddressScreen({
                 )}
               </TouchableOpacity>
 
-              {/* ENTER ADDRESS */}
-
               <TouchableOpacity
                 style={[
                   styles.methodCard,
@@ -1054,7 +959,7 @@ export default function SalonAddressScreen({
                     styles.methodCardSelected,
                 ]}
                 onPress={handleSelectAddressMode}
-                disabled={isLocationBusy || locationFound}
+                disabled={isLocationBusy}
                 activeOpacity={0.85}
               >
                 {locationMode === 'address' && (
@@ -1076,7 +981,7 @@ export default function SalonAddressScreen({
                   </Text>
 
                   <Text style={styles.methodDescription}>
-                    Enter your address and find it on the map
+                    Enter your address and find it on the map.
                   </Text>
                 </View>
 
@@ -1085,21 +990,15 @@ export default function SalonAddressScreen({
             </View>
           )}
 
-          {/* MANUAL ADDRESS */}
-
-          {locationMode === 'address' && !locationFound && (
+          {showAddressFields && (
             <View style={styles.addressSection}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>
                   Business address
                 </Text>
 
-                <Text style={styles.requiredText}>
-                  * Required
-                </Text>
+                <Text style={styles.requiredText}>* Required</Text>
               </View>
-
-              {/* ADDRESS */}
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Address</Text>
@@ -1119,8 +1018,6 @@ export default function SalonAddressScreen({
                   returnKeyType="next"
                 />
               </View>
-
-              {/* STATE + CITY */}
 
               <View style={styles.row}>
                 <View style={styles.halfInput}>
@@ -1146,20 +1043,7 @@ export default function SalonAddressScreen({
                       {state || 'Select state'}
                     </Text>
 
-                    <View style={styles.selectChevron}>
-                      <View
-                        style={[
-                          styles.selectChevronLine,
-                          styles.selectChevronLineLeft,
-                        ]}
-                      />
-                      <View
-                        style={[
-                          styles.selectChevronLine,
-                          styles.selectChevronLineRight,
-                        ]}
-                      />
-                    </View>
+                    <Text style={styles.selectArrow}>⌄</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -1186,25 +1070,10 @@ export default function SalonAddressScreen({
                       {city || 'Select city'}
                     </Text>
 
-                    <View style={styles.selectChevron}>
-                      <View
-                        style={[
-                          styles.selectChevronLine,
-                          styles.selectChevronLineLeft,
-                        ]}
-                      />
-                      <View
-                        style={[
-                          styles.selectChevronLine,
-                          styles.selectChevronLineRight,
-                        ]}
-                      />
-                    </View>
+                    <Text style={styles.selectArrow}>⌄</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-
-              {/* PINCODE */}
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Pincode</Text>
@@ -1227,67 +1096,71 @@ export default function SalonAddressScreen({
                 />
               </View>
 
-              {/* FIND BUSINESS LOCATION */}
+              {!locationFound && (
+                <View style={styles.searchSection}>
+                  <Text style={styles.searchTitle}>
+                    Find your business location
+                  </Text>
 
-              <View style={styles.searchSection}>
-                <Text style={styles.searchTitle}>
-                  Find your business location
-                </Text>
+                  <Text style={styles.searchDescription}>
+                    Search using your address, area, landmark or pincode.
+                    You can edit the search text if needed.
+                  </Text>
 
-                <Text style={styles.searchDescription}>
-                  We'll use the address above to find your location on
-                  the map. You can edit the search text if needed.
-                </Text>
+                  {/* The search input was missing in your previous code. */}
+                  <TextInput
+                    value={searchText}
+                    onChangeText={setSearchText}
+                    placeholder="Enter area, street, landmark or pincode"
+                    placeholderTextColor={COLORS.textMuted}
+                    style={styles.searchInput}
+                    editable={!searchingAddress}
+                    autoCorrect={false}
+                    returnKeyType="search"
+                    onSubmitEditing={handleSearchAddress}
+                  />
 
-                <TouchableOpacity
-                  style={[
-                    styles.gradientButtonWrapper,
-                    (
-                      searchingAddress ||
-                      locationLocked ||
-                      !searchText.trim()
-                    ) && styles.buttonDisabled,
-                  ]}
-                  onPress={handleSearchAddress}
-                  disabled={
-                    searchingAddress ||
-                    locationLocked ||
-                    !searchText.trim()
-                  }
-                  activeOpacity={0.85}
-                >
-                  <AppGradient
-                    colors={[...GRADIENTS.SOFT_PURPLE]}
-                    style={styles.searchButton}
+                  <TouchableOpacity
+                    style={[
+                      styles.gradientButtonWrapper,
+                      (searchingAddress || !searchText.trim()) &&
+                        styles.buttonDisabled,
+                    ]}
+                    onPress={handleSearchAddress}
+                    disabled={
+                      searchingAddress || !searchText.trim()
+                    }
+                    activeOpacity={0.85}
                   >
-                    {searchingAddress ? (
-                      <>
-                        <ActivityIndicator
-                          size="small"
-                          color={COLORS.white}
-                        />
+                    <AppGradient
+                      colors={[...GRADIENTS.SOFT_PURPLE]}
+                      style={styles.searchButton}
+                    >
+                      {searchingAddress ? (
+                        <>
+                          <ActivityIndicator
+                            size="small"
+                            color={COLORS.white}
+                          />
 
+                          <Text style={styles.searchButtonText}>
+                            Finding location...
+                          </Text>
+                        </>
+                      ) : (
                         <Text style={styles.searchButtonText}>
-                          Finding location...
+                          Search
                         </Text>
-                      </>
-                    ) : (
-                      <Text style={styles.searchButtonText}>
-                        Search
-                      </Text>
-                    )}
-                  </AppGradient>
-                </TouchableOpacity>
-              </View>
+                      )}
+                    </AppGradient>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
 
-          {/* LOCATION FOUND / MAP VERIFICATION */}
-
           {locationFound && coordinates && (
             <View style={styles.locationFoundSection}>
-              {/* LOCATION FOUND — NO CARD BACKGROUND */}
-
               <View style={styles.foundCard}>
                 <AppGradient
                   colors={[...GRADIENTS.SOFT_PURPLE]}
@@ -1298,17 +1171,15 @@ export default function SalonAddressScreen({
 
                 <View style={styles.foundContent}>
                   <Text style={styles.foundTitle}>
-                    Location found
+                    Location selected
                   </Text>
 
                   <Text style={styles.foundDescription}>
-                    Please check the map and make sure the pin is at
-                    your business location.
+                    Check the map and ensure the pin is at your business.
+                    Complete any missing address details above.
                   </Text>
                 </View>
               </View>
-
-              {/* MAP */}
 
               <View style={styles.mapSection}>
                 <Text style={styles.sectionTitle}>
@@ -1316,7 +1187,7 @@ export default function SalonAddressScreen({
                 </Text>
 
                 <Text style={styles.mapInstruction}>
-                  Move the pin if necessary. Place it as close as
+                  Tap the map or drag the pin to place it as close as
                   possible to your business entrance.
                 </Text>
 
@@ -1335,6 +1206,7 @@ export default function SalonAddressScreen({
                     moveOnMarkerPress={false}
                   >
                     <Marker
+                      key={`${coordinates.latitude},${coordinates.longitude}`}
                       coordinate={coordinates}
                       draggable={!reverseGeocoding}
                       onDragEnd={handleMarkerDragEnd}
@@ -1358,12 +1230,9 @@ export default function SalonAddressScreen({
                 </View>
 
                 <Text style={styles.mapHint}>
-                  Tap the map or drag the pin to adjust the exact
-                  location.
+                  Tap the map or drag the pin to adjust the exact location.
                 </Text>
               </View>
-
-              {/* BUSINESS LOCATION SUMMARY */}
 
               <View style={styles.summaryCard}>
                 <View style={styles.summaryIcon}>
@@ -1378,10 +1247,13 @@ export default function SalonAddressScreen({
                   <Text style={styles.summaryAddress}>
                     {locationSummary || 'Location selected'}
                   </Text>
+
+                  <Text style={styles.coordinatesText}>
+                    {coordinates.latitude.toFixed(6)},{' '}
+                    {coordinates.longitude.toFixed(6)}
+                  </Text>
                 </View>
               </View>
-
-              {/* CHANGE LOCATION */}
 
               <TouchableOpacity
                 style={styles.changeLocationButton}
@@ -1394,16 +1266,15 @@ export default function SalonAddressScreen({
                 </Text>
               </TouchableOpacity>
 
-              {/* VERIFY & CONTINUE */}
-
               <TouchableOpacity
                 style={[
                   styles.gradientButtonWrapper,
                   styles.continueButtonWrapper,
-                  reverseGeocoding && styles.buttonDisabled,
+                  (reverseGeocoding || !addressComplete) &&
+                    styles.buttonDisabled,
                 ]}
                 onPress={handleConfirmLocation}
-                disabled={reverseGeocoding}
+                disabled={reverseGeocoding || !addressComplete}
                 activeOpacity={0.85}
               >
                 <AppGradient
@@ -1428,13 +1299,19 @@ export default function SalonAddressScreen({
                   )}
                 </AppGradient>
               </TouchableOpacity>
+
+              {!addressComplete && (
+                <Text style={styles.validationHint}>
+                  Complete the address, city, state and 6-digit pincode
+                  to continue.
+                </Text>
+              )}
             </View>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
 
       {/* STATE / CITY MODAL */}
-
       <Modal
         visible={selectionModal !== null}
         transparent
@@ -1486,10 +1363,11 @@ export default function SalonAddressScreen({
 
                 <TouchableOpacity
                   style={styles.selectionRetry}
-                  onPress={() =>
-                    state.trim() &&
-                    loadCitiesForState(state.trim())
-                  }
+                  onPress={() => {
+                    if (state.trim()) {
+                      loadCitiesForState(state.trim());
+                    }
+                  }}
                 >
                   <Text style={styles.selectionRetryText}>
                     Try again
@@ -1517,12 +1395,9 @@ export default function SalonAddressScreen({
                       {item}
                     </Text>
 
-                    {(selectionModal === 'state'
-                      ? state
-                      : city) === item ? (
-                      <Text style={styles.selectionCheck}>
-                        ✓
-                      </Text>
+                    {(selectionModal === 'state' ? state : city) ===
+                    item ? (
+                      <Text style={styles.selectionCheck}>✓</Text>
                     ) : null}
                   </TouchableOpacity>
                 )}
@@ -1540,10 +1415,6 @@ export default function SalonAddressScreen({
   );
 }
 
-// ============================================================
-// STYLES
-// ============================================================
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1559,8 +1430,6 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.large,
     paddingBottom: SPACING.huge,
   },
-
-  // INTRO
 
   introSection: {
     marginBottom: SPACING.xl,
@@ -1579,8 +1448,6 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: COLORS.textSecondary,
   },
-
-  // SECTIONS
 
   methodSection: {
     marginBottom: SPACING.large,
@@ -1613,8 +1480,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.textMuted,
   },
-
-  // LOCATION METHOD CARDS
 
   methodCard: {
     minHeight: 78,
@@ -1698,10 +1563,9 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
 
-  // ADDRESS
-
   addressSection: {
     marginTop: SPACING.small,
+    marginBottom: SPACING.large,
   },
 
   inputGroup: {
@@ -1746,31 +1610,302 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
 
-  selectChevron: {
-    width: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+  selectArrow: {
+    fontSize: 20,
+    color: COLORS.textSecondary,
     marginLeft: SPACING.xs,
   },
 
-  selectChevronLine: {
+  row: {
+    flexDirection: 'row',
+    gap: SPACING.medium,
+    marginBottom: SPACING.medium,
+  },
+
+  halfInput: {
+    flex: 1,
+  },
+
+  inputDisabled: {
+    backgroundColor: '#F1F1F3',
+    borderColor: '#E2E2E2',
+    color: COLORS.textMuted,
+  },
+
+  pincodeInput: {
+    maxWidth: 180,
+  },
+
+  searchSection: {
+    marginTop: SPACING.large,
+    paddingTop: SPACING.large,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+
+  searchTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.body,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+
+  searchDescription: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 18,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.medium,
+  },
+
+  searchInput: {
+    minHeight: 52,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.medium,
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.medium,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+    marginBottom: SPACING.small,
+  },
+
+  gradientButtonWrapper: {
+    borderRadius: RADIUS.medium,
+    overflow: 'hidden',
+  },
+
+  searchButton: {
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: RADIUS.medium,
+    paddingHorizontal: SPACING.large,
+    gap: SPACING.small,
+  },
+
+  searchButtonText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.white,
+  },
+
+  locationFoundSection: {
+    marginTop: SPACING.small,
+  },
+
+  foundCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    marginBottom: SPACING.large,
+  },
+
+  foundIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.round,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.medium,
+  },
+
+  foundIconText: {
+    fontFamily: FONTS.bold,
+    fontSize: 18,
+    color: COLORS.white,
+  },
+
+  foundContent: {
+    flex: 1,
+  },
+
+  foundTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+
+  foundDescription: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 17,
+    color: COLORS.textSecondary,
+  },
+
+  mapSection: {
+    marginBottom: SPACING.large,
+  },
+
+  mapInstruction: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 18,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.small,
+  },
+
+  mapContainer: {
+    height: 270,
+    overflow: 'hidden',
+    borderRadius: RADIUS.large,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+
+  map: {
+    flex: 1,
+  },
+
+  mapLoading: {
     position: 'absolute',
-    width: 6,
-    height: 1.8,
-    borderRadius: 1,
-    backgroundColor: COLORS.textSecondary,
-    top: 8,
+    top: SPACING.small,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.medium,
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.small,
+    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
   },
 
-  selectChevronLineLeft: {
-    left: 3,
-    transform: [{ rotate: '45deg' }],
+  mapLoadingText: {
+    fontFamily: FONTS.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.text,
+    marginLeft: SPACING.small,
   },
 
-  selectChevronLineRight: {
-    right: 3,
-    transform: [{ rotate: '-45deg' }],
+  mapHint: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 17,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: SPACING.small,
+  },
+
+  summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.large,
+    padding: SPACING.medium,
+    marginBottom: SPACING.medium,
+  },
+
+  summaryIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.round,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginRight: SPACING.medium,
+  },
+
+  summaryIconText: {
+    fontFamily: FONTS.medium,
+    fontSize: 19,
+    color: COLORS.text,
+  },
+
+  summaryContent: {
+    flex: 1,
+  },
+
+  summaryTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+
+  summaryAddress: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    lineHeight: 19,
+    color: COLORS.textSecondary,
+  },
+
+  coordinatesText: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textMuted,
+    marginTop: SPACING.xs,
+  },
+
+  changeLocationButton: {
+    marginTop: SPACING.medium,
+    minHeight: 48,
+    borderRadius: RADIUS.medium,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  changeLocationText: {
+    fontFamily: FONTS.medium,
+    fontSize: FONT_SIZES.body,
+    color: COLORS.text,
+  },
+
+  continueButtonWrapper: {
+    marginTop: SPACING.small,
+  },
+
+  continueButton: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: RADIUS.medium,
+    paddingHorizontal: SPACING.large,
+    gap: SPACING.small,
+  },
+
+  continueButtonText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.white,
+  },
+
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+
+  validationHint: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.xs,
+    lineHeight: 18,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: SPACING.small,
   },
 
   selectionModalOverlay: {
@@ -1869,297 +2004,5 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.medium,
     fontSize: FONT_SIZES.small,
     color: COLORS.white,
-  },
-
-  inputDisabled: {
-    backgroundColor: '#F1F1F3',
-    borderColor: '#E2E2E2',
-    color: COLORS.textMuted,
-  },
-
-  pincodeInput: {
-    maxWidth: 180,
-  },
-
-  row: {
-    flexDirection: 'row',
-    gap: SPACING.medium,
-  },
-
-  halfInput: {
-    flex: 1,
-  },
-
-  // SEARCH
-
-  searchSection: {
-    marginTop: SPACING.large,
-    paddingTop: SPACING.large,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-
-  searchTitle: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.body,
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
-  },
-
-  searchDescription: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.xs,
-    lineHeight: 18,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.medium,
-  },
-
-  searchInput: {
-    minHeight: 72,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.medium,
-    paddingHorizontal: SPACING.medium,
-    paddingVertical: SPACING.medium,
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.small,
-    lineHeight: 20,
-    color: COLORS.text,
-    marginBottom: SPACING.small,
-  },
-
-  gradientButtonWrapper: {
-    borderRadius: RADIUS.medium,
-    overflow: 'hidden',
-  },
-
-  continueButtonWrapper: {
-    marginTop: SPACING.small,
-  },
-
-  searchButton: {
-    minHeight: 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: RADIUS.medium,
-    paddingHorizontal: SPACING.large,
-    gap: SPACING.small,
-  },
-
-  searchButtonText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.small,
-    color: COLORS.white,
-  },
-
-  // LOCATION FOUND
-
-  locationFoundSection: {
-    marginTop: SPACING.small,
-  },
-
-  // Transparent row: no background, border, or card padding.
-  foundCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    borderColor: 'transparent',
-    borderRadius: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    marginBottom: SPACING.large,
-  },
-
-  // The gradient is applied only to this circular icon.
-  foundIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.round,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACING.medium,
-  },
-
-  foundIconText: {
-    fontFamily: FONTS.bold,
-    fontSize: 18,
-    color: COLORS.white,
-  },
-
-  foundContent: {
-    flex: 1,
-  },
-
-  foundTitle: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.small,
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
-  },
-
-  foundDescription: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.xs,
-    lineHeight: 17,
-    color: COLORS.textSecondary,
-  },
-
-  // MAP
-
-  mapSection: {
-    marginBottom: SPACING.large,
-  },
-
-  mapInstruction: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.xs,
-    lineHeight: 18,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
-    marginBottom: SPACING.small,
-  },
-
-  mapContainer: {
-    height: 270,
-    overflow: 'hidden',
-    borderRadius: RADIUS.large,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.background,
-  },
-
-  map: {
-    flex: 1,
-  },
-
-  mapLoading: {
-    position: 'absolute',
-    top: SPACING.small,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.medium,
-    paddingHorizontal: SPACING.medium,
-    paddingVertical: SPACING.small,
-    elevation: 3,
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-  },
-
-  mapLoadingText: {
-    fontFamily: FONTS.medium,
-    fontSize: FONT_SIZES.xs,
-    color: COLORS.text,
-    marginLeft: SPACING.small,
-  },
-
-  mapHint: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.xs,
-    lineHeight: 17,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    marginTop: SPACING.small,
-  },
-
-  // LOCATION SUMMARY
-
-  summaryCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.large,
-    padding: SPACING.medium,
-    marginBottom: SPACING.medium,
-  },
-
-  summaryIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.round,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.background,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginRight: SPACING.medium,
-  },
-
-  summaryIconText: {
-    fontFamily: FONTS.medium,
-    fontSize: 19,
-    color: COLORS.text,
-  },
-
-  summaryContent: {
-    flex: 1,
-  },
-
-  summaryTitle: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.small,
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
-  },
-
-  summaryAddress: {
-    fontFamily: FONTS.regular,
-    fontSize: FONT_SIZES.small,
-    lineHeight: 19,
-    color: COLORS.textSecondary,
-  },
-
-  // VERIFY & CONTINUE
-
-  continueButton: {
-    minHeight: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: RADIUS.medium,
-    paddingHorizontal: SPACING.large,
-    gap: SPACING.small,
-  },
-
-  continueButtonText: {
-    fontFamily: FONTS.semiBold,
-    fontSize: FONT_SIZES.small,
-    color: COLORS.white,
-  },
-
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-
-  // CHANGE LOCATION
-
-  changeLocationButton: {
-    marginTop: SPACING.medium,
-    minHeight: 48,
-    borderRadius: RADIUS.medium,
-    borderWidth: 1,
-    borderColor: COLORS.borderStrong,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  changeLocationText: {
-    fontFamily: FONTS.medium,
-    fontSize: FONT_SIZES.body,
-    color: COLORS.text,
   },
 });
