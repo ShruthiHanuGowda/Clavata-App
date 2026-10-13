@@ -1,3 +1,4 @@
+
 import React, {
   useCallback,
   useEffect,
@@ -31,6 +32,7 @@ import MapView, {
 import Geolocation from '@react-native-community/geolocation';
 import AppGradient from '../../common/AppGradient';
 import { GRADIENTS } from '../../constants/constants';
+
 import {
   getPlaceDetails,
   reverseGeocode,
@@ -100,7 +102,9 @@ const SalonAddressScreen: React.FC<Props> = ({
   navigation,
   route,
 }) => {
+  const selectedAddressRef = useRef(false);
   const mapRef = useRef<MapView>(null);
+
   const debounceRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -121,20 +125,26 @@ const SalonAddressScreen: React.FC<Props> = ({
 
   const [loadingSuggestions, setLoadingSuggestions] =
     useState(false);
+
   const [loadingAddress, setLoadingAddress] =
     useState(false);
+
   const [loadingCurrentLocation, setLoadingCurrentLocation] =
     useState(false);
+
   const [selectingSuggestion, setSelectingSuggestion] =
     useState(false);
 
-  const [locationFound, setLocationFound] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [locationFound, setLocationFound] =
+    useState(false);
+
+  const [showSuggestions, setShowSuggestions] =
+    useState(false);
 
   const [addressError, setAddressError] = useState('');
   const [searchError, setSearchError] = useState('');
 
-  // Restore data when returning to this screen, if supplied.
+  // RESTORE REGISTRATION DATA
   useEffect(() => {
     const saved = route?.params?.registrationData;
 
@@ -153,7 +163,7 @@ const SalonAddressScreen: React.FC<Props> = ({
       typeof saved.latitude === 'number' &&
       typeof saved.longitude === 'number'
     ) {
-      const point = {
+      const point: Coordinates = {
         latitude: saved.latitude,
         longitude: saved.longitude,
       };
@@ -171,6 +181,7 @@ const SalonAddressScreen: React.FC<Props> = ({
     }
   }, [route?.params?.registrationData]);
 
+  // MAP ANIMATION
   const animateMap = useCallback((point: Coordinates) => {
     const region: Region = {
       ...point,
@@ -180,15 +191,18 @@ const SalonAddressScreen: React.FC<Props> = ({
     mapRef.current?.animateToRegion(region, 450);
   }, []);
 
+  // APPLY REVERSE-GEOCODED ADDRESS
   const applyGeocodedAddress = useCallback(
     (
       data: Awaited<ReturnType<typeof reverseGeocode>>,
     ) => {
       if (!data) {
         setLocationFound(false);
+
         setAddressError(
           'We could not identify this address. Please enter it manually.',
         );
+
         return;
       }
 
@@ -222,6 +236,7 @@ const SalonAddressScreen: React.FC<Props> = ({
     [],
   );
 
+  // SELECT LOCATION FROM MAP OR CURRENT LOCATION
   const updateSelectedLocation = useCallback(
     async (
       point: Coordinates,
@@ -230,17 +245,27 @@ const SalonAddressScreen: React.FC<Props> = ({
       const requestId =
         ++locationRequestIdRef.current;
 
+      // Invalidate any pending autocomplete request.
+      ++searchRequestIdRef.current;
+
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+
       setCoordinates(point);
       setLocationFound(false);
       setLoadingAddress(true);
       setAddressError('');
 
       if (!preserveSearchText) {
+        selectedAddressRef.current = false;
         setSearchText('');
       }
 
       setSuggestions([]);
       setShowSuggestions(false);
+      setLoadingSuggestions(false);
       setSearchError('');
 
       animateMap(point);
@@ -265,7 +290,10 @@ const SalonAddressScreen: React.FC<Props> = ({
           return;
         }
 
-        console.error('Selected location error:', error);
+        console.error(
+          'Selected location error:',
+          error,
+        );
 
         setAddressError(
           'Unable to retrieve the selected address. You can enter it manually.',
@@ -290,17 +318,37 @@ const SalonAddressScreen: React.FC<Props> = ({
       debounceRef.current = null;
     }
 
-    const query = searchText.trim();
-
-    if (query.length < 3 || selectingSuggestion) {
+    // Keep suggestions closed while a result is being selected
+    // and after a result has been selected.
+    if (
+      selectingSuggestion ||
+      selectedAddressRef.current
+    ) {
       ++searchRequestIdRef.current;
+
       setSuggestions([]);
+      setShowSuggestions(false);
       setLoadingSuggestions(false);
       setSearchError('');
+
       return;
     }
 
-    const requestId = ++searchRequestIdRef.current;
+    const query = searchText.trim();
+
+    if (query.length < 3) {
+      ++searchRequestIdRef.current;
+
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setLoadingSuggestions(false);
+      setSearchError('');
+
+      return;
+    }
+
+    const requestId =
+      ++searchRequestIdRef.current;
 
     setLoadingSuggestions(true);
     setSearchError('');
@@ -309,28 +357,37 @@ const SalonAddressScreen: React.FC<Props> = ({
       try {
         const results = await searchAddress(query);
 
+        // Ignore results from outdated requests.
         if (
-          requestId !== searchRequestIdRef.current
+          requestId !== searchRequestIdRef.current ||
+          selectedAddressRef.current
         ) {
           return;
         }
 
         setSuggestions(results);
-        setShowSuggestions(true);
+        setShowSuggestions(results.length > 0);
 
-        if (results.length === 0) {
-          setSearchError(
-            'No matching addresses found. Try another search.',
-          );
-        }
+        setSearchError(
+          results.length === 0
+            ? 'No matching addresses found. Try another search.'
+            : '',
+        );
       } catch (error) {
         if (
-          requestId !== searchRequestIdRef.current
+          requestId !== searchRequestIdRef.current ||
+          selectedAddressRef.current
         ) {
           return;
         }
 
-        console.error('Autocomplete error:', error);
+        console.error(
+          'Autocomplete error:',
+          error,
+        );
+
+        setSuggestions([]);
+        setShowSuggestions(false);
 
         setSearchError(
           'Address search is temporarily unavailable.',
@@ -355,9 +412,20 @@ const SalonAddressScreen: React.FC<Props> = ({
   // SELECT AUTOCOMPLETE RESULT
   const handleSelectSuggestion = useCallback(
     async (suggestion: AddressSuggestion) => {
-      Keyboard.dismiss();
+      // Lock autocomplete before changing any state.
+      selectedAddressRef.current = true;
 
       ++searchRequestIdRef.current;
+
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+
+      // Invalidate any older reverse-geocoding operation.
+      ++locationRequestIdRef.current;
+
+      Keyboard.dismiss();
 
       setSelectingSuggestion(true);
       setLoadingSuggestions(false);
@@ -373,10 +441,14 @@ const SalonAddressScreen: React.FC<Props> = ({
         );
 
         if (!place) {
+          // Allow the user to search again if lookup fails.
+          selectedAddressRef.current = false;
+
           Alert.alert(
             'Location unavailable',
-            'We could not retrieve this address. Please try another result.',
+            'We could not retrieve this address. Please try again.',
           );
+
           return;
         }
 
@@ -391,37 +463,55 @@ const SalonAddressScreen: React.FC<Props> = ({
           longitude < -180 ||
           longitude > 180
         ) {
+          selectedAddressRef.current = false;
+
           Alert.alert(
             'Location unavailable',
             'The selected address has invalid coordinates. Please choose another result.',
           );
+
           return;
         }
-
-        setSearchText(suggestion.description);
-        setAddressLine(place.addressLine || '');
-        setCity(place.city || '');
-        setState(place.state || '');
-        setPincode(place.pincode || '');
 
         const point: Coordinates = {
           latitude,
           longitude,
         };
 
+        // Keep the selected description in the search field.
+        setSearchText(suggestion.description);
+
+        // Populate the address form.
+        setAddressLine(place.addressLine || '');
+        setCity(place.city || '');
+        setState(place.state || '');
+        setPincode(place.pincode || '');
+
+        // Update the map and selected coordinates.
         setCoordinates(point);
         setLocationFound(true);
         setAddressError('');
+
         animateMap(point);
 
-        // Invalidate older reverse-geocoding requests.
+        // Invalidate older location lookups.
         ++locationRequestIdRef.current;
+
+        // Keep autocomplete closed.
+        setSuggestions([]);
+        setShowSuggestions(false);
+        setSearchError('');
       } catch (error) {
-        console.error('Place selection error:', error);
+        console.error(
+          'Place selection error:',
+          error,
+        );
+
+        selectedAddressRef.current = false;
 
         Alert.alert(
           'Unable to select address',
-          'Please try again.',
+          'Please try selecting the address again.',
         );
       } finally {
         setSelectingSuggestion(false);
@@ -450,19 +540,27 @@ const SalonAddressScreen: React.FC<Props> = ({
         }
 
         const result =
-          await PermissionsAndroid.request(permission, {
-            title: 'Clavata location permission',
-            message:
-              'Clavata uses your location to help you set your salon address.',
-            buttonPositive: 'Allow',
-            buttonNegative: 'Cancel',
-          });
+          await PermissionsAndroid.request(
+            permission,
+            {
+              title: 'Clavata location permission',
+              message:
+                'Clavata uses your location to help you set your salon address.',
+              buttonPositive: 'Allow',
+              buttonNegative: 'Cancel',
+            },
+          );
 
         return (
-          result === PermissionsAndroid.RESULTS.GRANTED
+          result ===
+          PermissionsAndroid.RESULTS.GRANTED
         );
       } catch (error) {
-        console.error('Location permission error:', error);
+        console.error(
+          'Location permission error:',
+          error,
+        );
+
         return false;
       }
     }, []);
@@ -478,6 +576,7 @@ const SalonAddressScreen: React.FC<Props> = ({
           'Location permission required',
           'Allow location access in your device settings, or search for your address manually.',
         );
+
         return;
       }
 
@@ -491,10 +590,15 @@ const SalonAddressScreen: React.FC<Props> = ({
           };
 
           setLoadingCurrentLocation(false);
+
           void updateSelectedLocation(point);
         },
         error => {
-          console.error('Current location error:', error);
+          console.error(
+            'Current location error:',
+            error,
+          );
+
           setLoadingCurrentLocation(false);
 
           Alert.alert(
@@ -521,6 +625,7 @@ const SalonAddressScreen: React.FC<Props> = ({
       };
     }) => {
       Keyboard.dismiss();
+
       void updateSelectedLocation(
         event.nativeEvent.coordinate,
       );
@@ -555,6 +660,7 @@ const SalonAddressScreen: React.FC<Props> = ({
         'Address required',
         'Enter your salon street address.',
       );
+
       return;
     }
 
@@ -563,6 +669,7 @@ const SalonAddressScreen: React.FC<Props> = ({
         'City required',
         'Enter your salon city.',
       );
+
       return;
     }
 
@@ -571,6 +678,7 @@ const SalonAddressScreen: React.FC<Props> = ({
         'State required',
         'Enter your salon state.',
       );
+
       return;
     }
 
@@ -579,6 +687,7 @@ const SalonAddressScreen: React.FC<Props> = ({
         'Invalid PIN code',
         'Enter a valid 6-digit Indian PIN code.',
       );
+
       return;
     }
 
@@ -594,6 +703,7 @@ const SalonAddressScreen: React.FC<Props> = ({
         'Location required',
         'Please select your location on the map.',
       );
+
       return;
     }
 
@@ -606,7 +716,7 @@ const SalonAddressScreen: React.FC<Props> = ({
       longitude: coordinates.longitude,
     };
 
-    // Preserve any registration data passed from the prior step.
+    // Preserve all registration data from the previous step.
     const existingData =
       route?.params?.registrationData ?? {};
 
@@ -640,6 +750,7 @@ const SalonAddressScreen: React.FC<Props> = ({
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
+        debounceRef.current = null;
       }
 
       ++searchRequestIdRef.current;
@@ -676,7 +787,9 @@ const SalonAddressScreen: React.FC<Props> = ({
               SALON REGISTRATION · STEP 2
             </Text>
 
-            <Text style={styles.title}>Salon location</Text>
+            <Text style={styles.title}>
+              Salon location
+            </Text>
 
             <Text style={styles.subtitle}>
               Help customers find your salon easily.
@@ -706,11 +819,36 @@ const SalonAddressScreen: React.FC<Props> = ({
               <TextInput
                 value={searchText}
                 onChangeText={value => {
+                  // Editing explicitly unlocks autocomplete.
+                  selectedAddressRef.current = false;
+
+                  ++searchRequestIdRef.current;
+
                   setSearchText(value);
-                  setShowSuggestions(true);
                   setSearchError('');
+
+                  const hasEnoughText =
+                    value.trim().length >= 3;
+
+                  setShowSuggestions(hasEnoughText);
+
+                  if (!hasEnoughText) {
+                    setSuggestions([]);
+                    setLoadingSuggestions(false);
+                  }
                 }}
-                onFocus={() => setShowSuggestions(true)}
+                onFocus={() => {
+                  // Do not reopen results for a selected address.
+                  if (selectedAddressRef.current) {
+                    setShowSuggestions(false);
+                    setSuggestions([]);
+                    return;
+                  }
+
+                  setShowSuggestions(
+                    searchText.trim().length >= 3,
+                  );
+                }}
                 placeholder="Search street, area or landmark"
                 placeholderTextColor={COLORS.muted}
                 style={styles.searchInput}
@@ -727,7 +865,8 @@ const SalonAddressScreen: React.FC<Props> = ({
               ) : null}
             </View>
 
-            {showSuggestions && suggestions.length > 0 ? (
+            {showSuggestions &&
+            suggestions.length > 0 ? (
               <View style={styles.suggestionsContainer}>
                 {suggestions.map((item, index) => (
                   <TouchableOpacity
@@ -735,7 +874,7 @@ const SalonAddressScreen: React.FC<Props> = ({
                     style={[
                       styles.suggestionItem,
                       index === suggestions.length - 1 &&
-                      styles.lastSuggestion,
+                        styles.lastSuggestion,
                     ]}
                     onPress={() =>
                       void handleSelectSuggestion(item)
@@ -804,7 +943,9 @@ const SalonAddressScreen: React.FC<Props> = ({
               </View>
 
               <View style={styles.mapBadge}>
-                <Text style={styles.mapBadgeText}>MAP</Text>
+                <Text style={styles.mapBadgeText}>
+                  MAP
+                </Text>
               </View>
             </View>
 
@@ -861,6 +1002,7 @@ const SalonAddressScreen: React.FC<Props> = ({
             ) : locationFound ? (
               <View style={styles.locationSuccess}>
                 <Text style={styles.successIcon}>✓</Text>
+
                 <Text style={styles.successText}>
                   Location selected
                 </Text>
@@ -899,7 +1041,10 @@ const SalonAddressScreen: React.FC<Props> = ({
               onChangeText={setAddressLine}
               placeholder="Building, street, area or landmark"
               placeholderTextColor={COLORS.muted}
-              style={[styles.input, styles.multilineInput]}
+              style={[
+                styles.input,
+                styles.multilineInput,
+              ]}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -928,7 +1073,9 @@ const SalonAddressScreen: React.FC<Props> = ({
               accessibilityLabel="State"
             />
 
-            <Text style={styles.fieldLabel}>PIN code *</Text>
+            <Text style={styles.fieldLabel}>
+              PIN code *
+            </Text>
 
             <TextInput
               value={pincode}
@@ -956,25 +1103,27 @@ const SalonAddressScreen: React.FC<Props> = ({
               </Text>
             </View>
           </View>
-<TouchableOpacity
-  style={styles.confirmButton}
-  onPress={handleConfirmAddress}
-  activeOpacity={0.85}
-  accessibilityRole="button"
-  accessibilityLabel="Save location and continue"
->
-  <AppGradient
-    colors={[...GRADIENTS.SOFT_PURPLE]}
-    style={styles.confirmButtonGradient}
-  >
-    <Text style={styles.confirmButtonText}>
-      Save location and continue
-    </Text>
 
-    <Text style={styles.confirmButtonArrow}>→</Text>
-  </AppGradient>
-</TouchableOpacity>
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={handleConfirmAddress}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Save location and continue"
+          >
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={styles.confirmButtonGradient}
+            >
+              <Text style={styles.confirmButtonText}>
+                Save location and continue
+              </Text>
 
+              <Text style={styles.confirmButtonArrow}>
+                →
+              </Text>
+            </AppGradient>
+          </TouchableOpacity>
 
           <Text style={styles.footerNote}>
             Your location helps customers discover your salon
@@ -1277,32 +1426,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-confirmButton: {
-  borderRadius: 16,
-  overflow: 'hidden',
-  marginTop: 20,
-},
+  confirmButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 20,
+  },
   confirmButtonGradient: {
-  minHeight: 56,
-  paddingHorizontal: 20,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-},
- confirmButtonText: {
-  color: '#FFFFFF',
-  fontSize: 15,
-  fontWeight: '700',
-  textAlign: 'center',
-},
-confirmButtonArrow: {
-  marginBottom: 6,
-  color: '#FFFFFF',
-  fontSize: 22,
-  fontWeight: '600',
-  position: 'absolute',
-  right: 65,
-},
+    minHeight: 56,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  confirmButtonArrow: {
+    marginBottom: 6,
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '600',
+    position: 'absolute',
+    right: 65,
+  },
   footerNote: {
     color: COLORS.muted,
     fontSize: 11,
