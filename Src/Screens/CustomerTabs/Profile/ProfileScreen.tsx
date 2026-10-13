@@ -402,11 +402,11 @@ export default function ProfileScreen() {
             </Text>
           ) : null}
 
-          <View style={styles.roleBadge}>
+          {/* <View style={styles.roleBadge}>
             <Text style={styles.roleText}>
               {roleText}
             </Text>
-          </View>
+          </View> */}
 
           <TouchableOpacity
             style={styles.editButton}

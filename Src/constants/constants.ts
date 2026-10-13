@@ -27,7 +27,29 @@ export const GRADIENTS = {
   SOFT_PURPLE: ['#C084FC', '#A78BFA', '#8B5CF6'] as const,
   TEAL_BLUE: ['#14B8A6', '#0891B2', '#0369A1'] as const,
   ORANGE: ['#FDBA74', '#F97316', '#EA580C'] as const,
+  ORANGE_LIGHT: ['#FED7AA', '#FDBA74', '#FB923C'] as const,
   TEAL: ['#34B8AD', '#009D94', '#007F75'] as const,
+    // Soft peach → warm coral
+  ORANGE_PEACH: ['#FFE4D1', '#FDBA8C', '#F58B65'] as const,
+
+  // Warm orange alternative
+  WARM_ORANGE: ['#FED7AA', '#FDBA74', '#FB923C'] as const,
+
+  // Blush pink alternative
+BLUSH_PINK: ['#F9C6DF', '#F28DBD', '#E85D9E'] as const,
+BLUSH_PINK_DARK: ['#F5A9D0', '#E875B0', '#D94D96'] as const,
+BLUSH_ROSE_PINK: ['#E85D9E', '#C9367A', '#A61E5C'] as const,
+// Mauve Rose — elegant beauty accent
+  MAUVE_ROSE: ['#B76E79', '#964F62', '#713747'] as const,
+
+  // Royal Lavender — primary brand accent
+  ROYAL_LAVENDER: ['#B39DDB', '#8E70C8', '#6741A5'] as const,
+
+  // Dusty Rose — soft luxury accent
+  DUSTY_ROSE: ['#D9A7A7', '#C77D8A', '#A94F68'] as const,
+
+  // Deep Orchid — bold accent
+  DEEP_ORCHID: ['#A78BFA', '#805AD5', '#55309B'] as const,
 };
 
 export const FONTS = {

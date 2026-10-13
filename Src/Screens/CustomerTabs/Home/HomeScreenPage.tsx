@@ -934,11 +934,17 @@ export default function HomeScreenPage() {
             style={styles.clavataGradient}
           >
             <View style={styles.clavataBody}>
-              <Text style={styles.clavataTitle}>Let Clavata choose</Text>
-              <Text style={styles.clavataText}>
-                Find the best match for you
-              </Text>
-                 <Text style={styles.clavataArrow}>→</Text>
+              <View style={styles.clavataTextContainer}>
+                <Text style={styles.clavataTitle}>
+                  Let Clavata choose
+                </Text>
+
+                <Text style={styles.clavataText}>
+                  Find the best match for you
+                </Text>
+              </View>
+
+              <Text style={styles.clavataArrow}>→</Text>
             </View>
           </AppGradient>
         </TouchableOpacity>
@@ -1316,23 +1322,32 @@ const styles = StyleSheet.create({
   },
   clavataGradient: {
     minHeight: 82,
-    position: 'relative',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    paddingHorizontal: 66,
+    paddingHorizontal: 20,
     borderRadius: 22,
   },
   clavataBody: {
-    width: '100%',
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
+    minWidth: 0,
   },
   clavataTitle: {
     color: COLORS.white,
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  clavataTextContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 0,
   },
   clavataText: {
     marginTop: 3,
@@ -1341,13 +1356,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
-  
+
   clavataArrow: {
     color: COLORS.white,
     fontSize: 22,
     lineHeight: 26,
     textAlign: 'center',
     includeFontPadding: false,
+    right: 60,
+    bottom: 6
   },
   bottomSpace: {
     height: 25,
