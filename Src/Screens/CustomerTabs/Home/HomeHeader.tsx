@@ -299,7 +299,7 @@ export default function HomeHeader({
             </Text>
 
             <Text style={styles.greetingSubtitle}>
-              Find your perfect salon experience
+              Discover beauty that feels like you
             </Text>
           </View>
 
@@ -820,8 +820,8 @@ bellClapper: {
   },
 
   locationIconContainer: {
-    width: 38,
-    height: 38,
+    width: 32,
+    height: 32,
     borderRadius: RADIUS.round,
     backgroundColor: '#FFF1E8',
     alignItems: 'center',
