@@ -175,19 +175,27 @@ function isGooglePlace(
   );
 }
 
+function clean(value?: string | null): string {
+  return (value ?? '').trim();
+}
+
+function firstNonEmpty(
+  ...values: Array<string | null | undefined>
+): string {
+  return values.map(clean).find(Boolean) ?? '';
+}
+
 /**
  * Accept only a valid six-digit Indian PIN code.
- * Google may return null, empty strings, or non-postal text.
  */
 function normalizePincode(value?: string | null): string {
-  const candidate = (value ?? '').trim();
+  const candidate = clean(value);
   return /^[1-9]\d{5}$/.test(candidate) ? candidate : '';
 }
 
 /**
- * Fallback only: look for a standalone six-digit PIN in the
- * formatted address. This cannot guarantee that the number
- * is a postal code, so prefer the backend's pincode field.
+ * Use this only as a fallback when the address contains
+ * exactly one standalone six-digit number.
  */
 function extractPincodeFromAddress(
   formattedAddress?: string | null,
@@ -201,6 +209,33 @@ function extractPincodeFromAddress(
   return matches?.length === 1
     ? normalizePincode(matches[0])
     : '';
+}
+
+/**
+ * Build an address line from all useful address fields
+ * supplied by the backend.
+ *
+ * Existing fields are preserved; no address is fabricated.
+ */
+function buildAddressLine(
+  place: GooglePlace,
+): string {
+  const parts = [
+    place.addressLine,
+  ]
+    .map(clean)
+    .filter(Boolean);
+
+  return [...new Set(parts)].join(', ');
+}
+
+function normalizePlacePincode(
+  place: GooglePlace,
+): string {
+  return (
+    normalizePincode(place.pincode) ||
+    extractPincodeFromAddress(place.formattedAddress)
+  );
 }
 
 /* ============================================================
@@ -267,14 +302,17 @@ export async function getPlaceDetails(
       return null;
     }
 
-    const backendPincode = normalizePincode(place.pincode);
-    const fallbackPincode = extractPincodeFromAddress(
-      place.formattedAddress,
-    );
+    const pincode = normalizePlacePincode(place);
 
     return {
       ...place,
-      pincode: backendPincode || fallbackPincode,
+      placeId: place.placeId || id,
+      formattedAddress: clean(place.formattedAddress),
+      addressLine: buildAddressLine(place),
+      city: clean(place.city),
+      state: clean(place.state),
+      pincode,
+      country: clean(place.country),
     };
   } catch (error) {
     console.error('Place details error:', error);
@@ -318,30 +356,34 @@ export async function reverseGeocode(
     }
 
     const place = response.place as GooglePlace;
-
-    const pincode =
-      normalizePincode(place.pincode) ||
-      extractPincodeFromAddress(place.formattedAddress);
+    const pincode = normalizePlacePincode(place);
 
     const address: Record<string, string> = {
+      // These components are not independently available
+      // in the current GraphQL response.
       house_number: '',
-      road: place.addressLine || '',
+      building: '',
+      road: clean(place.addressLine),
       neighbourhood: '',
       suburb: '',
-      city: place.city || '',
+      quarter: '',
+      residential: '',
+      locality: '',
+      city_district: '',
+      city: clean(place.city),
       town: '',
       village: '',
       municipality: '',
       county: '',
-      state: place.state || '',
+      state: clean(place.state),
       postcode: pincode,
       pincode,
-      country: place.country || '',
+      country: clean(place.country),
     };
 
     return {
-      formatted_address: place.formattedAddress || '',
-      display_name: place.formattedAddress || '',
+      formatted_address: clean(place.formattedAddress),
+      display_name: clean(place.formattedAddress),
       address,
       address_components: [],
       geometry: {

@@ -970,7 +970,7 @@ const SalonAddressScreen: React.FC<Props> = ({
                   onDragEnd={handleMarkerDragEnd}
                   title="Your salon"
                   description="Drag to adjust the salon location"
-                  pinColor={COLORS.primary}
+                  pinColor="red"
                 />
               </MapView>
 
