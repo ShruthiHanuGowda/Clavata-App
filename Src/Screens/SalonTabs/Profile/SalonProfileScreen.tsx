@@ -910,24 +910,6 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
-
-                    <MenuItem
-                        title="Change Password"
-                        onPress={() =>
-                            handleAccountNavigation(
-                                'ChangePassword',
-                            )
-                        }
-                    />
-
-                    <MenuItem
-                        title="Language"
-                        onPress={() =>
-                            handleAccountNavigation(
-                                'Language',
-                            )
-                        }
-                    />
                 </View>
 
                 {/* ==================================================
