@@ -1062,8 +1062,8 @@ const styles = StyleSheet.create({
   },
 
   iconContainer: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -1072,8 +1072,8 @@ const styles = StyleSheet.create({
   iconContainerSelected: {},
 
   categoryIcon: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
   },
 
   categoryName: {
