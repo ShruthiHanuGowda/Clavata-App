@@ -1,5 +1,5 @@
+import React, { useReducer, useCallback } from 'react';
 
-import React, { useReducer } from 'react';
 import {
   Image,
   LayoutChangeEvent,
@@ -9,20 +9,21 @@ import {
   Text,
   View,
 } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Circle, Path, Svg } from 'react-native-svg';
+
 import images from '../Theme/images';
 import fontsFamily from '../Theme/fontsFamily';
 
-type TabIconKeys = 'Clavata' | 'Home' | 'Bookings' | 'Offers' | 'Profile';
+type TabIconKeys =
+  | 'Clavata'
+  | 'Home'
+  | 'Bookings'
+  | 'Offers'
+  | 'Profile';
 
-const tabIconsActive: {
-  Bookings: {};
-  Home: {};
-  Offers: {};
-  Clavata: {};
-  Profile: {};
-} = {
+const tabIconsActive: Record<TabIconKeys, any> = {
   Clavata: images?.homeActive,
   Home: images?.homeActive,
   Bookings: images?.bookingActive,
@@ -30,13 +31,7 @@ const tabIconsActive: {
   Profile: images?.profileActive,
 };
 
-const tabIcons: {
-  Bookings: {};
-  Home: {};
-  Offers: {};
-  Clavata: {};
-  Profile: {};
-} = {
+const tabIcons: Record<TabIconKeys, any> = {
   Clavata: images?.home,
   Home: images?.home,
   Bookings: images?.booking,
@@ -55,7 +50,11 @@ const NavigationIcon: React.FC<NavigationIconProps> = ({
 }) => {
   return (
     <Image
-      source={isFocused ? tabIconsActive[route] : tabIcons[route]}
+      source={
+        isFocused
+          ? tabIconsActive[route]
+          : tabIcons[route]
+      }
       style={styles.icon}
       resizeMode="contain"
     />
@@ -77,10 +76,7 @@ interface LayoutState {
   index: number;
 }
 
-type LayoutAction = {
-  x: number;
-  index: number;
-};
+type LayoutAction = LayoutState;
 
 const TabBarComponent: React.FC<TabBarComponentProps> = ({
   name,
@@ -93,8 +89,8 @@ const TabBarComponent: React.FC<TabBarComponentProps> = ({
     <Pressable
       onPress={onPress}
       onLayout={onLayout}
-      style={styles.component}>
-      
+      style={styles.component}
+    >
       <View
         style={[
           styles.componentCircle,
@@ -110,24 +106,23 @@ const TabBarComponent: React.FC<TabBarComponentProps> = ({
           active
             ? styles.iconContainerActive
             : styles.iconContainerInactive,
-        ]}>
-        
+        ]}
+      >
         <NavigationIcon
           route={name}
           isFocused={active}
         />
 
-        {/* Tab label */}
         <Text
           style={[
             styles.text,
             active
               ? styles.textActive
               : styles.textInactive,
-          ]}>
+          ]}
+        >
           {options.tabBarLabel || name}
         </Text>
-
       </View>
     </Pressable>
   );
@@ -166,38 +161,50 @@ const TabBar: React.FC<TabBarProps> = ({
     state: LayoutState[],
     action: LayoutAction,
   ): LayoutState[] => {
-    return [
-      ...state,
-      {
-        x: action.x,
-        index: action.index,
-      },
-    ];
+    const existingIndex = state.findIndex(
+      item => item.index === action.index,
+    );
+
+    if (existingIndex !== -1) {
+      return state.map((item, index) =>
+        index === existingIndex
+          ? action
+          : item,
+      );
+    }
+
+    return [...state, action];
   };
 
-  const [layout, dispatch] = useReducer(reducer, []);
-
-  const handleLayout = (
-    event: LayoutChangeEvent,
-    index: number,
-  ) => {
-    dispatch({
-      x: event?.nativeEvent?.layout?.x,
-      index,
-    });
-  };
-
-  let xOffset = 0;
-
-  const item = [...layout].find(
-    ({ index }) => index === activeIndex,
+  const [layout, dispatch] = useReducer(
+    reducer,
+    [],
   );
 
-  if (!item) {
-    xOffset = -25;
-  } else {
-    xOffset = item.x - 25;
-  }
+  const handleLayout = useCallback(
+    (
+      event: LayoutChangeEvent,
+      index: number,
+    ) => {
+      const x = event.nativeEvent.layout.x;
+
+      dispatch({
+        x: Number.isFinite(x) ? x : 0,
+        index,
+      });
+    },
+    [],
+  );
+
+  const activeItem = layout.find(
+    item => item.index === activeIndex,
+  );
+
+  // Keep translateX as a number, never a string or object.
+  const xOffset: number =
+    activeItem && Number.isFinite(activeItem.x)
+      ? activeItem.x - 25
+      : -25;
 
   const width = 100;
   const height = 100;
@@ -208,12 +215,8 @@ const TabBar: React.FC<TabBarProps> = ({
       : height - 16;
 
   const strokeWidth = 25;
-
-  const radius =
-    (size - strokeWidth) / 2;
-
-  const circumference =
-    radius * 2 * Math.PI;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
 
   return (
     <View
@@ -222,8 +225,8 @@ const TabBar: React.FC<TabBarProps> = ({
         Platform.OS === 'android'
           ? { paddingBottom: bottom }
           : styles.tabBarIOS,
-      ]}>
-
+      ]}
+    >
       <Svg
         width={110}
         height={70}
@@ -234,19 +237,16 @@ const TabBar: React.FC<TabBarProps> = ({
           {
             transform: [
               {
-                translateX:
-                  typeof xOffset === 'number'
-                    ? xOffset
-                    : 1,
+                translateX: xOffset,
               },
             ],
           },
-        ]}>
-
+        ]}
+      >
         <Circle
           translateY={-12}
           translateX={-3}
-          fill="#fff"
+          fill="#FFFFFF"
           cx={size / 2}
           cy={size / 2}
           r={radius}
@@ -256,19 +256,15 @@ const TabBar: React.FC<TabBarProps> = ({
         />
 
         <Path
-          fill="#FFF"
+          fill="#FFFFFF"
           d="M4 24H6080V110H4z"
         />
-
       </Svg>
 
       <View style={styles.tabBarContainer}>
         {routes.map((route, index) => {
-          const active =
-            index === activeIndex;
-
-          const { options } =
-            descriptors[route.key];
+          const active = index === activeIndex;
+          const { options } = descriptors[route.key];
 
           return (
             <TabBarComponent
@@ -276,8 +272,8 @@ const TabBar: React.FC<TabBarProps> = ({
               name={route.name}
               active={active}
               options={options}
-              onLayout={e =>
-                handleLayout(e, index)
+              onLayout={event =>
+                handleLayout(event, index)
               }
               onPress={() =>
                 navigation.navigate(route.name)
@@ -292,11 +288,11 @@ const TabBar: React.FC<TabBarProps> = ({
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderTopColor: '#C4C4C4',
     borderTopWidth: 0.35,
 
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 1,
@@ -325,7 +321,7 @@ const styles = StyleSheet.create({
   componentCircle: {
     flex: 1,
     borderRadius: 30,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
   },
 
   componentCircleActive: {
@@ -367,12 +363,10 @@ const styles = StyleSheet.create({
     fontFamily: fontsFamily.MulishSemiBold,
   },
 
-  // ACTIVE TAB TEXT
   textActive: {
     color: '#000000',
   },
 
-  // INACTIVE TAB TEXT
   textInactive: {
     color: '#000000',
   },

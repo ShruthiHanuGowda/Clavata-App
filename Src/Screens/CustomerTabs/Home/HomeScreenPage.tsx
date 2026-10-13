@@ -808,18 +808,13 @@ export default function HomeScreenPage() {
           <View style={styles.budgetRow}>
             {BUDGET_OPTIONS.map(option => {
               const selected = selectedBudget.label === option.label;
-              const disabled =
-                option.label !== 'Any' &&
-                selectedCategoryId.trim().length === 0;
 
               return (
                 <TouchableOpacity
                   key={option.label}
-                  disabled={disabled}
                   style={[
                     styles.budgetOption,
                     selected && styles.budgetOptionSelected,
-                    disabled && styles.budgetOptionDisabled,
                   ]}
                   onPress={() => setSelectedBudget(option)}
                   activeOpacity={0.85}
@@ -840,12 +835,7 @@ export default function HomeScreenPage() {
                     </AppGradient>
                   ) : (
                     <View style={styles.budgetOptionContent}>
-                      <Text
-                        style={[
-                          styles.budgetText,
-                          disabled && styles.budgetTextDisabled,
-                        ]}
-                      >
+                      <Text style={styles.budgetText}>
                         {option.label}
                       </Text>
                     </View>
@@ -854,7 +844,6 @@ export default function HomeScreenPage() {
               );
             })}
           </View>
-
           {selectedCategoryId.trim().length === 0 && (
             <Text style={styles.budgetHint}>
               Select a service first to use a budget filter.

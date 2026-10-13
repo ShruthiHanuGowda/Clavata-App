@@ -741,8 +741,8 @@ bellGradient: {
 },
 
 bellIcon: {
-  width: 18,
-  height: 20,
+  width: 16,
+  height: 18,
   alignItems: 'center',
   justifyContent: 'flex-start',
   position: 'relative',
