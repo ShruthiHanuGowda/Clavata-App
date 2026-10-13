@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+
 import {
   SafeAreaView,
   StyleSheet,
@@ -22,10 +23,12 @@ import {
 } from 'react-native-image-picker';
 
 import { MAX_PHOTO_SIZE } from '../../../constants/config';
+
 import {
   useUser,
   type User,
 } from '../../../context/UserContext';
+
 import { GRADIENTS } from '../../../constants/constants';
 import AppGradient from '../../../common/AppGradient';
 
@@ -36,7 +39,7 @@ import {
 } from '../../../graphql/queries';
 
 // =============================================================
-// GRAPHQL MUTATIONS
+// GRAPHQL
 // =============================================================
 
 const UPDATE_CUSTOMER_PROFILE = gql`
@@ -95,6 +98,38 @@ const VERIFY_PHONE_CHANGE_OTP = gql`
 `;
 
 // =============================================================
+// HELPERS
+// =============================================================
+
+const getValidatedNewPhoneNumber = (
+  value: string,
+): string | null => {
+  const digits = value.replace(/\D/g, '');
+
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return digits.slice(2);
+  }
+
+  if (digits.length === 10) {
+    return digits;
+  }
+
+  return null;
+};
+
+const normalizePhoneForComparison = (
+  value: string,
+): string => {
+  const digits = value.replace(/\D/g, '');
+
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return digits.slice(2);
+  }
+
+  return digits;
+};
+
+// =============================================================
 // SCREEN
 // =============================================================
 
@@ -102,10 +137,7 @@ export default function EditProfile() {
   const navigation = useNavigation<any>();
   const client = useApolloClient();
 
-  const {
-    currentUser,
-    setCurrentUser,
-  } = useUser();
+  const { currentUser, setCurrentUser } = useUser();
 
   const [fullName, setFullName] = useState(
     currentUser?.fullName || '',
@@ -115,7 +147,6 @@ export default function EditProfile() {
     currentUser?.phoneNumber || '',
   );
 
-  const [newPhoneNumber, setNewPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
 
@@ -128,6 +159,24 @@ export default function EditProfile() {
 
   const [saving, setSaving] = useState(false);
   const [phoneBusy, setPhoneBusy] = useState(false);
+
+  const originalName = currentUser?.fullName || '';
+  const originalPhone = currentUser?.phoneNumber || '';
+
+  const phoneChanged =
+    normalizePhoneForComparison(phoneNumber) !==
+    normalizePhoneForComparison(originalPhone);
+
+  const nameChanged =
+    fullName.trim() !== originalName.trim();
+
+  const hasChanges = useMemo(
+    () => nameChanged || phoneChanged || !!selectedPhoto,
+    [nameChanged, phoneChanged, selectedPhoto],
+  );
+
+  const firstLetter =
+    fullName.trim().charAt(0).toUpperCase() || 'U';
 
   // =========================================================
   // CHOOSE PHOTO
@@ -147,8 +196,7 @@ export default function EditProfile() {
       if (result.errorCode) {
         Alert.alert(
           'Photo unavailable',
-          result.errorMessage ||
-            'Unable to select a photo.',
+          result.errorMessage || 'Unable to select a photo.',
         );
         return;
       }
@@ -199,10 +247,7 @@ export default function EditProfile() {
 
       setProfileImageUri(asset.uri);
     } catch (error) {
-      console.error(
-        '[EditProfile] Choose photo error:',
-        error,
-      );
+      console.error('[EditProfile] Choose photo error:', error);
 
       Alert.alert(
         'Photo unavailable',
@@ -212,25 +257,22 @@ export default function EditProfile() {
   };
 
   // =========================================================
-  // UPLOAD PHOTO TO S3
+  // UPLOAD PROFILE PHOTO
+  // Uses the verified/current phone number.
   // =========================================================
 
   const uploadProfilePhoto = async (
     asset: Asset,
+    accountPhoneNumber: string,
   ): Promise<string> => {
-    if (
-      !currentUser?.userId ||
-      !currentUser.phoneNumber
-    ) {
+    if (!currentUser?.userId || !accountPhoneNumber) {
       throw new Error(
         'Account details are unavailable. Please sign in again.',
       );
     }
 
     if (!asset.uri) {
-      throw new Error(
-        'The selected photo has no file URI.',
-      );
+      throw new Error('The selected photo has no file URI.');
     }
 
     const contentType = (
@@ -251,31 +293,26 @@ export default function EditProfile() {
     const fileResponse = await fetch(asset.uri);
 
     if (!fileResponse.ok) {
-      throw new Error(
-        'Unable to read the selected photo.',
-      );
+      throw new Error('Unable to read the selected photo.');
     }
 
     const fileBlob = await fileResponse.blob();
     const fileSize = asset.fileSize ?? fileBlob.size;
 
-    if (
-      !fileSize ||
-      fileSize > MAX_PHOTO_SIZE
-    ) {
+    if (!fileSize || fileSize > MAX_PHOTO_SIZE) {
       throw new Error(
         'Please select an image smaller than 10 MB.',
       );
     }
 
-    // 1. Generate a presigned upload URL.
+    // 1. Generate a presigned URL.
 
     const uploadResponse = await client.mutate({
       mutation: GENERATE_CUSTOMER_PHOTO_UPLOAD_URL,
       variables: {
         input: {
           userId: currentUser.userId,
-          phoneNumber: currentUser.phoneNumber,
+          phoneNumber: accountPhoneNumber,
           contentType,
           fileSize,
           fileName,
@@ -284,8 +321,7 @@ export default function EditProfile() {
     });
 
     const uploadData =
-      uploadResponse.data
-        ?.generateCustomerPhotoUploadUrl;
+      uploadResponse.data?.generateCustomerPhotoUploadUrl;
 
     if (
       !uploadData?.success ||
@@ -300,44 +336,35 @@ export default function EditProfile() {
 
     // 2. Upload directly to S3.
 
-    const s3Response = await fetch(
-      uploadData.uploadUrl,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': contentType,
-        },
-        body: fileBlob,
+    const s3Response = await fetch(uploadData.uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': contentType,
       },
-    );
+      body: fileBlob,
+    });
 
     if (!s3Response.ok) {
-      console.error(
-        '[EditProfile] S3 upload status:',
-        s3Response.status,
-      );
-
       throw new Error(
         `Photo upload failed (HTTP ${s3Response.status}).`,
       );
     }
 
-    // 3. Save the private S3 key in the customer profile.
+    // 3. Save the photo key.
 
     const saveResponse = await client.mutate({
       mutation: UPDATE_CUSTOMER_PROFILE_PHOTO,
       variables: {
         input: {
           userId: currentUser.userId,
-          phoneNumber: currentUser.phoneNumber,
+          phoneNumber: accountPhoneNumber,
           key: uploadData.key,
         },
       },
     });
 
     const saveData =
-      saveResponse.data
-        ?.updateCustomerProfilePhoto;
+      saveResponse.data?.updateCustomerProfilePhoto;
 
     if (!saveData?.success) {
       throw new Error(
@@ -352,7 +379,7 @@ export default function EditProfile() {
       query: GET_CUSTOMER_PROFILE_PHOTO,
       variables: {
         userId: currentUser.userId,
-        phoneNumber: currentUser.phoneNumber,
+        phoneNumber: accountPhoneNumber,
       },
       fetchPolicy: 'network-only',
     });
@@ -360,10 +387,7 @@ export default function EditProfile() {
     const photoData =
       photoResponse.data?.getCustomerProfilePhoto;
 
-    if (
-      !photoData?.success ||
-      !photoData?.viewUrl
-    ) {
+    if (!photoData?.success || !photoData?.viewUrl) {
       throw new Error(
         photoData?.message ||
           'Photo saved, but its display URL could not be retrieved.',
@@ -374,7 +398,13 @@ export default function EditProfile() {
   };
 
   // =========================================================
-  // SAVE NAME AND PHOTO
+  // SAVE
+  //
+  // If phone changed:
+  //   First press: send OTP.
+  //   Second press: verify OTP, then save profile changes.
+  //
+  // The button label remains "Save".
   // =========================================================
 
   const handleSave = async () => {
@@ -383,10 +413,7 @@ export default function EditProfile() {
     const trimmedName = fullName.trim();
 
     if (!trimmedName) {
-      Alert.alert(
-        'Name required',
-        'Please enter your full name.',
-      );
+      Alert.alert('Name required', 'Please enter your full name.');
       return;
     }
 
@@ -398,10 +425,7 @@ export default function EditProfile() {
       return;
     }
 
-    if (
-      !currentUser?.userId ||
-      !currentUser.phoneNumber
-    ) {
+    if (!currentUser?.userId || !currentUser.phoneNumber) {
       Alert.alert(
         'Unable to update',
         'Your account details are unavailable. Please sign in again.',
@@ -409,27 +433,182 @@ export default function EditProfile() {
       return;
     }
 
+    if (!hasChanges) {
+      return;
+    }
+
+    let accountPhoneNumber = currentUser.phoneNumber;
+
+    // ---------------------------------------------------------
+    // PHONE CHANGE: VALIDATE AND SEND OTP
+    // ---------------------------------------------------------
+
+    if (phoneChanged) {
+      const normalizedNewPhone =
+        getValidatedNewPhoneNumber(phoneNumber);
+
+      if (
+        !normalizedNewPhone ||
+        !/^[6-9]\d{9}$/.test(normalizedNewPhone)
+      ) {
+        Alert.alert(
+          'Invalid phone number',
+          'Enter a valid 10-digit Indian mobile number.',
+        );
+        return;
+      }
+
+      const normalizedCurrentPhone =
+        getValidatedNewPhoneNumber(currentUser.phoneNumber);
+
+      if (normalizedNewPhone === normalizedCurrentPhone) {
+        Alert.alert(
+          'Same phone number',
+          'Enter a number different from your current number.',
+        );
+        return;
+      }
+
+      // First press: send OTP and show the OTP input inline.
+
+      if (!otpSent) {
+        setPhoneBusy(true);
+
+        try {
+          const response = await client.mutate({
+            mutation: SEND_PHONE_CHANGE_OTP,
+            variables: {
+              input: {
+                userId: currentUser.userId,
+                currentPhoneNumber: currentUser.phoneNumber,
+                newPhoneNumber: normalizedNewPhone,
+              },
+            },
+          });
+
+          const result =
+            response.data?.sendPhoneChangeOTP;
+
+          if (!result?.success) {
+            throw new Error(
+              result?.message || 'Unable to send OTP.',
+            );
+          }
+
+          setOtp('');
+          setOtpSent(true);
+        } catch (error: any) {
+          console.error(
+            '[EditProfile] Send OTP error:',
+            error?.message || error,
+          );
+
+          Alert.alert(
+            'Unable to send OTP',
+            error?.message ||
+              'Please check the number and try again.',
+          );
+        } finally {
+          setPhoneBusy(false);
+        }
+
+        return;
+      }
+
+      // Second press: verify OTP before updating the phone.
+
+      if (!/^\d{6}$/.test(otp.trim())) {
+        Alert.alert(
+          'Invalid OTP',
+          'Enter the 6-digit verification code.',
+        );
+        return;
+      }
+
+      setPhoneBusy(true);
+
+      try {
+        const response = await client.mutate({
+          mutation: VERIFY_PHONE_CHANGE_OTP,
+          variables: {
+            input: {
+              userId: currentUser.userId,
+              currentPhoneNumber: currentUser.phoneNumber,
+              newPhoneNumber: normalizedNewPhone,
+              otp: otp.trim(),
+            },
+          },
+        });
+
+        const result =
+          response.data?.verifyPhoneChangeOTP;
+
+        if (!result?.success || !result?.user?.phoneNumber) {
+          throw new Error(
+            result?.message ||
+              'Phone verification failed.',
+          );
+        }
+
+        accountPhoneNumber = result.user.phoneNumber;
+
+        // The backend has verified and changed the number.
+        // Update local account state immediately.
+
+        const verifiedUser: User = {
+          ...currentUser,
+          phoneNumber: accountPhoneNumber,
+          fullName:
+            result.user.fullName ?? currentUser.fullName,
+          updatedAt:
+            result.user.updatedAt ?? currentUser.updatedAt,
+        };
+
+        setCurrentUser(verifiedUser);
+        setPhoneNumber(accountPhoneNumber);
+        setOtp('');
+        setOtpSent(false);
+      } catch (error: any) {
+        console.error(
+          '[EditProfile] Verify OTP error:',
+          error?.message || error,
+        );
+
+        Alert.alert(
+          'Verification failed',
+          error?.message ||
+            'Unable to verify the code. Please try again.',
+        );
+
+        return;
+      } finally {
+        setPhoneBusy(false);
+      }
+    }
+
+    // ---------------------------------------------------------
+    // SAVE NAME AND/OR PHOTO
+    // ---------------------------------------------------------
+
     setSaving(true);
 
     try {
-      // Upload the photo before changing profile data.
-
       let savedPhotoUrl =
         currentUser.profileImageUrl ?? null;
 
       if (selectedPhoto) {
-        savedPhotoUrl =
-          await uploadProfilePhoto(selectedPhoto);
+        savedPhotoUrl = await uploadProfilePhoto(
+          selectedPhoto,
+          accountPhoneNumber,
+        );
       }
-
-      // Persist the name in the backend.
 
       const response = await client.mutate({
         mutation: UPDATE_CUSTOMER_PROFILE,
         variables: {
           input: {
             userId: currentUser.userId,
-            phoneNumber: currentUser.phoneNumber,
+            phoneNumber: accountPhoneNumber,
             fullName: trimmedName,
           },
         },
@@ -440,38 +619,32 @@ export default function EditProfile() {
 
       if (!result?.success || !result?.user) {
         throw new Error(
-          result?.message ||
-            'Unable to save your profile.',
+          result?.message || 'Unable to save your profile.',
         );
       }
 
-      // Preserve the existing typed User object.
-      // Do not spread the GraphQL user because its role
-      // may be inferred as a plain string.
-
       const updatedUser: User = {
         ...currentUser,
-        fullName:
-          result.user.fullName || trimmedName,
+        phoneNumber: accountPhoneNumber,
+        fullName: result.user.fullName || trimmedName,
         profileImageUrl: savedPhotoUrl,
         updatedAt:
-          result.user.updatedAt ??
-          currentUser.updatedAt,
+          result.user.updatedAt ?? currentUser.updatedAt,
       };
 
       setCurrentUser(updatedUser);
-
       setFullName(updatedUser.fullName);
+      setPhoneNumber(updatedUser.phoneNumber);
       setProfileImageUri(
         updatedUser.profileImageUrl ?? undefined,
       );
       setSelectedPhoto(null);
+      setOtp('');
+      setOtpSent(false);
 
       Alert.alert(
         'Profile updated',
-        selectedPhoto
-          ? 'Your name and profile photo have been saved.'
-          : 'Your name has been saved successfully.',
+        'Your changes have been saved successfully.',
         [
           {
             text: 'OK',
@@ -496,266 +669,10 @@ export default function EditProfile() {
   };
 
   // =========================================================
-  // VALIDATE NEW PHONE NUMBER
-  // =========================================================
-
-  const getValidatedNewPhoneNumber = (value: string) => {
-    const digitsOnly = value.replace(/\D/g, '');
-
-    // Accept either a 10-digit Indian mobile number
-    // or a 12-digit number beginning with country code 91.
-
-    if (
-      digitsOnly.length === 12 &&
-      digitsOnly.startsWith('91')
-    ) {
-      return digitsOnly.slice(2);
-    }
-
-    if (digitsOnly.length === 10) {
-      return digitsOnly;
-    }
-
-    return null;
-  };
-
-  // =========================================================
-  // SEND PHONE CHANGE OTP
-  // =========================================================
-
-  const handleSendPhoneOTP = async () => {
-    Keyboard.dismiss();
-
-    if (
-      !currentUser?.userId ||
-      !currentUser.phoneNumber
-    ) {
-      Alert.alert(
-        'Account unavailable',
-        'Please sign in again and retry.',
-      );
-      return;
-    }
-
-    const enteredPhone = newPhoneNumber.trim();
-    const normalizedNewPhone =
-      getValidatedNewPhoneNumber(enteredPhone);
-
-    if (!normalizedNewPhone) {
-      Alert.alert(
-        'Invalid phone number',
-        'Enter a valid 10-digit Indian mobile number.',
-      );
-      return;
-    }
-
-    if (!/^[6-9]\d{9}$/.test(normalizedNewPhone)) {
-      Alert.alert(
-        'Invalid phone number',
-        'Enter a valid Indian mobile number.',
-      );
-      return;
-    }
-
-    const currentDigits =
-      currentUser.phoneNumber.replace(/\D/g, '');
-
-    const normalizedCurrentPhone =
-      currentDigits.length === 12 &&
-      currentDigits.startsWith('91')
-        ? currentDigits.slice(2)
-        : currentDigits;
-
-    if (
-      normalizedNewPhone ===
-      normalizedCurrentPhone
-    ) {
-      Alert.alert(
-        'Same phone number',
-        'Enter a number different from your current number.',
-      );
-      return;
-    }
-
-    setPhoneBusy(true);
-
-    try {
-      const response = await client.mutate({
-        mutation: SEND_PHONE_CHANGE_OTP,
-        variables: {
-          input: {
-            userId: currentUser.userId,
-            currentPhoneNumber:
-              currentUser.phoneNumber,
-            newPhoneNumber: normalizedNewPhone,
-          },
-        },
-      });
-
-      const result =
-        response.data?.sendPhoneChangeOTP;
-
-      if (!result?.success) {
-        throw new Error(
-          result?.message ||
-            'Unable to send OTP.',
-        );
-      }
-
-      // Store the normalized number so the same number
-      // is sent when verifying the OTP.
-
-      setNewPhoneNumber(normalizedNewPhone);
-      setOtp('');
-      setOtpSent(true);
-
-      Alert.alert(
-        'OTP sent',
-        'Enter the verification code sent to your new phone number.',
-      );
-    } catch (error: any) {
-      console.error(
-        '[EditProfile] Send phone OTP error:',
-        error?.message || error,
-      );
-
-      Alert.alert(
-        'Unable to send OTP',
-        error?.message ||
-          'Please check the number and try again.',
-      );
-    } finally {
-      setPhoneBusy(false);
-    }
-  };
-
-  // =========================================================
-  // VERIFY OTP AND CHANGE PHONE NUMBER
-  // =========================================================
-
-  const handleVerifyPhoneOTP = async () => {
-    Keyboard.dismiss();
-
-    if (
-      !currentUser?.userId ||
-      !currentUser.phoneNumber
-    ) {
-      Alert.alert(
-        'Account unavailable',
-        'Please sign in again and retry.',
-      );
-      return;
-    }
-
-    const enteredOtp = otp.trim();
-    const normalizedNewPhone =
-      getValidatedNewPhoneNumber(newPhoneNumber);
-
-    if (!normalizedNewPhone) {
-      Alert.alert(
-        'Invalid phone number',
-        'Enter a valid new mobile number.',
-      );
-      return;
-    }
-
-    if (!/^\d{6}$/.test(enteredOtp)) {
-      Alert.alert(
-        'Invalid OTP',
-        'Enter the 6-digit verification code.',
-      );
-      return;
-    }
-
-    setPhoneBusy(true);
-
-    try {
-      const response = await client.mutate({
-        mutation: VERIFY_PHONE_CHANGE_OTP,
-        variables: {
-          input: {
-            userId: currentUser.userId,
-            currentPhoneNumber:
-              currentUser.phoneNumber,
-            newPhoneNumber: normalizedNewPhone,
-            otp: enteredOtp,
-          },
-        },
-      });
-
-      const result =
-        response.data?.verifyPhoneChangeOTP;
-
-      if (!result?.success || !result?.user) {
-        throw new Error(
-          result?.message ||
-            'Phone verification failed.',
-        );
-      }
-
-      const responseUser = result.user;
-      const verifiedPhoneNumber =
-        responseUser.phoneNumber;
-
-      if (!verifiedPhoneNumber) {
-        throw new Error(
-          'The server did not return the updated phone number.',
-        );
-      }
-
-      // Preserve the existing User role and other typed fields.
-      // Only update fields that this operation should change.
-
-      const updatedUser: User = {
-        ...currentUser,
-        phoneNumber: verifiedPhoneNumber,
-        fullName:
-          responseUser.fullName ??
-          currentUser.fullName,
-        updatedAt:
-          responseUser.updatedAt ??
-          currentUser.updatedAt,
-        profileImageUrl:
-          currentUser.profileImageUrl ?? null,
-      };
-
-      setCurrentUser(updatedUser);
-      setPhoneNumber(verifiedPhoneNumber);
-
-      setNewPhoneNumber('');
-      setOtp('');
-      setOtpSent(false);
-
-      Alert.alert(
-        'Phone number updated',
-        'Your new phone number has been verified and saved.',
-      );
-    } catch (error: any) {
-      console.error(
-        '[EditProfile] Verify phone OTP error:',
-        error?.message || error,
-      );
-
-      Alert.alert(
-        'Verification failed',
-        error?.message ||
-          'Unable to verify the code. Please try again.',
-      );
-    } finally {
-      setPhoneBusy(false);
-    }
-  };
-
-  // =========================================================
-  // AVATAR INITIAL
-  // =========================================================
-
-  const firstLetter =
-    fullName.trim().charAt(0).toUpperCase() || 'U';
-
-  // =========================================================
   // UI
   // =========================================================
+
+  const busy = saving || phoneBusy;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -775,7 +692,7 @@ export default function EditProfile() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
-            disabled={saving || phoneBusy}
+            disabled={busy}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Go back"
@@ -783,15 +700,13 @@ export default function EditProfile() {
             <Text style={styles.backText}>‹</Text>
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>
-            Edit Profile
-          </Text>
+          <Text style={styles.headerTitle}>Edit Profile</Text>
 
           <View style={styles.headerRight} />
         </View>
 
         <View style={styles.content}>
-          {/* PROFILE PHOTO */}
+          {/* PHOTO */}
 
           <View style={styles.photoSection}>
             <View style={styles.avatarWrap}>
@@ -820,7 +735,7 @@ export default function EditProfile() {
               <TouchableOpacity
                 style={styles.photoButton}
                 onPress={handleChoosePhoto}
-                disabled={saving || phoneBusy}
+                disabled={busy}
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel="Change profile photo"
@@ -836,7 +751,7 @@ export default function EditProfile() {
 
             <TouchableOpacity
               onPress={handleChoosePhoto}
-              disabled={saving || phoneBusy}
+              disabled={busy}
               activeOpacity={0.7}
             >
               <Text style={styles.changePhotoText}>
@@ -851,193 +766,187 @@ export default function EditProfile() {
             ) : null}
           </View>
 
-          {/* NAME AND CURRENT PHONE */}
+          {/* ONE SIMPLE FORM */}
 
-          <View style={styles.fieldCard}>
+          <View style={styles.formCard}>
+            {/* NAME */}
+
             <View style={styles.field}>
-              <Text style={styles.label}>
-                Full name
-              </Text>
+              <Text style={styles.label}>Full name</Text>
 
               <TextInput
                 value={fullName}
                 onChangeText={setFullName}
                 placeholder="Enter your full name"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#9690A8"
                 style={styles.input}
                 autoCapitalize="words"
                 autoCorrect={false}
                 returnKeyType="done"
                 maxLength={100}
-                editable={!saving && !phoneBusy}
+                editable={!busy}
+                accessibilityLabel="Full name"
               />
             </View>
 
-            <View
-              style={[
-                styles.field,
-                styles.lastField,
-              ]}
-            >
-              <Text style={styles.label}>
-                Current phone number
-              </Text>
+            {/* PHONE NUMBER */}
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Phone number</Text>
 
               <TextInput
                 value={phoneNumber}
-                editable={false}
-                style={[
-                  styles.input,
-                  styles.disabledInput,
-                ]}
+                onChangeText={value => {
+                  setPhoneNumber(value);
+
+                  // A changed number needs a fresh OTP.
+                  setOtp('');
+                  setOtpSent(false);
+                }}
+                placeholder="Enter mobile number"
+                placeholderTextColor="#9690A8"
+                style={styles.input}
+                keyboardType="phone-pad"
+                maxLength={13}
+                autoCorrect={false}
+                editable={!busy}
+                accessibilityLabel="Phone number"
               />
 
-              <Text style={styles.helperText}>
-                A new number must be verified before it is saved.
-              </Text>
+              {phoneChanged ? (
+                <Text style={styles.inlineHint}>
+                  Verify your new number with OTP to save changes
+                </Text>
+              ) : null}
+
+              {/* OTP APPEARS ONLY WHEN NEEDED */}
+
+              {phoneChanged && otpSent ? (
+                <View style={styles.otpContainer}>
+                  <Text style={styles.otpHint}>
+                    Verification code sent to your new number.
+                  </Text>
+
+                  <TextInput
+                    value={otp}
+                    onChangeText={value =>
+                      setOtp(
+                        value.replace(/\D/g, '').slice(0, 6),
+                      )
+                    }
+                    placeholder="Enter 6-digit OTP"
+                    placeholderTextColor="#9690A8"
+                    style={styles.input}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    editable={!busy}
+                    textContentType="oneTimeCode"
+                    accessibilityLabel="Verification code"
+                  />
+
+                  <TouchableOpacity
+                    disabled={busy}
+                    activeOpacity={0.7}
+                    style={styles.resendButton}
+                    onPress={async () => {
+                      const normalizedNewPhone =
+                        getValidatedNewPhoneNumber(phoneNumber);
+
+                      if (
+                        !normalizedNewPhone ||
+                        !/^[6-9]\d{9}$/.test(normalizedNewPhone)
+                      ) {
+                        Alert.alert(
+                          'Invalid phone number',
+                          'Enter a valid 10-digit Indian mobile number.',
+                        );
+                        return;
+                      }
+
+                      if (!currentUser?.userId || !currentUser.phoneNumber) {
+                        Alert.alert(
+                          'Account unavailable',
+                          'Please sign in again and retry.',
+                        );
+                        return;
+                      }
+
+                      setPhoneBusy(true);
+
+                      try {
+                        const response = await client.mutate({
+                          mutation: SEND_PHONE_CHANGE_OTP,
+                          variables: {
+                            input: {
+                              userId: currentUser.userId,
+                              currentPhoneNumber:
+                                currentUser.phoneNumber,
+                              newPhoneNumber: normalizedNewPhone,
+                            },
+                          },
+                        });
+
+                        const result =
+                          response.data?.sendPhoneChangeOTP;
+
+                        if (!result?.success) {
+                          throw new Error(
+                            result?.message || 'Unable to resend OTP.',
+                          );
+                        }
+
+                        setOtp('');
+                        Alert.alert(
+                          'OTP sent',
+                          'A new verification code has been sent.',
+                        );
+                      } catch (error: any) {
+                        Alert.alert(
+                          'Unable to resend OTP',
+                          error?.message ||
+                            'Please try again in a moment.',
+                        );
+                      } finally {
+                        setPhoneBusy(false);
+                      }
+                    }}
+                  >
+                    <Text style={styles.resendText}>
+                      Resend code
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
             </View>
           </View>
 
-          {/* SAVE NAME AND PHOTO */}
+          {/* THE ONLY SAVE BUTTON */}
 
           <TouchableOpacity
             onPress={handleSave}
             activeOpacity={0.85}
-            disabled={saving || phoneBusy}
+            disabled={!hasChanges || busy}
+            accessibilityRole="button"
+            accessibilityLabel="Save profile changes"
             style={[
               styles.saveButtonWrapper,
-              (saving || phoneBusy) &&
-                styles.saveButtonDisabled,
+              (!hasChanges || busy) && styles.saveButtonDisabled,
             ]}
-            accessibilityRole="button"
           >
             <AppGradient
               colors={[...GRADIENTS.SOFT_PURPLE]}
               style={styles.saveButton}
             >
-              {saving ? (
-                <View style={styles.savingRow}>
-                  <ActivityIndicator
-                    size="small"
-                    color="#FFFFFF"
-                  />
-                  <Text style={styles.saveButtonText}>
-                    Saving...
-                  </Text>
-                </View>
+              {busy ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#FFFFFF"
+                />
               ) : (
-                <Text style={styles.saveButtonText}>
-                  Save name and photo
-                </Text>
+                <Text style={styles.saveButtonText}>Save</Text>
               )}
             </AppGradient>
           </TouchableOpacity>
-
-          {/* CHANGE PHONE */}
-
-          <View style={styles.phoneCard}>
-            <Text style={styles.phoneSectionTitle}>
-              Change phone number
-            </Text>
-
-            <Text style={styles.phoneDescription}>
-              We'll send a verification code to your new number.
-            </Text>
-
-            <TextInput
-              value={newPhoneNumber}
-              onChangeText={(value) => {
-                setNewPhoneNumber(value);
-                setOtpSent(false);
-                setOtp('');
-              }}
-              placeholder="Enter new mobile number"
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-              keyboardType="phone-pad"
-              maxLength={13}
-              editable={!saving && !phoneBusy}
-              autoCorrect={false}
-            />
-
-            {!otpSent ? (
-              <TouchableOpacity
-                onPress={handleSendPhoneOTP}
-                disabled={saving || phoneBusy}
-                activeOpacity={0.85}
-                style={[
-                  styles.secondaryButton,
-                  (saving || phoneBusy) &&
-                    styles.saveButtonDisabled,
-                ]}
-              >
-                {phoneBusy ? (
-                  <ActivityIndicator
-                    color="#7650C8"
-                    size="small"
-                  />
-                ) : (
-                  <Text style={styles.secondaryButtonText}>
-                    Send verification code
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ) : (
-              <>
-                <Text style={styles.otpSentText}>
-                  Verification code sent. Enter the 6-digit code.
-                </Text>
-
-                <TextInput
-                  value={otp}
-                  onChangeText={(value) =>
-                    setOtp(
-                      value.replace(/\D/g, '').slice(0, 6),
-                    )
-                  }
-                  placeholder="Enter 6-digit OTP"
-                  placeholderTextColor="#9CA3AF"
-                  style={styles.input}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  editable={!phoneBusy}
-                  textContentType="oneTimeCode"
-                />
-
-                <TouchableOpacity
-                  onPress={handleVerifyPhoneOTP}
-                  disabled={phoneBusy || saving}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.secondaryButton,
-                    (phoneBusy || saving) &&
-                      styles.saveButtonDisabled,
-                  ]}
-                >
-                  {phoneBusy ? (
-                    <ActivityIndicator
-                      color="#7650C8"
-                      size="small"
-                    />
-                  ) : (
-                    <Text style={styles.secondaryButtonText}>
-                      Verify and update number
-                    </Text>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleSendPhoneOTP}
-                  disabled={phoneBusy || saving}
-                  style={styles.resendButton}
-                >
-                  <Text style={styles.resendButtonText}>
-                    Resend code
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -1051,28 +960,32 @@ export default function EditProfile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F8FB',
+    backgroundColor: '#F8F7FC',
   },
+
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 32,
+    paddingBottom: 30,
   },
+
   header: {
-    minHeight: 62,
+    minHeight: 60,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#EAE8F0',
+    borderBottomColor: '#E8E4F0',
   },
+
   backButton: {
     width: 38,
     height: 38,
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
+
   backText: {
     color: '#29243A',
     fontSize: 34,
@@ -1080,30 +993,36 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     marginTop: -3,
   },
+
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: '#211B2D',
-    fontSize: 19,
+    color: '#211C35',
+    fontSize: 18,
     fontWeight: '700',
   },
+
   headerRight: {
     width: 38,
   },
+
   content: {
     paddingHorizontal: 20,
-    paddingTop: 30,
+    paddingTop: 26,
   },
+
   photoSection: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 25,
   },
+
   avatarWrap: {
-    width: 108,
-    height: 108,
-    marginBottom: 12,
+    width: 104,
+    height: 104,
+    marginBottom: 10,
     position: 'relative',
   },
+
   avatar: {
     width: 100,
     height: 100,
@@ -1114,25 +1033,28 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#FFFFFF',
   },
+
   avatarImage: {
     width: '100%',
     height: '100%',
   },
+
   avatarText: {
     color: '#FFFFFF',
     fontSize: 36,
     fontWeight: '700',
   },
+
   photoButton: {
     position: 'absolute',
-    right: 2,
-    bottom: 4,
+    right: 0,
+    bottom: 1,
     width: 34,
     height: 34,
     borderRadius: 17,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5DDF8',
+    borderColor: '#E3D9FF',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 2,
@@ -1144,12 +1066,14 @@ const styles = StyleSheet.create({
       height: 2,
     },
   },
+
   cameraIcon: {
     width: 17,
     height: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   cameraTop: {
     position: 'absolute',
     top: -3,
@@ -1158,58 +1082,62 @@ const styles = StyleSheet.create({
     height: 4,
     borderTopLeftRadius: 2,
     borderTopRightRadius: 2,
-    backgroundColor: '#7650C8',
+    backgroundColor: '#7655D9',
   },
+
   cameraBody: {
     width: 17,
     height: 12,
     borderRadius: 3,
     borderWidth: 1.5,
-    borderColor: '#7650C8',
+    borderColor: '#7655D9',
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   cameraLens: {
     width: 6,
     height: 6,
     borderRadius: 3,
     borderWidth: 1.5,
-    borderColor: '#7650C8',
+    borderColor: '#7655D9',
   },
+
   changePhotoText: {
     color: '#6842B5',
     fontSize: 13,
     fontWeight: '600',
   },
+
   selectedPhotoText: {
-    marginTop: 6,
+    marginTop: 5,
     fontSize: 12,
-    color: '#6B7280',
+    color: '#777389',
   },
-  fieldCard: {
+
+  formCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 18,
     borderWidth: 1,
-    borderColor: '#ECEAF1',
-    elevation: 1,
+    borderColor: '#E8E4F0',
   },
+
   field: {
     marginBottom: 20,
   },
-  lastField: {
-    marginBottom: 0,
-  },
+
   label: {
     fontSize: 13,
     fontWeight: '600',
     color: '#494456',
     marginBottom: 8,
   },
+
   input: {
     minHeight: 48,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FBFAFE',
     borderWidth: 1,
     borderColor: '#E4E1EB',
     borderRadius: 10,
@@ -1218,92 +1146,62 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#242033',
   },
-  disabledInput: {
-    backgroundColor: '#F5F4F8',
-    borderColor: '#EFEDF3',
-    color: '#777282',
-  },
-  helperText: {
+
+  inlineHint: {
     marginTop: 7,
     fontSize: 12,
     lineHeight: 17,
-    color: '#777282',
+    color: '#6842B5',
   },
+
+  otpContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#F8F5FF',
+    borderWidth: 1,
+    borderColor: '#E3D9FF',
+    borderRadius: 12,
+  },
+
+  otpHint: {
+    marginBottom: 10,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#6842B5',
+  },
+
+  resendButton: {
+    alignSelf: 'flex-start',
+    paddingTop: 12,
+    paddingBottom: 2,
+  },
+
+  resendText: {
+    color: '#6842B5',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
   saveButtonWrapper: {
     marginTop: 20,
     borderRadius: 12,
     overflow: 'hidden',
   },
+
   saveButtonDisabled: {
-    opacity: 0.65,
+    opacity: 0.45,
   },
+
   saveButton: {
     minHeight: 50,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  savingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
+
   saveButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
   },
-  phoneCard: {
-    marginTop: 24,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#ECEAF1',
-  },
-  phoneSectionTitle: {
-    color: '#211B2D',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  phoneDescription: {
-    marginTop: 6,
-    marginBottom: 16,
-    color: '#777282',
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  secondaryButton: {
-    minHeight: 48,
-    marginTop: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#D8C9F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  secondaryButtonText: {
-    color: '#6842B5',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  otpSentText: {
-    marginTop: 14,
-    marginBottom: 10,
-    color: '#5F4A86',
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  resendButton: {
-    alignSelf: 'center',
-    padding: 12,
-  },
-  resendButtonText: {
-    color: '#6842B5',
-    fontSize: 13,
-    fontWeight: '600',
-  },
 });
-
