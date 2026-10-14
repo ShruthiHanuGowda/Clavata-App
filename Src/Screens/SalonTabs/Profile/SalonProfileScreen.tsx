@@ -823,7 +823,7 @@ export default function SalonProfileScreen() {
 
                 <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
-                        Business
+                        Business Account
                     </Text>
 
                     <MenuItem
@@ -888,10 +888,10 @@ export default function SalonProfileScreen() {
                     ACCOUNT
                 ================================================== */}
 
-                <View style={styles.profileCard}>
-                    <Text style={styles.sectionTitle}>
+                {/* <View style={styles.profileCard}> */}
+                    {/* <Text style={styles.sectionTitle}>
                         Account
-                    </Text>
+                    </Text> */}
 {/* 
                     <MenuItem
                         title="Edit Profile"
@@ -902,15 +902,15 @@ export default function SalonProfileScreen() {
                         }
                     /> */}
 
-                    <MenuItem
+                    {/* <MenuItem
                         title="Notifications"
                         onPress={() =>
                             handleAccountNavigation(
                                 'Notifications',
                             )
                         }
-                    />
-                </View>
+                    /> */}
+                {/* </View> */}
 
                 {/* ==================================================
                     SUPPORT
