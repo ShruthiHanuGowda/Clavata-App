@@ -803,16 +803,16 @@ const handleSelectSuggestion = useCallback(
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
-            <Text style={styles.stepLabel}>
+            {/* <Text style={styles.stepLabel}>
               SALON REGISTRATION · STEP 2
-            </Text>
+            </Text> */}
 
             <Text style={styles.title}>
-              Salon location
+              Your business location
             </Text>
 
             <Text style={styles.subtitle}>
-              Help customers find your salon easily.
+              Help customers find your company easily.
             </Text>
           </View>
         </View>
@@ -954,7 +954,7 @@ const handleSelectSuggestion = useCallback(
             <View style={styles.mapHeader}>
               <View style={styles.mapHeaderContent}>
                 <Text style={styles.sectionTitle}>
-                  Pin your salon
+                  Pin your business location
                 </Text>
 
                 <Text style={styles.helperText}>
