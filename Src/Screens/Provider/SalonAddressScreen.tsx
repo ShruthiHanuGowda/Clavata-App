@@ -11,6 +11,7 @@ import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   PermissionsAndroid,
   SafeAreaView,
@@ -103,7 +104,9 @@ const SalonAddressScreen: React.FC<Props> = ({
   route,
 }) => {
   const selectedAddressRef = useRef(false);
+
   const mapRef = useRef<MapView>(null);
+  const fullMapRef = useRef<MapView>(null);
 
   const debounceRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -139,6 +142,9 @@ const SalonAddressScreen: React.FC<Props> = ({
     useState(false);
 
   const [showSuggestions, setShowSuggestions] =
+    useState(false);
+
+  const [showFullMap, setShowFullMap] =
     useState(false);
 
   const [addressError, setAddressError] = useState('');
@@ -181,7 +187,7 @@ const SalonAddressScreen: React.FC<Props> = ({
     }
   }, [route?.params?.registrationData]);
 
-  // MAP ANIMATION
+  // MAP ANIMATION: KEEP BOTH MAPS SYNCHRONIZED
   const animateMap = useCallback((point: Coordinates) => {
     const region: Region = {
       ...point,
@@ -189,6 +195,35 @@ const SalonAddressScreen: React.FC<Props> = ({
     };
 
     mapRef.current?.animateToRegion(region, 450);
+    fullMapRef.current?.animateToRegion(region, 450);
+  }, []);
+
+  // OPEN FULL MAP AT THE CURRENTLY SELECTED COORDINATES
+  const handleOpenFullMap = useCallback(() => {
+    Keyboard.dismiss();
+
+    const query = searchText.trim();
+
+    if (query.length >= 3 && !selectedAddressRef.current) {
+      ++searchRequestIdRef.current;
+    }
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setLoadingSuggestions(false);
+    setSearchError('');
+
+    setShowFullMap(true);
+  }, [searchText]);
+
+  const handleCloseFullMap = useCallback(() => {
+    Keyboard.dismiss();
+    setShowFullMap(false);
   }, []);
 
   // APPLY REVERSE-GEOCODED ADDRESS
@@ -235,7 +270,11 @@ const SalonAddressScreen: React.FC<Props> = ({
       setAddressLine(previous => street || previous);
       setCity(resolvedCity);
       setState(address.state ?? '');
-      setPincode(address.postcode ?? '');
+      setPincode(
+        String(address.postcode ?? '')
+          .replace(/\D/g, '')
+          .slice(0, 6),
+      );
 
       setAddressError('');
       setLocationFound(true);
@@ -283,6 +322,7 @@ const SalonAddressScreen: React.FC<Props> = ({
           point.longitude,
         );
 
+        // Ignore stale responses from earlier pin movements.
         if (
           requestId !== locationRequestIdRef.current
         ) {
@@ -325,11 +365,10 @@ const SalonAddressScreen: React.FC<Props> = ({
       debounceRef.current = null;
     }
 
-    // Keep suggestions closed while a result is being selected
-    // and after a result has been selected.
     if (
       selectingSuggestion ||
-      selectedAddressRef.current
+      selectedAddressRef.current ||
+      showFullMap
     ) {
       ++searchRequestIdRef.current;
 
@@ -364,7 +403,6 @@ const SalonAddressScreen: React.FC<Props> = ({
       try {
         const results = await searchAddress(query);
 
-        // Ignore results from outdated requests.
         if (
           requestId !== searchRequestIdRef.current ||
           selectedAddressRef.current
@@ -414,132 +452,126 @@ const SalonAddressScreen: React.FC<Props> = ({
         debounceRef.current = null;
       }
     };
-  }, [searchText, selectingSuggestion]);
+  }, [
+    searchText,
+    selectingSuggestion,
+    showFullMap,
+  ]);
 
   // SELECT AUTOCOMPLETE RESULT
- 
-const handleSelectSuggestion = useCallback(
-  async (suggestion: AddressSuggestion) => {
-    // Lock autocomplete before changing any state.
-    selectedAddressRef.current = true;
+  const handleSelectSuggestion = useCallback(
+    async (suggestion: AddressSuggestion) => {
+      selectedAddressRef.current = true;
 
-    ++searchRequestIdRef.current;
+      ++searchRequestIdRef.current;
 
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-    }
-
-    // Invalidate older reverse-geocoding operations.
-    ++locationRequestIdRef.current;
-
-    Keyboard.dismiss();
-
-    setSelectingSuggestion(true);
-    setLoadingSuggestions(false);
-    setLoadingAddress(true);
-    setShowSuggestions(false);
-    setSuggestions([]);
-    setSearchError('');
-    setAddressError('');
-
-    try {
-      const place = await getPlaceDetails(
-        suggestion.placeId,
-      );
-
-      if (!place) {
-        selectedAddressRef.current = false;
-
-        Alert.alert(
-          'Location unavailable',
-          'We could not retrieve this address. Please try again.',
-        );
-
-        return;
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
       }
 
-      const latitude = place.latitude;
-      const longitude = place.longitude;
-
-      if (
-        !Number.isFinite(latitude) ||
-        !Number.isFinite(longitude) ||
-        latitude < -90 ||
-        latitude > 90 ||
-        longitude < -180 ||
-        longitude > 180
-      ) {
-        selectedAddressRef.current = false;
-
-        Alert.alert(
-          'Location unavailable',
-          'The selected address has invalid coordinates. Please choose another result.',
-        );
-
-        return;
-      }
-
-      const point: Coordinates = {
-        latitude,
-        longitude,
-      };
-
-      // Preserve the exact selected address in the search field.
-      setSearchText(
-        suggestion.description.trim(),
-      );
-
-      // Populate the form with structured address fields.
-      // Fall back to the selected description only if no
-      // separate street/address line is returned.
-      setAddressLine(
-        (place.addressLine || '').trim() ||
-          suggestion.description.trim(),
-      );
-
-      setCity((place.city || '').trim());
-      setState((place.state || '').trim());
-
-      setPincode(
-        String(place.pincode || '')
-          .replace(/\D/g, '')
-          .slice(0, 6),
-      );
-
-      // Update selected coordinates and map.
-      setCoordinates(point);
-      setLocationFound(true);
-      setAddressError('');
-
-      animateMap(point);
-
-      // Invalidate any older location lookups.
       ++locationRequestIdRef.current;
 
-      setSuggestions([]);
+      Keyboard.dismiss();
+
+      setSelectingSuggestion(true);
+      setLoadingSuggestions(false);
+      setLoadingAddress(true);
       setShowSuggestions(false);
+      setSuggestions([]);
       setSearchError('');
-    } catch (error) {
-      console.error(
-        'Place selection error:',
-        error,
-      );
+      setAddressError('');
 
-      selectedAddressRef.current = false;
+      try {
+        const place = await getPlaceDetails(
+          suggestion.placeId,
+        );
 
-      Alert.alert(
-        'Unable to select address',
-        'Please try selecting the address again.',
-      );
-    } finally {
-      setSelectingSuggestion(false);
-      setLoadingAddress(false);
-    }
-  },
-  [animateMap],
-);
+        if (!place) {
+          selectedAddressRef.current = false;
 
+          Alert.alert(
+            'Location unavailable',
+            'We could not retrieve this address. Please try again.',
+          );
+
+          return;
+        }
+
+        const latitude = place.latitude;
+        const longitude = place.longitude;
+
+        if (
+          !Number.isFinite(latitude) ||
+          !Number.isFinite(longitude) ||
+          latitude < -90 ||
+          latitude > 90 ||
+          longitude < -180 ||
+          longitude > 180
+        ) {
+          selectedAddressRef.current = false;
+
+          Alert.alert(
+            'Location unavailable',
+            'The selected address has invalid coordinates. Please choose another result.',
+          );
+
+          return;
+        }
+
+        const point: Coordinates = {
+          latitude,
+          longitude,
+        };
+
+        setSearchText(
+          suggestion.description.trim(),
+        );
+
+        setAddressLine(
+          (place.addressLine || '').trim() ||
+            suggestion.description.trim(),
+        );
+
+        setCity((place.city || '').trim());
+        setState((place.state || '').trim());
+
+        setPincode(
+          String(place.pincode || '')
+            .replace(/\D/g, '')
+            .slice(0, 6),
+        );
+
+        setCoordinates(point);
+        setLocationFound(true);
+        setAddressError('');
+
+        animateMap(point);
+
+        ++locationRequestIdRef.current;
+
+        setSuggestions([]);
+        setShowSuggestions(false);
+        setSearchError('');
+      } catch (error) {
+        console.error(
+          'Place selection error:',
+          error,
+        );
+
+        selectedAddressRef.current = false;
+
+        Alert.alert(
+          'Unable to select address',
+          'Please try selecting the address again.',
+        );
+      } finally {
+        setSelectingSuggestion(false);
+        setLoadingAddress(false);
+      }
+    },
+    [animateMap],
+  );
 
   // LOCATION PERMISSION
   const requestLocationPermission =
@@ -637,7 +669,7 @@ const handleSelectSuggestion = useCallback(
       updateSelectedLocation,
     ]);
 
-  // MAP INTERACTIONS
+  // FULL MAP: TAP TO SELECT A COORDINATE
   const handleMapPress = useCallback(
     (event: {
       nativeEvent: {
@@ -653,6 +685,7 @@ const handleSelectSuggestion = useCallback(
     [updateSelectedLocation],
   );
 
+  // FULL MAP: DRAG THE PIN
   const handleMarkerDragEnd = useCallback(
     (event: {
       nativeEvent: {
@@ -736,7 +769,6 @@ const handleSelectSuggestion = useCallback(
       longitude: coordinates.longitude,
     };
 
-    // Preserve all registration data from the previous step.
     const existingData =
       route?.params?.registrationData ?? {};
 
@@ -803,10 +835,6 @@ const handleSelectSuggestion = useCallback(
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
-            {/* <Text style={styles.stepLabel}>
-              SALON REGISTRATION · STEP 2
-            </Text> */}
-
             <Text style={styles.title}>
               Your business location
             </Text>
@@ -839,7 +867,6 @@ const handleSelectSuggestion = useCallback(
               <TextInput
                 value={searchText}
                 onChangeText={value => {
-                  // Editing explicitly unlocks autocomplete.
                   selectedAddressRef.current = false;
 
                   ++searchRequestIdRef.current;
@@ -858,8 +885,10 @@ const handleSelectSuggestion = useCallback(
                   }
                 }}
                 onFocus={() => {
-                  // Do not reopen results for a selected address.
-                  if (selectedAddressRef.current) {
+                  if (
+                    selectedAddressRef.current ||
+                    showFullMap
+                  ) {
                     setShowSuggestions(false);
                     setSuggestions([]);
                     return;
@@ -894,7 +923,7 @@ const handleSelectSuggestion = useCallback(
                     style={[
                       styles.suggestionItem,
                       index === suggestions.length - 1 &&
-                      styles.lastSuggestion,
+                        styles.lastSuggestion,
                     ]}
                     onPress={() =>
                       void handleSelectSuggestion(item)
@@ -949,7 +978,7 @@ const handleSelectSuggestion = useCallback(
             </TouchableOpacity>
           </View>
 
-          {/* MAP */}
+          {/* COMPACT MAP PREVIEW */}
           <View style={styles.card}>
             <View style={styles.mapHeader}>
               <View style={styles.mapHeaderContent}>
@@ -958,7 +987,8 @@ const handleSelectSuggestion = useCallback(
                 </Text>
 
                 <Text style={styles.helperText}>
-                  Move the pin to the exact entrance or building.
+                  Open the map to zoom in and select the exact
+                  entrance or building.
                 </Text>
               </View>
 
@@ -975,36 +1005,63 @@ const handleSelectSuggestion = useCallback(
                 provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 initialRegion={{
-                  ...DEFAULT_COORDINATES,
+                  ...coordinates,
                   ...MAP_DELTA,
                 }}
-                onPress={handleMapPress}
                 showsUserLocation
                 showsMyLocationButton={false}
                 loadingEnabled
                 toolbarEnabled={false}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                rotateEnabled={false}
+                pitchEnabled={false}
               >
                 <Marker
                   coordinate={coordinates}
-                  draggable
-                  onDragEnd={handleMarkerDragEnd}
                   title="Your salon"
-                  description="Drag to adjust the salon location"
+                  description="Selected salon location"
                   pinColor="red"
                 />
               </MapView>
+
+              <TouchableOpacity
+                style={styles.expandMapOverlay}
+                activeOpacity={0.85}
+                onPress={handleOpenFullMap}
+                accessibilityRole="button"
+                accessibilityLabel="Open full-screen map"
+              >
+                <View style={styles.expandMapButton}>
+                  <Text style={styles.expandMapIcon}>
+                    ⛶
+                  </Text>
+
+                  <Text style={styles.expandMapText}>
+                    Select exact location
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.mapLocationButton}
                 onPress={() =>
                   void handleUseCurrentLocation()
                 }
+                disabled={loadingCurrentLocation}
                 accessibilityRole="button"
-                accessibilityLabel="Move map to current location"
+                accessibilityLabel="Use my current location"
               >
-                <Text style={styles.mapLocationButtonText}>
-                  ◎
-                </Text>
+                {loadingCurrentLocation ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={COLORS.primary}
+                  />
+                ) : (
+                  <Text style={styles.mapLocationButtonText}>
+                    ◎
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -1029,8 +1086,8 @@ const handleSelectSuggestion = useCallback(
               </View>
             ) : (
               <Text style={styles.mapHint}>
-                Tap the map or drag the pin to select your
-                location.
+                Tap “Select exact location” to adjust the pin
+                on a larger map.
               </Text>
             )}
           </View>
@@ -1150,6 +1207,183 @@ const handleSelectSuggestion = useCallback(
             nearby.
           </Text>
         </ScrollView>
+
+        {/* FULL-SCREEN INTERACTIVE MAP */}
+        <Modal
+          visible={showFullMap}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={handleCloseFullMap}
+          onShow={() => {
+            fullMapRef.current?.animateToRegion(
+              {
+                ...coordinates,
+                ...MAP_DELTA,
+              },
+              250,
+            );
+          }}
+          statusBarTranslucent={false}
+        >
+          <SafeAreaView style={styles.fullMapScreen}>
+            <StatusBar
+              barStyle="dark-content"
+              backgroundColor="#FFFFFF"
+            />
+
+            {/* FULL MAP HEADER */}
+            <View style={styles.fullMapHeader}>
+              <TouchableOpacity
+                style={styles.fullMapBackButton}
+                onPress={handleCloseFullMap}
+                accessibilityRole="button"
+                accessibilityLabel="Close full-screen map"
+              >
+                <Text style={styles.fullMapBackText}>
+                  ‹
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.fullMapHeaderContent}>
+                <Text style={styles.fullMapTitle}>
+                  Pin your salon
+                </Text>
+
+                <Text style={styles.fullMapSubtitle}>
+                  Zoom in and place the pin at your salon
+                  entrance.
+                </Text>
+              </View>
+            </View>
+
+            {/* FULL MAP BODY */}
+            <View style={styles.fullMapBody}>
+              <MapView
+                ref={fullMapRef}
+                provider={PROVIDER_GOOGLE}
+                style={styles.fullMap}
+                initialRegion={{
+                  ...coordinates,
+                  ...MAP_DELTA,
+                }}
+                onPress={handleMapPress}
+                showsUserLocation
+                showsMyLocationButton={false}
+                loadingEnabled
+                toolbarEnabled={false}
+                moveOnMarkerPress={false}
+              >
+                <Marker
+                  coordinate={coordinates}
+                  draggable
+                  onDragEnd={handleMarkerDragEnd}
+                  title="Your salon"
+                  description="Drag to adjust the exact location"
+                  pinColor="red"
+                />
+              </MapView>
+
+              <View
+                pointerEvents="none"
+                style={styles.mapInstructionCard}
+              >
+                <Text style={styles.mapInstructionTitle}>
+                  Adjust your location
+                </Text>
+
+                <Text style={styles.mapInstructionText}>
+                  Tap the map or drag the red pin to the
+                  exact entrance.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.fullMapCurrentLocation}
+                onPress={() =>
+                  void handleUseCurrentLocation()
+                }
+                disabled={loadingCurrentLocation}
+                accessibilityRole="button"
+                accessibilityLabel="Move pin to current location"
+              >
+                {loadingCurrentLocation ? (
+                  <ActivityIndicator
+                    color={COLORS.primary}
+                  />
+                ) : (
+                  <Text
+                    style={
+                      styles.fullMapCurrentLocationIcon
+                    }
+                  >
+                    ◎
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* FULL MAP FOOTER */}
+            <View style={styles.fullMapFooter}>
+              <View style={styles.fullMapCoordinateRow}>
+                <View style={styles.fullMapPinBadge}>
+                  <Text style={styles.fullMapPinBadgeText}>
+                    ⌖
+                  </Text>
+                </View>
+
+                <View style={styles.fullMapCoordinateContent}>
+                  <Text style={styles.fullMapCoordinateTitle}>
+                    Selected coordinates
+                  </Text>
+
+                  <Text style={styles.fullMapCoordinateText}>
+                    {coordinates.latitude.toFixed(6)},{' '}
+                    {coordinates.longitude.toFixed(6)}
+                  </Text>
+                </View>
+              </View>
+
+              {loadingAddress ? (
+                <View style={styles.fullMapLoading}>
+                  <ActivityIndicator
+                    color={COLORS.primary}
+                  />
+
+                  <Text style={styles.fullMapLoadingText}>
+                    Updating address details…
+                  </Text>
+                </View>
+              ) : null}
+
+              {!!addressError ? (
+                <Text style={styles.fullMapError}>
+                  {addressError}
+                </Text>
+              ) : null}
+
+              <TouchableOpacity
+                style={styles.fullMapConfirmButton}
+                activeOpacity={0.85}
+                onPress={handleCloseFullMap}
+                accessibilityRole="button"
+                accessibilityLabel="Confirm selected salon location"
+              >
+                <AppGradient
+                  colors={[...GRADIENTS.SOFT_PURPLE]}
+                  style={styles.fullMapConfirmGradient}
+                >
+                  <Text style={styles.fullMapConfirmText}>
+                    Confirm this location
+                  </Text>
+
+                  <Text style={styles.fullMapConfirmArrow}>
+                    ✓
+                  </Text>
+                </AppGradient>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -1159,10 +1393,12 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
+
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1170,6 +1406,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 18,
   },
+
   backButton: {
     width: 42,
     height: 42,
@@ -1181,39 +1418,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 13,
   },
+
   backButtonText: {
     color: COLORS.text,
     fontSize: 30,
     lineHeight: 32,
     marginTop: -3,
   },
+
   headerContent: {
     flex: 1,
     paddingTop: 2,
   },
-  stepLabel: {
-    color: COLORS.primary,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.1,
-    marginBottom: 6,
-  },
+
   title: {
     color: COLORS.text,
     fontSize: 25,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
+
   subtitle: {
     color: COLORS.muted,
     fontSize: 13,
     lineHeight: 19,
     marginTop: 5,
   },
+
   scrollContent: {
     paddingHorizontal: 18,
     paddingBottom: 32,
   },
+
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: 20,
@@ -1230,11 +1466,13 @@ const styles = StyleSheet.create({
       height: 3,
     },
   },
+
   sectionTitle: {
     color: COLORS.text,
     fontSize: 16,
     fontWeight: '800',
   },
+
   helperText: {
     color: COLORS.muted,
     fontSize: 12,
@@ -1242,6 +1480,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginBottom: 13,
   },
+
   searchContainer: {
     minHeight: 52,
     flexDirection: 'row',
@@ -1252,11 +1491,13 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     paddingHorizontal: 12,
   },
+
   searchIcon: {
     fontSize: 25,
     color: COLORS.primary,
     marginRight: 9,
   },
+
   searchInput: {
     flex: 1,
     minHeight: 48,
@@ -1264,6 +1505,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     paddingVertical: 10,
   },
+
   suggestionsContainer: {
     marginTop: 7,
     borderWidth: 1,
@@ -1272,6 +1514,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: COLORS.surface,
   },
+
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1280,9 +1523,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0EDF5',
   },
+
   lastSuggestion: {
     borderBottomWidth: 0,
   },
+
   suggestionIconContainer: {
     width: 31,
     height: 31,
@@ -1292,16 +1537,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
+
   suggestionIcon: {
     color: COLORS.primary,
     fontSize: 20,
   },
+
   suggestionText: {
     flex: 1,
     color: COLORS.text,
     fontSize: 12,
     lineHeight: 18,
   },
+
   currentLocationButton: {
     minHeight: 45,
     marginTop: 11,
@@ -1312,23 +1560,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+
   currentLocationIcon: {
     fontSize: 20,
     color: COLORS.primary,
   },
+
   currentLocationText: {
     color: COLORS.primary,
     fontSize: 13,
     fontWeight: '700',
   },
+
   mapHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
+
   mapHeaderContent: {
     flex: 1,
   },
+
   mapBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -1336,21 +1589,65 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
     marginLeft: 8,
   },
+
   mapBadgeText: {
     color: COLORS.primary,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
+
   mapContainer: {
-    height: 245,
+    height: 220,
     borderRadius: 15,
     overflow: 'hidden',
     backgroundColor: '#EEEAF6',
   },
+
   map: {
     flex: 1,
   },
+
+  expandMapOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(30, 20, 55, 0.08)',
+  },
+
+  expandMapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 17,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    elevation: 4,
+    shadowColor: '#211C35',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+  },
+
+  expandMapIcon: {
+    color: COLORS.primary,
+    fontSize: 20,
+    fontWeight: '700',
+  },
+
+  expandMapText: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
   mapLocationButton: {
     position: 'absolute',
     right: 12,
@@ -1365,42 +1662,50 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     elevation: 3,
   },
+
   mapLocationButtonText: {
     color: COLORS.primary,
     fontSize: 25,
   },
+
   mapHint: {
     color: COLORS.muted,
     fontSize: 11,
     lineHeight: 17,
     marginTop: 10,
   },
+
   loadingAddress: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 11,
     gap: 8,
   },
+
   loadingAddressText: {
     color: COLORS.muted,
     fontSize: 12,
   },
+
   locationSuccess: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 11,
     gap: 7,
   },
+
   successIcon: {
     color: COLORS.success,
     fontWeight: '900',
     fontSize: 15,
   },
+
   successText: {
     color: COLORS.success,
     fontSize: 12,
     fontWeight: '700',
   },
+
   fieldLabel: {
     color: COLORS.text,
     fontSize: 12,
@@ -1408,6 +1713,7 @@ const styles = StyleSheet.create({
     marginBottom: 7,
     marginTop: 12,
   },
+
   input: {
     minHeight: 48,
     paddingHorizontal: 13,
@@ -1419,9 +1725,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFEFF',
     fontSize: 13,
   },
+
   multilineInput: {
     minHeight: 82,
   },
+
   errorText: {
     color: COLORS.error,
     fontSize: 12,
@@ -1429,28 +1737,33 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 5,
   },
+
   coordinateInfo: {
     marginTop: 16,
     padding: 12,
     borderRadius: 12,
     backgroundColor: '#F8F6FC',
   },
+
   coordinateLabel: {
     color: COLORS.muted,
     fontSize: 10,
     fontWeight: '700',
     marginBottom: 5,
   },
+
   coordinateValue: {
     color: COLORS.text,
     fontSize: 12,
     fontWeight: '600',
   },
+
   confirmButton: {
     borderRadius: 16,
     overflow: 'hidden',
     marginTop: 20,
   },
+
   confirmButtonGradient: {
     minHeight: 56,
     paddingHorizontal: 20,
@@ -1458,20 +1771,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   confirmButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
     textAlign: 'center',
   },
+
   confirmButtonArrow: {
     marginBottom: 6,
     color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '600',
     position: 'absolute',
-    right: 65,
+    right: 24,
   },
+
   footerNote: {
     color: COLORS.muted,
     fontSize: 11,
@@ -1479,6 +1795,212 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 13,
     paddingHorizontal: 14,
+  },
+
+  // FULL-SCREEN MAP STYLES
+  fullMapScreen: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  fullMapHeader: {
+    minHeight: 82,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+
+  fullMapBackButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primaryLight,
+    marginRight: 12,
+  },
+
+  fullMapBackText: {
+    fontSize: 31,
+    lineHeight: 34,
+    color: COLORS.primary,
+    marginTop: -3,
+  },
+
+  fullMapHeaderContent: {
+    flex: 1,
+  },
+
+  fullMapTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+
+  fullMapSubtitle: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: COLORS.muted,
+    marginTop: 3,
+  },
+
+  fullMapBody: {
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: '#EEEAF6',
+  },
+
+  fullMap: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  mapInstructionCard: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    right: 14,
+    padding: 13,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    elevation: 3,
+  },
+
+  mapInstructionTitle: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  mapInstructionText: {
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 3,
+  },
+
+  fullMapCurrentLocation: {
+    position: 'absolute',
+    right: 16,
+    bottom: 22,
+    width: 49,
+    height: 49,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    elevation: 4,
+    shadowColor: '#211C35',
+    shadowOpacity: 0.12,
+    shadowRadius: 7,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+  },
+
+  fullMapCurrentLocationIcon: {
+    color: COLORS.primary,
+    fontSize: 27,
+  },
+
+  fullMapFooter: {
+    paddingHorizontal: 18,
+    paddingTop: 15,
+    paddingBottom: Platform.OS === 'android' ? 18 : 12,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+
+  fullMapCoordinateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  fullMapPinBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primaryLight,
+    marginRight: 11,
+  },
+
+  fullMapPinBadgeText: {
+    color: COLORS.primary,
+    fontSize: 24,
+  },
+
+  fullMapCoordinateContent: {
+    flex: 1,
+  },
+
+  fullMapCoordinateTitle: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  fullMapCoordinateText: {
+    color: COLORS.muted,
+    fontSize: 12,
+    marginTop: 4,
+  },
+
+  fullMapLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+
+  fullMapLoadingText: {
+    color: COLORS.muted,
+    fontSize: 12,
+  },
+
+  fullMapError: {
+    color: COLORS.error,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 10,
+  },
+
+  fullMapConfirmButton: {
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginTop: 15,
+  },
+
+  fullMapConfirmGradient: {
+    minHeight: 53,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  fullMapConfirmText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  fullMapConfirmArrow: {
+    position: 'absolute',
+    right: 20,
+    color: '#FFFFFF',
+    fontSize: 19,
+    fontWeight: '800',
   },
 });
 
