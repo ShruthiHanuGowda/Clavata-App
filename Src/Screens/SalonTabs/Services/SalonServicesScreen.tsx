@@ -1,3 +1,4 @@
+
 import React, {
   useCallback,
   useEffect,
@@ -19,11 +20,7 @@ import {
   View,
 } from 'react-native';
 
-import {
-  gql,
-  useMutation,
-  useQuery,
-} from '@apollo/client';
+import { gql, useMutation, useQuery } from '@apollo/client';
 
 import { useUser } from '../../../context/UserContext';
 import AppGradient from '../../../common/AppGradient';
@@ -152,8 +149,14 @@ const GET_ACTIVE_CATEGORIES = gql`
 `;
 
 const GET_ACTIVE_SUBCATEGORIES = gql`
-  query GetActiveServiceSubcategories {
-    subcategories(status: ACTIVE) {
+  query GetActiveServiceSubcategories(
+    $categoryId: ID!
+    $status: SubcategoryStatus
+  ) {
+    subcategories(
+      categoryId: $categoryId
+      status: $status
+    ) {
       success
       subcategories {
         subcategoryId
@@ -196,6 +199,9 @@ const blankService = (): ServiceDraft => ({
 const normalize = (value?: string | null) =>
   String(value ?? '').trim().replace(/\s+/g, ' ');
 
+const normalizedKey = (value?: string | null) =>
+  normalize(value).toLocaleLowerCase();
+
 const money = (value: number) =>
   `₹${Number(value).toLocaleString('en-IN', {
     maximumFractionDigits: 2,
@@ -205,32 +211,20 @@ export default function SalonServicesScreen() {
   const { currentUser } = useUser();
   const salonId = currentUser?.salonId;
 
-  const [selectedCategory, setSelectedCategory] =
-    useState('ALL');
-
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [search, setSearch] = useState('');
-
   const [draft, setDraft] = useState<ServiceSelection[]>([]);
-
   const [draftReady, setDraftReady] = useState(false);
-
   const [modalVisible, setModalVisible] = useState(false);
-
-  const [editingIndex, setEditingIndex] =
-    useState<number | null>(null);
-
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [serviceDraft, setServiceDraft] =
     useState<ServiceDraft>(blankService());
 
   const [categoryEditorVisible, setCategoryEditorVisible] =
     useState(false);
-
   const [categoryToRename, setCategoryToRename] =
     useState<string | null>(null);
-
-  const [categoryNameDraft, setCategoryNameDraft] =
-    useState('');
-
+  const [categoryNameDraft, setCategoryNameDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const {
@@ -257,23 +251,34 @@ export default function SalonServicesScreen() {
   const {
     data: categoryResult,
     loading: categoriesLoading,
+    error: categoriesError,
+    refetch: refetchCategories,
   } = useQuery(GET_ACTIVE_CATEGORIES, {
     fetchPolicy: 'cache-and-network',
   });
 
+  // Fetch subcategories only after a category has been selected.
+  // The query refreshes when the selected category changes.
   const {
     data: subcategoryResult,
     loading: subcategoriesLoading,
+    error: subcategoriesError,
+    refetch: refetchSubcategories,
   } = useQuery(GET_ACTIVE_SUBCATEGORIES, {
-    fetchPolicy: 'cache-and-network',
+    variables: {
+      categoryId: serviceDraft.categoryId,
+      status: 'ACTIVE',
+    },
+    skip: !modalVisible || !serviceDraft.categoryId,
+    fetchPolicy: 'network-only',
+    notifyOnNetworkStatusChange: true,
   });
 
   const [submitProfileChange] = useMutation(
     SUBMIT_SALON_PROFILE_CHANGE,
   );
 
-  const salon: SalonProfile | undefined =
-    salonResult?.getSalon;
+  const salon: SalonProfile | undefined = salonResult?.getSalon;
 
   const pendingChange =
     pendingResult?.getPendingSalonProfileChange;
@@ -282,26 +287,53 @@ export default function SalonServicesScreen() {
   const isLocked = isPending || submitting;
 
   const categories: CategoryOption[] = useMemo(() => {
-    const result =
-      categoryResult?.categories?.categories ?? [];
+    const result = categoryResult?.categories?.categories ?? [];
 
-    return result.map((item: any) => ({
-      id: String(item.categoryId),
-      name: String(item.name),
-    }));
+    return result
+      .filter((item: any) => item?.status === 'ACTIVE')
+      .map((item: any) => ({
+        id: String(item.categoryId),
+        name: String(item.name),
+      }));
   }, [categoryResult]);
 
   const subcategories: SubcategoryOption[] = useMemo(() => {
-    const result =
-      subcategoryResult?.subcategories?.subcategories ?? [];
+    const result = subcategoryResult?.subcategories?.subcategories ?? [];
 
-    return result.map((item: any) => ({
-      subcategoryId: String(item.subcategoryId),
-      categoryId: String(item.categoryId),
-      name: String(item.name),
-      audiences: item.audiences ?? [],
-    }));
+    return result
+      .filter((item: any) => item?.status === 'ACTIVE')
+      .map((item: any) => ({
+        subcategoryId: String(item.subcategoryId),
+        categoryId: String(item.categoryId),
+        name: String(item.name),
+        audiences: Array.isArray(item.audiences)
+          ? item.audiences
+          : [],
+      }));
   }, [subcategoryResult]);
+
+  // Defensively filter by category and audience on the client as well.
+  const visibleSubcategories = useMemo(() => {
+    if (!serviceDraft.categoryId) {
+      return [];
+    }
+
+    return subcategories.filter(item => {
+      const sameCategory =
+        String(item.categoryId) ===
+        String(serviceDraft.categoryId);
+
+      const supportsAudience =
+        item.audiences.length === 0 ||
+        item.audiences.includes(serviceDraft.audience);
+
+      return sameCategory && supportsAudience;
+    });
+  }, [
+    subcategories,
+    serviceDraft.categoryId,
+    serviceDraft.audience,
+  ]);
 
   useEffect(() => {
     if (!salon || draftReady) {
@@ -311,6 +343,11 @@ export default function SalonServicesScreen() {
     setDraft(
       (salon.serviceSelections ?? []).map(item => ({
         ...item,
+        categoryId: String(item.categoryId ?? ''),
+        categoryName: String(item.categoryName ?? ''),
+        subcategoryId: String(item.subcategoryId ?? ''),
+        subcategoryName: String(item.subcategoryName ?? ''),
+        serviceName: String(item.serviceName ?? ''),
         price: Number(item.price),
         duration: Number(item.duration),
       })),
@@ -334,7 +371,7 @@ export default function SalonServicesScreen() {
   }, [draft]);
 
   const filteredServices = useMemo(() => {
-    const query = normalize(search).toLowerCase();
+    const query = normalizedKey(search);
 
     return draft
       .map((item, index) => ({ ...item, _index: index }))
@@ -345,9 +382,9 @@ export default function SalonServicesScreen() {
 
         const matchesSearch =
           !query ||
-          item.serviceName.toLowerCase().includes(query) ||
-          item.categoryName.toLowerCase().includes(query) ||
-          item.subcategoryName.toLowerCase().includes(query);
+          normalizedKey(item.serviceName).includes(query) ||
+          normalizedKey(item.categoryName).includes(query) ||
+          normalizedKey(item.subcategoryName).includes(query);
 
         return matchesCategory && matchesSearch;
       })
@@ -362,6 +399,12 @@ export default function SalonServicesScreen() {
         return a.serviceName.localeCompare(b.serviceName);
       });
   }, [draft, search, selectedCategory]);
+
+  const closeServiceModal = useCallback(() => {
+    setModalVisible(false);
+    setEditingIndex(null);
+    setServiceDraft(blankService());
+  }, []);
 
   const openAddService = useCallback(() => {
     if (isLocked) {
@@ -398,18 +441,25 @@ export default function SalonServicesScreen() {
   );
 
   const chooseCategory = (category: CategoryOption) => {
-    setServiceDraft(current => ({
-      ...current,
-      categoryId: category.id,
-      categoryName: category.name,
-      subcategoryId: '',
-      subcategoryName: '',
-    }));
+    setServiceDraft(current => {
+      if (current.categoryId === category.id) {
+        return {
+          ...current,
+          categoryName: category.name,
+        };
+      }
+
+      return {
+        ...current,
+        categoryId: category.id,
+        categoryName: category.name,
+        subcategoryId: '',
+        subcategoryName: '',
+      };
+    });
   };
 
-  const chooseSubcategory = (
-    subcategory: SubcategoryOption,
-  ) => {
+  const chooseSubcategory = (subcategory: SubcategoryOption) => {
     const category = categories.find(
       item => item.id === subcategory.categoryId,
     );
@@ -444,15 +494,40 @@ export default function SalonServicesScreen() {
       return;
     }
 
+    // Verify the chosen subcategory belongs to the selected category
+    // and is compatible with the selected audience.
+    const selectedSubcategory = subcategories.find(
+      item =>
+        item.subcategoryId === serviceDraft.subcategoryId &&
+        item.categoryId === serviceDraft.categoryId,
+    );
+
+    if (!selectedSubcategory) {
+      Alert.alert(
+        'Select a valid subcategory',
+        'This subcategory is no longer available for the selected category. Please select a category and subcategory again.',
+      );
+      return;
+    }
+
+    const audienceSupported =
+      selectedSubcategory.audiences.length === 0 ||
+      selectedSubcategory.audiences.includes(serviceDraft.audience);
+
+    if (!audienceSupported) {
+      Alert.alert(
+        'Audience not supported',
+        'The selected subcategory is not available for this audience. Please choose another subcategory.',
+      );
+      return;
+    }
+
     if (
       serviceDraft.price.trim() === '' ||
       !Number.isFinite(price) ||
       price < 0
     ) {
-      Alert.alert(
-        'Invalid price',
-        'Enter a valid service price.',
-      );
+      Alert.alert('Invalid price', 'Enter a valid service price.');
       return;
     }
 
@@ -468,11 +543,36 @@ export default function SalonServicesScreen() {
       return;
     }
 
+    // Ignore the current item when editing, but reject duplicates
+    // across the rest of the draft.
+    const duplicateExists = draft.some((item, index) => {
+      if (editingIndex !== null && index === editingIndex) {
+        return false;
+      }
+
+      return (
+        normalizedKey(item.categoryId) ===
+          normalizedKey(serviceDraft.categoryId) &&
+        normalizedKey(item.subcategoryId) ===
+          normalizedKey(serviceDraft.subcategoryId) &&
+        item.audience === serviceDraft.audience &&
+        normalizedKey(item.serviceName) === normalizedKey(name)
+      );
+    });
+
+    if (duplicateExists) {
+      Alert.alert(
+        'Service already added',
+        `"${name}" already exists under this category, subcategory, and audience. Edit the existing service instead, or use a different service name.`,
+      );
+      return;
+    }
+
     const newItem: ServiceSelection = {
       categoryId: serviceDraft.categoryId,
       categoryName: serviceDraft.categoryName,
       subcategoryId: serviceDraft.subcategoryId,
-      subcategoryName: serviceDraft.subcategoryName,
+      subcategoryName: selectedSubcategory.name,
       serviceName: name,
       audience: serviceDraft.audience,
       price,
@@ -489,9 +589,7 @@ export default function SalonServicesScreen() {
       );
     });
 
-    setModalVisible(false);
-    setEditingIndex(null);
-    setServiceDraft(blankService());
+    closeServiceModal();
   };
 
   const deleteService = (index: number) => {
@@ -551,10 +649,7 @@ export default function SalonServicesScreen() {
     setCategoryNameDraft('');
   };
 
-  const removeCategory = (
-    categoryId: string,
-    name: string,
-  ) => {
+  const removeCategory = (categoryId: string, name: string) => {
     if (isLocked) {
       return;
     }
@@ -622,7 +717,7 @@ export default function SalonServicesScreen() {
         item.categoryId,
         item.subcategoryId,
         item.audience,
-        item.serviceName.trim().toLowerCase(),
+        normalizedKey(item.serviceName),
       ].join('|');
 
       if (keys.has(key)) {
@@ -780,9 +875,7 @@ export default function SalonServicesScreen() {
             onPress={() => refetchSalon()}
             style={styles.primaryButtonInner}
           >
-            <Text style={styles.primaryButtonText}>
-              Try again
-            </Text>
+            <Text style={styles.primaryButtonText}>Try again</Text>
           </TouchableOpacity>
         </AppGradient>
       </SafeAreaView>
@@ -802,6 +895,7 @@ export default function SalonServicesScreen() {
         onRefresh={() => {
           refetchSalon();
           refetchPending();
+          refetchCategories();
         }}
         ListHeaderComponent={
           <View>
@@ -829,9 +923,7 @@ export default function SalonServicesScreen() {
                   <Text style={styles.countNumber}>
                     {draft.length}
                   </Text>
-                  <Text style={styles.countLabel}>
-                    services
-                  </Text>
+                  <Text style={styles.countLabel}>services</Text>
                 </View>
               </View>
             </AppGradient>
@@ -931,9 +1023,7 @@ export default function SalonServicesScreen() {
               {categoryOptions.map(category => (
                 <TouchableOpacity
                   key={category.id}
-                  onPress={() =>
-                    setSelectedCategory(category.id)
-                  }
+                  onPress={() => setSelectedCategory(category.id)}
                   style={[
                     styles.chip,
                     selectedCategory === category.id &&
@@ -1006,10 +1096,7 @@ export default function SalonServicesScreen() {
                   <TouchableOpacity
                     disabled={isLocked}
                     onPress={() =>
-                      removeCategory(
-                        category.id,
-                        category.name,
-                      )
+                      removeCategory(category.id, category.name)
                     }
                     style={styles.smallAction}
                   >
@@ -1040,10 +1127,7 @@ export default function SalonServicesScreen() {
             </View>
 
             <View style={styles.resultsHeader}>
-              <Text style={styles.resultsTitle}>
-                Your services
-              </Text>
-
+              <Text style={styles.resultsTitle}>Your services</Text>
               <Text style={styles.resultsCount}>
                 {filteredServices.length} shown
               </Text>
@@ -1085,17 +1169,13 @@ export default function SalonServicesScreen() {
             <View style={styles.serviceActions}>
               <TouchableOpacity
                 disabled={isLocked}
-                onPress={() =>
-                  openEditService(item, item._index)
-                }
+                onPress={() => openEditService(item, item._index)}
                 style={[
                   styles.secondaryAction,
                   isLocked && styles.actionDisabled,
                 ]}
               >
-                <Text style={styles.secondaryActionText}>
-                  Edit
-                </Text>
+                <Text style={styles.secondaryActionText}>Edit</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1106,9 +1186,7 @@ export default function SalonServicesScreen() {
                   isLocked && styles.actionDisabled,
                 ]}
               >
-                <Text style={styles.deleteText}>
-                  Remove
-                </Text>
+                <Text style={styles.deleteText}>Remove</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1182,7 +1260,7 @@ export default function SalonServicesScreen() {
         visible={modalVisible}
         animationType="slide"
         transparent
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={closeServiceModal}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
@@ -1191,9 +1269,7 @@ export default function SalonServicesScreen() {
               showsVerticalScrollIndicator={false}
             >
               <Text style={styles.modalTitle}>
-                {editingIndex === null
-                  ? 'Add service'
-                  : 'Edit service'}
+                {editingIndex === null ? 'Add service' : 'Edit service'}
               </Text>
 
               <Text style={styles.modalSubtitle}>
@@ -1204,7 +1280,30 @@ export default function SalonServicesScreen() {
               <Text style={styles.inputLabel}>Category</Text>
 
               {categoriesLoading ? (
-                <ActivityIndicator color={PURPLE} />
+                <View style={styles.subcategoryLoading}>
+                  <ActivityIndicator color={PURPLE} />
+                  <Text style={styles.muted}>
+                    Loading categories…
+                  </Text>
+                </View>
+              ) : categoriesError ? (
+                <View style={styles.inlineErrorContainer}>
+                  <Text style={styles.subcategoryError}>
+                    Could not load categories. Please try again.
+                  </Text>
+
+                  <TouchableOpacity
+                    onPress={() => refetchCategories()}
+                    style={styles.retryButton}
+                  >
+                    <Text style={styles.retryText}>Retry</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : categories.length === 0 ? (
+                <Text style={styles.emptyOptionText}>
+                  No active categories are available. Please ask the
+                  admin to activate a category.
+                </Text>
               ) : (
                 <View style={styles.optionWrap}>
                   {categories.map(category => (
@@ -1233,54 +1332,74 @@ export default function SalonServicesScreen() {
 
               <Text style={styles.inputLabel}>Subcategory</Text>
 
-              {subcategoriesLoading ? (
-                <ActivityIndicator color={PURPLE} />
+              {!serviceDraft.categoryId ? (
+                <Text style={styles.emptyOptionText}>
+                  Select a category first to view its subcategories.
+                </Text>
+              ) : subcategoriesLoading ? (
+                <View style={styles.subcategoryLoading}>
+                  <ActivityIndicator color={PURPLE} />
+                  <Text style={styles.muted}>
+                    Loading subcategories…
+                  </Text>
+                </View>
+              ) : subcategoriesError ? (
+                <View style={styles.inlineErrorContainer}>
+                  <Text style={styles.subcategoryError}>
+                    Could not load subcategories. Check your
+                    connection and try again.
+                  </Text>
+
+                  <TouchableOpacity
+                    onPress={() => refetchSubcategories()}
+                    style={styles.retryButton}
+                  >
+                    <Text style={styles.retryText}>
+                      Retry subcategories
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={styles.errorDetail}>
+                    {subcategoriesError.message}
+                  </Text>
+                </View>
+              ) : visibleSubcategories.length === 0 ? (
+                <Text style={styles.emptyOptionText}>
+                  No active subcategories are available for this
+                  category and audience. Check that the subcategory
+                  is active in the admin panel and supports{' '}
+                  {serviceDraft.audience}.
+                </Text>
               ) : (
                 <View style={styles.optionWrap}>
-                  {subcategories
-                    .filter(
-                      item =>
-                        item.categoryId ===
-                        serviceDraft.categoryId,
-                    )
-                    .filter(
-                      item =>
-                        item.audiences.length === 0 ||
-                        item.audiences.includes(
-                          serviceDraft.audience,
-                        ),
-                    )
-                    .map(subcategory => (
-                      <TouchableOpacity
-                        key={subcategory.subcategoryId}
-                        onPress={() =>
-                          chooseSubcategory(subcategory)
-                        }
+                  {visibleSubcategories.map(subcategory => (
+                    <TouchableOpacity
+                      key={subcategory.subcategoryId}
+                      onPress={() =>
+                        chooseSubcategory(subcategory)
+                      }
+                      style={[
+                        styles.optionChip,
+                        serviceDraft.subcategoryId ===
+                          subcategory.subcategoryId &&
+                          styles.optionChipSelected,
+                      ]}
+                    >
+                      <Text
                         style={[
-                          styles.optionChip,
+                          styles.optionText,
                           serviceDraft.subcategoryId ===
                             subcategory.subcategoryId &&
-                            styles.optionChipSelected,
+                            styles.optionTextSelected,
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.optionText,
-                            serviceDraft.subcategoryId ===
-                              subcategory.subcategoryId &&
-                              styles.optionTextSelected,
-                          ]}
-                        >
-                          {subcategory.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                        {subcategory.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               )}
 
-              <Text style={styles.inputLabel}>
-                Service name
-              </Text>
+              <Text style={styles.inputLabel}>Service name</Text>
 
               <TextInput
                 style={styles.input}
@@ -1293,6 +1412,8 @@ export default function SalonServicesScreen() {
                 }
                 placeholder="e.g. Haircut"
                 placeholderTextColor="#9993A8"
+                autoCapitalize="words"
+                maxLength={100}
               />
 
               <Text style={styles.inputLabel}>Audience</Text>
@@ -1306,6 +1427,10 @@ export default function SalonServicesScreen() {
                         setServiceDraft(current => ({
                           ...current,
                           audience,
+                          // Force a fresh selection because audience
+                          // support can differ by subcategory.
+                          subcategoryId: '',
+                          subcategoryName: '',
                         }));
                       }}
                       style={[
@@ -1365,7 +1490,7 @@ export default function SalonServicesScreen() {
               <View style={styles.modalActions}>
                 <TouchableOpacity
                   style={styles.cancelButton}
-                  onPress={() => setModalVisible(false)}
+                  onPress={closeServiceModal}
                 >
                   <Text style={styles.cancelButtonText}>
                     Cancel
@@ -1382,7 +1507,7 @@ export default function SalonServicesScreen() {
                     disabled={isLocked}
                   >
                     <Text style={styles.primaryButtonText}>
-                      Save to draft
+                      Save
                     </Text>
                   </TouchableOpacity>
                 </AppGradient>
@@ -1397,15 +1522,11 @@ export default function SalonServicesScreen() {
         visible={categoryEditorVisible}
         animationType="fade"
         transparent
-        onRequestClose={() =>
-          setCategoryEditorVisible(false)
-        }
+        onRequestClose={() => setCategoryEditorVisible(false)}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.renameDialog}>
-            <Text style={styles.modalTitle}>
-              Rename category
-            </Text>
+            <Text style={styles.modalTitle}>Rename category</Text>
 
             <Text style={styles.modalSubtitle}>
               This changes the category label in the proposed
@@ -1419,18 +1540,15 @@ export default function SalonServicesScreen() {
               onChangeText={setCategoryNameDraft}
               placeholder="Category name"
               placeholderTextColor="#9993A8"
+              maxLength={100}
             />
 
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() =>
-                  setCategoryEditorVisible(false)
-                }
+                onPress={() => setCategoryEditorVisible(false)}
               >
-                <Text style={styles.cancelButtonText}>
-                  Cancel
-                </Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
               <AppGradient
@@ -1517,7 +1635,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.6,
-    color: '#FFFFFF',
+    color: WHITE,
     opacity: 0.9,
   },
 
@@ -1525,14 +1643,14 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 25,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: WHITE,
   },
 
   subtitle: {
     marginTop: 7,
     fontSize: 13,
     lineHeight: 19,
-    color: '#FFFFFF',
+    color: WHITE,
     opacity: 0.92,
   },
 
@@ -2071,6 +2189,56 @@ const styles = StyleSheet.create({
 
   optionTextSelected: {
     color: PURPLE_DARK,
+    fontWeight: '800',
+  },
+
+  subcategoryLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+  },
+
+  emptyOptionText: {
+    paddingVertical: 9,
+    paddingHorizontal: 11,
+    borderRadius: 11,
+    backgroundColor: '#F8F6FC',
+    color: MUTED,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  inlineErrorContainer: {
+    padding: 11,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F2C9D0',
+    backgroundColor: '#FFF7F8',
+  },
+
+  subcategoryError: {
+    color: DANGER,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  errorDetail: {
+    marginTop: 5,
+    color: MUTED,
+    fontSize: 10,
+    lineHeight: 15,
+  },
+
+  retryButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+  },
+
+  retryText: {
+    color: PURPLE_DARK,
+    fontSize: 12,
     fontWeight: '800',
   },
 
