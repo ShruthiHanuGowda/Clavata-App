@@ -1725,31 +1725,6 @@ export const GET_CLAVATA_SUBCATEGORIES = gql`
   }
 `;
 
-/**
- * ============================================================
- * SALON SERVICE SELECTIONS
- * ============================================================
- *
- * Fetches the category/subcategory combinations selected
- * by this salon during registration.
- *
- * We intentionally request ONLY serviceSelections here.
- * This avoids unnecessary Salon fields such as statistics.
- */
-// export const GET_SALON_SERVICE_SELECTIONS = gql`
-//   query GetSalonServiceSelections($salonId: ID!) {
-//     getSalon(salonId: $salonId) {
-//       serviceSelections {
-//         categoryId
-//         categoryName
-//         subcategoryId
-//         subcategoryName
-//       }
-//     }
-//   }
-// `;
-
-
 
 export const GET_SALON_SERVICE_SELECTIONS = gql`
   query GetSalonServiceSelections($salonId: ID!) {

@@ -1,604 +1,2112 @@
 import React, {
-    useMemo,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
 
 import {
-    SafeAreaView,
-    View,
-    Text,
-    TextInput,
-    FlatList,
-    ActivityIndicator,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-import { useQuery } from '@apollo/client';
+import {
+  gql,
+  useMutation,
+  useQuery,
+} from '@apollo/client';
 
 import { useUser } from '../../../context/UserContext';
+import AppGradient from '../../../common/AppGradient';
+import { GRADIENTS } from '../../../constants/constants';
 
-import {
-    GET_SALON_SERVICE_SELECTIONS,
-} from '../../../graphql/queries';
+type Audience = 'FEMALE' | 'MALE' | 'KIDS';
 
-import styles from './styles';
+type ServiceSelection = {
+  categoryId: string;
+  categoryName: string;
+  subcategoryId: string;
+  subcategoryName: string;
+  serviceName: string;
+  audience: Audience;
+  price: number;
+  duration: number;
+};
 
-import CategoryFilter, {
-    CategoryOption,
-} from './CategoryFilter';
+type CategoryOption = {
+  id: string;
+  name: string;
+};
 
-import {
-    ServiceSelection,
-} from './AddServiceModal';
+type SubcategoryOption = {
+  subcategoryId: string;
+  categoryId: string;
+  name: string;
+  audiences: Audience[];
+};
+
+type SalonProfile = {
+  salonId: string;
+  salonName: string;
+  ownerName: string;
+  targetAudiences: Audience[];
+  email: string;
+  ownerPhoneNumber: string;
+  alternatePhone?: string | null;
+  address: {
+    addressLine: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
+  logoUrl?: string | null;
+  coverImageUrl?: string | null;
+  galleryImages: string[];
+  serviceSelections: ServiceSelection[];
+};
+
+type ServiceDraft = {
+  categoryId: string;
+  categoryName: string;
+  subcategoryId: string;
+  subcategoryName: string;
+  serviceName: string;
+  audience: Audience;
+  price: string;
+  duration: string;
+};
+
+const PURPLE = '#8B5CF6';
+const PURPLE_DARK = '#6741A5';
+const PURPLE_LIGHT = '#F2EDFF';
+const TEXT = '#242033';
+const MUTED = '#777386';
+const BORDER = '#E9E5F1';
+const WHITE = '#FFFFFF';
+const DANGER = '#C7465C';
+
+const GET_SALON_FOR_SERVICES = gql`
+  query GetSalonForServiceManagement($salonId: ID!) {
+    getSalon(salonId: $salonId) {
+      salonId
+      salonName
+      ownerName
+      targetAudiences
+      email
+      ownerPhoneNumber
+      alternatePhone
+      address {
+        addressLine
+        city
+        state
+        pincode
+      }
+      logoUrl
+      coverImageUrl
+      galleryImages
+      serviceSelections {
+        categoryId
+        categoryName
+        subcategoryId
+        subcategoryName
+        serviceName
+        audience
+        price
+        duration
+      }
+    }
+  }
+`;
+
+const GET_PENDING_PROFILE_CHANGE = gql`
+  query GetPendingSalonProfileChange($salonId: ID!) {
+    getPendingSalonProfileChange(salonId: $salonId) {
+      changeId
+      status
+      submittedAt
+      rejectionReason
+    }
+  }
+`;
+
+const GET_ACTIVE_CATEGORIES = gql`
+  query GetActiveServiceCategories {
+    categories(status: ACTIVE) {
+      success
+      categories {
+        categoryId
+        name
+        status
+      }
+    }
+  }
+`;
+
+const GET_ACTIVE_SUBCATEGORIES = gql`
+  query GetActiveServiceSubcategories {
+    subcategories(status: ACTIVE) {
+      success
+      subcategories {
+        subcategoryId
+        categoryId
+        name
+        audiences
+        status
+      }
+    }
+  }
+`;
+
+const SUBMIT_SALON_PROFILE_CHANGE = gql`
+  mutation SubmitSalonProfileChange(
+    $input: SubmitSalonProfileChangeInput!
+  ) {
+    submitSalonProfileChange(input: $input) {
+      success
+      message
+      change {
+        changeId
+        status
+        submittedAt
+      }
+    }
+  }
+`;
+
+const blankService = (): ServiceDraft => ({
+  categoryId: '',
+  categoryName: '',
+  subcategoryId: '',
+  subcategoryName: '',
+  serviceName: '',
+  audience: 'FEMALE',
+  price: '',
+  duration: '',
+});
+
+const normalize = (value?: string | null) =>
+  String(value ?? '').trim().replace(/\s+/g, ' ');
+
+const money = (value: number) =>
+  `₹${Number(value).toLocaleString('en-IN', {
+    maximumFractionDigits: 2,
+  })}`;
 
 export default function SalonServicesScreen() {
-    const { currentUser } = useUser();
+  const { currentUser } = useUser();
+  const salonId = currentUser?.salonId;
 
-    const salonId =
-        currentUser?.salonId;
+  const [selectedCategory, setSelectedCategory] =
+    useState('ALL');
 
-    /*
-     * ------------------------------------------------
-     * STATE
-     * ------------------------------------------------
-     */
+  const [search, setSearch] = useState('');
 
-    const [
-        selectedCategory,
-        setSelectedCategory,
-    ] = useState<string>('ALL');
+  const [draft, setDraft] = useState<ServiceSelection[]>([]);
 
-    const [
-        search,
-        setSearch,
-    ] = useState('');
+  const [draftReady, setDraftReady] = useState(false);
 
-    /*
-     * ------------------------------------------------
-     * GET SALON SERVICE SELECTIONS
-     * ------------------------------------------------
-     *
-     * These are the services/categories selected
-     * for this salon during registration/profile setup.
-     */
+  const [modalVisible, setModalVisible] = useState(false);
 
-    const {
-        data: salonData,
-        loading,
-        refetch,
-    } = useQuery(
-        GET_SALON_SERVICE_SELECTIONS,
-        {
-            variables: {
-                salonId,
-            },
+  const [editingIndex, setEditingIndex] =
+    useState<number | null>(null);
 
-            skip: !salonId,
+  const [serviceDraft, setServiceDraft] =
+    useState<ServiceDraft>(blankService());
 
-            fetchPolicy:
-                'network-only',
-        },
-    );
+  const [categoryEditorVisible, setCategoryEditorVisible] =
+    useState(false);
 
-    /*
-     * ------------------------------------------------
-     * SERVICE SELECTIONS
-     * ------------------------------------------------
-     */
+  const [categoryToRename, setCategoryToRename] =
+    useState<string | null>(null);
 
-    const serviceSelections: ServiceSelection[] =
-        salonData?.getSalon
-            ?.serviceSelections ?? [];
+  const [categoryNameDraft, setCategoryNameDraft] =
+    useState('');
 
-    /*
-     * ------------------------------------------------
-     * NORMALIZE TEXT
-     * ------------------------------------------------
-     */
+  const [submitting, setSubmitting] = useState(false);
 
-    const normalizeText = (
-        value?: string | null,
-    ) => {
-        return String(value ?? '')
-            .trim()
-            .replace(/\s+/g, ' ')
-            .toLowerCase();
-    };
+  const {
+    data: salonResult,
+    loading: salonLoading,
+    error: salonError,
+    refetch: refetchSalon,
+  } = useQuery(GET_SALON_FOR_SERVICES, {
+    variables: { salonId },
+    skip: !salonId,
+    fetchPolicy: 'network-only',
+  });
 
-    /*
-     * ------------------------------------------------
-     * CATEGORY LIST
-     * ------------------------------------------------
-     *
-     * IMPORTANT:
-     *
-     * categoryId is used internally.
-     * categoryName is only displayed.
-     *
-     * Example:
-     *
-     * Face -> abc123
-     * Hair -> xyz456
-     */
+  const {
+    data: pendingResult,
+    loading: pendingLoading,
+    refetch: refetchPending,
+  } = useQuery(GET_PENDING_PROFILE_CHANGE, {
+    variables: { salonId },
+    skip: !salonId,
+    fetchPolicy: 'network-only',
+  });
 
-    const categories =
-        useMemo<CategoryOption[]>(() => {
-            const categoryMap =
-                new Map<
-                    string,
-                    string
-                >();
+  const {
+    data: categoryResult,
+    loading: categoriesLoading,
+  } = useQuery(GET_ACTIVE_CATEGORIES, {
+    fetchPolicy: 'cache-and-network',
+  });
 
-            serviceSelections.forEach(
-                selection => {
-                    if (
-                        selection.categoryId &&
-                        selection.categoryName
-                    ) {
-                        const categoryId =
-                            String(
-                                selection.categoryId,
-                            );
+  const {
+    data: subcategoryResult,
+    loading: subcategoriesLoading,
+  } = useQuery(GET_ACTIVE_SUBCATEGORIES, {
+    fetchPolicy: 'cache-and-network',
+  });
 
-                        const categoryName =
-                            String(
-                                selection.categoryName,
-                            ).trim();
+  const [submitProfileChange] = useMutation(
+    SUBMIT_SALON_PROFILE_CHANGE,
+  );
 
-                        if (
-                            !categoryMap.has(
-                                categoryId,
-                            )
-                        ) {
-                            categoryMap.set(
-                                categoryId,
-                                categoryName,
-                            );
-                        }
-                    }
-                },
-            );
+  const salon: SalonProfile | undefined =
+    salonResult?.getSalon;
 
-            return Array.from(
-                categoryMap.entries(),
-            )
-                .map(
-                    ([id, name]) => ({
-                        id,
-                        name,
-                    }),
-                )
-                .sort(
-                    (a, b) =>
-                        a.name.localeCompare(
-                            b.name,
-                            undefined,
-                            {
-                                sensitivity:
-                                    'base',
-                            },
-                        ),
-                );
-        }, [
-            serviceSelections,
-        ]);
+  const pendingChange =
+    pendingResult?.getPendingSalonProfileChange;
 
-    /*
-     * ------------------------------------------------
-     * FILTER + SORT SERVICE SELECTIONS
-     * ------------------------------------------------
-     *
-     * This is now the MAIN LIST.
-     *
-     * Face -> only Face
-     * Hair -> only Hair
-     * All -> everything
-     */
+  const isPending = pendingChange?.status === 'PENDING';
+  const isLocked = isPending || submitting;
 
-    const filteredServices = useMemo(() => {
-        const searchValue =
-            normalizeText(search);
+  const categories: CategoryOption[] = useMemo(() => {
+    const result =
+      categoryResult?.categories?.categories ?? [];
 
-        /*
-         * ----------------------------------------
-         * SEARCH MODE
-         * ----------------------------------------
-         *
-         * If the user typed something,
-         * search across ALL categories.
-         *
-         * Category selection is ignored while
-         * searching.
-         */
+    return result.map((item: any) => ({
+      id: String(item.categoryId),
+      name: String(item.name),
+    }));
+  }, [categoryResult]);
 
-        if (searchValue.length > 0) {
-            return serviceSelections
-                .filter(selection => {
-                    const categoryName =
-                        normalizeText(
-                            selection.categoryName,
-                        );
+  const subcategories: SubcategoryOption[] = useMemo(() => {
+    const result =
+      subcategoryResult?.subcategories?.subcategories ?? [];
 
-                    const subcategoryName =
-                        normalizeText(
-                            selection.subcategoryName,
-                        );
+    return result.map((item: any) => ({
+      subcategoryId: String(item.subcategoryId),
+      categoryId: String(item.categoryId),
+      name: String(item.name),
+      audiences: item.audiences ?? [],
+    }));
+  }, [subcategoryResult]);
 
-                    return (
-                        categoryName.includes(
-                            searchValue,
-                        ) ||
-                        subcategoryName.includes(
-                            searchValue,
-                        )
-                    );
-                })
-                .sort((a, b) => {
-                    const categoryCompare =
-                        normalizeText(
-                            a.categoryName,
-                        ).localeCompare(
-                            normalizeText(
-                                b.categoryName,
-                            ),
-                            undefined,
-                            {
-                                sensitivity: 'base',
-                            },
-                        );
-
-                    if (categoryCompare !== 0) {
-                        return categoryCompare;
-                    }
-
-                    return normalizeText(
-                        a.subcategoryName,
-                    ).localeCompare(
-                        normalizeText(
-                            b.subcategoryName,
-                        ),
-                        undefined,
-                        {
-                            sensitivity: 'base',
-                        },
-                    );
-                });
-        }
-
-        /*
-         * ----------------------------------------
-         * CATEGORY MODE
-         * ----------------------------------------
-         *
-         * When search is empty, category selection
-         * controls the list.
-         */
-
-        const filtered =
-            serviceSelections.filter(
-                selection => {
-                    return (
-                        selectedCategory === 'ALL' ||
-                        String(
-                            selection.categoryId,
-                        ) ===
-                        String(
-                            selectedCategory,
-                        )
-                    );
-                },
-            );
-
-        /*
-         * ----------------------------------------
-         * ALPHABETICAL SORT
-         * ----------------------------------------
-         */
-
-        return filtered.sort(
-            (a, b) => {
-                const categoryCompare =
-                    normalizeText(
-                        a.categoryName,
-                    ).localeCompare(
-                        normalizeText(
-                            b.categoryName,
-                        ),
-                        undefined,
-                        {
-                            sensitivity: 'base',
-                        },
-                    );
-
-                if (categoryCompare !== 0) {
-                    return categoryCompare;
-                }
-
-                return normalizeText(
-                    a.subcategoryName,
-                ).localeCompare(
-                    normalizeText(
-                        b.subcategoryName,
-                    ),
-                    undefined,
-                    {
-                        sensitivity: 'base',
-                    },
-                );
-            },
-        );
-    }, [
-        serviceSelections,
-        selectedCategory,
-        search,
-    ]);
-
-    /*
-     * ------------------------------------------------
-     * LOADING
-     * ------------------------------------------------
-     */
-
-    if (loading) {
-        return (
-            <SafeAreaView
-                style={[
-                    styles.container,
-                    {
-                        justifyContent:
-                            'center',
-                        alignItems:
-                            'center',
-                    },
-                ]}
-            >
-                <ActivityIndicator
-                    size="large"
-                    color="#009D94"
-                />
-            </SafeAreaView>
-        );
+  useEffect(() => {
+    if (!salon || draftReady) {
+      return;
     }
 
-    /*
-     * ------------------------------------------------
-     * RENDER
-     * ------------------------------------------------
-     */
-
-    return (
-        <SafeAreaView
-            style={styles.container}
-        >
-            <FlatList
-                data={filteredServices}
-
-                /*
-                 * categoryId + subcategoryId
-                 * uniquely identifies a selection.
-                 */
-
-                keyExtractor={
-                    item =>
-                        `${item.categoryId}-${item.subcategoryId}`
-                }
-
-                onRefresh={refetch}
-
-                refreshing={loading}
-
-                keyboardShouldPersistTaps="handled"
-
-                /*
-                 * ------------------------------------------------
-                 * HEADER
-                 * ------------------------------------------------
-                 */
-
-                ListHeaderComponent={
-                    <>
-                        {/* HEADER */}
-
-                        <View
-                            style={styles.header}
-                        >
-                            <Text
-                                style={styles.title}
-                            >
-                                Services
-                            </Text>
-
-                            <Text
-                                style={{
-                                    marginTop: 4,
-                                    fontSize: 13,
-                                    color: '#6B7280',
-                                }}
-                            >
-                                {
-                                    serviceSelections.length
-                                }{' '}
-                                service options
-                                available
-                            </Text>
-                        </View>
-
-                        {/* SEARCH */}
-
-                        <View
-                            style={
-                                styles.searchContainer
-                            }
-                        >
-                            <TextInput
-                                placeholder="Search service..."
-                                value={search}
-                                onChangeText={text => {
-                                    setSearch(text);
-
-                                    if (text.trim().length > 0) {
-                                        setSelectedCategory('ALL');
-                                    }
-                                }}
-                                placeholderTextColor="#9CA3AF"
-                                style={{
-                                    fontSize: 15,
-                                    color: '#111827',
-                                }}
-                            />
-                        </View>
-
-                        {/* CATEGORY FILTER */}
-
-                        {categories.length >
-                            0 && (
-                                <CategoryFilter
-                                    categories={
-                                        categories
-                                    }
-                                    selected={
-                                        selectedCategory
-                                    }
-                                    onSelect={
-                                        setSelectedCategory
-                                    }
-                                />
-                            )}
-                    </>
-                }
-
-                /*
-                 * ------------------------------------------------
-                 * EMPTY STATE
-                 * ------------------------------------------------
-                 */
-
-                ListEmptyComponent={
-                    <View
-                        style={{
-                            paddingVertical: 50,
-                            paddingHorizontal: 20,
-                            alignItems:
-                                'center',
-                        }}
-                    >
-                        {serviceSelections.length ===
-                            0 ? (
-                            <>
-                                <Text
-                                    style={{
-                                        fontSize: 18,
-                                        fontWeight:
-                                            '600',
-                                        color:
-                                            '#6B7280',
-                                        textAlign:
-                                            'center',
-                                    }}
-                                >
-                                    No services selected
-                                </Text>
-
-                                <Text
-                                    style={{
-                                        marginTop: 8,
-                                        color:
-                                            '#9CA3AF',
-                                        textAlign:
-                                            'center',
-                                        lineHeight: 20,
-                                    }}
-                                >
-                                    No service categories
-                                    or subcategories were
-                                    selected for this salon.
-                                </Text>
-                            </>
-                        ) : (
-                            <>
-                                <Text
-                                    style={{
-                                        fontSize: 17,
-                                        fontWeight:
-                                            '600',
-                                        color:
-                                            '#6B7280',
-                                        textAlign:
-                                            'center',
-                                    }}
-                                >
-                                    No matching services
-                                </Text>
-
-                                <Text
-                                    style={{
-                                        marginTop: 8,
-                                        color:
-                                            '#9CA3AF',
-                                        textAlign:
-                                            'center',
-                                    }}
-                                >
-                                    Try another category
-                                    or search term.
-                                </Text>
-                            </>
-                        )}
-                    </View>
-                }
-
-                /*
-                 * ------------------------------------------------
-                 * SERVICE ITEM
-                 * ------------------------------------------------
-                 */
-
-                renderItem={({
-                    item,
-                }) => (
-                    <View
-                        style={{
-                            marginHorizontal: 16,
-                            marginBottom: 10,
-                            paddingHorizontal: 14,
-                            paddingVertical: 12,
-                            borderRadius: 14,
-                            backgroundColor:
-                                '#E6F7F5',
-                        }}
-                    >
-                        <Text
-                            style={{
-                                fontSize: 13,
-                                fontWeight: '700',
-                                color:
-                                    '#007F78',
-                            }}
-                        >
-                            {item.categoryName}
-                        </Text>
-
-                        <Text
-                            style={{
-                                marginTop: 4,
-                                fontSize: 14,
-                                fontWeight: '600',
-                                color:
-                                    '#111827',
-                            }}
-                        >
-                            {item.subcategoryName}
-                        </Text>
-                    </View>
-                )}
-
-                /*
-                 * Bottom spacing
-                 */
-
-                contentContainerStyle={{
-                    paddingBottom: 100,
-                }}
-            />
-        </SafeAreaView>
+    setDraft(
+      (salon.serviceSelections ?? []).map(item => ({
+        ...item,
+        price: Number(item.price),
+        duration: Number(item.duration),
+      })),
     );
+
+    setDraftReady(true);
+  }, [salon, draftReady]);
+
+  const categoryOptions = useMemo(() => {
+    const map = new Map<string, string>();
+
+    draft.forEach(item => {
+      if (item.categoryId && item.categoryName) {
+        map.set(item.categoryId, item.categoryName);
+      }
+    });
+
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [draft]);
+
+  const filteredServices = useMemo(() => {
+    const query = normalize(search).toLowerCase();
+
+    return draft
+      .map((item, index) => ({ ...item, _index: index }))
+      .filter(item => {
+        const matchesCategory =
+          selectedCategory === 'ALL' ||
+          item.categoryId === selectedCategory;
+
+        const matchesSearch =
+          !query ||
+          item.serviceName.toLowerCase().includes(query) ||
+          item.categoryName.toLowerCase().includes(query) ||
+          item.subcategoryName.toLowerCase().includes(query);
+
+        return matchesCategory && matchesSearch;
+      })
+      .sort((a, b) => {
+        const categoryCompare =
+          a.categoryName.localeCompare(b.categoryName);
+
+        if (categoryCompare !== 0) {
+          return categoryCompare;
+        }
+
+        return a.serviceName.localeCompare(b.serviceName);
+      });
+  }, [draft, search, selectedCategory]);
+
+  const openAddService = useCallback(() => {
+    if (isLocked) {
+      return;
+    }
+
+    setEditingIndex(null);
+    setServiceDraft(blankService());
+    setModalVisible(true);
+  }, [isLocked]);
+
+  const openEditService = useCallback(
+    (item: ServiceSelection, index: number) => {
+      if (isLocked) {
+        return;
+      }
+
+      setEditingIndex(index);
+
+      setServiceDraft({
+        categoryId: item.categoryId,
+        categoryName: item.categoryName,
+        subcategoryId: item.subcategoryId,
+        subcategoryName: item.subcategoryName,
+        serviceName: item.serviceName,
+        audience: item.audience,
+        price: String(item.price),
+        duration: String(item.duration),
+      });
+
+      setModalVisible(true);
+    },
+    [isLocked],
+  );
+
+  const chooseCategory = (category: CategoryOption) => {
+    setServiceDraft(current => ({
+      ...current,
+      categoryId: category.id,
+      categoryName: category.name,
+      subcategoryId: '',
+      subcategoryName: '',
+    }));
+  };
+
+  const chooseSubcategory = (
+    subcategory: SubcategoryOption,
+  ) => {
+    const category = categories.find(
+      item => item.id === subcategory.categoryId,
+    );
+
+    setServiceDraft(current => ({
+      ...current,
+      categoryId: subcategory.categoryId,
+      categoryName: category?.name ?? current.categoryName,
+      subcategoryId: subcategory.subcategoryId,
+      subcategoryName: subcategory.name,
+    }));
+  };
+
+  const saveService = () => {
+    if (isLocked) {
+      return;
+    }
+
+    const name = normalize(serviceDraft.serviceName);
+    const price = Number(serviceDraft.price);
+    const duration = Number(serviceDraft.duration);
+
+    if (
+      !serviceDraft.categoryId ||
+      !serviceDraft.subcategoryId ||
+      !name
+    ) {
+      Alert.alert(
+        'Required details',
+        'Select a category and subcategory, and enter a service name.',
+      );
+      return;
+    }
+
+    if (
+      serviceDraft.price.trim() === '' ||
+      !Number.isFinite(price) ||
+      price < 0
+    ) {
+      Alert.alert(
+        'Invalid price',
+        'Enter a valid service price.',
+      );
+      return;
+    }
+
+    if (
+      serviceDraft.duration.trim() === '' ||
+      !Number.isInteger(duration) ||
+      duration <= 0
+    ) {
+      Alert.alert(
+        'Invalid duration',
+        'Enter the duration in whole minutes.',
+      );
+      return;
+    }
+
+    const newItem: ServiceSelection = {
+      categoryId: serviceDraft.categoryId,
+      categoryName: serviceDraft.categoryName,
+      subcategoryId: serviceDraft.subcategoryId,
+      subcategoryName: serviceDraft.subcategoryName,
+      serviceName: name,
+      audience: serviceDraft.audience,
+      price,
+      duration,
+    };
+
+    setDraft(previous => {
+      if (editingIndex === null) {
+        return [...previous, newItem];
+      }
+
+      return previous.map((item, index) =>
+        index === editingIndex ? newItem : item,
+      );
+    });
+
+    setModalVisible(false);
+    setEditingIndex(null);
+    setServiceDraft(blankService());
+  };
+
+  const deleteService = (index: number) => {
+    if (isLocked) {
+      return;
+    }
+
+    const item = draft[index];
+
+    if (!item) {
+      return;
+    }
+
+    Alert.alert(
+      'Remove service?',
+      `Remove "${item.serviceName}" from your proposed catalogue?`,
+      [
+        { text: 'Keep service', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            setDraft(previous =>
+              previous.filter((_, i) => i !== index),
+            );
+          },
+        },
+      ],
+    );
+  };
+
+  const renameCategory = () => {
+    if (isLocked || !categoryToRename) {
+      return;
+    }
+
+    const name = normalize(categoryNameDraft);
+
+    if (!name) {
+      Alert.alert(
+        'Category name required',
+        'Enter a category name.',
+      );
+      return;
+    }
+
+    setDraft(previous =>
+      previous.map(item =>
+        item.categoryId === categoryToRename
+          ? { ...item, categoryName: name }
+          : item,
+      ),
+    );
+
+    setCategoryEditorVisible(false);
+    setCategoryToRename(null);
+    setCategoryNameDraft('');
+  };
+
+  const removeCategory = (
+    categoryId: string,
+    name: string,
+  ) => {
+    if (isLocked) {
+      return;
+    }
+
+    const count = draft.filter(
+      item => item.categoryId === categoryId,
+    ).length;
+
+    Alert.alert(
+      'Remove category?',
+      `This removes "${name}" and all ${count} service(s) under it from your proposed catalogue. You must submit the changes for admin review.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove category',
+          style: 'destructive',
+          onPress: () => {
+            setDraft(previous =>
+              previous.filter(
+                item => item.categoryId !== categoryId,
+              ),
+            );
+
+            if (selectedCategory === categoryId) {
+              setSelectedCategory('ALL');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const validateDraft = (): string | null => {
+    if (!salon) {
+      return 'Salon profile could not be loaded.';
+    }
+
+    if (draft.length === 0) {
+      return 'Add at least one service before submitting.';
+    }
+
+    const keys = new Set<string>();
+
+    for (const item of draft) {
+      if (
+        !item.categoryId ||
+        !item.categoryName.trim() ||
+        !item.subcategoryId ||
+        !item.subcategoryName.trim() ||
+        !item.serviceName.trim()
+      ) {
+        return 'Every service must have a category, subcategory, and service name.';
+      }
+
+      if (
+        !Number.isFinite(Number(item.price)) ||
+        Number(item.price) < 0 ||
+        !Number.isInteger(Number(item.duration)) ||
+        Number(item.duration) <= 0
+      ) {
+        return `Check the price and duration for "${item.serviceName}".`;
+      }
+
+      const key = [
+        item.categoryId,
+        item.subcategoryId,
+        item.audience,
+        item.serviceName.trim().toLowerCase(),
+      ].join('|');
+
+      if (keys.has(key)) {
+        return `Duplicate service found: "${item.serviceName}".`;
+      }
+
+      keys.add(key);
+    }
+
+    return null;
+  };
+
+  const submitForReview = () => {
+    if (isLocked || !salon) {
+      return;
+    }
+
+    const validationError = validateDraft();
+
+    if (validationError) {
+      Alert.alert('Review your catalogue', validationError);
+      return;
+    }
+
+    Alert.alert(
+      'Confirm service catalogue',
+      [
+        `Services: ${draft.length}`,
+        `Categories: ${
+          new Set(draft.map(item => item.categoryId)).size
+        }`,
+        `Total listed service prices: ${money(
+          draft.reduce(
+            (sum, item) => sum + Number(item.price),
+            0,
+          ),
+        )}`,
+        '',
+        'After submission, you will not be able to edit this catalogue while admin review is pending.',
+        '',
+        'Do you confirm that all service names, prices, durations, and categories are correct?',
+      ].join('\n'),
+      [
+        {
+          text: 'Go back and check',
+          style: 'cancel',
+        },
+        {
+          text: 'Confirm and submit',
+          onPress: async () => {
+            try {
+              setSubmitting(true);
+
+              const input = {
+                salonId: salon.salonId,
+                salonName: salon.salonName,
+                ownerName: salon.ownerName,
+                targetAudiences: salon.targetAudiences,
+                email: salon.email,
+                ownerPhoneNumber: salon.ownerPhoneNumber,
+                alternatePhone: salon.alternatePhone ?? null,
+                address: salon.address,
+                logoUrl: salon.logoUrl ?? null,
+                coverImageUrl: salon.coverImageUrl ?? null,
+                galleryImages: salon.galleryImages ?? [],
+                serviceSelections: draft.map(item => ({
+                  categoryId: item.categoryId,
+                  categoryName: item.categoryName.trim(),
+                  subcategoryId: item.subcategoryId,
+                  subcategoryName: item.subcategoryName.trim(),
+                  serviceName: item.serviceName.trim(),
+                  audience: item.audience,
+                  price: Number(item.price),
+                  duration: Number(item.duration),
+                })),
+              };
+
+              const result = await submitProfileChange({
+                variables: { input },
+              });
+
+              const response =
+                result.data?.submitSalonProfileChange;
+
+              if (!response?.success) {
+                throw new Error(
+                  response?.message || 'Submission failed.',
+                );
+              }
+
+              await Promise.all([
+                refetchSalon(),
+                refetchPending(),
+              ]);
+
+              Alert.alert(
+                'Submitted for review',
+                response.message ||
+                  'Your proposed catalogue has been submitted for admin review.',
+              );
+            } catch (error: any) {
+              Alert.alert(
+                'Submission failed',
+                error?.message ||
+                  'Could not submit your catalogue. Please try again.',
+              );
+            } finally {
+              setSubmitting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  if (!salonId) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <Text style={styles.errorTitle}>Salon not linked</Text>
+        <Text style={styles.muted}>
+          Your account does not have a salon ID.
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (salonLoading || pendingLoading || !draftReady) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <ActivityIndicator size="large" color={PURPLE} />
+        <Text style={styles.loadingText}>
+          Loading your service catalogue…
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (salonError || !salon) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <Text style={styles.errorTitle}>
+          Could not load services
+        </Text>
+
+        <Text style={styles.muted}>
+          {salonError?.message ??
+            'Salon details are unavailable.'}
+        </Text>
+
+        <AppGradient
+          colors={[...GRADIENTS.SOFT_PURPLE]}
+          style={styles.gradientButton}
+        >
+          <TouchableOpacity
+            onPress={() => refetchSalon()}
+            style={styles.primaryButtonInner}
+          >
+            <Text style={styles.primaryButtonText}>
+              Try again
+            </Text>
+          </TouchableOpacity>
+        </AppGradient>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.screen}>
+      <FlatList
+        data={filteredServices}
+        keyExtractor={(item, index) =>
+          `${item.categoryId}-${item.subcategoryId}-${item.audience}-${item.serviceName}-${index}`
+        }
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.listContent}
+        refreshing={salonLoading}
+        onRefresh={() => {
+          refetchSalon();
+          refetchPending();
+        }}
+        ListHeaderComponent={
+          <View>
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={styles.headerGradient}
+            >
+              <View style={styles.header}>
+                <View style={styles.headerText}>
+                  <Text style={styles.eyebrow}>
+                    SALON CATALOGUE
+                  </Text>
+
+                  <Text style={styles.title}>
+                    Services & pricing
+                  </Text>
+
+                  <Text style={styles.subtitle}>
+                    Manage your proposed services before sending
+                    them for admin review.
+                  </Text>
+                </View>
+
+                <View style={styles.countBadge}>
+                  <Text style={styles.countNumber}>
+                    {draft.length}
+                  </Text>
+                  <Text style={styles.countLabel}>
+                    services
+                  </Text>
+                </View>
+              </View>
+            </AppGradient>
+
+            {isPending && (
+              <View style={styles.pendingBanner}>
+                <Text style={styles.pendingTitle}>
+                  Review in progress
+                </Text>
+
+                <Text style={styles.pendingDescription}>
+                  Your catalogue is locked while admin review is
+                  pending. You can view your submission, but cannot
+                  edit or delete services.
+                </Text>
+
+                {pendingChange?.submittedAt ? (
+                  <Text style={styles.pendingDate}>
+                    Submitted:{' '}
+                    {new Date(
+                      pendingChange.submittedAt,
+                    ).toLocaleDateString('en-IN')}
+                  </Text>
+                ) : null}
+              </View>
+            )}
+
+            {pendingChange?.status === 'REJECTED' && (
+              <View style={styles.rejectedBanner}>
+                <Text style={styles.pendingTitle}>
+                  Changes require correction
+                </Text>
+
+                <Text style={styles.pendingDescription}>
+                  {pendingChange.rejectionReason ||
+                    'Review the catalogue, make corrections, and resubmit.'}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.toolbar}>
+              <TextInput
+                style={styles.searchInput}
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search services or categories"
+                placeholderTextColor="#9993A8"
+              />
+
+              <AppGradient
+                colors={[...GRADIENTS.SOFT_PURPLE]}
+                style={[
+                  styles.addButtonGradient,
+                  isLocked && styles.disabledButton,
+                ]}
+              >
+                <TouchableOpacity
+                  disabled={isLocked}
+                  style={styles.addButtonInner}
+                  onPress={openAddService}
+                >
+                  <Text style={styles.addButtonText}>
+                    + Add service
+                  </Text>
+                </TouchableOpacity>
+              </AppGradient>
+            </View>
+
+            <Text style={styles.sectionLabel}>
+              FILTER BY CATEGORY
+            </Text>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipRow}
+            >
+              <TouchableOpacity
+                onPress={() => setSelectedCategory('ALL')}
+                style={[
+                  styles.chip,
+                  selectedCategory === 'ALL' &&
+                    styles.chipSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    selectedCategory === 'ALL' &&
+                      styles.chipTextSelected,
+                  ]}
+                >
+                  All categories
+                </Text>
+              </TouchableOpacity>
+
+              {categoryOptions.map(category => (
+                <TouchableOpacity
+                  key={category.id}
+                  onPress={() =>
+                    setSelectedCategory(category.id)
+                  }
+                  style={[
+                    styles.chip,
+                    selectedCategory === category.id &&
+                      styles.chipSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selectedCategory === category.id &&
+                        styles.chipTextSelected,
+                    ]}
+                  >
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={styles.categoryManagement}>
+              <Text style={styles.categoryManagementTitle}>
+                Manage categories
+              </Text>
+
+              <Text style={styles.categoryManagementHint}>
+                Renaming here changes the proposed catalogue label.
+                Removing a category also removes its services.
+              </Text>
+
+              {categoryOptions.map(category => (
+                <View
+                  key={`manage-${category.id}`}
+                  style={styles.categoryRow}
+                >
+                  <View style={styles.categoryRowText}>
+                    <Text style={styles.categoryName}>
+                      {category.name}
+                    </Text>
+
+                    <Text style={styles.categoryCount}>
+                      {
+                        draft.filter(
+                          item =>
+                            item.categoryId === category.id,
+                        ).length
+                      }{' '}
+                      services
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    disabled={isLocked}
+                    onPress={() => {
+                      setCategoryToRename(category.id);
+                      setCategoryNameDraft(category.name);
+                      setCategoryEditorVisible(true);
+                    }}
+                    style={styles.smallAction}
+                  >
+                    <Text
+                      style={[
+                        styles.editText,
+                        isLocked && styles.disabledText,
+                      ]}
+                    >
+                      Rename
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    disabled={isLocked}
+                    onPress={() =>
+                      removeCategory(
+                        category.id,
+                        category.name,
+                      )
+                    }
+                    style={styles.smallAction}
+                  >
+                    <Text
+                      style={[
+                        styles.deleteText,
+                        isLocked && styles.disabledText,
+                      ]}
+                    >
+                      Remove
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              <TouchableOpacity
+                disabled={isLocked}
+                onPress={openAddService}
+                style={[
+                  styles.outlineButton,
+                  isLocked && styles.disabledButton,
+                ]}
+              >
+                <Text style={styles.outlineButtonText}>
+                  + Add a category through a service
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.resultsHeader}>
+              <Text style={styles.resultsTitle}>
+                Your services
+              </Text>
+
+              <Text style={styles.resultsCount}>
+                {filteredServices.length} shown
+              </Text>
+            </View>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.serviceCard}>
+            <View style={styles.serviceCardTop}>
+              <View style={styles.serviceIdentity}>
+                <Text style={styles.serviceName}>
+                  {item.serviceName}
+                </Text>
+
+                <Text style={styles.serviceCategory}>
+                  {item.categoryName} · {item.subcategoryName}
+                </Text>
+
+                <View style={styles.audienceBadge}>
+                  <Text style={styles.audienceText}>
+                    {item.audience}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.priceBlock}>
+                <Text style={styles.price}>
+                  {money(Number(item.price))}
+                </Text>
+
+                <Text style={styles.duration}>
+                  {Number(item.duration)} min
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.cardDivider} />
+
+            <View style={styles.serviceActions}>
+              <TouchableOpacity
+                disabled={isLocked}
+                onPress={() =>
+                  openEditService(item, item._index)
+                }
+                style={[
+                  styles.secondaryAction,
+                  isLocked && styles.actionDisabled,
+                ]}
+              >
+                <Text style={styles.secondaryActionText}>
+                  Edit
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                disabled={isLocked}
+                onPress={() => deleteService(item._index)}
+                style={[
+                  styles.secondaryAction,
+                  isLocked && styles.actionDisabled,
+                ]}
+              >
+                <Text style={styles.deleteText}>
+                  Remove
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>
+              {draft.length === 0
+                ? 'No services in your catalogue'
+                : 'No matching services'}
+            </Text>
+
+            <Text style={styles.emptyDescription}>
+              {draft.length === 0
+                ? 'Add a service with its category, price, and duration to get started.'
+                : 'Try another search term or select a different category.'}
+            </Text>
+          </View>
+        }
+        ListFooterComponent={
+          <View style={styles.footer}>
+            <View style={styles.reviewSummary}>
+              <Text style={styles.reviewSummaryTitle}>
+                Before submitting
+              </Text>
+
+              <Text style={styles.reviewSummaryText}>
+                Check every service name, category, audience, price,
+                and duration. Your changes will be sent to the admin
+                panel for review.
+              </Text>
+            </View>
+
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={[
+                styles.submitButton,
+                isLocked && styles.disabledButton,
+              ]}
+            >
+              <TouchableOpacity
+                disabled={isLocked}
+                onPress={submitForReview}
+                style={styles.submitButtonInner}
+                activeOpacity={0.85}
+              >
+                {submitting ? (
+                  <ActivityIndicator color={WHITE} />
+                ) : (
+                  <Text style={styles.submitButtonText}>
+                    {isPending
+                      ? 'Review pending'
+                      : 'Confirm & submit for review'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </AppGradient>
+
+            {isPending && (
+              <Text style={styles.lockHint}>
+                Editing will be available after the review status
+                changes.
+              </Text>
+            )}
+          </View>
+        }
+      />
+
+      {/* Add / edit service modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.modalTitle}>
+                {editingIndex === null
+                  ? 'Add service'
+                  : 'Edit service'}
+              </Text>
+
+              <Text style={styles.modalSubtitle}>
+                Choose an admin-defined category and subcategory,
+                then enter the service details.
+              </Text>
+
+              <Text style={styles.inputLabel}>Category</Text>
+
+              {categoriesLoading ? (
+                <ActivityIndicator color={PURPLE} />
+              ) : (
+                <View style={styles.optionWrap}>
+                  {categories.map(category => (
+                    <TouchableOpacity
+                      key={category.id}
+                      onPress={() => chooseCategory(category)}
+                      style={[
+                        styles.optionChip,
+                        serviceDraft.categoryId === category.id &&
+                          styles.optionChipSelected,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.optionText,
+                          serviceDraft.categoryId === category.id &&
+                            styles.optionTextSelected,
+                        ]}
+                      >
+                        {category.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <Text style={styles.inputLabel}>Subcategory</Text>
+
+              {subcategoriesLoading ? (
+                <ActivityIndicator color={PURPLE} />
+              ) : (
+                <View style={styles.optionWrap}>
+                  {subcategories
+                    .filter(
+                      item =>
+                        item.categoryId ===
+                        serviceDraft.categoryId,
+                    )
+                    .filter(
+                      item =>
+                        item.audiences.length === 0 ||
+                        item.audiences.includes(
+                          serviceDraft.audience,
+                        ),
+                    )
+                    .map(subcategory => (
+                      <TouchableOpacity
+                        key={subcategory.subcategoryId}
+                        onPress={() =>
+                          chooseSubcategory(subcategory)
+                        }
+                        style={[
+                          styles.optionChip,
+                          serviceDraft.subcategoryId ===
+                            subcategory.subcategoryId &&
+                            styles.optionChipSelected,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.optionText,
+                            serviceDraft.subcategoryId ===
+                              subcategory.subcategoryId &&
+                              styles.optionTextSelected,
+                          ]}
+                        >
+                          {subcategory.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              )}
+
+              <Text style={styles.inputLabel}>
+                Service name
+              </Text>
+
+              <TextInput
+                style={styles.input}
+                value={serviceDraft.serviceName}
+                onChangeText={value =>
+                  setServiceDraft(current => ({
+                    ...current,
+                    serviceName: value,
+                  }))
+                }
+                placeholder="e.g. Haircut"
+                placeholderTextColor="#9993A8"
+              />
+
+              <Text style={styles.inputLabel}>Audience</Text>
+
+              <View style={styles.optionWrap}>
+                {(['FEMALE', 'MALE', 'KIDS'] as Audience[]).map(
+                  audience => (
+                    <TouchableOpacity
+                      key={audience}
+                      onPress={() => {
+                        setServiceDraft(current => ({
+                          ...current,
+                          audience,
+                        }));
+                      }}
+                      style={[
+                        styles.optionChip,
+                        serviceDraft.audience === audience &&
+                          styles.optionChipSelected,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.optionText,
+                          serviceDraft.audience === audience &&
+                            styles.optionTextSelected,
+                        ]}
+                      >
+                        {audience}
+                      </Text>
+                    </TouchableOpacity>
+                  ),
+                )}
+              </View>
+
+              <Text style={styles.inputLabel}>Price (₹)</Text>
+
+              <TextInput
+                style={styles.input}
+                value={serviceDraft.price}
+                onChangeText={value =>
+                  setServiceDraft(current => ({
+                    ...current,
+                    price: value,
+                  }))
+                }
+                keyboardType="decimal-pad"
+                placeholder="e.g. 499"
+                placeholderTextColor="#9993A8"
+              />
+
+              <Text style={styles.inputLabel}>
+                Duration (minutes)
+              </Text>
+
+              <TextInput
+                style={styles.input}
+                value={serviceDraft.duration}
+                onChangeText={value =>
+                  setServiceDraft(current => ({
+                    ...current,
+                    duration: value,
+                  }))
+                }
+                keyboardType="number-pad"
+                placeholder="e.g. 45"
+                placeholderTextColor="#9993A8"
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.cancelButtonText}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+
+                <AppGradient
+                  colors={[...GRADIENTS.SOFT_PURPLE]}
+                  style={styles.modalPrimaryGradient}
+                >
+                  <TouchableOpacity
+                    style={styles.modalPrimaryInner}
+                    onPress={saveService}
+                    disabled={isLocked}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      Save to draft
+                    </Text>
+                  </TouchableOpacity>
+                </AppGradient>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Rename category modal */}
+      <Modal
+        visible={categoryEditorVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() =>
+          setCategoryEditorVisible(false)
+        }
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.renameDialog}>
+            <Text style={styles.modalTitle}>
+              Rename category
+            </Text>
+
+            <Text style={styles.modalSubtitle}>
+              This changes the category label in the proposed
+              catalogue. It does not rename the global admin
+              category.
+            </Text>
+
+            <TextInput
+              style={styles.input}
+              value={categoryNameDraft}
+              onChangeText={setCategoryNameDraft}
+              placeholder="Category name"
+              placeholderTextColor="#9993A8"
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() =>
+                  setCategoryEditorVisible(false)
+                }
+              >
+                <Text style={styles.cancelButtonText}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <AppGradient
+                colors={[...GRADIENTS.SOFT_PURPLE]}
+                style={styles.modalPrimaryGradient}
+              >
+                <TouchableOpacity
+                  style={styles.modalPrimaryInner}
+                  onPress={renameCategory}
+                  disabled={isLocked}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    Save draft
+                  </Text>
+                </TouchableOpacity>
+              </AppGradient>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#FAF9FD',
+  },
+
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#FAF9FD',
+  },
+
+  loadingText: {
+    marginTop: 12,
+    color: MUTED,
+    fontSize: 14,
+  },
+
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: TEXT,
+    textAlign: 'center',
+  },
+
+  muted: {
+    marginTop: 8,
+    color: MUTED,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+  listContent: {
+    paddingBottom: 32,
+  },
+
+  headerGradient: {
+    marginBottom: 16,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    overflow: 'hidden',
+  },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 25,
+    paddingBottom: 24,
+  },
+
+  headerText: {
+    flex: 1,
+    paddingRight: 12,
+  },
+
+  eyebrow: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.6,
+    color: '#FFFFFF',
+    opacity: 0.9,
+  },
+
+  title: {
+    marginTop: 5,
+    fontSize: 25,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+
+  subtitle: {
+    marginTop: 7,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#FFFFFF',
+    opacity: 0.92,
+  },
+
+  countBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 68,
+    height: 68,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+
+  countNumber: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: WHITE,
+  },
+
+  countLabel: {
+    fontSize: 10,
+    color: WHITE,
+    fontWeight: '600',
+  },
+
+  pendingBanner: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    padding: 15,
+    borderRadius: 16,
+    backgroundColor: '#F1ECFF',
+    borderWidth: 1,
+    borderColor: '#DDD2FF',
+  },
+
+  rejectedBanner: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    padding: 15,
+    borderRadius: 16,
+    backgroundColor: '#FFF0F2',
+    borderWidth: 1,
+    borderColor: '#F2C9D0',
+  },
+
+  pendingTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: TEXT,
+  },
+
+  pendingDescription: {
+    marginTop: 5,
+    color: MUTED,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+
+  pendingDate: {
+    marginTop: 8,
+    color: PURPLE_DARK,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  toolbar: {
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+
+  searchInput: {
+    flex: 1,
+    minHeight: 46,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 14,
+    backgroundColor: WHITE,
+    paddingHorizontal: 13,
+    color: TEXT,
+    fontSize: 13,
+  },
+
+  addButtonGradient: {
+    minHeight: 46,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+
+  addButtonInner: {
+    minHeight: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 13,
+  },
+
+  addButtonText: {
+    color: WHITE,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+
+  disabledButton: {
+    opacity: 0.45,
+  },
+
+  sectionLabel: {
+    marginTop: 20,
+    marginHorizontal: 20,
+    color: MUTED,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+  },
+
+  chipRow: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 4,
+    gap: 8,
+  },
+
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: WHITE,
+  },
+
+  chipSelected: {
+    borderColor: PURPLE,
+    backgroundColor: PURPLE_LIGHT,
+  },
+
+  chipText: {
+    color: MUTED,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  chipTextSelected: {
+    color: PURPLE_DARK,
+    fontWeight: '800',
+  },
+
+  categoryManagement: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: WHITE,
+  },
+
+  categoryManagementTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: TEXT,
+  },
+
+  categoryManagementHint: {
+    marginTop: 5,
+    marginBottom: 8,
+    fontSize: 12,
+    lineHeight: 17,
+    color: MUTED,
+  },
+
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 11,
+    borderTopWidth: 1,
+    borderTopColor: '#F1EEF6',
+    gap: 8,
+  },
+
+  categoryRowText: {
+    flex: 1,
+  },
+
+  categoryName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: TEXT,
+  },
+
+  categoryCount: {
+    marginTop: 3,
+    fontSize: 11,
+    color: MUTED,
+  },
+
+  smallAction: {
+    paddingHorizontal: 7,
+    paddingVertical: 7,
+  },
+
+  editText: {
+    color: PURPLE_DARK,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  deleteText: {
+    color: DANGER,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  disabledText: {
+    opacity: 0.4,
+  },
+
+  outlineButton: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D9CEFA',
+    alignItems: 'center',
+    backgroundColor: '#FBF9FF',
+  },
+
+  outlineButtonText: {
+    color: PURPLE_DARK,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+
+  resultsHeader: {
+    marginHorizontal: 20,
+    marginTop: 23,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  resultsTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: TEXT,
+  },
+
+  resultsCount: {
+    fontSize: 12,
+    color: MUTED,
+  },
+
+  serviceCard: {
+    marginHorizontal: 16,
+    marginBottom: 11,
+    padding: 15,
+    borderRadius: 18,
+    backgroundColor: WHITE,
+    borderWidth: 1,
+    borderColor: BORDER,
+    shadowColor: '#49337C',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+
+  serviceCardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+
+  serviceIdentity: {
+    flex: 1,
+    paddingRight: 10,
+  },
+
+  serviceName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: TEXT,
+  },
+
+  serviceCategory: {
+    marginTop: 5,
+    fontSize: 12,
+    lineHeight: 17,
+    color: MUTED,
+  },
+
+  audienceBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 9,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: PURPLE_LIGHT,
+  },
+
+  audienceText: {
+    color: PURPLE_DARK,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+
+  priceBlock: {
+    alignItems: 'flex-end',
+    paddingTop: 2,
+  },
+
+  price: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: PURPLE_DARK,
+  },
+
+  duration: {
+    marginTop: 5,
+    fontSize: 12,
+    fontWeight: '600',
+    color: MUTED,
+  },
+
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#F0EDF5',
+    marginTop: 14,
+  },
+
+  serviceActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 9,
+    paddingTop: 11,
+  },
+
+  secondaryAction: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#F5F1FF',
+  },
+
+  secondaryActionText: {
+    color: PURPLE_DARK,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  actionDisabled: {
+    opacity: 0.35,
+  },
+
+  emptyState: {
+    paddingHorizontal: 28,
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: TEXT,
+    textAlign: 'center',
+  },
+
+  emptyDescription: {
+    marginTop: 7,
+    fontSize: 13,
+    lineHeight: 19,
+    color: MUTED,
+    textAlign: 'center',
+  },
+
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+
+  reviewSummary: {
+    padding: 15,
+    borderRadius: 16,
+    backgroundColor: '#F3EEFF',
+    borderWidth: 1,
+    borderColor: '#E4D9FF',
+  },
+
+  reviewSummaryTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: TEXT,
+  },
+
+  reviewSummaryText: {
+    marginTop: 6,
+    fontSize: 12,
+    lineHeight: 18,
+    color: MUTED,
+  },
+
+  submitButton: {
+    marginTop: 13,
+    minHeight: 52,
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
+
+  submitButtonInner: {
+    minHeight: 52,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+
+  submitButtonText: {
+    color: WHITE,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  lockHint: {
+    marginTop: 8,
+    marginBottom: 12,
+    textAlign: 'center',
+    fontSize: 11,
+    lineHeight: 16,
+    color: MUTED,
+  },
+
+  gradientButton: {
+    minWidth: 140,
+    marginTop: 18,
+    borderRadius: 13,
+    overflow: 'hidden',
+  },
+
+  primaryButtonInner: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+
+  primaryButtonText: {
+    color: WHITE,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(25, 18, 43, 0.45)',
+  },
+
+  modalSheet: {
+    maxHeight: '92%',
+    paddingHorizontal: 20,
+    paddingTop: 23,
+    paddingBottom: 28,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    backgroundColor: WHITE,
+  },
+
+  renameDialog: {
+    marginHorizontal: 22,
+    marginBottom: 40,
+    padding: 20,
+    borderRadius: 22,
+    backgroundColor: WHITE,
+  },
+
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: TEXT,
+  },
+
+  modalSubtitle: {
+    marginTop: 7,
+    marginBottom: 15,
+    fontSize: 12,
+    lineHeight: 18,
+    color: MUTED,
+  },
+
+  inputLabel: {
+    marginTop: 13,
+    marginBottom: 7,
+    fontSize: 12,
+    fontWeight: '800',
+    color: TEXT,
+  },
+
+  input: {
+    minHeight: 47,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 13,
+    color: TEXT,
+    backgroundColor: '#FEFDFF',
+    fontSize: 14,
+  },
+
+  optionWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+
+  optionChip: {
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: WHITE,
+  },
+
+  optionChipSelected: {
+    borderColor: PURPLE,
+    backgroundColor: PURPLE_LIGHT,
+  },
+
+  optionText: {
+    color: MUTED,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  optionTextSelected: {
+    color: PURPLE_DARK,
+    fontWeight: '800',
+  },
+
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 23,
+  },
+
+  cancelButton: {
+    flex: 1,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 13,
+    backgroundColor: '#F2F0F6',
+  },
+
+  cancelButtonText: {
+    color: TEXT,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  modalPrimaryGradient: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 13,
+    overflow: 'hidden',
+  },
+
+  modalPrimaryInner: {
+    flex: 1,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+});
