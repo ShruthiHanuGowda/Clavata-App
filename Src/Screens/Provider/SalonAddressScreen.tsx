@@ -213,9 +213,16 @@ const SalonAddressScreen: React.FC<Props> = ({
         address.road,
         address.neighbourhood,
         address.suburb,
-      ].filter(Boolean);
+      ].filter(
+        (value, index, values) =>
+          Boolean(value) &&
+          values.indexOf(value) === index,
+      );
 
-      const street = streetParts.join(', ');
+      const street =
+        streetParts.join(', ') ||
+        data.formatted_address ||
+        '';
 
       const resolvedCity =
         address.city ||
@@ -410,116 +417,129 @@ const SalonAddressScreen: React.FC<Props> = ({
   }, [searchText, selectingSuggestion]);
 
   // SELECT AUTOCOMPLETE RESULT
-  const handleSelectSuggestion = useCallback(
-    async (suggestion: AddressSuggestion) => {
-      // Lock autocomplete before changing any state.
-      selectedAddressRef.current = true;
+ 
+const handleSelectSuggestion = useCallback(
+  async (suggestion: AddressSuggestion) => {
+    // Lock autocomplete before changing any state.
+    selectedAddressRef.current = true;
 
-      ++searchRequestIdRef.current;
+    ++searchRequestIdRef.current;
 
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
 
-      // Invalidate any older reverse-geocoding operation.
-      ++locationRequestIdRef.current;
+    // Invalidate older reverse-geocoding operations.
+    ++locationRequestIdRef.current;
 
-      Keyboard.dismiss();
+    Keyboard.dismiss();
 
-      setSelectingSuggestion(true);
-      setLoadingSuggestions(false);
-      setLoadingAddress(true);
-      setShowSuggestions(false);
-      setSuggestions([]);
-      setSearchError('');
-      setAddressError('');
+    setSelectingSuggestion(true);
+    setLoadingSuggestions(false);
+    setLoadingAddress(true);
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setSearchError('');
+    setAddressError('');
 
-      try {
-        const place = await getPlaceDetails(
-          suggestion.placeId,
-        );
+    try {
+      const place = await getPlaceDetails(
+        suggestion.placeId,
+      );
 
-        if (!place) {
-          // Allow the user to search again if lookup fails.
-          selectedAddressRef.current = false;
-
-          Alert.alert(
-            'Location unavailable',
-            'We could not retrieve this address. Please try again.',
-          );
-
-          return;
-        }
-
-        const latitude = place.latitude;
-        const longitude = place.longitude;
-
-        if (
-          !Number.isFinite(latitude) ||
-          !Number.isFinite(longitude) ||
-          latitude < -90 ||
-          latitude > 90 ||
-          longitude < -180 ||
-          longitude > 180
-        ) {
-          selectedAddressRef.current = false;
-
-          Alert.alert(
-            'Location unavailable',
-            'The selected address has invalid coordinates. Please choose another result.',
-          );
-
-          return;
-        }
-
-        const point: Coordinates = {
-          latitude,
-          longitude,
-        };
-
-        // Keep the selected description in the search field.
-        setSearchText(suggestion.description);
-
-        // Populate the address form.
-        setAddressLine(place.addressLine || '');
-        setCity(place.city || '');
-        setState(place.state || '');
-        setPincode(place.pincode || '');
-
-        // Update the map and selected coordinates.
-        setCoordinates(point);
-        setLocationFound(true);
-        setAddressError('');
-
-        animateMap(point);
-
-        // Invalidate older location lookups.
-        ++locationRequestIdRef.current;
-
-        // Keep autocomplete closed.
-        setSuggestions([]);
-        setShowSuggestions(false);
-        setSearchError('');
-      } catch (error) {
-        console.error(
-          'Place selection error:',
-          error,
-        );
-
+      if (!place) {
         selectedAddressRef.current = false;
 
         Alert.alert(
-          'Unable to select address',
-          'Please try selecting the address again.',
+          'Location unavailable',
+          'We could not retrieve this address. Please try again.',
         );
-      } finally {
-        setSelectingSuggestion(false);
-        setLoadingAddress(false);
+
+        return;
       }
-    },
-    [animateMap],
-  );
+
+      const latitude = place.latitude;
+      const longitude = place.longitude;
+
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180
+      ) {
+        selectedAddressRef.current = false;
+
+        Alert.alert(
+          'Location unavailable',
+          'The selected address has invalid coordinates. Please choose another result.',
+        );
+
+        return;
+      }
+
+      const point: Coordinates = {
+        latitude,
+        longitude,
+      };
+
+      // Preserve the exact selected address in the search field.
+      setSearchText(
+        suggestion.description.trim(),
+      );
+
+      // Populate the form with structured address fields.
+      // Fall back to the selected description only if no
+      // separate street/address line is returned.
+      setAddressLine(
+        (place.addressLine || '').trim() ||
+          suggestion.description.trim(),
+      );
+
+      setCity((place.city || '').trim());
+      setState((place.state || '').trim());
+
+      setPincode(
+        String(place.pincode || '')
+          .replace(/\D/g, '')
+          .slice(0, 6),
+      );
+
+      // Update selected coordinates and map.
+      setCoordinates(point);
+      setLocationFound(true);
+      setAddressError('');
+
+      animateMap(point);
+
+      // Invalidate any older location lookups.
+      ++locationRequestIdRef.current;
+
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setSearchError('');
+    } catch (error) {
+      console.error(
+        'Place selection error:',
+        error,
+      );
+
+      selectedAddressRef.current = false;
+
+      Alert.alert(
+        'Unable to select address',
+        'Please try selecting the address again.',
+      );
+    } finally {
+      setSelectingSuggestion(false);
+      setLoadingAddress(false);
+    }
+  },
+  [animateMap],
+);
+
 
   // LOCATION PERMISSION
   const requestLocationPermission =
@@ -866,7 +886,7 @@ const SalonAddressScreen: React.FC<Props> = ({
             </View>
 
             {showSuggestions &&
-            suggestions.length > 0 ? (
+              suggestions.length > 0 ? (
               <View style={styles.suggestionsContainer}>
                 {suggestions.map((item, index) => (
                   <TouchableOpacity
@@ -874,7 +894,7 @@ const SalonAddressScreen: React.FC<Props> = ({
                     style={[
                       styles.suggestionItem,
                       index === suggestions.length - 1 &&
-                        styles.lastSuggestion,
+                      styles.lastSuggestion,
                     ]}
                     onPress={() =>
                       void handleSelectSuggestion(item)

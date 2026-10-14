@@ -226,7 +226,10 @@ function buildAddressLine(
     .map(clean)
     .filter(Boolean);
 
-  return [...new Set(parts)].join(', ');
+  return firstNonEmpty(
+    place.addressLine,
+    place.formattedAddress,
+  );
 }
 
 function normalizePlacePincode(
@@ -277,6 +280,7 @@ export async function searchAddress(
    PLACE DETAILS
 ============================================================ */
 
+
 export async function getPlaceDetails(
   placeId: string,
 ): Promise<GooglePlace | null> {
@@ -302,13 +306,15 @@ export async function getPlaceDetails(
       return null;
     }
 
+    const formattedAddress = clean(place.formattedAddress);
+    const addressLine = buildAddressLine(place);
     const pincode = normalizePlacePincode(place);
 
     return {
       ...place,
       placeId: place.placeId || id,
-      formattedAddress: clean(place.formattedAddress),
-      addressLine: buildAddressLine(place),
+      formattedAddress,
+      addressLine,
       city: clean(place.city),
       state: clean(place.state),
       pincode,
@@ -319,6 +325,7 @@ export async function getPlaceDetails(
     return null;
   }
 }
+
 
 /* ============================================================
    REVERSE GEOCODING
