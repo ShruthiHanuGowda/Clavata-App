@@ -519,7 +519,7 @@ export default function SalonServices({ navigation }: any) {
   const handleDeleteService = (service: ConfiguredService) => {
     Alert.alert(
       'Remove service',
-      `Remove "${service.name}" from your salon services?`,
+      `Remove "${service.name}" from your business services?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -616,10 +616,10 @@ export default function SalonServices({ navigation }: any) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.pageHeader}>
-          <Text style={styles.heading}>Your salon services</Text>
+          <Text style={styles.heading}>Your business services</Text>
           <Text style={styles.subtitle}>
-            Tell customers what your salon offers. Add your services,
-            set prices and estimated durations.
+            Tell customers what your business offers. Add your services,
+            set prices and estimated durations
           </Text>
         </View>
 
@@ -702,7 +702,7 @@ export default function SalonServices({ navigation }: any) {
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No services yet</Text>
             <Text style={styles.emptyText}>
-              Select the services your salon provides to get started.
+              Select the services your business provides to get started
             </Text>
           </View>
         ) : (
@@ -786,7 +786,7 @@ export default function SalonServices({ navigation }: any) {
           <Text style={styles.noteTitle}>Before you continue</Text>
           <Text style={styles.noteText}>
             Add at least one service for each selected audience. You can
-            add multiple services under the same category and subcategory.
+            add multiple services under the same category and subcategory
           </Text>
         </View>
 

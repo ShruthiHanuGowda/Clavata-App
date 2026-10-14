@@ -1,4 +1,3 @@
-
 import React, {
   useCallback,
   useEffect,
@@ -12,8 +11,8 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   PermissionsAndroid,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -25,12 +24,12 @@ import {
 } from 'react-native';
 
 import MapView, {
-  Marker,
   PROVIDER_GOOGLE,
   Region,
 } from 'react-native-maps';
 
 import Geolocation from '@react-native-community/geolocation';
+
 import AppGradient from '../../common/AppGradient';
 import { GRADIENTS } from '../../constants/constants';
 
@@ -41,6 +40,10 @@ import {
   type AddressSuggestion,
   type Coordinates,
 } from '../../services/locationService';
+
+/* ============================================================
+   TYPES
+============================================================ */
 
 type AddressData = {
   addressLine: string;
@@ -77,6 +80,10 @@ type Props = {
   };
 };
 
+/* ============================================================
+   CONSTANTS
+============================================================ */
+
 const DEFAULT_COORDINATES: Coordinates = {
   latitude: 12.9716,
   longitude: 77.5946,
@@ -97,14 +104,17 @@ const COLORS = {
   border: '#E8E4F0',
   error: '#C63F52',
   success: '#26845B',
+  pin: '#E53945',
 };
+
+/* ============================================================
+   SCREEN
+============================================================ */
 
 const SalonAddressScreen: React.FC<Props> = ({
   navigation,
   route,
 }) => {
-  const selectedAddressRef = useRef(false);
-
   const mapRef = useRef<MapView>(null);
   const fullMapRef = useRef<MapView>(null);
 
@@ -113,6 +123,9 @@ const SalonAddressScreen: React.FC<Props> = ({
 
   const searchRequestIdRef = useRef(0);
   const locationRequestIdRef = useRef(0);
+
+  const selectedAddressRef = useRef(false);
+  const fullMapReadyRef = useRef(false);
 
   const [coordinates, setCoordinates] =
     useState<Coordinates>(DEFAULT_COORDINATES);
@@ -147,10 +160,15 @@ const SalonAddressScreen: React.FC<Props> = ({
   const [showFullMap, setShowFullMap] =
     useState(false);
 
+  const [fullMapSession, setFullMapSession] = useState(0);
+
   const [addressError, setAddressError] = useState('');
   const [searchError, setSearchError] = useState('');
 
-  // RESTORE REGISTRATION DATA
+  /* ============================================================
+     RESTORE REGISTRATION DATA
+  ============================================================ */
+
   useEffect(() => {
     const saved = route?.params?.registrationData;
 
@@ -167,7 +185,13 @@ const SalonAddressScreen: React.FC<Props> = ({
 
     if (
       typeof saved.latitude === 'number' &&
-      typeof saved.longitude === 'number'
+      typeof saved.longitude === 'number' &&
+      Number.isFinite(saved.latitude) &&
+      Number.isFinite(saved.longitude) &&
+      saved.latitude >= -90 &&
+      saved.latitude <= 90 &&
+      saved.longitude >= -180 &&
+      saved.longitude <= 180
     ) {
       const point: Coordinates = {
         latitude: saved.latitude,
@@ -178,55 +202,96 @@ const SalonAddressScreen: React.FC<Props> = ({
       setLocationFound(true);
 
       mapRef.current?.animateToRegion(
-        {
-          ...point,
-          ...MAP_DELTA,
-        },
+        { ...point, ...MAP_DELTA },
         0,
       );
     }
   }, [route?.params?.registrationData]);
 
-  // MAP ANIMATION: KEEP BOTH MAPS SYNCHRONIZED
-  const animateMap = useCallback((point: Coordinates) => {
-    const region: Region = {
-      ...point,
-      ...MAP_DELTA,
-    };
+  /* ============================================================
+     MAP ANIMATION
+  ============================================================ */
 
-    mapRef.current?.animateToRegion(region, 450);
-    fullMapRef.current?.animateToRegion(region, 450);
-  }, []);
+  const animateMap = useCallback(
+    (point: Coordinates) => {
+      const region: Region = {
+        ...point,
+        ...MAP_DELTA,
+      };
 
-  // OPEN FULL MAP AT THE CURRENTLY SELECTED COORDINATES
+      mapRef.current?.animateToRegion(region, 450);
+
+      fullMapRef.current?.animateToRegion(region, 450);
+    },
+    [],
+  );
+
+  /* ============================================================
+     OPEN / CLOSE FULL-SCREEN MAP
+  ============================================================ */
+
   const handleOpenFullMap = useCallback(() => {
     Keyboard.dismiss();
-
-    const query = searchText.trim();
-
-    if (query.length >= 3 && !selectedAddressRef.current) {
-      ++searchRequestIdRef.current;
-    }
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
     }
 
-    setShowSuggestions(false);
+    ++searchRequestIdRef.current;
+
     setSuggestions([]);
+    setShowSuggestions(false);
     setLoadingSuggestions(false);
     setSearchError('');
 
+    fullMapReadyRef.current = false;
+
+    setFullMapSession(previous => previous + 1);
     setShowFullMap(true);
-  }, [searchText]);
+  }, []);
 
   const handleCloseFullMap = useCallback(() => {
     Keyboard.dismiss();
+
     setShowFullMap(false);
+    fullMapReadyRef.current = false;
+
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setLoadingSuggestions(false);
+    setSearchError('');
   }, []);
 
-  // APPLY REVERSE-GEOCODED ADDRESS
+  /* ============================================================
+     ADDRESS SEARCH INPUT
+  ============================================================ */
+
+  const handleSearchTextChange = useCallback(
+    (value: string) => {
+      selectedAddressRef.current = false;
+
+      ++searchRequestIdRef.current;
+
+      setSearchText(value);
+      setSearchError('');
+
+      const enoughText = value.trim().length >= 3;
+
+      setShowSuggestions(enoughText);
+
+      if (!enoughText) {
+        setSuggestions([]);
+        setLoadingSuggestions(false);
+      }
+    },
+    [],
+  );
+
+  /* ============================================================
+     APPLY REVERSE-GEOCODED ADDRESS
+  ============================================================ */
+
   const applyGeocodedAddress = useCallback(
     (
       data: Awaited<ReturnType<typeof reverseGeocode>>,
@@ -270,6 +335,7 @@ const SalonAddressScreen: React.FC<Props> = ({
       setAddressLine(previous => street || previous);
       setCity(resolvedCity);
       setState(address.state ?? '');
+
       setPincode(
         String(address.postcode ?? '')
           .replace(/\D/g, '')
@@ -282,16 +348,34 @@ const SalonAddressScreen: React.FC<Props> = ({
     [],
   );
 
-  // SELECT LOCATION FROM MAP OR CURRENT LOCATION
+  /* ============================================================
+     UPDATE SELECTED LOCATION
+
+     The pin is a React Native overlay at the map centre.
+     When the map is moved, its centre becomes the selected
+     geographical location.
+  ============================================================ */
+
   const updateSelectedLocation = useCallback(
     async (
       point: Coordinates,
       preserveSearchText = false,
+      shouldAnimate = true,
     ) => {
+      if (
+        !Number.isFinite(point.latitude) ||
+        !Number.isFinite(point.longitude) ||
+        point.latitude < -90 ||
+        point.latitude > 90 ||
+        point.longitude < -180 ||
+        point.longitude > 180
+      ) {
+        return;
+      }
+
       const requestId =
         ++locationRequestIdRef.current;
 
-      // Invalidate any pending autocomplete request.
       ++searchRequestIdRef.current;
 
       if (debounceRef.current) {
@@ -314,7 +398,9 @@ const SalonAddressScreen: React.FC<Props> = ({
       setLoadingSuggestions(false);
       setSearchError('');
 
-      animateMap(point);
+      if (shouldAnimate) {
+        animateMap(point);
+      }
 
       try {
         const result = await reverseGeocode(
@@ -322,7 +408,6 @@ const SalonAddressScreen: React.FC<Props> = ({
           point.longitude,
         );
 
-        // Ignore stale responses from earlier pin movements.
         if (
           requestId !== locationRequestIdRef.current
         ) {
@@ -358,7 +443,55 @@ const SalonAddressScreen: React.FC<Props> = ({
     [animateMap, applyGeocodedAddress],
   );
 
-  // ADDRESS AUTOCOMPLETE
+  /* ============================================================
+     FULL MAP MOVEMENT
+
+     The fixed red pin represents the centre of the map.
+     Panning the map updates the selected coordinates.
+  ============================================================ */
+
+  const handleFullMapRegionChangeComplete =
+    useCallback(
+      (region: Region) => {
+        if (!fullMapReadyRef.current) {
+          return;
+        }
+
+        const point: Coordinates = {
+          latitude: region.latitude,
+          longitude: region.longitude,
+        };
+
+        const latitudeDifference = Math.abs(
+          point.latitude - coordinates.latitude,
+        );
+
+        const longitudeDifference = Math.abs(
+          point.longitude - coordinates.longitude,
+        );
+
+        // Ignore tiny map-region changes to prevent
+        // unnecessary reverse-geocoding requests.
+        if (
+          latitudeDifference < 0.00002 &&
+          longitudeDifference < 0.00002
+        ) {
+          return;
+        }
+
+        void updateSelectedLocation(
+          point,
+          false,
+          false,
+        );
+      },
+      [coordinates, updateSelectedLocation],
+    );
+
+  /* ============================================================
+     ADDRESS AUTOCOMPLETE
+  ============================================================ */
+
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -367,8 +500,7 @@ const SalonAddressScreen: React.FC<Props> = ({
 
     if (
       selectingSuggestion ||
-      selectedAddressRef.current ||
-      showFullMap
+      selectedAddressRef.current
     ) {
       ++searchRequestIdRef.current;
 
@@ -426,10 +558,7 @@ const SalonAddressScreen: React.FC<Props> = ({
           return;
         }
 
-        console.error(
-          'Autocomplete error:',
-          error,
-        );
+        console.error('Autocomplete error:', error);
 
         setSuggestions([]);
         setShowSuggestions(false);
@@ -452,25 +581,23 @@ const SalonAddressScreen: React.FC<Props> = ({
         debounceRef.current = null;
       }
     };
-  }, [
-    searchText,
-    selectingSuggestion,
-    showFullMap,
-  ]);
+  }, [searchText, selectingSuggestion]);
 
-  // SELECT AUTOCOMPLETE RESULT
+  /* ============================================================
+     SELECT ADDRESS SEARCH RESULT
+  ============================================================ */
+
   const handleSelectSuggestion = useCallback(
     async (suggestion: AddressSuggestion) => {
       selectedAddressRef.current = true;
 
       ++searchRequestIdRef.current;
+      ++locationRequestIdRef.current;
 
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
         debounceRef.current = null;
       }
-
-      ++locationRequestIdRef.current;
 
       Keyboard.dismiss();
 
@@ -524,13 +651,11 @@ const SalonAddressScreen: React.FC<Props> = ({
           longitude,
         };
 
-        setSearchText(
-          suggestion.description.trim(),
-        );
+        setSearchText(suggestion.description.trim());
 
         setAddressLine(
           (place.addressLine || '').trim() ||
-            suggestion.description.trim(),
+          suggestion.description.trim(),
         );
 
         setCity((place.city || '').trim());
@@ -547,8 +672,6 @@ const SalonAddressScreen: React.FC<Props> = ({
         setAddressError('');
 
         animateMap(point);
-
-        ++locationRequestIdRef.current;
 
         setSuggestions([]);
         setShowSuggestions(false);
@@ -573,7 +696,10 @@ const SalonAddressScreen: React.FC<Props> = ({
     [animateMap],
   );
 
-  // LOCATION PERMISSION
+  /* ============================================================
+     LOCATION PERMISSION
+  ============================================================ */
+
   const requestLocationPermission =
     useCallback(async () => {
       if (Platform.OS !== 'android') {
@@ -617,7 +743,10 @@ const SalonAddressScreen: React.FC<Props> = ({
       }
     }, []);
 
-  // CURRENT LOCATION
+  /* ============================================================
+     CURRENT LOCATION
+  ============================================================ */
+
   const handleUseCurrentLocation =
     useCallback(async () => {
       const permitted =
@@ -669,7 +798,13 @@ const SalonAddressScreen: React.FC<Props> = ({
       updateSelectedLocation,
     ]);
 
-  // FULL MAP: TAP TO SELECT A COORDINATE
+  /* ============================================================
+     MAP PRESS
+
+     Tapping the map selects that location and recentres the
+     map so the fixed pin points to the selected coordinates.
+  ============================================================ */
+
   const handleMapPress = useCallback(
     (event: {
       nativeEvent: {
@@ -685,21 +820,10 @@ const SalonAddressScreen: React.FC<Props> = ({
     [updateSelectedLocation],
   );
 
-  // FULL MAP: DRAG THE PIN
-  const handleMarkerDragEnd = useCallback(
-    (event: {
-      nativeEvent: {
-        coordinate: Coordinates;
-      };
-    }) => {
-      void updateSelectedLocation(
-        event.nativeEvent.coordinate,
-      );
-    },
-    [updateSelectedLocation],
-  );
+  /* ============================================================
+     CONFIRM ADDRESS
+  ============================================================ */
 
-  // CONFIRM ADDRESS
   const handleConfirmAddress = useCallback(() => {
     Keyboard.dismiss();
 
@@ -713,7 +837,6 @@ const SalonAddressScreen: React.FC<Props> = ({
         'Address required',
         'Enter your salon street address.',
       );
-
       return;
     }
 
@@ -722,7 +845,6 @@ const SalonAddressScreen: React.FC<Props> = ({
         'City required',
         'Enter your salon city.',
       );
-
       return;
     }
 
@@ -731,7 +853,6 @@ const SalonAddressScreen: React.FC<Props> = ({
         'State required',
         'Enter your salon state.',
       );
-
       return;
     }
 
@@ -740,7 +861,6 @@ const SalonAddressScreen: React.FC<Props> = ({
         'Invalid PIN code',
         'Enter a valid 6-digit Indian PIN code.',
       );
-
       return;
     }
 
@@ -756,7 +876,6 @@ const SalonAddressScreen: React.FC<Props> = ({
         'Location required',
         'Please select your location on the map.',
       );
-
       return;
     }
 
@@ -797,7 +916,10 @@ const SalonAddressScreen: React.FC<Props> = ({
     route?.params?.registrationData,
   ]);
 
-  // CLEANUP
+  /* ============================================================
+     CLEANUP
+  ============================================================ */
+
   useEffect(() => {
     return () => {
       if (debounceRef.current) {
@@ -810,7 +932,87 @@ const SalonAddressScreen: React.FC<Props> = ({
     };
   }, []);
 
-  // UI
+  /* ============================================================
+     REUSABLE RED PIN
+
+     This is a standard React Native View, not a Google Maps
+     Marker. It therefore remains visible independently of
+     native custom-marker bitmap rendering.
+  ============================================================ */
+
+
+  const renderCenterPin = () => (
+    <View
+      pointerEvents="none"
+      style={styles.centerPinOverlay}
+    >
+      <View style={styles.customPinContainer}>
+        <View style={styles.customPinHead}>
+          <View style={styles.customPinCenter} />
+        </View>
+
+        <View style={styles.customPinPoint} />
+      </View>
+    </View>
+  );
+
+
+  const renderSearchSuggestions = (
+    fullScreen: boolean,
+  ) => {
+    if (!showSuggestions || suggestions.length === 0) {
+      return null;
+    }
+
+    return (
+      <View
+        style={
+          fullScreen
+            ? styles.fullMapSuggestions
+            : styles.suggestionsContainer
+        }
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+          style={
+            fullScreen
+              ? styles.fullMapSuggestionsScroll
+              : undefined
+          }
+        >
+          {suggestions.map((item, index) => (
+            <TouchableOpacity
+              key={item.placeId}
+              style={[
+                styles.suggestionItem,
+                index === suggestions.length - 1 &&
+                styles.lastSuggestion,
+              ]}
+              onPress={() =>
+                void handleSelectSuggestion(item)
+              }
+              disabled={selectingSuggestion}
+              accessibilityRole="button"
+            >
+              <View style={styles.suggestionIconContainer}>
+                <Text style={styles.suggestionIcon}>⌖</Text>
+              </View>
+
+              <Text style={styles.suggestionText}>
+                {item.description}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  /* ============================================================
+     UI
+  ============================================================ */
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar
@@ -820,10 +1022,10 @@ const SalonAddressScreen: React.FC<Props> = ({
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={
-          Platform.OS === 'ios' ? 'padding' : undefined
-        }
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        {/* HEADER */}
+
         <View style={styles.header}>
           <TouchableOpacity
             accessibilityRole="button"
@@ -851,6 +1053,7 @@ const SalonAddressScreen: React.FC<Props> = ({
           showsVerticalScrollIndicator={false}
         >
           {/* ADDRESS SEARCH */}
+
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>
               Find your address
@@ -866,29 +1069,9 @@ const SalonAddressScreen: React.FC<Props> = ({
 
               <TextInput
                 value={searchText}
-                onChangeText={value => {
-                  selectedAddressRef.current = false;
-
-                  ++searchRequestIdRef.current;
-
-                  setSearchText(value);
-                  setSearchError('');
-
-                  const hasEnoughText =
-                    value.trim().length >= 3;
-
-                  setShowSuggestions(hasEnoughText);
-
-                  if (!hasEnoughText) {
-                    setSuggestions([]);
-                    setLoadingSuggestions(false);
-                  }
-                }}
+                onChangeText={handleSearchTextChange}
                 onFocus={() => {
-                  if (
-                    selectedAddressRef.current ||
-                    showFullMap
-                  ) {
+                  if (selectedAddressRef.current) {
                     setShowSuggestions(false);
                     setSuggestions([]);
                     return;
@@ -906,58 +1089,27 @@ const SalonAddressScreen: React.FC<Props> = ({
                 accessibilityLabel="Search salon address"
               />
 
-              {loadingSuggestions ? (
+              {loadingSuggestions && (
                 <ActivityIndicator
                   size="small"
                   color={COLORS.primary}
                 />
-              ) : null}
+              )}
             </View>
 
-            {showSuggestions &&
-              suggestions.length > 0 ? (
-              <View style={styles.suggestionsContainer}>
-                {suggestions.map((item, index) => (
-                  <TouchableOpacity
-                    key={item.placeId}
-                    style={[
-                      styles.suggestionItem,
-                      index === suggestions.length - 1 &&
-                        styles.lastSuggestion,
-                    ]}
-                    onPress={() =>
-                      void handleSelectSuggestion(item)
-                    }
-                    disabled={selectingSuggestion}
-                    accessibilityRole="button"
-                  >
-                    <View
-                      style={styles.suggestionIconContainer}
-                    >
-                      <Text style={styles.suggestionIcon}>
-                        ⌖
-                      </Text>
-                    </View>
+            {renderSearchSuggestions(false)}
 
-                    <Text style={styles.suggestionText}>
-                      {item.description}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : null}
-
-            {!!searchError && showSuggestions ? (
-              <Text style={styles.errorText}>
-                {searchError}
-              </Text>
-            ) : null}
+            {!!searchError &&
+              showSuggestions &&
+              !showFullMap && (
+                <Text style={styles.errorText}>
+                  {searchError}
+                </Text>
+              )}
 
             <TouchableOpacity
               style={styles.currentLocationButton}
-              onPress={() =>
-                void handleUseCurrentLocation()
-              }
+              onPress={() => void handleUseCurrentLocation()}
               disabled={loadingCurrentLocation}
               accessibilityRole="button"
             >
@@ -967,9 +1119,7 @@ const SalonAddressScreen: React.FC<Props> = ({
                   color={COLORS.primary}
                 />
               ) : (
-                <Text style={styles.currentLocationIcon}>
-                  ◎
-                </Text>
+                <Text style={styles.currentLocationIcon}>◎</Text>
               )}
 
               <Text style={styles.currentLocationText}>
@@ -979,6 +1129,7 @@ const SalonAddressScreen: React.FC<Props> = ({
           </View>
 
           {/* COMPACT MAP PREVIEW */}
+
           <View style={styles.card}>
             <View style={styles.mapHeader}>
               <View style={styles.mapHeaderContent}>
@@ -993,9 +1144,7 @@ const SalonAddressScreen: React.FC<Props> = ({
               </View>
 
               <View style={styles.mapBadge}>
-                <Text style={styles.mapBadgeText}>
-                  MAP
-                </Text>
+                <Text style={styles.mapBadgeText}>MAP</Text>
               </View>
             </View>
 
@@ -1016,14 +1165,14 @@ const SalonAddressScreen: React.FC<Props> = ({
                 zoomEnabled={false}
                 rotateEnabled={false}
                 pitchEnabled={false}
-              >
-                <Marker
-                  coordinate={coordinates}
-                  title="Your salon"
-                  description="Selected salon location"
-                  pinColor="red"
-                />
-              </MapView>
+              />
+
+              {/* ALWAYS VISIBLE RED PIN */}
+
+              {renderCenterPin()}
+
+              {/* BUTTON IS NOW AT THE BOTTOM LEFT,
+                  SO IT DOES NOT COVER THE PIN */}
 
               <TouchableOpacity
                 style={styles.expandMapOverlay}
@@ -1033,9 +1182,7 @@ const SalonAddressScreen: React.FC<Props> = ({
                 accessibilityLabel="Open full-screen map"
               >
                 <View style={styles.expandMapButton}>
-                  <Text style={styles.expandMapIcon}>
-                    ⛶
-                  </Text>
+                  <Text style={styles.expandMapIcon}>⛶</Text>
 
                   <Text style={styles.expandMapText}>
                     Select exact location
@@ -1045,9 +1192,7 @@ const SalonAddressScreen: React.FC<Props> = ({
 
               <TouchableOpacity
                 style={styles.mapLocationButton}
-                onPress={() =>
-                  void handleUseCurrentLocation()
-                }
+                onPress={() => void handleUseCurrentLocation()}
                 disabled={loadingCurrentLocation}
                 accessibilityRole="button"
                 accessibilityLabel="Use my current location"
@@ -1086,13 +1231,14 @@ const SalonAddressScreen: React.FC<Props> = ({
               </View>
             ) : (
               <Text style={styles.mapHint}>
-                Tap “Select exact location” to adjust the pin
-                on a larger map.
+                Open the map to position the red pin at your
+                salon entrance.
               </Text>
             )}
           </View>
 
           {/* ADDRESS DETAILS */}
+
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>
               Address details
@@ -1103,11 +1249,11 @@ const SalonAddressScreen: React.FC<Props> = ({
               missing.
             </Text>
 
-            {!!addressError ? (
+            {!!addressError && (
               <Text style={styles.errorText}>
                 {addressError}
               </Text>
-            ) : null}
+            )}
 
             <Text style={styles.fieldLabel}>
               Street address *
@@ -1118,10 +1264,7 @@ const SalonAddressScreen: React.FC<Props> = ({
               onChangeText={setAddressLine}
               placeholder="Building, street, area or landmark"
               placeholderTextColor={COLORS.muted}
-              style={[
-                styles.input,
-                styles.multilineInput,
-              ]}
+              style={[styles.input, styles.multilineInput]}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -1181,6 +1324,8 @@ const SalonAddressScreen: React.FC<Props> = ({
             </View>
           </View>
 
+          {/* CONTINUE */}
+
           <TouchableOpacity
             style={styles.confirmButton}
             onPress={handleConfirmAddress}
@@ -1196,9 +1341,7 @@ const SalonAddressScreen: React.FC<Props> = ({
                 Save location and continue
               </Text>
 
-              <Text style={styles.confirmButtonArrow}>
-                →
-              </Text>
+              <Text style={styles.confirmButtonArrow}>→</Text>
             </AppGradient>
           </TouchableOpacity>
 
@@ -1207,82 +1350,155 @@ const SalonAddressScreen: React.FC<Props> = ({
             nearby.
           </Text>
         </ScrollView>
+      </KeyboardAvoidingView>
 
-        {/* FULL-SCREEN INTERACTIVE MAP */}
-        <Modal
-          visible={showFullMap}
-          animationType="slide"
-          presentationStyle="fullScreen"
-          onRequestClose={handleCloseFullMap}
-          onShow={() => {
+      {/* ========================================================
+          FULL-SCREEN INTERACTIVE MAP
+      ======================================================== */}
+
+      <Modal
+        visible={showFullMap}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={handleCloseFullMap}
+        onShow={() => {
+          fullMapReadyRef.current = false;
+
+          requestAnimationFrame(() => {
             fullMapRef.current?.animateToRegion(
               {
                 ...coordinates,
                 ...MAP_DELTA,
               },
-              250,
+              0,
             );
-          }}
-          statusBarTranslucent={false}
-        >
-          <SafeAreaView style={styles.fullMapScreen}>
-            <StatusBar
-              barStyle="dark-content"
-              backgroundColor="#FFFFFF"
+          });
+        }}
+        statusBarTranslucent={false}
+      >
+        <SafeAreaView style={styles.fullMapScreen}>
+          <StatusBar
+            barStyle="dark-content"
+            backgroundColor="#FFFFFF"
+          />
+
+          {/* FULL MAP HEADER */}
+
+          <View style={styles.fullMapHeader}>
+            <TouchableOpacity
+              style={styles.fullMapBackButton}
+              onPress={handleCloseFullMap}
+              accessibilityRole="button"
+              accessibilityLabel="Close full-screen map"
+            >
+              <Text style={styles.fullMapBackText}>‹</Text>
+            </TouchableOpacity>
+
+            <View style={styles.fullMapHeaderContent}>
+              <Text style={styles.fullMapTitle}>
+                Pin your salon
+              </Text>
+
+              <Text style={styles.fullMapSubtitle}>
+                Search an address or move the map until the
+                red pin points to your salon entrance.
+              </Text>
+            </View>
+          </View>
+
+          {/* FULL MAP BODY */}
+
+          <View style={styles.fullMapBody}>
+            <MapView
+              key={`full-map-${fullMapSession}`}
+              ref={fullMapRef}
+              provider={PROVIDER_GOOGLE}
+              style={styles.fullMap}
+              initialRegion={{
+                ...coordinates,
+                ...MAP_DELTA,
+              }}
+              onMapReady={() => {
+                fullMapReadyRef.current = true;
+
+                fullMapRef.current?.animateToRegion(
+                  {
+                    ...coordinates,
+                    ...MAP_DELTA,
+                  },
+                  0,
+                );
+              }}
+              onRegionChangeComplete={
+                handleFullMapRegionChangeComplete
+              }
+              onPress={handleMapPress}
+              showsUserLocation
+              showsMyLocationButton={false}
+              loadingEnabled
+              toolbarEnabled={false}
+              moveOnMarkerPress={false}
             />
 
-            {/* FULL MAP HEADER */}
-            <View style={styles.fullMapHeader}>
-              <TouchableOpacity
-                style={styles.fullMapBackButton}
-                onPress={handleCloseFullMap}
-                accessibilityRole="button"
-                accessibilityLabel="Close full-screen map"
-              >
-                <Text style={styles.fullMapBackText}>
-                  ‹
-                </Text>
-              </TouchableOpacity>
+            {/* CENTRED RED PIN.
+                This is outside MapView deliberately, so it
+                does not depend on native Marker rendering. */}
 
-              <View style={styles.fullMapHeaderContent}>
-                <Text style={styles.fullMapTitle}>
-                  Pin your salon
-                </Text>
+            {renderCenterPin()}
 
-                <Text style={styles.fullMapSubtitle}>
-                  Zoom in and place the pin at your salon
-                  entrance.
-                </Text>
+            {/* ADDRESS SEARCH */}
+
+            <View style={styles.fullMapSearchSection}>
+              <View style={styles.fullMapSearchContainer}>
+                <Text style={styles.searchIcon}>⌕</Text>
+
+                <TextInput
+                  value={searchText}
+                  onChangeText={handleSearchTextChange}
+                  placeholder="Search address or landmark"
+                  placeholderTextColor={COLORS.muted}
+                  style={styles.fullMapSearchInput}
+                  returnKeyType="search"
+                  autoCorrect={false}
+                  accessibilityLabel="Search address on full-screen map"
+                />
+
+                {loadingSuggestions && (
+                  <ActivityIndicator
+                    size="small"
+                    color={COLORS.primary}
+                  />
+                )}
+
+                {!!searchText && (
+                  <TouchableOpacity
+                    onPress={() => handleSearchTextChange('')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Clear address search"
+                    style={styles.fullMapClearButton}
+                  >
+                    <Text style={styles.fullMapClearText}>
+                      ×
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
+
+              {renderSearchSuggestions(true)}
+
+              {!!searchError &&
+                searchText.trim().length >= 3 && (
+                  <View style={styles.fullMapSearchErrorBox}>
+                    <Text style={styles.fullMapSearchError}>
+                      {searchError}
+                    </Text>
+                  </View>
+                )}
             </View>
 
-            {/* FULL MAP BODY */}
-            <View style={styles.fullMapBody}>
-              <MapView
-                ref={fullMapRef}
-                provider={PROVIDER_GOOGLE}
-                style={styles.fullMap}
-                initialRegion={{
-                  ...coordinates,
-                  ...MAP_DELTA,
-                }}
-                onPress={handleMapPress}
-                showsUserLocation
-                showsMyLocationButton={false}
-                loadingEnabled
-                toolbarEnabled={false}
-                moveOnMarkerPress={false}
-              >
-                <Marker
-                  coordinate={coordinates}
-                  draggable
-                  onDragEnd={handleMarkerDragEnd}
-                  title="Your salon"
-                  description="Drag to adjust the exact location"
-                  pinColor="red"
-                />
-              </MapView>
+            {/* MAP INSTRUCTIONS */}
 
+            {!showSuggestions && (
               <View
                 pointerEvents="none"
                 style={styles.mapInstructionCard}
@@ -1292,102 +1508,101 @@ const SalonAddressScreen: React.FC<Props> = ({
                 </Text>
 
                 <Text style={styles.mapInstructionText}>
-                  Tap the map or drag the red pin to the
-                  exact entrance.
+                  Move the map beneath the red pin or tap the
+                  map to select a location.
                 </Text>
               </View>
+            )}
 
-              <TouchableOpacity
-                style={styles.fullMapCurrentLocation}
-                onPress={() =>
-                  void handleUseCurrentLocation()
-                }
-                disabled={loadingCurrentLocation}
-                accessibilityRole="button"
-                accessibilityLabel="Move pin to current location"
-              >
-                {loadingCurrentLocation ? (
-                  <ActivityIndicator
-                    color={COLORS.primary}
-                  />
-                ) : (
-                  <Text
-                    style={
-                      styles.fullMapCurrentLocationIcon
-                    }
-                  >
-                    ◎
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            {/* CURRENT LOCATION */}
 
-            {/* FULL MAP FOOTER */}
-            <View style={styles.fullMapFooter}>
-              <View style={styles.fullMapCoordinateRow}>
-                <View style={styles.fullMapPinBadge}>
-                  <Text style={styles.fullMapPinBadgeText}>
-                    ⌖
-                  </Text>
-                </View>
-
-                <View style={styles.fullMapCoordinateContent}>
-                  <Text style={styles.fullMapCoordinateTitle}>
-                    Selected coordinates
-                  </Text>
-
-                  <Text style={styles.fullMapCoordinateText}>
-                    {coordinates.latitude.toFixed(6)},{' '}
-                    {coordinates.longitude.toFixed(6)}
-                  </Text>
-                </View>
-              </View>
-
-              {loadingAddress ? (
-                <View style={styles.fullMapLoading}>
-                  <ActivityIndicator
-                    color={COLORS.primary}
-                  />
-
-                  <Text style={styles.fullMapLoadingText}>
-                    Updating address details…
-                  </Text>
-                </View>
-              ) : null}
-
-              {!!addressError ? (
-                <Text style={styles.fullMapError}>
-                  {addressError}
-                </Text>
-              ) : null}
-
-              <TouchableOpacity
-                style={styles.fullMapConfirmButton}
-                activeOpacity={0.85}
-                onPress={handleCloseFullMap}
-                accessibilityRole="button"
-                accessibilityLabel="Confirm selected salon location"
-              >
-                <AppGradient
-                  colors={[...GRADIENTS.SOFT_PURPLE]}
-                  style={styles.fullMapConfirmGradient}
+            <TouchableOpacity
+              style={styles.fullMapCurrentLocation}
+              onPress={() => void handleUseCurrentLocation()}
+              disabled={loadingCurrentLocation}
+              accessibilityRole="button"
+              accessibilityLabel="Move pin to current location"
+            >
+              {loadingCurrentLocation ? (
+                <ActivityIndicator color={COLORS.primary} />
+              ) : (
+                <Text
+                  style={styles.fullMapCurrentLocationIcon}
                 >
-                  <Text style={styles.fullMapConfirmText}>
-                    Confirm this location
-                  </Text>
+                  ◎
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
 
-                  <Text style={styles.fullMapConfirmArrow}>
-                    ✓
-                  </Text>
-                </AppGradient>
-              </TouchableOpacity>
+          {/* FULL MAP FOOTER */}
+
+          <View style={styles.fullMapFooter}>
+            <View style={styles.fullMapCoordinateRow}>
+              <View style={styles.fullMapPinBadge}>
+                <Text style={styles.fullMapPinBadgeText}>
+                  ⌖
+                </Text>
+              </View>
+
+              <View style={styles.fullMapCoordinateContent}>
+                <Text style={styles.fullMapCoordinateTitle}>
+                  Selected coordinates
+                </Text>
+
+                <Text style={styles.fullMapCoordinateText}>
+                  {coordinates.latitude.toFixed(6)},{' '}
+                  {coordinates.longitude.toFixed(6)}
+                </Text>
+              </View>
             </View>
-          </SafeAreaView>
-        </Modal>
-      </KeyboardAvoidingView>
+
+            {loadingAddress && (
+              <View style={styles.fullMapLoading}>
+                <ActivityIndicator color={COLORS.primary} />
+
+                <Text style={styles.fullMapLoadingText}>
+                  Updating address details…
+                </Text>
+              </View>
+            )}
+
+            {!!addressError && (
+              <Text style={styles.fullMapError}>
+                {addressError}
+              </Text>
+            )}
+
+            <TouchableOpacity
+              style={styles.fullMapConfirmButton}
+              activeOpacity={0.85}
+              onPress={handleCloseFullMap}
+              accessibilityRole="button"
+              accessibilityLabel="Confirm selected salon location"
+            >
+              <AppGradient
+                colors={[...GRADIENTS.SOFT_PURPLE]}
+                style={styles.fullMapConfirmGradient}
+              >
+                <Text style={styles.fullMapConfirmText}>
+                  Confirm this location
+                </Text>
+
+                <Text style={styles.fullMapConfirmArrow}>
+                  ✓
+                </Text>
+              </AppGradient>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
+
+/* ============================================================
+   STYLES
+============================================================ */
 
 const styles = StyleSheet.create({
   flex: {
@@ -1605,14 +1820,88 @@ const styles = StyleSheet.create({
   },
 
   map: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
   },
 
-  expandMapOverlay: {
+  /* RED PIN OVERLAY */
+
+  centerPinOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(30, 20, 55, 0.08)',
+    zIndex: 10,
+    elevation: 10,
+  },
+
+  customPinContainer: {
+    width: 32,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    transform: [{ translateY: -20 }],
+  },
+
+  customPinHead: {
+    width: 20,
+    height: 20,
+    borderRadius: 14,
+    backgroundColor: COLORS.pin,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000000',
+    shadowOpacity: 0.22,
+    shadowRadius: 3,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+  },
+
+  customPinCenter: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#FFFFFF',
+  },
+
+  customPinPoint: {
+    width: 0,
+    height: 0,
+    marginTop: -1,
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: COLORS.pin,
+  },
+  customPinHorizontal: {
+    position: 'absolute',
+    width: 20,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+
+  customPinVertical: {
+    position: 'absolute',
+    width: 3,
+    height: 20,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+
+  /* COMPACT MAP CONTROLS */
+
+  expandMapOverlay: {
+    position: 'absolute',
+    left: 10,
+    bottom: 10,
+    zIndex: 20,
+    elevation: 20,
   },
 
   expandMapButton: {
@@ -1620,9 +1909,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingHorizontal: 17,
-    paddingVertical: 12,
-    borderRadius: 14,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    borderRadius: 13,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -1638,13 +1927,13 @@ const styles = StyleSheet.create({
 
   expandMapIcon: {
     color: COLORS.primary,
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '700',
   },
 
   expandMapText: {
     color: COLORS.text,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
 
@@ -1652,6 +1941,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     bottom: 12,
+    zIndex: 20,
     width: 43,
     height: 43,
     borderRadius: 13,
@@ -1660,7 +1950,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
-    elevation: 3,
+    elevation: 4,
   },
 
   mapLocationButtonText: {
@@ -1797,7 +2087,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
 
-  // FULL-SCREEN MAP STYLES
+  /* FULL-SCREEN MAP */
+
   fullMapScreen: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -1858,9 +2149,90 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
 
+  /* FULL MAP SEARCH */
+
+  fullMapSearchSection: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    zIndex: 20,
+    elevation: 20,
+  },
+
+  fullMapSearchContainer: {
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 11,
+    elevation: 4,
+    shadowColor: '#211C35',
+    shadowOpacity: 0.12,
+    shadowRadius: 7,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+  },
+
+  fullMapSearchInput: {
+    flex: 1,
+    minHeight: 48,
+    color: COLORS.text,
+    fontSize: 13,
+    paddingVertical: 9,
+  },
+
+  fullMapClearButton: {
+    width: 30,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  fullMapClearText: {
+    color: COLORS.muted,
+    fontSize: 25,
+    lineHeight: 28,
+  },
+
+  fullMapSuggestions: {
+    marginTop: 6,
+    maxHeight: 240,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    elevation: 5,
+  },
+
+  fullMapSuggestionsScroll: {
+    maxHeight: 240,
+  },
+
+  fullMapSearchErrorBox: {
+    marginTop: 6,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  fullMapSearchError: {
+    color: COLORS.error,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+
   mapInstructionCard: {
     position: 'absolute',
-    top: 14,
+    top: 76,
     left: 14,
     right: 14,
     padding: 13,
@@ -1888,6 +2260,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     bottom: 22,
+    zIndex: 20,
     width: 49,
     height: 49,
     borderRadius: 16,
@@ -1910,6 +2283,8 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 27,
   },
+
+  /* FULL MAP FOOTER */
 
   fullMapFooter: {
     paddingHorizontal: 18,
