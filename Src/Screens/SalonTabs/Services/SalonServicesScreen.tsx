@@ -309,11 +309,71 @@ const getErrorMessage = (error: unknown) =>
 /* ============================================================
    SCREEN
 ============================================================ */
+type CategoryAudienceAvailability = Record<string, Audience[]>;
 
+type CategoryAudienceProbeProps = {
+    categoryId: string;
+    onAvailability: (
+        categoryId: string,
+        audiences: Audience[],
+    ) => void;
+};
+
+function CategoryAudienceProbe({
+    categoryId,
+    onAvailability,
+}: CategoryAudienceProbeProps) {
+    const { data, loading, error } = useQuery(
+        GET_ACTIVE_SUBCATEGORIES,
+        {
+            variables: {
+                categoryId,
+                status: 'ACTIVE',
+            },
+            fetchPolicy: 'cache-and-network',
+        },
+    );
+
+    useEffect(() => {
+        if (loading || error) {
+            return;
+        }
+
+        const subcategories =
+            data?.subcategories?.subcategories ?? [];
+
+        const activeSubcategories = subcategories.filter(
+            (item: any) => item?.status === 'ACTIVE',
+        );
+
+        const hasUnrestrictedSubcategory =
+            activeSubcategories.some(
+                (item: any) =>
+                    normaliseAudiences(item?.audiences).length === 0,
+            );
+
+        const audiences: Audience[] = hasUnrestrictedSubcategory
+            ? [...AUDIENCES]
+            : Array.from(
+                new Set<Audience>(
+                    activeSubcategories.flatMap((item: any) =>
+                        normaliseAudiences(item?.audiences),
+                    ),
+                ),
+            );
+
+        onAvailability(categoryId, audiences);
+    }, [categoryId, data, loading, error, onAvailability]);
+
+
+
+    return null;
+}
 export default function SalonServicesScreen() {
     const { currentUser } = useUser();
     const salonId = currentUser?.salonId;
-
+    const [categoryAudienceAvailability, setCategoryAudienceAvailability] =
+        useState<CategoryAudienceAvailability>({});
     const [selectedAudience, setSelectedAudience] =
         useState<Audience>('FEMALE');
 
@@ -450,21 +510,74 @@ export default function SalonServicesScreen() {
             );
     }, [categoryResult]);
 
-    const catalogueSubcategories =
-        useMemo<SubcategoryOption[]>(() => {
-            const result =
-                catalogueSubcategoryResult?.subcategories?.subcategories ??
-                [];
+    const handleCategoryAudienceAvailability = useCallback(
+        (categoryId: string, audiences: Audience[]) => {
+            setCategoryAudienceAvailability(previous => {
+                const existing = previous[categoryId];
 
-            return result
-                .filter((item: any) => item?.status === 'ACTIVE')
-                .map((item: any) => ({
-                    subcategoryId: String(item.subcategoryId),
-                    categoryId: String(item.categoryId),
-                    name: String(item.name),
-                    audiences: normaliseAudiences(item.audiences),
-                }));
-        }, [catalogueSubcategoryResult]);
+                if (
+                    existing &&
+                    existing.length === audiences.length &&
+                    existing.every(audience => audiences.includes(audience))
+                ) {
+                    return previous;
+                }
+
+                return {
+                    ...previous,
+                    [categoryId]: audiences,
+                };
+            });
+        },
+        [],
+    );
+
+    const visibleAudienceCategories = useMemo(
+        () =>
+            categories.filter(category =>
+                categoryAudienceAvailability[category.id]?.includes(
+                    selectedAudience,
+                ),
+            ),
+        [categories, categoryAudienceAvailability, selectedAudience],
+    );
+
+    const visibleModalCategories = useMemo(
+        () =>
+            categories.filter(category =>
+                categoryAudienceAvailability[category.id]?.includes(
+                    serviceDraft.audience,
+                ),
+            ),
+        [categories, categoryAudienceAvailability, serviceDraft.audience],
+    );
+
+    const visibleSelectedAudienceCategories = useMemo(
+        () =>
+            visibleAudienceCategories.filter(category =>
+                selectedCategoryIds.includes(category.id),
+            ),
+        [visibleAudienceCategories, selectedCategoryIds],
+    );
+
+    const catalogueSubcategories = useMemo<SubcategoryOption[]>(() => {
+        const result =
+            catalogueSubcategoryResult?.subcategories?.subcategories ?? [];
+
+        return result
+            .filter((item: any) => item?.status === 'ACTIVE')
+            .map((item: any) => ({
+                subcategoryId: String(item.subcategoryId),
+                categoryId: String(item.categoryId),
+                name: String(item.name),
+                audiences: normaliseAudiences(item.audiences),
+            }))
+            .filter(
+                (item: SubcategoryOption) =>
+                    item.audiences.length === 0 ||
+                    item.audiences.includes(selectedAudience),
+            );
+    }, [catalogueSubcategoryResult, selectedAudience]);
 
     const modalSubcategories = useMemo<SubcategoryOption[]>(() => {
         const result =
@@ -599,6 +712,24 @@ export default function SalonServicesScreen() {
         setDraftReady(true);
     }, [salon, draftReady]);
 
+    useEffect(() => {
+        if (
+            selectionCategoryId &&
+            categoryAudienceAvailability[selectionCategoryId] &&
+            !categoryAudienceAvailability[selectionCategoryId].includes(
+                selectedAudience,
+            )
+        ) {
+            const nextCategory = visibleSelectedAudienceCategories[0];
+
+            setSelectionCategoryId(nextCategory?.id ?? '');
+        }
+    }, [
+        selectionCategoryId,
+        selectedAudience,
+        categoryAudienceAvailability,
+        visibleSelectedAudienceCategories,
+    ]);
     /* ------------------------------------------------------------
        FILTER SERVICES
     ------------------------------------------------------------ */
@@ -971,12 +1102,26 @@ export default function SalonServicesScreen() {
     };
 
     const changeDraftAudience = (audience: Audience) => {
-        setServiceDraft(current => ({
-            ...current,
-            audience,
-            subcategoryId: '',
-            subcategoryName: '',
-        }));
+        setServiceDraft(current => {
+            const categorySupportsAudience =
+                current.categoryId &&
+                categoryAudienceAvailability[current.categoryId]?.includes(
+                    audience,
+                );
+
+            return {
+                ...current,
+                audience,
+                categoryId: categorySupportsAudience
+                    ? current.categoryId
+                    : '',
+                categoryName: categorySupportsAudience
+                    ? current.categoryName
+                    : '',
+                subcategoryId: '',
+                subcategoryName: '',
+            };
+        });
     };
 
     /* ------------------------------------------------------------
@@ -1496,8 +1641,18 @@ export default function SalonServicesScreen() {
                 contentContainerStyle={styles.listContent}
                 refreshing={salonLoading}
                 onRefresh={refreshScreen}
+
                 ListHeaderComponent={
                     <View>
+                        {/* Load audience availability for every category */}
+                        {categories.map(category => (
+                            <CategoryAudienceProbe
+                                key={category.id}
+                                categoryId={category.id}
+                                onAvailability={handleCategoryAudienceAvailability}
+                            />
+                        ))}
+
                         <AppGradient
                             colors={[...GRADIENTS.SOFT_PURPLE]}
                             style={styles.headerGradient}
@@ -1569,6 +1724,7 @@ export default function SalonServicesScreen() {
                                     Could not verify the profile-review status.
                                     Refresh before submitting changes.
                                 </Text>
+
                                 <TouchableOpacity
                                     onPress={() => refetchPending()}
                                     style={styles.retryButton}
@@ -1605,7 +1761,8 @@ export default function SalonServicesScreen() {
                                             <Text
                                                 style={[
                                                     styles.audienceTabText,
-                                                    active && styles.audienceTabTextActive,
+                                                    active &&
+                                                    styles.audienceTabTextActive,
                                                 ]}
                                             >
                                                 {AUDIENCE_LABELS[audience]}
@@ -1634,8 +1791,7 @@ export default function SalonServicesScreen() {
                             </View>
                         </View>
 
-                        {/* INDEPENDENT CATEGORY / SUBCATEGORY SELECTIONS */}
-
+                        {/* Independent category and subcategory selections */}
                         <View style={styles.catalogueSelectionSection}>
                             <Text style={styles.catalogueSelectionTitle}>
                                 Catalogue categories
@@ -1654,6 +1810,7 @@ export default function SalonServicesScreen() {
                                     <Text style={styles.subcategoryError}>
                                         Could not load categories.
                                     </Text>
+
                                     <TouchableOpacity
                                         onPress={() => refetchCategories()}
                                         style={styles.retryButton}
@@ -1661,13 +1818,13 @@ export default function SalonServicesScreen() {
                                         <Text style={styles.retryText}>Retry</Text>
                                     </TouchableOpacity>
                                 </View>
-                            ) : categories.length === 0 ? (
+                            ) : visibleAudienceCategories.length === 0 ? (
                                 <Text style={styles.emptyOptionText}>
-                                    No active categories are available.
+                                    No active categories are available for this audience.
                                 </Text>
                             ) : (
                                 <View style={styles.optionWrap}>
-                                    {categories.map(category => {
+                                    {visibleAudienceCategories.map(category => {
                                         const selected = selectedCategoryIds.includes(
                                             category.id,
                                         );
@@ -1681,14 +1838,16 @@ export default function SalonServicesScreen() {
                                                 }
                                                 style={[
                                                     styles.optionChip,
-                                                    selected && styles.optionChipSelected,
+                                                    selected &&
+                                                    styles.optionChipSelected,
                                                     isLocked && styles.actionDisabled,
                                                 ]}
                                             >
                                                 <Text
                                                     style={[
                                                         styles.optionText,
-                                                        selected && styles.optionTextSelected,
+                                                        selected &&
+                                                        styles.optionTextSelected,
                                                     ]}
                                                 >
                                                     {selected ? '✓ ' : ''}
@@ -1715,37 +1874,37 @@ export default function SalonServicesScreen() {
                                     Select at least one category to view its
                                     subcategories.
                                 </Text>
+                            ) : visibleSelectedAudienceCategories.length === 0 ? (
+                                <Text style={styles.emptyOptionText}>
+                                    No selected categories are available for this audience.
+                                </Text>
                             ) : (
                                 <View style={styles.optionWrap}>
-                                    {categories
-                                        .filter(category =>
-                                            selectedCategoryIds.includes(category.id),
-                                        )
-                                        .map(category => (
-                                            <TouchableOpacity
-                                                key={category.id}
-                                                disabled={isLocked}
-                                                onPress={() =>
-                                                    setSelectionCategoryId(category.id)
-                                                }
+                                    {visibleSelectedAudienceCategories.map(category => (
+                                        <TouchableOpacity
+                                            key={category.id}
+                                            disabled={isLocked}
+                                            onPress={() =>
+                                                setSelectionCategoryId(category.id)
+                                            }
+                                            style={[
+                                                styles.optionChip,
+                                                selectionCategoryId === category.id &&
+                                                styles.optionChipSelected,
+                                                isLocked && styles.actionDisabled,
+                                            ]}
+                                        >
+                                            <Text
                                                 style={[
-                                                    styles.optionChip,
+                                                    styles.optionText,
                                                     selectionCategoryId === category.id &&
-                                                    styles.optionChipSelected,
-                                                    isLocked && styles.actionDisabled,
+                                                    styles.optionTextSelected,
                                                 ]}
                                             >
-                                                <Text
-                                                    style={[
-                                                        styles.optionText,
-                                                        selectionCategoryId === category.id &&
-                                                        styles.optionTextSelected,
-                                                    ]}
-                                                >
-                                                    {category.name}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
+                                                {category.name}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
                                 </View>
                             )}
 
@@ -1770,6 +1929,7 @@ export default function SalonServicesScreen() {
                                             <Text style={styles.subcategoryError}>
                                                 Could not load subcategories.
                                             </Text>
+
                                             <TouchableOpacity
                                                 onPress={() =>
                                                     refetchCatalogueSubcategories()
@@ -1784,7 +1944,7 @@ export default function SalonServicesScreen() {
                                     ) : catalogueSubcategories.length === 0 ? (
                                         <Text style={styles.emptyOptionText}>
                                             No active subcategories are available for
-                                            this category.
+                                            this category and audience.
                                         </Text>
                                     ) : (
                                         <View style={styles.optionWrap}>
@@ -1807,7 +1967,8 @@ export default function SalonServicesScreen() {
                                                             styles.optionChip,
                                                             selected &&
                                                             styles.optionChipSelected,
-                                                            isLocked && styles.actionDisabled,
+                                                            isLocked &&
+                                                            styles.actionDisabled,
                                                         ]}
                                                     >
                                                         <Text
@@ -1830,13 +1991,11 @@ export default function SalonServicesScreen() {
 
                             <Text style={styles.selectionCountText}>
                                 {selectedCategoryIds.length} categories ·{' '}
-                                {selectedSubcategories.length} subcategories
-                                selected
+                                {selectedSubcategories.length} subcategories selected
                             </Text>
                         </View>
 
-                        {/* SERVICE SEARCH AND ADD */}
-
+                        {/* Service search and add */}
                         <View style={styles.toolbar}>
                             <TextInput
                                 style={styles.searchInput}
@@ -1872,6 +2031,7 @@ export default function SalonServicesScreen() {
                                 <Text style={styles.resultsTitle}>
                                     {AUDIENCE_LABELS[selectedAudience]} services
                                 </Text>
+
                                 <Text style={styles.resultsSubtitle}>
                                     Category {'›'} Subcategory {'›'} Service
                                 </Text>
@@ -1886,6 +2046,7 @@ export default function SalonServicesScreen() {
                         </View>
                     </View>
                 }
+
                 renderItem={({ item: category }) => {
                     const categoryExpanded =
                         !!expandedCategories[category.categoryId];
@@ -2240,14 +2401,13 @@ export default function SalonServicesScreen() {
                                         <Text style={styles.retryText}>Retry</Text>
                                     </TouchableOpacity>
                                 </View>
-                            ) : categories.length === 0 ? (
+                            ) : visibleModalCategories.length === 0 ? (
                                 <Text style={styles.emptyOptionText}>
-                                    No active categories are available. Contact
-                                    Clavata support if this continues.
+                                    No active categories are available for this audience.
                                 </Text>
                             ) : (
                                 <View style={styles.optionWrap}>
-                                    {categories.map(category => (
+                                    {visibleModalCategories.map(category => (
                                         <TouchableOpacity
                                             key={category.id}
                                             onPress={() =>
