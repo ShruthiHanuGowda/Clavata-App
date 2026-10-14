@@ -1,3 +1,4 @@
+
 import React, {
   useCallback,
   useEffect,
@@ -32,6 +33,7 @@ import Geolocation from '@react-native-community/geolocation';
 
 import AppGradient from '../../common/AppGradient';
 import { GRADIENTS } from '../../constants/constants';
+import { useSalonRegistration } from '../../context/SalonRegistrationContext';
 
 import {
   getPlaceDetails,
@@ -55,11 +57,15 @@ type AddressData = {
 };
 
 type RegistrationData = Record<string, unknown> & {
+  addressLine?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
   address?: {
-    addressLine: string;
-    city: string;
-    state: string;
-    pincode: string;
+    addressLine?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
   };
   latitude?: number;
   longitude?: number;
@@ -118,6 +124,8 @@ const SalonAddressScreen: React.FC<Props> = ({
   const mapRef = useRef<MapView>(null);
   const fullMapRef = useRef<MapView>(null);
 
+  const { updateData } = useSalonRegistration();
+
   const debounceRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -167,6 +175,9 @@ const SalonAddressScreen: React.FC<Props> = ({
 
   /* ============================================================
      RESTORE REGISTRATION DATA
+
+     Supports the existing nested address format and the flat
+     fields used by SalonRegistrationContext.
   ============================================================ */
 
   useEffect(() => {
@@ -176,12 +187,21 @@ const SalonAddressScreen: React.FC<Props> = ({
       return;
     }
 
-    if (saved.address) {
-      setAddressLine(saved.address.addressLine ?? '');
-      setCity(saved.address.city ?? '');
-      setState(saved.address.state ?? '');
-      setPincode(saved.address.pincode ?? '');
-    }
+    setAddressLine(
+      saved.addressLine ?? saved.address?.addressLine ?? '',
+    );
+
+    setCity(
+      saved.city ?? saved.address?.city ?? '',
+    );
+
+    setState(
+      saved.state ?? saved.address?.state ?? '',
+    );
+
+    setPincode(
+      saved.pincode ?? saved.address?.pincode ?? '',
+    );
 
     if (
       typeof saved.latitude === 'number' &&
@@ -822,6 +842,11 @@ const SalonAddressScreen: React.FC<Props> = ({
 
   /* ============================================================
      CONFIRM ADDRESS
+
+     Save the flat address fields to shared registration
+     context so they remain available on SalonReviewScreen.
+     Keep the nested address in navigation params for
+     compatibility with existing screens.
   ============================================================ */
 
   const handleConfirmAddress = useCallback(() => {
@@ -888,17 +913,37 @@ const SalonAddressScreen: React.FC<Props> = ({
       longitude: coordinates.longitude,
     };
 
+    // IMPORTANT: The registration context uses flat fields.
+    // This makes the address available to subsequent screens.
+    updateData({
+      addressLine: addressData.addressLine,
+      city: addressData.city,
+      state: addressData.state,
+      pincode: addressData.pincode,
+      latitude: addressData.latitude,
+      longitude: addressData.longitude,
+    });
+
     const existingData =
       route?.params?.registrationData ?? {};
 
     const registrationData: RegistrationData = {
       ...existingData,
+
+      // Flat fields used by SalonRegistrationContext.
+      addressLine: addressData.addressLine,
+      city: addressData.city,
+      state: addressData.state,
+      pincode: addressData.pincode,
+
+      // Keep the previous nested structure for compatibility.
       address: {
         addressLine: addressData.addressLine,
         city: addressData.city,
         state: addressData.state,
         pincode: addressData.pincode,
       },
+
       latitude: addressData.latitude,
       longitude: addressData.longitude,
     };
@@ -914,6 +959,7 @@ const SalonAddressScreen: React.FC<Props> = ({
     coordinates,
     navigation,
     route?.params?.registrationData,
+    updateData,
   ]);
 
   /* ============================================================
@@ -940,7 +986,6 @@ const SalonAddressScreen: React.FC<Props> = ({
      native custom-marker bitmap rendering.
   ============================================================ */
 
-
   const renderCenterPin = () => (
     <View
       pointerEvents="none"
@@ -955,7 +1000,6 @@ const SalonAddressScreen: React.FC<Props> = ({
       </View>
     </View>
   );
-
 
   const renderSearchSuggestions = (
     fullScreen: boolean,
@@ -987,7 +1031,7 @@ const SalonAddressScreen: React.FC<Props> = ({
               style={[
                 styles.suggestionItem,
                 index === suggestions.length - 1 &&
-                styles.lastSuggestion,
+                  styles.lastSuggestion,
               ]}
               onPress={() =>
                 void handleSelectSuggestion(item)
@@ -1167,12 +1211,7 @@ const SalonAddressScreen: React.FC<Props> = ({
                 pitchEnabled={false}
               />
 
-              {/* ALWAYS VISIBLE RED PIN */}
-
               {renderCenterPin()}
-
-              {/* BUTTON IS NOW AT THE BOTTOM LEFT,
-                  SO IT DOES NOT COVER THE PIN */}
 
               <TouchableOpacity
                 style={styles.expandMapOverlay}
@@ -1439,10 +1478,6 @@ const SalonAddressScreen: React.FC<Props> = ({
               toolbarEnabled={false}
               moveOnMarkerPress={false}
             />
-
-            {/* CENTRED RED PIN.
-                This is outside MapView deliberately, so it
-                does not depend on native Marker rendering. */}
 
             {renderCenterPin()}
 
@@ -1878,6 +1913,7 @@ const styles = StyleSheet.create({
     borderRightColor: 'transparent',
     borderTopColor: COLORS.pin,
   },
+
   customPinHorizontal: {
     position: 'absolute',
     width: 20,

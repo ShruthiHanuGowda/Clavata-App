@@ -2196,7 +2196,14 @@ export default function SalonReviewScreen({
           <DetailRow
             label="Address"
             value={
-              `${cleanString(data.addressLine)}, ${cleanString(data.city)}, ${cleanString(data.state)} - ${cleanString(data.pincode)}`
+              [
+                cleanString(data.addressLine),
+                cleanString(data.city),
+                cleanString(data.state),
+                cleanString(data.pincode),
+              ]
+                .filter(Boolean)
+                .join(', ') || 'Address not provided'
             }
           />
 
@@ -3040,11 +3047,11 @@ const styles =
         SPACING.small,
     },
 
- documentUploaded: {
-  backgroundColor: 'transparent',
-  paddingHorizontal: 0,
-  paddingVertical: 0,
-},
+    documentUploaded: {
+      backgroundColor: 'transparent',
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+    },
 
     documentMissing: {
       backgroundColor:
@@ -3060,10 +3067,10 @@ const styles =
     },
 
     documentUploadedText: {
-  color: '#FFFFFF',
-  fontFamily: FONTS.semiBold,
-  fontSize: FONT_SIZES.small,
-},
+      color: '#FFFFFF',
+      fontFamily: FONTS.semiBold,
+      fontSize: FONT_SIZES.small,
+    },
 
     documentMissingText: {
       color:
