@@ -46,6 +46,7 @@ import OfferDetailsScreen from '../Screens/CustomerTabs/Offer/OfferDetailsScreen
 import SalonInformation from '../Screens/SalonTabs/Profile/SalonInformation';
 import SalonSearchResults from '../Screens/CustomerTabs/Home/SalonSearchResults';
 import ClavataBoost from '../Screens/SalonTabs/Profile/ClavataBoost';
+import ClavataAdvertise from '../Screens/SalonTabs/Profile/ClavataAdvertise';
 // import CustomerLocationScreen from '../Screens/CustomerTabs/Home/CustomerLocationScreen';
 
 function RootScreenStack() {
@@ -274,10 +275,10 @@ export function SalonProfileStack() {
         name="ClavataBoost"
         component={ClavataBoost}
       />
-       {/* <SalonProfilePlaceStack.Screen
+       <SalonProfilePlaceStack.Screen
         name="ClavataAdvertise"
         component={ClavataAdvertise}
-      /> */}
+      />
       <SalonProfilePlaceStack.Screen
         name="BusinessHoursScreen"
         component={BusinessHoursScreen}
