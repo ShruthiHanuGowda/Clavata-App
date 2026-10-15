@@ -187,7 +187,7 @@ export default function SalonProfileScreen() {
 
             refetchSalon().catch(error => {
                 console.error(
-                    '[SalonProfile] Failed to refresh salon data:',
+                    '[SalonProfile] Failed to refresh business data:',
                     error,
                 );
             });
@@ -264,7 +264,7 @@ export default function SalonProfileScreen() {
 
             refetchPendingChange().catch(error => {
                 console.error(
-                    'Failed to refresh salon profile change status:',
+                    'Failed to refresh business profile change status:',
                     error,
                 );
             });
@@ -381,7 +381,7 @@ export default function SalonProfileScreen() {
                 if (latestIsPending) {
                     Alert.alert(
                         'Changes under review',
-                        'Your salon profile changes are currently under review by the administrator. You cannot make or submit another change while this request is under review. You can edit your salon information again after the administrator approves or rejects it.',
+                        'Your business profile changes are currently under review by the administrator. You cannot make or submit another change while this request is under review. You can edit your business information again after the administrator approves or rejects it',
                     );
 
                     return;
@@ -414,7 +414,7 @@ export default function SalonProfileScreen() {
                 Alert.alert(
                     'Unable to check status',
                     error?.message ||
-                    'We could not verify whether your previous salon profile change is still under review. Please try again.',
+                    'We could not verify whether your previous business profile change is still under review. Please try again',
                 );
             }
         }, [
@@ -734,7 +734,7 @@ export default function SalonProfileScreen() {
 
                     <MenuItem
                         title="Salon Information"
-                        subtitle="Manage your salon details, address and profile"
+                        subtitle="Manage your business details, address and profile"
                         onPress={() =>
                             handleBusinessNavigation(
                                 'SalonInformation',
@@ -792,7 +792,7 @@ export default function SalonProfileScreen() {
                             marginBottom: 10,
                         }}
                     >
-                        Discover tools to promote your salon
+                        Discover tools to promote your business
                         and grow your presence on Clavata.
                     </Text>
 
@@ -808,7 +808,7 @@ export default function SalonProfileScreen() {
 
                     <MenuItem
                         title="Advertise on Clavata"
-                        subtitle="Promote your salon and selected services"
+                        subtitle="Promote your business and selected services"
                         onPress={() =>
                             handleGrowthNavigation(
                                 'ClavataAdvertise',

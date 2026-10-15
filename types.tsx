@@ -192,6 +192,8 @@ export type SalonProfileStackParamList = {
     mode?: 'EDIT';
   } | undefined;
   SalonInformation: undefined;
+  ClavataBoost: undefined;
+  ClavataAdvertise: undefined;
 };
 
 export type MarketplaceStackParamList = {
