@@ -80,8 +80,7 @@ export default function SalonProfileScreen() {
     // DYNAMIC SALON DATA
     // ============================================================
 
-    const salon =
-        salonData?.getSalon;
+    const salon = salonData?.getSalon;
 
     const ownerName =
         salon?.ownerName?.trim() ||
@@ -177,7 +176,7 @@ export default function SalonProfileScreen() {
     ]);
 
     // ============================================================
-    // REFRESH SALON DATA WHEN PROFILE SCREEN GETS FOCUS
+    // REFRESH SALON DATA WHEN PROFILE GETS FOCUS
     // ============================================================
 
     useFocusEffect(
@@ -248,14 +247,13 @@ export default function SalonProfileScreen() {
     ]);
 
     const pendingChange =
-        pendingChangeData
-            ?.getPendingSalonProfileChange;
+        pendingChangeData?.getPendingSalonProfileChange;
 
     const isProfileChangePending =
         pendingChange?.status === 'PENDING';
 
     // ============================================================
-    // REFRESH PENDING STATUS WHEN PROFILE SCREEN GETS FOCUS
+    // REFRESH PENDING STATUS WHEN PROFILE GETS FOCUS
     // ============================================================
 
     useFocusEffect(
@@ -295,12 +293,8 @@ export default function SalonProfileScreen() {
                     onPress: async () => {
                         try {
                             console.log(
-                                '========== PROVIDER LOGOUT =========='
+                                '========== PROVIDER LOGOUT ==========',
                             );
-
-                            // ------------------------------------------------
-                            // 1. Remove authenticated session flag
-                            // ------------------------------------------------
 
                             await secureStorage.removeItem(
                                 'isAuthenticated',
@@ -309,10 +303,6 @@ export default function SalonProfileScreen() {
                             console.log(
                                 'isAuthenticated removed',
                             );
-
-                            // ------------------------------------------------
-                            // 2. RESET ROOT NAVIGATION FIRST
-                            // ------------------------------------------------
 
                             navReset(
                                 'LoginScreen',
@@ -325,10 +315,6 @@ export default function SalonProfileScreen() {
                             console.log(
                                 'Navigation reset to LoginScreen',
                             );
-
-                            // ------------------------------------------------
-                            // 3. Clear current user AFTER navigation reset
-                            // ------------------------------------------------
 
                             setCurrentUser(null);
 
@@ -373,69 +359,26 @@ export default function SalonProfileScreen() {
             }
 
             console.log(
-                '========================================',
-            );
-
-            console.log(
                 '[SalonProfile] Checking pending salon profile change',
-            );
-
-            console.log(
-                '[SalonProfile] salonId:',
-                salonId,
-            );
-
-            console.log(
-                '[SalonProfile] Calling refetchPendingChange...',
+                { salonId },
             );
 
             try {
                 const result =
                     await refetchPendingChange();
 
-                console.log(
-                    '[SalonProfile] refetch completed',
-                );
-
-                console.log(
-                    '[SalonProfile] Full query result:',
-                    result,
-                );
-
-                console.log(
-                    '[SalonProfile] Query data:',
-                    result?.data,
-                );
-
-                console.log(
-                    '[SalonProfile] Pending change:',
-                    result?.data
-                        ?.getPendingSalonProfileChange,
-                );
-
                 const latestPendingChange =
-                    result?.data
-                        ?.getPendingSalonProfileChange;
+                    result?.data?.getPendingSalonProfileChange;
 
                 const latestIsPending =
-                    latestPendingChange?.status ===
-                    'PENDING';
+                    latestPendingChange?.status === 'PENDING';
 
                 console.log(
-                    '[SalonProfile] Pending status:',
+                    '[SalonProfile] Latest pending status:',
                     latestPendingChange?.status,
                 );
 
-                console.log(
-                    '[SalonProfile] Is pending:',
-                    latestIsPending,
-                );
-
                 if (latestIsPending) {
-                    console.log(
-                        '[SalonProfile] BLOCKING navigation - request is PENDING',
-                    );
-
                     Alert.alert(
                         'Changes under review',
                         'Your salon profile changes are currently under review by the administrator. You cannot make or submit another change while this request is under review. You can edit your salon information again after the administrator approves or rejects it.',
@@ -444,28 +387,12 @@ export default function SalonProfileScreen() {
                     return;
                 }
 
-                console.log(
-                    '[SalonProfile] No pending request found.',
-                );
-
-                console.log(
-                    '[SalonProfile] Navigating to SalonInformation',
-                );
-
                 navigation
                     .getParent()
                     ?.navigate('SalonInformation');
             } catch (error: any) {
                 console.error(
-                    '========================================',
-                );
-
-                console.error(
-                    '[SalonProfile] FAILED TO CHECK PENDING CHANGE',
-                );
-
-                console.error(
-                    '[SalonProfile] Error:',
+                    '[SalonProfile] Failed to check pending change:',
                     error,
                 );
 
@@ -484,22 +411,11 @@ export default function SalonProfileScreen() {
                     error?.networkError,
                 );
 
-                console.error(
-                    '[SalonProfile] Error result:',
-                    error?.result,
-                );
-
-                console.error(
-                    '========================================',
-                );
-
                 Alert.alert(
                     'Unable to check status',
                     error?.message ||
                     'We could not verify whether your previous salon profile change is still under review. Please try again.',
                 );
-
-                return;
             }
         }, [
             salonId,
@@ -552,6 +468,35 @@ export default function SalonProfileScreen() {
             default:
                 console.log(
                     'Unknown business screen:',
+                    screen,
+                );
+                break;
+        }
+    };
+
+    // ============================================================
+    // GROW YOUR BUSINESS NAVIGATION
+    // ============================================================
+
+    const handleGrowthNavigation = (
+        screen: string,
+    ) => {
+        switch (screen) {
+            case 'ClavataBoost':
+                navigation
+                    .getParent()
+                    ?.navigate('ClavataBoost');
+                break;
+
+            case 'ClavataAdvertise':
+                navigation
+                    .getParent()
+                    ?.navigate('ClavataAdvertise');
+                break;
+
+            default:
+                console.log(
+                    'Unknown growth screen:',
                     screen,
                 );
                 break;
@@ -653,7 +598,7 @@ export default function SalonProfileScreen() {
                             salonLogoUrl,
                         );
                     }}
-                    onError={(error) => {
+                    onError={error => {
                         console.error(
                             '[SalonProfile] Salon logo failed:',
                             error?.nativeEvent,
@@ -678,11 +623,10 @@ export default function SalonProfileScreen() {
                     style={{
                         fontSize: 32,
                         fontWeight: '600',
+                        color: '#6B5DD3',
                     }}
                 >
-                    {salonName
-                        .charAt(0)
-                        .toUpperCase()}
+                    {salonName.charAt(0).toUpperCase()}
                 </Text>
             </View>
         );
@@ -698,15 +642,13 @@ export default function SalonProfileScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 {/* ==================================================
-                    DYNAMIC SALON PROFILE HEADER
+                    SALON PROFILE HEADER
                 ================================================== */}
 
                 <ImageBackground
                     source={
                         salonCoverImageUrl
-                            ? {
-                                uri: salonCoverImageUrl,
-                            }
+                            ? { uri: salonCoverImageUrl }
                             : undefined
                     }
                     style={[
@@ -729,17 +671,13 @@ export default function SalonProfileScreen() {
                             );
                         }
                     }}
-                    onError={(error) => {
+                    onError={error => {
                         console.error(
                             '[SalonProfile] Cover image failed:',
                             error?.nativeEvent,
                         );
                     }}
                 >
-                    {/* ----------------------------------------------
-                        COVER IMAGE OVERLAY
-                    ---------------------------------------------- */}
-
                     <View
                         style={{
                             position: 'absolute',
@@ -751,10 +689,6 @@ export default function SalonProfileScreen() {
                                 'rgba(0,0,0,0.25)',
                         }}
                     />
-
-                    {/* ----------------------------------------------
-                        SALON LOGO
-                    ---------------------------------------------- */}
 
                     <View
                         style={{
@@ -768,10 +702,6 @@ export default function SalonProfileScreen() {
                     >
                         {renderSalonLogo()}
                     </View>
-
-                    {/* ----------------------------------------------
-                        SALON NAME
-                    ---------------------------------------------- */}
 
                     <Text
                         style={[
@@ -791,34 +721,10 @@ export default function SalonProfileScreen() {
                     >
                         {salonName}
                     </Text>
-
-                    {/* ----------------------------------------------
-                        OWNER NAME
-                    ---------------------------------------------- */}
-
-                    {/* <Text
-                        style={[
-                            styles.profileRole,
-                            {
-                                color: '#FFFFFF',
-                                textAlign: 'center',
-                                textShadowColor:
-                                    'rgba(0,0,0,0.5)',
-                                textShadowOffset: {
-                                    width: 0,
-                                    height: 1,
-                                },
-                                textShadowRadius: 3,
-                                marginBottom: 18,
-                            },
-                        ]}
-                    >
-                        Owner • {ownerName}
-                    </Text> */}
                 </ImageBackground>
 
                 {/* ==================================================
-                    BUSINESS
+                    BUSINESS ACCOUNT
                 ================================================== */}
 
                 <View style={styles.profileCard}>
@@ -828,45 +734,28 @@ export default function SalonProfileScreen() {
 
                     <MenuItem
                         title="Salon Information"
+                        subtitle="Manage your salon details, address and profile"
                         onPress={() =>
                             handleBusinessNavigation(
                                 'SalonInformation',
                             )
                         }
-                        loading={
-                            loadingPendingChange
-                        }
+                        loading={loadingPendingChange}
                     />
 
                     <MenuItem
                         title="Business Hours"
+                        subtitle="Set your regular opening and closing hours"
                         onPress={() =>
                             handleBusinessNavigation(
                                 'BusinessHours',
                             )
                         }
                     />
-{/* 
-                    <MenuItem
-                        title="Staff Management"
-                        onPress={() =>
-                            handleBusinessNavigation(
-                                'StaffManagement',
-                            )
-                        }
-                    /> */}
-
-                    {/* <MenuItem
-                        title="Manage Services"
-                        onPress={() =>
-                            handleBusinessNavigation(
-                                'ManageServices',
-                            )
-                        }
-                    /> */}
 
                     <MenuItem
-                        title="Offers"
+                        title="Offers & Discounts"
+                        subtitle="Create promotions and manage discount offers"
                         onPress={() =>
                             handleBusinessNavigation(
                                 'Offers',
@@ -876,6 +765,7 @@ export default function SalonProfileScreen() {
 
                     <MenuItem
                         title="Payment Settings"
+                        subtitle="Manage your available payment settings"
                         onPress={() =>
                             handleBusinessNavigation(
                                 'PaymentSettings',
@@ -885,32 +775,97 @@ export default function SalonProfileScreen() {
                 </View>
 
                 {/* ==================================================
+                    GROW YOUR BUSINESS
+                ================================================== */}
+
+                <View style={styles.profileCard}>
+                    <Text style={styles.sectionTitle}>
+                        Grow Your Business
+                    </Text>
+
+                    <Text
+                        style={{
+                            fontSize: 12,
+                            color: '#77738A',
+                            lineHeight: 18,
+                            marginTop: -4,
+                            marginBottom: 10,
+                        }}
+                    >
+                        Discover tools to promote your salon
+                        and grow your presence on Clavata.
+                    </Text>
+
+                    <MenuItem
+                        title="Clavata Boost"
+                        subtitle="View subscription plans and manage your membership"
+                        onPress={() =>
+                            handleGrowthNavigation(
+                                'ClavataBoost',
+                            )
+                        }
+                    />
+
+                    <MenuItem
+                        title="Advertise on Clavata"
+                        subtitle="Promote your salon and selected services"
+                        onPress={() =>
+                            handleGrowthNavigation(
+                                'ClavataAdvertise',
+                            )
+                        }
+                    />
+                </View>
+
+                {/* ==================================================
                     ACCOUNT
                 ================================================== */}
 
-                {/* <View style={styles.profileCard}> */}
-                    {/* <Text style={styles.sectionTitle}>
+                <View style={styles.profileCard}>
+                    <Text style={styles.sectionTitle}>
                         Account
-                    </Text> */}
-{/* 
+                    </Text>
+
                     <MenuItem
                         title="Edit Profile"
+                        subtitle="Update your personal account details"
                         onPress={() =>
                             handleAccountNavigation(
                                 'EditProfile',
                             )
                         }
-                    /> */}
+                    />
 
-                    {/* <MenuItem
+                    <MenuItem
                         title="Notifications"
+                        subtitle="Manage your notification preferences"
                         onPress={() =>
                             handleAccountNavigation(
                                 'Notifications',
                             )
                         }
-                    /> */}
-                {/* </View> */}
+                    />
+
+                    <MenuItem
+                        title="Change Password"
+                        subtitle="Update your account password"
+                        onPress={() =>
+                            handleAccountNavigation(
+                                'ChangePassword',
+                            )
+                        }
+                    />
+
+                    <MenuItem
+                        title="Language"
+                        subtitle="Choose your preferred app language"
+                        onPress={() =>
+                            handleAccountNavigation(
+                                'Language',
+                            )
+                        }
+                    />
+                </View>
 
                 {/* ==================================================
                     SUPPORT
@@ -923,6 +878,7 @@ export default function SalonProfileScreen() {
 
                     <MenuItem
                         title="Help Center"
+                        subtitle="Get help with Clavata and your account"
                         onPress={() =>
                             handleSupportNavigation(
                                 'HelpCenter',
@@ -932,6 +888,7 @@ export default function SalonProfileScreen() {
 
                     <MenuItem
                         title="Privacy Policy"
+                        subtitle="Learn how your information is handled"
                         onPress={() =>
                             handleSupportNavigation(
                                 'PrivacyPolicy',
@@ -941,6 +898,7 @@ export default function SalonProfileScreen() {
 
                     <MenuItem
                         title="Terms & Conditions"
+                        subtitle="Review the terms for using Clavata"
                         onPress={() =>
                             handleSupportNavigation(
                                 'TermsConditions',
@@ -956,6 +914,7 @@ export default function SalonProfileScreen() {
                 <TouchableOpacity
                     style={styles.logoutButton}
                     onPress={onLogout}
+                    activeOpacity={0.8}
                 >
                     <Text style={styles.logoutText}>
                         Logout
@@ -969,15 +928,17 @@ export default function SalonProfileScreen() {
 }
 
 // ================================================================
-// MENU ITEM
+// REUSABLE MENU ITEM WITH SUBTITLE
 // ================================================================
 
 function MenuItem({
     title,
+    subtitle,
     onPress,
     loading = false,
 }: {
     title: string;
+    subtitle?: string;
     onPress?: () => void;
     loading?: boolean;
 }) {
@@ -988,14 +949,35 @@ function MenuItem({
             activeOpacity={0.7}
             disabled={loading}
         >
-            <Text style={styles.menuText}>
-                {title}
-            </Text>
+            <View
+                style={{
+                    flex: 1,
+                    paddingRight: 12,
+                }}
+            >
+                <Text style={styles.menuText}>
+                    {title}
+                </Text>
+
+                {subtitle ? (
+                    <Text
+                        style={{
+                            fontSize: 12,
+                            lineHeight: 17,
+                            color: '#858196',
+                            marginTop: 3,
+                            marginBottom: 2,
+                        }}
+                    >
+                        {subtitle}
+                    </Text>
+                ) : null}
+            </View>
 
             {loading ? (
                 <ActivityIndicator
                     size="small"
-                    color="#999"
+                    color="#8B5CF6"
                 />
             ) : (
                 <Text style={styles.menuArrow}>
