@@ -821,7 +821,7 @@ export default function SalonProfileScreen() {
                     ACCOUNT
                 ================================================== */}
 
-                <View style={styles.profileCard}>
+                {/* <View style={styles.profileCard}>
                     <Text style={styles.sectionTitle}>
                         Account
                     </Text>
@@ -865,7 +865,7 @@ export default function SalonProfileScreen() {
                             )
                         }
                     />
-                </View>
+                </View> */}
 
                 {/* ==================================================
                     SUPPORT
