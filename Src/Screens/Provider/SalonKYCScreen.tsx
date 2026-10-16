@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -19,9 +20,7 @@ import {
   RADIUS,
   GRADIENTS,
 } from '../../constants/constants';
-import {
-  useSalonRegistration,
-} from '../../context/SalonRegistrationContext';
+import { useSalonRegistration } from '../../context/SalonRegistrationContext';
 import {
   pick,
   keepLocalCopy,
@@ -29,17 +28,17 @@ import {
 } from '@react-native-documents/picker';
 import RNFS from 'react-native-fs';
 import ReactNativeBlobUtil from 'react-native-blob-util';
-import {
-  gql,
-  useMutation,
-} from '@apollo/client';
+import { gql, useMutation } from '@apollo/client';
+
+/* ============================================================
+   GRAPHQL
+============================================================ */
+
 const GENERATE_KYC_DOCUMENT_UPLOAD_URL = gql`
   mutation GenerateKycDocumentUploadUrl(
     $input: GenerateKycDocumentUploadUrlInput!
   ) {
-    generateKycDocumentUploadUrl(
-      input: $input
-    ) {
+    generateKycDocumentUploadUrl(input: $input) {
       success
       message
       uploadUrl
@@ -49,12 +48,18 @@ const GENERATE_KYC_DOCUMENT_UPLOAD_URL = gql`
     }
   }
 `;
+
+/* ============================================================
+   TYPES
+============================================================ */
+
 type KycDocumentType =
   | 'PAN'
   | 'AADHAAR'
   | 'SHOP_ESTABLISHMENT'
   | 'GST'
   | 'UDYAM';
+
 type KycDocument = {
   uri: string;
   localUri?: string;
@@ -65,6 +70,7 @@ type KycDocument = {
   s3Key?: string;
   documentType?: KycDocumentType;
 };
+
 type GenerateKycDocumentUploadUrlResponse = {
   generateKycDocumentUploadUrl: {
     success: boolean;
@@ -75,113 +81,172 @@ type GenerateKycDocumentUploadUrlResponse = {
     expiresIn?: number | null;
   };
 };
-const SalonKYCScreen = ({
-  navigation,
-}: any) => {
-  const {
-    data,
-    updateData,
-    saveDraft,
-  } = useSalonRegistration();
-  const [
-    generateKycDocumentUploadUrl,
-  ] = useMutation<
-    GenerateKycDocumentUploadUrlResponse
-  >(
-    GENERATE_KYC_DOCUMENT_UPLOAD_URL,
+
+type KycDraft = Record<string, any>;
+
+/* ============================================================
+   CONSTANTS
+============================================================ */
+
+const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024;
+const AUTOSAVE_DELAY = 900;
+
+const DOCUMENT_TYPES: KycDocumentType[] = [
+  'PAN',
+  'AADHAAR',
+  'SHOP_ESTABLISHMENT',
+  'GST',
+  'UDYAM',
+];
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+const createUploadId = (): string => {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 12);
+
+  return `REG-${timestamp}-${randomPart}`;
+};
+
+const getContentType = (
+  fileName: string,
+  providedType?: string | null,
+): string => {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+
+  const allowedTypes: Record<string, string> = {
+    pdf: 'application/pdf',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+  };
+
+  if (extension && allowedTypes[extension]) {
+    return allowedTypes[extension];
+  }
+
+  const normalizedType = providedType?.trim().toLowerCase();
+
+  if (
+    normalizedType &&
+    [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+    ].includes(normalizedType)
+  ) {
+    return normalizedType;
+  }
+
+  throw new Error(
+    'Unsupported document format. Please select a PDF, JPG, PNG or WEBP file.',
   );
-  const [
-    panNumber,
-    setPanNumber,
-  ] = useState(
-    data?.panNumber || '',
-  );
-  const [
-    aadhaarNumber,
-    setAadhaarNumber,
-  ] = useState(
+};
+
+const getLocalFilePath = (fileUri: string): string => {
+  if (!fileUri) {
+    return '';
+  }
+
+  if (fileUri.startsWith('file://')) {
+    return decodeURIComponent(fileUri.substring(7));
+  }
+
+  return fileUri;
+};
+
+const isValidS3DocumentKey = (
+  key: string,
+  documentType: KycDocumentType,
+): boolean => {
+  const segments = key.split('/').filter(Boolean);
+
+  // Do not assume a fixed folder index. The generated key must
+  // include the exact document type as one of its path segments.
+  return segments.includes(documentType);
+};
+
+const sanitizeDocumentForDraft = (
+  document: KycDocument | null,
+): KycDocument | null => {
+  if (!document) {
+    return null;
+  }
+
+  // Persist durable metadata and the S3 key. A local cache path may
+  // become invalid after the application is restarted.
+  return {
+    name: document.name,
+    type: document.type,
+    size: document.size,
+    uploadId: document.uploadId,
+    s3Key: document.s3Key,
+    documentType: document.documentType,
+    uri: document.s3Key ? '' : document.uri,
+    localUri: undefined,
+  };
+};
+
+/* ============================================================
+   SCREEN
+============================================================ */
+
+const SalonKYCScreen = ({ navigation }: any) => {
+  const { data, updateData, saveDraft } = useSalonRegistration();
+
+  const [generateKycDocumentUploadUrl] =
+    useMutation<GenerateKycDocumentUploadUrlResponse>(
+      GENERATE_KYC_DOCUMENT_UPLOAD_URL,
+    );
+
+  const [panNumber, setPanNumber] = useState(data?.panNumber || '');
+  const [aadhaarNumber, setAadhaarNumber] = useState(
     data?.aadhaarNumber || '',
   );
-  const [
-    gstNumber,
-    setGstNumber,
-  ] = useState(
-    data?.gstNumber || '',
-  );
-  const [
-    shopEstablishmentNumber,
-    setShopEstablishmentNumber,
-  ] = useState(
-    data?.shopEstablishmentNumber || '',
-  );
-  const [
-    udyamNumber,
-    setUdyamNumber,
-  ] = useState(
-    data?.udyamNumber || '',
-  );
-  const [
-    panDocument,
-    setPanDocument,
-  ] = useState<KycDocument | null>(
+  const [gstNumber, setGstNumber] = useState(data?.gstNumber || '');
+  const [shopEstablishmentNumber, setShopEstablishmentNumber] =
+    useState(data?.shopEstablishmentNumber || '');
+  const [udyamNumber, setUdyamNumber] = useState(data?.udyamNumber || '');
+
+  const [panDocument, setPanDocument] = useState<KycDocument | null>(
     data?.panDocument || null,
   );
-  const [
-    aadhaarDocument,
-    setAadhaarDocument,
-  ] = useState<KycDocument | null>(
-    data?.aadhaarDocument || null,
-  );
-  const [
-    shopEstablishmentDocument,
-    setShopEstablishmentDocument,
-  ] = useState<KycDocument | null>(
-    data?.shopEstablishmentDocument || null,
-  );
-  const [
-    gstDocument,
-    setGstDocument,
-  ] = useState<KycDocument | null>(
+  const [aadhaarDocument, setAadhaarDocument] =
+    useState<KycDocument | null>(data?.aadhaarDocument || null);
+  const [shopEstablishmentDocument, setShopEstablishmentDocument] =
+    useState<KycDocument | null>(
+      data?.shopEstablishmentDocument || null,
+    );
+  const [gstDocument, setGstDocument] = useState<KycDocument | null>(
     data?.gstDocument || null,
   );
-  const [
-    udyamDocument,
-    setUdyamDocument,
-  ] = useState<KycDocument | null>(
+  const [udyamDocument, setUdyamDocument] = useState<KycDocument | null>(
     data?.udyamDocument || null,
   );
-  const [
-    submitting,
-    setSubmitting,
-  ] = useState(false);
-  const [
-    pickingDocument,
-    setPickingDocument,
-  ] = useState(false);
 
-  // ============================================================
-  // DRAFT AUTOSAVE
-  // Step 5 = business verification / KYC.
-  // The context sanitizes the payload before server persistence.
-  // Local file paths are only useful during the current app session.
-  // ============================================================
+  const [submitting, setSubmitting] = useState(false);
+  const [pickingDocument, setPickingDocument] = useState(false);
 
-  // ============================================================
-  // KYC DRAFT AUTOSAVE
-  // Step 5 = business verification / KYC
-  // ============================================================
-
-  const draftTimerRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const latestDraftRef =
-    useRef<Record<string, any> | null>(null);
-
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveDraftRef = useRef(saveDraft);
+  const draftSaveQueueRef = useRef<Promise<any>>(Promise.resolve());
+  const latestDraftRef = useRef<KycDraft | null>(null);
+  const finalizingRef = useRef(false);
+  const mountedRef = useRef(true);
 
+  // Keep the latest context function without restarting effects.
   saveDraftRef.current = saveDraft;
 
-  const latestKycDraft = {
+  /*
+   * Keep the latest complete registration snapshot.
+   * The registration context remains responsible for merging/sanitizing
+   * the payload and persisting it to the backend.
+   */
+  const currentKycData: KycDraft = {
     panNumber,
     aadhaarNumber,
     gstNumber,
@@ -195,44 +260,82 @@ const SalonKYCScreen = ({
     kycUploadId: data?.kycUploadId || '',
   };
 
+  if (!finalizingRef.current) {
+    latestDraftRef.current = {
+      ...data,
+      ...currentKycData,
+    };
+  }
 
-  latestDraftRef.current = latestKycDraft;
+  /*
+   * Serialize draft saves. If autosave is already running when the user
+   * presses Continue, the final save runs after it instead of racing it.
+   */
+  const saveDraftSafely = (
+    snapshot: KycDraft,
+    completedSteps?: number[],
+  ): Promise<boolean> => {
+    const operation = draftSaveQueueRef.current
+      .catch(() => false)
+      .then(() =>
+        saveDraftRef.current(5, completedSteps, snapshot),
+      )
+      .then((result: boolean) => {
+        if (!result) {
+          console.warn('KYC draft save returned false.');
+        }
+        return Boolean(result);
+      });
 
-  // Keep context updated and autosave the complete registration.
-  useEffect(() => {
-    updateData(latestKycDraft);
+    draftSaveQueueRef.current = operation;
+    return operation;
+  };
 
+  const clearDraftTimer = () => {
     if (draftTimerRef.current) {
       clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = null;
+    }
+  };
+
+  /* ============================================================
+     AUTOSAVE
+     Step 5 = Business verification / KYC.
+
+     - Update the shared registration context.
+     - Debounce network saves while the user is typing.
+     - Serialize saves to prevent older snapshots overwriting newer ones.
+     - Queue a final snapshot on screen exit.
+  ============================================================ */
+
+  useEffect(() => {
+    updateData(currentKycData);
+
+    if (finalizingRef.current) {
+      return;
     }
 
-    draftTimerRef.current = setTimeout(async () => {
-      try {
-        const saved = await saveDraftRef.current(
-          5,
-          undefined,
-          latestDraftRef.current ?? latestKycDraft,
-        );
+    clearDraftTimer();
 
-        if (!saved) {
-          console.warn(
-            'KYC draft was not saved. Check userId and draftError.',
-          );
-        }
-      } catch (error: any) {
+    draftTimerRef.current = setTimeout(() => {
+      const snapshot = latestDraftRef.current;
+
+      if (!snapshot || finalizingRef.current) {
+        return;
+      }
+
+      saveDraftSafely(snapshot).catch((error: any) => {
         console.warn(
-          'KYC DRAFT AUTOSAVE FAILED:',
-          error?.message || error,
+          'KYC autosave failed:',
+          error?.message || 'Unknown error',
         );
-      }
-    }, 900);
+      });
+    }, AUTOSAVE_DELAY);
 
-    return () => {
-      if (draftTimerRef.current) {
-        clearTimeout(draftTimerRef.current);
-        draftTimerRef.current = null;
-      }
-    };
+    return clearDraftTimer;
+    // Intentionally depend on editable KYC fields, not the entire context
+    // data object, to avoid an autosave loop when updateData changes context.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     panNumber,
     aadhaarNumber,
@@ -246,126 +349,76 @@ const SalonKYCScreen = ({
     udyamDocument,
     updateData,
   ]);
-  // Do not start another asynchronous save from unmount cleanup.
-  // The debounced autosave handles edits; Continue explicitly awaits saving.
 
-  // Flush the most recent draft when leaving the screen or unmounting.
+  /*
+   * On leaving the screen, queue the latest draft behind any save already
+   * in progress. Continue sets finalizingRef first, so this cleanup does
+   * not enqueue a stale draft over the final submitted data.
+   */
   useEffect(() => {
+    mountedRef.current = true;
+
     return () => {
-      if (draftTimerRef.current) {
-        clearTimeout(draftTimerRef.current);
-        draftTimerRef.current = null;
+      mountedRef.current = false;
+      clearDraftTimer();
+
+      if (finalizingRef.current) {
+        return;
       }
-      const draft = latestDraftRef.current;
-      if (draft) {
-        saveDraftRef.current(5, undefined, draft).catch((error: any) => {
-          console.warn('KYC DRAFT FLUSH FAILED:', error?.message || error);
+
+      const snapshot = latestDraftRef.current;
+
+      if (snapshot) {
+        saveDraftSafely(snapshot).catch((error: any) => {
+          console.warn(
+            'KYC exit draft save failed:',
+            error?.message || 'Unknown error',
+          );
         });
       }
     };
+    // The cleanup should run when this screen unmounts, not on each edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const createUploadId = () => {
-    const timestamp =
-      Date.now().toString(36);
-    const randomPart =
-      Math.random()
-        .toString(36)
-        .substring(2, 12);
-    return `REG-${timestamp}-${randomPart}`;
-  };
-  const getContentType = (
-    fileName: string,
-    providedType?: string | null,
-  ): string => {
-    if (
-      providedType &&
-      providedType.trim()
-    ) {
-      return providedType
-        .trim()
-        .toLowerCase();
-    }
-    const extension =
-      fileName
-        .split('.')
-        .pop()
-        ?.toLowerCase();
-    switch (extension) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      case 'webp':
-        return 'image/webp';
-      default:
-        return 'application/octet-stream';
-    }
-  };
-  const getLocalFilePath = (
-    fileUri: string,
-  ): string => {
-    if (!fileUri) {
-      return '';
-    }
-    if (
-      fileUri.startsWith('file://')
-    ) {
-      return fileUri.substring(7);
-    }
-    return fileUri;
-  };
+  /* ============================================================
+     DOCUMENT PICKER
+  ============================================================ */
+
   const pickKycDocument = async (
     documentType: KycDocumentType,
   ) => {
     try {
       setPickingDocument(true);
+
       const result = await pick({
-        type: [
-          types.pdf,
-          types.images,
-        ],
+        type: [types.pdf, types.images],
         allowMultiSelection: false,
       });
-      if (
-        !result ||
-        result.length === 0
-      ) {
+
+      if (!result?.length) {
         return;
       }
-      const selected =
-        result[0];
+
+      const selected = result[0];
       const fileName =
-        selected.name ||
-        `${documentType.toLowerCase()}-document`;
-      console.log(
-        '======================================',
-      );
-      console.log(
-        '📄 SELECTED DOCUMENT:',
-        {
-          documentType,
-          uri: selected.uri,
-          name: selected.name,
-          type: selected.type,
-          size: selected.size,
-        },
-      );
-      const localCopy =
-        await keepLocalCopy({
-          files: [
-            {
-              uri: selected.uri,
-              fileName,
-            },
-          ],
-          destination: 'cachesDirectory',
-        });
-      const copiedFile =
-        localCopy[0];
+        selected.name || `${documentType.toLowerCase()}-document`;
+
+      // Validate supported file type before copying it.
+      getContentType(fileName, selected.type);
+
+      const localCopy = await keepLocalCopy({
+        files: [
+          {
+            uri: selected.uri,
+            fileName,
+          },
+        ],
+        destination: 'cachesDirectory',
+      });
+
+      const copiedFile = localCopy[0];
+
       if (
         copiedFile.status !== 'success' ||
         !copiedFile.localUri
@@ -374,764 +427,356 @@ const SalonKYCScreen = ({
           'Unable to create a local copy of the selected document.',
         );
       }
-      console.log(
-        '📂 LOCAL COPY:',
-        copiedFile.localUri,
-      );
-      const localPath =
-        getLocalFilePath(
-          copiedFile.localUri,
-        );
-      console.log(
-        '📂 NORMALIZED LOCAL PATH:',
-        localPath,
-      );
+
+      const localPath = getLocalFilePath(copiedFile.localUri);
+
       if (!localPath) {
         throw new Error(
           'Unable to determine the local file path.',
         );
       }
-      const exists =
-        await RNFS.exists(
-          localPath,
-        );
-      console.log(
-        '📂 LOCAL FILE EXISTS:',
-        exists,
-      );
+
+      const exists = await RNFS.exists(localPath);
+
       if (!exists) {
         throw new Error(
           'The selected document could not be accessed after copying it.',
         );
       }
-      const stat =
-        await RNFS.stat(
-          localPath,
-        );
-      console.log(
-        '📂 LOCAL FILE SIZE:',
-        stat.size,
-      );
-      if (
-        !Number(stat.size) ||
-        Number(stat.size) <= 0
-      ) {
-        throw new Error(
-          'The selected document is empty.',
-        );
+
+      const stat = await RNFS.stat(localPath);
+      const actualSize = Number(stat.size);
+
+      if (!actualSize || actualSize <= 0) {
+        throw new Error('The selected document is empty.');
       }
-      if (
-        Number(stat.size) >
-        10 * 1024 * 1024
-      ) {
+
+      if (actualSize > MAX_DOCUMENT_SIZE) {
         throw new Error(
           `${fileName} is larger than the 10 MB limit.`,
         );
       }
+
+      /*
+       * Important: create a fresh object without the previous S3 key or
+       * upload ID. Replacing a document must trigger a new upload.
+       */
       const selectedDocument: KycDocument = {
         uri: selected.uri,
-        localUri:
-          copiedFile.localUri,
+        localUri: copiedFile.localUri,
         name: fileName,
-        type: selected.type,
-        size:
-          selected.size ??
-          Number(stat.size),
+        type: getContentType(fileName, selected.type),
+        size: actualSize,
         documentType,
+        s3Key: undefined,
+        uploadId: undefined,
       };
+
       switch (documentType) {
         case 'PAN':
-          setPanDocument(
-            selectedDocument,
-          );
+          setPanDocument(selectedDocument);
           break;
         case 'AADHAAR':
-          setAadhaarDocument(
-            selectedDocument,
-          );
+          setAadhaarDocument(selectedDocument);
           break;
         case 'SHOP_ESTABLISHMENT':
-          setShopEstablishmentDocument(
-            selectedDocument,
-          );
+          setShopEstablishmentDocument(selectedDocument);
           break;
         case 'GST':
-          setGstDocument(
-            selectedDocument,
-          );
+          setGstDocument(selectedDocument);
           break;
         case 'UDYAM':
-          setUdyamDocument(
-            selectedDocument,
-          );
+          setUdyamDocument(selectedDocument);
           break;
       }
-      console.log(
-        '======================================',
-      );
-      console.log(
-        `🔄 ${documentType} document selected/replaced.`,
-      );
-      console.log(
-        '🔄 Existing S3 key cleared for this document.',
-      );
-      console.log(
-        '======================================',
-      );
     } catch (error: any) {
       if (
-        error?.code ===
-        'DOCUMENT_PICKER_CANCELED'
+        error?.code === 'DOCUMENT_PICKER_CANCELED' ||
+        error?.code === 'OPERATION_CANCELED'
       ) {
         return;
       }
+
       console.error(
-        '❌ DOCUMENT PICK ERROR:',
-        error,
+        'KYC document selection failed:',
+        error?.message || 'Unknown error',
       );
+
       Alert.alert(
         'Unable to select document',
-        error?.message ||
-        'Please try again.',
+        error?.message || 'Please try again.',
       );
     } finally {
       setPickingDocument(false);
     }
   };
+
+  /* ============================================================
+     S3 UPLOAD
+  ============================================================ */
+
   const uploadDocumentToS3 = async (
     document: KycDocument,
     documentType: KycDocumentType,
     uploadId: string,
   ): Promise<KycDocument> => {
-    try {
-      if (document.s3Key) {
-        console.log(
-          '======================================',
-        );
-        console.log(
-          `⏭️ ${documentType} ALREADY UPLOADED`,
-        );
-        console.log(
-          '⏭️ EXISTING S3 KEY:',
+    /*
+     * A valid S3 key means the document was previously uploaded.
+     * Reuse it when resuming registration, even if the old local cache
+     * URI is no longer available.
+     */
+    if (document.s3Key) {
+      if (
+        !isValidS3DocumentKey(
           document.s3Key,
-        );
-        console.log(
-          '⏭️ SKIPPING S3 UPLOAD',
-        );
-        console.log(
-          '======================================',
-        );
-        return {
-          ...document,
-          uploadId:
-            document.uploadId ||
-            uploadId,
           documentType,
-        };
-      }
-      console.log(
-        '======================================',
-      );
-      console.log(
-        '📤 STARTING S3 KYC UPLOAD',
-      );
-      console.log(
-        '📄 DOCUMENT TYPE:',
-        documentType,
-      );
-      console.log(
-        '📄 FILE NAME:',
-        document.name,
-      );
-      console.log(
-        '📄 ORIGINAL URI:',
-        document.uri,
-      );
-      console.log(
-        '📄 LOCAL URI:',
-        document.localUri,
-      );
-      console.log(
-        '🆔 UPLOAD ID:',
-        uploadId,
-      );
-      console.log(
-        '======================================',
-      );
-      if (!document.localUri) {
-        throw new Error(
-          `No local cached file available for ${document.name}. Please select the document again.`,
-        );
-      }
-      const filePath =
-        getLocalFilePath(
-          document.localUri,
-        );
-      console.log(
-        '📂 FINAL LOCAL FILE PATH:',
-        filePath,
-      );
-      if (!filePath) {
-        throw new Error(
-          `Invalid local file path for ${document.name}.`,
-        );
-      }
-      if (
-        filePath.startsWith('http://') ||
-        filePath.startsWith('https://') ||
-        filePath.startsWith('content://')
+        )
       ) {
         throw new Error(
-          `Invalid local file path for ${document.name}. A local filesystem path is required.`,
+          `The saved ${documentType} document reference is invalid. Please select the document again.`,
         );
       }
-      const fileExists =
-        await RNFS.exists(
-          filePath,
-        );
-      console.log(
-        '📂 FILE EXISTS:',
-        fileExists,
-      );
-      if (!fileExists) {
-        throw new Error(
-          `Local file does not exist: ${filePath}`,
-        );
-      }
-      const stat =
-        await RNFS.stat(
-          filePath,
-        );
-      const actualFileSize =
-        Number(stat.size);
-      console.log(
-        '📂 ACTUAL FILE SIZE:',
-        actualFileSize,
-      );
-      if (
-        !actualFileSize ||
-        actualFileSize <= 0
-      ) {
-        throw new Error(
-          `Local file is empty: ${document.name}`,
-        );
-      }
-      if (
-        actualFileSize >
-        10 * 1024 * 1024
-      ) {
-        throw new Error(
-          `${document.name} is larger than the 10 MB limit.`,
-        );
-      }
-      const contentType =
-        getContentType(
-          document.name,
-          document.type,
-        );
-      console.log(
-        '📄 CONTENT TYPE:',
-        contentType,
-      );
-      console.log(
-        '🔐 Generating presigned S3 URL...',
-      );
-      console.log(
-        '🔐 REQUEST DOCUMENT TYPE:',
-        documentType,
-      );
-      console.log(
-        '🔐 REQUEST UPLOAD ID:',
-        uploadId,
-      );
-      console.log(
-        '🔐 REQUEST FILE NAME:',
-        document.name,
-      );
-      const {
-        data: mutationData,
-      } =
-        await generateKycDocumentUploadUrl({
-          variables: {
-            input: {
-              uploadId,
-              documentType,
-              fileName:
-                document.name,
-              contentType,
-              fileSize:
-                actualFileSize,
-            },
-          },
-        });
-      const response =
-        mutationData
-          ?.generateKycDocumentUploadUrl;
-      console.log(
-        '🔐 PRESIGNED URL RESPONSE:',
-        {
-          success:
-            response?.success,
-          key:
-            response?.key,
-          contentType:
-            response?.contentType,
-          expiresIn:
-            response?.expiresIn,
-          hasUploadUrl:
-            !!response?.uploadUrl,
-        },
-      );
-      if (!response?.success) {
-        throw new Error(
-          response?.message ||
-          `Failed to generate upload URL for ${document.name}`,
-        );
-      }
-      if (!response.uploadUrl) {
-        throw new Error(
-          `No upload URL returned for ${document.name}`,
-        );
-      }
-      if (!response.key) {
-        throw new Error(
-          `No S3 key returned for ${document.name}`,
-        );
-      }
-      const keyParts =
-        String(response.key)
-          .split('/')
-          .filter(Boolean);
-      const returnedDocumentType =
-        keyParts[3] || '';
-      console.log(
-        '🔎 S3 KEY DOCUMENT TYPE:',
-        {
-          requested:
-            documentType,
-          returned:
-            returnedDocumentType,
-          key:
-            response.key,
-        },
-      );
-      if (
-        returnedDocumentType !==
-        documentType
-      ) {
-        console.error(
-          '❌ S3 KEY DOCUMENT TYPE MISMATCH',
-          {
-            documentType,
-            returnedDocumentType,
-            returnedKey:
-              response.key,
-            uploadId,
-            fileName:
-              document.name,
-          },
-        );
-        throw new Error(
-          `S3 returned an incorrect document path for ${document.name}. Expected ${documentType} folder but received ${returnedDocumentType || 'unknown'}.`,
-        );
-      }
-      console.log(
-        '✅ S3 DOCUMENT TYPE VERIFIED:',
-        documentType,
-      );
-      console.log(
-        '☁️ S3 KEY:',
-        response.key,
-      );
-      const uploadContentType =
-        response.contentType ||
-        contentType;
-      console.log(
-        '☁️ S3 UPLOAD CONTENT TYPE:',
-        uploadContentType,
-      );
-      console.log(
-        '☁️ STARTING DIRECT S3 PUT...',
-      );
-      console.log(
-        '☁️ FILE:',
-        filePath,
-      );
-      console.log(
-        '☁️ FILE SIZE:',
-        actualFileSize,
-      );
-      console.log(
-        '☁️ CONTENT TYPE:',
-        uploadContentType,
-      );
-      const uploadTask =
-        ReactNativeBlobUtil
-          .config({
-            fileCache: false,
-            followRedirect: true,
-            timeout: 120000,
-          })
-          .fetch(
-            'PUT',
-            response.uploadUrl,
-            {
-              'Content-Type':
-                uploadContentType,
-            },
-            ReactNativeBlobUtil.wrap(
-              filePath,
-            ),
-          );
-      const uploadResponse =
-        await uploadTask.uploadProgress(
-          {
-            interval: 250,
-          },
-          (
-            written,
-            total,
-          ) => {
-            const percentage =
-              total > 0
-                ? Math.min(
-                  100,
-                  Math.round(
-                    (written /
-                      total) *
-                    100,
-                  ),
-                )
-                : 0;
-            console.log(
-              `☁️ S3 KYC UPLOAD PROGRESS: ${percentage}% (${written}/${total})`,
-            );
-          },
-        );
-      const uploadInfo =
-        uploadResponse.info();
-      console.log(
-        '======================================',
-      );
-      console.log(
-        '☁️ S3 UPLOAD RESPONSE',
-      );
-      console.log(
-        '☁️ STATUS:',
-        uploadInfo.status,
-      );
-      console.log(
-        '☁️ HEADERS:',
-        uploadInfo.headers,
-      );
-      let responseBody: any = '';
-      try {
-        responseBody =
-          uploadResponse.text();
-      } catch {
-        responseBody = '';
-      }
-      console.log(
-        '☁️ RESPONSE BODY:',
-        responseBody,
-      );
-      console.log(
-        '======================================',
-      );
-      if (
-        uploadInfo.status < 200 ||
-        uploadInfo.status >= 300
-      ) {
-        console.error(
-          '❌ S3 UPLOAD FAILED:',
-          {
-            status:
-              uploadInfo.status,
-            body:
-              responseBody,
-          },
-        );
-        throw new Error(
-          `S3 upload failed for ${document.name}. HTTP ${uploadInfo.status}${responseBody ? `: ${responseBody}` : ''}`,
-        );
-      }
-      console.log(
-        '======================================',
-      );
-      console.log(
-        `✅ S3 UPLOAD SUCCESS: ${document.name}`,
-      );
-      console.log(
-        '✅ DOCUMENT TYPE:',
-        documentType,
-      );
-      console.log(
-        '✅ S3 KEY:',
-        response.key,
-      );
-      console.log(
-        '======================================',
-      );
+
       return {
         ...document,
-        type:
-          uploadContentType,
-        size:
-          actualFileSize,
-        uploadId,
-        s3Key:
-          response.key,
+        uploadId: document.uploadId || uploadId,
         documentType,
-        localUri:
-          filePath,
+        localUri: undefined,
       };
-    } catch (error: any) {
-      console.error(
-        '======================================',
-      );
-      console.error(
-        '❌ S3 KYC BINARY UPLOAD ERROR:',
-        error,
-      );
-      console.error(
-        '❌ MESSAGE:',
-        error?.message,
-      );
-      console.error(
-        '❌ DESCRIPTION:',
-        error?.description,
-      );
-      console.error(
-        '❌ DOCUMENT TYPE:',
-        documentType,
-      );
-      console.error(
-        '❌ UPLOAD ID:',
-        uploadId,
-      );
-      console.error(
-        '❌ FILE NAME:',
-        document.name,
-      );
-      console.error(
-        '❌ FILE PATH:',
-        document.localUri,
-      );
-      let fileExists = false;
-      try {
-        if (
-          document.localUri
-        ) {
-          const errorFilePath =
-            getLocalFilePath(
-              document.localUri,
-            );
-          if (
-            !errorFilePath.startsWith(
-              'http://',
-            ) &&
-            !errorFilePath.startsWith(
-              'https://',
-            ) &&
-            !errorFilePath.startsWith(
-              'content://',
-            )
-          ) {
-            fileExists =
-              await RNFS.exists(
-                errorFilePath,
-              );
-          }
-        }
-      } catch {
-        fileExists = false;
-      }
-      console.error(
-        '❌ FILE EXISTS:',
-        fileExists,
-      );
-      console.error(
-        '======================================',
-      );
+    }
+
+    if (!document.localUri) {
       throw new Error(
-        `Unable to upload ${document.name} to document storage. ${error?.message ||
-        'Unknown upload error'
-        }`,
+        `The local file for ${document.name} is no longer available. Please select the document again.`,
       );
     }
+
+    const filePath = getLocalFilePath(document.localUri);
+
+    if (
+      !filePath ||
+      filePath.startsWith('http://') ||
+      filePath.startsWith('https://') ||
+      filePath.startsWith('content://')
+    ) {
+      throw new Error(
+        `Invalid local file path for ${document.name}. Please select it again.`,
+      );
+    }
+
+    const fileExists = await RNFS.exists(filePath);
+
+    if (!fileExists) {
+      throw new Error(
+        `The local file for ${document.name} is missing. Please select it again.`,
+      );
+    }
+
+    const stat = await RNFS.stat(filePath);
+    const actualFileSize = Number(stat.size);
+
+    if (!actualFileSize || actualFileSize <= 0) {
+      throw new Error(`The file ${document.name} is empty.`);
+    }
+
+    if (actualFileSize > MAX_DOCUMENT_SIZE) {
+      throw new Error(
+        `${document.name} is larger than the 10 MB limit.`,
+      );
+    }
+
+    const contentType = getContentType(
+      document.name,
+      document.type,
+    );
+
+    const { data: mutationData } =
+      await generateKycDocumentUploadUrl({
+        variables: {
+          input: {
+            uploadId,
+            documentType,
+            fileName: document.name,
+            contentType,
+            fileSize: actualFileSize,
+          },
+        },
+      });
+
+    const response =
+      mutationData?.generateKycDocumentUploadUrl;
+
+    if (!response?.success) {
+      throw new Error(
+        response?.message ||
+          `Failed to prepare the ${documentType} upload.`,
+      );
+    }
+
+    if (!response.uploadUrl || !response.key) {
+      throw new Error(
+        `The server did not return a valid upload destination for ${document.name}.`,
+      );
+    }
+
+    if (
+      !isValidS3DocumentKey(
+        response.key,
+        documentType,
+      )
+    ) {
+      throw new Error(
+        `The server returned an unexpected storage location for ${documentType}.`,
+      );
+    }
+
+    const uploadContentType =
+      response.contentType || contentType;
+
+    const uploadResponse = await ReactNativeBlobUtil
+      .config({
+        fileCache: false,
+        followRedirect: true,
+        timeout: 120000,
+      })
+      .fetch(
+        'PUT',
+        response.uploadUrl,
+        {
+          'Content-Type': uploadContentType,
+        },
+        ReactNativeBlobUtil.wrap(filePath),
+      );
+
+    const status = uploadResponse.info().status;
+
+    if (status < 200 || status >= 300) {
+      throw new Error(
+        `Upload failed for ${document.name} (HTTP ${status}). Please try again.`,
+      );
+    }
+
+    return {
+      ...document,
+      type: uploadContentType,
+      size: actualFileSize,
+      uploadId,
+      s3Key: response.key,
+      documentType,
+      // Keep this for the current session only.
+      localUri: filePath,
+    };
   };
+
+  /* ============================================================
+     DOCUMENT PICKER UI
+  ============================================================ */
+
   const renderDocumentPicker = (
     label: string,
     document: KycDocument | null,
     documentType: KycDocumentType,
     required = false,
-  ) => {
-    return (
-      <View
-        style={
-          styles.documentPickerContainer
-        }
+  ) => (
+    <View style={styles.documentPickerContainer}>
+      <View style={styles.documentPickerHeader}>
+        <Text style={styles.documentLabel}>
+          {label}
+          {required ? ' *' : ''}
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        style={[
+          styles.documentPickerButton,
+          document && styles.documentPickerButtonSelected,
+        ]}
+        onPress={() => pickKycDocument(documentType)}
+        disabled={pickingDocument || submitting}
+        activeOpacity={0.8}
       >
-        <View
-          style={
-            styles.documentPickerHeader
-          }
-        >
-          <Text
-            style={
-              styles.documentLabel
-            }
-          >
-            {label}
-            {required ? ' *' : ''}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={[
-            styles.documentPickerButton,
-            document &&
-            styles.documentPickerButtonSelected,
-          ]}
-          onPress={() =>
-            pickKycDocument(
-              documentType,
-            )
-          }
-          disabled={
-            pickingDocument ||
-            submitting
-          }
-        >
-          {document ? (
-            <View
-              style={
-                styles.documentSelectedContent
-              }
+        {document ? (
+          <View style={styles.documentSelectedContent}>
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={styles.documentSelectedIconGradient}
             >
-              <AppGradient
-                colors={[...GRADIENTS.SOFT_PURPLE]}
-                style={styles.documentSelectedIconGradient}
-              >
-                <Text style={styles.documentSelectedIcon}>✓</Text>
-              </AppGradient>
-              <View
-                style={
-                  styles.documentSelectedTextContainer
-                }
-              >
-                <Text
-                  style={
-                    styles.documentSelectedText
-                  }
-                  numberOfLines={1}
-                >
-                  {document.name}
-                </Text>
-                <Text
-                  style={
-                    styles.documentSelectedSubText
-                  }
-                >
-                  {document.s3Key
-                    ? 'Document uploaded'
-                    : 'Document selected'}
-                </Text>
-              </View>
+              <Text style={styles.documentSelectedIcon}>✓</Text>
+            </AppGradient>
+
+            <View style={styles.documentSelectedTextContainer}>
               <Text
-                style={
-                  styles.documentChangeText
-                }
+                style={styles.documentSelectedText}
+                numberOfLines={1}
               >
-                Change
+                {document.name}
+              </Text>
+              <Text style={styles.documentSelectedSubText}>
+                {document.s3Key
+                  ? 'Document uploaded'
+                  : 'Document selected'}
               </Text>
             </View>
-          ) : (
-            <View
-              style={
-                styles.documentEmptyContent
-              }
+
+            <Text style={styles.documentChangeText}>Change</Text>
+          </View>
+        ) : (
+          <View style={styles.documentEmptyContent}>
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={styles.documentUploadIconGradient}
             >
-              <AppGradient
-                colors={[...GRADIENTS.SOFT_PURPLE]}
-                style={styles.documentUploadIconGradient}
-              >
-                <Text style={styles.documentUploadIcon}>↑</Text>
-              </AppGradient>
-              <View
-                style={
-                  styles.documentEmptyTextContainer
-                }
-              >
-                <Text
-                  style={
-                    styles.documentUploadText
-                  }
-                >
-                  Upload document
-                </Text>
-                <Text
-                  style={
-                    styles.documentUploadSubText
-                  }
-                >
-                  PDF, JPG, PNG or WEBP
-                </Text>
-              </View>
+              <Text style={styles.documentUploadIcon}>↑</Text>
+            </AppGradient>
+
+            <View style={styles.documentEmptyTextContainer}>
+              <Text style={styles.documentUploadText}>
+                Upload document
+              </Text>
+              <Text style={styles.documentUploadSubText}>
+                PDF, JPG, PNG or WEBP
+              </Text>
             </View>
-          )}
-        </TouchableOpacity>
-      </View>
-    );
-  };
+          </View>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
+  /* ============================================================
+     CONTINUE
+  ============================================================ */
 
   const handleContinue = async () => {
+    if (submitting || pickingDocument) {
+      return;
+    }
+
     try {
       setSubmitting(true);
-      const cleanPan =
-        panNumber
-          .trim()
-          .toUpperCase();
-      const cleanAadhaar =
-        aadhaarNumber.replace(
-          /\D/g,
-          '',
-        );
-      const cleanGst =
-        gstNumber
-          .trim()
-          .toUpperCase();
-      const cleanShop =
-        shopEstablishmentNumber.trim();
-      const cleanUdyam =
-        udyamNumber
-          .trim()
-          .toUpperCase();
-      const panRegex =
-        /^[A-Z]{5}[0-9]{4}[A-Z]$/;
-      if (
-        !panRegex.test(
-          cleanPan,
-        )
-      ) {
+
+      const cleanPan = panNumber.trim().toUpperCase();
+      const cleanAadhaar = aadhaarNumber.replace(/\D/g, '');
+      const cleanGst = gstNumber.trim().toUpperCase();
+      const cleanShop = shopEstablishmentNumber.trim();
+      const cleanUdyam = udyamNumber.trim().toUpperCase();
+
+      if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(cleanPan)) {
         Alert.alert(
           'Invalid PAN',
           'Please enter a valid PAN number.',
         );
         return;
       }
-      const aadhaarRegex =
-        /^\d{12}$/;
-      if (
-        !aadhaarRegex.test(
-          cleanAadhaar,
-        )
-      ) {
+
+      if (!/^\d{12}$/.test(cleanAadhaar)) {
         Alert.alert(
           'Invalid Aadhaar',
           'Please enter a valid 12-digit Aadhaar number.',
         );
         return;
       }
+
       if (!cleanShop) {
         Alert.alert(
           'Shop & Establishment Number required',
@@ -1139,6 +784,7 @@ const SalonKYCScreen = ({
         );
         return;
       }
+
       if (!panDocument) {
         Alert.alert(
           'PAN document required',
@@ -1146,6 +792,7 @@ const SalonKYCScreen = ({
         );
         return;
       }
+
       if (!aadhaarDocument) {
         Alert.alert(
           'Aadhaar document required',
@@ -1153,29 +800,24 @@ const SalonKYCScreen = ({
         );
         return;
       }
-      if (
-        !shopEstablishmentDocument
-      ) {
+
+      if (!shopEstablishmentDocument) {
         Alert.alert(
           'Shop & Establishment document required',
           'Please upload your Shop & Establishment document.',
         );
         return;
       }
-      if (
-        cleanGst &&
-        !gstDocument
-      ) {
+
+      if (cleanGst && !gstDocument) {
         Alert.alert(
           'GST document required',
           'Please upload your GST certificate because you entered a GSTIN.',
         );
         return;
       }
-      if (
-        cleanUdyam &&
-        !udyamDocument
-      ) {
+
+      if (cleanUdyam && !udyamDocument) {
         Alert.alert(
           'Udyam document required',
           'Please upload your Udyam certificate because you entered a Udyam number.',
@@ -1183,110 +825,74 @@ const SalonKYCScreen = ({
         return;
       }
 
+      if (!cleanGst && gstDocument) {
+        // A GST document must not be submitted when its number is blank.
+        setGstDocument(null);
+      }
+
+      if (!cleanUdyam && udyamDocument) {
+        setUdyamDocument(null);
+      }
+
+      /*
+       * Stop the debounce timer and prevent state-driven autosave effects
+       * from queuing snapshots while the final submission is running.
+       */
+      finalizingRef.current = true;
+      clearDraftTimer();
+
       const existingUploadId =
         data?.kycUploadId ||
-        panDocument?.uploadId ||
-        aadhaarDocument?.uploadId ||
-        shopEstablishmentDocument?.uploadId ||
+        panDocument.uploadId ||
+        aadhaarDocument.uploadId ||
+        shopEstablishmentDocument.uploadId ||
         gstDocument?.uploadId ||
         udyamDocument?.uploadId;
-      const uploadId =
-        existingUploadId ||
-        createUploadId();
-      console.log(
-        '======================================',
-      );
-      console.log(
-        '🚀 STARTING KYC DOCUMENT PROCESSING',
-      );
-      console.log(
-        '🆔 KYC UPLOAD ID:',
+
+      const uploadId = existingUploadId || createUploadId();
+
+      // Upload required documents first.
+      const uploadedPanDocument = await uploadDocumentToS3(
+        { ...panDocument, documentType: 'PAN' },
+        'PAN',
         uploadId,
       );
-      console.log(
-        '📌 EXISTING KYC UPLOAD ID:',
-        existingUploadId || 'NONE - NEW KYC',
+
+      const uploadedAadhaarDocument = await uploadDocumentToS3(
+        { ...aadhaarDocument, documentType: 'AADHAAR' },
+        'AADHAAR',
+        uploadId,
       );
-      console.log(
-        '======================================',
+
+      const uploadedShopDocument = await uploadDocumentToS3(
+        {
+          ...shopEstablishmentDocument,
+          documentType: 'SHOP_ESTABLISHMENT',
+        },
+        'SHOP_ESTABLISHMENT',
+        uploadId,
       );
-      console.log(
-        '🔵 PROCESSING PAN...',
-      );
-      const uploadedPanDocument =
-        await uploadDocumentToS3(
-          {
-            ...panDocument,
-            documentType: 'PAN',
-          },
-          'PAN',
+
+      let uploadedGstDocument: KycDocument | null = null;
+
+      if (cleanGst && gstDocument) {
+        uploadedGstDocument = await uploadDocumentToS3(
+          { ...gstDocument, documentType: 'GST' },
+          'GST',
           uploadId,
         );
-      console.log(
-        '🟢 PROCESSING AADHAAR...',
-      );
-      const uploadedAadhaarDocument =
-        await uploadDocumentToS3(
-          {
-            ...aadhaarDocument,
-            documentType: 'AADHAAR',
-          },
-          'AADHAAR',
-          uploadId,
-        );
-      console.log(
-        '🟠 PROCESSING SHOP & ESTABLISHMENT...',
-      );
-      const uploadedShopDocument =
-        await uploadDocumentToS3(
-          {
-            ...shopEstablishmentDocument,
-            documentType:
-              'SHOP_ESTABLISHMENT',
-          },
-          'SHOP_ESTABLISHMENT',
-          uploadId,
-        );
-      let uploadedGstDocument:
-        | KycDocument
-        | null = null;
-      if (
-        cleanGst &&
-        gstDocument
-      ) {
-        console.log(
-          '🟣 PROCESSING GST...',
-        );
-        uploadedGstDocument =
-          await uploadDocumentToS3(
-            {
-              ...gstDocument,
-              documentType: 'GST',
-            },
-            'GST',
-            uploadId,
-          );
       }
-      let uploadedUdyamDocument:
-        | KycDocument
-        | null = null;
-      if (
-        cleanUdyam &&
-        udyamDocument
-      ) {
-        console.log(
-          '🟡 PROCESSING UDYAM...',
+
+      let uploadedUdyamDocument: KycDocument | null = null;
+
+      if (cleanUdyam && udyamDocument) {
+        uploadedUdyamDocument = await uploadDocumentToS3(
+          { ...udyamDocument, documentType: 'UDYAM' },
+          'UDYAM',
+          uploadId,
         );
-        uploadedUdyamDocument =
-          await uploadDocumentToS3(
-            {
-              ...udyamDocument,
-              documentType: 'UDYAM',
-            },
-            'UDYAM',
-            uploadId,
-          );
       }
+
       const finalKycData = {
         panNumber: cleanPan,
         aadhaarNumber: cleanAadhaar,
@@ -1294,231 +900,160 @@ const SalonKYCScreen = ({
         shopEstablishmentNumber: cleanShop,
         udyamNumber: cleanUdyam,
 
-        panDocument: uploadedPanDocument,
-        aadhaarDocument: uploadedAadhaarDocument,
-        shopEstablishmentDocument: uploadedShopDocument,
-        gstDocument: uploadedGstDocument,
-        udyamDocument: uploadedUdyamDocument,
+        panDocument: sanitizeDocumentForDraft(
+          uploadedPanDocument,
+        ),
+        aadhaarDocument: sanitizeDocumentForDraft(
+          uploadedAadhaarDocument,
+        ),
+        shopEstablishmentDocument: sanitizeDocumentForDraft(
+          uploadedShopDocument,
+        ),
+        gstDocument: sanitizeDocumentForDraft(
+          uploadedGstDocument,
+        ),
+        udyamDocument: sanitizeDocumentForDraft(
+          uploadedUdyamDocument,
+        ),
 
         kycUploadId: uploadId,
-
-        // Preserve the expected literal status types
         kycStatus: 'PENDING' as const,
-
         kycReferenceId: uploadId,
         kycSubmittedAt: '',
         kycReviewedAt: '',
         kycRejectionReason: '',
-
         providerStatus: 'NOT_REGISTERED' as const,
       };
 
-      const completeKycData = {
+      const completeKycData: KycDraft = {
         ...data,
         ...finalKycData,
       };
 
+      latestDraftRef.current = completeKycData;
+
+      // Update the shared registration context with the final values.
       updateData(finalKycData);
 
+      // Update local state to reflect successful uploads.
       setPanDocument(uploadedPanDocument);
       setAadhaarDocument(uploadedAadhaarDocument);
       setShopEstablishmentDocument(uploadedShopDocument);
       setGstDocument(uploadedGstDocument);
       setUdyamDocument(uploadedUdyamDocument);
 
-      latestDraftRef.current = completeKycData;
-
-      if (draftTimerRef.current) {
-        clearTimeout(draftTimerRef.current);
-        draftTimerRef.current = null;
-      }
-
-      const draftSaved = await saveDraft(
-        5,
-        [1, 2, 3, 4, 5],
+      /*
+       * This final save is serialized behind any already-running autosave.
+       * Step 5 remains KYC, and steps 1–5 are marked complete.
+       */
+      const draftSaved = await saveDraftSafely(
         completeKycData,
+        [1, 2, 3, 4, 5],
       );
 
       if (!draftSaved) {
-        Alert.alert(
-          'Draft could not be saved',
-          'Your documents were uploaded, but your registration progress could not be saved. Please check your connection and try again.',
-        );
-        return;
-      }
+        finalizingRef.current = false;
 
-      if (!draftSaved) {
         Alert.alert(
           'Draft could not be saved',
           'Your documents were uploaded, but registration progress could not be saved. Please check your connection and try again.',
         );
         return;
       }
-      console.log(
-        '======================================',
-      );
-      console.log(
-        '✅ KYC DOCUMENT PROCESSING COMPLETE',
-      );
-      console.log(
-        '🆔 KYC UPLOAD ID:',
-        uploadId,
-      );
-      console.log(
-        '📄 PAN S3 KEY:',
-        uploadedPanDocument.s3Key,
-      );
-      console.log(
-        '📄 AADHAAR S3 KEY:',
-        uploadedAadhaarDocument.s3Key,
-      );
-      console.log(
-        '📄 SHOP S3 KEY:',
-        uploadedShopDocument.s3Key,
-      );
-      if (uploadedGstDocument) {
-        console.log(
-          '📄 GST S3 KEY:',
-          uploadedGstDocument.s3Key,
-        );
+
+      if (!mountedRef.current) {
+        return;
       }
-      if (uploadedUdyamDocument) {
-        console.log(
-          '📄 UDYAM S3 KEY:',
-          uploadedUdyamDocument.s3Key,
-        );
-      }
-      console.log(
-        '======================================',
-      );
-      await new Promise(
-        resolve =>
-          setTimeout(
-            resolve,
-            300,
-          ),
-      );
-      navigation.navigate(
-        'SalonReview',
-      );
+
+      navigation.navigate('SalonReview');
     } catch (error: any) {
+      finalizingRef.current = false;
+
       console.error(
-        '======================================',
+        'KYC submission failed:',
+        error?.message || 'Unknown error',
       );
-      console.error(
-        '❌ KYC UPLOAD / CONTINUE ERROR:',
-        error,
-      );
-      console.error(
-        '❌ KYC ERROR MESSAGE:',
-        error?.message,
-      );
-      console.error(
-        '======================================',
-      );
+
       Alert.alert(
-        'Unable to upload documents',
+        'Unable to submit documents',
         error?.message ||
-        'Something went wrong while uploading your KYC documents. Please try again.',
+          'Something went wrong while uploading your KYC documents. Please try again.',
       );
     } finally {
-      setSubmitting(false);
+      if (mountedRef.current) {
+        setSubmitting(false);
+      }
     }
   };
+
+  /* ============================================================
+     UI
+  ============================================================ */
+
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-    >
+    <SafeAreaView style={styles.safeArea}>
       <Header
         headerTitle="Business Verification"
-        backBtn={() =>
-          navigation.goBack()
-        }
+        backBtn={() => navigation.goBack()}
       />
+
       <ScrollView
         style={styles.container}
-        contentContainerStyle={
-          styles.contentContainer
-        }
+        contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>
-          Verify your business
-        </Text>
+        <Text style={styles.title}>Verify your business</Text>
+
         <Text style={styles.subtitle}>
-          Complete your business verification
-          to continue with business registration.
+          Complete your business verification to continue with business
+          registration.
         </Text>
-        { }
+
         <View style={styles.section}>
-          <Text
-            style={styles.sectionTitle}
-          >
-            Owner verification
+          <Text style={styles.sectionTitle}>Owner verification</Text>
+
+          <Text style={styles.sectionSubtitle}>
+            These details are required to verify the business owner.
           </Text>
-          <Text
-            style={styles.sectionSubtitle}
-          >
-            These details are required to verify
-            the business owner.
-          </Text>
-          { }
-          <Text
-            style={styles.inputLabel}
-          >
-            PAN Number *
-          </Text>
+
+          <Text style={styles.inputLabel}>PAN Number *</Text>
+
           <TextInput
             value={panNumber}
             onChangeText={text =>
               setPanNumber(
-                text
-                  .toUpperCase()
-                  .replace(
-                    /[^A-Z0-9]/g,
-                    '',
-                  ),
+                text.toUpperCase().replace(/[^A-Z0-9]/g, ''),
               )
             }
             placeholder="Enter PAN number"
-            placeholderTextColor={
-              COLORS.textSecondary
-            }
+            placeholderTextColor={COLORS.textSecondary}
             autoCapitalize="characters"
             maxLength={10}
             style={styles.input}
           />
+
           {renderDocumentPicker(
             'PAN Document',
             panDocument,
             'PAN',
             true,
           )}
-          { }
-          <Text
-            style={styles.inputLabel}
-          >
-            Aadhaar Number *
-          </Text>
+
+          <Text style={styles.inputLabel}>Aadhaar Number *</Text>
+
           <TextInput
             value={aadhaarNumber}
             onChangeText={text =>
-              setAadhaarNumber(
-                text.replace(
-                  /\D/g,
-                  '',
-                ),
-              )
+              setAadhaarNumber(text.replace(/\D/g, ''))
             }
             placeholder="Enter 12-digit Aadhaar number"
-            placeholderTextColor={
-              COLORS.textSecondary
-            }
+            placeholderTextColor={COLORS.textSecondary}
             keyboardType="number-pad"
             maxLength={12}
             style={styles.input}
           />
+
           {renderDocumentPicker(
             'Aadhaar Document',
             aadhaarDocument,
@@ -1526,205 +1061,133 @@ const SalonKYCScreen = ({
             true,
           )}
         </View>
-        { }
+
         <View style={styles.section}>
-          <Text
-            style={styles.sectionTitle}
-          >
-            Business verification
+          <Text style={styles.sectionTitle}>Business verification</Text>
+
+          <Text style={styles.sectionSubtitle}>
+            Provide your business registration documents.
           </Text>
-          <Text
-            style={styles.sectionSubtitle}
-          >
-            Provide your business registration
-            documents.
+
+          <Text style={styles.inputLabel}>
+            Shop &amp; Establishment Number *
           </Text>
-          { }
-          <Text
-            style={styles.inputLabel}
-          >
-            Shop & Establishment Number *
-          </Text>
+
           <TextInput
-            value={
-              shopEstablishmentNumber
-            }
-            onChangeText={
-              setShopEstablishmentNumber
-            }
+            value={shopEstablishmentNumber}
+            onChangeText={setShopEstablishmentNumber}
             placeholder="Enter registration number"
-            placeholderTextColor={
-              COLORS.textSecondary
-            }
+            placeholderTextColor={COLORS.textSecondary}
             style={styles.input}
           />
+
           {renderDocumentPicker(
             'Shop & Establishment Document',
             shopEstablishmentDocument,
             'SHOP_ESTABLISHMENT',
             true,
           )}
-          { }
-          <Text
-            style={styles.inputLabel}
-          >
+
+          <Text style={styles.inputLabel}>
             GSTIN
-            <Text
-              style={
-                styles.optionalText
-              }
-            >
-              {' '}
-              (Optional)
-            </Text>
+            <Text style={styles.optionalText}> (Optional)</Text>
           </Text>
+
           <TextInput
             value={gstNumber}
             onChangeText={text =>
               setGstNumber(
-                text
-                  .toUpperCase()
-                  .replace(
-                    /[^A-Z0-9]/g,
-                    '',
-                  ),
+                text.toUpperCase().replace(/[^A-Z0-9]/g, ''),
               )
             }
             placeholder="Enter GSTIN if applicable"
-            placeholderTextColor={
-              COLORS.textSecondary
-            }
+            placeholderTextColor={COLORS.textSecondary}
             autoCapitalize="characters"
+            maxLength={15}
             style={styles.input}
           />
+
           {renderDocumentPicker(
             'GST Certificate',
             gstDocument,
             'GST',
-            false,
           )}
-          { }
-          <Text
-            style={styles.inputLabel}
-          >
+
+          <Text style={styles.inputLabel}>
             Udyam Registration Number
-            <Text
-              style={
-                styles.optionalText
-              }
-            >
-              {' '}
-              (Optional)
-            </Text>
+            <Text style={styles.optionalText}> (Optional)</Text>
           </Text>
+
           <TextInput
             value={udyamNumber}
             onChangeText={text =>
-              setUdyamNumber(
-                text
-                  .toUpperCase()
-                  .trim(),
-              )
+              setUdyamNumber(text.toUpperCase().trim())
             }
             placeholder="Enter Udyam number if applicable"
-            placeholderTextColor={
-              COLORS.textSecondary
-            }
+            placeholderTextColor={COLORS.textSecondary}
             autoCapitalize="characters"
             style={styles.input}
           />
+
           {renderDocumentPicker(
             'Udyam Certificate',
             udyamDocument,
             'UDYAM',
-            false,
           )}
         </View>
-        { }
-        <View
-          style={styles.infoCard}
-        >
-          <Text
-            style={styles.infoTitle}
-          >
-            Document requirements
+
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>Document requirements</Text>
+
+          <Text style={styles.infoText}>
+            • PDF, JPG, PNG or WEBP files are accepted.
           </Text>
-          <Text
-            style={styles.infoText}
-          >
-            • PDF, JPG, PNG or WEBP files are
-            accepted.
-          </Text>
-          <Text
-            style={styles.infoText}
-          >
+
+          <Text style={styles.infoText}>
             • Maximum file size is 10 MB.
           </Text>
-          <Text
-            style={styles.infoText}
-          >
-            • PAN, Aadhaar and Shop &
-            Establishment documents are required.
+
+          <Text style={styles.infoText}>
+            • PAN, Aadhaar and Shop &amp; Establishment documents are
+            required.
           </Text>
-          <Text
-            style={styles.infoText}
-          >
-            • GST and Udyam documents are
-            optional unless the corresponding
+
+          <Text style={styles.infoText}>
+            • GST and Udyam documents are optional unless the corresponding
             number is provided.
           </Text>
         </View>
-        { }
-        <View
-          style={styles.infoCard}
-        >
-          <Text
-            style={styles.infoTitle}
-          >
-            What happens next?
+
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>What happens next?</Text>
+
+          <Text style={styles.infoText}>
+            Your documents will be submitted for verification after you
+            continue.
           </Text>
-          <Text
-            style={styles.infoText}
-          >
-            Your documents will be submitted
-            for verification after you continue.
-          </Text>
-          <Text
-            style={styles.infoText}
-          >
-            Your business will remain pending until
-            the verification and approval process
-            is completed.
+
+          <Text style={styles.infoText}>
+            Your business will remain pending until the verification and
+            approval process is completed.
           </Text>
         </View>
-        { }
-        <View
-          style={styles.buttonContainer}
-        >
+
+        <View style={styles.buttonContainer}>
           {submitting ? (
-            <View
-              style={
-                styles.loadingContainer
-              }
-            >
+            <View style={styles.loadingContainer}>
               <ActivityIndicator
                 size="small"
-                color={
-                  COLORS.themeColor
-                }
+                color={COLORS.themeColor}
               />
-              <Text
-                style={
-                  styles.loadingText
-                }
-              >
+
+              <Text style={styles.loadingText}>
                 Uploading documents...
               </Text>
             </View>
           ) : (
             <TouchableOpacity
               onPress={handleContinue}
-              disabled={submitting || pickingDocument}
+              disabled={pickingDocument}
               activeOpacity={0.85}
               style={styles.continueButtonWrapper}
             >
@@ -1732,147 +1195,112 @@ const SalonKYCScreen = ({
                 colors={[...GRADIENTS.SOFT_PURPLE]}
                 style={styles.continueButtonGradient}
               >
-                <Text style={styles.continueButtonText}>Continue</Text>
+                <Text style={styles.continueButtonText}>
+                  Continue
+                </Text>
               </AppGradient>
             </TouchableOpacity>
           )}
         </View>
-        <View
-          style={
-            styles.bottomSpacing
-          }
-        />
+
+        <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+/* ============================================================
+   STYLES
+============================================================ */
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor:
-      COLORS.background,
+    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal:
-      SPACING.large,
-    paddingTop:
-      SPACING.large,
-    paddingBottom:
-      SPACING.xl,
+    paddingHorizontal: SPACING.large,
+    paddingTop: SPACING.large,
+    paddingBottom: SPACING.xl,
   },
   title: {
-    fontFamily:
-      FONTS.bold,
+    fontFamily: FONTS.bold,
     fontSize: 20,
-    color:
-      COLORS.primary,
-    marginBottom:
-      SPACING.xs,
+    color: COLORS.primary,
+    marginBottom: SPACING.xs,
   },
   subtitle: {
-    fontFamily:
-      FONTS.regular,
+    fontFamily: FONTS.regular,
     fontSize: 14,
     lineHeight: 21,
-    color:
-      COLORS.textSecondary,
-    marginBottom:
-      SPACING.xl,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xl,
   },
   section: {
-    marginBottom:
-      SPACING.xl,
+    marginBottom: SPACING.xl,
   },
   sectionTitle: {
-    fontFamily:
-      FONTS.bold,
+    fontFamily: FONTS.bold,
     fontSize: 18,
-    color:
-      COLORS.primary,
-    marginBottom:
-      SPACING.xs,
+    color: COLORS.primary,
+    marginBottom: SPACING.xs,
   },
   sectionSubtitle: {
-    fontFamily:
-      FONTS.regular,
+    fontFamily: FONTS.regular,
     fontSize: 13,
     lineHeight: 19,
-    color:
-      COLORS.textSecondary,
-    marginBottom:
-      SPACING.large,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.large,
   },
   inputLabel: {
-    fontFamily:
-      FONTS.medium,
+    fontFamily: FONTS.medium,
     fontSize: 14,
-    color:
-      COLORS.primary,
-    marginBottom:
-      SPACING.xs,
+    color: COLORS.primary,
+    marginBottom: SPACING.xs,
   },
   optionalText: {
-    fontFamily:
-      FONTS.regular,
-    color:
-      COLORS.textSecondary,
+    fontFamily: FONTS.regular,
+    color: COLORS.textSecondary,
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor:
-      COLORS.border,
-    borderRadius:
-      RADIUS.medium,
-    paddingHorizontal:
-      SPACING.medium,
-    color:
-      COLORS.primary,
-    backgroundColor:
-      COLORS.white,
-    fontFamily:
-      FONTS.regular,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.medium,
+    paddingHorizontal: SPACING.medium,
+    color: COLORS.primary,
+    backgroundColor: COLORS.white,
+    fontFamily: FONTS.regular,
     fontSize: 15,
-    marginBottom:
-      SPACING.medium,
+    marginBottom: SPACING.medium,
   },
   documentPickerContainer: {
-    marginBottom:
-      SPACING.large,
+    marginBottom: SPACING.large,
   },
   documentPickerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom:
-      SPACING.xs,
+    marginBottom: SPACING.xs,
   },
   documentLabel: {
-    fontFamily:
-      FONTS.medium,
+    fontFamily: FONTS.medium,
     fontSize: 14,
-    color:
-      COLORS.primary,
+    color: COLORS.primary,
   },
   documentPickerButton: {
     minHeight: 64,
     borderWidth: 1,
-    borderColor:
-      COLORS.border,
-    borderRadius:
-      RADIUS.medium,
-    backgroundColor:
-      COLORS.white,
-    paddingHorizontal:
-      SPACING.medium,
-    justifyContent:
-      'center',
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.medium,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: SPACING.medium,
+    justifyContent: 'center',
   },
   documentPickerButtonSelected: {
-    borderColor:
-      COLORS.themeColor,
+    borderColor: COLORS.themeColor,
   },
   documentEmptyContent: {
     flexDirection: 'row',
@@ -1897,19 +1325,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   documentUploadText: {
-    fontFamily:
-      FONTS.medium,
+    fontFamily: FONTS.medium,
     fontSize: 14,
-    color:
-      COLORS.primary,
+    color: COLORS.primary,
     marginBottom: 2,
   },
   documentUploadSubText: {
-    fontFamily:
-      FONTS.regular,
+    fontFamily: FONTS.regular,
     fontSize: 12,
-    color:
-      COLORS.textSecondary,
+    color: COLORS.textSecondary,
   },
   documentSelectedContent: {
     flexDirection: 'row',
@@ -1934,64 +1358,45 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   documentSelectedText: {
-    fontFamily:
-      FONTS.medium,
+    fontFamily: FONTS.medium,
     fontSize: 13,
-    color:
-      COLORS.primary,
+    color: COLORS.primary,
   },
   documentSelectedSubText: {
-    fontFamily:
-      FONTS.regular,
+    fontFamily: FONTS.regular,
     fontSize: 11,
-    color:
-      COLORS.textSecondary,
+    color: COLORS.textSecondary,
     marginTop: 2,
   },
   documentChangeText: {
-    fontFamily:
-      FONTS.medium,
+    fontFamily: FONTS.medium,
     fontSize: 12,
-    color:
-      COLORS.themeColor,
-    marginLeft:
-      SPACING.small,
+    color: COLORS.themeColor,
+    marginLeft: SPACING.small,
   },
   infoCard: {
-    backgroundColor:
-      COLORS.white,
+    backgroundColor: COLORS.white,
     borderWidth: 1,
-    borderColor:
-      COLORS.border,
-    borderRadius:
-      RADIUS.medium,
-    padding:
-      SPACING.medium,
-    marginBottom:
-      SPACING.large,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.medium,
+    padding: SPACING.medium,
+    marginBottom: SPACING.large,
   },
   infoTitle: {
-    fontFamily:
-      FONTS.bold,
+    fontFamily: FONTS.bold,
     fontSize: 15,
-    color:
-      COLORS.primary,
-    marginBottom:
-      SPACING.small,
+    color: COLORS.primary,
+    marginBottom: SPACING.small,
   },
   infoText: {
-    fontFamily:
-      FONTS.regular,
+    fontFamily: FONTS.regular,
     fontSize: 13,
     lineHeight: 20,
-    color:
-      COLORS.textSecondary,
-    marginBottom:
-      SPACING.xs,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
   },
   buttonContainer: {
-    marginTop:
-      SPACING.small,
+    marginTop: SPACING.small,
     width: '100%',
   },
   continueButtonWrapper: {
@@ -2015,21 +1420,17 @@ const styles = StyleSheet.create({
     height: 50,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent:
-      'center',
+    justifyContent: 'center',
   },
   loadingText: {
-    marginLeft:
-      SPACING.small,
-    fontFamily:
-      FONTS.medium,
+    marginLeft: SPACING.small,
+    fontFamily: FONTS.medium,
     fontSize: 14,
-    color:
-      COLORS.themeColor,
+    color: COLORS.themeColor,
   },
   bottomSpacing: {
-    height:
-      SPACING.xl,
+    height: SPACING.xl,
   },
 });
+
 export default SalonKYCScreen;

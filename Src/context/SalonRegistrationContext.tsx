@@ -1,4 +1,3 @@
-
 import React, {
     createContext,
     useCallback,
@@ -102,14 +101,14 @@ export type KYCStatus =
 
 export type BusinessDocument = {
     type:
-    | 'GST_CERTIFICATE'
-    | 'SHOP_ESTABLISHMENT'
-    | 'UDYAM'
-    | 'PARTNERSHIP_DEED'
-    | 'INCORPORATION_CERTIFICATE'
-    | 'RENTAL_AGREEMENT'
-    | 'UTILITY_BILL'
-    | 'OTHER';
+        | 'GST_CERTIFICATE'
+        | 'SHOP_ESTABLISHMENT'
+        | 'UDYAM'
+        | 'PARTNERSHIP_DEED'
+        | 'INCORPORATION_CERTIFICATE'
+        | 'RENTAL_AGREEMENT'
+        | 'UTILITY_BILL'
+        | 'OTHER';
 
     uri: string;
     fileName: string;
@@ -213,10 +212,10 @@ export type SalonRegistrationData = {
     kycRejectionReason: string;
 
     providerStatus:
-    | 'NOT_REGISTERED'
-    | 'PENDING'
-    | 'APPROVED'
-    | 'REJECTED';
+        | 'NOT_REGISTERED'
+        | 'PENDING'
+        | 'APPROVED'
+        | 'REJECTED';
 
     businessHours: BusinessHours;
 };
@@ -311,7 +310,10 @@ export type DraftLoadResult = {
     completedSteps: number[];
 };
 
-// Only non-sensitive registration fields are persisted.
+// =====================================================
+// SAFE DRAFT DATA
+// =====================================================
+
 type SafeKycDocument = {
     name: string;
     type?: string | null;
@@ -325,6 +327,7 @@ type SafeSalonDraftData = {
     salonName: string;
     ownerName: string;
     email: string;
+
     targetAudiences: ServiceAudience[];
 
     serviceMode: ServiceMode;
@@ -340,7 +343,8 @@ type SafeSalonDraftData = {
     businessHours: BusinessHours;
     serviceSelections: SalonServiceSelection[];
 
-    // KYC form values
+    // These KYC values are persisted by the existing draft design.
+    // Ensure the backend protects draft data appropriately.
     panNumber: string;
     aadhaarNumber: string;
     gstNumber: string;
@@ -348,7 +352,7 @@ type SafeSalonDraftData = {
     udyamNumber: string;
     kycUploadId: string;
 
-    // Persist only documents already uploaded to S3.
+    // Only documents already uploaded to S3 are persisted.
     panDocument?: SafeKycDocument | null;
     aadhaarDocument?: SafeKycDocument | null;
     shopEstablishmentDocument?: SafeKycDocument | null;
@@ -363,8 +367,8 @@ type SafeSalonDraftData = {
 const getSafeKycDocument = (
     document?: KycDocument | null,
 ): SafeKycDocument | null => {
-    // A temporary local selection cannot be restored reliably
-    // after the app is closed. Persist only uploaded documents.
+    // A local-only file selection cannot be restored reliably
+    // after closing the app. Save only uploaded S3 documents.
     if (!document?.s3Key) {
         return null;
     }
@@ -559,15 +563,17 @@ export const SalonRegistrationProvider = ({
     const saveTimerRef =
         useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // All draft mutations are serialized through this promise chain.
+    // Serialize mutations so saves execute in order.
     const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true));
 
     const savingCountRef = useRef(0);
     const dirtyRef = useRef(false);
 
-    const userId =
-        authenticatedUserId?.trim() ||
-        data.userId.trim();
+    // IMPORTANT:
+    // Only use the authenticated user ID.
+    // Never fall back to data.userId because it may belong
+    // to a previous login session.
+    const currentUserId = authenticatedUserId?.trim() || '';
 
     // -----------------------------------------------------
     // SET CURRENT STEP
@@ -609,9 +615,7 @@ export const SalonRegistrationProvider = ({
         (values: Partial<SalonRegistrationData>) => {
             dirtyRef.current = true;
 
-            // Update the ref synchronously so an immediate save
-            // sees the latest values.
-            const next = {
+            const next: SalonRegistrationData = {
                 ...dataRef.current,
                 ...values,
             };
@@ -632,6 +636,25 @@ export const SalonRegistrationProvider = ({
             requestedCompleted?: number[],
             latestData?: Partial<SalonRegistrationData>,
         ): Promise<boolean> => {
+            const ownerId = authenticatedUserId?.trim() || '';
+
+            // Do not save using an ID retained in old form data.
+            if (!ownerId) {
+                const message =
+                    'Unable to save registration progress: please log in again.';
+
+                setDraftError(message);
+                return Promise.resolve(false);
+            }
+
+            // Prevent a save from an old session after the user changes.
+            if (
+                hydratedUserRef.current &&
+                hydratedUserRef.current !== ownerId
+            ) {
+                return Promise.resolve(false);
+            }
+
             const step = normalizeStep(
                 requestedStep ?? stepRef.current,
             );
@@ -640,21 +663,6 @@ export const SalonRegistrationProvider = ({
                 requestedCompleted ?? completedRef.current,
             );
 
-            const ownerId =
-                authenticatedUserId?.trim() ||
-                latestData?.userId?.trim() ||
-                dataRef.current.userId.trim();
-
-            if (!ownerId) {
-                const message =
-                    'Unable to save progress: user ID is missing.';
-
-                setDraftError(message);
-                return Promise.resolve(false);
-            }
-
-            // Capture the intended values at the time of this
-            // request, rather than reading a later render.
             const snapshot: SalonRegistrationData = {
                 ...dataRef.current,
                 ...latestData,
@@ -663,9 +671,18 @@ export const SalonRegistrationProvider = ({
 
             const safeData = getSafeDraftData(snapshot);
 
-            // Capture each request's values, then run requests in
-            // order. A newer save cannot overlap an older mutation.
             const performSave = async (): Promise<boolean> => {
+                // Check again when this queued save is about to run.
+                if (
+                    authenticatedUserId?.trim() !== ownerId ||
+                    (
+                        hydratedUserRef.current !== null &&
+                        hydratedUserRef.current !== ownerId
+                    )
+                ) {
+                    return false;
+                }
+
                 savingCountRef.current += 1;
                 setIsDraftSaving(true);
                 setDraftError(null);
@@ -673,7 +690,7 @@ export const SalonRegistrationProvider = ({
                 try {
                     const result = await client.mutate<{
                         saveSalonRegistrationDraft:
-                        SalonRegistrationDraftResponse;
+                            SalonRegistrationDraftResponse;
                     }>({
                         mutation: SAVE_SALON_REGISTRATION_DRAFT,
                         variables: {
@@ -696,18 +713,23 @@ export const SalonRegistrationProvider = ({
                         );
                     }
 
-                    // Do not clear dirty state if a newer update
-                    // happened while this request was in flight.
-                    const snapshotStillCurrent =
-                        dataRef.current === snapshot ||
+                    // Only mark clean if the same user's data is
+                    // still the data represented by this save.
+                    const sameUser =
+                        authenticatedUserId?.trim() === ownerId &&
                         (
-                            JSON.stringify(
-                                getSafeDraftData(dataRef.current),
-                            ) === JSON.stringify(safeData) &&
-                            stepRef.current === step &&
-                            JSON.stringify(completedRef.current) ===
-                            JSON.stringify(completed)
+                            hydratedUserRef.current === null ||
+                            hydratedUserRef.current === ownerId
                         );
+
+                    const snapshotStillCurrent =
+                        sameUser &&
+                        JSON.stringify(
+                            getSafeDraftData(dataRef.current),
+                        ) === JSON.stringify(safeData) &&
+                        stepRef.current === step &&
+                        JSON.stringify(completedRef.current) ===
+                        JSON.stringify(completed);
 
                     if (snapshotStillCurrent) {
                         dirtyRef.current = false;
@@ -723,7 +745,7 @@ export const SalonRegistrationProvider = ({
                     setDraftError(message);
 
                     console.error(
-                        'SALON DRAFT SAVE ERROR:',
+                        '[SalonRegistration] Draft save failed:',
                         message,
                     );
 
@@ -734,9 +756,7 @@ export const SalonRegistrationProvider = ({
                         savingCountRef.current - 1,
                     );
 
-                    setIsDraftSaving(
-                        savingCountRef.current > 0,
-                    );
+                    setIsDraftSaving(savingCountRef.current > 0);
                 }
             };
 
@@ -757,10 +777,9 @@ export const SalonRegistrationProvider = ({
 
     const loadDraft = useCallback(
         async (): Promise<DraftLoadResult> => {
-            const ownerId =
-                authenticatedUserId?.trim() ||
-                dataRef.current.userId.trim();
+            const ownerId = authenticatedUserId?.trim() || '';
 
+            // Do not load using an ID from previously retained form data.
             if (!ownerId) {
                 return {
                     hasDraft: false,
@@ -777,14 +796,20 @@ export const SalonRegistrationProvider = ({
             try {
                 const result = await client.query<{
                     getSalonRegistrationDraft:
-                    SalonRegistrationDraftResponse;
+                        SalonRegistrationDraftResponse;
                 }>({
                     query: GET_SALON_REGISTRATION_DRAFT,
-                    variables: { userId: ownerId },
+                    variables: {
+                        userId: ownerId,
+                    },
                     fetchPolicy: 'network-only',
                 });
 
-                if (requestId !== loadRequestRef.current) {
+                // Ignore responses from superseded requests or sessions.
+                if (
+                    requestId !== loadRequestRef.current ||
+                    authenticatedUserId?.trim() !== ownerId
+                ) {
                     return {
                         hasDraft: false,
                         currentStep: 1,
@@ -804,11 +829,11 @@ export const SalonRegistrationProvider = ({
 
                 const draft = response.draft;
 
+                // No draft, or registration already completed.
                 if (!draft || draft.status === 'COMPLETED') {
                     const initial: SalonRegistrationData = {
                         ...createInitialData(),
                         userId: ownerId,
-                        phoneNumber: dataRef.current.phoneNumber,
                     };
 
                     dataRef.current = initial;
@@ -835,6 +860,8 @@ export const SalonRegistrationProvider = ({
 
                 const restoredData: SalonRegistrationData = {
                     ...initial,
+
+                    userId: ownerId,
 
                     salonName: savedData.salonName ?? '',
                     ownerName: savedData.ownerName ?? '',
@@ -864,6 +891,8 @@ export const SalonRegistrationProvider = ({
 
                     serviceSelections:
                         savedData.serviceSelections ?? [],
+
+                    // Preserve the existing draft behavior for KYC values.
                     panNumber: savedData.panNumber ?? '',
                     aadhaarNumber: savedData.aadhaarNumber ?? '',
                     gstNumber: savedData.gstNumber ?? '',
@@ -872,31 +901,42 @@ export const SalonRegistrationProvider = ({
                     udyamNumber: savedData.udyamNumber ?? '',
                     kycUploadId: savedData.kycUploadId ?? '',
 
+                    // S3 keys can be restored, but local device URIs cannot.
                     panDocument: savedData.panDocument
-                        ? { ...savedData.panDocument, uri: '' }
+                        ? {
+                            ...savedData.panDocument,
+                            uri: '',
+                        }
                         : null,
 
                     aadhaarDocument: savedData.aadhaarDocument
-                        ? { ...savedData.aadhaarDocument, uri: '' }
+                        ? {
+                            ...savedData.aadhaarDocument,
+                            uri: '',
+                        }
                         : null,
 
                     shopEstablishmentDocument:
                         savedData.shopEstablishmentDocument
-                            ? { ...savedData.shopEstablishmentDocument, uri: '' }
+                            ? {
+                                ...savedData.shopEstablishmentDocument,
+                                uri: '',
+                            }
                             : null,
 
                     gstDocument: savedData.gstDocument
-                        ? { ...savedData.gstDocument, uri: '' }
+                        ? {
+                            ...savedData.gstDocument,
+                            uri: '',
+                        }
                         : null,
 
                     udyamDocument: savedData.udyamDocument
-                        ? { ...savedData.udyamDocument, uri: '' }
+                        ? {
+                            ...savedData.udyamDocument,
+                            uri: '',
+                        }
                         : null,
-                    userId: ownerId,
-                    phoneNumber: dataRef.current.phoneNumber,
-
-                    // Sensitive KYC values, bank details, and local
-                    // document URIs are not restored from the draft.
                 };
 
                 const restoredStep = normalizeStep(
@@ -907,6 +947,8 @@ export const SalonRegistrationProvider = ({
                     draft.completedSteps,
                 );
 
+                // Update refs before React state so any immediate
+                // navigation/save reads the restored values.
                 dataRef.current = restoredData;
                 setData(restoredData);
 
@@ -933,7 +975,7 @@ export const SalonRegistrationProvider = ({
                 setDraftError(message);
 
                 console.error(
-                    'SALON DRAFT LOAD ERROR:',
+                    '[SalonRegistration] Draft load failed:',
                     message,
                 );
 
@@ -948,68 +990,11 @@ export const SalonRegistrationProvider = ({
     );
 
     // -----------------------------------------------------
-    // AUTO-LOAD FOR THE LOGGED-IN USER
-    // -----------------------------------------------------
-
-    useEffect(() => {
-        if (!userId) {
-            return;
-        }
-
-        if (hydratedUserRef.current === userId) {
-            return;
-        }
-
-        void loadDraft().catch(() => {
-            // The failure is exposed through draftError.
-        });
-    }, [userId, loadDraft]);
-
-    // -----------------------------------------------------
-    // DEBOUNCED AUTO-SAVE
-    // -----------------------------------------------------
-
-    useEffect(() => {
-        if (!userId) {
-            return;
-        }
-
-        if (hydratedUserRef.current !== userId) {
-            return;
-        }
-
-        if (isDraftLoading || !dirtyRef.current) {
-            return;
-        }
-
-        if (saveTimerRef.current) {
-            clearTimeout(saveTimerRef.current);
-        }
-
-        saveTimerRef.current = setTimeout(() => {
-            void saveDraft();
-        }, 1000);
-
-        return () => {
-            if (saveTimerRef.current) {
-                clearTimeout(saveTimerRef.current);
-                saveTimerRef.current = null;
-            }
-        };
-    }, [
-        data,
-        currentStep,
-        completedSteps,
-        userId,
-        isDraftLoading,
-        saveDraft,
-    ]);
-
-    // -----------------------------------------------------
     // RESET DRAFT STATE
     // -----------------------------------------------------
 
     const resetDraftState = useCallback(() => {
+        // Invalidate any pending draft-load request.
         loadRequestRef.current += 1;
 
         if (saveTimerRef.current) {
@@ -1031,8 +1016,120 @@ export const SalonRegistrationProvider = ({
         setCompletedSteps([]);
 
         dirtyRef.current = false;
+
         setDraftError(null);
         setIsDraftLoading(false);
+    }, []);
+
+    // -----------------------------------------------------
+    // AUTO-LOAD DRAFT FOR THE AUTHENTICATED USER
+    // -----------------------------------------------------
+
+    useEffect(() => {
+        // Logout: clear the previous user's registration data.
+        if (!currentUserId) {
+            const hasPreviousUserData =
+                hydratedUserRef.current !== null ||
+                dataRef.current.userId.trim() !== '';
+
+            if (hasPreviousUserData) {
+                resetDraftState();
+            }
+
+            return;
+        }
+
+        // Do not reload a draft already hydrated for this user.
+        if (hydratedUserRef.current === currentUserId) {
+            return;
+        }
+
+        // If the authenticated user changed, clear the old user's
+        // in-memory data before loading the new user's draft.
+        const previousHydratedUser = hydratedUserRef.current;
+        const previousDataUserId = dataRef.current.userId.trim();
+
+        if (
+            (
+                previousHydratedUser !== null &&
+                previousHydratedUser !== currentUserId
+            ) ||
+            (
+                previousDataUserId !== '' &&
+                previousDataUserId !== currentUserId
+            )
+        ) {
+            resetDraftState();
+        }
+
+        void loadDraft().catch(error => {
+            console.error(
+                '[SalonRegistration] Unable to resume registration:',
+                error,
+            );
+        });
+    }, [
+        currentUserId,
+        loadDraft,
+        resetDraftState,
+    ]);
+
+    // -----------------------------------------------------
+    // DEBOUNCED AUTO-SAVE
+    // -----------------------------------------------------
+
+    useEffect(() => {
+        if (!currentUserId) {
+            return;
+        }
+
+        // Never autosave until this user's draft has loaded.
+        if (hydratedUserRef.current !== currentUserId) {
+            return;
+        }
+
+        if (isDraftLoading || !dirtyRef.current) {
+            return;
+        }
+
+        if (saveTimerRef.current) {
+            clearTimeout(saveTimerRef.current);
+        }
+
+        saveTimerRef.current = setTimeout(() => {
+            saveTimerRef.current = null;
+            void saveDraft();
+        }, 1000);
+
+        return () => {
+            if (saveTimerRef.current) {
+                clearTimeout(saveTimerRef.current);
+                saveTimerRef.current = null;
+            }
+        };
+    }, [
+        data,
+        currentStep,
+        completedSteps,
+        currentUserId,
+        isDraftLoading,
+        saveDraft,
+    ]);
+
+    // -----------------------------------------------------
+    // CLEANUP ON UNMOUNT
+    // -----------------------------------------------------
+
+    useEffect(() => {
+        return () => {
+            if (saveTimerRef.current) {
+                clearTimeout(saveTimerRef.current);
+                saveTimerRef.current = null;
+            }
+
+            // Invalidate outstanding loads when this provider unmounts.
+            loadRequestRef.current += 1;
+        };
     }, []);
 
     // -----------------------------------------------------

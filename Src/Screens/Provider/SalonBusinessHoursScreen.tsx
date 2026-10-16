@@ -1,5 +1,5 @@
+import React, { useEffect, useState } from 'react';
 
-import React, { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -29,8 +29,13 @@ import {
     DayKey,
 } from '../../context/SalonRegistrationContext';
 
+// ============================================================
+// REGISTRATION STEP CONFIGURATION
+// ============================================================
+
 const CURRENT_STEP = 3;
 const NEXT_STEP = 4;
+const NEXT_ROUTE = 'SalonServices';
 
 const DAYS: { key: DayKey; label: string }[] = [
     { key: 'MONDAY', label: 'Monday' },
@@ -41,6 +46,10 @@ const DAYS: { key: DayKey; label: string }[] = [
     { key: 'SATURDAY', label: 'Saturday' },
     { key: 'SUNDAY', label: 'Sunday' },
 ];
+
+// ============================================================
+// HELPERS
+// ============================================================
 
 function parseTime(time: string): Date {
     const [hoursString, minutesString] = (time || '09:00').split(':');
@@ -84,6 +93,10 @@ function displayTime(time: string): string {
     return `${String(hour).padStart(2, '0')}:${minute} ${period}`;
 }
 
+// ============================================================
+// SCREEN
+// ============================================================
+
 export default function SalonBusinessHoursScreen({
     navigation,
 }: any) {
@@ -94,6 +107,7 @@ export default function SalonBusinessHoursScreen({
         saveDraft,
         setCurrentStep,
         markStepCompleted,
+        isDraftLoading,
     } = useSalonRegistration();
 
     const [hours, setHours] = useState<BusinessHours>(
@@ -106,6 +120,16 @@ export default function SalonBusinessHoursScreen({
     } | null>(null);
 
     const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (!isDraftLoading && data.businessHours) {
+            setHours(data.businessHours);
+        }
+    }, [isDraftLoading, data.businessHours]);
+
+    // --------------------------------------------------------
+    // DAY AND TIME CONTROLS
+    // --------------------------------------------------------
 
     const toggleDay = (day: DayKey) => {
         setHours(prev => ({
@@ -142,31 +166,37 @@ export default function SalonBusinessHoursScreen({
         setPicker(null);
     };
 
+    // --------------------------------------------------------
+    // SAVE AND CONTINUE
+    // --------------------------------------------------------
+
     const handleNext = async () => {
-        if (isSaving) {
+        if (isSaving || isDraftLoading) {
             return;
         }
 
+        setIsSaving(true);
+
         const latestData = {
+            ...data,
             businessHours: hours,
         };
 
         const nextCompletedSteps = Array.from(
-            new Set([...(completedSteps || []), 1, 2, CURRENT_STEP]),
+            new Set([
+                ...(completedSteps || []),
+                1,
+                2,
+                CURRENT_STEP,
+            ]),
         ).sort((a, b) => a - b);
 
-        setIsSaving(true);
-
         try {
-            // Update the in-memory registration data first.
-            updateData(latestData);
+            updateData({
+                businessHours: hours,
+            });
 
-            // Mark business hours as completed and set the next step.
-            markStepCompleted(CURRENT_STEP);
-            setCurrentStep(NEXT_STEP);
-
-            // Persist the latest hours with the next step so registration
-            // can resume at Salon Services after the user logs in again.
+            // Save the next step as 4: SalonServices.
             const saved = await saveDraft(
                 NEXT_STEP,
                 nextCompletedSteps,
@@ -178,23 +208,26 @@ export default function SalonBusinessHoursScreen({
 
                 Alert.alert(
                     'Unable to save progress',
-                    'Your business hours could not be saved. Please check your connection and try again.',
+                    'Your business hours could not be saved. Please check your internet connection and try again.',
                 );
 
                 return;
             }
 
-            navigation.navigate('SalonServices', {
+            markStepCompleted(CURRENT_STEP);
+            setCurrentStep(NEXT_STEP);
+
+            // Correct sequence:
+            // Business Hours (3) -> Services (4)
+            navigation.navigate(NEXT_ROUTE, {
+                resumeDraft: true,
                 initialStep: NEXT_STEP,
                 completedSteps: nextCompletedSteps,
-                registrationData: {
-                    ...data,
-                    ...latestData,
-                },
+                registrationData: latestData,
             });
         } catch (error) {
             console.error(
-                'Failed to save salon business hours draft:',
+                '[SalonBusinessHoursScreen] Failed to save draft:',
                 error,
             );
 
@@ -202,16 +235,24 @@ export default function SalonBusinessHoursScreen({
 
             Alert.alert(
                 'Unable to continue',
-                'We could not save your registration progress. Please try again.',
+                'We could not save your registration progress. Your current screen has been kept open. Please try again.',
             );
         } finally {
             setIsSaving(false);
         }
     };
 
+    // --------------------------------------------------------
+    // TIME PICKER STATE
+    // --------------------------------------------------------
+
     const pickerDate = picker
         ? parseTime(hours[picker.day][picker.type])
         : new Date();
+
+    // --------------------------------------------------------
+    // RENDER
+    // --------------------------------------------------------
 
     return (
         <SafeAreaView style={styles.container}>
@@ -306,10 +347,10 @@ export default function SalonBusinessHoursScreen({
                                         </Text>
                                     </View>
 
-                                    {/* Day toggle */}
                                     <TouchableOpacity
                                         activeOpacity={0.85}
                                         onPress={() => toggleDay(day.key)}
+                                        disabled={isSaving}
                                         style={[
                                             styles.customSwitch,
                                             !value.isOpen &&
@@ -379,9 +420,11 @@ export default function SalonBusinessHoursScreen({
                                             <View
                                                 style={styles.separatorLine}
                                             />
+
                                             <Text style={styles.separatorText}>
                                                 TO
                                             </Text>
+
                                             <View
                                                 style={styles.separatorLine}
                                             />
@@ -437,19 +480,20 @@ export default function SalonBusinessHoursScreen({
                 <TouchableOpacity
                     onPress={handleNext}
                     activeOpacity={0.85}
-                    disabled={isSaving}
+                    disabled={isSaving || isDraftLoading}
                     accessibilityRole="button"
-                    accessibilityLabel="Save business hours and continue to salon services"
+                    accessibilityLabel="Save business hours and continue to services"
                     style={styles.continueTouchable}
                 >
                     <AppGradient
                         colors={[...GRADIENTS.SOFT_PURPLE]}
                         style={[
                             styles.button,
-                            isSaving && styles.buttonDisabled,
+                            (isSaving || isDraftLoading) &&
+                                styles.buttonDisabled,
                         ]}
                     >
-                        {isSaving ? (
+                        {isSaving || isDraftLoading ? (
                             <View style={styles.loadingRow}>
                                 <ActivityIndicator
                                     size="small"
@@ -457,7 +501,9 @@ export default function SalonBusinessHoursScreen({
                                 />
 
                                 <Text style={styles.buttonText}>
-                                    Saving progress...
+                                    {isDraftLoading
+                                        ? 'Loading saved hours...'
+                                        : 'Saving progress...'}
                                 </Text>
                             </View>
                         ) : (
@@ -500,6 +546,10 @@ export default function SalonBusinessHoursScreen({
         </SafeAreaView>
     );
 }
+
+// ============================================================
+// STYLES
+// ============================================================
 
 const styles = {
     container: {

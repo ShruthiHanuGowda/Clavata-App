@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import {
   SafeAreaView,
@@ -39,6 +38,19 @@ interface TargetAudienceOption {
   description: string;
 }
 
+interface SalonRegistrationRouteParams {
+  resumeDraft?: boolean;
+  initialStep?: number;
+  completedSteps?: number[];
+}
+
+interface SalonRegistrationScreenProps {
+  navigation: any;
+  route?: {
+    params?: SalonRegistrationRouteParams;
+  };
+}
+
 const TARGET_AUDIENCE_OPTIONS: TargetAudienceOption[] = [
   {
     value: 'FEMALE',
@@ -57,7 +69,31 @@ const TARGET_AUDIENCE_OPTIONS: TargetAudienceOption[] = [
   },
 ];
 
-const SalonRegistrationScreen = ({ navigation }: any) => {
+/**
+ * Registration step order:
+ *
+ * 1. SalonRegistration
+ * 2. SalonAddress
+ * 3. SalonBusinessHours
+ * 4. SalonKYC
+ * 5. SalonServices
+ * 6. SalonReview
+ *
+ * Keep these names synchronized with your navigator.
+ */
+const REGISTRATION_STEP_ROUTES: Record<number, string> = {
+  1: 'SalonRegistration',
+  2: 'SalonAddress',
+  3: 'SalonBusinessHours',
+  4: 'SalonKYC',
+  5: 'SalonServices',
+  6: 'SalonReview',
+};
+
+const SalonRegistrationScreen = ({
+  navigation,
+  route,
+}: SalonRegistrationScreenProps) => {
   const {
     data,
     updateData,
@@ -72,16 +108,19 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
 
   const { currentUser } = useUser();
 
-  // =====================================================
-  // FORM STATE
-  // =====================================================
+  // Prevent duplicate resume navigation.
+  const hasHandledInitialStep = useRef(false);
 
-  const [salonName, setSalonName] = useState(data.salonName);
-  const [ownerName, setOwnerName] = useState(data.ownerName);
-  const [email, setEmail] = useState(data.email);
+  // Prevent state updates after this screen unmounts.
+  const isMounted = useRef(true);
+
+  // Form state.
+  const [salonName, setSalonName] = useState(data.salonName ?? '');
+  const [ownerName, setOwnerName] = useState(data.ownerName ?? '');
+  const [email, setEmail] = useState(data.email ?? '');
 
   const [targetAudiences, setTargetAudiences] =
-    useState<TargetAudience[]>(data.targetAudiences);
+    useState<TargetAudience[]>(data.targetAudiences ?? []);
 
   const [
     targetAudienceModalVisible,
@@ -90,19 +129,117 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
 
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    isMounted.current = true;
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  // =====================================================
+  // RESUME THE SAVED REGISTRATION STEP
+  // =====================================================
+
+  useEffect(() => {
+    // Wait until the registration context has restored the draft.
+    if (isDraftLoading || hasHandledInitialStep.current) {
+      return;
+    }
+
+    const params = route?.params;
+
+    // A normal entry into Step 1 should stay on this screen.
+    // Only resume navigation when an explicit step was provided.
+    const hasRequestedStep =
+      params?.initialStep !== undefined &&
+      params?.initialStep !== null;
+
+    const shouldResume =
+      params?.resumeDraft === true || hasRequestedStep;
+
+    const requestedStep = Number(params?.initialStep);
+
+    const initialStep =
+      Number.isInteger(requestedStep) &&
+      requestedStep >= 1 &&
+      requestedStep <= 6
+        ? requestedStep
+        : 1;
+
+    hasHandledInitialStep.current = true;
+
+    console.log('[SalonRegistration] Registration entry:', {
+      shouldResume,
+      initialStep,
+      resumeDraft: params?.resumeDraft,
+      completedSteps: params?.completedSteps,
+    });
+
+    setCurrentStep(initialStep);
+
+    // Step 1 is already displayed.
+    if (!shouldResume || initialStep === 1) {
+      return;
+    }
+
+    const targetRoute = REGISTRATION_STEP_ROUTES[initialStep];
+
+    if (!targetRoute) {
+      console.error(
+        '[SalonRegistration] Missing route for step:',
+        initialStep,
+      );
+
+      Alert.alert(
+        'Unable to Resume Registration',
+        `The screen for registration step ${initialStep} is not configured.`,
+      );
+
+      return;
+    }
+
+    // Replace Step 1 with the screen where the user left off.
+    navigation.replace(targetRoute, {
+      resumeDraft: true,
+      initialStep,
+      completedSteps:
+        params?.completedSteps ?? completedSteps ?? [],
+    });
+  }, [
+    isDraftLoading,
+    navigation,
+    route?.params?.initialStep,
+    route?.params?.resumeDraft,
+    route?.params?.completedSteps,
+    completedSteps,
+    setCurrentStep,
+  ]);
+
   // =====================================================
   // RESTORE SAVED FORM VALUES
   // =====================================================
 
   useEffect(() => {
+    // Never overwrite form fields while a draft is loading.
     if (isDraftLoading) {
       return;
     }
 
-    setSalonName(data.salonName);
-    setOwnerName(data.ownerName);
-    setEmail(data.email);
-    setTargetAudiences(data.targetAudiences);
+    setSalonName(data.salonName ?? '');
+    setOwnerName(data.ownerName ?? '');
+    setEmail(data.email ?? '');
+
+    const savedAudiences = Array.isArray(data.targetAudiences)
+      ? data.targetAudiences.filter(
+          (audience): audience is TargetAudience =>
+            audience === 'FEMALE' ||
+            audience === 'MALE' ||
+            audience === 'KIDS',
+        )
+      : [];
+
+    setTargetAudiences(savedAudiences);
   }, [
     data.salonName,
     data.ownerName,
@@ -116,27 +253,35 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
   // =====================================================
 
   useEffect(() => {
-    if (!currentUser?.userId) {
+    const userId =
+      typeof currentUser?.userId === 'string'
+        ? currentUser.userId.trim()
+        : '';
+
+    if (!userId || isDraftLoading) {
       return;
     }
 
+    const phoneNumber = currentUser?.phoneNumber ?? '';
+
     const identityChanged =
-      data.userId !== currentUser.userId ||
-      data.phoneNumber !== (currentUser.phoneNumber || '');
+      data.userId !== userId ||
+      data.phoneNumber !== phoneNumber;
 
     if (!identityChanged) {
       return;
     }
 
     updateData({
-      userId: currentUser.userId,
-      phoneNumber: currentUser.phoneNumber || '',
+      userId,
+      phoneNumber,
     });
   }, [
     currentUser?.userId,
     currentUser?.phoneNumber,
     data.userId,
     data.phoneNumber,
+    isDraftLoading,
     updateData,
   ]);
 
@@ -182,10 +327,7 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
     const trimmedOwnerName = ownerName.trim();
     const trimmedEmail = email.trim();
 
-    // -------------------------------------------------
-    // VALIDATION
-    // -------------------------------------------------
-
+    // Validate customer types.
     if (targetAudiences.length === 0) {
       Alert.alert(
         'Customer Type Required',
@@ -194,6 +336,7 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
       return;
     }
 
+    // Validate business name.
     if (!trimmedSalonName) {
       Alert.alert(
         'Business Name Required',
@@ -202,6 +345,7 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
       return;
     }
 
+    // Validate owner name.
     if (!trimmedOwnerName) {
       Alert.alert(
         'Owner Name Required',
@@ -210,6 +354,7 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
       return;
     }
 
+    // Validate email.
     if (!trimmedEmail) {
       Alert.alert(
         'Email Required',
@@ -228,7 +373,12 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
       return;
     }
 
-    if (!currentUser?.userId) {
+    const userId =
+      typeof currentUser?.userId === 'string'
+        ? currentUser.userId.trim()
+        : '';
+
+    if (!userId) {
       Alert.alert(
         'Unable to Continue',
         'Your user information is unavailable. Please sign in again.',
@@ -236,7 +386,9 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
       return;
     }
 
-    if (!currentUser?.phoneNumber) {
+    const phoneNumber = currentUser?.phoneNumber ?? '';
+
+    if (!phoneNumber.trim()) {
       Alert.alert(
         'Phone Number Missing',
         'Your phone number is unavailable. Please sign in again.',
@@ -244,35 +396,30 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
       return;
     }
 
-    // -------------------------------------------------
-    // UPDATE AND SAVE
-    // -------------------------------------------------
-
     setSubmitting(true);
 
     try {
       const latestData = {
-        userId: currentUser.userId,
-        phoneNumber: currentUser.phoneNumber,
+        ...data,
+        userId,
+        phoneNumber,
         salonName: trimmedSalonName,
         ownerName: trimmedOwnerName,
         email: trimmedEmail,
-        targetAudiences,
+        targetAudiences: [...targetAudiences],
       };
 
       // Update in-memory registration state.
       updateData(latestData);
 
       const nextCompletedSteps = [
-        ...new Set([...completedSteps, 1]),
+        ...new Set([
+          ...(completedSteps ?? []),
+          1,
+        ]),
       ].sort((a, b) => a - b);
 
-      // Mark step 1 completed and step 2 as next.
-      markStepCompleted(1);
-      setCurrentStep(2);
-
-      // Save the latest values explicitly. Do not rely
-      // on React having rendered the update first.
+      // Persist Step 1 as completed and Step 2 as current.
       const saved = await saveDraft(
         2,
         nextCompletedSteps,
@@ -287,20 +434,34 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
         return;
       }
 
-      // Navigate only after a successful draft save.
-      navigation.navigate('SalonAddress');
+      if (!isMounted.current) {
+        return;
+      }
+
+      markStepCompleted(1);
+      setCurrentStep(2);
+
+      navigation.navigate('SalonAddress', {
+        initialStep: 2,
+        resumeDraft: true,
+        completedSteps: nextCompletedSteps,
+      });
     } catch (error) {
       console.error(
         '[SalonRegistration] Unable to save registration progress:',
         error,
       );
 
-      Alert.alert(
-        'Unable to Continue',
-        'Something went wrong while saving your registration details. Please try again.',
-      );
+      if (isMounted.current) {
+        Alert.alert(
+          'Unable to Continue',
+          'Something went wrong while saving your registration details. Please try again.',
+        );
+      }
     } finally {
-      setSubmitting(false);
+      if (isMounted.current) {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -600,9 +761,7 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
                         {option.label}
                       </Text>
 
-                      <Text
-                        style={styles.audienceOptionDescription}
-                      >
+                      <Text style={styles.audienceOptionDescription}>
                         {option.description}
                       </Text>
                     </View>
