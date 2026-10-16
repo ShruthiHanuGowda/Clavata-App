@@ -1,5 +1,8 @@
-import React from 'react';
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+
 import {
+  ActivityIndicator,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -17,8 +20,29 @@ import {
 } from '../../constants/constants';
 
 import AppGradient from '../../common/AppGradient';
+import { useSalonRegistration } from '../../context/SalonRegistrationContext';
 
-const BecomePartnerScreen = ({ navigation }: any) => {
+const BecomePartnerScreen = ({ navigation, route }: any) => {
+  const {
+    loadDraft,
+    isDraftLoading,
+    draftError,
+  } = useSalonRegistration();
+
+  const [isContinuing, setIsContinuing] = useState(false);
+  const continueLock = useRef(false);
+
+  // Avoid navigating after this screen has been left.
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const handleBack = () => {
     navigation.reset({
       index: 0,
@@ -34,9 +58,47 @@ const BecomePartnerScreen = ({ navigation }: any) => {
     });
   };
 
-  const handleContinue = () => {
-    navigation.navigate('SalonRegistration');
-  };
+  const handleContinue = useCallback(async () => {
+    if (continueLock.current) {
+      return;
+    }
+
+    continueLock.current = true;
+    setIsContinuing(true);
+
+    try {
+      // Load the saved registration progress before
+      // opening the registration flow.
+      const result = await loadDraft();
+
+      if (!isMounted.current) {
+        return;
+      }
+
+      navigation.navigate('SalonRegistration', {
+        resumeDraft: result.hasDraft,
+        initialStep: result.currentStep,
+        completedSteps: result.completedSteps,
+      });
+    } catch (error) {
+      console.error('Unable to resume salon registration:', error);
+
+      // Allow the user to retry. Don't silently start
+      // a new registration if the draft could not load.
+      if (isMounted.current) {
+        continueLock.current = false;
+        setIsContinuing(false);
+      }
+    } finally {
+      if (isMounted.current && !draftError) {
+        // Navigation may occur before this executes;
+        // the mounted check prevents updating an unmounted screen.
+        setIsContinuing(false);
+      }
+    }
+  }, [loadDraft, navigation, draftError]);
+
+  const loading = isContinuing || isDraftLoading;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -46,6 +108,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
           onPress={handleBack}
           style={styles.backButton}
           activeOpacity={0.7}
+          disabled={loading}
           hitSlop={{
             top: 10,
             bottom: 10,
@@ -82,7 +145,6 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             Grow Your Business
           </Text>
 
-          {/* FEATURE 1 */}
           <View style={styles.item}>
             <AppGradient
               colors={[...GRADIENTS.SOFT_PURPLE]}
@@ -102,7 +164,6 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             </View>
           </View>
 
-          {/* FEATURE 2 */}
           <View style={styles.item}>
             <AppGradient
               colors={[...GRADIENTS.SOFT_PURPLE]}
@@ -122,7 +183,6 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             </View>
           </View>
 
-          {/* FEATURE 3 */}
           <View style={styles.item}>
             <AppGradient
               colors={[...GRADIENTS.SOFT_PURPLE]}
@@ -142,7 +202,6 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             </View>
           </View>
 
-          {/* FEATURE 4 */}
           <View style={styles.item}>
             <AppGradient
               colors={[...GRADIENTS.SOFT_PURPLE]}
@@ -162,7 +221,6 @@ const BecomePartnerScreen = ({ navigation }: any) => {
             </View>
           </View>
 
-          {/* FEATURE 5 */}
           <View style={[styles.item, styles.lastItem]}>
             <AppGradient
               colors={[...GRADIENTS.SOFT_PURPLE]}
@@ -187,6 +245,12 @@ const BecomePartnerScreen = ({ navigation }: any) => {
         <Text style={styles.note}>
           Register in minutes and get your business verified
         </Text>
+
+        {draftError ? (
+          <Text style={styles.errorText}>
+            Could not load your saved registration. Please try again.
+          </Text>
+        ) : null}
       </View>
 
       {/* FOOTER */}
@@ -194,17 +258,35 @@ const BecomePartnerScreen = ({ navigation }: any) => {
         <TouchableOpacity
           onPress={handleContinue}
           activeOpacity={0.85}
-          style={styles.buttonWrapper}
+          disabled={loading}
+          style={[
+            styles.buttonWrapper,
+            loading && styles.buttonDisabled,
+          ]}
         >
           <AppGradient
             colors={[...GRADIENTS.SOFT_PURPLE]}
             style={styles.button}
           >
-            <Text style={styles.buttonText}>
-              Continue
-            </Text>
+            {loading ? (
+              <>
+                <ActivityIndicator
+                  color={COLORS.white}
+                  size="small"
+                />
+                <Text style={styles.buttonText}>
+                  {'  '}Loading registration...
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.buttonText}>
+                  Continue
+                </Text>
 
-            <Text style={styles.arrow}>›</Text>
+                <Text style={styles.arrow}>›</Text>
+              </>
+            )}
           </AppGradient>
         </TouchableOpacity>
       </View>
@@ -214,14 +296,16 @@ const BecomePartnerScreen = ({ navigation }: any) => {
 
 export default BecomePartnerScreen;
 
+// =====================================================
 // STYLES
+// =====================================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
 
-  // HEADER
   header: {
     height: 64,
     flexDirection: 'row',
@@ -268,14 +352,12 @@ const styles = StyleSheet.create({
     width: 40,
   },
 
-  // CONTENT
   content: {
     flex: 1,
     paddingHorizontal: SPACING.xxl,
     paddingTop: SPACING.medium,
   },
 
-  // HERO
   hero: {
     alignItems: 'center',
     paddingHorizontal: SPACING.small,
@@ -300,7 +382,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // FEATURES CARD
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.large,
@@ -316,7 +397,6 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.large,
   },
 
-  // FEATURE ITEMS
   item: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -364,7 +444,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
 
-  // NOTE
   note: {
     marginTop: SPACING.large,
     textAlign: 'center',
@@ -374,7 +453,15 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
 
-  // FOOTER
+  errorText: {
+    marginTop: SPACING.medium,
+    textAlign: 'center',
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    lineHeight: 18,
+    color: '#C62828',
+  },
+
   footer: {
     paddingHorizontal: SPACING.xxl,
     paddingBottom: SPACING.xl,
@@ -385,7 +472,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // GRADIENT CONTINUE BUTTON
+  buttonDisabled: {
+    opacity: 0.75,
+  },
+
   button: {
     height: 54,
     borderRadius: RADIUS.medium,
@@ -407,4 +497,3 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.small,
   },
 });
-

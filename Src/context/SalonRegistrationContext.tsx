@@ -1,8 +1,19 @@
+
 import React, {
     createContext,
+    useCallback,
     useContext,
+    useEffect,
+    useRef,
     useState,
 } from 'react';
+
+import { useApolloClient } from '@apollo/client';
+
+import {
+    GET_SALON_REGISTRATION_DRAFT,
+    SAVE_SALON_REGISTRATION_DRAFT,
+} from '../graphql/queries';
 
 // =====================================================
 // KYC DOCUMENT TYPE
@@ -20,39 +31,12 @@ export type KycDocumentType =
 // =====================================================
 
 export type KycDocument = {
-    /**
-     * Local file URI.
-     */
     uri: string;
-
-    /**
-     * Original file name.
-     */
     name: string;
-
-    /**
-     * MIME type.
-     */
     type?: string | null;
-
-    /**
-     * File size in bytes.
-     */
     size?: number | null;
-
-    /**
-     * Registration-level upload identifier.
-     */
     uploadId?: string;
-
-    /**
-     * Final S3 object key.
-     */
     s3Key?: string;
-
-    /**
-     * KYC document category.
-     */
     documentType?: KycDocumentType;
 };
 
@@ -75,91 +59,30 @@ export type BusinessDay = {
     isOpen: boolean;
 };
 
-export type BusinessHours = Record<
-    DayKey,
-    BusinessDay
->;
+export type BusinessHours = Record<DayKey, BusinessDay>;
 
 // =====================================================
 // DEFAULT BUSINESS HOURS
 // =====================================================
 
 export const DEFAULT_BUSINESS_HOURS: BusinessHours = {
-    MONDAY: {
-        open: '09:00',
-        close: '19:00',
-        isOpen: true,
-    },
-
-    TUESDAY: {
-        open: '09:00',
-        close: '19:00',
-        isOpen: true,
-    },
-
-    WEDNESDAY: {
-        open: '09:00',
-        close: '19:00',
-        isOpen: true,
-    },
-
-    THURSDAY: {
-        open: '09:00',
-        close: '19:00',
-        isOpen: true,
-    },
-
-    FRIDAY: {
-        open: '09:00',
-        close: '19:00',
-        isOpen: true,
-    },
-
-    SATURDAY: {
-        open: '10:00',
-        close: '18:00',
-        isOpen: true,
-    },
-
-    SUNDAY: {
-        open: '10:00',
-        close: '18:00',
-        isOpen: false,
-    },
+    MONDAY: { open: '09:00', close: '19:00', isOpen: true },
+    TUESDAY: { open: '09:00', close: '19:00', isOpen: true },
+    WEDNESDAY: { open: '09:00', close: '19:00', isOpen: true },
+    THURSDAY: { open: '09:00', close: '19:00', isOpen: true },
+    FRIDAY: { open: '09:00', close: '19:00', isOpen: true },
+    SATURDAY: { open: '10:00', close: '18:00', isOpen: true },
+    SUNDAY: { open: '10:00', close: '18:00', isOpen: false },
 };
 
-// =====================================================
-// CREATE DEFAULT BUSINESS HOURS
-// =====================================================
-
 const createDefaultBusinessHours = (): BusinessHours => ({
-    MONDAY: {
-        ...DEFAULT_BUSINESS_HOURS.MONDAY,
-    },
-
-    TUESDAY: {
-        ...DEFAULT_BUSINESS_HOURS.TUESDAY,
-    },
-
-    WEDNESDAY: {
-        ...DEFAULT_BUSINESS_HOURS.WEDNESDAY,
-    },
-
-    THURSDAY: {
-        ...DEFAULT_BUSINESS_HOURS.THURSDAY,
-    },
-
-    FRIDAY: {
-        ...DEFAULT_BUSINESS_HOURS.FRIDAY,
-    },
-
-    SATURDAY: {
-        ...DEFAULT_BUSINESS_HOURS.SATURDAY,
-    },
-
-    SUNDAY: {
-        ...DEFAULT_BUSINESS_HOURS.SUNDAY,
-    },
+    MONDAY: { ...DEFAULT_BUSINESS_HOURS.MONDAY },
+    TUESDAY: { ...DEFAULT_BUSINESS_HOURS.TUESDAY },
+    WEDNESDAY: { ...DEFAULT_BUSINESS_HOURS.WEDNESDAY },
+    THURSDAY: { ...DEFAULT_BUSINESS_HOURS.THURSDAY },
+    FRIDAY: { ...DEFAULT_BUSINESS_HOURS.FRIDAY },
+    SATURDAY: { ...DEFAULT_BUSINESS_HOURS.SATURDAY },
+    SUNDAY: { ...DEFAULT_BUSINESS_HOURS.SUNDAY },
 });
 
 // =====================================================
@@ -179,19 +102,17 @@ export type KYCStatus =
 
 export type BusinessDocument = {
     type:
-        | 'GST_CERTIFICATE'
-        | 'SHOP_ESTABLISHMENT'
-        | 'UDYAM'
-        | 'PARTNERSHIP_DEED'
-        | 'INCORPORATION_CERTIFICATE'
-        | 'RENTAL_AGREEMENT'
-        | 'UTILITY_BILL'
-        | 'OTHER';
+    | 'GST_CERTIFICATE'
+    | 'SHOP_ESTABLISHMENT'
+    | 'UDYAM'
+    | 'PARTNERSHIP_DEED'
+    | 'INCORPORATION_CERTIFICATE'
+    | 'RENTAL_AGREEMENT'
+    | 'UTILITY_BILL'
+    | 'OTHER';
 
     uri: string;
-
     fileName: string;
-
     uploadedAt: string;
 };
 
@@ -216,454 +137,352 @@ export type ServiceAudience =
 // =====================================================
 // SALON SERVICE SELECTION
 // =====================================================
-//
-// Business Type is intentionally NOT part of the model.
-//
-// Service hierarchy:
-//
-//   Audience
-//      ↓
-//   Category
-//      ↓
-//   Subcategory
-//      ↓
-//   Service
-//
-// Example:
-//
-// FEMALE
-//   Hair
-//     Haircut
-//       Layer Haircut
-//       Step Haircut
-//       Bob Haircut
-//
-// Multiple services are allowed under the same
-// audience + category + subcategory.
-//
-// serviceKey identifies the individual local service.
-//
-// =====================================================
 
 export type SalonServiceSelection = {
-    // =================================================
-    // LOCAL UNIQUE SERVICE KEY
-    // =================================================
-    //
-    // Temporary local identifier.
-    //
-    // Example:
-    //
-    // LOCAL-SERVICE-1727950012345-AB12CD
-    //
-    // This is NOT the backend serviceId.
-    //
     serviceKey: string;
-
-    // =================================================
-    // SERVICE NAME
-    // =================================================
-
     name: string;
-
-    // =================================================
-    // SERVICE DESCRIPTION
-    // =================================================
-
     description?: string;
-
-    // =================================================
-    // AUDIENCE
-    // =================================================
-
     audience: ServiceAudience;
-
-    // =================================================
-    // CATEGORY
-    // =================================================
-
     categoryId: string;
-
     categoryName: string;
-
-    // =================================================
-    // SUBCATEGORY
-    // =================================================
-
     subcategoryId: string;
-
     subcategoryName: string;
-
-    // =================================================
-    // PRICE
-    // =================================================
-
     price?: number;
-
-    // =================================================
-    // DURATION
-    // =================================================
-
     durationMinutes?: number;
 };
 
 // =====================================================
 // SERVICE-SPECIFIC MODE
 // =====================================================
-//
-// Allows different services to have different
-// availability modes.
-//
-// Example:
-//
-// {
-//     "LOCAL-SERVICE-001": "HOME_ONLY"
-// }
-//
-// =====================================================
 
-export type ServiceSpecificModes = Record<
-    string,
-    ServiceMode
->;
+export type ServiceSpecificModes = Record<string, ServiceMode>;
 
 // =====================================================
 // REGISTRATION DATA
 // =====================================================
 
 export type SalonRegistrationData = {
-    // =================================================
-    // USER
-    // =================================================
-
     userId: string;
-
     phoneNumber: string;
 
-    // =================================================
-    // BUSINESS
-    // =================================================
-
     salonName: string;
-
     ownerName: string;
-
     email: string;
-
-    // =================================================
-    // SERVICE AUDIENCE
-    // =================================================
-    //
-    // Audiences selected during registration.
-    //
-    // Example:
-    //
-    // ['FEMALE', 'MALE', 'KIDS']
-    //
-    // =================================================
 
     targetAudiences: ServiceAudience[];
 
-    // =================================================
-    // SERVICE AVAILABILITY
-    // =================================================
-
     serviceMode: ServiceMode;
-
     serviceSpecificModes: ServiceSpecificModes;
 
-    // =================================================
-    // ADDRESS
-    // =================================================
-
     addressLine: string;
-
     city: string;
-
     state: string;
-
     pincode: string;
-
     latitude?: number;
-
     longitude?: number;
 
-    // =================================================
-    // KYC - OWNER
-    // =================================================
-
     panNumber: string;
-
     aadhaarNumber: string;
 
-    // =================================================
-    // KYB - BUSINESS
-    // =================================================
-
     gstNumber: string;
-
     shopEstablishmentNumber: string;
-
     udyamNumber: string;
-
     cinNumber: string;
-
     llpinNumber: string;
 
-    // =================================================
-    // BANK
-    // =================================================
-
     bankAccount: string;
-
     ifsc: string;
-
     accountHolderName: string;
-
-    // =================================================
-    // GENERAL BUSINESS DOCUMENTS
-    // =================================================
 
     businessDocuments: BusinessDocument[];
 
-    // =================================================
-    // KYC DOCUMENTS
-    // =================================================
-
     panDocument?: KycDocument | null;
-
     aadhaarDocument?: KycDocument | null;
-
     shopEstablishmentDocument?: KycDocument | null;
-
     gstDocument?: KycDocument | null;
-
     udyamDocument?: KycDocument | null;
-
-    // =================================================
-    // KYC S3 UPLOAD ID
-    // =================================================
 
     kycUploadId: string;
 
-    // =================================================
-    // CLAVATA SERVICES
-    // =================================================
-    //
-    // Multiple services are allowed under the same:
-    //
-    //   audience
-    //   category
-    //   subcategory
-    //
-    // Example:
-    //
-    // [
-    //   {
-    //      serviceKey: 'LOCAL-SERVICE-001',
-    //      name: 'Layer Haircut',
-    //      audience: 'FEMALE',
-    //      categoryId: 'CAT_HAIR',
-    //      categoryName: 'Hair',
-    //      subcategoryId: 'SUB_HAIRCUT',
-    //      subcategoryName: 'Haircut',
-    //      price: 400,
-    //      durationMinutes: 40
-    //   },
-    //
-    //   {
-    //      serviceKey: 'LOCAL-SERVICE-002',
-    //      name: 'Step Haircut',
-    //      audience: 'FEMALE',
-    //      categoryId: 'CAT_HAIR',
-    //      categoryName: 'Hair',
-    //      subcategoryId: 'SUB_HAIRCUT',
-    //      subcategoryName: 'Haircut',
-    //      price: 500,
-    //      durationMinutes: 45
-    //   }
-    // ]
-    //
-    // Both services are valid.
-    //
-    // =================================================
-
     serviceSelections: SalonServiceSelection[];
 
-    // =================================================
-    // VERIFICATION
-    // =================================================
-
     kycStatus: KYCStatus;
-
     kycReferenceId: string;
-
     kycSubmittedAt: string;
-
     kycReviewedAt: string;
-
     kycRejectionReason: string;
 
-    // =================================================
-    // PROVIDER STATUS
-    // =================================================
-
     providerStatus:
-        | 'NOT_REGISTERED'
-        | 'PENDING'
-        | 'APPROVED'
-        | 'REJECTED';
-
-    // =================================================
-    // BUSINESS HOURS
-    // =================================================
+    | 'NOT_REGISTERED'
+    | 'PENDING'
+    | 'APPROVED'
+    | 'REJECTED';
 
     businessHours: BusinessHours;
 };
 
 // =====================================================
-// CREATE INITIAL REGISTRATION DATA
+// INITIAL REGISTRATION DATA
 // =====================================================
 
 const createInitialData = (): SalonRegistrationData => ({
-    // =================================================
-    // USER
-    // =================================================
-
     userId: '',
-
     phoneNumber: '',
 
-    // =================================================
-    // BUSINESS
-    // =================================================
-
     salonName: '',
-
     ownerName: '',
-
     email: '',
-
-    // =================================================
-    // SERVICE AUDIENCE
-    // =================================================
 
     targetAudiences: [],
 
-    // =================================================
-    // SERVICE AVAILABILITY
-    // =================================================
-
     serviceMode: 'SALON_ONLY',
-
     serviceSpecificModes: {},
 
-    // =================================================
-    // ADDRESS
-    // =================================================
-
     addressLine: '',
-
     city: '',
-
     state: '',
-
     pincode: '',
-
     latitude: undefined,
-
     longitude: undefined,
 
-    // =================================================
-    // KYC
-    // =================================================
-
     panNumber: '',
-
     aadhaarNumber: '',
 
-    // =================================================
-    // KYB
-    // =================================================
-
     gstNumber: '',
-
     shopEstablishmentNumber: '',
-
     udyamNumber: '',
-
     cinNumber: '',
-
     llpinNumber: '',
 
-    // =================================================
-    // BANK
-    // =================================================
-
     bankAccount: '',
-
     ifsc: '',
-
     accountHolderName: '',
-
-    // =================================================
-    // GENERAL BUSINESS DOCUMENTS
-    // =================================================
 
     businessDocuments: [],
 
-    // =================================================
-    // KYC DOCUMENTS
-    // =================================================
-
     panDocument: null,
-
     aadhaarDocument: null,
-
     shopEstablishmentDocument: null,
-
     gstDocument: null,
-
     udyamDocument: null,
-
-    // =================================================
-    // KYC S3 UPLOAD
-    // =================================================
 
     kycUploadId: '',
 
-    // =================================================
-    // SERVICE SELECTIONS
-    // =================================================
-
     serviceSelections: [],
 
-    // =================================================
-    // VERIFICATION
-    // =================================================
-
     kycStatus: 'NOT_STARTED',
-
     kycReferenceId: '',
-
     kycSubmittedAt: '',
-
     kycReviewedAt: '',
-
     kycRejectionReason: '',
-
-    // =================================================
-    // PROVIDER STATUS
-    // =================================================
 
     providerStatus: 'NOT_REGISTERED',
 
-    // =================================================
-    // BUSINESS HOURS
-    // =================================================
-
     businessHours: createDefaultBusinessHours(),
 });
+
+// =====================================================
+// DRAFT TYPES
+// =====================================================
+
+export type SalonRegistrationDraftStatus =
+    | 'DRAFT'
+    | 'COMPLETED';
+
+type SalonRegistrationDraftRecord = {
+    userId: string;
+    currentStep: number;
+    completedSteps: number[];
+    draftData: unknown;
+    status: SalonRegistrationDraftStatus;
+    createdAt?: string;
+    updatedAt?: string;
+};
+
+type SalonRegistrationDraftResponse = {
+    success: boolean;
+    message?: string | null;
+    draft?: SalonRegistrationDraftRecord | null;
+};
+
+export type DraftLoadResult = {
+    hasDraft: boolean;
+    currentStep: number;
+    completedSteps: number[];
+};
+
+// Only non-sensitive registration fields are persisted.
+type SafeKycDocument = {
+    name: string;
+    type?: string | null;
+    size?: number | null;
+    uploadId?: string;
+    s3Key: string;
+    documentType?: KycDocumentType;
+};
+
+type SafeSalonDraftData = {
+    salonName: string;
+    ownerName: string;
+    email: string;
+    targetAudiences: ServiceAudience[];
+
+    serviceMode: ServiceMode;
+    serviceSpecificModes: ServiceSpecificModes;
+
+    addressLine: string;
+    city: string;
+    state: string;
+    pincode: string;
+    latitude?: number;
+    longitude?: number;
+
+    businessHours: BusinessHours;
+    serviceSelections: SalonServiceSelection[];
+
+    // KYC form values
+    panNumber: string;
+    aadhaarNumber: string;
+    gstNumber: string;
+    shopEstablishmentNumber: string;
+    udyamNumber: string;
+    kycUploadId: string;
+
+    // Persist only documents already uploaded to S3.
+    panDocument?: SafeKycDocument | null;
+    aadhaarDocument?: SafeKycDocument | null;
+    shopEstablishmentDocument?: SafeKycDocument | null;
+    gstDocument?: SafeKycDocument | null;
+    udyamDocument?: SafeKycDocument | null;
+};
+
+// =====================================================
+// SAFE DRAFT SERIALIZATION
+// =====================================================
+
+const getSafeKycDocument = (
+    document?: KycDocument | null,
+): SafeKycDocument | null => {
+    // A temporary local selection cannot be restored reliably
+    // after the app is closed. Persist only uploaded documents.
+    if (!document?.s3Key) {
+        return null;
+    }
+
+    return {
+        name: document.name,
+        type: document.type,
+        size: document.size,
+        uploadId: document.uploadId,
+        s3Key: document.s3Key,
+        documentType: document.documentType,
+    };
+};
+
+const getSafeDraftData = (
+    data: SalonRegistrationData,
+): SafeSalonDraftData => ({
+    salonName: data.salonName,
+    ownerName: data.ownerName,
+    email: data.email,
+
+    targetAudiences: data.targetAudiences,
+    serviceMode: data.serviceMode,
+    serviceSpecificModes: data.serviceSpecificModes,
+
+    addressLine: data.addressLine,
+    city: data.city,
+    state: data.state,
+    pincode: data.pincode,
+    latitude: data.latitude,
+    longitude: data.longitude,
+
+    businessHours: data.businessHours,
+
+    serviceSelections: data.serviceSelections.map(service => ({
+        serviceKey: service.serviceKey,
+        name: service.name,
+        description: service.description,
+        audience: service.audience,
+        categoryId: service.categoryId,
+        categoryName: service.categoryName,
+        subcategoryId: service.subcategoryId,
+        subcategoryName: service.subcategoryName,
+        price: service.price,
+        durationMinutes: service.durationMinutes,
+    })),
+
+    panNumber: data.panNumber,
+    aadhaarNumber: data.aadhaarNumber,
+    gstNumber: data.gstNumber,
+    shopEstablishmentNumber: data.shopEstablishmentNumber,
+    udyamNumber: data.udyamNumber,
+    kycUploadId: data.kycUploadId,
+
+    panDocument: getSafeKycDocument(data.panDocument),
+    aadhaarDocument: getSafeKycDocument(data.aadhaarDocument),
+    shopEstablishmentDocument: getSafeKycDocument(
+        data.shopEstablishmentDocument,
+    ),
+    gstDocument: getSafeKycDocument(data.gstDocument),
+    udyamDocument: getSafeKycDocument(data.udyamDocument),
+});
+
+// =====================================================
+// DRAFT PARSING
+// =====================================================
+
+const parseDraftData = (
+    value: unknown,
+): Partial<SafeSalonDraftData> => {
+    try {
+        const parsed: unknown =
+            typeof value === 'string' ? JSON.parse(value) : value;
+
+        if (
+            !parsed ||
+            typeof parsed !== 'object' ||
+            Array.isArray(parsed)
+        ) {
+            return {};
+        }
+
+        return parsed as Partial<SafeSalonDraftData>;
+    } catch {
+        return {};
+    }
+};
+
+const parseCompletedSteps = (value: unknown): number[] => {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return [
+        ...new Set(
+            value.filter(
+                (item: unknown): item is number =>
+                    typeof item === 'number' &&
+                    Number.isInteger(item) &&
+                    item >= 1 &&
+                    item <= 6,
+            ),
+        ),
+    ].sort((a, b) => a - b);
+};
+
+const normalizeStep = (step: unknown): number => {
+    if (
+        typeof step !== 'number' ||
+        !Number.isInteger(step) ||
+        step < 1 ||
+        step > 6
+    ) {
+        return 1;
+    }
+
+    return step;
+};
 
 // =====================================================
 // CONTEXT TYPE
@@ -677,6 +496,25 @@ type SalonRegistrationContextType = {
     ) => void;
 
     reset: () => void;
+
+    currentStep: number;
+    completedSteps: number[];
+
+    isDraftLoading: boolean;
+    isDraftSaving: boolean;
+    draftError: string | null;
+
+    setCurrentStep: (step: number) => void;
+    markStepCompleted: (step: number) => void;
+
+    saveDraft: (
+        step?: number,
+        completed?: number[],
+        latestData?: Partial<SalonRegistrationData>,
+    ) => Promise<boolean>;
+
+    loadDraft: () => Promise<DraftLoadResult>;
+    resetDraftState: () => void;
 };
 
 // =====================================================
@@ -684,84 +522,530 @@ type SalonRegistrationContextType = {
 // =====================================================
 
 const SalonRegistrationContext =
-    createContext<SalonRegistrationContextType | null>(
-        null,
-    );
+    createContext<SalonRegistrationContextType | null>(null);
 
 // =====================================================
 // PROVIDER
 // =====================================================
 
+type SalonRegistrationProviderProps = {
+    children: React.ReactNode;
+    userId?: string;
+};
+
 export const SalonRegistrationProvider = ({
     children,
-}: {
-    children: React.ReactNode;
-}) => {
+    userId: authenticatedUserId,
+}: SalonRegistrationProviderProps) => {
+    const client = useApolloClient();
+
     const [data, setData] =
-        useState<SalonRegistrationData>(
-            createInitialData(),
-        );
+        useState<SalonRegistrationData>(createInitialData);
 
-    // =================================================
+    const [currentStep, setCurrentStepState] = useState(1);
+    const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+
+    const [isDraftLoading, setIsDraftLoading] = useState(false);
+    const [isDraftSaving, setIsDraftSaving] = useState(false);
+    const [draftError, setDraftError] = useState<string | null>(null);
+
+    const dataRef = useRef(data);
+    const stepRef = useRef(1);
+    const completedRef = useRef<number[]>([]);
+
+    const hydratedUserRef = useRef<string | null>(null);
+    const loadRequestRef = useRef(0);
+
+    const saveTimerRef =
+        useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // All draft mutations are serialized through this promise chain.
+    const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true));
+
+    const savingCountRef = useRef(0);
+    const dirtyRef = useRef(false);
+
+    const userId =
+        authenticatedUserId?.trim() ||
+        data.userId.trim();
+
+    // -----------------------------------------------------
+    // SET CURRENT STEP
+    // -----------------------------------------------------
+
+    const setCurrentStep = useCallback((step: number) => {
+        if (!Number.isInteger(step) || step < 1 || step > 6) {
+            return;
+        }
+
+        stepRef.current = step;
+        dirtyRef.current = true;
+        setCurrentStepState(step);
+    }, []);
+
+    // -----------------------------------------------------
+    // MARK STEP COMPLETED
+    // -----------------------------------------------------
+
+    const markStepCompleted = useCallback((step: number) => {
+        if (!Number.isInteger(step) || step < 1 || step > 6) {
+            return;
+        }
+
+        const next = [
+            ...new Set([...completedRef.current, step]),
+        ].sort((a, b) => a - b);
+
+        completedRef.current = next;
+        dirtyRef.current = true;
+        setCompletedSteps(next);
+    }, []);
+
+    // -----------------------------------------------------
     // UPDATE DATA
-    // =================================================
+    // -----------------------------------------------------
 
-    const updateData = (
-        values: Partial<SalonRegistrationData>,
-    ) => {
-        console.log(
-            '======================================',
-        );
+    const updateData = useCallback(
+        (values: Partial<SalonRegistrationData>) => {
+            dirtyRef.current = true;
 
-        console.log(
-            'SALON REGISTRATION UPDATE',
-        );
+            // Update the ref synchronously so an immediate save
+            // sees the latest values.
+            const next = {
+                ...dataRef.current,
+                ...values,
+            };
 
-        console.log(
-            'UPDATED FIELDS:',
-            Object.keys(values),
-        );
+            dataRef.current = next;
+            setData(next);
+        },
+        [],
+    );
 
-        console.log(
-            'UPDATE VALUES:',
-            values,
-        );
+    // -----------------------------------------------------
+    // SAVE DRAFT
+    // -----------------------------------------------------
 
-        console.log(
-            '======================================',
-        );
+    const saveDraft = useCallback(
+        (
+            requestedStep?: number,
+            requestedCompleted?: number[],
+            latestData?: Partial<SalonRegistrationData>,
+        ): Promise<boolean> => {
+            const step = normalizeStep(
+                requestedStep ?? stepRef.current,
+            );
 
-        setData(prev => ({
-            ...prev,
-            ...values,
-        }));
-    };
+            const completed = parseCompletedSteps(
+                requestedCompleted ?? completedRef.current,
+            );
 
-    // =================================================
+            const ownerId =
+                authenticatedUserId?.trim() ||
+                latestData?.userId?.trim() ||
+                dataRef.current.userId.trim();
+
+            if (!ownerId) {
+                const message =
+                    'Unable to save progress: user ID is missing.';
+
+                setDraftError(message);
+                return Promise.resolve(false);
+            }
+
+            // Capture the intended values at the time of this
+            // request, rather than reading a later render.
+            const snapshot: SalonRegistrationData = {
+                ...dataRef.current,
+                ...latestData,
+                userId: ownerId,
+            };
+
+            const safeData = getSafeDraftData(snapshot);
+
+            // Capture each request's values, then run requests in
+            // order. A newer save cannot overlap an older mutation.
+            const performSave = async (): Promise<boolean> => {
+                savingCountRef.current += 1;
+                setIsDraftSaving(true);
+                setDraftError(null);
+
+                try {
+                    const result = await client.mutate<{
+                        saveSalonRegistrationDraft:
+                        SalonRegistrationDraftResponse;
+                    }>({
+                        mutation: SAVE_SALON_REGISTRATION_DRAFT,
+                        variables: {
+                            input: {
+                                userId: ownerId,
+                                currentStep: step,
+                                completedSteps: completed,
+                                draftData: JSON.stringify(safeData),
+                            },
+                        },
+                    });
+
+                    const response =
+                        result.data?.saveSalonRegistrationDraft;
+
+                    if (!response?.success) {
+                        throw new Error(
+                            response?.message ||
+                            'Could not save registration progress.',
+                        );
+                    }
+
+                    // Do not clear dirty state if a newer update
+                    // happened while this request was in flight.
+                    const snapshotStillCurrent =
+                        dataRef.current === snapshot ||
+                        (
+                            JSON.stringify(
+                                getSafeDraftData(dataRef.current),
+                            ) === JSON.stringify(safeData) &&
+                            stepRef.current === step &&
+                            JSON.stringify(completedRef.current) ===
+                            JSON.stringify(completed)
+                        );
+
+                    if (snapshotStillCurrent) {
+                        dirtyRef.current = false;
+                    }
+
+                    return true;
+                } catch (error) {
+                    const message =
+                        error instanceof Error
+                            ? error.message
+                            : 'Could not save registration progress.';
+
+                    setDraftError(message);
+
+                    console.error(
+                        'SALON DRAFT SAVE ERROR:',
+                        message,
+                    );
+
+                    return false;
+                } finally {
+                    savingCountRef.current = Math.max(
+                        0,
+                        savingCountRef.current - 1,
+                    );
+
+                    setIsDraftSaving(
+                        savingCountRef.current > 0,
+                    );
+                }
+            };
+
+            const queuedSave = saveQueueRef.current
+                .catch(() => false)
+                .then(performSave);
+
+            saveQueueRef.current = queuedSave;
+
+            return queuedSave;
+        },
+        [client, authenticatedUserId],
+    );
+
+    // -----------------------------------------------------
+    // LOAD DRAFT
+    // -----------------------------------------------------
+
+    const loadDraft = useCallback(
+        async (): Promise<DraftLoadResult> => {
+            const ownerId =
+                authenticatedUserId?.trim() ||
+                dataRef.current.userId.trim();
+
+            if (!ownerId) {
+                return {
+                    hasDraft: false,
+                    currentStep: 1,
+                    completedSteps: [],
+                };
+            }
+
+            const requestId = ++loadRequestRef.current;
+
+            setIsDraftLoading(true);
+            setDraftError(null);
+
+            try {
+                const result = await client.query<{
+                    getSalonRegistrationDraft:
+                    SalonRegistrationDraftResponse;
+                }>({
+                    query: GET_SALON_REGISTRATION_DRAFT,
+                    variables: { userId: ownerId },
+                    fetchPolicy: 'network-only',
+                });
+
+                if (requestId !== loadRequestRef.current) {
+                    return {
+                        hasDraft: false,
+                        currentStep: 1,
+                        completedSteps: [],
+                    };
+                }
+
+                const response =
+                    result.data?.getSalonRegistrationDraft;
+
+                if (!response?.success) {
+                    throw new Error(
+                        response?.message ||
+                        'Unable to load registration progress.',
+                    );
+                }
+
+                const draft = response.draft;
+
+                if (!draft || draft.status === 'COMPLETED') {
+                    const initial: SalonRegistrationData = {
+                        ...createInitialData(),
+                        userId: ownerId,
+                        phoneNumber: dataRef.current.phoneNumber,
+                    };
+
+                    dataRef.current = initial;
+                    setData(initial);
+
+                    stepRef.current = 1;
+                    setCurrentStepState(1);
+
+                    completedRef.current = [];
+                    setCompletedSteps([]);
+
+                    dirtyRef.current = false;
+                    hydratedUserRef.current = ownerId;
+
+                    return {
+                        hasDraft: false,
+                        currentStep: 1,
+                        completedSteps: [],
+                    };
+                }
+
+                const savedData = parseDraftData(draft.draftData);
+                const initial = createInitialData();
+
+                const restoredData: SalonRegistrationData = {
+                    ...initial,
+
+                    salonName: savedData.salonName ?? '',
+                    ownerName: savedData.ownerName ?? '',
+                    email: savedData.email ?? '',
+
+                    targetAudiences:
+                        savedData.targetAudiences ?? [],
+
+                    serviceMode:
+                        savedData.serviceMode ??
+                        initial.serviceMode,
+
+                    serviceSpecificModes:
+                        savedData.serviceSpecificModes ?? {},
+
+                    addressLine: savedData.addressLine ?? '',
+                    city: savedData.city ?? '',
+                    state: savedData.state ?? '',
+                    pincode: savedData.pincode ?? '',
+
+                    latitude: savedData.latitude,
+                    longitude: savedData.longitude,
+
+                    businessHours:
+                        savedData.businessHours ??
+                        createDefaultBusinessHours(),
+
+                    serviceSelections:
+                        savedData.serviceSelections ?? [],
+                    panNumber: savedData.panNumber ?? '',
+                    aadhaarNumber: savedData.aadhaarNumber ?? '',
+                    gstNumber: savedData.gstNumber ?? '',
+                    shopEstablishmentNumber:
+                        savedData.shopEstablishmentNumber ?? '',
+                    udyamNumber: savedData.udyamNumber ?? '',
+                    kycUploadId: savedData.kycUploadId ?? '',
+
+                    panDocument: savedData.panDocument
+                        ? { ...savedData.panDocument, uri: '' }
+                        : null,
+
+                    aadhaarDocument: savedData.aadhaarDocument
+                        ? { ...savedData.aadhaarDocument, uri: '' }
+                        : null,
+
+                    shopEstablishmentDocument:
+                        savedData.shopEstablishmentDocument
+                            ? { ...savedData.shopEstablishmentDocument, uri: '' }
+                            : null,
+
+                    gstDocument: savedData.gstDocument
+                        ? { ...savedData.gstDocument, uri: '' }
+                        : null,
+
+                    udyamDocument: savedData.udyamDocument
+                        ? { ...savedData.udyamDocument, uri: '' }
+                        : null,
+                    userId: ownerId,
+                    phoneNumber: dataRef.current.phoneNumber,
+
+                    // Sensitive KYC values, bank details, and local
+                    // document URIs are not restored from the draft.
+                };
+
+                const restoredStep = normalizeStep(
+                    draft.currentStep,
+                );
+
+                const restoredCompleted = parseCompletedSteps(
+                    draft.completedSteps,
+                );
+
+                dataRef.current = restoredData;
+                setData(restoredData);
+
+                stepRef.current = restoredStep;
+                setCurrentStepState(restoredStep);
+
+                completedRef.current = restoredCompleted;
+                setCompletedSteps(restoredCompleted);
+
+                dirtyRef.current = false;
+                hydratedUserRef.current = ownerId;
+
+                return {
+                    hasDraft: true,
+                    currentStep: restoredStep,
+                    completedSteps: restoredCompleted,
+                };
+            } catch (error) {
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : 'Unable to load registration progress.';
+
+                setDraftError(message);
+
+                console.error(
+                    'SALON DRAFT LOAD ERROR:',
+                    message,
+                );
+
+                throw error;
+            } finally {
+                if (requestId === loadRequestRef.current) {
+                    setIsDraftLoading(false);
+                }
+            }
+        },
+        [client, authenticatedUserId],
+    );
+
+    // -----------------------------------------------------
+    // AUTO-LOAD FOR THE LOGGED-IN USER
+    // -----------------------------------------------------
+
+    useEffect(() => {
+        if (!userId) {
+            return;
+        }
+
+        if (hydratedUserRef.current === userId) {
+            return;
+        }
+
+        void loadDraft().catch(() => {
+            // The failure is exposed through draftError.
+        });
+    }, [userId, loadDraft]);
+
+    // -----------------------------------------------------
+    // DEBOUNCED AUTO-SAVE
+    // -----------------------------------------------------
+
+    useEffect(() => {
+        if (!userId) {
+            return;
+        }
+
+        if (hydratedUserRef.current !== userId) {
+            return;
+        }
+
+        if (isDraftLoading || !dirtyRef.current) {
+            return;
+        }
+
+        if (saveTimerRef.current) {
+            clearTimeout(saveTimerRef.current);
+        }
+
+        saveTimerRef.current = setTimeout(() => {
+            void saveDraft();
+        }, 1000);
+
+        return () => {
+            if (saveTimerRef.current) {
+                clearTimeout(saveTimerRef.current);
+                saveTimerRef.current = null;
+            }
+        };
+    }, [
+        data,
+        currentStep,
+        completedSteps,
+        userId,
+        isDraftLoading,
+        saveDraft,
+    ]);
+
+    // -----------------------------------------------------
+    // RESET DRAFT STATE
+    // -----------------------------------------------------
+
+    const resetDraftState = useCallback(() => {
+        loadRequestRef.current += 1;
+
+        if (saveTimerRef.current) {
+            clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = null;
+        }
+
+        hydratedUserRef.current = null;
+
+        const initial = createInitialData();
+
+        dataRef.current = initial;
+        setData(initial);
+
+        stepRef.current = 1;
+        setCurrentStepState(1);
+
+        completedRef.current = [];
+        setCompletedSteps([]);
+
+        dirtyRef.current = false;
+        setDraftError(null);
+        setIsDraftLoading(false);
+    }, []);
+
+    // -----------------------------------------------------
     // RESET
-    // =================================================
+    // -----------------------------------------------------
 
-    const reset = () => {
-        console.log(
-            '======================================',
-        );
+    const reset = useCallback(() => {
+        resetDraftState();
+    }, [resetDraftState]);
 
-        console.log(
-            'SALON REGISTRATION RESET',
-        );
-
-        console.log(
-            '======================================',
-        );
-
-        setData(
-            createInitialData(),
-        );
-    };
-
-    // =================================================
-    // PROVIDER
-    // =================================================
+    // -----------------------------------------------------
+    // PROVIDER VALUE
+    // -----------------------------------------------------
 
     return (
         <SalonRegistrationContext.Provider
@@ -769,6 +1053,20 @@ export const SalonRegistrationProvider = ({
                 data,
                 updateData,
                 reset,
+
+                currentStep,
+                completedSteps,
+
+                isDraftLoading,
+                isDraftSaving,
+                draftError,
+
+                setCurrentStep,
+                markStepCompleted,
+
+                saveDraft,
+                loadDraft,
+                resetDraftState,
             }}
         >
             {children}
@@ -781,10 +1079,7 @@ export const SalonRegistrationProvider = ({
 // =====================================================
 
 export const useSalonRegistration = () => {
-    const context =
-        useContext(
-            SalonRegistrationContext,
-        );
+    const context = useContext(SalonRegistrationContext);
 
     if (!context) {
         throw new Error(
@@ -794,4 +1089,3 @@ export const useSalonRegistration = () => {
 
     return context;
 };
-

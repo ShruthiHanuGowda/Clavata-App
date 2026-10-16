@@ -25,6 +25,7 @@ import {
 } from 'react-native';
 
 import MapView, {
+  Marker,
   PROVIDER_GOOGLE,
   Region,
 } from 'react-native-maps';
@@ -33,55 +34,41 @@ import Geolocation from '@react-native-community/geolocation';
 
 import AppGradient from '../../common/AppGradient';
 import { GRADIENTS } from '../../constants/constants';
+
 import { useSalonRegistration } from '../../context/SalonRegistrationContext';
 
 import {
   getPlaceDetails,
   reverseGeocode,
   searchAddress,
-  type AddressSuggestion,
-  type Coordinates,
+  Coordinates,
+  AddressSuggestion,
 } from '../../services/locationService';
 
 /* ============================================================
    TYPES
 ============================================================ */
 
-type AddressData = {
+type AddressFields = {
   addressLine: string;
   city: string;
   state: string;
   pincode: string;
-  latitude: number;
-  longitude: number;
-};
-
-type RegistrationData = Record<string, unknown> & {
-  addressLine?: string;
-  city?: string;
-  state?: string;
-  pincode?: string;
-  address?: {
-    addressLine?: string;
-    city?: string;
-    state?: string;
-    pincode?: string;
-  };
-  latitude?: number;
-  longitude?: number;
 };
 
 type Props = {
   navigation: {
     navigate: (
       screen: string,
-      params?: Record<string, unknown>,
+      params?: Record<string, any>,
     ) => void;
     goBack?: () => void;
   };
   route?: {
     params?: {
-      registrationData?: RegistrationData;
+      registrationData?: Record<string, any>;
+      initialStep?: number;
+      completedSteps?: number[];
     };
   };
 };
@@ -95,23 +82,66 @@ const DEFAULT_COORDINATES: Coordinates = {
   longitude: 77.5946,
 };
 
-const MAP_DELTA = {
+const DEFAULT_REGION: Region = {
+  ...DEFAULT_COORDINATES,
   latitudeDelta: 0.012,
   longitudeDelta: 0.012,
 };
 
 const COLORS = {
-  primary: '#7655D9',
-  primaryLight: '#F2EDFF',
+  primary: '#7652D6',
+  primaryDark: '#5A38B5',
+  primaryLight: '#F1ECFF',
   background: '#F8F7FC',
-  surface: '#FFFFFF',
-  text: '#211C35',
-  muted: '#777389',
-  border: '#E8E4F0',
-  error: '#C63F52',
-  success: '#26845B',
-  pin: '#E53945',
+  white: '#FFFFFF',
+  text: '#211A32',
+  secondaryText: '#777184',
+  border: '#E8E3F0',
+  success: '#21865B',
 };
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+const clean = (value?: string | null): string =>
+  (value ?? '').trim();
+
+const extractAddressFields = (
+  result: Awaited<ReturnType<typeof reverseGeocode>>,
+): AddressFields | null => {
+  if (!result) {
+    return null;
+  }
+
+  const address = result.address ?? {};
+
+  return {
+    addressLine: clean(
+      result.display_name || result.formatted_address,
+    ),
+    city: clean(
+      address.city ||
+      address.town ||
+      address.village ||
+      address.municipality ||
+      address.county,
+    ),
+    state: clean(address.state),
+    pincode: clean(address.pincode || address.postcode),
+  };
+};
+
+const isValidCoordinates = (
+  latitude: number,
+  longitude: number,
+): boolean =>
+  Number.isFinite(latitude) &&
+  Number.isFinite(longitude) &&
+  latitude >= -90 &&
+  latitude <= 90 &&
+  longitude >= -180 &&
+  longitude <= 180;
 
 /* ============================================================
    SCREEN
@@ -121,940 +151,576 @@ const SalonAddressScreen: React.FC<Props> = ({
   navigation,
   route,
 }) => {
-  const mapRef = useRef<MapView>(null);
-  const fullMapRef = useRef<MapView>(null);
+  const {
+    data,
+    updateData,
+    completedSteps,
+    setCurrentStep,
+    markStepCompleted,
+    saveDraft,
+    isDraftLoading,
+    isDraftSaving,
+  } = useSalonRegistration();
 
-  const { updateData } = useSalonRegistration();
-
-  const debounceRef =
+  const mapRef = useRef<MapView | null>(null);
+  const searchTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const searchRequestIdRef = useRef(0);
-  const locationRequestIdRef = useRef(0);
+  const [addressLine, setAddressLine] = useState(
+    data.addressLine || '',
+  );
+  const [city, setCity] = useState(data.city || '');
+  const [state, setState] = useState(data.state || '');
+  const [pincode, setPincode] = useState(data.pincode || '');
 
-  const selectedAddressRef = useRef(false);
-  const fullMapReadyRef = useRef(false);
+  const [coordinates, setCoordinates] = useState<Coordinates>(() => ({
+    latitude:
+      typeof data.latitude === 'number'
+        ? data.latitude
+        : DEFAULT_COORDINATES.latitude,
+    longitude:
+      typeof data.longitude === 'number'
+        ? data.longitude
+        : DEFAULT_COORDINATES.longitude,
+  }));
 
-  const [coordinates, setCoordinates] =
-    useState<Coordinates>(DEFAULT_COORDINATES);
+  const [mapRegion, setMapRegion] = useState<Region>(() => ({
+    latitude:
+      typeof data.latitude === 'number'
+        ? data.latitude
+        : DEFAULT_REGION.latitude,
+    longitude:
+      typeof data.longitude === 'number'
+        ? data.longitude
+        : DEFAULT_REGION.longitude,
+    latitudeDelta: DEFAULT_REGION.latitudeDelta,
+    longitudeDelta: DEFAULT_REGION.longitudeDelta,
+  }));
 
   const [searchText, setSearchText] = useState('');
-  const [addressLine, setAddressLine] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [pincode, setPincode] = useState('');
+  const [suggestions, setSuggestions] = useState<
+    AddressSuggestion[]
+  >([]);
 
-  const [suggestions, setSuggestions] =
-    useState<AddressSuggestion[]>([]);
-
-  const [loadingSuggestions, setLoadingSuggestions] =
+  const [isSearching, setIsSearching] = useState(false);
+  const [isResolvingLocation, setIsResolvingLocation] =
     useState(false);
+  const [isMapVisible, setIsMapVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [loadingAddress, setLoadingAddress] =
-    useState(false);
-
-  const [loadingCurrentLocation, setLoadingCurrentLocation] =
-    useState(false);
-
-  const [selectingSuggestion, setSelectingSuggestion] =
-    useState(false);
-
-  const [locationFound, setLocationFound] =
-    useState(false);
-
-  const [showSuggestions, setShowSuggestions] =
-    useState(false);
-
-  const [showFullMap, setShowFullMap] =
-    useState(false);
-
-  const [fullMapSession, setFullMapSession] = useState(0);
-
-  const [addressError, setAddressError] = useState('');
-  const [searchError, setSearchError] = useState('');
+  const [locationFound, setLocationFound] = useState(
+    typeof data.latitude === 'number' &&
+    typeof data.longitude === 'number',
+  );
 
   /* ============================================================
-     RESTORE REGISTRATION DATA
-
-     Supports the existing nested address format and the flat
-     fields used by SalonRegistrationContext.
+     RESTORE SAVED ADDRESS
   ============================================================ */
 
   useEffect(() => {
-    const saved = route?.params?.registrationData;
+    const routeData = route?.params?.registrationData ?? {};
 
-    if (!saved) {
-      return;
-    }
+    const restoredAddressLine =
+      data.addressLine || routeData.addressLine || '';
+    const restoredCity = data.city || routeData.city || '';
+    const restoredState = data.state || routeData.state || '';
+    const restoredPincode = data.pincode || routeData.pincode || '';
 
-    setAddressLine(
-      saved.addressLine ?? saved.address?.addressLine ?? '',
-    );
+    const restoredLatitude =
+      typeof data.latitude === 'number'
+        ? data.latitude
+        : typeof routeData.latitude === 'number'
+          ? routeData.latitude
+          : null;
 
-    setCity(
-      saved.city ?? saved.address?.city ?? '',
-    );
+    const restoredLongitude =
+      typeof data.longitude === 'number'
+        ? data.longitude
+        : typeof routeData.longitude === 'number'
+          ? routeData.longitude
+          : null;
 
-    setState(
-      saved.state ?? saved.address?.state ?? '',
-    );
-
-    setPincode(
-      saved.pincode ?? saved.address?.pincode ?? '',
-    );
+    setAddressLine(restoredAddressLine);
+    setCity(restoredCity);
+    setState(restoredState);
+    setPincode(restoredPincode);
 
     if (
-      typeof saved.latitude === 'number' &&
-      typeof saved.longitude === 'number' &&
-      Number.isFinite(saved.latitude) &&
-      Number.isFinite(saved.longitude) &&
-      saved.latitude >= -90 &&
-      saved.latitude <= 90 &&
-      saved.longitude >= -180 &&
-      saved.longitude <= 180
+      typeof restoredLatitude === 'number' &&
+      typeof restoredLongitude === 'number'
     ) {
-      const point: Coordinates = {
-        latitude: saved.latitude,
-        longitude: saved.longitude,
+      const restoredCoordinates = {
+        latitude: restoredLatitude,
+        longitude: restoredLongitude,
       };
 
-      setCoordinates(point);
+      const restoredRegion: Region = {
+        ...restoredCoordinates,
+        latitudeDelta: DEFAULT_REGION.latitudeDelta,
+        longitudeDelta: DEFAULT_REGION.longitudeDelta,
+      };
+
+      setCoordinates(restoredCoordinates);
+      setMapRegion(restoredRegion);
       setLocationFound(true);
 
-      mapRef.current?.animateToRegion(
-        { ...point, ...MAP_DELTA },
-        0,
-      );
+      const timer = setTimeout(() => {
+        mapRef.current?.animateToRegion(restoredRegion, 400);
+      }, 300);
+
+      return () => clearTimeout(timer);
     }
-  }, [route?.params?.registrationData]);
+  }, [
+    data.addressLine,
+    data.city,
+    data.state,
+    data.pincode,
+    data.latitude,
+    data.longitude,
+    route?.params?.registrationData,
+  ]);
 
-  /* ============================================================
-     MAP ANIMATION
-  ============================================================ */
-
-  const animateMap = useCallback(
-    (point: Coordinates) => {
-      const region: Region = {
-        ...point,
-        ...MAP_DELTA,
-      };
-
-      mapRef.current?.animateToRegion(region, 450);
-
-      fullMapRef.current?.animateToRegion(region, 450);
-    },
-    [],
-  );
-
-  /* ============================================================
-     OPEN / CLOSE FULL-SCREEN MAP
-  ============================================================ */
-
-  const handleOpenFullMap = useCallback(() => {
-    Keyboard.dismiss();
-
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-    }
-
-    ++searchRequestIdRef.current;
-
-    setSuggestions([]);
-    setShowSuggestions(false);
-    setLoadingSuggestions(false);
-    setSearchError('');
-
-    fullMapReadyRef.current = false;
-
-    setFullMapSession(previous => previous + 1);
-    setShowFullMap(true);
-  }, []);
-
-  const handleCloseFullMap = useCallback(() => {
-    Keyboard.dismiss();
-
-    setShowFullMap(false);
-    fullMapReadyRef.current = false;
-
-    setSuggestions([]);
-    setShowSuggestions(false);
-    setLoadingSuggestions(false);
-    setSearchError('');
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, []);
 
   /* ============================================================
-     ADDRESS SEARCH INPUT
+     REVERSE GEOCODE HELPERS
   ============================================================ */
 
-  const handleSearchTextChange = useCallback(
-    (value: string) => {
-      selectedAddressRef.current = false;
-
-      ++searchRequestIdRef.current;
-
-      setSearchText(value);
-      setSearchError('');
-
-      const enoughText = value.trim().length >= 3;
-
-      setShowSuggestions(enoughText);
-
-      if (!enoughText) {
-        setSuggestions([]);
-        setLoadingSuggestions(false);
-      }
-    },
-    [],
-  );
-
-  /* ============================================================
-     APPLY REVERSE-GEOCODED ADDRESS
-  ============================================================ */
-
-  const applyGeocodedAddress = useCallback(
-    (
-      data: Awaited<ReturnType<typeof reverseGeocode>>,
-    ) => {
-      if (!data) {
-        setLocationFound(false);
-
-        setAddressError(
-          'We could not identify this address. Please enter it manually.',
-        );
-
-        return;
-      }
-
-      const address = data.address ?? {};
-
-      const streetParts = [
-        address.house_number,
-        address.road,
-        address.neighbourhood,
-        address.suburb,
-      ].filter(
-        (value, index, values) =>
-          Boolean(value) &&
-          values.indexOf(value) === index,
-      );
-
-      const street =
-        streetParts.join(', ') ||
-        data.formatted_address ||
-        '';
-
-      const resolvedCity =
-        address.city ||
-        address.town ||
-        address.village ||
-        address.municipality ||
-        address.county ||
-        '';
-
-      setAddressLine(previous => street || previous);
-      setCity(resolvedCity);
-      setState(address.state ?? '');
-
-      setPincode(
-        String(address.postcode ?? '')
-          .replace(/\D/g, '')
-          .slice(0, 6),
-      );
-
-      setAddressError('');
+  const resolveAddressFromCoordinates = useCallback(
+    async (nextCoordinates: Coordinates) => {
+      setCoordinates(nextCoordinates);
       setLocationFound(true);
-    },
-    [],
-  );
-
-  /* ============================================================
-     UPDATE SELECTED LOCATION
-
-     The pin is a React Native overlay at the map centre.
-     When the map is moved, its centre becomes the selected
-     geographical location.
-  ============================================================ */
-
-  const updateSelectedLocation = useCallback(
-    async (
-      point: Coordinates,
-      preserveSearchText = false,
-      shouldAnimate = true,
-    ) => {
-      if (
-        !Number.isFinite(point.latitude) ||
-        !Number.isFinite(point.longitude) ||
-        point.latitude < -90 ||
-        point.latitude > 90 ||
-        point.longitude < -180 ||
-        point.longitude > 180
-      ) {
-        return;
-      }
-
-      const requestId =
-        ++locationRequestIdRef.current;
-
-      ++searchRequestIdRef.current;
-
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
-
-      setCoordinates(point);
-      setLocationFound(false);
-      setLoadingAddress(true);
-      setAddressError('');
-
-      if (!preserveSearchText) {
-        selectedAddressRef.current = false;
-        setSearchText('');
-      }
-
-      setSuggestions([]);
-      setShowSuggestions(false);
-      setLoadingSuggestions(false);
-      setSearchError('');
-
-      if (shouldAnimate) {
-        animateMap(point);
-      }
 
       try {
+        setIsResolvingLocation(true);
+
         const result = await reverseGeocode(
-          point.latitude,
-          point.longitude,
+          nextCoordinates.latitude,
+          nextCoordinates.longitude,
         );
 
-        if (
-          requestId !== locationRequestIdRef.current
-        ) {
-          return;
-        }
+        const fields = extractAddressFields(result);
 
-        applyGeocodedAddress(result);
+        if (fields) {
+          setAddressLine(fields.addressLine);
+          setCity(fields.city);
+          setState(fields.state);
+          setPincode(fields.pincode);
+        } else {
+          Alert.alert(
+            'Address not found',
+            'The map location was selected, but we could not retrieve its address. You can enter the address manually.',
+          );
+        }
       } catch (error) {
-        if (
-          requestId !== locationRequestIdRef.current
-        ) {
-          return;
-        }
+        console.warn('REVERSE GEOCODE ERROR:', error);
 
-        console.error(
-          'Selected location error:',
-          error,
+        Alert.alert(
+          'Address lookup failed',
+          'Please enter the address details manually.',
         );
-
-        setAddressError(
-          'Unable to retrieve the selected address. You can enter it manually.',
-        );
-
-        setLocationFound(false);
       } finally {
-        if (
-          requestId === locationRequestIdRef.current
-        ) {
-          setLoadingAddress(false);
-        }
+        setIsResolvingLocation(false);
       }
     },
-    [animateMap, applyGeocodedAddress],
+    [],
   );
-
-  /* ============================================================
-     FULL MAP MOVEMENT
-
-     The fixed red pin represents the centre of the map.
-     Panning the map updates the selected coordinates.
-  ============================================================ */
-
-  const handleFullMapRegionChangeComplete =
-    useCallback(
-      (region: Region) => {
-        if (!fullMapReadyRef.current) {
-          return;
-        }
-
-        const point: Coordinates = {
-          latitude: region.latitude,
-          longitude: region.longitude,
-        };
-
-        const latitudeDifference = Math.abs(
-          point.latitude - coordinates.latitude,
-        );
-
-        const longitudeDifference = Math.abs(
-          point.longitude - coordinates.longitude,
-        );
-
-        // Ignore tiny map-region changes to prevent
-        // unnecessary reverse-geocoding requests.
-        if (
-          latitudeDifference < 0.00002 &&
-          longitudeDifference < 0.00002
-        ) {
-          return;
-        }
-
-        void updateSelectedLocation(
-          point,
-          false,
-          false,
-        );
-      },
-      [coordinates, updateSelectedLocation],
-    );
 
   /* ============================================================
      ADDRESS AUTOCOMPLETE
   ============================================================ */
 
-  useEffect(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchText(value);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
 
-    if (
-      selectingSuggestion ||
-      selectedAddressRef.current
-    ) {
-      ++searchRequestIdRef.current;
-
+    if (value.trim().length < 3) {
       setSuggestions([]);
-      setShowSuggestions(false);
-      setLoadingSuggestions(false);
-      setSearchError('');
-
+      setIsSearching(false);
       return;
     }
 
-    const query = searchText.trim();
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true);
 
-    if (query.length < 3) {
-      ++searchRequestIdRef.current;
-
-      setSuggestions([]);
-      setShowSuggestions(false);
-      setLoadingSuggestions(false);
-      setSearchError('');
-
-      return;
-    }
-
-    const requestId =
-      ++searchRequestIdRef.current;
-
-    setLoadingSuggestions(true);
-    setSearchError('');
-
-    debounceRef.current = setTimeout(async () => {
       try {
-        const results = await searchAddress(query);
-
-        if (
-          requestId !== searchRequestIdRef.current ||
-          selectedAddressRef.current
-        ) {
-          return;
-        }
-
+        const results = await searchAddress(value.trim());
         setSuggestions(results);
-        setShowSuggestions(results.length > 0);
-
-        setSearchError(
-          results.length === 0
-            ? 'No matching addresses found. Try another search.'
-            : '',
-        );
       } catch (error) {
-        if (
-          requestId !== searchRequestIdRef.current ||
-          selectedAddressRef.current
-        ) {
-          return;
-        }
-
-        console.error('Autocomplete error:', error);
-
+        console.warn('ADDRESS SEARCH ERROR:', error);
         setSuggestions([]);
-        setShowSuggestions(false);
-
-        setSearchError(
-          'Address search is temporarily unavailable.',
-        );
       } finally {
-        if (
-          requestId === searchRequestIdRef.current
-        ) {
-          setLoadingSuggestions(false);
-        }
+        setIsSearching(false);
       }
-    }, 400);
-
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
-    };
-  }, [searchText, selectingSuggestion]);
+    }, 450);
+  }, []);
 
   /* ============================================================
-     SELECT ADDRESS SEARCH RESULT
+     SELECT AUTOCOMPLETE RESULT
   ============================================================ */
 
   const handleSelectSuggestion = useCallback(
     async (suggestion: AddressSuggestion) => {
-      selectedAddressRef.current = true;
-
-      ++searchRequestIdRef.current;
-      ++locationRequestIdRef.current;
-
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
-
       Keyboard.dismiss();
-
-      setSelectingSuggestion(true);
-      setLoadingSuggestions(false);
-      setLoadingAddress(true);
-      setShowSuggestions(false);
       setSuggestions([]);
-      setSearchError('');
-      setAddressError('');
+      setSearchText(suggestion.description);
+      setIsResolvingLocation(true);
 
       try {
-        const place = await getPlaceDetails(
-          suggestion.placeId,
-        );
+        const place = await getPlaceDetails(suggestion.placeId);
 
         if (!place) {
-          selectedAddressRef.current = false;
-
           Alert.alert(
             'Location unavailable',
-            'We could not retrieve this address. Please try again.',
+            'We could not retrieve this location. Please select another result.',
           );
-
           return;
         }
 
-        const latitude = place.latitude;
-        const longitude = place.longitude;
-
-        if (
-          !Number.isFinite(latitude) ||
-          !Number.isFinite(longitude) ||
-          latitude < -90 ||
-          latitude > 90 ||
-          longitude < -180 ||
-          longitude > 180
-        ) {
-          selectedAddressRef.current = false;
-
-          Alert.alert(
-            'Location unavailable',
-            'The selected address has invalid coordinates. Please choose another result.',
-          );
-
-          return;
-        }
-
-        const point: Coordinates = {
-          latitude,
-          longitude,
+        const nextCoordinates: Coordinates = {
+          latitude: place.latitude,
+          longitude: place.longitude,
         };
 
-        setSearchText(suggestion.description.trim());
+        if (
+          !isValidCoordinates(
+            nextCoordinates.latitude,
+            nextCoordinates.longitude,
+          )
+        ) {
+          Alert.alert(
+            'Invalid location',
+            'The selected result returned invalid coordinates.',
+          );
+          return;
+        }
+
+        setCoordinates(nextCoordinates);
+        setLocationFound(true);
+
+        const nextRegion: Region = {
+          ...nextCoordinates,
+          latitudeDelta: DEFAULT_REGION.latitudeDelta,
+          longitudeDelta: DEFAULT_REGION.longitudeDelta,
+        };
+
+        setMapRegion(nextRegion);
+        mapRef.current?.animateToRegion(nextRegion, 500);
 
         setAddressLine(
-          (place.addressLine || '').trim() ||
-          suggestion.description.trim(),
+          place.addressLine || place.formattedAddress || '',
         );
+        setCity(place.city || '');
+        setState(place.state || '');
+        setPincode(place.pincode || '');
 
-        setCity((place.city || '').trim());
-        setState((place.state || '').trim());
-
-        setPincode(
-          String(place.pincode || '')
-            .replace(/\D/g, '')
-            .slice(0, 6),
-        );
-
-        setCoordinates(point);
-        setLocationFound(true);
-        setAddressError('');
-
-        animateMap(point);
-
-        setSuggestions([]);
-        setShowSuggestions(false);
-        setSearchError('');
+        setIsMapVisible(false);
       } catch (error) {
-        console.error(
-          'Place selection error:',
-          error,
-        );
-
-        selectedAddressRef.current = false;
+        console.warn('PLACE DETAILS ERROR:', error);
 
         Alert.alert(
-          'Unable to select address',
-          'Please try selecting the address again.',
+          'Location error',
+          'Unable to load the selected location. Please try again.',
         );
       } finally {
-        setSelectingSuggestion(false);
-        setLoadingAddress(false);
+        setIsResolvingLocation(false);
       }
     },
-    [animateMap],
+    [],
   );
 
   /* ============================================================
-     LOCATION PERMISSION
+     MAP EVENTS
   ============================================================ */
 
-  const requestLocationPermission =
-    useCallback(async () => {
-      if (Platform.OS !== 'android') {
-        return true;
-      }
+  const handleMapPress = useCallback(
+    (event: { nativeEvent: { coordinate: Coordinates } }) => {
+      const nextCoordinates = event.nativeEvent.coordinate;
 
-      try {
-        const permission =
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION;
+      setMapRegion(previous => ({
+        ...previous,
+        ...nextCoordinates,
+      }));
 
-        const alreadyGranted =
-          await PermissionsAndroid.check(permission);
+      void resolveAddressFromCoordinates(nextCoordinates);
+    },
+    [resolveAddressFromCoordinates],
+  );
 
-        if (alreadyGranted) {
-          return true;
-        }
+  const handleMarkerDragEnd = useCallback(
+    (event: { nativeEvent: { coordinate: Coordinates } }) => {
+      const nextCoordinates = event.nativeEvent.coordinate;
 
-        const result =
-          await PermissionsAndroid.request(
-            permission,
-            {
-              title: 'Clavata location permission',
-              message:
-                'Clavata uses your location to help you set your salon address.',
-              buttonPositive: 'Allow',
-              buttonNegative: 'Cancel',
-            },
-          );
+      setMapRegion(previous => ({
+        ...previous,
+        ...nextCoordinates,
+      }));
 
-        return (
-          result ===
-          PermissionsAndroid.RESULTS.GRANTED
-        );
-      } catch (error) {
-        console.error(
-          'Location permission error:',
-          error,
-        );
-
-        return false;
-      }
-    }, []);
+      void resolveAddressFromCoordinates(nextCoordinates);
+    },
+    [resolveAddressFromCoordinates],
+  );
 
   /* ============================================================
      CURRENT LOCATION
   ============================================================ */
 
-  const handleUseCurrentLocation =
-    useCallback(async () => {
-      const permitted =
-        await requestLocationPermission();
+  const requestLocationPermission = useCallback(async () => {
+    if (Platform.OS !== 'android') {
+      return true;
+    }
 
-      if (!permitted) {
-        Alert.alert(
-          'Location permission required',
-          'Allow location access in your device settings, or search for your address manually.',
-        );
-
-        return;
-      }
-
-      setLoadingCurrentLocation(true);
-
-      Geolocation.getCurrentPosition(
-        position => {
-          const point: Coordinates = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-
-          setLoadingCurrentLocation(false);
-
-          void updateSelectedLocation(point);
+    try {
+      const result = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Allow location access',
+          message:
+            'Clavata uses your location to help you set your salon address accurately.',
+          buttonPositive: 'Allow',
+          buttonNegative: 'Cancel',
         },
-        error => {
-          console.error(
-            'Current location error:',
-            error,
+      );
+
+      return result === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (error) {
+      console.warn('LOCATION PERMISSION ERROR:', error);
+      return false;
+    }
+  }, []);
+
+  const handleUseCurrentLocation = useCallback(async () => {
+    const permitted = await requestLocationPermission();
+
+    if (!permitted) {
+      Alert.alert(
+        'Location permission required',
+        'Allow location access or search for your salon address manually.',
+      );
+      return;
+    }
+
+    setIsResolvingLocation(true);
+
+    Geolocation.getCurrentPosition(
+      async position => {
+        const nextCoordinates: Coordinates = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+
+        setCoordinates(nextCoordinates);
+        setLocationFound(true);
+
+        const nextRegion: Region = {
+          ...nextCoordinates,
+          latitudeDelta: DEFAULT_REGION.latitudeDelta,
+          longitudeDelta: DEFAULT_REGION.longitudeDelta,
+        };
+
+        setMapRegion(nextRegion);
+        mapRef.current?.animateToRegion(nextRegion, 500);
+
+        try {
+          const result = await reverseGeocode(
+            nextCoordinates.latitude,
+            nextCoordinates.longitude,
           );
 
-          setLoadingCurrentLocation(false);
+          const fields = extractAddressFields(result);
+
+          if (fields) {
+            setAddressLine(fields.addressLine);
+            setCity(fields.city);
+            setState(fields.state);
+            setPincode(fields.pincode);
+          } else {
+            Alert.alert(
+              'Address not found',
+              'Your coordinates were found. Please enter the address manually.',
+            );
+          }
+
+          setIsMapVisible(false);
+        } catch (error) {
+          console.warn('CURRENT LOCATION GEOCODE ERROR:', error);
 
           Alert.alert(
-            'Unable to get location',
-            'Check that device location is enabled, then try again or search for your address.',
+            'Address lookup failed',
+            'Your location was found, but the address could not be retrieved.',
           );
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 20000,
-          maximumAge: 10000,
-        },
-      );
-    }, [
-      requestLocationPermission,
-      updateSelectedLocation,
-    ]);
+        } finally {
+          setIsResolvingLocation(false);
+        }
+      },
+      error => {
+        console.warn('CURRENT LOCATION ERROR:', error);
+        setIsResolvingLocation(false);
+
+        Alert.alert(
+          'Unable to get location',
+          'Check that location services are enabled, or search for your address manually.',
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 10000,
+      },
+    );
+  }, [requestLocationPermission]);
 
   /* ============================================================
-     MAP PRESS
-
-     Tapping the map selects that location and recentres the
-     map so the fixed pin points to the selected coordinates.
+     VALIDATION
   ============================================================ */
 
-  const handleMapPress = useCallback(
-    (event: {
-      nativeEvent: {
-        coordinate: Coordinates;
-      };
-    }) => {
-      Keyboard.dismiss();
-
-      void updateSelectedLocation(
-        event.nativeEvent.coordinate,
-      );
-    },
-    [updateSelectedLocation],
-  );
-
-  /* ============================================================
-     CONFIRM ADDRESS
-
-     Save the flat address fields to shared registration
-     context so they remain available on SalonReviewScreen.
-     Keep the nested address in navigation params for
-     compatibility with existing screens.
-  ============================================================ */
-
-  const handleConfirmAddress = useCallback(() => {
-    Keyboard.dismiss();
-
-    const trimmedAddress = addressLine.trim();
-    const trimmedCity = city.trim();
-    const trimmedState = state.trim();
-    const trimmedPincode = pincode.trim();
-
-    if (!trimmedAddress) {
+  const validateAddress = useCallback(() => {
+    if (!addressLine.trim()) {
       Alert.alert(
         'Address required',
-        'Enter your salon street address.',
+        'Enter your salon’s complete street address.',
       );
-      return;
+      return false;
     }
 
-    if (!trimmedCity) {
-      Alert.alert(
-        'City required',
-        'Enter your salon city.',
-      );
-      return;
+    if (!city.trim()) {
+      Alert.alert('City required', 'Enter your salon’s city.');
+      return false;
     }
 
-    if (!trimmedState) {
-      Alert.alert(
-        'State required',
-        'Enter your salon state.',
-      );
-      return;
+    if (!state.trim()) {
+      Alert.alert('State required', 'Enter your salon’s state.');
+      return false;
     }
 
-    if (!/^\d{6}$/.test(trimmedPincode)) {
+    if (!/^[1-9]\d{5}$/.test(pincode.trim())) {
       Alert.alert(
         'Invalid PIN code',
-        'Enter a valid 6-digit Indian PIN code.',
+        'Enter a valid six-digit Indian PIN code.',
       );
-      return;
+      return false;
     }
 
     if (
-      !Number.isFinite(coordinates.latitude) ||
-      !Number.isFinite(coordinates.longitude) ||
-      coordinates.latitude < -90 ||
-      coordinates.latitude > 90 ||
-      coordinates.longitude < -180 ||
-      coordinates.longitude > 180
+      !isValidCoordinates(
+        coordinates.latitude,
+        coordinates.longitude,
+      )
     ) {
       Alert.alert(
         'Location required',
-        'Please select your location on the map.',
+        'Please select your salon location on the map.',
       );
+      return false;
+    }
+
+    return true;
+  }, [addressLine, city, state, pincode, coordinates]);
+
+  /* ============================================================
+     SAVE DRAFT AND CONTINUE
+  ============================================================ */
+
+  const handleConfirmAddress = useCallback(async () => {
+    if (isSubmitting || isDraftSaving || isDraftLoading) {
       return;
     }
 
-    const addressData: AddressData = {
-      addressLine: trimmedAddress,
-      city: trimmedCity,
-      state: trimmedState,
-      pincode: trimmedPincode,
+    Keyboard.dismiss();
+
+    if (!validateAddress()) {
+      return;
+    }
+
+    const latestData = {
+      addressLine: addressLine.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      pincode: pincode.trim(),
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,
     };
 
-    // IMPORTANT: The registration context uses flat fields.
-    // This makes the address available to subsequent screens.
-    updateData({
-      addressLine: addressData.addressLine,
-      city: addressData.city,
-      state: addressData.state,
-      pincode: addressData.pincode,
-      latitude: addressData.latitude,
-      longitude: addressData.longitude,
-    });
+    const nextCompletedSteps = Array.from(
+      new Set([...(completedSteps || []), 1, 2]),
+    ).sort((a, b) => a - b);
 
-    const existingData =
-      route?.params?.registrationData ?? {};
+    setIsSubmitting(true);
 
-    const registrationData: RegistrationData = {
-      ...existingData,
+    try {
+      updateData(latestData);
+      markStepCompleted(2);
+      setCurrentStep(3);
 
-      // Flat fields used by SalonRegistrationContext.
-      addressLine: addressData.addressLine,
-      city: addressData.city,
-      state: addressData.state,
-      pincode: addressData.pincode,
+      const saved = await saveDraft(
+        3,
+        nextCompletedSteps,
+        latestData,
+      );
 
-      // Keep the previous nested structure for compatibility.
-      address: {
-        addressLine: addressData.addressLine,
-        city: addressData.city,
-        state: addressData.state,
-        pincode: addressData.pincode,
-      },
+      if (saved === false) {
+        setCurrentStep(2);
 
-      latitude: addressData.latitude,
-      longitude: addressData.longitude,
-    };
+        Alert.alert(
+          'Unable to save progress',
+          'Your address could not be saved. Please try again.',
+        );
+        return;
+      }
 
-    navigation.navigate('SalonBusinessHours', {
-      registrationData,
-    });
+      navigation.navigate('SalonBusinessHours', {
+        initialStep: 3,
+        completedSteps: nextCompletedSteps,
+        registrationData: {
+          ...data,
+          ...latestData,
+        },
+      });
+    } catch (error) {
+      console.warn('SALON ADDRESS DRAFT SAVE ERROR:', error);
+
+      setCurrentStep(2);
+
+      Alert.alert(
+        'Could not continue',
+        'We could not save your registration progress. Please check your connection and try again.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }, [
+    isSubmitting,
+    isDraftSaving,
+    isDraftLoading,
+    validateAddress,
     addressLine,
     city,
     state,
     pincode,
     coordinates,
-    navigation,
-    route?.params?.registrationData,
+    completedSteps,
     updateData,
+    markStepCompleted,
+    setCurrentStep,
+    saveDraft,
+    navigation,
+    data,
   ]);
 
-  /* ============================================================
-     CLEANUP
-  ============================================================ */
-
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
-
-      ++searchRequestIdRef.current;
-      ++locationRequestIdRef.current;
-    };
-  }, []);
+  const isBusy =
+    isSubmitting || isDraftSaving || isDraftLoading;
 
   /* ============================================================
-     REUSABLE RED PIN
-
-     This is a standard React Native View, not a Google Maps
-     Marker. It therefore remains visible independently of
-     native custom-marker bitmap rendering.
-  ============================================================ */
-
-  const renderCenterPin = () => (
-    <View
-      pointerEvents="none"
-      style={styles.centerPinOverlay}
-    >
-      <View style={styles.customPinContainer}>
-        <View style={styles.customPinHead}>
-          <View style={styles.customPinCenter} />
-        </View>
-
-        <View style={styles.customPinPoint} />
-      </View>
-    </View>
-  );
-
-  const renderSearchSuggestions = (
-    fullScreen: boolean,
-  ) => {
-    if (!showSuggestions || suggestions.length === 0) {
-      return null;
-    }
-
-    return (
-      <View
-        style={
-          fullScreen
-            ? styles.fullMapSuggestions
-            : styles.suggestionsContainer
-        }
-      >
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          nestedScrollEnabled
-          style={
-            fullScreen
-              ? styles.fullMapSuggestionsScroll
-              : undefined
-          }
-        >
-          {suggestions.map((item, index) => (
-            <TouchableOpacity
-              key={item.placeId}
-              style={[
-                styles.suggestionItem,
-                index === suggestions.length - 1 &&
-                  styles.lastSuggestion,
-              ]}
-              onPress={() =>
-                void handleSelectSuggestion(item)
-              }
-              disabled={selectingSuggestion}
-              accessibilityRole="button"
-            >
-              <View style={styles.suggestionIconContainer}>
-                <Text style={styles.suggestionIcon}>⌖</Text>
-              </View>
-
-              <Text style={styles.suggestionText}>
-                {item.description}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  };
-
-  /* ============================================================
-     UI
+     RENDER
   ============================================================ */
 
   return (
@@ -1068,563 +734,365 @@ const SalonAddressScreen: React.FC<Props> = ({
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* HEADER */}
-
-        <View style={styles.header}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            style={styles.backButton}
-            onPress={() => navigation.goBack?.()}
-          >
-            <Text style={styles.backButtonText}>‹</Text>
-          </TouchableOpacity>
-
-          <View style={styles.headerContent}>
-            <Text style={styles.title}>
-              Your business location
-            </Text>
-
-            <Text style={styles.subtitle}>
-              Help customers find your company easily.
-            </Text>
-          </View>
-        </View>
-
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* ADDRESS SEARCH */}
-
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>
-              Find your address
-            </Text>
-
-            <Text style={styles.helperText}>
-              Search for your salon, choose a result, or pin
-              the exact location on the map.
-            </Text>
-
-            <View style={styles.searchContainer}>
-              <Text style={styles.searchIcon}>⌕</Text>
-
-              <TextInput
-                value={searchText}
-                onChangeText={handleSearchTextChange}
-                onFocus={() => {
-                  if (selectedAddressRef.current) {
-                    setShowSuggestions(false);
-                    setSuggestions([]);
-                    return;
-                  }
-
-                  setShowSuggestions(
-                    searchText.trim().length >= 3,
-                  );
-                }}
-                placeholder="Search street, area or landmark"
-                placeholderTextColor={COLORS.muted}
-                style={styles.searchInput}
-                returnKeyType="search"
-                autoCorrect={false}
-                accessibilityLabel="Search salon address"
-              />
-
-              {loadingSuggestions && (
-                <ActivityIndicator
-                  size="small"
-                  color={COLORS.primary}
-                />
-              )}
-            </View>
-
-            {renderSearchSuggestions(false)}
-
-            {!!searchError &&
-              showSuggestions &&
-              !showFullMap && (
-                <Text style={styles.errorText}>
-                  {searchError}
-                </Text>
-              )}
-
+        <View style={styles.flex}>
+          <View style={styles.header}>
             <TouchableOpacity
-              style={styles.currentLocationButton}
-              onPress={() => void handleUseCurrentLocation()}
-              disabled={loadingCurrentLocation}
+              style={styles.backButton}
+              onPress={() => navigation.goBack?.()}
+              disabled={isSubmitting}
               accessibilityRole="button"
+              accessibilityLabel="Go back"
             >
-              {loadingCurrentLocation ? (
-                <ActivityIndicator
-                  size="small"
-                  color={COLORS.primary}
-                />
-              ) : (
-                <Text style={styles.currentLocationIcon}>◎</Text>
-              )}
-
-              <Text style={styles.currentLocationText}>
-                Use my current location
-              </Text>
+              <Text style={styles.backButtonText}>‹</Text>
             </TouchableOpacity>
-          </View>
 
-          {/* COMPACT MAP PREVIEW */}
-
-          <View style={styles.card}>
-            <View style={styles.mapHeader}>
-              <View style={styles.mapHeaderContent}>
-                <Text style={styles.sectionTitle}>
-                  Pin your business location
-                </Text>
-
-                <Text style={styles.helperText}>
-                  Open the map to zoom in and select the exact
-                  entrance or building.
-                </Text>
-              </View>
-
-              <View style={styles.mapBadge}>
-                <Text style={styles.mapBadgeText}>MAP</Text>
-              </View>
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerEyebrow}>
+                SALON REGISTRATION
+              </Text>
+              <Text style={styles.headerTitle}>Salon address</Text>
             </View>
 
-            <View style={styles.mapContainer}>
-              <MapView
-                ref={mapRef}
-                provider={PROVIDER_GOOGLE}
-                style={styles.map}
-                initialRegion={{
-                  ...coordinates,
-                  ...MAP_DELTA,
-                }}
-                showsUserLocation
-                showsMyLocationButton={false}
-                loadingEnabled
-                toolbarEnabled={false}
-                scrollEnabled={false}
-                zoomEnabled={false}
-                rotateEnabled={false}
-                pitchEnabled={false}
-              />
+            <View style={styles.stepBadge}>
+              <Text style={styles.stepBadgeText}>02 / 06</Text>
+            </View>
+          </View>
 
-              {renderCenterPin()}
+          <View style={styles.progressTrack}>
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={styles.progressFill}
+            >
+              <View style={styles.progressFillInner} />
+            </AppGradient>
+          </View>
 
-              <TouchableOpacity
-                style={styles.expandMapOverlay}
-                activeOpacity={0.85}
-                onPress={handleOpenFullMap}
-                accessibilityRole="button"
-                accessibilityLabel="Open full-screen map"
-              >
-                <View style={styles.expandMapButton}>
-                  <Text style={styles.expandMapIcon}>⛶</Text>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.intro}>
+              <Text style={styles.title}>Where is your salon?</Text>
+              <Text style={styles.subtitle}>
+                Add your salon address and pin the exact location so
+                customers can find you easily.
+              </Text>
+            </View>
 
-                  <Text style={styles.expandMapText}>
-                    Select exact location
-                  </Text>
+            {/* SEARCH */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Find your location</Text>
+
+              <View style={styles.searchContainer}>
+                <Text style={styles.searchIcon}>⌕</Text>
+
+                <TextInput
+                  style={styles.searchInput}
+                  value={searchText}
+                  onChangeText={handleSearchChange}
+                  placeholder="Search area, street or landmark"
+                  placeholderTextColor={COLORS.secondaryText}
+                  returnKeyType="search"
+                  autoCorrect={false}
+                />
+
+                {isSearching && (
+                  <ActivityIndicator
+                    size="small"
+                    color={COLORS.primary}
+                  />
+                )}
+              </View>
+
+              {suggestions.length > 0 && (
+                <View style={styles.suggestionsContainer}>
+                  {suggestions.map((suggestion, index) => (
+                    <TouchableOpacity
+                      key={
+                        suggestion.placeId ||
+                        `${suggestion.description}-${index}`
+                      }
+                      style={styles.suggestionRow}
+                      onPress={() =>
+                        void handleSelectSuggestion(suggestion)
+                      }
+                    >
+                      <View style={styles.suggestionIconContainer}>
+                        <Text style={styles.suggestionIcon}>⌖</Text>
+                      </View>
+                      <Text style={styles.suggestionText}>
+                        {suggestion.description}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              </TouchableOpacity>
+              )}
 
               <TouchableOpacity
-                style={styles.mapLocationButton}
+                style={styles.currentLocationButton}
                 onPress={() => void handleUseCurrentLocation()}
-                disabled={loadingCurrentLocation}
-                accessibilityRole="button"
-                accessibilityLabel="Use my current location"
+                disabled={isResolvingLocation}
               >
-                {loadingCurrentLocation ? (
+                {isResolvingLocation ? (
                   <ActivityIndicator
                     size="small"
                     color={COLORS.primary}
                   />
                 ) : (
-                  <Text style={styles.mapLocationButtonText}>
-                    ◎
-                  </Text>
+                  <Text style={styles.currentLocationIcon}>◎</Text>
                 )}
+                <Text style={styles.currentLocationText}>
+                  Use my current location
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {loadingAddress ? (
-              <View style={styles.loadingAddress}>
-                <ActivityIndicator
-                  size="small"
-                  color={COLORS.primary}
-                />
-
-                <Text style={styles.loadingAddressText}>
-                  Getting address details…
-                </Text>
+            {/* MAP PREVIEW */}
+            <View style={styles.section}>
+              <View style={styles.mapHeadingRow}>
+                <Text style={styles.label}>Pin your salon</Text>
+                <TouchableOpacity
+                  onPress={() => setIsMapVisible(true)}
+                >
+                  <Text style={styles.editMapText}>Open map</Text>
+                </TouchableOpacity>
               </View>
-            ) : locationFound ? (
-              <View style={styles.locationSuccess}>
-                <Text style={styles.successIcon}>✓</Text>
 
-                <Text style={styles.successText}>
-                  Location selected
-                </Text>
-              </View>
-            ) : (
-              <Text style={styles.mapHint}>
-                Open the map to position the red pin at your
-                salon entrance.
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.mapPreviewContainer}
+                onPress={() => setIsMapVisible(true)}
+              >
+                <MapView
+                  ref={mapRef}
+                  provider={PROVIDER_GOOGLE}
+                  style={styles.mapPreview}
+                  region={mapRegion}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  rotateEnabled={false}
+                  pitchEnabled={false}
+                >
+                  <Marker
+                    coordinate={coordinates}
+                    draggable
+                    onDragEnd={handleMarkerDragEnd}
+                  />
+                </MapView>
+
+                <View style={styles.mapOverlay}>
+                  <View style={styles.mapOverlayBadge}>
+                    <Text style={styles.mapOverlayBadgeText}>
+                      {locationFound
+                        ? 'Location selected'
+                        : 'Select your location'}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              <Text style={styles.helperText}>
+                Open the map, tap the location, or drag the pin to
+                adjust your salon’s exact location.
               </Text>
+            </View>
+
+            {/* ADDRESS FORM */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Complete address</Text>
+
+              <TextInput
+                style={[styles.textInput, styles.multilineInput]}
+                value={addressLine}
+                onChangeText={setAddressLine}
+                placeholder="Building, street, area and landmark"
+                placeholderTextColor={COLORS.secondaryText}
+                multiline
+                textAlignVertical="top"
+                maxLength={300}
+              />
+
+              <View style={styles.twoColumnRow}>
+                <View style={styles.halfColumn}>
+                  <Text style={styles.label}>City</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={city}
+                    onChangeText={setCity}
+                    placeholder="Enter city"
+                    placeholderTextColor={COLORS.secondaryText}
+                    maxLength={100}
+                    autoCapitalize="words"
+                  />
+                </View>
+
+                <View style={styles.halfColumn}>
+                  <Text style={styles.label}>State</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={state}
+                    onChangeText={setState}
+                    placeholder="Enter state"
+                    placeholderTextColor={COLORS.secondaryText}
+                    maxLength={100}
+                    autoCapitalize="words"
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.label}>PIN code</Text>
+              <TextInput
+                style={styles.textInput}
+                value={pincode}
+                onChangeText={value =>
+                  setPincode(
+                    value.replace(/\D/g, '').slice(0, 6),
+                  )
+                }
+                placeholder="6-digit PIN code"
+                placeholderTextColor={COLORS.secondaryText}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </View>
+
+            {locationFound && (
+              <View style={styles.coordinatesCard}>
+                <View style={styles.coordinatesIconContainer}>
+                  <Text style={styles.coordinatesIcon}>✓</Text>
+                </View>
+
+                <View style={styles.coordinatesTextContainer}>
+                  <Text style={styles.coordinatesTitle}>
+                    Map location selected
+                  </Text>
+                  <Text style={styles.coordinatesSubtitle}>
+                    {coordinates.latitude.toFixed(6)},{' '}
+                    {coordinates.longitude.toFixed(6)}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* CONTINUE */}
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={[
+                styles.continueButton,
+                isBusy && styles.continueButtonDisabled,
+              ]}
+              onPress={() => void handleConfirmAddress()}
+              disabled={isBusy}
+              accessibilityRole="button"
+            >
+              <AppGradient
+                colors={[...GRADIENTS.SOFT_PURPLE]}
+                style={styles.continueButtonGradient}
+              >
+                {isBusy ? (
+                  <View style={styles.loadingRow}>
+                    <ActivityIndicator
+                      color={COLORS.white}
+                      size="small"
+                    />
+                    <Text style={styles.continueButtonText}>
+                      {isDraftLoading
+                        ? 'Loading your draft…'
+                        : 'Saving your progress…'}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.continueButtonInner}>
+                    <Text style={styles.continueButtonText}>
+                      Save & Continue
+                    </Text>
+                    <Text style={styles.continueArrow}>→</Text>
+                  </View>
+                )}
+              </AppGradient>
+            </TouchableOpacity>
+
+            <Text style={styles.footerNote}>
+              Your progress is saved as you continue.
+            </Text>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* FULL-SCREEN MAP */}
+      <Modal
+        visible={isMapVisible}
+        animationType="slide"
+        onRequestClose={() => setIsMapVisible(false)}
+      >
+        <SafeAreaView style={styles.modalSafeArea}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              style={styles.modalBackButton}
+              onPress={() => setIsMapVisible(false)}
+            >
+              <Text style={styles.modalBackText}>‹</Text>
+            </TouchableOpacity>
+
+            <View style={styles.modalHeaderTextContainer}>
+              <Text style={styles.modalTitle}>Pin your salon</Text>
+              <Text style={styles.modalSubtitle}>
+                Tap the map or drag the pin to your exact location.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.fullMapContainer}>
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              style={styles.fullMap}
+              region={mapRegion}
+              onRegionChangeComplete={setMapRegion}
+              onPress={handleMapPress}
+            >
+              <Marker
+                coordinate={coordinates}
+                draggable
+                onDragEnd={handleMarkerDragEnd}
+              />
+            </MapView>
+
+            {isResolvingLocation && (
+              <View style={styles.mapLoadingOverlay}>
+                <ActivityIndicator
+                  color={COLORS.primary}
+                  size="large"
+                />
+                <Text style={styles.mapLoadingText}>
+                  Finding address…
+                </Text>
+              </View>
             )}
           </View>
 
-          {/* ADDRESS DETAILS */}
-
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>
-              Address details
-            </Text>
-
-            <Text style={styles.helperText}>
-              Review the details and correct anything that is
-              missing.
-            </Text>
-
-            {!!addressError && (
-              <Text style={styles.errorText}>
-                {addressError}
+          <View style={styles.modalFooter}>
+            <View style={styles.modalCoordinatesCard}>
+              <Text style={styles.modalCoordinatesLabel}>
+                SELECTED COORDINATES
               </Text>
-            )}
-
-            <Text style={styles.fieldLabel}>
-              Street address *
-            </Text>
-
-            <TextInput
-              value={addressLine}
-              onChangeText={setAddressLine}
-              placeholder="Building, street, area or landmark"
-              placeholderTextColor={COLORS.muted}
-              style={[styles.input, styles.multilineInput]}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-              accessibilityLabel="Street address"
-            />
-
-            <Text style={styles.fieldLabel}>City *</Text>
-
-            <TextInput
-              value={city}
-              onChangeText={setCity}
-              placeholder="Enter city"
-              placeholderTextColor={COLORS.muted}
-              style={styles.input}
-              accessibilityLabel="City"
-            />
-
-            <Text style={styles.fieldLabel}>State *</Text>
-
-            <TextInput
-              value={state}
-              onChangeText={setState}
-              placeholder="Enter state"
-              placeholderTextColor={COLORS.muted}
-              style={styles.input}
-              accessibilityLabel="State"
-            />
-
-            <Text style={styles.fieldLabel}>
-              PIN code *
-            </Text>
-
-            <TextInput
-              value={pincode}
-              onChangeText={value =>
-                setPincode(
-                  value.replace(/\D/g, '').slice(0, 6),
-                )
-              }
-              placeholder="6-digit PIN code"
-              placeholderTextColor={COLORS.muted}
-              style={styles.input}
-              keyboardType="number-pad"
-              maxLength={6}
-              accessibilityLabel="PIN code"
-            />
-
-            <View style={styles.coordinateInfo}>
-              <Text style={styles.coordinateLabel}>
-                Selected coordinates
-              </Text>
-
-              <Text style={styles.coordinateValue}>
+              <Text style={styles.modalCoordinatesValue}>
                 {coordinates.latitude.toFixed(6)},{' '}
                 {coordinates.longitude.toFixed(6)}
               </Text>
             </View>
-          </View>
-
-          {/* CONTINUE */}
-
-          <TouchableOpacity
-            style={styles.confirmButton}
-            onPress={handleConfirmAddress}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Save location and continue"
-          >
-            <AppGradient
-              colors={[...GRADIENTS.SOFT_PURPLE]}
-              style={styles.confirmButtonGradient}
-            >
-              <Text style={styles.confirmButtonText}>
-                Save location and continue
-              </Text>
-
-              <Text style={styles.confirmButtonArrow}>→</Text>
-            </AppGradient>
-          </TouchableOpacity>
-
-          <Text style={styles.footerNote}>
-            Your location helps customers discover your salon
-            nearby.
-          </Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      {/* ========================================================
-          FULL-SCREEN INTERACTIVE MAP
-      ======================================================== */}
-
-      <Modal
-        visible={showFullMap}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={handleCloseFullMap}
-        onShow={() => {
-          fullMapReadyRef.current = false;
-
-          requestAnimationFrame(() => {
-            fullMapRef.current?.animateToRegion(
-              {
-                ...coordinates,
-                ...MAP_DELTA,
-              },
-              0,
-            );
-          });
-        }}
-        statusBarTranslucent={false}
-      >
-        <SafeAreaView style={styles.fullMapScreen}>
-          <StatusBar
-            barStyle="dark-content"
-            backgroundColor="#FFFFFF"
-          />
-
-          {/* FULL MAP HEADER */}
-
-          <View style={styles.fullMapHeader}>
-            <TouchableOpacity
-              style={styles.fullMapBackButton}
-              onPress={handleCloseFullMap}
-              accessibilityRole="button"
-              accessibilityLabel="Close full-screen map"
-            >
-              <Text style={styles.fullMapBackText}>‹</Text>
-            </TouchableOpacity>
-
-            <View style={styles.fullMapHeaderContent}>
-              <Text style={styles.fullMapTitle}>
-                Pin your salon
-              </Text>
-
-              <Text style={styles.fullMapSubtitle}>
-                Search an address or move the map until the
-                red pin points to your salon entrance.
-              </Text>
-            </View>
-          </View>
-
-          {/* FULL MAP BODY */}
-
-          <View style={styles.fullMapBody}>
-            <MapView
-              key={`full-map-${fullMapSession}`}
-              ref={fullMapRef}
-              provider={PROVIDER_GOOGLE}
-              style={styles.fullMap}
-              initialRegion={{
-                ...coordinates,
-                ...MAP_DELTA,
-              }}
-              onMapReady={() => {
-                fullMapReadyRef.current = true;
-
-                fullMapRef.current?.animateToRegion(
-                  {
-                    ...coordinates,
-                    ...MAP_DELTA,
-                  },
-                  0,
-                );
-              }}
-              onRegionChangeComplete={
-                handleFullMapRegionChangeComplete
-              }
-              onPress={handleMapPress}
-              showsUserLocation
-              showsMyLocationButton={false}
-              loadingEnabled
-              toolbarEnabled={false}
-              moveOnMarkerPress={false}
-            />
-
-            {renderCenterPin()}
-
-            {/* ADDRESS SEARCH */}
-
-            <View style={styles.fullMapSearchSection}>
-              <View style={styles.fullMapSearchContainer}>
-                <Text style={styles.searchIcon}>⌕</Text>
-
-                <TextInput
-                  value={searchText}
-                  onChangeText={handleSearchTextChange}
-                  placeholder="Search address or landmark"
-                  placeholderTextColor={COLORS.muted}
-                  style={styles.fullMapSearchInput}
-                  returnKeyType="search"
-                  autoCorrect={false}
-                  accessibilityLabel="Search address on full-screen map"
-                />
-
-                {loadingSuggestions && (
-                  <ActivityIndicator
-                    size="small"
-                    color={COLORS.primary}
-                  />
-                )}
-
-                {!!searchText && (
-                  <TouchableOpacity
-                    onPress={() => handleSearchTextChange('')}
-                    accessibilityRole="button"
-                    accessibilityLabel="Clear address search"
-                    style={styles.fullMapClearButton}
-                  >
-                    <Text style={styles.fullMapClearText}>
-                      ×
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {renderSearchSuggestions(true)}
-
-              {!!searchError &&
-                searchText.trim().length >= 3 && (
-                  <View style={styles.fullMapSearchErrorBox}>
-                    <Text style={styles.fullMapSearchError}>
-                      {searchError}
-                    </Text>
-                  </View>
-                )}
-            </View>
-
-            {/* MAP INSTRUCTIONS */}
-
-            {!showSuggestions && (
-              <View
-                pointerEvents="none"
-                style={styles.mapInstructionCard}
-              >
-                <Text style={styles.mapInstructionTitle}>
-                  Adjust your location
-                </Text>
-
-                <Text style={styles.mapInstructionText}>
-                  Move the map beneath the red pin or tap the
-                  map to select a location.
-                </Text>
-              </View>
-            )}
-
-            {/* CURRENT LOCATION */}
 
             <TouchableOpacity
-              style={styles.fullMapCurrentLocation}
-              onPress={() => void handleUseCurrentLocation()}
-              disabled={loadingCurrentLocation}
-              accessibilityRole="button"
-              accessibilityLabel="Move pin to current location"
-            >
-              {loadingCurrentLocation ? (
-                <ActivityIndicator color={COLORS.primary} />
-              ) : (
-                <Text
-                  style={styles.fullMapCurrentLocationIcon}
-                >
-                  ◎
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* FULL MAP FOOTER */}
-
-          <View style={styles.fullMapFooter}>
-            <View style={styles.fullMapCoordinateRow}>
-              <View style={styles.fullMapPinBadge}>
-                <Text style={styles.fullMapPinBadgeText}>
-                  ⌖
-                </Text>
-              </View>
-
-              <View style={styles.fullMapCoordinateContent}>
-                <Text style={styles.fullMapCoordinateTitle}>
-                  Selected coordinates
-                </Text>
-
-                <Text style={styles.fullMapCoordinateText}>
-                  {coordinates.latitude.toFixed(6)},{' '}
-                  {coordinates.longitude.toFixed(6)}
-                </Text>
-              </View>
-            </View>
-
-            {loadingAddress && (
-              <View style={styles.fullMapLoading}>
-                <ActivityIndicator color={COLORS.primary} />
-
-                <Text style={styles.fullMapLoadingText}>
-                  Updating address details…
-                </Text>
-              </View>
-            )}
-
-            {!!addressError && (
-              <Text style={styles.fullMapError}>
-                {addressError}
-              </Text>
-            )}
-
-            <TouchableOpacity
-              style={styles.fullMapConfirmButton}
-              activeOpacity={0.85}
-              onPress={handleCloseFullMap}
-              accessibilityRole="button"
-              accessibilityLabel="Confirm selected salon location"
+              style={styles.modalConfirmButton}
+              onPress={() => setIsMapVisible(false)}
             >
               <AppGradient
                 colors={[...GRADIENTS.SOFT_PURPLE]}
-                style={styles.fullMapConfirmGradient}
+                style={styles.modalConfirmGradient}
               >
-                <Text style={styles.fullMapConfirmText}>
-                  Confirm this location
-                </Text>
-
-                <Text style={styles.fullMapConfirmArrow}>
-                  ✓
+                <Text style={styles.modalConfirmText}>
+                  Confirm location
                 </Text>
               </AppGradient>
             </TouchableOpacity>
@@ -1640,778 +1108,437 @@ const SalonAddressScreen: React.FC<Props> = ({
 ============================================================ */
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-
+  flex: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 18,
+    paddingBottom: 16,
   },
-
   backButton: {
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.white,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 13,
+    marginRight: 12,
   },
-
   backButtonText: {
+    fontSize: 32,
+    lineHeight: 35,
     color: COLORS.text,
-    fontSize: 30,
-    lineHeight: 32,
     marginTop: -3,
   },
-
-  headerContent: {
+  headerTitleContainer: {
     flex: 1,
-    paddingTop: 2,
   },
-
-  title: {
-    color: COLORS.text,
-    fontSize: 25,
+  headerEyebrow: {
+    color: COLORS.primary,
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: -0.5,
+    letterSpacing: 1.4,
+    marginBottom: 3,
   },
-
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 5,
+  headerTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: COLORS.text,
   },
-
+  stepBadge: {
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  stepBadgeText: {
+    fontSize: 11,
+    color: COLORS.primaryDark,
+    fontWeight: '800',
+  },
+  progressTrack: {
+    height: 4,
+    backgroundColor: '#EAE5F3',
+    marginHorizontal: 20,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    width: '33.333%',
+    borderRadius: 4,
+  },
   scrollContent: {
-    paddingHorizontal: 18,
-    paddingBottom: 32,
+    paddingHorizontal: 20,
+    paddingTop: 22,
+    paddingBottom: 24,
   },
-
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 17,
-    marginBottom: 15,
-    elevation: 1,
-    shadowColor: '#261B49',
-    shadowOpacity: 0.035,
-    shadowRadius: 10,
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
+  intro: {
+    marginBottom: 24,
   },
-
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 16,
+  title: {
+    fontSize: 25,
+    lineHeight: 32,
     fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 8,
   },
-
-  helperText: {
-    color: COLORS.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 5,
-    marginBottom: 13,
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: COLORS.secondaryText,
   },
-
+  section: {
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 9,
+  },
   searchContainer: {
     minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FBFAFE',
-    borderRadius: 13,
+    backgroundColor: COLORS.white,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingHorizontal: 12,
+    borderRadius: 15,
+    paddingHorizontal: 14,
   },
-
   searchIcon: {
-    fontSize: 25,
+    fontSize: 27,
     color: COLORS.primary,
-    marginRight: 9,
+    marginRight: 10,
   },
-
   searchInput: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 50,
     color: COLORS.text,
-    fontSize: 13,
-    paddingVertical: 10,
+    fontSize: 14,
+    paddingVertical: 8,
   },
-
   suggestionsContainer: {
-    marginTop: 7,
+    backgroundColor: COLORS.white,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 13,
+    borderRadius: 14,
+    marginTop: 8,
     overflow: 'hidden',
-    backgroundColor: COLORS.surface,
   },
-
-  suggestionItem: {
+  suggestionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 11,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0EDF5',
+    paddingHorizontal: 12,
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.border,
   },
-
-  lastSuggestion: {
-    borderBottomWidth: 0,
-  },
-
   suggestionIconContainer: {
-    width: 31,
-    height: 31,
+    width: 34,
+    height: 34,
     borderRadius: 10,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
-
   suggestionIcon: {
     color: COLORS.primary,
-    fontSize: 20,
+    fontSize: 21,
   },
-
   suggestionText: {
     flex: 1,
     color: COLORS.text,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 19,
   },
-
   currentLocationButton: {
-    minHeight: 45,
-    marginTop: 11,
-    borderRadius: 12,
-    backgroundColor: COLORS.primaryLight,
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    marginTop: 14,
+    paddingVertical: 6,
   },
-
   currentLocationIcon: {
-    fontSize: 20,
+    fontSize: 21,
     color: COLORS.primary,
+    marginRight: 8,
   },
-
   currentLocationText: {
     color: COLORS.primary,
-    fontSize: 13,
     fontWeight: '700',
-  },
-
-  mapHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-
-  mapHeaderContent: {
-    flex: 1,
-  },
-
-  mapBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: COLORS.primaryLight,
+    fontSize: 13,
     marginLeft: 8,
   },
-
-  mapBadgeText: {
+  mapHeadingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  editMapText: {
     color: COLORS.primary,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    marginBottom: 9,
   },
-
-  mapContainer: {
-    height: 220,
-    borderRadius: 15,
+  mapPreviewContainer: {
+    height: 185,
+    borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: '#EEEAF6',
-  },
-
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
-
-  /* RED PIN OVERLAY */
-
-  centerPinOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-    elevation: 10,
-  },
-
-  customPinContainer: {
-    width: 32,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    transform: [{ translateY: -20 }],
-  },
-
-  customPinHead: {
-    width: 20,
-    height: 20,
-    borderRadius: 14,
-    backgroundColor: COLORS.pin,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 5,
-    shadowColor: '#000000',
-    shadowOpacity: 0.22,
-    shadowRadius: 3,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-  },
-
-  customPinCenter: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#FFFFFF',
-  },
-
-  customPinPoint: {
-    width: 0,
-    height: 0,
-    marginTop: -1,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderTopWidth: 8,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: COLORS.pin,
-  },
-
-  customPinHorizontal: {
-    position: 'absolute',
-    width: 20,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: '#FFFFFF',
-  },
-
-  customPinVertical: {
-    position: 'absolute',
-    width: 3,
-    height: 20,
-    borderRadius: 2,
-    backgroundColor: '#FFFFFF',
-  },
-
-  /* COMPACT MAP CONTROLS */
-
-  expandMapOverlay: {
-    position: 'absolute',
-    left: 10,
-    bottom: 10,
-    zIndex: 20,
-    elevation: 20,
-  },
-
-  expandMapButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    borderRadius: 13,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#EDE9F5',
     borderWidth: 1,
     borderColor: COLORS.border,
-    elevation: 4,
-    shadowColor: '#211C35',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
   },
-
-  expandMapIcon: {
-    color: COLORS.primary,
-    fontSize: 19,
-    fontWeight: '700',
-  },
-
-  expandMapText: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-
-  mapLocationButton: {
-    position: 'absolute',
-    right: 12,
-    bottom: 12,
-    zIndex: 20,
-    width: 43,
-    height: 43,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    elevation: 4,
-  },
-
-  mapLocationButtonText: {
-    color: COLORS.primary,
-    fontSize: 25,
-  },
-
-  mapHint: {
-    color: COLORS.muted,
-    fontSize: 11,
-    lineHeight: 17,
-    marginTop: 10,
-  },
-
-  loadingAddress: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 11,
-    gap: 8,
-  },
-
-  loadingAddressText: {
-    color: COLORS.muted,
-    fontSize: 12,
-  },
-
-  locationSuccess: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 11,
-    gap: 7,
-  },
-
-  successIcon: {
-    color: COLORS.success,
-    fontWeight: '900',
-    fontSize: 15,
-  },
-
-  successText: {
-    color: COLORS.success,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-
-  fieldLabel: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 7,
-    marginTop: 12,
-  },
-
-  input: {
-    minHeight: 48,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    color: COLORS.text,
-    backgroundColor: '#FFFEFF',
-    fontSize: 13,
-  },
-
-  multilineInput: {
-    minHeight: 82,
-  },
-
-  errorText: {
-    color: COLORS.error,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 8,
-    marginBottom: 5,
-  },
-
-  coordinateInfo: {
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#F8F6FC',
-  },
-
-  coordinateLabel: {
-    color: COLORS.muted,
-    fontSize: 10,
-    fontWeight: '700',
-    marginBottom: 5,
-  },
-
-  coordinateValue: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  confirmButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginTop: 20,
-  },
-
-  confirmButtonGradient: {
-    minHeight: 56,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  confirmButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-
-  confirmButtonArrow: {
-    marginBottom: 6,
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '600',
-    position: 'absolute',
-    right: 24,
-  },
-
-  footerNote: {
-    color: COLORS.muted,
-    fontSize: 11,
-    lineHeight: 17,
-    textAlign: 'center',
-    marginTop: 13,
-    paddingHorizontal: 14,
-  },
-
-  /* FULL-SCREEN MAP */
-
-  fullMapScreen: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-
-  fullMapHeader: {
-    minHeight: 82,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-
-  fullMapBackButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primaryLight,
-    marginRight: 12,
-  },
-
-  fullMapBackText: {
-    fontSize: 31,
-    lineHeight: 34,
-    color: COLORS.primary,
-    marginTop: -3,
-  },
-
-  fullMapHeaderContent: {
-    flex: 1,
-  },
-
-  fullMapTitle: {
-    fontSize: 19,
-    fontWeight: '800',
-    color: COLORS.text,
-  },
-
-  fullMapSubtitle: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: COLORS.muted,
-    marginTop: 3,
-  },
-
-  fullMapBody: {
-    flex: 1,
-    overflow: 'hidden',
-    backgroundColor: '#EEEAF6',
-  },
-
-  fullMap: {
+  mapPreview: {
     ...StyleSheet.absoluteFillObject,
   },
-
-  /* FULL MAP SEARCH */
-
-  fullMapSearchSection: {
+  mapOverlay: {
     position: 'absolute',
     top: 12,
     left: 12,
     right: 12,
-    zIndex: 20,
-    elevation: 20,
+    alignItems: 'flex-start',
   },
-
-  fullMapSearchContainer: {
-    minHeight: 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 11,
-    elevation: 4,
-    shadowColor: '#211C35',
-    shadowOpacity: 0.12,
-    shadowRadius: 7,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-  },
-
-  fullMapSearchInput: {
-    flex: 1,
-    minHeight: 48,
-    color: COLORS.text,
-    fontSize: 13,
-    paddingVertical: 9,
-  },
-
-  fullMapClearButton: {
-    width: 30,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  fullMapClearText: {
-    color: COLORS.muted,
-    fontSize: 25,
-    lineHeight: 28,
-  },
-
-  fullMapSuggestions: {
-    marginTop: 6,
-    maxHeight: 240,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    elevation: 5,
-  },
-
-  fullMapSuggestionsScroll: {
-    maxHeight: 240,
-  },
-
-  fullMapSearchErrorBox: {
-    marginTop: 6,
-    padding: 10,
+  mapOverlayBadge: {
+    backgroundColor: COLORS.white,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    elevation: 2,
   },
-
-  fullMapSearchError: {
-    color: COLORS.error,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-
-  mapInstructionCard: {
-    position: 'absolute',
-    top: 76,
-    left: 14,
-    right: 14,
-    padding: 13,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    elevation: 3,
-  },
-
-  mapInstructionTitle: {
+  mapOverlayBadgeText: {
     color: COLORS.text,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-
-  mapInstructionText: {
-    color: COLORS.muted,
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 3,
-  },
-
-  fullMapCurrentLocation: {
-    position: 'absolute',
-    right: 16,
-    bottom: 22,
-    zIndex: 20,
-    width: 49,
-    height: 49,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    elevation: 4,
-    shadowColor: '#211C35',
-    shadowOpacity: 0.12,
-    shadowRadius: 7,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-  },
-
-  fullMapCurrentLocationIcon: {
-    color: COLORS.primary,
-    fontSize: 27,
-  },
-
-  /* FULL MAP FOOTER */
-
-  fullMapFooter: {
-    paddingHorizontal: 18,
-    paddingTop: 15,
-    paddingBottom: Platform.OS === 'android' ? 18 : 12,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-
-  fullMapCoordinateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  fullMapPinBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primaryLight,
-    marginRight: 11,
-  },
-
-  fullMapPinBadgeText: {
-    color: COLORS.primary,
-    fontSize: 24,
-  },
-
-  fullMapCoordinateContent: {
-    flex: 1,
-  },
-
-  fullMapCoordinateTitle: {
-    color: COLORS.text,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
-
-  fullMapCoordinateText: {
-    color: COLORS.muted,
+  helperText: {
+    color: COLORS.secondaryText,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 9,
+  },
+  textInput: {
+    minHeight: 50,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 13,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: 17,
+  },
+  multilineInput: {
+    minHeight: 92,
+    paddingTop: 13,
+  },
+  twoColumnRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  halfColumn: {
+    flex: 1,
+  },
+  coordinatesCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FAF5',
+    borderWidth: 1,
+    borderColor: '#D7EFE2',
+    borderRadius: 15,
+    padding: 14,
+    marginBottom: 12,
+  },
+  coordinatesIconContainer: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: '#D9F3E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  coordinatesIcon: {
+    color: COLORS.success,
+    fontWeight: '900',
+    fontSize: 17,
+  },
+  coordinatesTextContainer: {
+    flex: 1,
+  },
+  coordinatesTitle: {
+    color: COLORS.success,
+    fontWeight: '800',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  coordinatesSubtitle: {
+    color: COLORS.secondaryText,
+    fontSize: 11,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 12 : 18,
+    backgroundColor: COLORS.background,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEAF4',
+  },
+  continueButton: {
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
+  continueButtonDisabled: {
+    opacity: 0.7,
+  },
+  continueButtonGradient: {
+    minHeight: 54,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  continueButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  continueButtonText: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  continueArrow: {
+    color: COLORS.white,
+    fontSize: 21,
+    marginLeft: 12,
+    marginTop: -2,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  footerNote: {
+    color: COLORS.secondaryText,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  modalSafeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalBackButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  modalBackText: {
+    fontSize: 32,
+    color: COLORS.text,
+    lineHeight: 35,
+    marginTop: -3,
+  },
+  modalHeaderTextContainer: {
+    flex: 1,
+  },
+  modalTitle: {
+    color: COLORS.text,
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  modalSubtitle: {
+    color: COLORS.secondaryText,
     fontSize: 12,
     marginTop: 4,
   },
-
-  fullMapLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-  },
-
-  fullMapLoadingText: {
-    color: COLORS.muted,
-    fontSize: 12,
-  },
-
-  fullMapError: {
-    color: COLORS.error,
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 10,
-  },
-
-  fullMapConfirmButton: {
-    borderRadius: 15,
+  fullMapContainer: {
+    flex: 1,
     overflow: 'hidden',
-    marginTop: 15,
   },
-
-  fullMapConfirmGradient: {
-    minHeight: 53,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
+  fullMap: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  mapLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.78)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  fullMapConfirmText: {
-    color: '#FFFFFF',
+  mapLoadingText: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 10,
+  },
+  modalFooter: {
+    padding: 18,
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  modalCoordinatesCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: 13,
+    padding: 13,
+    marginBottom: 14,
+  },
+  modalCoordinatesLabel: {
+    color: COLORS.secondaryText,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  modalCoordinatesValue: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  modalConfirmButton: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  modalConfirmGradient: {
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalConfirmText: {
+    color: COLORS.white,
     fontSize: 14,
     fontWeight: '800',
   },
-
-  fullMapConfirmArrow: {
-    position: 'absolute',
-    right: 20,
-    color: '#FFFFFF',
-    fontSize: 19,
-    fontWeight: '800',
+  progressFillInner: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
 });
 

@@ -1,5 +1,9 @@
+
 import React, {
+  useCallback,
+  useEffect,
   useMemo,
+  useRef,
 } from 'react';
 
 import {
@@ -12,23 +16,11 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
-import {
-  useMutation,
-} from '@apollo/client';
+import { useMutation } from '@apollo/client';
 
-import {
-  Header,
-  DButton,
-} from '../../components';
-
-import {
-  REGISTER_SALON_PARTNER,
-} from '../../graphql/queries';
-
-import {
-  useSalonRegistration,
-} from '../../context/SalonRegistrationContext';
-
+import { Header } from '../../components';
+import { REGISTER_SALON_PARTNER } from '../../graphql/queries';
+import { useSalonRegistration } from '../../context/SalonRegistrationContext';
 import {
   useUser,
   User,
@@ -43,17 +35,14 @@ import {
   RADIUS,
   GRADIENTS,
 } from '../../constants/constants';
-import AppGradient from '../../common/AppGradient';
 
+import AppGradient from '../../common/AppGradient';
 
 // ============================================================
 // TYPES
 // ============================================================
 
-type Audience =
-  | 'FEMALE'
-  | 'MALE'
-  | 'KIDS';
+type Audience = 'FEMALE' | 'MALE' | 'KIDS';
 
 type KycDocumentType =
   | 'PAN'
@@ -62,359 +51,149 @@ type KycDocumentType =
   | 'GST'
   | 'UDYAM';
 
-
-// ============================================================
-// REVIEW SERVICE
-// ============================================================
-//
-// Local registration context model:
-//
-// data.serviceSelections
-//
-// GraphQL registration model:
-//
-// input.services
-//
-// Service hierarchy:
-//
-// Audience
-//   → Category
-//      → Subcategory
-//         → Service
-//
-// Multiple services are allowed under the same:
-//
-// Audience + Category + Subcategory
-//
-// ============================================================
-
 type ReviewServiceSelection = {
   uniqueId?: string;
-
   serviceKey: string;
-
   name: string;
-
   description?: string;
-
   audience: Audience;
-
   categoryId: string;
-
   categoryName: string;
-
   subcategoryId: string;
-
   subcategoryName: string;
-
   price?: number;
-
   durationMinutes?: number;
 };
 
-
-// ============================================================
-// GRAPHQL KYC DOCUMENT INPUT
-// ============================================================
-
 type KycDocumentInput = {
   documentType: KycDocumentType;
-
   fileName: string;
-
   contentType: string;
-
   fileSize?: number;
-
   s3Key: string;
 };
 
-
-// ============================================================
-// GRAPHQL REGISTER RESPONSE
-// ============================================================
+type BusinessHour = {
+  open: string;
+  close: string;
+  isOpen: boolean;
+};
 
 type RegisterSalonPartnerResponse = {
   registerSalonPartner: {
     success: boolean;
-
     message: string;
-
     salonId: string;
   };
 };
 
-
-// ============================================================
-// BUSINESS HOURS
-// ============================================================
-
-type BusinessHour = {
-  open: string;
-
-  close: string;
-
-  isOpen: boolean;
-};
-
-
-// ============================================================
-// GRAPHQL REGISTER VARIABLES
-// ============================================================
-//
-// IMPORTANT:
-//
-// This matches the current RegisterSalonPartnerInput.
-//
-// There is NO:
-//
-// businessType
-// businessTypeId
-// businessTypeIds
-// bankAccount
-// ifsc
-// serviceSelections
-//
-// Registration uses:
-//
-// services
-//
-// Each service contains:
-//
-// categoryId
-// categoryName
-// subcategoryId
-// subcategoryName
-// name
-// description
-// audience
-// price
-// duration
-//
-// ============================================================
-
 type RegisterSalonPartnerVariables = {
   input: {
     userId: string;
-
     phoneNumber: string;
-
     salonName: string;
-
     ownerName: string;
-
     email: string;
-
     targetAudiences: Audience[];
-
     address: {
       addressLine: string;
-
       city: string;
-
       state: string;
-
       pincode: string;
     };
-
     businessHours: {
       MONDAY: BusinessHour;
-
       TUESDAY: BusinessHour;
-
       WEDNESDAY: BusinessHour;
-
       THURSDAY: BusinessHour;
-
       FRIDAY: BusinessHour;
-
       SATURDAY: BusinessHour;
-
       SUNDAY: BusinessHour;
     };
-
     latitude?: number;
-
     longitude?: number;
-
     gstNumber?: string;
-
     panNumber?: string;
-
     aadhaarNumber?: string;
-
     shopEstablishmentNumber?: string;
-
     udyamNumber?: string;
-
     kycDocuments: KycDocumentInput[];
-
     services: Array<{
       categoryId: string;
-
       categoryName: string;
-
       subcategoryId: string;
-
       subcategoryName: string;
-
       name: string;
-
       description?: string;
-
       audience: Audience;
-
       price: number;
-
       duration: number;
     }>;
   };
 };
 
-
 // ============================================================
-// AUDIENCE LABEL
+// HELPERS
 // ============================================================
 
-const getAudienceLabel = (
-  audience: Audience,
-): string => {
+const cleanString = (value: any): string =>
+  String(value ?? '').trim();
 
+const isValidAudience = (value: any): value is Audience =>
+  value === 'FEMALE' ||
+  value === 'MALE' ||
+  value === 'KIDS';
+
+const getAudienceLabel = (audience: Audience): string => {
   switch (audience) {
-
     case 'FEMALE':
       return 'Female';
-
     case 'MALE':
       return 'Male';
-
     case 'KIDS':
       return 'Kids';
-
     default:
       return audience;
   }
 };
 
+const getKycDocumentName = (document: any): string =>
+  cleanString(document?.name ?? document?.fileName);
 
-// ============================================================
-// KYC DOCUMENT HELPERS
-// ============================================================
+const getKycDocumentContentType = (document: any): string =>
+  cleanString(document?.type ?? document?.contentType);
 
-const getKycDocumentName = (
-  document: any,
-): string => {
+const getKycDocumentUploadId = (document: any): string =>
+  cleanString(document?.uploadId);
 
-  return String(
-    document?.name ??
-    document?.fileName ??
-    '',
-  ).trim();
-};
-
-
-const getKycDocumentContentType = (
-  document: any,
-): string => {
-
-  return String(
-    document?.type ??
-    document?.contentType ??
-    '',
-  ).trim();
-};
-
-
-const getKycDocumentUploadId = (
-  document: any,
-): string => {
-
-  return String(
-    document?.uploadId ??
-    '',
-  ).trim();
-};
-
-
-const getKycDocumentS3Key = (
-  document: any,
-): string => {
-
-  return String(
-    document?.s3Key ??
-    document?.key ??
-    '',
-  ).trim();
-};
-
+const getKycDocumentS3Key = (document: any): string =>
+  cleanString(document?.s3Key ?? document?.key);
 
 const getKycDocumentFileSize = (
   document: any,
 ): number | undefined => {
-
   if (
     document?.size === undefined ||
     document?.size === null ||
     document?.size === ''
   ) {
-
     return undefined;
   }
 
-  const size =
-    Number(
-      document.size,
-    );
+  const size = Number(document.size);
 
-  return Number.isFinite(size) &&
-    size > 0
+  return Number.isFinite(size) && size > 0
     ? size
     : undefined;
 };
 
-
-const hasValidKycDocument = (
-  document: any,
-): boolean => {
-
-  return Boolean(
+const hasValidKycDocument = (document: any): boolean =>
+  Boolean(
     document &&
     getKycDocumentName(document) &&
     getKycDocumentContentType(document) &&
     getKycDocumentS3Key(document),
   );
-};
-
-
-// ============================================================
-// CLEAN STRING
-// ============================================================
-
-const cleanString = (
-  value: any,
-): string => {
-
-  return String(
-    value ?? '',
-  ).trim();
-};
-
-
-// ============================================================
-// NORMALIZE AUDIENCE
-// ============================================================
-
-const isValidAudience = (
-  value: any,
-): value is Audience => {
-
-  return (
-    value === 'FEMALE' ||
-    value === 'MALE' ||
-    value === 'KIDS'
-  );
-};
-
 
 // ============================================================
 // SCREEN
@@ -423,112 +202,143 @@ const isValidAudience = (
 export default function SalonReviewScreen({
   navigation,
 }: any) {
+  const { data, reset, saveDraft } = useSalonRegistration();
 
-  const {
-    data,
-    reset,
-  } = useSalonRegistration();
+  const { currentUser, setCurrentUser } = useUser();
 
-  const {
-    currentUser,
-    setCurrentUser,
-  } = useUser();
+  const draftTimerRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const latestDraftRef = useRef(data);
+  const saveDraftRef = useRef(saveDraft);
+
+  const registrationSucceededRef = useRef(false);
+  const submittingRef = useRef(false);
+
+  latestDraftRef.current = data;
+  saveDraftRef.current = saveDraft;
 
   // ==========================================================
-  // REGISTER SALON
+  // DRAFT AUTOSAVE
+  // ==========================================================
+  //
+  // Current step: 6 (review)
+  // Completed steps: 1–5
+  //
+  // The review screen itself is not considered submitted
+  // until the backend successfully creates the salon.
+  // ==========================================================
+
+  const persistReviewDraft = useCallback(async () => {
+    if (registrationSucceededRef.current) {
+      return true;
+    }
+
+    try {
+      const saved = await saveDraftRef.current(
+        6,
+        [1, 2, 3, 4, 5],
+        latestDraftRef.current,
+      );
+
+      if (!saved) {
+        console.warn(
+          '[SalonReview] Draft save returned false. ' +
+          'Check that userId is available and the draft mutation succeeds.',
+        );
+      }
+
+      return saved;
+    } catch (error: any) {
+      console.warn(
+        '[SalonReview] Draft save failed:',
+        error?.message || error,
+      );
+
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (draftTimerRef.current) {
+      clearTimeout(draftTimerRef.current);
+    }
+
+    draftTimerRef.current = setTimeout(() => {
+      draftTimerRef.current = null;
+
+      if (!registrationSucceededRef.current) {
+        void persistReviewDraft();
+      }
+    }, 900);
+
+    return () => {
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = null;
+      }
+    };
+  }, [data, persistReviewDraft]);
+
+  useEffect(() => {
+    return () => {
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = null;
+      }
+
+      // Do not recreate a draft after successful registration.
+      if (!registrationSucceededRef.current) {
+        void persistReviewDraft();
+      }
+    };
+  }, [persistReviewDraft]);
+
+  // ==========================================================
+  // GRAPHQL MUTATION
   // ==========================================================
 
   const [
     registerSalonPartner,
-    {
-      loading,
-    },
+    { loading },
   ] = useMutation<
     RegisterSalonPartnerResponse,
     RegisterSalonPartnerVariables
-  >(
-    REGISTER_SALON_PARTNER,
-  );
-
+  >(REGISTER_SALON_PARTNER);
 
   // ==========================================================
-  // SERVICE SELECTIONS
+  // NORMALIZE SELECTED SERVICES
   // ==========================================================
 
   const selectedServiceSelections:
-    ReviewServiceSelection[] =
-    useMemo(() => {
-
-      if (
-        !Array.isArray(
-          data.serviceSelections,
-        )
-      ) {
-
+    ReviewServiceSelection[] = useMemo(() => {
+      if (!Array.isArray(data.serviceSelections)) {
         return [];
       }
 
-
-      const seenKeys =
-        new Set<string>();
-
-
-      const result:
-        ReviewServiceSelection[] = [];
-
+      const seenKeys = new Set<string>();
+      const result: ReviewServiceSelection[] = [];
 
       data.serviceSelections.forEach(
-        (
-          selection: any,
-          index: number,
-        ) => {
-
+        (selection: any, index: number) => {
           if (
             !selection ||
-            !isValidAudience(
-              selection.audience,
-            )
+            !isValidAudience(selection.audience)
           ) {
-
             return;
           }
 
-
-          const categoryId =
-            cleanString(
-              selection.categoryId,
-            );
-
-          const categoryName =
-            cleanString(
-              selection.categoryName,
-            );
-
-          const subcategoryId =
-            cleanString(
-              selection.subcategoryId,
-            );
-
-          const subcategoryName =
-            cleanString(
-              selection.subcategoryName,
-            );
-
-
-          /*
-           * The registration context stores
-           * the service name locally as `name`.
-           *
-           * The GraphQL registration payload
-           * uses `name` as well.
-           */
-          const serviceName =
-            cleanString(
-              selection.name ??
-              selection.serviceName,
-            );
-
+          const categoryId = cleanString(selection.categoryId);
+          const categoryName = cleanString(selection.categoryName);
+          const subcategoryId = cleanString(
+            selection.subcategoryId,
+          );
+          const subcategoryName = cleanString(
+            selection.subcategoryName,
+          );
+          const serviceName = cleanString(
+            selection.name ?? selection.serviceName,
+          );
 
           if (
             !categoryId ||
@@ -537,34 +347,18 @@ export default function SalonReviewScreen({
             !subcategoryName ||
             !serviceName
           ) {
-
             console.warn(
-              '[SalonReview] Ignoring incomplete service selection:',
+              '[SalonReview] Ignoring incomplete service:',
               selection,
             );
-
             return;
           }
 
+          const uniqueId = cleanString(selection.uniqueId);
+          const originalServiceKey = cleanString(
+            selection.serviceKey,
+          );
 
-          const uniqueId =
-            cleanString(
-              selection.uniqueId,
-            );
-
-
-          const originalServiceKey =
-            cleanString(
-              selection.serviceKey,
-            );
-
-
-          /*
-           * The service name remains part of the
-           * fallback identity so multiple services
-           * under the same category/subcategory
-           * remain separate.
-           */
           const effectiveServiceKey =
             uniqueId ||
             originalServiceKey ||
@@ -576,670 +370,263 @@ export default function SalonReviewScreen({
               index,
             ].join('::');
 
-
-          if (
-            seenKeys.has(
-              effectiveServiceKey,
-            )
-          ) {
-
+          if (seenKeys.has(effectiveServiceKey)) {
             console.warn(
               '[SalonReview] Duplicate service ignored:',
               effectiveServiceKey,
             );
-
             return;
           }
 
-
-          seenKeys.add(
-            effectiveServiceKey,
-          );
-
+          seenKeys.add(effectiveServiceKey);
 
           result.push({
-
-            uniqueId:
-              uniqueId ||
-              undefined,
-
+            uniqueId: uniqueId || undefined,
             serviceKey:
-              originalServiceKey ||
-              effectiveServiceKey,
-
-            name:
-              serviceName,
-
-            description:
-              cleanString(
-                selection.description,
-              ),
-
-            audience:
-              selection.audience,
-
+              originalServiceKey || effectiveServiceKey,
+            name: serviceName,
+            description: cleanString(selection.description),
+            audience: selection.audience,
             categoryId,
-
             categoryName,
-
             subcategoryId,
-
             subcategoryName,
-
-            price:
-              selection.price,
-
-            durationMinutes:
-              selection.durationMinutes,
+            price: selection.price,
+            durationMinutes: selection.durationMinutes,
           });
-
         },
       );
 
-
       return result;
-
-    }, [
-      data.serviceSelections,
-    ]);
-
+    }, [data.serviceSelections]);
 
   // ==========================================================
   // GROUP SERVICES BY AUDIENCE
   // ==========================================================
 
-  const groupedServices =
-    useMemo(() => {
+  const groupedServices = useMemo(() => {
+    const groups: Record<Audience, ReviewServiceSelection[]> = {
+      FEMALE: [],
+      MALE: [],
+      KIDS: [],
+    };
 
-      const groups:
-        Record<
-          Audience,
-          ReviewServiceSelection[]
-        > = {
+    selectedServiceSelections.forEach(selection => {
+      if (isValidAudience(selection.audience)) {
+        groups[selection.audience].push(selection);
+      }
+    });
 
-        FEMALE: [],
-
-        MALE: [],
-
-        KIDS: [],
-      };
-
-
-      selectedServiceSelections.forEach(
-        selection => {
-
-          if (
-            isValidAudience(
-              selection.audience,
-            )
-          ) {
-
-            groups[
-              selection.audience
-            ].push(
-              selection,
-            );
-          }
-        },
-      );
-
-
-      return groups;
-
-    }, [
-      selectedServiceSelections,
-    ]);
-
+    return groups;
+  }, [selectedServiceSelections]);
 
   // ==========================================================
   // KYC DOCUMENTS
   // ==========================================================
 
-  const panDocument =
-    data.panDocument;
-
-  const aadhaarDocument =
-    data.aadhaarDocument;
-
+  const panDocument = data.panDocument;
+  const aadhaarDocument = data.aadhaarDocument;
   const shopEstablishmentDocument =
     data.shopEstablishmentDocument;
+  const gstDocument = data.gstDocument;
+  const udyamDocument = data.udyamDocument;
 
-  const gstDocument =
-    data.gstDocument;
-
-  const udyamDocument =
-    data.udyamDocument;
-
-
-  // ==========================================================
-  // KYC DOCUMENT STATUS
-  // ==========================================================
-
-  const hasPanDocument =
-    hasValidKycDocument(
-      panDocument,
-    );
-
-  const hasAadhaarDocument =
-    hasValidKycDocument(
-      aadhaarDocument,
-    );
-
+  const hasPanDocument = hasValidKycDocument(panDocument);
+  const hasAadhaarDocument = hasValidKycDocument(aadhaarDocument);
   const hasShopEstablishmentDocument =
-    hasValidKycDocument(
-      shopEstablishmentDocument,
-    );
-
-  const hasGstDocument =
-    hasValidKycDocument(
-      gstDocument,
-    );
-
-  const hasUdyamDocument =
-    hasValidKycDocument(
-      udyamDocument,
-    );
-
+    hasValidKycDocument(shopEstablishmentDocument);
+  const hasGstDocument = hasValidKycDocument(gstDocument);
+  const hasUdyamDocument = hasValidKycDocument(udyamDocument);
 
   // ==========================================================
   // BUILD KYC DOCUMENT PAYLOAD
   // ==========================================================
 
-  const buildKycDocumentPayload =
-    (): KycDocumentInput[] => {
+  const buildKycDocumentPayload = (): KycDocumentInput[] => {
+    const documents: KycDocumentInput[] = [];
 
-      const documents:
-        KycDocumentInput[] = [];
+    const requiredDocuments: Array<{
+      type: KycDocumentType;
+      document: any;
+      label: string;
+    }> = [
+      {
+        type: 'PAN',
+        document: panDocument,
+        label: 'PAN',
+      },
+      {
+        type: 'AADHAAR',
+        document: aadhaarDocument,
+        label: 'Aadhaar',
+      },
+      {
+        type: 'SHOP_ESTABLISHMENT',
+        document: shopEstablishmentDocument,
+        label: 'Shop & Establishment',
+      },
+    ];
 
-
-      // ------------------------------------------------------
-      // PAN
-      // ------------------------------------------------------
-
-      if (
-        !hasValidKycDocument(
-          panDocument,
-        )
-      ) {
-
+    for (const item of requiredDocuments) {
+      if (!hasValidKycDocument(item.document)) {
         throw new Error(
-          'PAN document is missing or has not been uploaded successfully.',
+          `${item.label} document is missing or has not been uploaded successfully.`,
         );
       }
 
-
-      const panFileSize =
-        getKycDocumentFileSize(
-          panDocument,
-        );
-
+      const fileSize = getKycDocumentFileSize(item.document);
 
       documents.push({
-
-        documentType:
-          'PAN',
-
-        fileName:
-          getKycDocumentName(
-            panDocument,
-          ),
-
-        contentType:
-          getKycDocumentContentType(
-            panDocument,
-          ),
-
-        ...(panFileSize !== undefined
-          ? {
-            fileSize:
-              panFileSize,
-          }
-          : {}),
-
-        s3Key:
-          getKycDocumentS3Key(
-            panDocument,
-          ),
+        documentType: item.type,
+        fileName: getKycDocumentName(item.document),
+        contentType: getKycDocumentContentType(item.document),
+        ...(fileSize !== undefined ? { fileSize } : {}),
+        s3Key: getKycDocumentS3Key(item.document),
       });
+    }
 
+    const optionalDocuments: Array<{
+      type: KycDocumentType;
+      document: any;
+      label: string;
+    }> = [
+      {
+        type: 'GST',
+        document: gstDocument,
+        label: 'GST',
+      },
+      {
+        type: 'UDYAM',
+        document: udyamDocument,
+        label: 'Udyam',
+      },
+    ];
 
-      // ------------------------------------------------------
-      // AADHAAR
-      // ------------------------------------------------------
+    for (const item of optionalDocuments) {
+      if (!item.document) {
+        continue;
+      }
 
-      if (
-        !hasValidKycDocument(
-          aadhaarDocument,
-        )
-      ) {
-
+      if (!hasValidKycDocument(item.document)) {
         throw new Error(
-          'Aadhaar document is missing or has not been uploaded successfully.',
+          `${item.label} document information is incomplete. ` +
+          `Please upload the document again.`,
         );
       }
 
-
-      const aadhaarFileSize =
-        getKycDocumentFileSize(
-          aadhaarDocument,
-        );
-
+      const fileSize = getKycDocumentFileSize(item.document);
 
       documents.push({
-
-        documentType:
-          'AADHAAR',
-
-        fileName:
-          getKycDocumentName(
-            aadhaarDocument,
-          ),
-
-        contentType:
-          getKycDocumentContentType(
-            aadhaarDocument,
-          ),
-
-        ...(aadhaarFileSize !== undefined
-          ? {
-            fileSize:
-              aadhaarFileSize,
-          }
-          : {}),
-
-        s3Key:
-          getKycDocumentS3Key(
-            aadhaarDocument,
-          ),
+        documentType: item.type,
+        fileName: getKycDocumentName(item.document),
+        contentType: getKycDocumentContentType(item.document),
+        ...(fileSize !== undefined ? { fileSize } : {}),
+        s3Key: getKycDocumentS3Key(item.document),
       });
+    }
 
-
-      // ------------------------------------------------------
-      // SHOP & ESTABLISHMENT
-      // ------------------------------------------------------
-
-      if (
-        !hasValidKycDocument(
-          shopEstablishmentDocument,
-        )
-      ) {
-
-        throw new Error(
-          'Shop & Establishment document is missing or has not been uploaded successfully.',
-        );
-      }
-
-
-      const shopFileSize =
-        getKycDocumentFileSize(
-          shopEstablishmentDocument,
-        );
-
-
-      documents.push({
-
-        documentType:
-          'SHOP_ESTABLISHMENT',
-
-        fileName:
-          getKycDocumentName(
-            shopEstablishmentDocument,
-          ),
-
-        contentType:
-          getKycDocumentContentType(
-            shopEstablishmentDocument,
-          ),
-
-        ...(shopFileSize !== undefined
-          ? {
-            fileSize:
-              shopFileSize,
-          }
-          : {}),
-
-        s3Key:
-          getKycDocumentS3Key(
-            shopEstablishmentDocument,
-          ),
-      });
-
-
-      // ------------------------------------------------------
-      // GST
-      // ------------------------------------------------------
-
-      if (
-        gstDocument
-      ) {
-
-        if (
-          !hasValidKycDocument(
-            gstDocument,
-          )
-        ) {
-
-          throw new Error(
-            'GST document information is incomplete. Please upload the GST document again.',
-          );
-        }
-
-
-        const gstFileSize =
-          getKycDocumentFileSize(
-            gstDocument,
-          );
-
-
-        documents.push({
-
-          documentType:
-            'GST',
-
-          fileName:
-            getKycDocumentName(
-              gstDocument,
-            ),
-
-          contentType:
-            getKycDocumentContentType(
-              gstDocument,
-            ),
-
-          ...(gstFileSize !== undefined
-            ? {
-              fileSize:
-                gstFileSize,
-            }
-            : {}),
-
-          s3Key:
-            getKycDocumentS3Key(
-              gstDocument,
-            ),
-        });
-      }
-
-
-      // ------------------------------------------------------
-      // UDYAM
-      // ------------------------------------------------------
-
-      if (
-        udyamDocument
-      ) {
-
-        if (
-          !hasValidKycDocument(
-            udyamDocument,
-          )
-        ) {
-
-          throw new Error(
-            'Udyam document information is incomplete. Please upload the Udyam document again.',
-          );
-        }
-
-
-        const udyamFileSize =
-          getKycDocumentFileSize(
-            udyamDocument,
-          );
-
-
-        documents.push({
-
-          documentType:
-            'UDYAM',
-
-          fileName:
-            getKycDocumentName(
-              udyamDocument,
-            ),
-
-          contentType:
-            getKycDocumentContentType(
-              udyamDocument,
-            ),
-
-          ...(udyamFileSize !== undefined
-            ? {
-              fileSize:
-                udyamFileSize,
-            }
-            : {}),
-
-          s3Key:
-            getKycDocumentS3Key(
-              udyamDocument,
-            ),
-        });
-      }
-
-
-      return documents;
-    };
-
+    return documents;
+  };
 
   // ==========================================================
-  // SUBMIT
+  // SUBMIT REGISTRATION
   // ==========================================================
 
   const onSubmit = async () => {
+    if (submittingRef.current || loading) {
+      return;
+    }
 
-    // --------------------------------------------------------
-    // USER CHECK
-    // --------------------------------------------------------
-
-    if (
-      !currentUser?.userId
-    ) {
-
+    if (!currentUser?.userId) {
       Alert.alert(
         'Session Expired',
         'Please sign in again.',
       );
-
       return;
     }
 
-
-    // --------------------------------------------------------
-    // USER DATA CHECK
-    // --------------------------------------------------------
-
-    if (
-      !cleanString(
-        data.userId,
-      )
-    ) {
-
+    if (!cleanString(data.userId)) {
       Alert.alert(
         'Registration Error',
-        'User information is missing. Please restart registration',
+        'User information is missing. Please restart registration.',
       );
-
       return;
     }
 
-
-    // --------------------------------------------------------
-    // SALON NAME
-    // --------------------------------------------------------
-
-    const salonName =
-      cleanString(
-        data.salonName,
-      );
-
+    const salonName = cleanString(data.salonName);
+    const ownerName = cleanString(data.ownerName);
+    const email = cleanString(data.email);
 
     if (!salonName) {
-
-      Alert.alert(
-        'Registration Error',
-        'Salon name is missing.',
-      );
-
+      Alert.alert('Registration Error', 'Salon name is missing.');
       return;
     }
-
-
-    // --------------------------------------------------------
-    // OWNER NAME
-    // --------------------------------------------------------
-
-    const ownerName =
-      cleanString(
-        data.ownerName,
-      );
-
 
     if (!ownerName) {
-
-      Alert.alert(
-        'Registration Error',
-        'Owner name is missing.',
-      );
-
+      Alert.alert('Registration Error', 'Owner name is missing.');
       return;
     }
 
-
-    // --------------------------------------------------------
-    // EMAIL
-    // --------------------------------------------------------
-
-    const email =
-      cleanString(
-        data.email,
-      );
-
-
     if (!email) {
-
       Alert.alert(
         'Registration Error',
         'Email address is missing.',
       );
-
       return;
     }
 
-
-    // --------------------------------------------------------
-    // PHONE
-    // --------------------------------------------------------
-
-    const phoneNumber =
-      cleanString(
-        currentUser.phoneNumber ||
-        data.phoneNumber,
-      );
-
+    const phoneNumber = cleanString(
+      currentUser.phoneNumber || data.phoneNumber,
+    );
 
     if (!phoneNumber) {
-
       Alert.alert(
         'Registration Error',
         'Phone number is missing.',
       );
-
       return;
     }
 
-
-    // --------------------------------------------------------
-    // TARGET AUDIENCES
-    // --------------------------------------------------------
-
-    const targetAudiences =
-      Array.isArray(
-        data.targetAudiences,
-      )
-        ? data.targetAudiences.filter(
-          (
-            audience: any,
-          ): audience is Audience =>
-            isValidAudience(
-              audience,
-            ),
+    const targetAudiences: Audience[] = Array.isArray(
+      data.targetAudiences,
+    )
+      ? data.targetAudiences.filter(
+          (audience: any): audience is Audience =>
+            isValidAudience(audience),
         )
-        : [];
+      : [];
 
-
-    if (
-      targetAudiences.length === 0
-    ) {
-
+    if (targetAudiences.length === 0) {
       Alert.alert(
         'Customer Type Required',
         'Please select who your business serves.',
       );
-
       return;
     }
 
+    const addressLine = cleanString(data.addressLine);
+    const city = cleanString(data.city);
+    const state = cleanString(data.state);
+    const pincode = cleanString(data.pincode);
 
-    // --------------------------------------------------------
-    // ADDRESS
-    // --------------------------------------------------------
-
-    const addressLine =
-      cleanString(
-        data.addressLine,
-      );
-
-    const city =
-      cleanString(
-        data.city,
-      );
-
-    const state =
-      cleanString(
-        data.state,
-      );
-
-    const pincode =
-      cleanString(
-        data.pincode,
-      );
-
-
-    if (
-      !addressLine ||
-      !city ||
-      !state ||
-      !pincode
-    ) {
-
+    if (!addressLine || !city || !state || !pincode) {
       Alert.alert(
         'Address Required',
         'Please complete your business address.',
       );
-
       return;
     }
 
-
-    // --------------------------------------------------------
-    // BUSINESS HOURS
-    // --------------------------------------------------------
-
     if (
       !data.businessHours ||
-      Object.keys(
-        data.businessHours,
-      ).length === 0
+      Object.keys(data.businessHours).length === 0
     ) {
-
       Alert.alert(
         'Business Hours Required',
         'Please provide your business hours.',
       );
-
       return;
     }
-
 
     const days = [
       'MONDAY',
@@ -1251,1375 +638,687 @@ export default function SalonReviewScreen({
       'SUNDAY',
     ] as const;
 
-
     const normalizedBusinessHours =
-      {} as RegisterSalonPartnerVariables[
-      'input'
-      ]['businessHours'];
+      {} as RegisterSalonPartnerVariables['input']['businessHours'];
 
-
-    for (
-      const day of days
-    ) {
-
-      const sourceDay =
-        (
-          data.businessHours as any
-        )?.[day];
-
+    for (const day of days) {
+      const sourceDay = (data.businessHours as any)?.[day];
 
       if (!sourceDay) {
-
         Alert.alert(
           'Business Hours Required',
           `${day} business hours are missing.`,
         );
-
         return;
       }
 
-
-      const open =
-        cleanString(
-          sourceDay.open,
-        );
-
-      const close =
-        cleanString(
-          sourceDay.close,
-        );
-
+      const open = cleanString(sourceDay.open);
+      const close = cleanString(sourceDay.close);
 
       normalizedBusinessHours[day] = {
-
-        isOpen:
-          Boolean(
-            sourceDay.isOpen,
-          ),
-
+        isOpen: Boolean(sourceDay.isOpen),
         open,
-
         close,
       };
 
-
-      if (
-        sourceDay.isOpen &&
-        (
-          !open ||
-          !close
-        )
-      ) {
-
+      if (sourceDay.isOpen && (!open || !close)) {
         Alert.alert(
           'Business Hours Required',
           `Please provide opening and closing times for ${day}.`,
         );
-
         return;
       }
     }
 
+    // PAN validation
+    const cleanPAN = cleanString(data.panNumber).toUpperCase();
 
-    // ========================================================
-    // PAN
-    // ========================================================
-
-    const cleanPAN =
-      cleanString(
-        data.panNumber,
-      ).toUpperCase();
-
-
-    if (
-      !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(
-        cleanPAN,
-      )
-    ) {
-
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(cleanPAN)) {
       Alert.alert(
         'PAN Required',
         'Please provide a valid PAN number.',
       );
-
       return;
     }
-
 
     if (!hasPanDocument) {
-
       Alert.alert(
         'PAN Document Required',
-        'Please upload the PAN document before submitting your salon registration',
+        'Please upload the PAN document before submitting.',
       );
-
       return;
     }
 
+    // Aadhaar validation
+    const cleanAadhaar = cleanString(
+      data.aadhaarNumber,
+    ).replace(/\D/g, '');
 
-    // ========================================================
-    // AADHAAR
-    // ========================================================
-
-    const cleanAadhaar =
-      cleanString(
-        data.aadhaarNumber,
-      ).replace(
-        /\D/g,
-        '',
-      );
-
-
-    if (
-      !/^\d{12}$/.test(
-        cleanAadhaar,
-      )
-    ) {
-
+    if (!/^\d{12}$/.test(cleanAadhaar)) {
       Alert.alert(
         'Aadhaar Required',
         'Please provide a valid 12-digit Aadhaar number.',
       );
-
       return;
     }
-
 
     if (!hasAadhaarDocument) {
-
       Alert.alert(
         'Aadhaar Document Required',
-        'Please upload the Aadhaar document before submitting your salon registration',
+        'Please upload the Aadhaar document before submitting.',
       );
-
       return;
     }
 
-
-    // ========================================================
-    // SHOP & ESTABLISHMENT
-    // ========================================================
-
-    const cleanShop =
-      cleanString(
-        data.shopEstablishmentNumber,
-      );
-
+    // Shop & Establishment validation
+    const cleanShop = cleanString(
+      data.shopEstablishmentNumber,
+    );
 
     if (!cleanShop) {
-
       Alert.alert(
         'Salon Registration Required',
-        'Please provide your Shop & Establishment registration number',
+        'Please provide your Shop & Establishment registration number.',
       );
-
       return;
     }
 
-
-    if (
-      !hasShopEstablishmentDocument
-    ) {
-
+    if (!hasShopEstablishmentDocument) {
       Alert.alert(
         'Shop & Establishment Document Required',
-        'Please upload the Shop & Establishment document before submitting your salon registration',
+        'Please upload the Shop & Establishment document before submitting.',
       );
-
       return;
     }
 
-
-    // ========================================================
-    // SERVICES
-    // ========================================================
-
-    if (
-      selectedServiceSelections.length === 0
-    ) {
-
+    // Services validation
+    if (selectedServiceSelections.length === 0) {
       Alert.alert(
         'Services Required',
         'Please add at least one service.',
       );
-
       return;
     }
 
+    const services: RegisterSalonPartnerVariables['input']['services'] =
+      selectedServiceSelections.map(selection => {
+        const categoryId = cleanString(selection.categoryId);
+        const categoryName = cleanString(selection.categoryName);
+        const subcategoryId = cleanString(
+          selection.subcategoryId,
+        );
+        const subcategoryName = cleanString(
+          selection.subcategoryName,
+        );
+        const name = cleanString(selection.name);
+        const description = cleanString(selection.description);
+        const price = Number(selection.price);
+        const duration = Number(selection.durationMinutes);
 
-    // ========================================================
-    // BUILD GRAPHQL SERVICES
-    // ========================================================
-    //
-    // IMPORTANT:
-    //
-    // Local context:
-    //
-    // data.serviceSelections
-    //
-    // GraphQL:
-    //
-    // input.services
-    //
-    // GraphQL service:
-    //
-    // categoryId
-    // categoryName
-    // subcategoryId
-    // subcategoryName
-    // name
-    // description
-    // audience
-    // price
-    // duration
-    //
-    // ========================================================
+        return {
+          categoryId,
+          categoryName,
+          subcategoryId,
+          subcategoryName,
+          name,
+          ...(description ? { description } : {}),
+          audience: selection.audience,
+          price,
+          duration,
+        };
+      });
 
-    const services =
-      selectedServiceSelections.map(
-        selection => {
+    const invalidServiceIndex = services.findIndex(service =>
+      !service.categoryId ||
+      !service.categoryName ||
+      !service.subcategoryId ||
+      !service.subcategoryName ||
+      !service.name ||
+      !isValidAudience(service.audience) ||
+      !Number.isFinite(service.price) ||
+      service.price <= 0 ||
+      !Number.isFinite(service.duration) ||
+      service.duration <= 0,
+    );
 
-          const categoryId =
-            cleanString(
-              selection.categoryId,
-            );
-
-          const categoryName =
-            cleanString(
-              selection.categoryName,
-            );
-
-          const subcategoryId =
-            cleanString(
-              selection.subcategoryId,
-            );
-
-          const subcategoryName =
-            cleanString(
-              selection.subcategoryName,
-            );
-
-          const name =
-            cleanString(
-              selection.name,
-            );
-
-          const description =
-            cleanString(
-              selection.description,
-            );
-
-          const price =
-            Number(
-              selection.price,
-            );
-
-          const duration =
-            Number(
-              selection.durationMinutes,
-            );
-
-
-          return {
-
-            categoryId,
-
-            categoryName,
-
-            subcategoryId,
-
-            subcategoryName,
-
-            name,
-
-            ...(description
-              ? {
-                description,
-              }
-              : {}),
-
-            audience:
-              selection.audience,
-
-            price,
-
-            duration,
-          };
-        },
-      );
-
-
-    // ========================================================
-    // VALIDATE FINAL SERVICES
-    // ========================================================
-
-    const invalidServiceIndex =
-      services.findIndex(
-        service => {
-
-          return (
-
-            !service.categoryId ||
-
-            !service.categoryName ||
-
-            !service.subcategoryId ||
-
-            !service.subcategoryName ||
-
-            !service.name ||
-
-            !isValidAudience(
-              service.audience,
-            ) ||
-
-            !Number.isFinite(
-              service.price,
-            ) ||
-
-            service.price <= 0 ||
-
-            !Number.isFinite(
-              service.duration,
-            ) ||
-
-            service.duration <= 0
-
-          );
-        },
-      );
-
-
-    if (
-      invalidServiceIndex >= 0
-    ) {
-
-      const invalidService =
-        services[
-        invalidServiceIndex
-        ];
-
-
+    if (invalidServiceIndex >= 0) {
       console.error(
-        '====================================================',
-      );
-
-      console.error(
-        '[SalonReview] INVALID SERVICE PAYLOAD',
-      );
-
-      console.error(
-        '[SalonReview] INVALID SERVICE INDEX:',
-        invalidServiceIndex,
-      );
-
-      console.error(
-        '[SalonReview] INVALID SERVICE:',
+        '[SalonReview] Invalid service:',
         JSON.stringify(
-          invalidService,
+          services[invalidServiceIndex],
           null,
           2,
         ),
       );
-
-      console.error(
-        '[SalonReview] RAW SERVICE SELECTIONS:',
-        JSON.stringify(
-          data.serviceSelections,
-          null,
-          2,
-        ),
-      );
-
-      console.error(
-        '====================================================',
-      );
-
 
       Alert.alert(
         'Invalid Service',
-        `Service ${invalidServiceIndex + 1} is missing required category, subcategory, service, price, or duration information`,
+        `Service ${invalidServiceIndex + 1} is missing required category, subcategory, service, price, or duration information.`,
       );
-
       return;
     }
 
-
-    // ========================================================
-    // BUILD KYC DOCUMENTS
-    // ========================================================
-
-    let kycDocuments:
-      KycDocumentInput[] = [];
-
+    // KYC documents
+    let kycDocuments: KycDocumentInput[];
 
     try {
-
-      kycDocuments =
-        buildKycDocumentPayload();
-
-    } catch (
-    error: any
-    ) {
-
+      kycDocuments = buildKycDocumentPayload();
+    } catch (error: any) {
       console.error(
-        '[SalonReview] KYC DOCUMENT PAYLOAD ERROR:',
+        '[SalonReview] KYC payload error:',
         error,
       );
-
 
       Alert.alert(
         'KYC Documents Required',
         error?.message ||
-        'Please check your KYC documents and upload them again if necessary.',
+          'Please check your KYC documents and upload them again.',
       );
-
       return;
     }
 
-
-    // ========================================================
-    // REQUIRED KYC DOCUMENT TYPES
-    // ========================================================
-
-    const requiredKycDocumentTypes:
-      KycDocumentType[] = [
-        'PAN',
-        'AADHAAR',
-        'SHOP_ESTABLISHMENT',
-      ];
-
+    const requiredKycDocumentTypes: KycDocumentType[] = [
+      'PAN',
+      'AADHAAR',
+      'SHOP_ESTABLISHMENT',
+    ];
 
     const missingRequiredKycDocuments =
       requiredKycDocumentTypes.filter(
         documentType =>
           !kycDocuments.some(
             document =>
-              document.documentType ===
-              documentType,
+              document.documentType === documentType,
           ),
       );
 
-
-    if (
-      missingRequiredKycDocuments.length > 0
-    ) {
-
+    if (missingRequiredKycDocuments.length > 0) {
       Alert.alert(
         'KYC Documents Required',
-        'Please upload all required KYC documents before submitting your salon registration',
+        'Please upload all required KYC documents before submitting.',
       );
-
       return;
     }
 
+    const gstNumber = cleanString(
+      data.gstNumber,
+    ).toUpperCase();
 
-    // ========================================================
-    // DEBUG KYC
-    // ========================================================
-
-    console.log(
-      '[SalonReview] KYC UPLOAD IDS:',
-      {
-        pan:
-          getKycDocumentUploadId(
-            panDocument,
-          ),
-
-        aadhaar:
-          getKycDocumentUploadId(
-            aadhaarDocument,
-          ),
-
-        shopEstablishment:
-          getKycDocumentUploadId(
-            shopEstablishmentDocument,
-          ),
-
-        gst:
-          getKycDocumentUploadId(
-            gstDocument,
-          ),
-
-        udyam:
-          getKycDocumentUploadId(
-            udyamDocument,
-          ),
-      },
-    );
-
-
-    console.log(
-      '[SalonReview] KYC DOCUMENTS PAYLOAD:',
-      JSON.stringify(
-        kycDocuments,
-        null,
-        2,
-      ),
-    );
-
-
-    // ========================================================
-    // OPTIONAL FIELDS
-    // ========================================================
-
-    const gstNumber =
-      cleanString(
-        data.gstNumber,
-      ).toUpperCase();
-
-    const udyamNumber =
-      cleanString(
-        data.udyamNumber,
-      ).toUpperCase();
-
-
-    // ========================================================
-    // FINAL REGISTER INPUT
-    // ========================================================
-    //
-    // This object contains ONLY fields belonging to the
-    // current RegisterSalonPartnerInput.
-    //
-    // There is NO business type.
-    // There is NO serviceSelections field.
-    // There is NO bankAccount.
-    // There is NO ifsc.
-    //
-    // ========================================================
+    const udyamNumber = cleanString(
+      data.udyamNumber,
+    ).toUpperCase();
 
     const registerInput:
-      RegisterSalonPartnerVariables[
-      'input'
-      ] = {
-
-      userId:
-        currentUser.userId,
-
-      phoneNumber,
-
-      salonName,
-
-      ownerName,
-
-      email,
-
-      targetAudiences,
-
-      address: {
-
-        addressLine,
-
-        city,
-
-        state,
-
-        pincode,
-      },
-
-      businessHours:
-        normalizedBusinessHours,
-
-      ...(typeof data.latitude === 'number'
-        ? {
-          latitude:
-            data.latitude,
-        }
-        : {}),
-
-      ...(typeof data.longitude === 'number'
-        ? {
-          longitude:
-            data.longitude,
-        }
-        : {}),
-
-      ...(gstNumber
-        ? {
-          gstNumber,
-        }
-        : {}),
-
-      panNumber:
-        cleanPAN,
-
-      aadhaarNumber:
-        cleanAadhaar,
-
-      shopEstablishmentNumber:
-        cleanShop,
-
-      ...(udyamNumber
-        ? {
-          udyamNumber,
-        }
-        : {}),
-
-      kycDocuments,
-
-      services,
-    };
-
-
-    // ========================================================
-    // FINAL DEBUG
-    // ========================================================
-
-    console.log(
-      '==========================================',
-    );
-
-    console.log(
-      '[SalonReview] SUBMITTING SALON REGISTRATION',
-    );
-
-    console.log(
-      '[SalonReview] TARGET AUDIENCES:',
-      targetAudiences,
-    );
-
-    console.log(
-      '[SalonReview] SERVICES COUNT:',
-      services.length,
-    );
-
-    console.log(
-      '[SalonReview] SERVICES PAYLOAD:',
-      JSON.stringify(
+      RegisterSalonPartnerVariables['input'] = {
+        userId: currentUser.userId,
+        phoneNumber,
+        salonName,
+        ownerName,
+        email,
+        targetAudiences,
+        address: {
+          addressLine,
+          city,
+          state,
+          pincode,
+        },
+        businessHours: normalizedBusinessHours,
+        ...(typeof data.latitude === 'number'
+          ? { latitude: data.latitude }
+          : {}),
+        ...(typeof data.longitude === 'number'
+          ? { longitude: data.longitude }
+          : {}),
+        ...(gstNumber ? { gstNumber } : {}),
+        panNumber: cleanPAN,
+        aadhaarNumber: cleanAadhaar,
+        shopEstablishmentNumber: cleanShop,
+        ...(udyamNumber ? { udyamNumber } : {}),
+        kycDocuments,
         services,
-        null,
-        2,
-      ),
-    );
+      };
 
-    console.log(
-      '[SalonReview] KYC DOCUMENT COUNT:',
-      kycDocuments.length,
-    );
-
-    console.log(
-      '[SalonReview] FINAL REGISTER INPUT:',
-      JSON.stringify(
-        registerInput,
-        null,
-        2,
-      ));
-
-    console.log(
-      '[SalonReview] Calling registerSalonPartner...',
-    );
-
-    console.log(
-      '==========================================',
-    );
-
-
-    // ========================================================
-    // REGISTER SALON
-    // ========================================================
+    submittingRef.current = true;
 
     try {
-      console.log(
-        '====================================================',
-      );
+      // Save the latest draft before starting submission.
+      await persistReviewDraft();
 
       console.log(
-        '[SalonReview] ACTUAL GRAPHQL VARIABLES BEING SENT:',
+        '[SalonReview] Submitting registration:',
+        {
+          userId: registerInput.userId,
+          targetAudiences: registerInput.targetAudiences,
+          servicesCount: registerInput.services.length,
+          kycDocumentCount: registerInput.kycDocuments.length,
+        },
       );
 
-      console.log(
-        JSON.stringify(
-          {
-            input: registerInput,
-          },
-          null,
-          2,
-        ),
-      );
+      const response = await registerSalonPartner({
+        variables: {
+          input: registerInput,
+        },
+      });
 
-      console.log(
-        '====================================================',
-      );
-      const response =
-        await registerSalonPartner({
+      const result = response.data?.registerSalonPartner;
 
-          variables: {
-
-            input:
-              registerInput,
-
-          },
-
-        });
-
-
-      console.log(
-        '==========================================',
-      );
-
-      console.log(
-        '[SalonReview] REGISTER SALON RESPONSE:',
-      );
-
-      console.log(
-        JSON.stringify(
-          response.data,
-          null,
-          2,
-        ),
-      );
-
-      console.log(
-        '==========================================',
-      );
-
-
-      const result =
-        response.data
-          ?.registerSalonPartner;
-
-
-      if (
-        !result?.success
-      ) {
-
+      if (!result?.success) {
         Alert.alert(
           'Registration Failed',
           result?.message ||
-          'Unable to register your business.',
+            'Unable to register your business.',
         );
-
         return;
       }
 
-
-      const salonId =
-        cleanString(
-          result.salonId,
-        );
-
+      const salonId = cleanString(result.salonId);
 
       if (!salonId) {
-
         Alert.alert(
           'Registration Error',
           'Salon was created, but the business ID was not returned by the server.',
         );
-
         return;
       }
 
-
-      // ======================================================
-      // UPDATE USER
-      // ======================================================
-
-      const updatedUser:
-        User = {
-
+      const updatedUser: User = {
         ...currentUser,
-
-        role:
-          'PROVIDER',
-
-        providerStatus:
-          'PENDING' as ProviderStatus,
-
+        role: 'PROVIDER',
+        providerStatus: 'PENDING' as ProviderStatus,
         salonId,
       };
 
+      setCurrentUser(updatedUser);
 
-      setCurrentUser(
-        updatedUser,
-      );
+      // Prevent the unmount cleanup from saving a new draft.
+      registrationSucceededRef.current = true;
 
-
-      // ======================================================
-      // RESET REGISTRATION
-      // ======================================================
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = null;
+      }
 
       reset();
 
-
-      // ======================================================
-      // SUCCESS
-      // ======================================================
-
-      navigation.navigate(
-        'SalonSuccess',
-        {
-          salonId,
-        },
-      );
-
-    } catch (
-    error: any
-    ) {
-
+      navigation.navigate('SalonSuccess', { salonId });
+    } catch (error: any) {
       console.error(
-        '==========================================',
-      );
-
-      console.error(
-        '[SalonReview] REGISTER SALON ERROR',
-      );
-
-      console.error(
-        '[SalonReview] ERROR:',
+        '[SalonReview] Registration error:',
         error,
       );
 
       console.error(
-        '[SalonReview] MESSAGE:',
-        error?.message,
+        '[SalonReview] GraphQL errors:',
+        JSON.stringify(error?.graphQLErrors, null, 2),
       );
-
-      console.error(
-        '[SalonReview] GRAPHQL ERRORS:',
-        JSON.stringify(
-          error?.graphQLErrors,
-          null,
-          2,
-        ),
-      );
-
-      console.error(
-        '[SalonReview] NETWORK ERROR:',
-        error?.networkError,
-      );
-
-      console.error(
-        '==========================================',
-      );
-
 
       Alert.alert(
         'Registration Failed',
         error?.message ||
-        'Something went wrong while registering the business.',
+          'Something went wrong while registering the business.',
       );
+    } finally {
+      submittingRef.current = false;
     }
   };
-
 
   // ==========================================================
   // UI
   // ==========================================================
 
   return (
-    <SafeAreaView
-      style={
-        styles.container
-      }
-    >
-
-      <Header
-        headerTitle="Review Details"
-      />
-
+    <SafeAreaView style={styles.container}>
+      <Header headerTitle="Review Details" />
 
       <ScrollView
-        contentContainerStyle={
-          styles.content
-        }
-        showsVerticalScrollIndicator={
-          false
-        }
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-
-        {/* HEADER */}
-
-        <View
-          style={
-            styles.header
-          }
-        >
-
-          <Text
-            style={
-              styles.title
-            }
-          >
+        <View style={styles.header}>
+          <Text style={styles.title}>
             Review your details
           </Text>
 
-
-          <Text
-            style={
-              styles.subtitle
-            }
-          >
+          <Text style={styles.subtitle}>
             Please check everything before submitting your business registration
           </Text>
-
         </View>
-
 
         {/* BASIC DETAILS */}
 
-        <View
-          style={
-            styles.card
-          }
-        >
-
+        <View style={styles.card}>
           <DetailRow
             label="Salon"
-            value={
-              cleanString(
-                data.salonName,
-              )
-            }
+            value={cleanString(data.salonName)}
           />
-
 
           <DetailRow
             label="Owner"
-            value={
-              cleanString(
-                data.ownerName,
-              )
-            }
+            value={cleanString(data.ownerName)}
           />
-
 
           <DetailRow
             label="Email"
-            value={
-              cleanString(
-                data.email,
-              )
-            }
+            value={cleanString(data.email)}
           />
-
 
           <DetailRow
             label="Address"
-            value={
-              [
-                cleanString(data.addressLine),
-                cleanString(data.city),
-                cleanString(data.state),
-                cleanString(data.pincode),
-              ]
-                .filter(Boolean)
-                .join(', ') || 'Address not provided'
-            }
+            value={[
+              cleanString(data.addressLine),
+              cleanString(data.city),
+              cleanString(data.state),
+              cleanString(data.pincode),
+            ].filter(Boolean).join(', ') || 'Address not provided'}
           />
-
 
           <DetailRow
             label="Customer type"
             value={
-              Array.isArray(
-                data.targetAudiences,
-              )
+              Array.isArray(data.targetAudiences)
                 ? data.targetAudiences
-                  .filter(
-                    (
-                      audience: any,
-                    ): audience is Audience =>
-                      isValidAudience(
-                        audience,
-                      ),
-                  )
-                  .map(
-                    (
-                      audience: Audience,
-                    ) =>
-                      getAudienceLabel(
-                        audience,
-                      ),
-                  )
-                  .join(', ')
+                    .filter(
+                      (audience: any): audience is Audience =>
+                        isValidAudience(audience),
+                    )
+                    .map(getAudienceLabel)
+                    .join(', ')
                 : '-'
             }
           />
 
-
           <DetailRow
             label="GSTIN"
-            value={
-              cleanString(
-                data.gstNumber,
-              ) ||
-              'Not provided'
-            }
+            value={cleanString(data.gstNumber) || 'Not provided'}
           />
-
 
           <DetailRow
             label="Shop & Establishment"
             value={
-              cleanString(
-                data.shopEstablishmentNumber,
-              ) ||
-              '-'
+              cleanString(data.shopEstablishmentNumber) || '-'
             }
           />
-
 
           <DetailRow
             label="Udyam"
-            value={
-              cleanString(
-                data.udyamNumber,
-              ) ||
-              'Not provided'
-            }
+            value={cleanString(data.udyamNumber) || 'Not provided'}
           />
-
 
           <DetailRow
             label="PAN"
-            value={
-              cleanString(
-                data.panNumber,
-              ) ||
-              '-'
-            }
+            value={cleanString(data.panNumber) || '-'}
           />
-
 
           <DetailRow
             label="Aadhaar"
             value={
               data.aadhaarNumber
                 ? `XXXX XXXX ${cleanString(
-                  data.aadhaarNumber,
-                ).slice(-4)}`
+                    data.aadhaarNumber,
+                  ).slice(-4)}`
                 : '-'
             }
             last
           />
-
         </View>
-
 
         {/* KYC DOCUMENTS */}
 
-        <View
-          style={
-            styles.sectionCard
-          }
-        >
-
-          <Text
-            style={
-              styles.sectionTitle
-            }
-          >
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>
             KYC documents
           </Text>
 
-
-          <Text
-            style={
-              styles.sectionSubtitle
-            }
-          >
-            PAN, Aadhaar and Shop & Establishment documents are required. GST and Udyam documents are optional
+          <Text style={styles.sectionSubtitle}>
+            PAN, Aadhaar and Shop & Establishment documents are required.
+            GST and Udyam documents are optional.
           </Text>
-
 
           <KycDocumentRow
             title="PAN document"
-            document={
-              panDocument
-            }
-            uploaded={
-              hasPanDocument
-            }
+            document={panDocument}
+            uploaded={hasPanDocument}
             required
           />
-
 
           <KycDocumentRow
             title="Aadhaar document"
-            document={
-              aadhaarDocument
-            }
-            uploaded={
-              hasAadhaarDocument
-            }
+            document={aadhaarDocument}
+            uploaded={hasAadhaarDocument}
             required
           />
-
 
           <KycDocumentRow
             title="Shop & Establishment document"
-            document={
-              shopEstablishmentDocument
-            }
-            uploaded={
-              hasShopEstablishmentDocument
-            }
+            document={shopEstablishmentDocument}
+            uploaded={hasShopEstablishmentDocument}
             required
           />
 
-
           <KycDocumentRow
             title="GST document"
-            document={
-              gstDocument
-            }
-            uploaded={
-              hasGstDocument
-            }
-            required={false}
+            document={gstDocument}
+            uploaded={hasGstDocument}
           />
-
 
           <KycDocumentRow
             title="Udyam document"
-            document={
-              udyamDocument
-            }
-            uploaded={
-              hasUdyamDocument
-            }
-            required={false}
+            document={udyamDocument}
+            uploaded={hasUdyamDocument}
             last
           />
-
         </View>
-
 
         {/* SERVICES */}
 
-        <View
-          style={
-            styles.sectionCard
-          }
-        >
-          <Text
-            style={
-              styles.sectionTitle
-            }
-          >
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>
             Services provided
           </Text>
 
-          <Text
-            style={
-              styles.sectionSubtitle
-            }
-          >
+          <Text style={styles.sectionSubtitle}>
             Your services are organized by customer type, category and subcategory
           </Text>
 
           {selectedServiceSelections.length === 0 ? (
-            <Text
-              style={
-                styles.emptyText
-              }
-            >
+            <Text style={styles.emptyText}>
               No services selected.
             </Text>
           ) : (
-            (
-              [
-                'FEMALE',
-                'MALE',
-                'KIDS',
-              ] as Audience[]
-            ).map(audience => {
-              const audienceServices =
-                groupedServices[audience];
+            (['FEMALE', 'MALE', 'KIDS'] as Audience[]).map(
+              audience => {
+                const audienceServices =
+                  groupedServices[audience];
 
-              if (audienceServices.length === 0) {
-                return null;
-              }
-
-              // Group services by category and subcategory.
-              const categoryGroups = new Map<
-                string,
-                {
-                  categoryName: string;
-                  subcategories: Map<
-                    string,
-                    {
-                      subcategoryName: string;
-                      services: ReviewServiceSelection[];
-                    }
-                  >;
-                }
-              >();
-
-              audienceServices.forEach(service => {
-                const categoryKey =
-                  service.categoryId;
-
-                if (!categoryGroups.has(categoryKey)) {
-                  categoryGroups.set(categoryKey, {
-                    categoryName:
-                      service.categoryName ||
-                      service.categoryId,
-                    subcategories: new Map(),
-                  });
+                if (audienceServices.length === 0) {
+                  return null;
                 }
 
-                const categoryGroup =
-                  categoryGroups.get(categoryKey)!;
+                const categoryGroups = new Map<
+                  string,
+                  {
+                    categoryName: string;
+                    subcategories: Map<
+                      string,
+                      {
+                        subcategoryName: string;
+                        services: ReviewServiceSelection[];
+                      }
+                    >;
+                  }
+                >();
 
-                const subcategoryKey =
-                  service.subcategoryId;
+                audienceServices.forEach(service => {
+                  const categoryKey = service.categoryId;
 
-                if (
-                  !categoryGroup.subcategories.has(
-                    subcategoryKey,
-                  )
-                ) {
-                  categoryGroup.subcategories.set(
-                    subcategoryKey,
-                    {
-                      subcategoryName:
-                        service.subcategoryName ||
-                        service.subcategoryId,
-                      services: [],
-                    },
-                  );
-                }
+                  if (!categoryGroups.has(categoryKey)) {
+                    categoryGroups.set(categoryKey, {
+                      categoryName:
+                        service.categoryName || service.categoryId,
+                      subcategories: new Map(),
+                    });
+                  }
 
-                categoryGroup.subcategories
-                  .get(subcategoryKey)!
-                  .services.push(service);
-              });
+                  const categoryGroup =
+                    categoryGroups.get(categoryKey)!;
 
-              return (
-                <View
-                  key={audience}
-                  style={styles.audienceSection}
-                >
-                  {/* AUDIENCE */}
-                  <AppGradient
-                    colors={[...GRADIENTS.SOFT_PURPLE]}
-                    style={styles.audienceHeader}
+                  const subcategoryKey = service.subcategoryId;
+
+                  if (
+                    !categoryGroup.subcategories.has(
+                      subcategoryKey,
+                    )
+                  ) {
+                    categoryGroup.subcategories.set(
+                      subcategoryKey,
+                      {
+                        subcategoryName:
+                          service.subcategoryName ||
+                          service.subcategoryId,
+                        services: [],
+                      },
+                    );
+                  }
+
+                  categoryGroup.subcategories
+                    .get(subcategoryKey)!
+                    .services.push(service);
+                });
+
+                return (
+                  <View
+                    key={audience}
+                    style={styles.audienceSection}
                   >
-                    <Text style={styles.audienceTitle}>
-                      {getAudienceLabel(audience)}
-                    </Text>
-                  </AppGradient>
+                    <AppGradient
+                      colors={[...GRADIENTS.SOFT_PURPLE]}
+                      style={styles.audienceHeader}
+                    >
+                      <Text style={styles.audienceTitle}>
+                        {getAudienceLabel(audience)}
+                      </Text>
+                    </AppGradient>
 
-                  {/* CATEGORY */}
-                  {Array.from(categoryGroups.entries()).map(
-                    ([categoryKey, category]) => (
-                      <View
-                        key={categoryKey}
-                        style={styles.serviceCategoryGroup}
-                      >
-                        {/* SUBCATEGORY */}
-                        {Array.from(
-                          category.subcategories.entries(),
-                        ).map(([subcategoryKey, subcategory]) => (
-                          <View
-                            key={subcategoryKey}
-                            style={styles.serviceSubcategoryGroup}
-                          >
-                            {/* CATEGORY > SUBCATEGORY */}
-                            <Text
-                              style={styles.serviceCategoryHeading}
-                            >
-                              {category.categoryName}
-                              <Text
-                                style={styles.serviceHierarchySeparator}
+                    {Array.from(categoryGroups.entries()).map(
+                      ([categoryKey, category]) => (
+                        <View
+                          key={categoryKey}
+                          style={styles.serviceCategoryGroup}
+                        >
+                          {Array.from(
+                            category.subcategories.entries(),
+                          ).map(
+                            ([subcategoryKey, subcategory]) => (
+                              <View
+                                key={subcategoryKey}
+                                style={
+                                  styles.serviceSubcategoryGroup
+                                }
                               >
-                                {' > '}
-                              </Text>
-                              <Text
-                                style={styles.serviceSubcategoryHeading}
-                              >
-                                {subcategory.subcategoryName}
-                              </Text>
-                            </Text>
-
-                            {/* SERVICE LIST */}
-                            {subcategory.services.map(
-                              (service, index) => (
-                                <View
-                                  key={`${service.serviceKey}-${index}`}
-                                  style={styles.serviceListItem}
+                                <Text
+                                  style={
+                                    styles.serviceCategoryHeading
+                                  }
                                 >
-                                  <View />
+                                  {category.categoryName}
+                                  <Text
+                                    style={
+                                      styles.serviceHierarchySeparator
+                                    }
+                                  >
+                                    {' > '}
+                                  </Text>
+                                  <Text
+                                    style={
+                                      styles.serviceSubcategoryHeading
+                                    }
+                                  >
+                                    {subcategory.subcategoryName}
+                                  </Text>
+                                </Text>
 
-                                  <View style={styles.serviceInfo}>
-                                    <Text style={styles.serviceName}>
-                                      {service.name}
-                                    </Text>
-
-                                    {service.description ? (
-                                      <Text
-                                        style={
-                                          styles.serviceDescription
-                                        }
+                                {subcategory.services.map(
+                                  (service, index) => (
+                                    <View
+                                      key={`${service.serviceKey}-${index}`}
+                                      style={styles.serviceListItem}
+                                    >
+                                      <View
+                                        style={styles.serviceInfo}
                                       >
-                                        {service.description}
-                                      </Text>
-                                    ) : null}
+                                        <Text
+                                          style={styles.serviceName}
+                                        >
+                                          {service.name}
+                                        </Text>
 
-                                    {service.durationMinutes !==
-                                      undefined &&
-                                      service.durationMinutes !== null ? (
-                                      <Text
-                                        style={styles.serviceDuration}
-                                      >
-                                        {Number(
-                                          service.durationMinutes,
-                                        )}{' '}
-                                        min
-                                      </Text>
-                                    ) : null}
-                                  </View>
+                                        {service.description ? (
+                                          <Text
+                                            style={
+                                              styles.serviceDescription
+                                            }
+                                          >
+                                            {service.description}
+                                          </Text>
+                                        ) : null}
 
-                                  {service.price !== undefined &&
-                                    service.price !== null ? (
-                                    <Text style={styles.servicePrice}>
-                                      ₹
-                                      {Number(service.price).toFixed(0)}
-                                    </Text>
-                                  ) : null}
-                                </View>
-                              ),
-                            )}
-                          </View>
-                        ))}
-                      </View>
-                    ),
-                  )}
-                </View>
-              );
-            })
+                                        {service.durationMinutes !==
+                                          undefined &&
+                                        service.durationMinutes !==
+                                          null ? (
+                                          <Text
+                                            style={
+                                              styles.serviceDuration
+                                            }
+                                          >
+                                            {Number(
+                                              service.durationMinutes,
+                                            )}{' '}
+                                            min
+                                          </Text>
+                                        ) : null}
+                                      </View>
+
+                                      {service.price !== undefined &&
+                                      service.price !== null ? (
+                                        <Text
+                                          style={styles.servicePrice}
+                                        >
+                                          ₹
+                                          {Number(
+                                            service.price,
+                                          ).toFixed(0)}
+                                        </Text>
+                                      ) : null}
+                                    </View>
+                                  ),
+                                )}
+                              </View>
+                            ),
+                          )}
+                        </View>
+                      ),
+                    )}
+                  </View>
+                );
+              },
+            )
           )}
         </View>
 
-
         {/* VERIFICATION */}
 
-        <View
-          style={
-            styles.notice
-          }
-        >
-
-          <Text
-            style={
-              styles.noticeTitle
-            }
-          >
+        <View style={styles.notice}>
+          <Text style={styles.noticeTitle}>
             Verification
           </Text>
 
-
-          <Text
-            style={
-              styles.noticeText
-            }
-          >
-            After submission, your business registration will be reviewed. Provider access will be activated only after the required verification and approval process is completed
+          <Text style={styles.noticeText}>
+            After submission, your business registration will be reviewed.
+            Provider access will be activated only after the required
+            verification and approval process is completed.
           </Text>
-
         </View>
-
 
         {/* SUBMIT */}
 
@@ -2642,19 +1341,11 @@ export default function SalonReviewScreen({
           </AppGradient>
         </TouchableOpacity>
 
-
-        <View
-          style={
-            styles.bottomSpacing
-          }
-        />
-
+        <View style={styles.bottomSpacing} />
       </ScrollView>
-
     </SafeAreaView>
   );
 }
-
 
 // ============================================================
 // KYC DOCUMENT ROW
@@ -2668,56 +1359,30 @@ function KycDocumentRow({
   last = false,
 }: {
   title: string;
-
   document?: any;
-
   uploaded: boolean;
-
   required?: boolean;
-
   last?: boolean;
 }) {
-
   return (
-
     <View
       style={[
         styles.documentRow,
-        !last &&
-        styles.documentBorder,
+        !last && styles.documentBorder,
       ]}
     >
-
-      <View
-        style={
-          styles.documentInfo
-        }
-      >
-
-        <Text
-          style={
-            styles.documentTitle
-          }
-        >
+      <View style={styles.documentInfo}>
+        <Text style={styles.documentTitle}>
           {title}
           {required ? ' *' : ''}
         </Text>
 
-
-        <Text
-          style={
-            styles.documentName
-          }
-        >
-          {
-            document?.name ||
+        <Text style={styles.documentName}>
+          {document?.name ||
             document?.fileName ||
-            'Not uploaded'
-          }
+            'Not uploaded'}
         </Text>
-
       </View>
-
 
       <View
         style={[
@@ -2747,11 +1412,9 @@ function KycDocumentRow({
           </Text>
         )}
       </View>
-
     </View>
   );
 }
-
 
 // ============================================================
 // DETAIL ROW
@@ -2763,608 +1426,331 @@ function DetailRow({
   last = false,
 }: {
   label: string;
-
   value: string;
-
   last?: boolean;
 }) {
-
   return (
-
     <View
       style={[
         styles.detailRow,
-        !last &&
-        styles.detailBorder,
+        !last && styles.detailBorder,
       ]}
     >
-
-      <Text
-        style={
-          styles.detailLabel
-        }
-      >
-        {
-          label
-        }
+      <Text style={styles.detailLabel}>
+        {label}
       </Text>
 
-
-      <Text
-        style={
-          styles.detailValue
-        }
-      >
-        {
-          value ||
-          '-'
-        }
+      <Text style={styles.detailValue}>
+        {value || '-'}
       </Text>
-
     </View>
   );
 }
-
 
 // ============================================================
 // STYLES
 // ============================================================
 
-const styles =
-  StyleSheet.create({
-
-    container: {
-      flex: 1,
-
-      backgroundColor:
-        COLORS.background,
-    },
-
-    content: {
-      paddingHorizontal:
-        SPACING.xxl,
-
-      paddingTop:
-        SPACING.xxl,
-
-      paddingBottom:
-        SPACING.xxxl,
-    },
-
-    header: {
-      marginBottom:
-        SPACING.xxl,
-    },
-
-    title: {
-      fontFamily:
-        FONTS.semiBold,
-
-      fontSize:
-        FONT_SIZES.title,
-
-      lineHeight:
-        FONT_SIZES.title + 5,
-
-      color:
-        COLORS.text,
-
-      textAlign:
-        'center',
-
-      letterSpacing:
-        -0.2,
-    },
-
-    subtitle: {
-      marginTop:
-        SPACING.small,
-
-      fontFamily:
-        FONTS.regular,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      lineHeight:
-        FONT_SIZES.small + 7,
-
-      color:
-        COLORS.textSecondary,
-
-      textAlign:
-        'center',
-    },
-
-    card: {
-      backgroundColor:
-        COLORS.surface,
-
-      borderWidth:
-        1,
-
-      borderColor:
-        COLORS.border,
-
-      borderRadius:
-        RADIUS.large,
-
-      paddingHorizontal:
-        SPACING.xl,
-    },
-
-    detailRow: {
-      paddingVertical:
-        SPACING.large,
-    },
-
-    detailBorder: {
-      borderBottomWidth:
-        1,
-
-      borderBottomColor:
-        COLORS.border,
-    },
-
-    detailLabel: {
-      fontFamily:
-        FONTS.semiBold,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      color:
-        COLORS.textSecondary,
-
-      marginBottom:
-        SPACING.xs,
-    },
-
-    detailValue: {
-      fontFamily:
-        FONTS.regular,
-
-      fontSize:
-        FONT_SIZES.body,
-
-      lineHeight:
-        FONT_SIZES.body + 6,
-
-      color:
-        COLORS.text,
-    },
-
-    sectionCard: {
-      marginTop:
-        SPACING.xl,
-
-      backgroundColor:
-        COLORS.surface,
-
-      borderWidth:
-        1,
-
-      borderColor:
-        COLORS.border,
-
-      borderRadius:
-        RADIUS.large,
-
-      padding:
-        SPACING.xl,
-    },
-
-    sectionTitle: {
-      fontFamily:
-        FONTS.semiBold,
-
-      fontSize:
-        FONT_SIZES.body,
-
-      color:
-        COLORS.text,
-
-      marginBottom:
-        SPACING.xs,
-    },
-
-    sectionSubtitle: {
-      fontFamily:
-        FONTS.regular,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      lineHeight:
-        FONT_SIZES.small + 7,
-
-      color:
-        COLORS.textSecondary,
-
-      marginBottom:
-        SPACING.large,
-    },
-
-    documentRow: {
-      flexDirection:
-        'row',
-
-      alignItems:
-        'center',
-
-      paddingVertical:
-        SPACING.medium,
-    },
-
-    documentBorder: {
-      borderBottomWidth:
-        1,
-
-      borderBottomColor:
-        COLORS.border,
-    },
-
-    documentInfo: {
-      flex: 1,
-    },
-
-    documentTitle: {
-      fontFamily:
-        FONTS.semiBold,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      color:
-        COLORS.text,
-
-      marginBottom:
-        3,
-    },
-
-    documentName: {
-      fontFamily:
-        FONTS.regular,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      color:
-        COLORS.textSecondary,
-    },
-
-    documentStatus: {
-      borderRadius:
-        RADIUS.medium,
-
-      paddingHorizontal:
-        SPACING.medium,
-
-      paddingVertical:
-        SPACING.small,
-
-      marginLeft:
-        SPACING.small,
-    },
-
-    documentUploaded: {
-      backgroundColor: 'transparent',
-      paddingHorizontal: 0,
-      paddingVertical: 0,
-    },
-
-    documentMissing: {
-      backgroundColor:
-        COLORS.border,
-    },
-
-    documentStatusText: {
-      fontFamily:
-        FONTS.semiBold,
-
-      fontSize:
-        FONT_SIZES.small,
-    },
-
-    documentUploadedText: {
-      color: '#FFFFFF',
-      fontFamily: FONTS.semiBold,
-      fontSize: FONT_SIZES.small,
-    },
-
-    documentMissingText: {
-      color:
-        COLORS.textSecondary,
-    },
-
-    emptyText: {
-      fontFamily:
-        FONTS.regular,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      color:
-        COLORS.textSecondary,
-
-      paddingVertical:
-        SPACING.medium,
-    },
-
-    audienceSection: {
-      marginBottom:
-        SPACING.large,
-    },
-    documentStatusBadge: {
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 12,
-      alignSelf: 'flex-start',
-    },
-
-    // documentUploadedText: {
-    //   color: '#FFFFFF',
-    //   fontFamily: FONTS.medium,
-    //   fontSize: FONT_SIZES.xs,
-    // },
-    audienceHeader: {
-      backgroundColor:
-        COLORS.themeColor,
-
-      borderRadius:
-        RADIUS.medium,
-
-      paddingHorizontal:
-        SPACING.medium,
-
-      paddingVertical:
-        SPACING.small,
-
-      marginBottom:
-        SPACING.small,
-    },
-
-    audienceTitle: {
-      fontFamily:
-        FONTS.semiBold,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      color:
-        COLORS.white,
-    },
-
-    serviceListItem: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      // Keep your existing spacing and other properties
-    },
-
-    serviceDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: COLORS.primary,
-      marginRight: SPACING.small,
-      marginTop: 6,
-      flexShrink: 0,
-    },
-
-    serviceInfo: {
-      flex: 1,
-    },
-
-    serviceCategory: {
-      fontFamily:
-        FONTS.semiBold,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      color:
-        COLORS.text,
-    },
-
-    serviceSubcategory: {
-      marginTop:
-        2,
-
-      fontFamily:
-        FONTS.regular,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      color:
-        COLORS.textSecondary,
-    },
-
-    serviceName: {
-      marginTop:
-        4,
-
-      fontFamily:
-        FONTS.semiBold,
-
-      fontSize:
-        FONT_SIZES.body,
-
-      color:
-        COLORS.text,
-    },
-
-    serviceDescription: {
-      marginTop:
-        3,
-
-      fontFamily:
-        FONTS.regular,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      lineHeight:
-        FONT_SIZES.small + 5,
-
-      color:
-        COLORS.textSecondary,
-    },
-
-    serviceDuration: {
-      marginTop:
-        4,
-
-      fontFamily:
-        FONTS.regular,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      color:
-        COLORS.textSecondary,
-    },
-
-    servicePrice: {
-      fontFamily:
-        FONTS.semiBold,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      color:
-        COLORS.themeColor,
-
-      marginLeft:
-        SPACING.small,
-    },
-
-    notice: {
-      marginTop:
-        SPACING.xl,
-
-      padding:
-        SPACING.large,
-
-      borderRadius:
-        RADIUS.medium,
-
-      backgroundColor:
-        '#F5F7FA',
-
-      borderWidth:
-        1,
-
-      borderColor:
-        COLORS.border,
-    },
-
-    noticeTitle: {
-      fontFamily:
-        FONTS.semiBold,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      color:
-        COLORS.text,
-
-      marginBottom:
-        SPACING.xs,
-    },
-    button: {
-      width: '100%',
-      height: 54,
-      borderRadius: RADIUS.medium,
-      marginTop: SPACING.xl,
-      overflow: 'hidden',
-    },
-
-    buttonGradient: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-
-    buttonText: {
-      fontFamily: FONTS.semiBold,
-      fontSize: FONT_SIZES.body,
-      color: '#FFFFFF',
-    },
-
-    buttonDisabled: {
-      opacity: 0.6,
-    },
-    noticeText: {
-      fontFamily:
-        FONTS.regular,
-
-      fontSize:
-        FONT_SIZES.small,
-
-      lineHeight:
-        FONT_SIZES.small + 7,
-
-      color:
-        COLORS.textSecondary,
-    },
-
-    // button: {
-    //   width:
-    //     '100%',
-
-    //   height:
-    //     54,
-
-    //   borderRadius:
-    //     RADIUS.medium,
-
-    //   marginTop:
-    //     SPACING.xl,
-
-    //   backgroundColor:
-    //     COLORS.themeColor,
-    // },
-
-    bottomSpacing: {
-      height:
-        SPACING.huge,
-    },
-    serviceCategoryGroup: {
-      marginTop: SPACING.medium,
-    },
-
-    serviceCategoryHeading: {
-      fontFamily: FONTS.semiBold,
-      fontSize: FONT_SIZES.body,
-      color: COLORS.text,
-      marginBottom: SPACING.small,
-    },
-
-    serviceSubcategoryGroup: {
-      marginLeft: SPACING.small,
-      marginBottom: SPACING.medium,
-      paddingLeft: SPACING.medium,
-      borderLeftWidth: 2,
-      borderLeftColor: '#C084FC',
-    },
-
-    serviceSubcategoryHeading: {
-      fontFamily: FONTS.semiBold,
-      fontSize: FONT_SIZES.small,
-      color: COLORS.textSecondary,
-      marginBottom: SPACING.xs,
-    },
-
-    // serviceListItem: {
-    //   flexDirection: 'row',
-    //   alignItems: 'flex-start',
-    //   paddingVertical: SPACING.small,
-    //   borderBottomWidth: 1,
-    //   borderBottomColor: COLORS.border,
-    // },
-    serviceHierarchySeparator: {
-      color: COLORS.textSecondary,
-      fontFamily: FONTS.regular,
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  content: {
+    paddingHorizontal: SPACING.xxl,
+    paddingTop: SPACING.xxl,
+    paddingBottom: SPACING.xxxl,
+  },
+
+  header: {
+    marginBottom: SPACING.xxl,
+  },
+
+  title: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.title,
+    lineHeight: FONT_SIZES.title + 5,
+    color: COLORS.text,
+    textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+
+  subtitle: {
+    marginTop: SPACING.small,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    lineHeight: FONT_SIZES.small + 7,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+
+  card: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.large,
+    paddingHorizontal: SPACING.xl,
+  },
+
+  detailRow: {
+    paddingVertical: SPACING.large,
+  },
+
+  detailBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+
+  detailLabel: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+  },
+
+  detailValue: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.body,
+    lineHeight: FONT_SIZES.body + 6,
+    color: COLORS.text,
+  },
+
+  sectionCard: {
+    marginTop: SPACING.xl,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.large,
+    padding: SPACING.xl,
+  },
+
+  sectionTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.body,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+
+  sectionSubtitle: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    lineHeight: FONT_SIZES.small + 7,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.large,
+  },
+
+  documentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.medium,
+  },
+
+  documentBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+
+  documentInfo: {
+    flex: 1,
+  },
+
+  documentTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+    marginBottom: 3,
+  },
+
+  documentName: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textSecondary,
+  },
+
+  documentStatus: {
+    borderRadius: RADIUS.medium,
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.small,
+    marginLeft: SPACING.small,
+  },
+
+  documentUploaded: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+
+  documentMissing: {
+    backgroundColor: COLORS.border,
+  },
+
+  documentStatusText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+  },
+
+  documentUploadedText: {
+    color: '#FFFFFF',
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+  },
+
+  documentMissingText: {
+    color: COLORS.textSecondary,
+  },
+
+  documentStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+
+  emptyText: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textSecondary,
+    paddingVertical: SPACING.medium,
+  },
+
+  audienceSection: {
+    marginBottom: SPACING.large,
+  },
+
+  audienceHeader: {
+    borderRadius: RADIUS.medium,
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.small,
+    marginBottom: SPACING.small,
+  },
+
+  audienceTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.white,
+  },
+
+  serviceCategoryGroup: {
+    marginTop: SPACING.medium,
+  },
+
+  serviceSubcategoryGroup: {
+    marginLeft: SPACING.small,
+    marginBottom: SPACING.medium,
+    paddingLeft: SPACING.medium,
+    borderLeftWidth: 2,
+    borderLeftColor: '#C084FC',
+  },
+
+  serviceCategoryHeading: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.body,
+    color: COLORS.text,
+    marginBottom: SPACING.small,
+  },
+
+  serviceHierarchySeparator: {
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.regular,
+  },
+
+  serviceSubcategoryHeading: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+  },
+
+  serviceListItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: SPACING.small,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+
+  serviceInfo: {
+    flex: 1,
+  },
+
+  serviceName: {
+    marginTop: 4,
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.body,
+    color: COLORS.text,
+  },
+
+  serviceDescription: {
+    marginTop: 3,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    lineHeight: FONT_SIZES.small + 5,
+    color: COLORS.textSecondary,
+  },
+
+  serviceDuration: {
+    marginTop: 4,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textSecondary,
+  },
+
+  servicePrice: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.themeColor,
+    marginLeft: SPACING.small,
+  },
+
+  notice: {
+    marginTop: SPACING.xl,
+    padding: SPACING.large,
+    borderRadius: RADIUS.medium,
+    backgroundColor: '#F5F7FA',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  noticeTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+    marginBottom: SPACING.xs,
+  },
+
+  noticeText: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    lineHeight: FONT_SIZES.small + 7,
+    color: COLORS.textSecondary,
+  },
+
+  button: {
+    width: '100%',
+    height: 54,
+    borderRadius: RADIUS.medium,
+    marginTop: SPACING.xl,
+    overflow: 'hidden',
+  },
+
+  buttonGradient: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  buttonText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.body,
+    color: '#FFFFFF',
+  },
+
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+
+  bottomSpacing: {
+    height: SPACING.huge,
+  },
+});

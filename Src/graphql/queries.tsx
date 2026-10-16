@@ -2107,3 +2107,41 @@ export const VERIFY_PHONE_CHANGE_OTP = gql`
     }
   }
 `;
+
+export const GET_SALON_REGISTRATION_DRAFT = gql`
+  query GetSalonRegistrationDraft($userId: ID!) {
+    getSalonRegistrationDraft(userId: $userId) {
+      success
+      message
+      draft {
+        userId
+        currentStep
+        completedSteps
+        draftData
+        status
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const SAVE_SALON_REGISTRATION_DRAFT = gql`
+  mutation SaveSalonRegistrationDraft(
+    $input: SaveSalonRegistrationDraftInput!
+  ) {
+    saveSalonRegistrationDraft(input: $input) {
+      success
+      message
+      draft {
+        userId
+        currentStep
+        completedSteps
+        draftData
+        status
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;

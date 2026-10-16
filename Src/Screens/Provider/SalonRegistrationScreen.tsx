@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useEffect, useState } from 'react';
 
 import {
   SafeAreaView,
@@ -57,16 +58,91 @@ const TARGET_AUDIENCE_OPTIONS: TargetAudienceOption[] = [
 ];
 
 const SalonRegistrationScreen = ({ navigation }: any) => {
-  const { updateData } = useSalonRegistration();
+  const {
+    data,
+    updateData,
+    completedSteps,
+    markStepCompleted,
+    setCurrentStep,
+    saveDraft,
+    isDraftLoading,
+    isDraftSaving,
+    draftError,
+  } = useSalonRegistration();
+
   const { currentUser } = useUser();
 
-  const [salonName, setSalonName] = useState('');
-  const [ownerName, setOwnerName] = useState('');
-  const [email, setEmail] = useState('');
-  const [targetAudiences, setTargetAudiences] = useState<TargetAudience[]>([]);
-  const [targetAudienceModalVisible, setTargetAudienceModalVisible] =
-    useState(false);
+  // =====================================================
+  // FORM STATE
+  // =====================================================
+
+  const [salonName, setSalonName] = useState(data.salonName);
+  const [ownerName, setOwnerName] = useState(data.ownerName);
+  const [email, setEmail] = useState(data.email);
+
+  const [targetAudiences, setTargetAudiences] =
+    useState<TargetAudience[]>(data.targetAudiences);
+
+  const [
+    targetAudienceModalVisible,
+    setTargetAudienceModalVisible,
+  ] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
+
+  // =====================================================
+  // RESTORE SAVED FORM VALUES
+  // =====================================================
+
+  useEffect(() => {
+    if (isDraftLoading) {
+      return;
+    }
+
+    setSalonName(data.salonName);
+    setOwnerName(data.ownerName);
+    setEmail(data.email);
+    setTargetAudiences(data.targetAudiences);
+  }, [
+    data.salonName,
+    data.ownerName,
+    data.email,
+    data.targetAudiences,
+    isDraftLoading,
+  ]);
+
+  // =====================================================
+  // STORE AUTHENTICATED USER IDENTITY
+  // =====================================================
+
+  useEffect(() => {
+    if (!currentUser?.userId) {
+      return;
+    }
+
+    const identityChanged =
+      data.userId !== currentUser.userId ||
+      data.phoneNumber !== (currentUser.phoneNumber || '');
+
+    if (!identityChanged) {
+      return;
+    }
+
+    updateData({
+      userId: currentUser.userId,
+      phoneNumber: currentUser.phoneNumber || '',
+    });
+  }, [
+    currentUser?.userId,
+    currentUser?.phoneNumber,
+    data.userId,
+    data.phoneNumber,
+    updateData,
+  ]);
+
+  // =====================================================
+  // TOGGLE CUSTOMER TYPE
+  // =====================================================
 
   const toggleTargetAudience = (audience: TargetAudience) => {
     setTargetAudiences(current => {
@@ -77,6 +153,10 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
       return [...current, audience];
     });
   };
+
+  // =====================================================
+  // SELECTED CUSTOMER TYPE LABEL
+  // =====================================================
 
   const getTargetAudienceLabel = () => {
     if (targetAudiences.length === 0) {
@@ -89,8 +169,12 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
       .join(', ');
   };
 
+  // =====================================================
+  // SAVE AND CONTINUE
+  // =====================================================
+
   const onNext = async () => {
-    if (submitting) {
+    if (submitting || isDraftLoading || isDraftSaving) {
       return;
     }
 
@@ -98,10 +182,14 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
     const trimmedOwnerName = ownerName.trim();
     const trimmedEmail = email.trim();
 
+    // -------------------------------------------------
+    // VALIDATION
+    // -------------------------------------------------
+
     if (targetAudiences.length === 0) {
       Alert.alert(
         'Customer Type Required',
-        'Please select who your business serves. You can select more than one',
+        'Please select who your business serves. You can select more than one.',
       );
       return;
     }
@@ -109,7 +197,7 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
     if (!trimmedSalonName) {
       Alert.alert(
         'Business Name Required',
-        'Please enter your business name',
+        'Please enter your business name.',
       );
       return;
     }
@@ -117,7 +205,7 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
     if (!trimmedOwnerName) {
       Alert.alert(
         'Owner Name Required',
-        'Please enter the owner name as per Aadhaar',
+        'Please enter the owner name as per Aadhaar.',
       );
       return;
     }
@@ -125,7 +213,7 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
     if (!trimmedEmail) {
       Alert.alert(
         'Email Required',
-        'Please enter your business email address',
+        'Please enter your business email address.',
       );
       return;
     }
@@ -156,34 +244,54 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
       return;
     }
 
+    // -------------------------------------------------
+    // UPDATE AND SAVE
+    // -------------------------------------------------
+
+    setSubmitting(true);
+
     try {
-      setSubmitting(true);
-
-      console.log('[SalonRegistration] SAVE REGISTRATION DATA');
-      console.log('[SalonRegistration] User ID:', currentUser.userId);
-      console.log('[SalonRegistration] Phone:', currentUser.phoneNumber);
-      console.log('[SalonRegistration] Business Name:', trimmedSalonName);
-      console.log('[SalonRegistration] Owner Name:', trimmedOwnerName);
-      console.log('[SalonRegistration] Email:', trimmedEmail);
-      console.log('[SalonRegistration] Target Audiences:', targetAudiences);
-
-      await updateData({
+      const latestData = {
         userId: currentUser.userId,
         phoneNumber: currentUser.phoneNumber,
         salonName: trimmedSalonName,
         ownerName: trimmedOwnerName,
         email: trimmedEmail,
         targetAudiences,
-      });
+      };
 
-      console.log(
-        '[SalonRegistration] Registration data saved successfully.',
+      // Update in-memory registration state.
+      updateData(latestData);
+
+      const nextCompletedSteps = [
+        ...new Set([...completedSteps, 1]),
+      ].sort((a, b) => a - b);
+
+      // Mark step 1 completed and step 2 as next.
+      markStepCompleted(1);
+      setCurrentStep(2);
+
+      // Save the latest values explicitly. Do not rely
+      // on React having rendered the update first.
+      const saved = await saveDraft(
+        2,
+        nextCompletedSteps,
+        latestData,
       );
 
+      if (!saved) {
+        Alert.alert(
+          'Unable to Save Progress',
+          'Your registration could not be saved. Please check your connection and try again.',
+        );
+        return;
+      }
+
+      // Navigate only after a successful draft save.
       navigation.navigate('SalonAddress');
     } catch (error) {
-      console.log(
-        '[SalonRegistration] Failed to save registration:',
+      console.error(
+        '[SalonRegistration] Unable to save registration progress:',
         error,
       );
 
@@ -196,6 +304,17 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
     }
   };
 
+  // =====================================================
+  // LOADING STATE
+  // =====================================================
+
+  const isBusy =
+    submitting || isDraftLoading || isDraftSaving;
+
+  // =====================================================
+  // UI
+  // =====================================================
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <Header headerTitle="Registration" />
@@ -207,7 +326,9 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.title}>Tell us about your business</Text>
+          <Text style={styles.title}>
+            Tell us about your business
+          </Text>
 
           <Text style={styles.subtitle}>
             Provide your business details to get started with Clavata
@@ -229,13 +350,15 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
                 targetAudienceModalVisible && styles.dropdownActive,
               ]}
               activeOpacity={0.75}
+              disabled={isBusy}
               onPress={() => setTargetAudienceModalVisible(true)}
             >
               <View style={styles.dropdownContent}>
                 <Text
                   style={[
                     styles.dropdownText,
-                    targetAudiences.length === 0 && styles.placeholderText,
+                    targetAudiences.length === 0 &&
+                      styles.placeholderText,
                   ]}
                   numberOfLines={1}
                 >
@@ -248,7 +371,9 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
 
             {targetAudiences.length > 0 && (
               <View style={styles.selectedAudienceInfo}>
-                <Text style={styles.selectedAudienceTitle}>Selected</Text>
+                <Text style={styles.selectedAudienceTitle}>
+                  Selected
+                </Text>
 
                 <View style={styles.audienceChipContainer}>
                   {TARGET_AUDIENCE_OPTIONS
@@ -256,7 +381,10 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
                       targetAudiences.includes(option.value),
                     )
                     .map(option => (
-                      <View key={option.value} style={styles.audienceChip}>
+                      <View
+                        key={option.value}
+                        style={styles.audienceChip}
+                      >
                         <Text style={styles.audienceChipText}>
                           {option.label}
                         </Text>
@@ -269,7 +397,9 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
 
           {/* BUSINESS NAME */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Business name *</Text>
+            <Text style={styles.label}>
+              Business name *
+            </Text>
 
             <Text style={styles.helperText}>
               Enter your shop or company name
@@ -284,12 +414,15 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
               autoCapitalize="words"
               returnKeyType="next"
               maxLength={100}
+              editable={!isBusy}
             />
           </View>
 
           {/* OWNER NAME */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Owner name *</Text>
+            <Text style={styles.label}>
+              Owner name *
+            </Text>
 
             <Text style={styles.helperText}>
               Enter the name exactly as it appears on Aadhaar
@@ -304,12 +437,15 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
               autoCapitalize="words"
               returnKeyType="next"
               maxLength={100}
+              editable={!isBusy}
             />
           </View>
 
           {/* BUSINESS EMAIL */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Business email *</Text>
+            <Text style={styles.label}>
+              Business email *
+            </Text>
 
             <TextInput
               style={styles.input}
@@ -322,25 +458,50 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
               autoCorrect={false}
               returnKeyType="done"
               maxLength={150}
+              editable={!isBusy}
             />
           </View>
 
-          {/* GRADIENT CONTINUE BUTTON */}
+          {/* DRAFT ERROR */}
+          {!!draftError && !isDraftLoading && (
+            <Text style={styles.errorText}>
+              Your saved progress may not have synced. Please try saving again before continuing.
+            </Text>
+          )}
+
+          {/* CONTINUE BUTTON */}
           <TouchableOpacity
-            style={styles.buttonWrapper}
+            style={[
+              styles.buttonWrapper,
+              isBusy && styles.buttonDisabled,
+            ]}
             activeOpacity={0.85}
             onPress={onNext}
-            disabled={submitting}
+            disabled={isBusy}
           >
             <AppGradient
               colors={[...GRADIENTS.SOFT_PURPLE]}
               style={styles.button}
             >
-              {submitting ? (
-                <ActivityIndicator color={COLORS.white} />
+              {isDraftLoading ? (
+                <>
+                  <ActivityIndicator color={COLORS.white} />
+                  <Text style={styles.buttonText}>
+                    {'  '}Restoring registration...
+                  </Text>
+                </>
+              ) : isBusy ? (
+                <>
+                  <ActivityIndicator color={COLORS.white} />
+                  <Text style={styles.buttonText}>
+                    {'  '}Saving progress...
+                  </Text>
+                </>
               ) : (
                 <>
-                  <Text style={styles.buttonText}>Continue</Text>
+                  <Text style={styles.buttonText}>
+                    Continue
+                  </Text>
                   <Text style={styles.buttonArrow}>›</Text>
                 </>
               )}
@@ -354,7 +515,9 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
         visible={targetAudienceModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setTargetAudienceModalVisible(false)}
+        onRequestClose={() =>
+          setTargetAudienceModalVisible(false)
+        }
       >
         <View style={styles.modalOverlay}>
           <Pressable
@@ -377,7 +540,9 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
               <TouchableOpacity
                 style={styles.closeButton}
                 activeOpacity={0.7}
-                onPress={() => setTargetAudienceModalVisible(false)}
+                onPress={() =>
+                  setTargetAudienceModalVisible(false)
+                }
               >
                 <Text style={styles.closeButtonText}>×</Text>
               </TouchableOpacity>
@@ -389,17 +554,22 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
               showsVerticalScrollIndicator={false}
             >
               {TARGET_AUDIENCE_OPTIONS.map(option => {
-                const isSelected = targetAudiences.includes(option.value);
+                const isSelected =
+                  targetAudiences.includes(option.value);
 
                 return (
                   <TouchableOpacity
                     key={option.value}
                     style={[
                       styles.audienceOption,
-                      isSelected && styles.audienceOptionSelected,
+                      isSelected &&
+                        styles.audienceOptionSelected,
                     ]}
                     activeOpacity={0.75}
-                    onPress={() => toggleTargetAudience(option.value)}
+                    disabled={isBusy}
+                    onPress={() =>
+                      toggleTargetAudience(option.value)
+                    }
                   >
                     <View
                       style={[
@@ -412,7 +582,9 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
                           colors={[...GRADIENTS.SOFT_PURPLE]}
                           style={styles.checkboxGradient}
                         >
-                          <Text style={styles.checkboxText}>✓</Text>
+                          <Text style={styles.checkboxText}>
+                            ✓
+                          </Text>
                         </AppGradient>
                       )}
                     </View>
@@ -421,13 +593,16 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
                       <Text
                         style={[
                           styles.audienceOptionTitle,
-                          isSelected && styles.audienceOptionTitleSelected,
+                          isSelected &&
+                            styles.audienceOptionTitleSelected,
                         ]}
                       >
                         {option.label}
                       </Text>
 
-                      <Text style={styles.audienceOptionDescription}>
+                      <Text
+                        style={styles.audienceOptionDescription}
+                      >
                         {option.description}
                       </Text>
                     </View>
@@ -444,8 +619,9 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
                 </AppGradient>
 
                 <Text style={styles.modalInfoText}>
-                  You can select more than one. For example, select Female,
-                  Male and Kids if your business serves all three
+                  You can select more than one. For example,
+                  select Female, Male and Kids if your business
+                  serves all three.
                 </Text>
               </View>
             </ScrollView>
@@ -454,13 +630,17 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
               <TouchableOpacity
                 style={styles.buttonWrapper}
                 activeOpacity={0.85}
-                onPress={() => setTargetAudienceModalVisible(false)}
+                onPress={() =>
+                  setTargetAudienceModalVisible(false)
+                }
               >
                 <AppGradient
                   colors={[...GRADIENTS.SOFT_PURPLE]}
                   style={styles.audienceDoneButton}
                 >
-                  <Text style={styles.audienceDoneButtonText}>Done</Text>
+                  <Text style={styles.audienceDoneButtonText}>
+                    Done
+                  </Text>
                 </AppGradient>
               </TouchableOpacity>
             </View>
@@ -470,6 +650,10 @@ const SalonRegistrationScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
+
+// =====================================================
+// STYLES
+// =====================================================
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -626,6 +810,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
+  buttonDisabled: {
+    opacity: 0.75,
+  },
+
   button: {
     width: '100%',
     minHeight: 54,
@@ -649,6 +837,14 @@ const styles = StyleSheet.create({
     fontSize: 27,
     lineHeight: 30,
     fontFamily: FONTS?.regular,
+  },
+
+  errorText: {
+    color: '#B42318',
+    fontSize: 12,
+    fontFamily: FONTS?.regular,
+    lineHeight: 18,
+    marginBottom: 12,
   },
 
   modalOverlay: {
@@ -848,4 +1044,3 @@ const styles = StyleSheet.create({
 });
 
 export default SalonRegistrationScreen;
-
