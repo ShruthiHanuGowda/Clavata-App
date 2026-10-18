@@ -420,17 +420,14 @@ export default function SalonServices({
     // Update local registration state immediately so the UI stays responsive.
     updateData({ serviceSelections });
 
-    // Include the latest services explicitly because React state updates are async.
-    const latestData = {
-      ...data,
-      serviceSelections,
-    };
-
+    // Pass only the field being changed. Do not spread `data` here because
+    // it may be a stale render snapshot and could overwrite newer registration
+    // fields while the draft save is queued.
     try {
       const saved = await saveDraft(
         5,
         completedSteps,
-        latestData,
+        { serviceSelections },
       );
 
       if (!saved) {

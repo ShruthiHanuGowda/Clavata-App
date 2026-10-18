@@ -647,41 +647,40 @@ export const SalonRegistrationProvider = ({
                 return Promise.resolve(false);
             }
 
-            // Prevent a save from an old session after the user changes.
-            if (
-                hydratedUserRef.current &&
-                hydratedUserRef.current !== ownerId
-            ) {
+            // A save is allowed only after this exact user's server draft
+            // has finished loading. This prevents an initial/empty form from
+            // overwriting an existing draft during login or screen startup.
+            if (hydratedUserRef.current !== ownerId) {
                 return Promise.resolve(false);
             }
 
-            const step = normalizeStep(
-                requestedStep ?? stepRef.current,
-            );
-
-            const completed = parseCompletedSteps(
-                requestedCompleted ?? completedRef.current,
-            );
-
-            const snapshot: SalonRegistrationData = {
-                ...dataRef.current,
-                ...latestData,
-                userId: ownerId,
-            };
-
-            const safeData = getSafeDraftData(snapshot);
-
             const performSave = async (): Promise<boolean> => {
-                // Check again when this queued save is about to run.
+                // Re-check identity and hydration when this queued save runs.
                 if (
                     authenticatedUserId?.trim() !== ownerId ||
-                    (
-                        hydratedUserRef.current !== null &&
-                        hydratedUserRef.current !== ownerId
-                    )
+                    hydratedUserRef.current !== ownerId
                 ) {
                     return false;
                 }
+
+                // Take the snapshot when this save reaches the front of the
+                // queue, not when it is first requested. This keeps queued
+                // writes aligned with the newest context data.
+                const step = normalizeStep(
+                    requestedStep ?? stepRef.current,
+                );
+
+                const completed = parseCompletedSteps(
+                    requestedCompleted ?? completedRef.current,
+                );
+
+                const snapshot: SalonRegistrationData = {
+                    ...dataRef.current,
+                    ...latestData,
+                    userId: ownerId,
+                };
+
+                const safeData = getSafeDraftData(snapshot);
 
                 savingCountRef.current += 1;
                 setIsDraftSaving(true);
@@ -717,10 +716,7 @@ export const SalonRegistrationProvider = ({
                     // still the data represented by this save.
                     const sameUser =
                         authenticatedUserId?.trim() === ownerId &&
-                        (
-                            hydratedUserRef.current === null ||
-                            hydratedUserRef.current === ownerId
-                        );
+                        hydratedUserRef.current === ownerId;
 
                     const snapshotStillCurrent =
                         sameUser &&
