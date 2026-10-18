@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,12 +14,14 @@ import {
   View,
 } from 'react-native';
 import { Header } from '../../components';
+import AppGradient from '../../common/AppGradient';
 import {
   COLORS,
   FONTS,
   FONT_SIZES,
   SPACING,
   RADIUS,
+  GRADIENTS
 } from '../../constants/constants';
 import {
   SalonServiceSelection,
@@ -71,6 +72,8 @@ type ServiceForm = {
   durationMinutes: string;
   description: string;
 };
+
+const PURPLE_PRIMARY = '#8B5CF6';
 
 const AUDIENCES: { key: ServiceAudience; label: string }[] = [
   { key: 'FEMALE', label: 'Female' },
@@ -470,7 +473,7 @@ export default function SalonServices({ navigation, route }: any) {
     const durationMinutes = positiveNumber(form.durationMinutes);
 
     if (!form.categoryId || !form.categoryName) {
-      Alert.alert('Category required', 'Please select a valid category.');
+      Alert.alert('Category required', 'Please select a valid category');
       return;
     }
 
@@ -483,14 +486,14 @@ export default function SalonServices({ navigation, route }: any) {
     }
 
     if (!name) {
-      Alert.alert('Service name required', 'Enter the service name.');
+      Alert.alert('Service name required', 'Enter the service name');
       return;
     }
 
     if (name.length > 100) {
       Alert.alert(
         'Name too long',
-        'Keep the service name under 100 characters.',
+        'Keep the service name under 100 characters',
       );
       return;
     }
@@ -506,7 +509,7 @@ export default function SalonServices({ navigation, route }: any) {
     }
 
     if (!price) {
-      Alert.alert('Invalid price', 'Enter a price greater than ₹0.');
+      Alert.alert('Invalid price', 'Enter a price greater than ₹0');
       return;
     }
 
@@ -554,7 +557,7 @@ export default function SalonServices({ navigation, route }: any) {
       if (!saved) {
         Alert.alert(
           'Could not sync service',
-          'The service is visible in this session, but the server did not confirm the save. Please retry while connected to the internet before leaving this screen.',
+          'The service is visible in this session, but the server did not confirm the save. Please retry while connected to the internet before leaving this scree.',
         );
       }
     } catch (error) {
@@ -590,7 +593,7 @@ export default function SalonServices({ navigation, route }: any) {
             if (!saved) {
               Alert.alert(
                 'Progress not synced',
-                'The removal could not be confirmed by the server. Please check your connection and retry before leaving this screen.',
+                'The removal could not be confirmed by the server. Please check your connection and retry before leaving this screen',
               );
             }
           },
@@ -605,7 +608,7 @@ export default function SalonServices({ navigation, route }: any) {
     }
 
     if (!availableAudiences.length) {
-      Alert.alert('Audience required', 'Select at least one audience.');
+      Alert.alert('Audience required', 'Select at least one audience');
       return;
     }
 
@@ -640,7 +643,7 @@ export default function SalonServices({ navigation, route }: any) {
     if (invalid) {
       Alert.alert(
         'Incomplete services',
-        'Please edit any incomplete service before continuing.',
+        'Please edit any incomplete service before continuing',
       );
       return;
     }
@@ -658,7 +661,7 @@ export default function SalonServices({ navigation, route }: any) {
       if (!saved) {
         Alert.alert(
           'Unable to save progress',
-          'Your services could not be saved to the server. Please retry before continuing.',
+          'Your services could not be saved to the server. Please retry before continuing',
         );
         return;
       }
@@ -705,7 +708,7 @@ export default function SalonServices({ navigation, route }: any) {
           <Text style={styles.heading}>Your salon services</Text>
           <Text style={styles.subtitle}>
             Tell customers what your salon offers. Add services, set prices
-            and estimated durations.
+            and estimated durations
           </Text>
           <Text style={styles.stepLabel}>STEP 4 OF 6</Text>
         </View>
@@ -724,13 +727,18 @@ export default function SalonServices({ navigation, route }: any) {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.primarySmall}
-            onPress={openCatalog}
-            activeOpacity={0.8}
+          <AppGradient
+            colors={[...GRADIENTS.SOFT_PURPLE]}
+            style={styles.primarySmallGradient}
           >
-            <Text style={styles.primarySmallText}>+ Add services</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.primarySmall}
+              onPress={openCatalog}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.primarySmallText}>+ Add services</Text>
+            </TouchableOpacity>
+          </AppGradient>
         </View>
 
         <Text style={styles.sectionTitle}>Service coverage</Text>
@@ -772,7 +780,7 @@ export default function SalonServices({ navigation, route }: any) {
             <Text style={styles.sectionTitle}>Added services</Text>
             <Text style={styles.subtitle}>
               Each service is saved to your registration draft when you add,
-              edit or remove it.
+              edit or remove it
             </Text>
           </View>
 
@@ -788,14 +796,19 @@ export default function SalonServices({ navigation, route }: any) {
             </View>
             <Text style={styles.emptyTitle}>No services yet</Text>
             <Text style={styles.emptyText}>
-              Select the services your salon provides to get started.
+              Select the services your salon provides to get started
             </Text>
-            <TouchableOpacity
-              style={styles.emptyButton}
-              onPress={openCatalog}
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={styles.emptyButtonGradient}
             >
-              <Text style={styles.emptyButtonText}>Choose services</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={openCatalog}
+              >
+                <Text style={styles.emptyButtonText}>Choose services</Text>
+              </TouchableOpacity>
+            </AppGradient>
           </View>
         ) : (
           availableAudiences.map(audience => {
@@ -809,7 +822,10 @@ export default function SalonServices({ navigation, route }: any) {
 
             return (
               <View key={audience} style={styles.audienceGroup}>
-                <View style={styles.audienceHeader}>
+                <AppGradient
+                  colors={[...GRADIENTS.SOFT_PURPLE]}
+                  style={styles.audienceHeader}
+                >
                   <Text style={styles.groupTitle}>
                     {audienceLabel(audience)}
                     <Text style={styles.groupCount}>
@@ -817,7 +833,7 @@ export default function SalonServices({ navigation, route }: any) {
                       · {services.length}
                     </Text>
                   </Text>
-                </View>
+                </AppGradient>
 
                 {services.map(service => (
                   <View
@@ -871,25 +887,31 @@ export default function SalonServices({ navigation, route }: any) {
           <Text style={styles.noteTitle}>Before you continue</Text>
           <Text style={styles.noteText}>
             Add at least one service for each selected audience. You can add
-            multiple services under the same category and subcategory.
+            multiple services under the same category and subcategory
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-            (!selectedServices.length || submitting) &&
-              styles.disabledButton,
-          ]}
-          onPress={handleContinue}
-          disabled={!selectedServices.length || submitting}
+        <AppGradient
+          colors={[...GRADIENTS.SOFT_PURPLE]}
+          style={styles.continueButtonGradient}
         >
-          {submitting ? (
-            <ActivityIndicator color={COLORS.white} />
-          ) : (
-            <Text style={styles.continueText}>Continue</Text>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.continueButton,
+              (!selectedServices.length || submitting) &&
+                styles.disabledButton,
+            ]}
+            onPress={handleContinue}
+            disabled={!selectedServices.length || submitting}
+            activeOpacity={0.85}
+          >
+            {submitting ? (
+              <ActivityIndicator color={COLORS.white} />
+            ) : (
+              <Text style={styles.continueText}>Continue</Text>
+            )}
+          </TouchableOpacity>
+        </AppGradient>
       </ScrollView>
 
       <Modal
@@ -1004,7 +1026,7 @@ export default function SalonServices({ navigation, route }: any) {
                 >
                   {loading ? (
                     <View style={styles.loading}>
-                      <ActivityIndicator color={COLORS.themeColor} />
+                      <ActivityIndicator color={PURPLE_PRIMARY} />
                       <Text style={styles.loadingText}>
                         Loading service catalog...
                       </Text>
@@ -1015,7 +1037,7 @@ export default function SalonServices({ navigation, route }: any) {
                         Unable to load services
                       </Text>
                       <Text style={styles.emptyText}>
-                        Check your connection and try again.
+                        Check your connection and try again
                       </Text>
                       <TouchableOpacity
                         style={styles.emptyButton}
@@ -1044,7 +1066,7 @@ export default function SalonServices({ navigation, route }: any) {
                         No matching service types
                       </Text>
                       <Text style={styles.emptyText}>
-                        Try another search or choose a different audience.
+                        Try another search or choose a different audience
                       </Text>
                     </View>
                   ) : (
@@ -1146,16 +1168,21 @@ export default function SalonServices({ navigation, route }: any) {
                       {selectedServices.length} services added
                     </Text>
                     <Text style={styles.footerHint}>
-                      Each saved service is added to your draft.
+                      Each saved service is added to your draft
                     </Text>
                   </View>
 
-                  <TouchableOpacity
-                    style={styles.footerButton}
-                    onPress={closeModal}
+                  <AppGradient
+                    colors={[...GRADIENTS.SOFT_PURPLE]}
+                    style={styles.footerButtonGradient}
                   >
-                    <Text style={styles.footerButtonText}>Done</Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.footerButton}
+                      onPress={closeModal}
+                    >
+                      <Text style={styles.footerButtonText}>Done</Text>
+                    </TouchableOpacity>
+                  </AppGradient>
                 </View>
               </>
             ) : (
@@ -1234,7 +1261,7 @@ export default function SalonServices({ navigation, route }: any) {
 
                   <Text style={styles.helperText}>
                     Use the price and approximate time customers should expect
-                    for this service.
+                    for this service
                   </Text>
                 </ScrollView>
 
@@ -1247,19 +1274,24 @@ export default function SalonServices({ navigation, route }: any) {
                     <Text style={styles.cancelText}>Back</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.saveButton}
-                    onPress={handleSaveService}
-                    disabled={saving}
+                  <AppGradient
+                    colors={[...GRADIENTS.SOFT_PURPLE]}
+                    style={styles.saveButtonGradient}
                   >
-                    {saving ? (
-                      <ActivityIndicator color={COLORS.white} />
-                    ) : (
-                      <Text style={styles.saveText}>
-                        {form.serviceKey ? 'Save changes' : 'Add service'}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.saveButton}
+                      onPress={handleSaveService}
+                      disabled={saving}
+                    >
+                      {saving ? (
+                        <ActivityIndicator color={COLORS.white} />
+                      ) : (
+                        <Text style={styles.saveText}>
+                          {form.serviceKey ? 'Save changes' : 'Add service'}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </AppGradient>
                 </View>
               </>
             )}
@@ -1291,7 +1323,7 @@ const styles = StyleSheet.create({
   stepLabel: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
     marginTop: SPACING.small,
   },
   subtitle: {
@@ -1319,7 +1351,7 @@ const styles = StyleSheet.create({
   summaryNumber: {
     fontFamily: FONTS.bold,
     fontSize: 32,
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
     marginRight: SPACING.medium,
   },
   summaryTitle: {
@@ -1333,12 +1365,15 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 3,
   },
+  primarySmallGradient: {
+    borderRadius: RADIUS.medium,
+    marginLeft: SPACING.small,
+  },
   primarySmall: {
     paddingHorizontal: SPACING.medium,
     paddingVertical: SPACING.small,
     borderRadius: RADIUS.medium,
-    backgroundColor: COLORS.themeColor,
-    marginLeft: SPACING.small,
+    backgroundColor: 'transparent',
   },
   primarySmallText: {
     fontFamily: FONTS.semiBold,
@@ -1374,7 +1409,7 @@ const styles = StyleSheet.create({
   audienceAvatarText: {
     fontFamily: FONTS.bold,
     fontSize: FONT_SIZES.body,
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
   },
   audienceName: {
     fontFamily: FONTS.semiBold,
@@ -1395,9 +1430,9 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.medium,
   },
   statusDone: {
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
     borderWidth: 1,
-    borderColor: COLORS.themeColor,
+    borderColor: PURPLE_PRIMARY,
   },
   statusPending: {
     color: COLORS.textSecondary,
@@ -1412,7 +1447,7 @@ const styles = StyleSheet.create({
   textAction: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.small,
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
     marginLeft: SPACING.small,
   },
   emptyCard: {
@@ -1428,13 +1463,13 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: COLORS.themeColor,
+    borderColor: PURPLE_PRIMARY,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.medium,
   },
   emptySymbolText: {
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
     fontSize: 28,
     fontFamily: FONTS.regular,
   },
@@ -1452,12 +1487,15 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginTop: SPACING.small,
   },
+  emptyButtonGradient: {
+    borderRadius: RADIUS.medium,
+    marginTop: SPACING.large,
+  },
   emptyButton: {
-    backgroundColor: COLORS.themeColor,
+    backgroundColor: 'transparent',
     paddingHorizontal: SPACING.large,
     paddingVertical: SPACING.small,
     borderRadius: RADIUS.medium,
-    marginTop: SPACING.large,
   },
   emptyButtonText: {
     fontFamily: FONTS.semiBold,
@@ -1469,11 +1507,11 @@ const styles = StyleSheet.create({
   },
   audienceHeader: {
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.themeColor,
     borderRadius: RADIUS.medium,
     paddingHorizontal: SPACING.medium,
     paddingVertical: SPACING.small,
     marginBottom: SPACING.small,
+    overflow: 'hidden',
   },
   groupTitle: {
     fontFamily: FONTS.bold,
@@ -1517,7 +1555,7 @@ const styles = StyleSheet.create({
   servicePrice: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
   },
   metaDot: {
     width: 4,
@@ -1576,13 +1614,17 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: COLORS.textSecondary,
   },
-  continueButton: {
+  continueButtonGradient: {
     height: 52,
     borderRadius: RADIUS.medium,
-    backgroundColor: COLORS.themeColor,
+    marginTop: SPACING.large,
+    overflow: 'hidden',
+  },
+  continueButton: {
+    flex: 1,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: SPACING.large,
   },
   disabledButton: {
     opacity: 0.5,
@@ -1668,8 +1710,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   audienceTabActive: {
-    backgroundColor: COLORS.themeColor,
-    borderColor: COLORS.themeColor,
+    backgroundColor: PURPLE_PRIMARY,
+    borderColor: PURPLE_PRIMARY,
   },
   audienceTabText: {
     fontFamily: FONTS.semiBold,
@@ -1714,7 +1756,7 @@ const styles = StyleSheet.create({
   clearSearch: {
     fontFamily: FONTS.medium,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
     padding: 4,
   },
   catalogBody: {
@@ -1766,7 +1808,7 @@ const styles = StyleSheet.create({
   categoryIconText: {
     fontFamily: FONTS.bold,
     fontSize: FONT_SIZES.body,
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
   },
   categoryName: {
     fontFamily: FONTS.semiBold,
@@ -1782,7 +1824,7 @@ const styles = StyleSheet.create({
   chevron: {
     fontFamily: FONTS.semiBold,
     fontSize: 22,
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
     paddingHorizontal: SPACING.small,
   },
   subcategoryRow: {
@@ -1808,7 +1850,7 @@ const styles = StyleSheet.create({
   alreadyAdded: {
     fontFamily: FONTS.medium,
     fontSize: 10,
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
     marginTop: 4,
   },
   addCircle: {
@@ -1816,7 +1858,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.themeColor,
+    borderColor: PURPLE_PRIMARY,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: SPACING.small,
@@ -1824,7 +1866,7 @@ const styles = StyleSheet.create({
   addCircleText: {
     fontFamily: FONTS.semiBold,
     fontSize: 21,
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
     lineHeight: 24,
   },
   modalFooter: {
@@ -1846,11 +1888,15 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
-  footerButton: {
+  footerButtonGradient: {
     minWidth: 100,
     height: 44,
     borderRadius: RADIUS.medium,
-    backgroundColor: COLORS.themeColor,
+    overflow: 'hidden',
+  },
+  footerButton: {
+    flex: 1,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACING.large,
@@ -1883,7 +1929,7 @@ const styles = StyleSheet.create({
   pathAudience: {
     fontFamily: FONTS.medium,
     fontSize: FONT_SIZES.xs,
-    color: COLORS.themeColor,
+    color: PURPLE_PRIMARY,
     marginTop: 4,
   },
   input: {
@@ -1935,14 +1981,18 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.small,
     color: COLORS.text,
   },
-  saveButton: {
+  saveButtonGradient: {
     flex: 1.5,
     height: 50,
     borderRadius: RADIUS.medium,
-    backgroundColor: COLORS.themeColor,
+    marginLeft: SPACING.small,
+    overflow: 'hidden',
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: SPACING.small,
   },
   saveText: {
     fontFamily: FONTS.semiBold,
