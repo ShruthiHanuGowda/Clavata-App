@@ -189,6 +189,7 @@ export type SalonProfileStackParamList = {
   SalonInformation: undefined;
   ClavataBoost: undefined;
   ClavataAdvertise: undefined;
+  PaymentSettings: undefined;
 };
 
 export type MarketplaceStackParamList = {

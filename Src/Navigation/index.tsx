@@ -35,6 +35,7 @@ import StaffManagementScreen from '../Screens/SalonTabs/Profile/StaffManagementS
 import AddStaff from '../Screens/SalonTabs/Profile/staff/AddStaffScreen';
 import EditStaff from '../Screens/SalonTabs/Profile/staff/EditStaffScreen';
 import BusinessHoursScreen from '../Screens/SalonTabs/Profile/BusinessHoursScreen';
+
 import BookingDetails from '../Screens/CustomerTabs/Profile/BookingDetails';
 import EditProfile from '../Screens/CustomerTabs/Profile/EditProfile';
 import WelcomeChoiceScreen from '../Screens/Login/WelcomeChoiceScreen';
@@ -47,6 +48,7 @@ import SalonInformation from '../Screens/SalonTabs/Profile/SalonInformation';
 import SalonSearchResults from '../Screens/CustomerTabs/Home/SalonSearchResults';
 import ClavataBoost from '../Screens/SalonTabs/Profile/ClavataBoost';
 import ClavataAdvertise from '../Screens/SalonTabs/Profile/ClavataAdvertise';
+import PaymentSettings from '../Screens/SalonTabs/Profile/PaymentSettings';
 // import CustomerLocationScreen from '../Screens/CustomerTabs/Home/CustomerLocationScreen';
 
 function RootScreenStack() {
@@ -284,14 +286,6 @@ export function SalonProfileStack() {
         component={BusinessHoursScreen}
       />
       <SalonProfilePlaceStack.Screen
-        name="AddStaff"
-        component={AddStaff}
-      />
-      <SalonProfilePlaceStack.Screen
-        name="EditStaff"
-        component={EditStaff}
-      />
-      <SalonProfilePlaceStack.Screen
         name="ManageServices"
         component={ManageServices}
       />
@@ -302,6 +296,10 @@ export function SalonProfileStack() {
       <SalonProfilePlaceStack.Screen
         name="CreateOffer"
         component={CreateOfferScreen}
+      />
+        <SalonProfilePlaceStack.Screen
+        name="PaymentSettings"
+        component={PaymentSettings}
       />
     </SalonProfilePlaceStack.Navigator>
   );

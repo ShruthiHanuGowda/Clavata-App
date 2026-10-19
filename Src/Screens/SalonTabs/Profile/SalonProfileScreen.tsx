@@ -441,11 +441,11 @@ export default function SalonProfileScreen() {
                     ?.navigate('BusinessHoursScreen');
                 break;
 
-            case 'StaffManagement':
-                navigation
-                    .getParent()
-                    ?.navigate('StaffManagementScreen');
-                break;
+            // case 'StaffManagement':
+            //     navigation
+            //         .getParent()
+            //         ?.navigate('StaffManagementScreen');
+            //     break;
 
             case 'ManageServices':
                 navigation
