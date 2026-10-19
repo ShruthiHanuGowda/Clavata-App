@@ -644,7 +644,6 @@ export default function SalonProfileScreen() {
                 {/* ==================================================
                     SALON PROFILE HEADER
                 ================================================== */}
-
                 <ImageBackground
                     source={
                         salonCoverImageUrl
