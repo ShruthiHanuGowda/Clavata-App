@@ -91,6 +91,10 @@ const AUDIENCES: { key: ServiceAudience; label: string }[] = [
 
 const CURRENT_STEP = 4;
 const NEXT_STEP = 5;
+const TOTAL_STEPS = 6;
+const progressPercentage = Math.round(
+  (CURRENT_STEP / TOTAL_STEPS) * 100,
+);
 const COMPLETED_BEFORE_SERVICES = [1, 2, 3];
 const COMPLETED_AFTER_SERVICES = [1, 2, 3, 4];
 
@@ -705,12 +709,41 @@ export default function SalonServices({ navigation, route }: any) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.pageHeader}>
-          <Text style={styles.heading}>Your salon services</Text>
+          <View style={styles.stepHeader}>
+            <Text style={styles.stepLabel}>
+              STEP {String(CURRENT_STEP).padStart(2, '0')} OF{' '}
+              {String(TOTAL_STEPS).padStart(2, '0')}
+            </Text>
+
+            <Text style={styles.progressText}>
+              {progressPercentage}% completed
+            </Text>
+          </View>
+
+          <View
+            style={styles.progressTrack}
+            accessibilityRole="progressbar"
+            accessibilityLabel="Registration progress"
+            accessibilityValue={{
+              min: 0,
+              max: TOTAL_STEPS,
+              now: CURRENT_STEP,
+              text: `${progressPercentage}% completed`,
+            }}
+          >
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={[
+                styles.progressFill,
+                { width: `${(CURRENT_STEP / TOTAL_STEPS) * 100}%` },
+              ]}
+            />
+          </View>
+
           <Text style={styles.subtitle}>
-            Tell customers what your salon offers. Add services, set prices
+            Tell customers what your business offers. Add services, set prices
             and estimated durations
           </Text>
-          <Text style={styles.stepLabel}>STEP 4 OF 6</Text>
         </View>
 
         <View style={styles.summaryCard}>
@@ -1314,17 +1347,39 @@ const styles = StyleSheet.create({
   pageHeader: {
     marginBottom: SPACING.large,
   },
-  heading: {
-    fontFamily: FONTS.bold,
-    fontSize: FONT_SIZES.title,
-    color: COLORS.text,
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: SPACING.small,
   },
   stepLabel: {
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.xs,
     color: PURPLE_PRIMARY,
-    marginTop: SPACING.small,
+  },
+  progressText: {
+    fontFamily: FONTS.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+  progressTrack: {
+    width: '100%',
+    height: 6,
+    borderRadius: RADIUS.medium,
+    backgroundColor: COLORS.border,
+    overflow: 'hidden',
+    marginBottom: SPACING.medium,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: RADIUS.medium,
+  },
+  heading: {
+    fontFamily: FONTS.bold,
+    fontSize: FONT_SIZES.title,
+    color: COLORS.text,
+    marginBottom: SPACING.small,
   },
   subtitle: {
     fontFamily: FONTS.regular,
