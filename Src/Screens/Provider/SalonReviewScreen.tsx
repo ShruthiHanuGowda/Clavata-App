@@ -158,7 +158,12 @@ type UploadedSalonMedia = {
 // ============================================================
 
 const MAX_PROFILE_PHOTO_BYTES = 10 * 1024 * 1024;
+const CURRENT_STEP = 6;
+const TOTAL_STEPS = 6;
 
+const progressPercentage = Math.round(
+  (CURRENT_STEP / TOTAL_STEPS) * 100,
+);
 const cleanString = (value: unknown): string =>
   String(value ?? '').trim();
 
@@ -224,9 +229,9 @@ const getKycDocumentFileSize = (
 const hasValidKycDocument = (document: any): boolean =>
   Boolean(
     document &&
-      getKycDocumentName(document) &&
-      getKycDocumentContentType(document) &&
-      getKycDocumentS3Key(document),
+    getKycDocumentName(document) &&
+    getKycDocumentContentType(document) &&
+    getKycDocumentS3Key(document),
   );
 
 const getPhotoContentType = (
@@ -271,7 +276,7 @@ const getPhotoContentType = (
   }
 
   throw new Error(
-    'The salon photo must be a JPG, PNG or WebP image. Please select it again.',
+    'The business photo must be a JPG, PNG or WebP image. Please select it again',
   );
 };
 
@@ -431,7 +436,7 @@ export default function SalonReviewScreen({
 
       if (!localUri) {
         throw new Error(
-          'The selected salon photo is no longer available on this device. Please select the photo again.',
+          'The selected business photo is no longer available on this device. Please select the photo again',
         );
       }
 
@@ -467,7 +472,7 @@ export default function SalonReviewScreen({
       if (!uploadInfo?.success) {
         throw new Error(
           uploadInfo?.message ||
-            'Unable to generate the salon photo upload URL.',
+          'Unable to generate the business photo upload URL',
         );
       }
 
@@ -478,7 +483,7 @@ export default function SalonReviewScreen({
 
       if (!uploadUrl || !objectUrl || !key || !imageId) {
         throw new Error(
-          'The server did not return all required photo upload details.',
+          'The server did not return all required photo upload details',
         );
       }
 
@@ -486,7 +491,7 @@ export default function SalonReviewScreen({
 
       if (!localResponse.ok) {
         throw new Error(
-          'Unable to read the selected salon photo from this device.',
+          'Unable to read the selected business photo from this device',
         );
       }
 
@@ -542,13 +547,13 @@ export default function SalonReviewScreen({
       if (!response?.success) {
         throw new Error(
           response?.message ||
-            'The photo was uploaded, but the salon media record could not be created.',
+          'The photo was uploaded, but the business media record could not be created',
         );
       }
 
       if (!response.media) {
         throw new Error(
-          'The salon media record was not returned by the server.',
+          'The business media record was not returned by the server',
         );
       }
 
@@ -682,17 +687,17 @@ export default function SalonReviewScreen({
 
   const profilePhotoPreviewUri = salonProfilePhoto
     ? cleanString(
-        salonProfilePhoto.localUri ||
-          salonProfilePhoto.uri ||
-          salonProfilePhoto.objectUrl,
-      )
+      salonProfilePhoto.localUri ||
+      salonProfilePhoto.uri ||
+      salonProfilePhoto.objectUrl,
+    )
     : '';
 
   const hasProfilePhoto = Boolean(
     salonProfilePhoto &&
-      profilePhotoPreviewUri &&
-      cleanString(salonProfilePhoto.name) &&
-      cleanString(salonProfilePhoto.type),
+    profilePhotoPreviewUri &&
+    cleanString(salonProfilePhoto.name) &&
+    cleanString(salonProfilePhoto.type),
   );
 
   // ==========================================================
@@ -707,22 +712,22 @@ export default function SalonReviewScreen({
       document: any;
       label: string;
     }> = [
-      {
-        type: 'PAN',
-        document: panDocument,
-        label: 'PAN',
-      },
-      {
-        type: 'AADHAAR',
-        document: aadhaarDocument,
-        label: 'Aadhaar',
-      },
-      {
-        type: 'SHOP_ESTABLISHMENT',
-        document: shopEstablishmentDocument,
-        label: 'Shop & Establishment',
-      },
-    ];
+        {
+          type: 'PAN',
+          document: panDocument,
+          label: 'PAN',
+        },
+        {
+          type: 'AADHAAR',
+          document: aadhaarDocument,
+          label: 'Aadhaar',
+        },
+        {
+          type: 'SHOP_ESTABLISHMENT',
+          document: shopEstablishmentDocument,
+          label: 'Shop & Establishment',
+        },
+      ];
 
     for (const item of requiredDocuments) {
       if (!hasValidKycDocument(item.document)) {
@@ -747,17 +752,17 @@ export default function SalonReviewScreen({
       document: any;
       label: string;
     }> = [
-      {
-        type: 'GST',
-        document: gstDocument,
-        label: 'GST',
-      },
-      {
-        type: 'UDYAM',
-        document: udyamDocument,
-        label: 'Udyam',
-      },
-    ];
+        {
+          type: 'GST',
+          document: gstDocument,
+          label: 'GST',
+        },
+        {
+          type: 'UDYAM',
+          document: udyamDocument,
+          label: 'Udyam',
+        },
+      ];
 
     for (const item of optionalDocuments) {
       if (!item.document) {
@@ -810,7 +815,7 @@ export default function SalonReviewScreen({
     if (authenticatedUserId !== registrationUserId) {
       Alert.alert(
         'Registration Error',
-        'Your registration session does not match the current user. Please restart registration.',
+        'Your registration session does not match the current user. Please restart registration',
       );
       return;
     }
@@ -857,8 +862,8 @@ export default function SalonReviewScreen({
 
     if (!hasProfilePhoto || !salonProfilePhoto) {
       Alert.alert(
-        'Salon Photo Required',
-        'Please go back to the KYC step and select a salon profile photo before submitting.',
+        'business Photo Required',
+        'Please go back to the KYC step and select a business profile photo before submitting',
       );
       return;
     }
@@ -882,7 +887,7 @@ export default function SalonReviewScreen({
       Alert.alert(
         'Invalid Salon Photo',
         error?.message ||
-          'Please select a JPG, PNG or WebP photo.',
+        'Please select a JPG, PNG or WebP photo.',
       );
       return;
     }
@@ -891,9 +896,9 @@ export default function SalonReviewScreen({
       data.targetAudiences,
     )
       ? data.targetAudiences.filter(
-          (audience: any): audience is Audience =>
-            isValidAudience(audience),
-        )
+        (audience: any): audience is Audience =>
+          isValidAudience(audience),
+      )
       : [];
 
     if (targetAudiences.length === 0) {
@@ -1016,8 +1021,8 @@ export default function SalonReviewScreen({
 
     if (!cleanShop) {
       Alert.alert(
-        'Salon Registration Required',
-        'Please provide your Shop & Establishment registration number.',
+        'business Registration Required',
+        'Please provide your Shop & Establishment registration number',
       );
       return;
     }
@@ -1025,7 +1030,7 @@ export default function SalonReviewScreen({
     if (!hasShopEstablishmentDocument) {
       Alert.alert(
         'Shop & Establishment Document Required',
-        'Please upload the Shop & Establishment document before submitting.',
+        'Please upload the Shop & Establishment document before submitting',
       );
       return;
     }
@@ -1091,7 +1096,7 @@ export default function SalonReviewScreen({
       Alert.alert(
         'KYC Documents Required',
         error?.message ||
-          'Please check your KYC documents and upload them again.',
+        'Please check your KYC documents and upload them again.',
       );
       return;
     }
@@ -1129,33 +1134,33 @@ export default function SalonReviewScreen({
 
     const registerInput:
       RegisterSalonPartnerVariables['input'] = {
-        userId: authenticatedUserId,
-        phoneNumber,
-        salonName,
-        ownerName,
-        email,
-        targetAudiences,
-        address: {
-          addressLine,
-          city,
-          state,
-          pincode,
-        },
-        businessHours: normalizedBusinessHours,
-        ...(typeof data.latitude === 'number'
-          ? { latitude: data.latitude }
-          : {}),
-        ...(typeof data.longitude === 'number'
-          ? { longitude: data.longitude }
-          : {}),
-        ...(gstNumber ? { gstNumber } : {}),
-        panNumber: cleanPAN,
-        aadhaarNumber: cleanAadhaar,
-        shopEstablishmentNumber: cleanShop,
-        ...(udyamNumber ? { udyamNumber } : {}),
-        kycDocuments,
-        services,
-      };
+      userId: authenticatedUserId,
+      phoneNumber,
+      salonName,
+      ownerName,
+      email,
+      targetAudiences,
+      address: {
+        addressLine,
+        city,
+        state,
+        pincode,
+      },
+      businessHours: normalizedBusinessHours,
+      ...(typeof data.latitude === 'number'
+        ? { latitude: data.latitude }
+        : {}),
+      ...(typeof data.longitude === 'number'
+        ? { longitude: data.longitude }
+        : {}),
+      ...(gstNumber ? { gstNumber } : {}),
+      panNumber: cleanPAN,
+      aadhaarNumber: cleanAadhaar,
+      shopEstablishmentNumber: cleanShop,
+      ...(udyamNumber ? { udyamNumber } : {}),
+      kycDocuments,
+      services,
+    };
 
     // Start the submitting state only after local validation.
     submittingRef.current = true;
@@ -1167,7 +1172,7 @@ export default function SalonReviewScreen({
       if (!draftSaved) {
         Alert.alert(
           'Unable to Save Draft',
-          'Your registration details could not be saved. Please try again before submitting.',
+          'Your registration details could not be saved. Please try again before submitting',
         );
         return;
       }
@@ -1184,7 +1189,7 @@ export default function SalonReviewScreen({
         Alert.alert(
           'Registration Failed',
           result?.message ||
-            'Unable to register your business.',
+          'Unable to register your business.',
         );
         return;
       }
@@ -1196,7 +1201,7 @@ export default function SalonReviewScreen({
         // response is incomplete. Do not silently retry registration.
         Alert.alert(
           'Registration Status Unclear',
-          'The server did not return a salon ID. Please contact support before trying again.',
+          'The server did not return a business ID. Please contact support before trying again',
         );
         return;
       }
@@ -1246,7 +1251,7 @@ export default function SalonReviewScreen({
       } catch (error: any) {
         photoUploadError =
           error?.message ||
-          'The salon was registered, but the profile photo could not be uploaded.';
+          'The business was registered, but the profile photo could not be uploaded';
 
         // Do not log the full error object or registration/KYC data.
         console.warn(
@@ -1263,7 +1268,7 @@ export default function SalonReviewScreen({
       if (photoUploadError) {
         Alert.alert(
           'Registration Submitted',
-          `Your salon registration was submitted successfully, but the profile photo could not be saved.\n\n${photoUploadError}\n\nPlease add the photo later from Salon Information.`,
+          `Your business registration was submitted successfully, but the profile photo could not be saved.\n\n${photoUploadError}\n\nPlease add the photo later from business Information`,
           [
             {
               text: 'Continue',
@@ -1296,7 +1301,7 @@ export default function SalonReviewScreen({
       Alert.alert(
         'Registration Failed',
         error?.message ||
-          'Something went wrong while registering the business. If you are unsure whether it succeeded, contact support before trying again.',
+        'Something went wrong while registering the business. If you are unsure whether it succeeded, contact support before trying again',
       );
     } finally {
       submittingRef.current = false;
@@ -1317,12 +1322,40 @@ export default function SalonReviewScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>
-            Review your details
-          </Text>
+          <View style={styles.stepHeader}>
+            <Text style={styles.stepLabel}>
+              STEP {String(CURRENT_STEP).padStart(2, '0')} OF{' '}
+              {String(TOTAL_STEPS).padStart(2, '0')}
+            </Text>
+
+            <Text style={styles.progressText}>
+              {progressPercentage}% completed
+            </Text>
+          </View>
+
+          <View
+            style={styles.progressTrack}
+            accessibilityRole="progressbar"
+            accessibilityLabel={`Registration progress: step ${CURRENT_STEP} of ${TOTAL_STEPS}`}
+            accessibilityValue={{
+              min: 0,
+              max: TOTAL_STEPS,
+              now: CURRENT_STEP,
+            }}
+          >
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={[
+                styles.progressFill,
+                { width: `${progressPercentage}%` },
+              ]}
+            >
+              <View style={styles.progressFillContent} />
+            </AppGradient>
+          </View>
 
           <Text style={styles.subtitle}>
-            Please check everything before submitting your business registration.
+            Please check everything before submitting your business registration
           </Text>
         </View>
 
@@ -1334,7 +1367,7 @@ export default function SalonReviewScreen({
           </Text>
 
           <Text style={styles.sectionSubtitle}>
-            This photo will be uploaded to your salon profile when you submit your registration.
+            This photo will be uploaded to your business profile when you submit your registration
           </Text>
 
           {hasProfilePhoto ? (
@@ -1366,9 +1399,9 @@ export default function SalonReviewScreen({
                 <Text style={styles.photoSizeText}>
                   {salonProfilePhoto?.size
                     ? `${(
-                        salonProfilePhoto.size /
-                        (1024 * 1024)
-                      ).toFixed(2)} MB`
+                      salonProfilePhoto.size /
+                      (1024 * 1024)
+                    ).toFixed(2)} MB`
                     : ''}
                 </Text>
               </View>
@@ -1376,17 +1409,17 @@ export default function SalonReviewScreen({
           ) : (
             <View style={styles.missingPhotoBox}>
               <Text style={styles.missingPhotoTitle}>
-                No salon photo selected
+                No business photo selected
               </Text>
 
               <Text style={styles.missingPhotoText}>
-                Go back to the KYC step and select your salon profile photo.
+                Go back to the KYC step and select your business profile photo
               </Text>
             </View>
           )}
 
           <Text style={styles.photoUploadNote}>
-            The photo is saved to your salon's media records after the salon is created.
+            The photo is saved to your business's media records after the business is created
           </Text>
         </View>
 
@@ -1427,12 +1460,12 @@ export default function SalonReviewScreen({
             value={
               Array.isArray(data.targetAudiences)
                 ? data.targetAudiences
-                    .filter(
-                      (audience: any): audience is Audience =>
-                        isValidAudience(audience),
-                    )
-                    .map(getAudienceLabel)
-                    .join(', ')
+                  .filter(
+                    (audience: any): audience is Audience =>
+                      isValidAudience(audience),
+                  )
+                  .map(getAudienceLabel)
+                  .join(', ')
                 : '-'
             }
           />
@@ -1468,8 +1501,8 @@ export default function SalonReviewScreen({
             value={
               data.aadhaarNumber
                 ? `XXXX XXXX ${cleanString(
-                    data.aadhaarNumber,
-                  ).replace(/\D/g, '').slice(-4)}`
+                  data.aadhaarNumber,
+                ).replace(/\D/g, '').slice(-4)}`
                 : '-'
             }
             last
@@ -1664,7 +1697,7 @@ export default function SalonReviewScreen({
 
                                         {service.durationMinutes !==
                                           undefined &&
-                                        service.durationMinutes !==
+                                          service.durationMinutes !==
                                           null ? (
                                           <Text
                                             style={styles.serviceDuration}
@@ -1678,7 +1711,7 @@ export default function SalonReviewScreen({
                                       </View>
 
                                       {service.price !== undefined &&
-                                      service.price !== null ? (
+                                        service.price !== null ? (
                                         <Text style={styles.servicePrice}>
                                           ₹
                                           {Number(
@@ -1712,7 +1745,7 @@ export default function SalonReviewScreen({
           <Text style={styles.noticeText}>
             After submission, your business registration will be reviewed.
             Provider access will be activated only after the required
-            verification and approval process is completed.
+            verification and approval process is completed
           </Text>
         </View>
 
@@ -1725,7 +1758,7 @@ export default function SalonReviewScreen({
           style={[
             styles.button,
             (registrationLoading || isSubmitting) &&
-              styles.buttonDisabled,
+            styles.buttonDisabled,
           ]}
         >
           <AppGradient
@@ -2231,5 +2264,42 @@ const styles = StyleSheet.create({
 
   bottomSpacing: {
     height: SPACING.huge,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.small,
+  },
+
+  stepLabel: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.xs,
+    color: '#8B5CF6',
+  },
+
+  progressText: {
+    fontFamily: FONTS.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+
+  progressTrack: {
+    width: '100%',
+    height: 6,
+    borderRadius: RADIUS.medium,
+    backgroundColor: COLORS.border,
+    overflow: 'hidden',
+    marginBottom: SPACING.medium,
+  },
+
+  progressFill: {
+    height: '100%',
+    borderRadius: RADIUS.medium,
+  },
+
+  progressFillContent: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
 });
