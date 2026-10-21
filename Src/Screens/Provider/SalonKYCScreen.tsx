@@ -16,11 +16,12 @@ import AppGradient from '../../common/AppGradient';
 import {
   COLORS,
   FONTS,
+  FONT_SIZES,
   SPACING,
   RADIUS,
   GRADIENTS,
 } from '../../constants/constants';
-import { useSalonRegistration,  type SalonProfilePhoto} from '../../context/SalonRegistrationContext';
+import { useSalonRegistration, type SalonProfilePhoto } from '../../context/SalonRegistrationContext';
 import {
   pick,
   keepLocalCopy,
@@ -212,7 +213,12 @@ const getSafeFileName = (name: string): string => {
 
 const SalonKYCScreen = ({ navigation }: any) => {
   const { data, updateData, saveDraft } = useSalonRegistration();
+  const CURRENT_STEP = 5;
+  const TOTAL_STEPS = 6;
 
+  const progressPercentage = Math.round(
+    (CURRENT_STEP / TOTAL_STEPS) * 100,
+  );
   const [generateKycDocumentUploadUrl] =
     useMutation<GenerateKycDocumentUploadUrlResponse>(
       GENERATE_KYC_DOCUMENT_UPLOAD_URL,
@@ -536,7 +542,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
 
       const selected = result[0];
       const originalName =
-        selected.name || `salon-profile-${Date.now()}.jpg`;
+        selected.name || `business-profile-${Date.now()}.jpg`;
       const extension = originalName.split('.').pop()?.toLowerCase();
 
       const imageTypes: Record<string, string> = {
@@ -599,14 +605,14 @@ const SalonKYCScreen = ({ navigation }: any) => {
 
       if (actualSize > MAX_DOCUMENT_SIZE) {
         throw new Error(
-          'The salon photo must be 10 MB or smaller.',
+          'The business photo must be 10 MB or smaller.',
         );
       }
 
       // Keep a persistent app-managed copy rather than relying only
       // on the document picker's temporary cache file.
       const persistentFileName =
-        `clavata-salon-profile-${Date.now()}.${extension || 'jpg'}`;
+        `clavata-business-profile-${Date.now()}.${extension || 'jpg'}`;
 
       const persistentPath =
         `${RNFS.DocumentDirectoryPath}/${persistentFileName}`;
@@ -652,9 +658,9 @@ const SalonKYCScreen = ({ navigation }: any) => {
       );
 
       Alert.alert(
-        'Unable to select salon photo',
+        'Unable to select business photo',
         error?.message ||
-          'Please select a valid JPG, PNG or WEBP image.',
+        'Please select a valid JPG, PNG or WEBP image.',
       );
     } finally {
       setPickingSalonPhoto(false);
@@ -663,8 +669,8 @@ const SalonKYCScreen = ({ navigation }: any) => {
 
   const removeSalonPhoto = () => {
     Alert.alert(
-      'Remove salon photo?',
-      'You must select a salon profile photo before continuing.',
+      'Remove business photo?',
+      'You must select a business profile photo before continuing.',
       [
         {
           text: 'Cancel',
@@ -770,7 +776,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
     if (!response?.success) {
       throw new Error(
         response?.message ||
-          `Failed to prepare the ${documentType} upload.`,
+        `Failed to prepare the ${documentType} upload.`,
       );
     }
 
@@ -914,8 +920,8 @@ const SalonKYCScreen = ({ navigation }: any) => {
         </Text>
 
         <Text style={styles.salonPhotoDescription}>
-          Add a clear photo representing your salon. This photo will be
-          uploaded after your salon registration creates its salon ID.
+          Add a clear photo representing your business. This photo will be
+          uploaded after your business registration creates its business ID
         </Text>
 
         {salonProfilePhoto && photoUri ? (
@@ -926,7 +932,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
               resizeMode="cover"
               onError={() => {
                 console.warn(
-                  'Could not display the saved salon profile photo.',
+                  'Could not display the saved business profile photo',
                 );
               }}
             />
@@ -1002,7 +1008,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
               <Text style={styles.salonPhotoUploadLabel}>
                 {pickingSalonPhoto
                   ? 'Preparing photo...'
-                  : 'Choose salon photo'}
+                  : 'Choose business photo'}
               </Text>
 
               <Text style={styles.salonPhotoUploadHint}>
@@ -1100,7 +1106,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
       if (cleanUdyam && !udyamDocument) {
         Alert.alert(
           'Udyam document required',
-          'Please upload your Udyam certificate because you entered a Udyam number.',
+          'Please upload your Udyam certificate because you entered a Udyam number',
         );
         return;
       }
@@ -1108,7 +1114,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
       if (!salonProfilePhoto) {
         Alert.alert(
           'Salon photo required',
-          'Please select a salon profile photo before continuing.',
+          'Please select a business profile photo before continuing',
         );
         return;
       }
@@ -1123,7 +1129,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
       ) {
         Alert.alert(
           'Salon photo unavailable',
-          'Your saved salon photo cannot be accessed. Please select it again.',
+          'Your saved business photo cannot be accessed. Please select it again',
         );
         return;
       }
@@ -1133,8 +1139,8 @@ const SalonKYCScreen = ({ navigation }: any) => {
 
       if (!actualPhotoSize || actualPhotoSize > MAX_DOCUMENT_SIZE) {
         Alert.alert(
-          'Invalid salon photo',
-          'Please select a valid photo that is no larger than 10 MB.',
+          'Invalid business photo',
+          'Please select a valid photo that is no larger than 10 MB',
         );
         return;
       }
@@ -1289,7 +1295,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
       Alert.alert(
         'Unable to submit documents',
         error?.message ||
-          'Something went wrong while uploading your KYC documents. Please try again.',
+        'Something went wrong while uploading your KYC documents. Please try again.',
       );
     } finally {
       if (mountedRef.current) {
@@ -1315,18 +1321,51 @@ const SalonKYCScreen = ({ navigation }: any) => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.pageHeader}>
+          <View style={styles.stepHeader}>
+            <Text style={styles.stepLabel}>
+              STEP {String(CURRENT_STEP).padStart(2, '0')} OF{' '}
+              {String(TOTAL_STEPS).padStart(2, '0')}
+            </Text>
+
+            <Text style={styles.progressText}>
+              {progressPercentage}% completed
+            </Text>
+          </View>
+
+          <View
+            style={styles.progressTrack}
+            accessibilityRole="progressbar"
+            accessibilityLabel={`Registration progress: step ${CURRENT_STEP} of ${TOTAL_STEPS}`}
+            accessibilityValue={{
+              min: 0,
+              max: TOTAL_STEPS,
+              now: CURRENT_STEP,
+            }}
+          >
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={[
+                styles.progressFill,
+                { width: `${progressPercentage}%` },
+              ]}
+            >
+              <View style={styles.progressFillContent} />
+            </AppGradient>
+          </View>
+        </View>
         <Text style={styles.title}>Verify your business</Text>
 
         <Text style={styles.subtitle}>
           Complete your business verification to continue with business
-          registration.
+          registration
         </Text>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Owner verification</Text>
 
           <Text style={styles.sectionSubtitle}>
-            These details are required to verify the business owner.
+            These details are required to verify the business owner
           </Text>
 
           <Text style={styles.inputLabel}>PAN Number *</Text>
@@ -1378,7 +1417,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
           <Text style={styles.sectionTitle}>Business verification</Text>
 
           <Text style={styles.sectionSubtitle}>
-            Provide your business registration documents.
+            Provide your business registration documents
           </Text>
 
           <Text style={styles.inputLabel}>
@@ -1455,7 +1494,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
           <Text style={styles.infoTitle}>Document requirements</Text>
 
           <Text style={styles.infoText}>
-            • PDF, JPG, PNG or WEBP files are accepted for KYC documents.
+            • PDF, JPG, PNG or WEBP files are accepted for KYC documents
           </Text>
 
           <Text style={styles.infoText}>
@@ -1464,16 +1503,16 @@ const SalonKYCScreen = ({ navigation }: any) => {
 
           <Text style={styles.infoText}>
             • PAN, Aadhaar and Shop &amp; Establishment documents are
-            required.
+            required
           </Text>
 
           <Text style={styles.infoText}>
             • GST and Udyam documents are optional unless the corresponding
-            number is provided.
+            number is provided
           </Text>
 
           <Text style={styles.infoText}>
-            • A salon profile photo is mandatory.
+            • A business profile photo is mandatory
           </Text>
         </View>
 
@@ -1482,13 +1521,13 @@ const SalonKYCScreen = ({ navigation }: any) => {
 
           <Text style={styles.infoText}>
             Your KYC documents will be uploaded when you continue. Your
-            selected salon photo will be retained in your registration
-            draft and uploaded after the salon record is created.
+            selected business photo will be retained in your registration
+            draft and uploaded after the business record is created
           </Text>
 
           <Text style={styles.infoText}>
             Your business will remain pending until the verification and
-            approval process is completed.
+            approval process is completed
           </Text>
         </View>
 
@@ -1870,6 +1909,40 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: SPACING.xl,
+  },
+  pageHeader: {
+    marginBottom: SPACING.large,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.small,
+  },
+  stepLabel: {
+    fontFamily: FONTS.semiBold || FONTS.medium,
+    fontSize: FONT_SIZES.xs,
+    color: '#8B5CF6',
+  },
+  progressText: {
+    fontFamily: FONTS.medium,
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.textSecondary,
+  },
+  progressTrack: {
+    width: '100%',
+    height: 6,
+    borderRadius: RADIUS.medium,
+    backgroundColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: RADIUS.medium,
+  },
+  progressFillContent: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
 });
 
