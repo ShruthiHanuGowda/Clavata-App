@@ -377,7 +377,7 @@ export default function SalonServices({ navigation, route }: any) {
 
     const audience =
       activeAudience &&
-      availableAudiences.includes(activeAudience)
+        availableAudiences.includes(activeAudience)
         ? activeAudience
         : availableAudiences[0];
 
@@ -443,9 +443,9 @@ export default function SalonServices({ navigation, route }: any) {
     setForm(previous =>
       previous
         ? {
-            ...previous,
-            [field]: value,
-          }
+          ...previous,
+          [field]: value,
+        }
         : previous,
     );
   };
@@ -543,10 +543,10 @@ export default function SalonServices({ navigation, route }: any) {
 
       const updated = form.serviceKey
         ? selectedServices.map(service =>
-            service.serviceKey === form.serviceKey
-              ? { ...service, ...newService }
-              : service,
-          )
+          service.serviceKey === form.serviceKey
+            ? { ...service, ...newService }
+            : service,
+        )
         : [...selectedServices, newService];
 
       // Each added or edited service is saved to the server immediately.
@@ -719,25 +719,25 @@ export default function SalonServices({ navigation, route }: any) {
               {progressPercentage}% completed
             </Text>
           </View>
-
           <View
             style={styles.progressTrack}
             accessibilityRole="progressbar"
-            accessibilityLabel="Registration progress"
+            accessibilityLabel={`Registration progress: step ${CURRENT_STEP} of ${TOTAL_STEPS}`}
             accessibilityValue={{
               min: 0,
               max: TOTAL_STEPS,
               now: CURRENT_STEP,
-              text: `${progressPercentage}% completed`,
             }}
           >
             <AppGradient
               colors={[...GRADIENTS.SOFT_PURPLE]}
               style={[
                 styles.progressFill,
-                { width: `${(CURRENT_STEP / TOTAL_STEPS) * 100}%` },
+                { width: `${progressPercentage}%` },
               ]}
-            />
+            >
+              <View style={styles.progressFillContent} />
+            </AppGradient>
           </View>
 
           <Text style={styles.subtitle}>
@@ -932,7 +932,7 @@ export default function SalonServices({ navigation, route }: any) {
             style={[
               styles.continueButton,
               (!selectedServices.length || submitting) &&
-                styles.disabledButton,
+              styles.disabledButton,
             ]}
             onPress={handleContinue}
             disabled={!selectedServices.length || submitting}
@@ -1150,7 +1150,7 @@ export default function SalonServices({ navigation, route }: any) {
                                   service.audience === activeAudience &&
                                   service.categoryId === category.categoryId &&
                                   service.subcategoryId ===
-                                    subcategory.subcategoryId,
+                                  subcategory.subcategoryId,
                               ).length;
 
                               return (
@@ -2053,5 +2053,9 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
     fontSize: FONT_SIZES.small,
     color: COLORS.white,
+  },
+  progressFillContent: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
 });
