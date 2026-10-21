@@ -8,6 +8,7 @@ import {
     View,
     Text,
     TouchableOpacity,
+    StyleSheet,
 } from 'react-native';
 
 import DatePicker from 'react-native-date-picker';
@@ -29,13 +30,20 @@ import {
     DayKey,
 } from '../../context/SalonRegistrationContext';
 
+import { Header } from '../../components';
+
 // ============================================================
 // REGISTRATION STEP CONFIGURATION
 // ============================================================
 
 const CURRENT_STEP = 3;
 const NEXT_STEP = 4;
+const TOTAL_STEPS = 6;
 const NEXT_ROUTE = 'SalonServices';
+
+const progressPercentage = Math.round(
+    (CURRENT_STEP / TOTAL_STEPS) * 100,
+);
 
 const DAYS: { key: DayKey; label: string }[] = [
     { key: 'MONDAY', label: 'Monday' },
@@ -121,6 +129,7 @@ export default function SalonBusinessHoursScreen({
 
     const [isSaving, setIsSaving] = useState(false);
 
+    // Keep local state synchronized with restored draft data.
     useEffect(() => {
         if (!isDraftLoading && data.businessHours) {
             setHours(data.businessHours);
@@ -196,7 +205,7 @@ export default function SalonBusinessHoursScreen({
                 businessHours: hours,
             });
 
-            // Save the next step as 4: SalonServices.
+            // Save progress for the next registration step.
             const saved = await saveDraft(
                 NEXT_STEP,
                 nextCompletedSteps,
@@ -217,8 +226,6 @@ export default function SalonBusinessHoursScreen({
             markStepCompleted(CURRENT_STEP);
             setCurrentStep(NEXT_STEP);
 
-            // Correct sequence:
-            // Business Hours (3) -> Services (4)
             navigation.navigate(NEXT_ROUTE, {
                 resumeDraft: true,
                 initialStep: NEXT_STEP,
@@ -256,64 +263,62 @@ export default function SalonBusinessHoursScreen({
 
     return (
         <SafeAreaView style={styles.container}>
+            <Header headerTitle="Business Hours" />
+
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}
                 keyboardShouldPersistTaps="handled"
             >
-                {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity
-                        onPress={() => navigation.goBack()}
-                        style={styles.backButton}
-                        disabled={isSaving}
-                        accessibilityRole="button"
-                        accessibilityLabel="Go back"
-                    >
-                        <Text style={styles.back}>‹</Text>
-                    </TouchableOpacity>
+                {/* REGISTRATION STEP INDICATOR */}
 
-                    <View style={styles.headerText}>
-                        <Text style={styles.stepLabel}>
-                            STEP 3 OF 6
-                        </Text>
+                <View style={styles.stepHeader}>
+                    <Text style={styles.stepLabel}>
+                        STEP {String(CURRENT_STEP).padStart(2, '0')} OF{' '}
+                        {String(TOTAL_STEPS).padStart(2, '0')}
+                    </Text>
 
-                        <Text style={styles.title}>
-                            Business Hours
-                        </Text>
-
-                        <Text style={styles.subtitle}>
-                            Set your weekly operating hours.
-                        </Text>
-                    </View>
+                    <Text style={styles.stepPercentage}>
+                        {progressPercentage}%
+                    </Text>
                 </View>
 
-                {/* Progress */}
                 <View
                     style={styles.progressTrack}
-                    accessibilityLabel="Registration progress: step 3 of 6"
+                    accessibilityRole="progressbar"
+                    accessibilityLabel={`Registration progress: step ${CURRENT_STEP} of ${TOTAL_STEPS}`}
+                    accessibilityValue={{
+                        min: 0,
+                        max: TOTAL_STEPS,
+                        now: CURRENT_STEP,
+                    }}
                 >
                     <AppGradient
                         colors={[...GRADIENTS.SOFT_PURPLE]}
-                        style={styles.progressFill}
+                        style={[
+                            styles.progressFill,
+                            { width: `${progressPercentage}%` },
+                        ]}
                     >
-                        <View style={styles.progressFillInner} />
+                        <View style={styles.progressFillContent} />
                     </AppGradient>
                 </View>
 
-                {/* Intro */}
+                {/* INTRODUCTION */}
+
                 <View style={styles.intro}>
-                    <Text style={styles.introTitle}>
+                    {/* <Text style={styles.introTitle}>
                         Your weekly schedule
-                    </Text>
+                    </Text> */}
 
                     <Text style={styles.introDescription}>
-                        Turn a day on or off and choose when your salon
+                        Turn a day on or off and choose when your business
                         opens and closes.
                     </Text>
                 </View>
 
-                {/* Weekly schedule */}
+                {/* WEEKLY SCHEDULE */}
+
                 <View style={styles.card}>
                     {DAYS.map((day, index) => {
                         const value = hours[day.key];
@@ -341,16 +346,14 @@ export default function SalonBusinessHoursScreen({
                                                     : styles.dayStatusClosed,
                                             ]}
                                         >
-                                            {value.isOpen
-                                                ? 'Open'
-                                                : 'Closed'}
+                                            {value.isOpen ? 'Open' : 'Closed'}
                                         </Text>
                                     </View>
 
                                     <TouchableOpacity
                                         activeOpacity={0.85}
                                         onPress={() => toggleDay(day.key)}
-                                        disabled={isSaving}
+                                        disabled={isSaving || isDraftLoading}
                                         style={[
                                             styles.customSwitch,
                                             !value.isOpen &&
@@ -398,7 +401,7 @@ export default function SalonBusinessHoursScreen({
                                                     'open',
                                                 )
                                             }
-                                            disabled={isSaving}
+                                            disabled={isSaving || isDraftLoading}
                                             activeOpacity={0.75}
                                             accessibilityRole="button"
                                             accessibilityLabel={`Set ${day.label} opening time`}
@@ -438,7 +441,7 @@ export default function SalonBusinessHoursScreen({
                                                     'close',
                                                 )
                                             }
-                                            disabled={isSaving}
+                                            disabled={isSaving || isDraftLoading}
                                             activeOpacity={0.75}
                                             accessibilityRole="button"
                                             accessibilityLabel={`Set ${day.label} closing time`}
@@ -466,17 +469,18 @@ export default function SalonBusinessHoursScreen({
                     })}
                 </View>
 
+                {/* INFORMATION */}
+
                 <View style={styles.infoRow}>
                     <Text style={styles.infoIcon}>ⓘ</Text>
 
                     <Text style={styles.infoText}>
-                        You can update your operating hours later.
-                        Your changes are saved with your registration
-                        progress when you continue.
+                        You can update your operating hours under profile
                     </Text>
                 </View>
 
-                {/* Continue */}
+                {/* CONTINUE */}
+
                 <TouchableOpacity
                     onPress={handleNext}
                     activeOpacity={0.85}
@@ -512,21 +516,20 @@ export default function SalonBusinessHoursScreen({
                                     Save & Continue
                                 </Text>
 
-                                <Text style={styles.buttonArrow}>
-                                    →
-                                </Text>
+                                <Text style={styles.buttonArrow}>→</Text>
                             </View>
                         )}
                     </AppGradient>
                 </TouchableOpacity>
 
-                <Text style={styles.footerNote}>
-                    Your registration progress will be saved before
-                    moving to the next step.
-                </Text>
+                {/* <Text style={styles.footerNote}>
+                    Your registration progress will be saved before moving
+                    to the next step.
+                </Text> */}
             </ScrollView>
 
-            {/* Time picker */}
+            {/* TIME PICKER */}
+
             <DatePicker
                 modal
                 open={picker !== null}
@@ -551,7 +554,7 @@ export default function SalonBusinessHoursScreen({
 // STYLES
 // ============================================================
 
-const styles = {
+const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: COLORS.background,
@@ -562,73 +565,44 @@ const styles = {
         paddingBottom: SPACING.huge,
     },
 
-    header: {
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
-        marginBottom: SPACING.medium,
-        paddingVertical: SPACING.small,
-    },
+    // Registration progress — same layout pattern as the Address step.
 
-    backButton: {
-        width: 42,
-        height: 42,
-        alignItems: 'center' as const,
-        justifyContent: 'center' as const,
-        marginRight: SPACING.small,
-    },
-
-    back: {
-        fontSize: 38,
-        color: COLORS.text,
-        lineHeight: 40,
-    },
-
-    headerText: {
-        flex: 1,
-        marginLeft: 4,
+    stepHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
     },
 
     stepLabel: {
-        fontFamily: FONTS.semiBold,
-        fontSize: FONT_SIZES.xs,
-        color: COLORS.primary || '#8B5CF6',
-        letterSpacing: 1.2,
-        marginBottom: 4,
-        fontWeight: '700' as const,
-    },
-
-    title: {
+        fontSize: 11,
         fontFamily: FONTS.bold,
-        fontSize: FONT_SIZES.title,
-        lineHeight: FONT_SIZES.title + 5,
-        color: COLORS.text,
-        fontWeight: '700' as const,
+        color: COLORS.primary,
+        letterSpacing: 1,
     },
 
-    subtitle: {
-        marginTop: 4,
-        fontFamily: FONTS.regular,
-        fontSize: FONT_SIZES.small,
-        color: COLORS.textSecondary,
+    stepPercentage: {
+        fontSize: 12,
+        fontFamily: FONTS.medium || FONTS.regular,
+        color: COLORS.primary,
     },
 
     progressTrack: {
+        width: '100%',
         height: 5,
-        width: '100%' as const,
-        backgroundColor: COLORS.border,
-        borderRadius: 4,
-        overflow: 'hidden' as const,
-        marginBottom: SPACING.xl,
+        backgroundColor: '#EAE5F3',
+        borderRadius: 10,
+        overflow: 'hidden',
+        marginBottom: 22,
     },
 
     progressFill: {
-        height: '100%' as const,
-        width: '50%' as const,
-        borderRadius: 4,
-        overflow: 'hidden' as const,
+        height: '100%',
+        borderRadius: 10,
+        overflow: 'hidden',
     },
 
-    progressFillInner: {
+    progressFillContent: {
         flex: 1,
         backgroundColor: 'transparent',
     },
@@ -641,7 +615,7 @@ const styles = {
         fontFamily: FONTS.semiBold,
         fontSize: FONT_SIZES.body,
         color: COLORS.text,
-        fontWeight: '700' as const,
+        fontWeight: '700',
         marginBottom: 5,
     },
 
@@ -671,9 +645,9 @@ const styles = {
     },
 
     dayHeader: {
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
-        justifyContent: 'space-between' as const,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
 
     dayTitleContainer: {
@@ -684,7 +658,7 @@ const styles = {
         fontFamily: FONTS.semiBold,
         fontSize: FONT_SIZES.body,
         color: COLORS.text,
-        fontWeight: '600' as const,
+        fontWeight: '600',
     },
 
     dayStatus: {
@@ -702,8 +676,8 @@ const styles = {
     },
 
     timeRow: {
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
+        flexDirection: 'row',
+        alignItems: 'center',
         marginTop: SPACING.medium,
     },
 
@@ -728,7 +702,7 @@ const styles = {
     timeValue: {
         fontFamily: FONTS.bold,
         fontSize: FONT_SIZES.small,
-        fontWeight: '700' as const,
+        fontWeight: '700',
         color: COLORS.text,
     },
 
@@ -741,8 +715,8 @@ const styles = {
 
     timeSeparator: {
         width: 30,
-        alignItems: 'center' as const,
-        justifyContent: 'center' as const,
+        alignItems: 'center',
+        justifyContent: 'center',
         paddingHorizontal: 3,
     },
 
@@ -771,8 +745,8 @@ const styles = {
         width: 44,
         height: 26,
         borderRadius: 13,
-        justifyContent: 'center' as const,
-        overflow: 'hidden' as const,
+        justifyContent: 'center',
+        overflow: 'hidden',
         backgroundColor: COLORS.borderStrong,
     },
 
@@ -781,7 +755,7 @@ const styles = {
     },
 
     switchGradient: {
-        position: 'absolute' as const,
+        position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
@@ -799,7 +773,7 @@ const styles = {
         height: 20,
         borderRadius: 10,
         backgroundColor: COLORS.white,
-        position: 'absolute' as const,
+        position: 'absolute',
         top: 3,
         elevation: 2,
     },
@@ -813,8 +787,8 @@ const styles = {
     },
 
     infoRow: {
-        flexDirection: 'row' as const,
-        alignItems: 'flex-start' as const,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
         marginTop: SPACING.large,
         paddingHorizontal: 2,
     },
@@ -840,9 +814,9 @@ const styles = {
     button: {
         minHeight: 54,
         borderRadius: RADIUS.medium,
-        alignItems: 'center' as const,
-        justifyContent: 'center' as const,
-        overflow: 'hidden' as const,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
         paddingHorizontal: SPACING.large,
     },
 
@@ -851,40 +825,41 @@ const styles = {
     },
 
     buttonContent: {
-        width: '100%' as const,
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
-        justifyContent: 'center' as const,
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 
     buttonText: {
         color: COLORS.white,
         fontFamily: FONTS.semiBold,
         fontSize: FONT_SIZES.body,
-        fontWeight: '700' as const,
+        fontWeight: '700',
     },
 
     buttonArrow: {
-        position: 'absolute' as const,
-        right: 2,
+        position: 'absolute',
+        right: 80,
+        bottom: 1,
         color: COLORS.white,
         fontSize: 24,
         lineHeight: 28,
     },
 
     loadingRow: {
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
-        justifyContent: 'center' as const,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
         gap: SPACING.small,
     },
 
     footerNote: {
         marginTop: SPACING.medium,
-        textAlign: 'center' as const,
+        textAlign: 'center',
         fontFamily: FONTS.regular,
         fontSize: FONT_SIZES.xs,
         lineHeight: FONT_SIZES.xs + 5,
         color: COLORS.textMuted,
     },
-};
+});
