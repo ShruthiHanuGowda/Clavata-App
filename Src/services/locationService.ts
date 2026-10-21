@@ -55,6 +55,12 @@ type AppSyncClient = ApolloClient<NormalizedCacheObject>;
 
 let locationClient: AppSyncClient | null = null;
 
+/**
+ * Configure this service with the application's Apollo Client.
+ *
+ * Call this once during application initialization, before
+ * using any location-service functions.
+ */
 export function configureLocationClient(
   client: AppSyncClient,
 ): void {
@@ -62,6 +68,10 @@ export function configureLocationClient(
 }
 
 function getLocationClient(): AppSyncClient {
+  console.log(
+  '[LocationService] Client configured:',
+  Boolean(locationClient),
+);
   if (!locationClient) {
     throw new Error(
       'Location service is not configured. ' +
@@ -128,19 +138,44 @@ const REVERSE_GEOCODE = gql`
 `;
 
 /* ============================================================
-   VALIDATION
+   VALIDATION AND NORMALIZATION
 ============================================================ */
 
-const isValidCoordinates = (
+/**
+ * Coordinates must be finite numbers within valid
+ * latitude and longitude ranges.
+ */
+function isValidCoordinates(
   latitude: number,
   longitude: number,
-): boolean =>
-  Number.isFinite(latitude) &&
-  Number.isFinite(longitude) &&
-  latitude >= -90 &&
-  latitude <= 90 &&
-  longitude >= -180 &&
-  longitude <= 180;
+): boolean {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180
+  );
+}
+
+function clean(value?: string | null): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function firstNonEmpty(
+  ...values: Array<string | null | undefined>
+): string {
+  for (const value of values) {
+    const normalized = clean(value);
+
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return '';
+}
 
 function isAddressSuggestion(
   value: unknown,
@@ -153,7 +188,9 @@ function isAddressSuggestion(
 
   return (
     typeof item.placeId === 'string' &&
-    typeof item.description === 'string'
+    item.placeId.trim().length > 0 &&
+    typeof item.description === 'string' &&
+    item.description.trim().length > 0
   );
 }
 
@@ -168,34 +205,32 @@ function isGooglePlace(
 
   return (
     typeof place.formattedAddress === 'string' &&
+    place.formattedAddress.trim().length > 0 &&
     typeof place.latitude === 'number' &&
-    Number.isFinite(place.latitude) &&
     typeof place.longitude === 'number' &&
-    Number.isFinite(place.longitude)
+    isValidCoordinates(
+      place.latitude,
+      place.longitude,
+    )
   );
 }
 
-function clean(value?: string | null): string {
-  return (value ?? '').trim();
-}
-
-function firstNonEmpty(
-  ...values: Array<string | null | undefined>
-): string {
-  return values.map(clean).find(Boolean) ?? '';
-}
-
 /**
- * Accept only a valid six-digit Indian PIN code.
+ * Accept only valid six-digit Indian PIN codes.
  */
-function normalizePincode(value?: string | null): string {
+function normalizePincode(
+  value?: string | null,
+): string {
   const candidate = clean(value);
-  return /^[1-9]\d{5}$/.test(candidate) ? candidate : '';
+
+  return /^[1-9]\d{5}$/.test(candidate)
+    ? candidate
+    : '';
 }
 
 /**
- * Use this only as a fallback when the address contains
- * exactly one standalone six-digit number.
+ * Use the formatted address as a fallback only when
+ * it contains exactly one standalone six-digit number.
  */
 function extractPincodeFromAddress(
   formattedAddress?: string | null,
@@ -204,32 +239,13 @@ function extractPincodeFromAddress(
     return '';
   }
 
-  const matches = formattedAddress.match(/\b[1-9]\d{5}\b/g);
+  const matches = formattedAddress.match(
+    /\b[1-9]\d{5}\b/g,
+  );
 
   return matches?.length === 1
     ? normalizePincode(matches[0])
     : '';
-}
-
-/**
- * Build an address line from all useful address fields
- * supplied by the backend.
- *
- * Existing fields are preserved; no address is fabricated.
- */
-function buildAddressLine(
-  place: GooglePlace,
-): string {
-  const parts = [
-    place.addressLine,
-  ]
-    .map(clean)
-    .filter(Boolean);
-
-  return firstNonEmpty(
-    place.addressLine,
-    place.formattedAddress,
-  );
 }
 
 function normalizePlacePincode(
@@ -241,14 +257,63 @@ function normalizePlacePincode(
   );
 }
 
+/**
+ * Prefer the backend's addressLine, falling back to
+ * formattedAddress when the separate line is unavailable.
+ */
+function buildAddressLine(
+  place: GooglePlace,
+): string {
+  return firstNonEmpty(
+    place.addressLine,
+    place.formattedAddress,
+  );
+}
+
+/**
+ * Return a normalized place without changing its
+ * geographic coordinates.
+ */
+function normalizeGooglePlace(
+  place: GooglePlace,
+  fallbackPlaceId?: string,
+): GooglePlace {
+  const formattedAddress = clean(place.formattedAddress);
+
+  return {
+    placeId:
+      firstNonEmpty(place.placeId, fallbackPlaceId) || null,
+    formattedAddress,
+    addressLine: buildAddressLine({
+      ...place,
+      formattedAddress,
+    }),
+    city: clean(place.city),
+    state: clean(place.state),
+    pincode: normalizePlacePincode({
+      ...place,
+      formattedAddress,
+    }),
+    country: clean(place.country),
+    latitude: place.latitude,
+    longitude: place.longitude,
+  };
+}
+
 /* ============================================================
    ADDRESS AUTOCOMPLETE
 ============================================================ */
 
+/**
+ * Search for address suggestions.
+ *
+ * Returns an empty array for short queries or request
+ * failures so the UI can safely display no suggestions.
+ */
 export async function searchAddress(
   query: string,
 ): Promise<AddressSuggestion[]> {
-  const input = query.trim();
+  const input = clean(query);
 
   if (input.length < 3 || input.length > 200) {
     return [];
@@ -269,9 +334,23 @@ export async function searchAddress(
       return [];
     }
 
-    return suggestions.filter(isAddressSuggestion);
+    return suggestions
+      .filter(isAddressSuggestion)
+      .map((suggestion) => ({
+        placeId: suggestion.placeId.trim(),
+        description: suggestion.description.trim(),
+      }))
+      .filter(
+        (suggestion) =>
+          suggestion.placeId.length > 0 &&
+          suggestion.description.length > 0,
+      );
   } catch (error) {
-    console.error('Address autocomplete error:', error);
+    console.error(
+      'Address autocomplete error:',
+      error,
+    );
+
     return [];
   }
 }
@@ -280,11 +359,16 @@ export async function searchAddress(
    PLACE DETAILS
 ============================================================ */
 
-
+/**
+ * Resolve an autocomplete suggestion into a complete place.
+ *
+ * Returns null when the place cannot be resolved or the
+ * backend returns invalid coordinates or incomplete data.
+ */
 export async function getPlaceDetails(
   placeId: string,
 ): Promise<GooglePlace | null> {
-  const id = placeId.trim();
+  const id = clean(placeId);
 
   if (!id) {
     return null;
@@ -295,48 +379,53 @@ export async function getPlaceDetails(
 
     const { data } = await client.query({
       query: PLACE_DETAILS,
-      variables: { placeId: id },
+      variables: {
+        placeId: id,
+      },
       fetchPolicy: 'no-cache',
     });
 
-    const place = data?.placeDetails;
+    const place: unknown = data?.placeDetails;
 
     if (!isGooglePlace(place)) {
-      console.warn('Place details returned incomplete data.');
+      console.warn(
+        'Place details returned incomplete or invalid data.',
+      );
+
       return null;
     }
 
-    const formattedAddress = clean(place.formattedAddress);
-    const addressLine = buildAddressLine(place);
-    const pincode = normalizePlacePincode(place);
-
-    return {
-      ...place,
-      placeId: place.placeId || id,
-      formattedAddress,
-      addressLine,
-      city: clean(place.city),
-      state: clean(place.state),
-      pincode,
-      country: clean(place.country),
-    };
+    return normalizeGooglePlace(place, id);
   } catch (error) {
     console.error('Place details error:', error);
+
     return null;
   }
 }
-
 
 /* ============================================================
    REVERSE GEOCODING
 ============================================================ */
 
+/**
+ * Convert map coordinates into an address.
+ *
+ * Call this whenever a user taps the map, moves the marker,
+ * or selects a new location.
+ *
+ * The result uses the GoogleAddress structure expected by
+ * screens that read address, postcode, city, state and
+ * geometry.location.
+ */
 export async function reverseGeocode(
   latitude: number,
   longitude: number,
 ): Promise<GoogleAddress | null> {
   if (!isValidCoordinates(latitude, longitude)) {
-    console.warn('Invalid coordinates for reverse geocoding.');
+    console.warn(
+      'Invalid coordinates for reverse geocoding.',
+    );
+
     return null;
   }
 
@@ -354,23 +443,31 @@ export async function reverseGeocode(
 
     const response = data?.reverseGeocode;
 
-    if (response?.success !== true || !response?.place) {
+    if (
+      response?.success !== true ||
+      !isGooglePlace(response?.place)
+    ) {
       console.warn(
-        'Reverse geocoding returned no address:',
+        'Reverse geocoding returned no valid address:',
         response?.message,
       );
+
       return null;
     }
 
-    const place = response.place as GooglePlace;
+    const place = normalizeGooglePlace(
+      response.place,
+    );
+
     const pincode = normalizePlacePincode(place);
+    const addressLine = buildAddressLine(place);
 
     const address: Record<string, string> = {
-      // These components are not independently available
-      // in the current GraphQL response.
+      // These components are not separately supplied
+      // by the current GraphQL response.
       house_number: '',
       building: '',
-      road: clean(place.addressLine),
+      road: addressLine,
       neighbourhood: '',
       suburb: '',
       quarter: '',
@@ -389,8 +486,8 @@ export async function reverseGeocode(
     };
 
     return {
-      formatted_address: clean(place.formattedAddress),
-      display_name: clean(place.formattedAddress),
+      formatted_address: place.formattedAddress,
+      display_name: place.formattedAddress,
       address,
       address_components: [],
       geometry: {
@@ -402,6 +499,7 @@ export async function reverseGeocode(
     };
   } catch (error) {
     console.error('Reverse geocode error:', error);
+
     return null;
   }
 }

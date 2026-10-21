@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 
 import {
@@ -90,6 +91,9 @@ const REGISTRATION_STEP_ROUTES: Record<number, string> = {
   6: 'SalonReview',
 };
 
+const CURRENT_STEP = 1;
+const TOTAL_STEPS = 6;
+
 const SalonRegistrationScreen = ({
   navigation,
   route,
@@ -162,10 +166,10 @@ const SalonRegistrationScreen = ({
 
     const initialStep =
       Number.isInteger(requestedStep) &&
-      requestedStep >= 1 &&
-      requestedStep <= 6
+        requestedStep >= 1 &&
+        requestedStep <= TOTAL_STEPS
         ? requestedStep
-        : 1;
+        : CURRENT_STEP;
 
     hasHandledInitialStep.current = true;
 
@@ -179,7 +183,7 @@ const SalonRegistrationScreen = ({
     setCurrentStep(initialStep);
 
     // Step 1 is already displayed.
-    if (!shouldResume || initialStep === 1) {
+    if (!shouldResume || initialStep === CURRENT_STEP) {
       return;
     }
 
@@ -232,11 +236,11 @@ const SalonRegistrationScreen = ({
 
     const savedAudiences = Array.isArray(data.targetAudiences)
       ? data.targetAudiences.filter(
-          (audience): audience is TargetAudience =>
-            audience === 'FEMALE' ||
-            audience === 'MALE' ||
-            audience === 'KIDS',
-        )
+        (audience): audience is TargetAudience =>
+          audience === 'FEMALE' ||
+          audience === 'MALE' ||
+          audience === 'KIDS',
+      )
       : [];
 
     setTargetAudiences(savedAudiences);
@@ -415,7 +419,7 @@ const SalonRegistrationScreen = ({
       const nextCompletedSteps = [
         ...new Set([
           ...(completedSteps ?? []),
-          1,
+          CURRENT_STEP,
         ]),
       ].sort((a, b) => a - b);
 
@@ -438,7 +442,7 @@ const SalonRegistrationScreen = ({
         return;
       }
 
-      markStepCompleted(1);
+      markStepCompleted(CURRENT_STEP);
       setCurrentStep(2);
 
       navigation.navigate('SalonAddress', {
@@ -478,8 +482,7 @@ const SalonRegistrationScreen = ({
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header headerTitle="Registration" />
-
+      <Header headerTitle="Business Details" />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
@@ -487,13 +490,54 @@ const SalonRegistrationScreen = ({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.title}>
+          {/* REGISTRATION STEP INDICATOR */}
+          <View style={styles.stepHeader}>
+            <View>
+              <Text style={styles.stepLabel}>
+                STEP {String(CURRENT_STEP).padStart(2, '0')} OF{' '}
+                {String(TOTAL_STEPS).padStart(2, '0')}
+              </Text>
+{/* 
+              <Text style={styles.stepCaption}>
+                Salon registration
+              </Text> */}
+            </View>
+
+            <Text style={styles.stepPercentage}>
+              {Math.round((CURRENT_STEP / TOTAL_STEPS) * 100)}%
+            </Text>
+          </View>
+
+          <View
+            style={styles.progressTrack}
+            accessibilityRole="progressbar"
+            accessibilityLabel="Registration progress"
+            accessibilityValue={{
+              min: 0,
+              max: TOTAL_STEPS,
+              now: CURRENT_STEP,
+            }}
+          >
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={[
+                styles.progressFill,
+                {
+                  width: `${(CURRENT_STEP / TOTAL_STEPS) * 100}%`,
+                },
+              ]}
+            >
+              <View style={styles.progressFillContent} />
+            </AppGradient>
+          </View>
+
+          {/* <Text style={styles.title}>
             Tell us about your business
           </Text>
 
           <Text style={styles.subtitle}>
             Provide your business details to get started with Clavata
-          </Text>
+          </Text> */}
 
           {/* CUSTOMER TYPE */}
           <View style={styles.fieldContainer}>
@@ -519,7 +563,7 @@ const SalonRegistrationScreen = ({
                   style={[
                     styles.dropdownText,
                     targetAudiences.length === 0 &&
-                      styles.placeholderText,
+                    styles.placeholderText,
                   ]}
                   numberOfLines={1}
                 >
@@ -724,7 +768,7 @@ const SalonRegistrationScreen = ({
                     style={[
                       styles.audienceOption,
                       isSelected &&
-                        styles.audienceOptionSelected,
+                      styles.audienceOptionSelected,
                     ]}
                     activeOpacity={0.75}
                     disabled={isBusy}
@@ -755,7 +799,7 @@ const SalonRegistrationScreen = ({
                         style={[
                           styles.audienceOptionTitle,
                           isSelected &&
-                            styles.audienceOptionTitleSelected,
+                          styles.audienceOptionTitleSelected,
                         ]}
                       >
                         {option.label}
@@ -780,7 +824,7 @@ const SalonRegistrationScreen = ({
                 <Text style={styles.modalInfoText}>
                   You can select more than one. For example,
                   select Female, Male and Kids if your business
-                  serves all three.
+                  serves all three
                 </Text>
               </View>
             </ScrollView>
@@ -834,6 +878,47 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: RADIUS?.large ?? 16,
     padding: SPACING?.medium ?? 16,
+  },
+
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+
+  stepLabel: {
+    fontSize: 11,
+    fontFamily: FONTS?.bold,
+    color: COLORS.primary,
+    letterSpacing: 1,
+  },
+
+  stepCaption: {
+    fontSize: 12,
+    fontFamily: FONTS?.regular,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+
+  stepPercentage: {
+    fontSize: 12,
+    fontFamily: FONTS?.medium,
+    color: COLORS.primary,
+  },
+
+  progressTrack: {
+    width: '100%',
+    height: 5,
+    backgroundColor: '#EAE5F3',
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 22,
+  },
+
+  progressFill: {
+    height: '100%',
+    borderRadius: 10,
   },
 
   title: {
@@ -991,7 +1076,7 @@ const styles = StyleSheet.create({
 
   buttonArrow: {
     position: 'absolute',
-    right: 18,
+    right: 130,
     color: COLORS.white,
     fontSize: 27,
     lineHeight: 30,
@@ -1200,6 +1285,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FONTS?.medium,
   },
+  progressFillContent: {
+    flex: 1,
+  }
 });
 
 export default SalonRegistrationScreen;

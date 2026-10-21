@@ -48,7 +48,9 @@ const createApolloClient = (): ApolloClient<NormalizedCacheObject> => {
 
   // Register the same client used by ApolloProvider.
   configureLocationClient(client);
-
+console.log(
+  '[GraphQLProvider] Configured location client',
+);
   return client;
 };
 
