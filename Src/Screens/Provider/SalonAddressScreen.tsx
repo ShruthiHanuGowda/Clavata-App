@@ -1091,7 +1091,7 @@ const SalonAddressScreen: React.FC<Props> = ({
         />
 
         <Text style={styles.loadingText}>
-          Restoring your registration...
+          Please wait ...
         </Text>
       </SafeAreaView>
     );

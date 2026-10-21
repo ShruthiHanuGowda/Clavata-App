@@ -254,7 +254,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
 
                             <Text style={styles.itemSubText}>
                                 Showcase your services and products to our
-                                growing community of clients.
+                                growing community of clients
                             </Text>
                         </View>
                     </View>
@@ -274,7 +274,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
 
                             <Text style={styles.itemSubText}>
                                 You keep 100% of what you earn. No commissions
-                                and no deductions.
+                                and no deductions
                             </Text>
                         </View>
                     </View>
@@ -294,7 +294,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
 
                             <Text style={styles.itemSubText}>
                                 Build lasting relationships, attract new
-                                clients, and keep them coming back.
+                                clients, and keep them coming back
                             </Text>
                         </View>
                     </View>
@@ -314,7 +314,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
 
                             <Text style={styles.itemSubText}>
                                 Get discovered by more clients searching for
-                                your services.
+                                your services
                             </Text>
                         </View>
                     </View>
@@ -334,7 +334,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
 
                             <Text style={styles.itemSubText}>
                                 Keep your services, information, and booking
-                                requests organized in one place.
+                                requests organized in one place
                             </Text>
                         </View>
                     </View>
@@ -348,7 +348,7 @@ const BecomePartnerScreen = ({ navigation }: any) => {
                 {!!draftError && (
                     <Text style={styles.errorText}>
                         Your saved registration could not be loaded.
-                        Press Continue to try again.
+                        Press Continue to try again
                     </Text>
                 )}
             </View>

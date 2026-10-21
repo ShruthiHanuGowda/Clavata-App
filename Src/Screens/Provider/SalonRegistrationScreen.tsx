@@ -648,7 +648,7 @@ const SalonRegistrationScreen = ({
                 <>
                   <ActivityIndicator color={COLORS.white} />
                   <Text style={styles.buttonText}>
-                    {'  '}Restoring registration...
+                    {'  '}Please wait
                   </Text>
                 </>
               ) : isBusy ? (

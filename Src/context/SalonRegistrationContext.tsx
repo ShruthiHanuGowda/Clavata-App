@@ -31,12 +31,32 @@ export type KycDocumentType =
 
 export type KycDocument = {
     uri: string;
+    localUri?: string;
     name: string;
     type?: string | null;
     size?: number | null;
     uploadId?: string;
     s3Key?: string;
     documentType?: KycDocumentType;
+};
+
+// =====================================================
+// SALON PROFILE PHOTO
+// =====================================================
+
+export type SalonProfilePhoto = {
+    uri: string;
+    localUri?: string;
+    name: string;
+    type: string;
+    size: number;
+
+    // These fields are populated when the photo is uploaded.
+    imageId?: string;
+    objectUrl?: string;
+    key?: string;
+    salonId?: string;
+    mediaType?: string;
 };
 
 // =====================================================
@@ -201,6 +221,9 @@ export type SalonRegistrationData = {
     gstDocument?: KycDocument | null;
     udyamDocument?: KycDocument | null;
 
+    // Salon profile photo selected during registration.
+    salonProfilePhoto?: SalonProfilePhoto | null;
+
     kycUploadId: string;
 
     serviceSelections: SalonServiceSelection[];
@@ -265,6 +288,8 @@ const createInitialData = (): SalonRegistrationData => ({
     gstDocument: null,
     udyamDocument: null,
 
+    salonProfilePhoto: null,
+
     kycUploadId: '',
 
     serviceSelections: [],
@@ -323,6 +348,17 @@ type SafeKycDocument = {
     documentType?: KycDocumentType;
 };
 
+type SafeSalonProfilePhoto = {
+    name: string;
+    type: string;
+    size: number;
+    imageId: string;
+    objectUrl: string;
+    key: string;
+    salonId: string;
+    mediaType: string;
+};
+
 type SafeSalonDraftData = {
     salonName: string;
     ownerName: string;
@@ -343,8 +379,6 @@ type SafeSalonDraftData = {
     businessHours: BusinessHours;
     serviceSelections: SalonServiceSelection[];
 
-    // These KYC values are persisted by the existing draft design.
-    // Ensure the backend protects draft data appropriately.
     panNumber: string;
     aadhaarNumber: string;
     gstNumber: string;
@@ -352,12 +386,13 @@ type SafeSalonDraftData = {
     udyamNumber: string;
     kycUploadId: string;
 
-    // Only documents already uploaded to S3 are persisted.
     panDocument?: SafeKycDocument | null;
     aadhaarDocument?: SafeKycDocument | null;
     shopEstablishmentDocument?: SafeKycDocument | null;
     gstDocument?: SafeKycDocument | null;
     udyamDocument?: SafeKycDocument | null;
+
+    salonProfilePhoto?: SafeSalonProfilePhoto | null;
 };
 
 // =====================================================
@@ -367,8 +402,7 @@ type SafeSalonDraftData = {
 const getSafeKycDocument = (
     document?: KycDocument | null,
 ): SafeKycDocument | null => {
-    // A local-only file selection cannot be restored reliably
-    // after closing the app. Save only uploaded S3 documents.
+    // Persist only documents that have already been uploaded to S3.
     if (!document?.s3Key) {
         return null;
     }
@@ -380,6 +414,36 @@ const getSafeKycDocument = (
         uploadId: document.uploadId,
         s3Key: document.s3Key,
         documentType: document.documentType,
+    };
+};
+
+const getSafeSalonProfilePhoto = (
+    photo?: SalonProfilePhoto | null,
+): SafeSalonProfilePhoto | null => {
+    /*
+     * Do not persist a local device URI as a permanent photo reference.
+     * Persist the photo only after the media upload has produced a stable
+     * S3 key, object URL, image ID, salon ID, and media type.
+     */
+    if (
+        !photo?.key ||
+        !photo.objectUrl ||
+        !photo.imageId ||
+        !photo.salonId ||
+        !photo.mediaType
+    ) {
+        return null;
+    }
+
+    return {
+        name: photo.name,
+        type: photo.type,
+        size: photo.size,
+        imageId: photo.imageId,
+        objectUrl: photo.objectUrl,
+        key: photo.key,
+        salonId: photo.salonId,
+        mediaType: photo.mediaType,
     };
 };
 
@@ -430,6 +494,10 @@ const getSafeDraftData = (
     ),
     gstDocument: getSafeKycDocument(data.gstDocument),
     udyamDocument: getSafeKycDocument(data.udyamDocument),
+
+    salonProfilePhoto: getSafeSalonProfilePhoto(
+        data.salonProfilePhoto,
+    ),
 });
 
 // =====================================================
@@ -563,16 +631,12 @@ export const SalonRegistrationProvider = ({
     const saveTimerRef =
         useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Serialize mutations so saves execute in order.
     const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true));
 
     const savingCountRef = useRef(0);
     const dirtyRef = useRef(false);
 
-    // IMPORTANT:
     // Only use the authenticated user ID.
-    // Never fall back to data.userId because it may belong
-    // to a previous login session.
     const currentUserId = authenticatedUserId?.trim() || '';
 
     // -----------------------------------------------------
@@ -638,7 +702,6 @@ export const SalonRegistrationProvider = ({
         ): Promise<boolean> => {
             const ownerId = authenticatedUserId?.trim() || '';
 
-            // Do not save using an ID retained in old form data.
             if (!ownerId) {
                 const message =
                     'Unable to save registration progress: please log in again.';
@@ -647,15 +710,11 @@ export const SalonRegistrationProvider = ({
                 return Promise.resolve(false);
             }
 
-            // A save is allowed only after this exact user's server draft
-            // has finished loading. This prevents an initial/empty form from
-            // overwriting an existing draft during login or screen startup.
             if (hydratedUserRef.current !== ownerId) {
                 return Promise.resolve(false);
             }
 
             const performSave = async (): Promise<boolean> => {
-                // Re-check identity and hydration when this queued save runs.
                 if (
                     authenticatedUserId?.trim() !== ownerId ||
                     hydratedUserRef.current !== ownerId
@@ -663,9 +722,6 @@ export const SalonRegistrationProvider = ({
                     return false;
                 }
 
-                // Take the snapshot when this save reaches the front of the
-                // queue, not when it is first requested. This keeps queued
-                // writes aligned with the newest context data.
                 const step = normalizeStep(
                     requestedStep ?? stepRef.current,
                 );
@@ -712,8 +768,6 @@ export const SalonRegistrationProvider = ({
                         );
                     }
 
-                    // Only mark clean if the same user's data is
-                    // still the data represented by this save.
                     const sameUser =
                         authenticatedUserId?.trim() === ownerId &&
                         hydratedUserRef.current === ownerId;
@@ -775,7 +829,6 @@ export const SalonRegistrationProvider = ({
         async (): Promise<DraftLoadResult> => {
             const ownerId = authenticatedUserId?.trim() || '';
 
-            // Do not load using an ID from previously retained form data.
             if (!ownerId) {
                 return {
                     hasDraft: false,
@@ -801,7 +854,6 @@ export const SalonRegistrationProvider = ({
                     fetchPolicy: 'network-only',
                 });
 
-                // Ignore responses from superseded requests or sessions.
                 if (
                     requestId !== loadRequestRef.current ||
                     authenticatedUserId?.trim() !== ownerId
@@ -825,7 +877,6 @@ export const SalonRegistrationProvider = ({
 
                 const draft = response.draft;
 
-                // No draft, or registration already completed.
                 if (!draft || draft.status === 'COMPLETED') {
                     const initial: SalonRegistrationData = {
                         ...createInitialData(),
@@ -853,6 +904,14 @@ export const SalonRegistrationProvider = ({
 
                 const savedData = parseDraftData(draft.draftData);
                 const initial = createInitialData();
+
+                const restoredProfilePhoto: SalonProfilePhoto | null =
+                    savedData.salonProfilePhoto
+                        ? {
+                            ...savedData.salonProfilePhoto,
+                            uri: savedData.salonProfilePhoto.objectUrl,
+                        }
+                        : null;
 
                 const restoredData: SalonRegistrationData = {
                     ...initial,
@@ -888,7 +947,6 @@ export const SalonRegistrationProvider = ({
                     serviceSelections:
                         savedData.serviceSelections ?? [],
 
-                    // Preserve the existing draft behavior for KYC values.
                     panNumber: savedData.panNumber ?? '',
                     aadhaarNumber: savedData.aadhaarNumber ?? '',
                     gstNumber: savedData.gstNumber ?? '',
@@ -897,7 +955,6 @@ export const SalonRegistrationProvider = ({
                     udyamNumber: savedData.udyamNumber ?? '',
                     kycUploadId: savedData.kycUploadId ?? '',
 
-                    // S3 keys can be restored, but local device URIs cannot.
                     panDocument: savedData.panDocument
                         ? {
                             ...savedData.panDocument,
@@ -933,6 +990,8 @@ export const SalonRegistrationProvider = ({
                             uri: '',
                         }
                         : null,
+
+                    salonProfilePhoto: restoredProfilePhoto,
                 };
 
                 const restoredStep = normalizeStep(
@@ -943,8 +1002,6 @@ export const SalonRegistrationProvider = ({
                     draft.completedSteps,
                 );
 
-                // Update refs before React state so any immediate
-                // navigation/save reads the restored values.
                 dataRef.current = restoredData;
                 setData(restoredData);
 
@@ -990,7 +1047,6 @@ export const SalonRegistrationProvider = ({
     // -----------------------------------------------------
 
     const resetDraftState = useCallback(() => {
-        // Invalidate any pending draft-load request.
         loadRequestRef.current += 1;
 
         if (saveTimerRef.current) {
@@ -1022,7 +1078,6 @@ export const SalonRegistrationProvider = ({
     // -----------------------------------------------------
 
     useEffect(() => {
-        // Logout: clear the previous user's registration data.
         if (!currentUserId) {
             const hasPreviousUserData =
                 hydratedUserRef.current !== null ||
@@ -1035,13 +1090,10 @@ export const SalonRegistrationProvider = ({
             return;
         }
 
-        // Do not reload a draft already hydrated for this user.
         if (hydratedUserRef.current === currentUserId) {
             return;
         }
 
-        // If the authenticated user changed, clear the old user's
-        // in-memory data before loading the new user's draft.
         const previousHydratedUser = hydratedUserRef.current;
         const previousDataUserId = dataRef.current.userId.trim();
 
@@ -1079,7 +1131,6 @@ export const SalonRegistrationProvider = ({
             return;
         }
 
-        // Never autosave until this user's draft has loaded.
         if (hydratedUserRef.current !== currentUserId) {
             return;
         }
@@ -1123,7 +1174,6 @@ export const SalonRegistrationProvider = ({
                 saveTimerRef.current = null;
             }
 
-            // Invalidate outstanding loads when this provider unmounts.
             loadRequestRef.current += 1;
         };
     }, []);

@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 
 import {
@@ -14,13 +15,24 @@ import {
   Alert,
   ScrollView,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 
 import { useMutation } from '@apollo/client';
 
 import { Header } from '../../components';
-import { REGISTER_SALON_PARTNER } from '../../graphql/queries';
-import { useSalonRegistration } from '../../context/SalonRegistrationContext';
+
+import {
+  REGISTER_SALON_PARTNER,
+  GENERATE_SALON_MEDIA_UPLOAD_URL,
+  CREATE_SALON_MEDIA,
+} from '../../graphql/queries';
+
+import {
+  useSalonRegistration,
+  type SalonProfilePhoto,
+} from '../../context/SalonRegistrationContext';
+
 import {
   useUser,
   User,
@@ -50,6 +62,8 @@ type KycDocumentType =
   | 'SHOP_ESTABLISHMENT'
   | 'GST'
   | 'UDYAM';
+
+type GraphQLMediaType = 'LOGO' | 'COVER' | 'GALLERY';
 
 type ReviewServiceSelection = {
   uniqueId?: string;
@@ -132,14 +146,23 @@ type RegisterSalonPartnerVariables = {
   };
 };
 
+type UploadedSalonMedia = {
+  imageId: string;
+  objectUrl: string;
+  key: string;
+  mediaType: GraphQLMediaType;
+};
+
 // ============================================================
 // HELPERS
 // ============================================================
 
-const cleanString = (value: any): string =>
+const MAX_PROFILE_PHOTO_BYTES = 10 * 1024 * 1024;
+
+const cleanString = (value: unknown): string =>
   String(value ?? '').trim();
 
-const isValidAudience = (value: any): value is Audience =>
+const isValidAudience = (value: unknown): value is Audience =>
   value === 'FEMALE' ||
   value === 'MALE' ||
   value === 'KIDS';
@@ -157,14 +180,25 @@ const getAudienceLabel = (audience: Audience): string => {
   }
 };
 
+const maskPan = (value: unknown): string => {
+  const pan = cleanString(value).toUpperCase();
+
+  if (!pan) {
+    return '-';
+  }
+
+  if (pan.length <= 4) {
+    return 'XXXXXXX' + pan;
+  }
+
+  return `XXXXX${pan.slice(-4)}`;
+};
+
 const getKycDocumentName = (document: any): string =>
   cleanString(document?.name ?? document?.fileName);
 
 const getKycDocumentContentType = (document: any): string =>
   cleanString(document?.type ?? document?.contentType);
-
-const getKycDocumentUploadId = (document: any): string =>
-  cleanString(document?.uploadId);
 
 const getKycDocumentS3Key = (document: any): string =>
   cleanString(document?.s3Key ?? document?.key);
@@ -190,10 +224,61 @@ const getKycDocumentFileSize = (
 const hasValidKycDocument = (document: any): boolean =>
   Boolean(
     document &&
-    getKycDocumentName(document) &&
-    getKycDocumentContentType(document) &&
-    getKycDocumentS3Key(document),
+      getKycDocumentName(document) &&
+      getKycDocumentContentType(document) &&
+      getKycDocumentS3Key(document),
   );
+
+const getPhotoContentType = (
+  photo: SalonProfilePhoto,
+): string => {
+  const declaredType = cleanString(photo.type).toLowerCase();
+
+  if (
+    declaredType === 'image/jpeg' ||
+    declaredType === 'image/jpg' ||
+    declaredType === 'image/png' ||
+    declaredType === 'image/webp'
+  ) {
+    return declaredType === 'image/jpg'
+      ? 'image/jpeg'
+      : declaredType;
+  }
+
+  const filename = cleanString(photo.name).toLowerCase();
+  const uri = cleanString(
+    photo.localUri || photo.uri,
+  ).toLowerCase();
+
+  if (filename.endsWith('.png') || uri.endsWith('.png')) {
+    return 'image/png';
+  }
+
+  if (
+    filename.endsWith('.webp') ||
+    uri.endsWith('.webp')
+  ) {
+    return 'image/webp';
+  }
+
+  if (
+    filename.endsWith('.jpg') ||
+    filename.endsWith('.jpeg') ||
+    uri.endsWith('.jpg') ||
+    uri.endsWith('.jpeg')
+  ) {
+    return 'image/jpeg';
+  }
+
+  throw new Error(
+    'The salon photo must be a JPG, PNG or WebP image. Please select it again.',
+  );
+};
+
+const getPhotoLocalUri = (
+  photo: SalonProfilePhoto,
+): string =>
+  cleanString(photo.localUri || photo.uri);
 
 // ============================================================
 // SCREEN
@@ -202,9 +287,16 @@ const hasValidKycDocument = (document: any): boolean =>
 export default function SalonReviewScreen({
   navigation,
 }: any) {
-  const { data, reset, saveDraft } = useSalonRegistration();
+  const {
+    data,
+    reset,
+    saveDraft,
+    updateData,
+  } = useSalonRegistration();
 
   const { currentUser, setCurrentUser } = useUser();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const draftTimerRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -221,13 +313,6 @@ export default function SalonReviewScreen({
   // ==========================================================
   // DRAFT AUTOSAVE
   // ==========================================================
-  //
-  // Current step: 6 (review)
-  // Completed steps: 1–5
-  //
-  // The review screen itself is not considered submitted
-  // until the backend successfully creates the salon.
-  // ==========================================================
 
   const persistReviewDraft = useCallback(async () => {
     if (registrationSucceededRef.current) {
@@ -243,16 +328,15 @@ export default function SalonReviewScreen({
 
       if (!saved) {
         console.warn(
-          '[SalonReview] Draft save returned false. ' +
-          'Check that userId is available and the draft mutation succeeds.',
+          '[SalonReview] Draft save returned false.',
         );
       }
 
-      return saved;
+      return Boolean(saved);
     } catch (error: any) {
       console.warn(
         '[SalonReview] Draft save failed:',
-        error?.message || error,
+        error?.message || 'Unknown error',
       );
 
       return false;
@@ -287,7 +371,6 @@ export default function SalonReviewScreen({
         draftTimerRef.current = null;
       }
 
-      // Do not recreate a draft after successful registration.
       if (!registrationSucceededRef.current) {
         void persistReviewDraft();
       }
@@ -295,16 +378,184 @@ export default function SalonReviewScreen({
   }, [persistReviewDraft]);
 
   // ==========================================================
-  // GRAPHQL MUTATION
+  // GRAPHQL MUTATIONS
   // ==========================================================
 
   const [
     registerSalonPartner,
-    { loading },
+    { loading: registrationLoading },
   ] = useMutation<
     RegisterSalonPartnerResponse,
     RegisterSalonPartnerVariables
   >(REGISTER_SALON_PARTNER);
+
+  const [generateSalonMediaUploadUrl] = useMutation(
+    GENERATE_SALON_MEDIA_UPLOAD_URL,
+  );
+
+  const [createSalonMedia] = useMutation(
+    CREATE_SALON_MEDIA,
+  );
+
+  // ==========================================================
+  // UPLOAD SALON PROFILE PHOTO TO S3
+  // ==========================================================
+
+  const uploadSalonProfilePhoto = useCallback(
+    async (
+      photo: SalonProfilePhoto,
+      salonId: string,
+    ): Promise<UploadedSalonMedia> => {
+      if (!salonId) {
+        throw new Error(
+          'Salon ID is required before uploading the profile photo.',
+        );
+      }
+
+      if (
+        photo.imageId &&
+        photo.objectUrl &&
+        photo.key &&
+        photo.salonId === salonId &&
+        photo.mediaType === 'LOGO'
+      ) {
+        return {
+          imageId: photo.imageId,
+          objectUrl: photo.objectUrl,
+          key: photo.key,
+          mediaType: 'LOGO',
+        };
+      }
+
+      const localUri = getPhotoLocalUri(photo);
+
+      if (!localUri) {
+        throw new Error(
+          'The selected salon photo is no longer available on this device. Please select the photo again.',
+        );
+      }
+
+      const contentType = getPhotoContentType(photo);
+      const fileSize = Number(photo.size);
+
+      if (
+        Number.isFinite(fileSize) &&
+        fileSize > MAX_PROFILE_PHOTO_BYTES
+      ) {
+        throw new Error(
+          'Salon profile photo cannot exceed 10 MB.',
+        );
+      }
+
+      const uploadUrlResult =
+        await generateSalonMediaUploadUrl({
+          variables: {
+            input: {
+              salonId,
+              mediaType: 'LOGO',
+              contentType,
+              ...(Number.isFinite(fileSize) && fileSize > 0
+                ? { fileSize }
+                : {}),
+            },
+          },
+        });
+
+      const uploadInfo =
+        uploadUrlResult.data?.generateSalonMediaUploadUrl;
+
+      if (!uploadInfo?.success) {
+        throw new Error(
+          uploadInfo?.message ||
+            'Unable to generate the salon photo upload URL.',
+        );
+      }
+
+      const uploadUrl = cleanString(uploadInfo.uploadUrl);
+      const objectUrl = cleanString(uploadInfo.objectUrl);
+      const key = cleanString(uploadInfo.key);
+      const imageId = cleanString(uploadInfo.imageId);
+
+      if (!uploadUrl || !objectUrl || !key || !imageId) {
+        throw new Error(
+          'The server did not return all required photo upload details.',
+        );
+      }
+
+      const localResponse = await fetch(localUri);
+
+      if (!localResponse.ok) {
+        throw new Error(
+          'Unable to read the selected salon photo from this device.',
+        );
+      }
+
+      const blob = await localResponse.blob();
+
+      const s3Response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': contentType,
+        },
+        body: blob,
+      });
+
+      if (!s3Response.ok) {
+        throw new Error(
+          `Salon photo upload failed (${s3Response.status}).`,
+        );
+      }
+
+      return {
+        imageId,
+        objectUrl,
+        key,
+        mediaType: 'LOGO',
+      };
+    },
+    [generateSalonMediaUploadUrl],
+  );
+
+  // ==========================================================
+  // CREATE SALON MEDIA RECORD
+  // ==========================================================
+
+  const createSalonProfileMediaRecord = useCallback(
+    async (
+      uploaded: UploadedSalonMedia,
+      salonId: string,
+    ) => {
+      const result = await createSalonMedia({
+        variables: {
+          input: {
+            salonId,
+            imageId: uploaded.imageId,
+            mediaType: uploaded.mediaType,
+            key: uploaded.key,
+            objectUrl: uploaded.objectUrl,
+          },
+        },
+      });
+
+      const response = result.data?.createSalonMedia;
+
+      if (!response?.success) {
+        throw new Error(
+          response?.message ||
+            'The photo was uploaded, but the salon media record could not be created.',
+        );
+      }
+
+      if (!response.media) {
+        throw new Error(
+          'The salon media record was not returned by the server.',
+        );
+      }
+
+      return response.media;
+    },
+    [createSalonMedia],
+  );
 
   // ==========================================================
   // NORMALIZE SELECTED SERVICES
@@ -319,83 +570,73 @@ export default function SalonReviewScreen({
       const seenKeys = new Set<string>();
       const result: ReviewServiceSelection[] = [];
 
-      data.serviceSelections.forEach(
-        (selection: any, index: number) => {
-          if (
-            !selection ||
-            !isValidAudience(selection.audience)
-          ) {
-            return;
-          }
+      data.serviceSelections.forEach((selection: any) => {
+        if (
+          !selection ||
+          !isValidAudience(selection.audience)
+        ) {
+          return;
+        }
 
-          const categoryId = cleanString(selection.categoryId);
-          const categoryName = cleanString(selection.categoryName);
-          const subcategoryId = cleanString(
-            selection.subcategoryId,
-          );
-          const subcategoryName = cleanString(
-            selection.subcategoryName,
-          );
-          const serviceName = cleanString(
-            selection.name ?? selection.serviceName,
-          );
+        const categoryId = cleanString(selection.categoryId);
+        const categoryName = cleanString(
+          selection.categoryName,
+        );
+        const subcategoryId = cleanString(
+          selection.subcategoryId,
+        );
+        const subcategoryName = cleanString(
+          selection.subcategoryName,
+        );
+        const serviceName = cleanString(
+          selection.name ?? selection.serviceName,
+        );
 
-          if (
-            !categoryId ||
-            !categoryName ||
-            !subcategoryId ||
-            !subcategoryName ||
-            !serviceName
-          ) {
-            console.warn(
-              '[SalonReview] Ignoring incomplete service:',
-              selection,
-            );
-            return;
-          }
+        if (
+          !categoryId ||
+          !categoryName ||
+          !subcategoryId ||
+          !subcategoryName ||
+          !serviceName
+        ) {
+          return;
+        }
 
-          const uniqueId = cleanString(selection.uniqueId);
-          const originalServiceKey = cleanString(
-            selection.serviceKey,
-          );
+        // Deduplicate by the actual service identity, not an
+        // array index or a potentially unstable generated key.
+        const semanticKey = [
+          selection.audience,
+          categoryId,
+          subcategoryId,
+          serviceName.toLowerCase(),
+        ].join('::');
 
-          const effectiveServiceKey =
-            uniqueId ||
-            originalServiceKey ||
-            [
-              selection.audience,
-              categoryId,
-              subcategoryId,
-              serviceName,
-              index,
-            ].join('::');
+        if (seenKeys.has(semanticKey)) {
+          return;
+        }
 
-          if (seenKeys.has(effectiveServiceKey)) {
-            console.warn(
-              '[SalonReview] Duplicate service ignored:',
-              effectiveServiceKey,
-            );
-            return;
-          }
+        seenKeys.add(semanticKey);
 
-          seenKeys.add(effectiveServiceKey);
+        const uniqueId = cleanString(selection.uniqueId);
+        const originalServiceKey = cleanString(
+          selection.serviceKey,
+        );
 
-          result.push({
-            uniqueId: uniqueId || undefined,
-            serviceKey:
-              originalServiceKey || effectiveServiceKey,
-            name: serviceName,
-            description: cleanString(selection.description),
-            audience: selection.audience,
-            categoryId,
-            categoryName,
-            subcategoryId,
-            subcategoryName,
-            price: selection.price,
-            durationMinutes: selection.durationMinutes,
-          });
-        },
-      );
+        result.push({
+          uniqueId: uniqueId || undefined,
+          serviceKey:
+            originalServiceKey || semanticKey,
+          name: serviceName,
+          description: cleanString(selection.description),
+          audience: selection.audience,
+          categoryId,
+          categoryName,
+          subcategoryId,
+          subcategoryName,
+          price: selection.price,
+          durationMinutes: selection.durationMinutes,
+        });
+      });
 
       return result;
     }, [data.serviceSelections]);
@@ -412,9 +653,7 @@ export default function SalonReviewScreen({
     };
 
     selectedServiceSelections.forEach(selection => {
-      if (isValidAudience(selection.audience)) {
-        groups[selection.audience].push(selection);
-      }
+      groups[selection.audience].push(selection);
     });
 
     return groups;
@@ -432,11 +671,29 @@ export default function SalonReviewScreen({
   const udyamDocument = data.udyamDocument;
 
   const hasPanDocument = hasValidKycDocument(panDocument);
-  const hasAadhaarDocument = hasValidKycDocument(aadhaarDocument);
+  const hasAadhaarDocument =
+    hasValidKycDocument(aadhaarDocument);
   const hasShopEstablishmentDocument =
     hasValidKycDocument(shopEstablishmentDocument);
   const hasGstDocument = hasValidKycDocument(gstDocument);
   const hasUdyamDocument = hasValidKycDocument(udyamDocument);
+
+  const salonProfilePhoto = data.salonProfilePhoto ?? null;
+
+  const profilePhotoPreviewUri = salonProfilePhoto
+    ? cleanString(
+        salonProfilePhoto.localUri ||
+          salonProfilePhoto.uri ||
+          salonProfilePhoto.objectUrl,
+      )
+    : '';
+
+  const hasProfilePhoto = Boolean(
+    salonProfilePhoto &&
+      profilePhotoPreviewUri &&
+      cleanString(salonProfilePhoto.name) &&
+      cleanString(salonProfilePhoto.type),
+  );
 
   // ==========================================================
   // BUILD KYC DOCUMENT PAYLOAD
@@ -509,8 +766,7 @@ export default function SalonReviewScreen({
 
       if (!hasValidKycDocument(item.document)) {
         throw new Error(
-          `${item.label} document information is incomplete. ` +
-          `Please upload the document again.`,
+          `${item.label} document information is incomplete. Please upload the document again.`,
         );
       }
 
@@ -533,22 +789,28 @@ export default function SalonReviewScreen({
   // ==========================================================
 
   const onSubmit = async () => {
-    if (submittingRef.current || loading) {
+    if (submittingRef.current || registrationLoading) {
       return;
     }
 
-    if (!currentUser?.userId) {
+    const authenticatedUserId = cleanString(
+      currentUser?.userId,
+    );
+
+    const registrationUserId = cleanString(data.userId);
+
+    if (!authenticatedUserId || !registrationUserId) {
       Alert.alert(
         'Session Expired',
-        'Please sign in again.',
+        'Please sign in again before submitting.',
       );
       return;
     }
 
-    if (!cleanString(data.userId)) {
+    if (authenticatedUserId !== registrationUserId) {
       Alert.alert(
         'Registration Error',
-        'User information is missing. Please restart registration.',
+        'Your registration session does not match the current user. Please restart registration.',
       );
       return;
     }
@@ -558,12 +820,18 @@ export default function SalonReviewScreen({
     const email = cleanString(data.email);
 
     if (!salonName) {
-      Alert.alert('Registration Error', 'Salon name is missing.');
+      Alert.alert(
+        'Registration Error',
+        'Salon name is missing.',
+      );
       return;
     }
 
     if (!ownerName) {
-      Alert.alert('Registration Error', 'Owner name is missing.');
+      Alert.alert(
+        'Registration Error',
+        'Owner name is missing.',
+      );
       return;
     }
 
@@ -576,13 +844,45 @@ export default function SalonReviewScreen({
     }
 
     const phoneNumber = cleanString(
-      currentUser.phoneNumber || data.phoneNumber,
+      currentUser?.phoneNumber || data.phoneNumber,
     );
 
     if (!phoneNumber) {
       Alert.alert(
         'Registration Error',
         'Phone number is missing.',
+      );
+      return;
+    }
+
+    if (!hasProfilePhoto || !salonProfilePhoto) {
+      Alert.alert(
+        'Salon Photo Required',
+        'Please go back to the KYC step and select a salon profile photo before submitting.',
+      );
+      return;
+    }
+
+    const photoSize = Number(salonProfilePhoto.size);
+
+    if (
+      Number.isFinite(photoSize) &&
+      photoSize > MAX_PROFILE_PHOTO_BYTES
+    ) {
+      Alert.alert(
+        'Photo Too Large',
+        'Salon profile photo cannot exceed 10 MB. Please select a smaller photo.',
+      );
+      return;
+    }
+
+    try {
+      getPhotoContentType(salonProfilePhoto);
+    } catch (error: any) {
+      Alert.alert(
+        'Invalid Salon Photo',
+        error?.message ||
+          'Please select a JPG, PNG or WebP photo.',
       );
       return;
     }
@@ -670,8 +970,9 @@ export default function SalonReviewScreen({
       }
     }
 
-    // PAN validation
-    const cleanPAN = cleanString(data.panNumber).toUpperCase();
+    const cleanPAN = cleanString(
+      data.panNumber,
+    ).toUpperCase();
 
     if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(cleanPAN)) {
       Alert.alert(
@@ -689,7 +990,6 @@ export default function SalonReviewScreen({
       return;
     }
 
-    // Aadhaar validation
     const cleanAadhaar = cleanString(
       data.aadhaarNumber,
     ).replace(/\D/g, '');
@@ -710,7 +1010,6 @@ export default function SalonReviewScreen({
       return;
     }
 
-    // Shop & Establishment validation
     const cleanShop = cleanString(
       data.shopEstablishmentNumber,
     );
@@ -731,7 +1030,6 @@ export default function SalonReviewScreen({
       return;
     }
 
-    // Services validation
     if (selectedServiceSelections.length === 0) {
       Alert.alert(
         'Services Required',
@@ -742,55 +1040,42 @@ export default function SalonReviewScreen({
 
     const services: RegisterSalonPartnerVariables['input']['services'] =
       selectedServiceSelections.map(selection => {
-        const categoryId = cleanString(selection.categoryId);
-        const categoryName = cleanString(selection.categoryName);
-        const subcategoryId = cleanString(
-          selection.subcategoryId,
+        const description = cleanString(
+          selection.description,
         );
-        const subcategoryName = cleanString(
-          selection.subcategoryName,
-        );
-        const name = cleanString(selection.name);
-        const description = cleanString(selection.description);
-        const price = Number(selection.price);
-        const duration = Number(selection.durationMinutes);
 
         return {
-          categoryId,
-          categoryName,
-          subcategoryId,
-          subcategoryName,
-          name,
+          categoryId: cleanString(selection.categoryId),
+          categoryName: cleanString(selection.categoryName),
+          subcategoryId: cleanString(
+            selection.subcategoryId,
+          ),
+          subcategoryName: cleanString(
+            selection.subcategoryName,
+          ),
+          name: cleanString(selection.name),
           ...(description ? { description } : {}),
           audience: selection.audience,
-          price,
-          duration,
+          price: Number(selection.price),
+          duration: Number(selection.durationMinutes),
         };
       });
 
-    const invalidServiceIndex = services.findIndex(service =>
-      !service.categoryId ||
-      !service.categoryName ||
-      !service.subcategoryId ||
-      !service.subcategoryName ||
-      !service.name ||
-      !isValidAudience(service.audience) ||
-      !Number.isFinite(service.price) ||
-      service.price <= 0 ||
-      !Number.isFinite(service.duration) ||
-      service.duration <= 0,
+    const invalidServiceIndex = services.findIndex(
+      service =>
+        !service.categoryId ||
+        !service.categoryName ||
+        !service.subcategoryId ||
+        !service.subcategoryName ||
+        !service.name ||
+        !isValidAudience(service.audience) ||
+        !Number.isFinite(service.price) ||
+        service.price < 0 ||
+        !Number.isFinite(service.duration) ||
+        service.duration <= 0,
     );
 
     if (invalidServiceIndex >= 0) {
-      console.error(
-        '[SalonReview] Invalid service:',
-        JSON.stringify(
-          services[invalidServiceIndex],
-          null,
-          2,
-        ),
-      );
-
       Alert.alert(
         'Invalid Service',
         `Service ${invalidServiceIndex + 1} is missing required category, subcategory, service, price, or duration information.`,
@@ -798,17 +1083,11 @@ export default function SalonReviewScreen({
       return;
     }
 
-    // KYC documents
     let kycDocuments: KycDocumentInput[];
 
     try {
       kycDocuments = buildKycDocumentPayload();
     } catch (error: any) {
-      console.error(
-        '[SalonReview] KYC payload error:',
-        error,
-      );
-
       Alert.alert(
         'KYC Documents Required',
         error?.message ||
@@ -850,7 +1129,7 @@ export default function SalonReviewScreen({
 
     const registerInput:
       RegisterSalonPartnerVariables['input'] = {
-        userId: currentUser.userId,
+        userId: authenticatedUserId,
         phoneNumber,
         salonName,
         ownerName,
@@ -878,21 +1157,20 @@ export default function SalonReviewScreen({
         services,
       };
 
+    // Start the submitting state only after local validation.
     submittingRef.current = true;
+    setIsSubmitting(true);
 
     try {
-      // Save the latest draft before starting submission.
-      await persistReviewDraft();
+      const draftSaved = await persistReviewDraft();
 
-      console.log(
-        '[SalonReview] Submitting registration:',
-        {
-          userId: registerInput.userId,
-          targetAudiences: registerInput.targetAudiences,
-          servicesCount: registerInput.services.length,
-          kycDocumentCount: registerInput.kycDocuments.length,
-        },
-      );
+      if (!draftSaved) {
+        Alert.alert(
+          'Unable to Save Draft',
+          'Your registration details could not be saved. Please try again before submitting.',
+        );
+        return;
+      }
 
       const response = await registerSalonPartner({
         variables: {
@@ -914,23 +1192,17 @@ export default function SalonReviewScreen({
       const salonId = cleanString(result.salonId);
 
       if (!salonId) {
+        // The server may have created the salon even though the
+        // response is incomplete. Do not silently retry registration.
         Alert.alert(
-          'Registration Error',
-          'Salon was created, but the business ID was not returned by the server.',
+          'Registration Status Unclear',
+          'The server did not return a salon ID. Please contact support before trying again.',
         );
         return;
       }
 
-      const updatedUser: User = {
-        ...currentUser,
-        role: 'PROVIDER',
-        providerStatus: 'PENDING' as ProviderStatus,
-        salonId,
-      };
-
-      setCurrentUser(updatedUser);
-
-      // Prevent the unmount cleanup from saving a new draft.
+      // Registration has succeeded. Prevent further draft autosaves
+      // and avoid submitting the registration a second time.
       registrationSucceededRef.current = true;
 
       if (draftTimerRef.current) {
@@ -938,27 +1210,97 @@ export default function SalonReviewScreen({
         draftTimerRef.current = null;
       }
 
+      const updatedUser: User = {
+        ...currentUser!,
+        role: 'PROVIDER',
+        providerStatus: 'PENDING' as ProviderStatus,
+        salonId,
+      };
+
+      setCurrentUser(updatedUser);
+
+      let photoUploadError: string | null = null;
+
+      try {
+        const uploaded = await uploadSalonProfilePhoto(
+          salonProfilePhoto,
+          salonId,
+        );
+
+        await createSalonProfileMediaRecord(
+          uploaded,
+          salonId,
+        );
+
+        updateData({
+          salonProfilePhoto: {
+            ...salonProfilePhoto,
+            imageId: uploaded.imageId,
+            objectUrl: uploaded.objectUrl,
+            key: uploaded.key,
+            salonId,
+            mediaType: uploaded.mediaType,
+            uri: uploaded.objectUrl,
+          },
+        });
+      } catch (error: any) {
+        photoUploadError =
+          error?.message ||
+          'The salon was registered, but the profile photo could not be uploaded.';
+
+        // Do not log the full error object or registration/KYC data.
+        console.warn(
+          '[SalonReview] Profile photo upload failed:',
+          photoUploadError,
+        );
+      }
+
+      // NOTE: reset() clears local registration context. It does not
+      // mark the server-side draft COMPLETED. That requires a separate
+      // backend operation.
       reset();
 
-      navigation.navigate('SalonSuccess', { salonId });
-    } catch (error: any) {
-      console.error(
-        '[SalonReview] Registration error:',
-        error,
-      );
+      if (photoUploadError) {
+        Alert.alert(
+          'Registration Submitted',
+          `Your salon registration was submitted successfully, but the profile photo could not be saved.\n\n${photoUploadError}\n\nPlease add the photo later from Salon Information.`,
+          [
+            {
+              text: 'Continue',
+              onPress: () => {
+                navigation.navigate('SalonSuccess', {
+                  salonId,
+                  profilePhotoUploadFailed: true,
+                });
+              },
+            },
+          ],
+          { cancelable: false },
+        );
 
+        return;
+      }
+
+      navigation.navigate('SalonSuccess', {
+        salonId,
+        profilePhotoUploaded: true,
+      });
+    } catch (error: any) {
+      // Avoid logging the full GraphQL error because its payload
+      // could contain sensitive registration or KYC information.
       console.error(
-        '[SalonReview] GraphQL errors:',
-        JSON.stringify(error?.graphQLErrors, null, 2),
+        '[SalonReview] Registration request failed:',
+        error?.message || 'Unknown error',
       );
 
       Alert.alert(
         'Registration Failed',
         error?.message ||
-          'Something went wrong while registering the business.',
+          'Something went wrong while registering the business. If you are unsure whether it succeeded, contact support before trying again.',
       );
     } finally {
       submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -980,7 +1322,71 @@ export default function SalonReviewScreen({
           </Text>
 
           <Text style={styles.subtitle}>
-            Please check everything before submitting your business registration
+            Please check everything before submitting your business registration.
+          </Text>
+        </View>
+
+        {/* SALON PROFILE PHOTO */}
+
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>
+            Salon profile photo *
+          </Text>
+
+          <Text style={styles.sectionSubtitle}>
+            This photo will be uploaded to your salon profile when you submit your registration.
+          </Text>
+
+          {hasProfilePhoto ? (
+            <>
+              <View style={styles.profilePhotoFrame}>
+                <Image
+                  source={{ uri: profilePhotoPreviewUri }}
+                  style={styles.profilePhoto}
+                  resizeMode="cover"
+                  onError={() => {
+                    console.warn(
+                      '[SalonReview] Profile photo preview could not be loaded.',
+                    );
+                  }}
+                />
+              </View>
+
+              <Text style={styles.profilePhotoName}>
+                {salonProfilePhoto?.name}
+              </Text>
+
+              <View style={styles.photoStatusRow}>
+                <View style={styles.photoStatusBadge}>
+                  <Text style={styles.photoStatusText}>
+                    Photo selected
+                  </Text>
+                </View>
+
+                <Text style={styles.photoSizeText}>
+                  {salonProfilePhoto?.size
+                    ? `${(
+                        salonProfilePhoto.size /
+                        (1024 * 1024)
+                      ).toFixed(2)} MB`
+                    : ''}
+                </Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.missingPhotoBox}>
+              <Text style={styles.missingPhotoTitle}>
+                No salon photo selected
+              </Text>
+
+              <Text style={styles.missingPhotoText}>
+                Go back to the KYC step and select your salon profile photo.
+              </Text>
+            </View>
+          )}
+
+          <Text style={styles.photoUploadNote}>
+            The photo is saved to your salon's media records after the salon is created.
           </Text>
         </View>
 
@@ -1004,12 +1410,16 @@ export default function SalonReviewScreen({
 
           <DetailRow
             label="Address"
-            value={[
-              cleanString(data.addressLine),
-              cleanString(data.city),
-              cleanString(data.state),
-              cleanString(data.pincode),
-            ].filter(Boolean).join(', ') || 'Address not provided'}
+            value={
+              [
+                cleanString(data.addressLine),
+                cleanString(data.city),
+                cleanString(data.state),
+                cleanString(data.pincode),
+              ]
+                .filter(Boolean)
+                .join(', ') || 'Address not provided'
+            }
           />
 
           <DetailRow
@@ -1029,7 +1439,9 @@ export default function SalonReviewScreen({
 
           <DetailRow
             label="GSTIN"
-            value={cleanString(data.gstNumber) || 'Not provided'}
+            value={
+              cleanString(data.gstNumber) || 'Not provided'
+            }
           />
 
           <DetailRow
@@ -1041,12 +1453,14 @@ export default function SalonReviewScreen({
 
           <DetailRow
             label="Udyam"
-            value={cleanString(data.udyamNumber) || 'Not provided'}
+            value={
+              cleanString(data.udyamNumber) || 'Not provided'
+            }
           />
 
           <DetailRow
             label="PAN"
-            value={cleanString(data.panNumber) || '-'}
+            value={maskPan(data.panNumber)}
           />
 
           <DetailRow
@@ -1055,7 +1469,7 @@ export default function SalonReviewScreen({
               data.aadhaarNumber
                 ? `XXXX XXXX ${cleanString(
                     data.aadhaarNumber,
-                  ).slice(-4)}`
+                  ).replace(/\D/g, '').slice(-4)}`
                 : '-'
             }
             last
@@ -1117,7 +1531,7 @@ export default function SalonReviewScreen({
           </Text>
 
           <Text style={styles.sectionSubtitle}>
-            Your services are organized by customer type, category and subcategory
+            Your services are organized by customer type, category and subcategory.
           </Text>
 
           {selectedServiceSelections.length === 0 ? (
@@ -1211,27 +1625,19 @@ export default function SalonReviewScreen({
                             ([subcategoryKey, subcategory]) => (
                               <View
                                 key={subcategoryKey}
-                                style={
-                                  styles.serviceSubcategoryGroup
-                                }
+                                style={styles.serviceSubcategoryGroup}
                               >
                                 <Text
-                                  style={
-                                    styles.serviceCategoryHeading
-                                  }
+                                  style={styles.serviceCategoryHeading}
                                 >
                                   {category.categoryName}
                                   <Text
-                                    style={
-                                      styles.serviceHierarchySeparator
-                                    }
+                                    style={styles.serviceHierarchySeparator}
                                   >
                                     {' > '}
                                   </Text>
                                   <Text
-                                    style={
-                                      styles.serviceSubcategoryHeading
-                                    }
+                                    style={styles.serviceSubcategoryHeading}
                                   >
                                     {subcategory.subcategoryName}
                                   </Text>
@@ -1243,20 +1649,14 @@ export default function SalonReviewScreen({
                                       key={`${service.serviceKey}-${index}`}
                                       style={styles.serviceListItem}
                                     >
-                                      <View
-                                        style={styles.serviceInfo}
-                                      >
-                                        <Text
-                                          style={styles.serviceName}
-                                        >
+                                      <View style={styles.serviceInfo}>
+                                        <Text style={styles.serviceName}>
                                           {service.name}
                                         </Text>
 
                                         {service.description ? (
                                           <Text
-                                            style={
-                                              styles.serviceDescription
-                                            }
+                                            style={styles.serviceDescription}
                                           >
                                             {service.description}
                                           </Text>
@@ -1267,9 +1667,7 @@ export default function SalonReviewScreen({
                                         service.durationMinutes !==
                                           null ? (
                                           <Text
-                                            style={
-                                              styles.serviceDuration
-                                            }
+                                            style={styles.serviceDuration}
                                           >
                                             {Number(
                                               service.durationMinutes,
@@ -1281,9 +1679,7 @@ export default function SalonReviewScreen({
 
                                       {service.price !== undefined &&
                                       service.price !== null ? (
-                                        <Text
-                                          style={styles.servicePrice}
-                                        >
+                                        <Text style={styles.servicePrice}>
                                           ₹
                                           {Number(
                                             service.price,
@@ -1324,11 +1720,12 @@ export default function SalonReviewScreen({
 
         <TouchableOpacity
           onPress={onSubmit}
-          disabled={loading}
+          disabled={registrationLoading || isSubmitting}
           activeOpacity={0.85}
           style={[
             styles.button,
-            loading && styles.buttonDisabled,
+            (registrationLoading || isSubmitting) &&
+              styles.buttonDisabled,
           ]}
         >
           <AppGradient
@@ -1336,7 +1733,9 @@ export default function SalonReviewScreen({
             style={styles.buttonGradient}
           >
             <Text style={styles.buttonText}>
-              {loading ? 'Submitting...' : 'Submit Registration'}
+              {isSubmitting || registrationLoading
+                ? 'Submitting...'
+                : 'Submit Registration'}
             </Text>
           </AppGradient>
         </TouchableOpacity>
@@ -1538,6 +1937,86 @@ const styles = StyleSheet.create({
     lineHeight: FONT_SIZES.small + 7,
     color: COLORS.textSecondary,
     marginBottom: SPACING.large,
+  },
+
+  profilePhotoFrame: {
+    width: '100%',
+    height: 210,
+    borderRadius: RADIUS.large,
+    overflow: 'hidden',
+    backgroundColor: '#F4F0FA',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  profilePhoto: {
+    width: '100%',
+    height: '100%',
+  },
+
+  profilePhotoName: {
+    marginTop: SPACING.medium,
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.text,
+  },
+
+  photoStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: SPACING.small,
+  },
+
+  photoStatusBadge: {
+    backgroundColor: '#EDE9FE',
+    borderRadius: RADIUS.medium,
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.small,
+  },
+
+  photoStatusText: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.small,
+    color: '#6D28D9',
+  },
+
+  photoSizeText: {
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    color: COLORS.textSecondary,
+  },
+
+  photoUploadNote: {
+    marginTop: SPACING.medium,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    lineHeight: FONT_SIZES.small + 6,
+    color: COLORS.textSecondary,
+  },
+
+  missingPhotoBox: {
+    borderWidth: 1,
+    borderColor: '#F0B4B4',
+    borderRadius: RADIUS.medium,
+    backgroundColor: '#FFF5F5',
+    padding: SPACING.large,
+  },
+
+  missingPhotoTitle: {
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.body,
+    color: '#B42318',
+  },
+
+  missingPhotoText: {
+    marginTop: SPACING.xs,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.small,
+    lineHeight: FONT_SIZES.small + 6,
+    color: '#8E3333',
   },
 
   documentRow: {

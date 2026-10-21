@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -10,6 +9,7 @@ import {
   ActivityIndicator,
   View,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { Header } from '../../components';
 import AppGradient from '../../common/AppGradient';
@@ -20,7 +20,7 @@ import {
   RADIUS,
   GRADIENTS,
 } from '../../constants/constants';
-import { useSalonRegistration } from '../../context/SalonRegistrationContext';
+import { useSalonRegistration,  type SalonProfilePhoto} from '../../context/SalonRegistrationContext';
 import {
   pick,
   keepLocalCopy,
@@ -70,6 +70,14 @@ type KycDocument = {
   s3Key?: string;
   documentType?: KycDocumentType;
 };
+
+// type SalonProfilePhoto = {
+//   uri: string;
+//   localUri: string;
+//   name: string;
+//   type: string;
+//   size: number;
+// };
 
 type GenerateKycDocumentUploadUrlResponse = {
   generateKycDocumentUploadUrl: {
@@ -164,9 +172,6 @@ const isValidS3DocumentKey = (
   documentType: KycDocumentType,
 ): boolean => {
   const segments = key.split('/').filter(Boolean);
-
-  // Do not assume a fixed folder index. The generated key must
-  // include the exact document type as one of its path segments.
   return segments.includes(documentType);
 };
 
@@ -177,8 +182,6 @@ const sanitizeDocumentForDraft = (
     return null;
   }
 
-  // Persist durable metadata and the S3 key. A local cache path may
-  // become invalid after the application is restarted.
   return {
     name: document.name,
     type: document.type,
@@ -189,6 +192,18 @@ const sanitizeDocumentForDraft = (
     uri: document.s3Key ? '' : document.uri,
     localUri: undefined,
   };
+};
+
+const getFileUri = (path: string): string => {
+  if (!path) {
+    return '';
+  }
+
+  return path.startsWith('file://') ? path : `file://${path}`;
+};
+
+const getSafeFileName = (name: string): string => {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_');
 };
 
 /* ============================================================
@@ -228,8 +243,16 @@ const SalonKYCScreen = ({ navigation }: any) => {
     data?.udyamDocument || null,
   );
 
+  // Mandatory salon profile photo. It is saved with the draft and
+  // uploaded after the backend creates the salonId.
+  const [salonProfilePhoto, setSalonProfilePhoto] =
+    useState<SalonProfilePhoto | null>(
+      data?.salonProfilePhoto || null,
+    );
+
   const [submitting, setSubmitting] = useState(false);
   const [pickingDocument, setPickingDocument] = useState(false);
+  const [pickingSalonPhoto, setPickingSalonPhoto] = useState(false);
 
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveDraftRef = useRef(saveDraft);
@@ -238,14 +261,8 @@ const SalonKYCScreen = ({ navigation }: any) => {
   const finalizingRef = useRef(false);
   const mountedRef = useRef(true);
 
-  // Keep the latest context function without restarting effects.
   saveDraftRef.current = saveDraft;
 
-  /*
-   * Keep the latest complete registration snapshot.
-   * The registration context remains responsible for merging/sanitizing
-   * the payload and persisting it to the backend.
-   */
   const currentKycData: KycDraft = {
     panNumber,
     aadhaarNumber,
@@ -257,6 +274,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
     shopEstablishmentDocument,
     gstDocument,
     udyamDocument,
+    salonProfilePhoto,
     kycUploadId: data?.kycUploadId || '',
   };
 
@@ -267,10 +285,10 @@ const SalonKYCScreen = ({ navigation }: any) => {
     };
   }
 
-  /*
-   * Serialize draft saves. If autosave is already running when the user
-   * presses Continue, the final save runs after it instead of racing it.
-   */
+  /* ============================================================
+     SERIALIZED DRAFT SAVING
+  ============================================================ */
+
   const saveDraftSafely = (
     snapshot: KycDraft,
     completedSteps?: number[],
@@ -284,6 +302,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
         if (!result) {
           console.warn('KYC draft save returned false.');
         }
+
         return Boolean(result);
       });
 
@@ -300,12 +319,6 @@ const SalonKYCScreen = ({ navigation }: any) => {
 
   /* ============================================================
      AUTOSAVE
-     Step 5 = Business verification / KYC.
-
-     - Update the shared registration context.
-     - Debounce network saves while the user is typing.
-     - Serialize saves to prevent older snapshots overwriting newer ones.
-     - Queue a final snapshot on screen exit.
   ============================================================ */
 
   useEffect(() => {
@@ -333,8 +346,6 @@ const SalonKYCScreen = ({ navigation }: any) => {
     }, AUTOSAVE_DELAY);
 
     return clearDraftTimer;
-    // Intentionally depend on editable KYC fields, not the entire context
-    // data object, to avoid an autosave loop when updateData changes context.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     panNumber,
@@ -347,14 +358,10 @@ const SalonKYCScreen = ({ navigation }: any) => {
     shopEstablishmentDocument,
     gstDocument,
     udyamDocument,
+    salonProfilePhoto,
     updateData,
   ]);
 
-  /*
-   * On leaving the screen, queue the latest draft behind any save already
-   * in progress. Continue sets finalizingRef first, so this cleanup does
-   * not enqueue a stale draft over the final submitted data.
-   */
   useEffect(() => {
     mountedRef.current = true;
 
@@ -377,7 +384,6 @@ const SalonKYCScreen = ({ navigation }: any) => {
         });
       }
     };
-    // The cleanup should run when this screen unmounts, not on each edit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -404,7 +410,6 @@ const SalonKYCScreen = ({ navigation }: any) => {
       const fileName =
         selected.name || `${documentType.toLowerCase()}-document`;
 
-      // Validate supported file type before copying it.
       getContentType(fileName, selected.type);
 
       const localCopy = await keepLocalCopy({
@@ -431,9 +436,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
       const localPath = getLocalFilePath(copiedFile.localUri);
 
       if (!localPath) {
-        throw new Error(
-          'Unable to determine the local file path.',
-        );
+        throw new Error('Unable to determine the local file path.');
       }
 
       const exists = await RNFS.exists(localPath);
@@ -457,10 +460,6 @@ const SalonKYCScreen = ({ navigation }: any) => {
         );
       }
 
-      /*
-       * Important: create a fresh object without the previous S3 key or
-       * upload ID. Replacing a document must trigger a new upload.
-       */
       const selectedDocument: KycDocument = {
         uri: selected.uri,
         localUri: copiedFile.localUri,
@@ -512,7 +511,181 @@ const SalonKYCScreen = ({ navigation }: any) => {
   };
 
   /* ============================================================
-     S3 UPLOAD
+     MANDATORY SALON PROFILE PHOTO PICKER
+
+     This photo is stored in the app's document directory so the
+     draft is less dependent on the temporary picker/cache URI.
+
+     The photo is NOT uploaded here because salonId does not exist
+     yet. The final registration flow must upload it after creating
+     the salon record.
+  ============================================================ */
+
+  const pickSalonPhoto = async () => {
+    try {
+      setPickingSalonPhoto(true);
+
+      const result = await pick({
+        type: [types.images],
+        allowMultiSelection: false,
+      });
+
+      if (!result?.length) {
+        return;
+      }
+
+      const selected = result[0];
+      const originalName =
+        selected.name || `salon-profile-${Date.now()}.jpg`;
+      const extension = originalName.split('.').pop()?.toLowerCase();
+
+      const imageTypes: Record<string, string> = {
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        webp: 'image/webp',
+      };
+
+      const contentType =
+        imageTypes[extension || ''] ||
+        selected.type?.toLowerCase() ||
+        '';
+
+      if (
+        !['image/jpeg', 'image/png', 'image/webp'].includes(
+          contentType,
+        )
+      ) {
+        throw new Error(
+          'Please select a JPG, PNG or WEBP image.',
+        );
+      }
+
+      const copiedFiles = await keepLocalCopy({
+        files: [
+          {
+            uri: selected.uri,
+            fileName: getSafeFileName(originalName),
+          },
+        ],
+        destination: 'cachesDirectory',
+      });
+
+      const copiedFile = copiedFiles[0];
+
+      if (
+        copiedFile.status !== 'success' ||
+        !copiedFile.localUri
+      ) {
+        throw new Error(
+          'Unable to access the selected photo. Please try again.',
+        );
+      }
+
+      const temporaryPath = getLocalFilePath(copiedFile.localUri);
+
+      if (!(await RNFS.exists(temporaryPath))) {
+        throw new Error(
+          'The selected photo could not be accessed.',
+        );
+      }
+
+      const stat = await RNFS.stat(temporaryPath);
+      const actualSize = Number(stat.size);
+
+      if (!actualSize || actualSize <= 0) {
+        throw new Error('The selected photo is empty.');
+      }
+
+      if (actualSize > MAX_DOCUMENT_SIZE) {
+        throw new Error(
+          'The salon photo must be 10 MB or smaller.',
+        );
+      }
+
+      // Keep a persistent app-managed copy rather than relying only
+      // on the document picker's temporary cache file.
+      const persistentFileName =
+        `clavata-salon-profile-${Date.now()}.${extension || 'jpg'}`;
+
+      const persistentPath =
+        `${RNFS.DocumentDirectoryPath}/${persistentFileName}`;
+
+      await RNFS.copyFile(temporaryPath, persistentPath);
+
+      const persistentExists = await RNFS.exists(persistentPath);
+
+      if (!persistentExists) {
+        throw new Error(
+          'Unable to save the photo for registration recovery.',
+        );
+      }
+
+      const persistentUri = getFileUri(persistentPath);
+
+      const photo: SalonProfilePhoto = {
+        uri: persistentUri,
+        localUri: persistentUri,
+        name: originalName,
+        type: contentType,
+        size: actualSize,
+      };
+
+      setSalonProfilePhoto(photo);
+
+      // Immediately update the shared context so navigating away
+      // does not lose the photo selection.
+      updateData({
+        salonProfilePhoto: photo,
+      });
+    } catch (error: any) {
+      if (
+        error?.code === 'DOCUMENT_PICKER_CANCELED' ||
+        error?.code === 'OPERATION_CANCELED'
+      ) {
+        return;
+      }
+
+      console.error(
+        'Salon profile photo selection failed:',
+        error?.message || 'Unknown error',
+      );
+
+      Alert.alert(
+        'Unable to select salon photo',
+        error?.message ||
+          'Please select a valid JPG, PNG or WEBP image.',
+      );
+    } finally {
+      setPickingSalonPhoto(false);
+    }
+  };
+
+  const removeSalonPhoto = () => {
+    Alert.alert(
+      'Remove salon photo?',
+      'You must select a salon profile photo before continuing.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            setSalonProfilePhoto(null);
+            updateData({
+              salonProfilePhoto: null,
+            });
+          },
+        },
+      ],
+    );
+  };
+
+  /* ============================================================
+     S3 UPLOAD — KYC DOCUMENTS ONLY
   ============================================================ */
 
   const uploadDocumentToS3 = async (
@@ -520,18 +693,8 @@ const SalonKYCScreen = ({ navigation }: any) => {
     documentType: KycDocumentType,
     uploadId: string,
   ): Promise<KycDocument> => {
-    /*
-     * A valid S3 key means the document was previously uploaded.
-     * Reuse it when resuming registration, even if the old local cache
-     * URI is no longer available.
-     */
     if (document.s3Key) {
-      if (
-        !isValidS3DocumentKey(
-          document.s3Key,
-          documentType,
-        )
-      ) {
+      if (!isValidS3DocumentKey(document.s3Key, documentType)) {
         throw new Error(
           `The saved ${documentType} document reference is invalid. Please select the document again.`,
         );
@@ -564,9 +727,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
       );
     }
 
-    const fileExists = await RNFS.exists(filePath);
-
-    if (!fileExists) {
+    if (!(await RNFS.exists(filePath))) {
       throw new Error(
         `The local file for ${document.name} is missing. Please select it again.`,
       );
@@ -619,19 +780,13 @@ const SalonKYCScreen = ({ navigation }: any) => {
       );
     }
 
-    if (
-      !isValidS3DocumentKey(
-        response.key,
-        documentType,
-      )
-    ) {
+    if (!isValidS3DocumentKey(response.key, documentType)) {
       throw new Error(
         `The server returned an unexpected storage location for ${documentType}.`,
       );
     }
 
-    const uploadContentType =
-      response.contentType || contentType;
+    const uploadContentType = response.contentType || contentType;
 
     const uploadResponse = await ReactNativeBlobUtil
       .config({
@@ -663,7 +818,6 @@ const SalonKYCScreen = ({ navigation }: any) => {
       uploadId,
       s3Key: response.key,
       documentType,
-      // Keep this for the current session only.
       localUri: filePath,
     };
   };
@@ -692,7 +846,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
           document && styles.documentPickerButtonSelected,
         ]}
         onPress={() => pickKycDocument(documentType)}
-        disabled={pickingDocument || submitting}
+        disabled={pickingDocument || pickingSalonPhoto || submitting}
         activeOpacity={0.8}
       >
         {document ? (
@@ -711,6 +865,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
               >
                 {document.name}
               </Text>
+
               <Text style={styles.documentSelectedSubText}>
                 {document.s3Key
                   ? 'Document uploaded'
@@ -733,6 +888,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
               <Text style={styles.documentUploadText}>
                 Upload document
               </Text>
+
               <Text style={styles.documentUploadSubText}>
                 PDF, JPG, PNG or WEBP
               </Text>
@@ -744,11 +900,135 @@ const SalonKYCScreen = ({ navigation }: any) => {
   );
 
   /* ============================================================
+     SALON PROFILE PHOTO UI
+  ============================================================ */
+
+  const renderSalonProfilePhoto = () => {
+    const photoUri =
+      salonProfilePhoto?.localUri || salonProfilePhoto?.uri;
+
+    return (
+      <View style={styles.salonPhotoSection}>
+        <Text style={styles.salonPhotoTitle}>
+          Salon Profile Photo *
+        </Text>
+
+        <Text style={styles.salonPhotoDescription}>
+          Add a clear photo representing your salon. This photo will be
+          uploaded after your salon registration creates its salon ID.
+        </Text>
+
+        {salonProfilePhoto && photoUri ? (
+          <View style={styles.salonPhotoPreviewCard}>
+            <Image
+              source={{ uri: photoUri }}
+              style={styles.salonPhotoPreview}
+              resizeMode="cover"
+              onError={() => {
+                console.warn(
+                  'Could not display the saved salon profile photo.',
+                );
+              }}
+            />
+
+            <View style={styles.salonPhotoDetails}>
+              <Text
+                style={styles.salonPhotoFileName}
+                numberOfLines={2}
+              >
+                {salonProfilePhoto.name}
+              </Text>
+
+              <Text style={styles.salonPhotoFileSize}>
+                {(salonProfilePhoto.size / (1024 * 1024)).toFixed(2)} MB
+              </Text>
+
+              <Text style={styles.salonPhotoPendingText}>
+                Selected — upload pending
+              </Text>
+            </View>
+
+            <View style={styles.salonPhotoActions}>
+              <TouchableOpacity
+                style={styles.salonPhotoActionButton}
+                onPress={pickSalonPhoto}
+                disabled={
+                  pickingSalonPhoto ||
+                  pickingDocument ||
+                  submitting
+                }
+                activeOpacity={0.8}
+              >
+                <Text style={styles.salonPhotoChangeText}>
+                  Change photo
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.salonPhotoActionButton}
+                onPress={removeSalonPhoto}
+                disabled={
+                  pickingSalonPhoto ||
+                  pickingDocument ||
+                  submitting
+                }
+                activeOpacity={0.8}
+              >
+                <Text style={styles.salonPhotoRemoveText}>
+                  Remove
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.salonPhotoUploadButton}
+            onPress={pickSalonPhoto}
+            disabled={
+              pickingSalonPhoto ||
+              pickingDocument ||
+              submitting
+            }
+            activeOpacity={0.85}
+          >
+            <AppGradient
+              colors={[...GRADIENTS.SOFT_PURPLE]}
+              style={styles.salonPhotoUploadIcon}
+            >
+              <Text style={styles.salonPhotoUploadIconText}>↑</Text>
+            </AppGradient>
+
+            <View style={styles.salonPhotoUploadTextContainer}>
+              <Text style={styles.salonPhotoUploadLabel}>
+                {pickingSalonPhoto
+                  ? 'Preparing photo...'
+                  : 'Choose salon photo'}
+              </Text>
+
+              <Text style={styles.salonPhotoUploadHint}>
+                JPG, PNG or WEBP · Maximum 10 MB
+              </Text>
+            </View>
+
+            {pickingSalonPhoto ? (
+              <ActivityIndicator color={COLORS.themeColor} />
+            ) : (
+              <Text style={styles.salonPhotoRequiredLabel}>
+                Required
+              </Text>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
+  /* ============================================================
      CONTINUE
   ============================================================ */
 
   const handleContinue = async () => {
-    if (submitting || pickingDocument) {
+    if (submitting || pickingDocument || pickingSalonPhoto) {
       return;
     }
 
@@ -825,8 +1105,41 @@ const SalonKYCScreen = ({ navigation }: any) => {
         return;
       }
 
+      if (!salonProfilePhoto) {
+        Alert.alert(
+          'Salon photo required',
+          'Please select a salon profile photo before continuing.',
+        );
+        return;
+      }
+
+      const photoPath = getLocalFilePath(
+        salonProfilePhoto.localUri || salonProfilePhoto.uri,
+      );
+
+      if (
+        !photoPath ||
+        !(await RNFS.exists(photoPath))
+      ) {
+        Alert.alert(
+          'Salon photo unavailable',
+          'Your saved salon photo cannot be accessed. Please select it again.',
+        );
+        return;
+      }
+
+      const photoStat = await RNFS.stat(photoPath);
+      const actualPhotoSize = Number(photoStat.size);
+
+      if (!actualPhotoSize || actualPhotoSize > MAX_DOCUMENT_SIZE) {
+        Alert.alert(
+          'Invalid salon photo',
+          'Please select a valid photo that is no larger than 10 MB.',
+        );
+        return;
+      }
+
       if (!cleanGst && gstDocument) {
-        // A GST document must not be submitted when its number is blank.
         setGstDocument(null);
       }
 
@@ -834,10 +1147,6 @@ const SalonKYCScreen = ({ navigation }: any) => {
         setUdyamDocument(null);
       }
 
-      /*
-       * Stop the debounce timer and prevent state-driven autosave effects
-       * from queuing snapshots while the final submission is running.
-       */
       finalizingRef.current = true;
       clearDraftTimer();
 
@@ -851,7 +1160,6 @@ const SalonKYCScreen = ({ navigation }: any) => {
 
       const uploadId = existingUploadId || createUploadId();
 
-      // Upload required documents first.
       const uploadedPanDocument = await uploadDocumentToS3(
         { ...panDocument, documentType: 'PAN' },
         'PAN',
@@ -916,6 +1224,16 @@ const SalonKYCScreen = ({ navigation }: any) => {
           uploadedUdyamDocument,
         ),
 
+        // Keep the salon photo in the registration draft. It must
+        // be uploaded through the salon-media mutations after the
+        // salon record exists and provides a real salonId.
+        salonProfilePhoto: {
+          ...salonProfilePhoto,
+          uri: getFileUri(photoPath),
+          localUri: getFileUri(photoPath),
+          size: actualPhotoSize,
+        },
+
         kycUploadId: uploadId,
         kycStatus: 'PENDING' as const,
         kycReferenceId: uploadId,
@@ -932,20 +1250,14 @@ const SalonKYCScreen = ({ navigation }: any) => {
 
       latestDraftRef.current = completeKycData;
 
-      // Update the shared registration context with the final values.
       updateData(finalKycData);
 
-      // Update local state to reflect successful uploads.
       setPanDocument(uploadedPanDocument);
       setAadhaarDocument(uploadedAadhaarDocument);
       setShopEstablishmentDocument(uploadedShopDocument);
       setGstDocument(uploadedGstDocument);
       setUdyamDocument(uploadedUdyamDocument);
 
-      /*
-       * This final save is serialized behind any already-running autosave.
-       * Step 5 remains KYC, and steps 1–5 are marked complete.
-       */
       const draftSaved = await saveDraftSafely(
         completeKycData,
         [1, 2, 3, 4, 5],
@@ -956,7 +1268,7 @@ const SalonKYCScreen = ({ navigation }: any) => {
 
         Alert.alert(
           'Draft could not be saved',
-          'Your documents were uploaded, but registration progress could not be saved. Please check your connection and try again.',
+          'Your KYC documents were uploaded, but registration progress could not be saved. Please check your connection and try again.',
         );
         return;
       }
@@ -1134,13 +1446,16 @@ const SalonKYCScreen = ({ navigation }: any) => {
             udyamDocument,
             'UDYAM',
           )}
+
+          {/* Mandatory salon profile photo appears after Udyam. */}
+          {renderSalonProfilePhoto()}
         </View>
 
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Document requirements</Text>
 
           <Text style={styles.infoText}>
-            • PDF, JPG, PNG or WEBP files are accepted.
+            • PDF, JPG, PNG or WEBP files are accepted for KYC documents.
           </Text>
 
           <Text style={styles.infoText}>
@@ -1156,14 +1471,19 @@ const SalonKYCScreen = ({ navigation }: any) => {
             • GST and Udyam documents are optional unless the corresponding
             number is provided.
           </Text>
+
+          <Text style={styles.infoText}>
+            • A salon profile photo is mandatory.
+          </Text>
         </View>
 
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>What happens next?</Text>
 
           <Text style={styles.infoText}>
-            Your documents will be submitted for verification after you
-            continue.
+            Your KYC documents will be uploaded when you continue. Your
+            selected salon photo will be retained in your registration
+            draft and uploaded after the salon record is created.
           </Text>
 
           <Text style={styles.infoText}>
@@ -1181,13 +1501,13 @@ const SalonKYCScreen = ({ navigation }: any) => {
               />
 
               <Text style={styles.loadingText}>
-                Uploading documents...
+                Uploading KYC documents...
               </Text>
             </View>
           ) : (
             <TouchableOpacity
               onPress={handleContinue}
-              disabled={pickingDocument}
+              disabled={pickingDocument || pickingSalonPhoto}
               activeOpacity={0.85}
               style={styles.continueButtonWrapper}
             >
@@ -1374,6 +1694,126 @@ const styles = StyleSheet.create({
     color: COLORS.themeColor,
     marginLeft: SPACING.small,
   },
+
+  /* Salon profile photo */
+  salonPhotoSection: {
+    marginTop: SPACING.small,
+    marginBottom: SPACING.large,
+  },
+  salonPhotoTitle: {
+    fontFamily: FONTS.medium,
+    fontSize: 14,
+    color: COLORS.primary,
+    marginBottom: SPACING.xs,
+  },
+  salonPhotoDescription: {
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.medium,
+  },
+  salonPhotoUploadButton: {
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: COLORS.themeColor,
+    borderRadius: RADIUS.medium,
+    backgroundColor: COLORS.white,
+    padding: SPACING.medium,
+  },
+  salonPhotoUploadIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.medium,
+    overflow: 'hidden',
+  },
+  salonPhotoUploadIconText: {
+    fontFamily: FONTS.bold,
+    fontSize: 23,
+    color: COLORS.white,
+  },
+  salonPhotoUploadTextContainer: {
+    flex: 1,
+  },
+  salonPhotoUploadLabel: {
+    fontFamily: FONTS.medium,
+    fontSize: 14,
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  salonPhotoUploadHint: {
+    fontFamily: FONTS.regular,
+    fontSize: 11,
+    lineHeight: 16,
+    color: COLORS.textSecondary,
+  },
+  salonPhotoRequiredLabel: {
+    fontFamily: FONTS.medium,
+    fontSize: 11,
+    color: COLORS.themeColor,
+    marginLeft: SPACING.small,
+  },
+  salonPhotoPreviewCard: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.medium,
+    backgroundColor: COLORS.white,
+    padding: SPACING.medium,
+  },
+  salonPhotoPreview: {
+    width: '100%',
+    height: 190,
+    borderRadius: RADIUS.medium,
+    backgroundColor: COLORS.background,
+    marginBottom: SPACING.medium,
+  },
+  salonPhotoDetails: {
+    marginBottom: SPACING.small,
+  },
+  salonPhotoFileName: {
+    fontFamily: FONTS.medium,
+    fontSize: 13,
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  salonPhotoFileSize: {
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+  },
+  salonPhotoPendingText: {
+    fontFamily: FONTS.medium,
+    fontSize: 12,
+    color: COLORS.themeColor,
+  },
+  salonPhotoActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: SPACING.small,
+  },
+  salonPhotoActionButton: {
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.small,
+  },
+  salonPhotoChangeText: {
+    fontFamily: FONTS.medium,
+    fontSize: 13,
+    color: COLORS.themeColor,
+  },
+  salonPhotoRemoveText: {
+    fontFamily: FONTS.medium,
+    fontSize: 13,
+    color: '#C62828',
+  },
+
   infoCard: {
     backgroundColor: COLORS.white,
     borderWidth: 1,
