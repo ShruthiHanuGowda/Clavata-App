@@ -1275,6 +1275,7 @@ export default function SalonReviewScreen({
               onPress: () => {
                 navigation.navigate('SalonSuccess', {
                   salonId,
+                  salonName,
                   profilePhotoUploadFailed: true,
                 });
               },
@@ -1288,7 +1289,8 @@ export default function SalonReviewScreen({
 
       navigation.navigate('SalonSuccess', {
         salonId,
-        profilePhotoUploaded: true,
+        salonName,
+        profilePhotoUploadFailed: false,
       });
     } catch (error: any) {
       // Avoid logging the full GraphQL error because its payload
