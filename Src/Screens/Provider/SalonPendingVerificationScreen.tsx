@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   SafeAreaView,
@@ -13,7 +14,9 @@ import {
   FONT_SIZES,
   SPACING,
   RADIUS,
+  GRADIENTS,
 } from '../../constants/constants';
+import AppGradient from '../../common/AppGradient';
 
 export default function SalonPendingVerificationScreen() {
   const navigation = useNavigation<any>();
@@ -45,24 +48,22 @@ export default function SalonPendingVerificationScreen() {
 
       {/* Main Content */}
       <View style={styles.content}>
-        {/* Status Icon */}
+        {/* Clavata Text Logo */}
         <View style={styles.iconOuter}>
-          <View style={styles.iconInner}>
-            <View style={styles.clockCircle}>
-              <View style={styles.clockHandVertical} />
-              <View style={styles.clockHandHorizontal} />
-            </View>
-          </View>
+          <Text style={styles.clavataLogo}>Clavata</Text>
         </View>
 
         {/* Status Badge */}
-        <View style={styles.statusBadge}>
+        <AppGradient
+          colors={[...GRADIENTS.SOFT_PURPLE] as [string, ...string[]]}
+          style={styles.statusBadge}
+        >
           <View style={styles.statusDot} />
 
           <Text style={styles.statusText}>
             VERIFICATION IN PROGRESS
           </Text>
-        </View>
+        </AppGradient>
 
         {/* Title */}
         <Text style={styles.title}>
@@ -72,12 +73,12 @@ export default function SalonPendingVerificationScreen() {
         {/* Description */}
         <Text style={styles.description}>
           We've received your business registration and KYC
-          documents successfully.
+          documents successfully
         </Text>
 
         <Text style={styles.description}>
           Our team is currently reviewing your business
-          information and documents.
+          information and documents
         </Text>
 
         {/* Information Card */}
@@ -94,14 +95,14 @@ export default function SalonPendingVerificationScreen() {
             <Text style={styles.infoText}>
               Once your verification is complete, you'll be
               able to access your business dashboard and start
-              managing your services and bookings.
+              managing your services and bookings
             </Text>
           </View>
         </View>
 
         {/* Bottom Note */}
         <Text style={styles.note}>
-          We'll notify you once your business has been approved.
+          We'll notify you once your business has been approved
         </Text>
       </View>
 
@@ -118,9 +119,14 @@ export default function SalonPendingVerificationScreen() {
             });
           }}
         >
-          <Text style={styles.backToHomeText}>
-            Back to Login
-          </Text>
+          <AppGradient
+            colors={[...GRADIENTS.SOFT_PURPLE] as [string, ...string[]]}
+            style={styles.backToHomeGradient}
+          >
+            <Text style={styles.backToHomeText}>
+              Back to Login
+            </Text>
+          </AppGradient>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -190,61 +196,26 @@ const styles = StyleSheet.create({
   },
 
   /* ============================================================
-     VERIFICATION ICON
+     CLAVATA TEXT LOGO
   ============================================================ */
 
   iconOuter: {
     width: 112,
     height: 112,
     borderRadius: RADIUS.round,
-    backgroundColor: 'rgba(0, 157, 148, 0.08)',
+    backgroundColor: 'rgba(142, 112, 200, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  iconInner: {
-    width: 82,
-    height: 82,
-    borderRadius: RADIUS.round,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 157, 148, 0.20)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  clockCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: RADIUS.round,
-    borderWidth: 3,
-    borderColor: COLORS.primary,
-    position: 'relative',
-  },
-
-  clockHandVertical: {
-    position: 'absolute',
-    width: 3,
-    height: 14,
-    backgroundColor: COLORS.primary,
-    left: 19,
-    top: 7,
-    borderRadius: 2,
-  },
-
-  clockHandHorizontal: {
-    position: 'absolute',
-    width: 11,
-    height: 3,
-    backgroundColor: COLORS.primary,
-    left: 19,
-    top: 20,
-    borderRadius: 2,
-    transform: [
-      {
-        rotate: '35deg',
-      },
-    ],
+  clavataLogo: {
+    fontFamily: FONTS.semiBold,
+    fontSize: 27,
+    lineHeight: 34,
+    fontWeight: '700',
+    letterSpacing: -0.8,
+    color: '#000000',
+    includeFontPadding: false,
   },
 
   /* ============================================================
@@ -258,16 +229,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: RADIUS.round,
-    backgroundColor: 'rgba(0, 157, 148, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 157, 148, 0.16)',
+    overflow: 'hidden',
   },
 
   statusDot: {
     width: 7,
     height: 7,
     borderRadius: RADIUS.round,
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#FFFFFF',
     marginRight: 8,
   },
 
@@ -277,7 +246,7 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     fontWeight: '700',
     letterSpacing: 0.7,
-    color: COLORS.primary,
+    color: '#FFFFFF',
     includeFontPadding: false,
   },
 
@@ -399,7 +368,11 @@ const styles = StyleSheet.create({
     height: 52,
     width: '100%',
     borderRadius: RADIUS.medium,
-    backgroundColor: COLORS.primary,
+    overflow: 'hidden',
+  },
+
+  backToHomeGradient: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
