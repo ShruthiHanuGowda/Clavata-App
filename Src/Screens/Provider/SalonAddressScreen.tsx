@@ -380,19 +380,27 @@ const isValidCoordinates = (
 const extractCoordinates = (result: any): Coordinates | null => {
   if (!result) return null;
 
+  const location =
+    result.location ??
+    result.geometry?.location ??
+    result.result?.geometry?.location ??
+    result.result?.location ??
+    result.data?.geometry?.location ??
+    result.data?.location;
+
   const latitude = Number(
     result.latitude ??
     result.lat ??
-    result.geometry?.location?.lat ??
-    result.geometry?.location?.latitude,
+    location?.lat ??
+    location?.latitude,
   );
 
   const longitude = Number(
     result.longitude ??
     result.lng ??
     result.lon ??
-    result.geometry?.location?.lng ??
-    result.geometry?.location?.longitude,
+    location?.lng ??
+    location?.longitude,
   );
 
   const coordinates = { latitude, longitude };
@@ -566,6 +574,11 @@ const SalonAddressScreen: React.FC<Props> = ({
 
   const [mapRegion, setMapRegion] =
     useState<Region>(DEFAULT_REGION);
+
+  // Keep both map instances available so a selected search result
+  // explicitly recenters the map instead of relying only on region state.
+  const mapPreviewRef = useRef<MapView | null>(null);
+  const fullscreenMapRef = useRef<MapView | null>(null);
 
   const [searchText, setSearchText] = useState('');
 
@@ -858,6 +871,20 @@ const SalonAddressScreen: React.FC<Props> = ({
     }, 450);
   }, []);
 
+  /* RECENTER MAPS ON A SELECTED LOCATION */
+
+  const recenterMaps = useCallback((nextCoordinates: Coordinates) => {
+    const nextRegion: Region = {
+      ...nextCoordinates,
+      latitudeDelta: 0.012,
+      longitudeDelta: 0.012,
+    };
+
+    setMapRegion(nextRegion);
+    mapPreviewRef.current?.animateToRegion(nextRegion, 500);
+    fullscreenMapRef.current?.animateToRegion(nextRegion, 500);
+  }, []);
+
   /* SELECT SEARCH RESULT */
 
   const handleSelectSuggestion = useCallback(
@@ -892,6 +919,15 @@ const SalonAddressScreen: React.FC<Props> = ({
       try {
         const result = await getPlaceDetails(placeId);
 
+        console.log(
+          '[AddressSearch] Selected suggestion:',
+          JSON.stringify(suggestion, null, 2),
+        );
+        console.log(
+          '[AddressSearch] Place details:',
+          JSON.stringify(result, null, 2),
+        );
+
         if (
           !mountedRef.current ||
           requestId !== addressRequestIdRef.current
@@ -901,6 +937,11 @@ const SalonAddressScreen: React.FC<Props> = ({
 
         const selectedCoordinates = extractCoordinates(result);
 
+        console.log(
+          '[AddressSearch] Coordinates for map:',
+          selectedCoordinates,
+        );
+
         if (!selectedCoordinates) {
           throw new Error(
             'Selected place did not return valid coordinates.',
@@ -908,11 +949,7 @@ const SalonAddressScreen: React.FC<Props> = ({
         }
 
         setCoordinates(selectedCoordinates);
-        setMapRegion({
-          ...selectedCoordinates,
-          latitudeDelta: 0.012,
-          longitudeDelta: 0.012,
-        });
+        recenterMaps(selectedCoordinates);
         setLocationFound(true);
 
         let fields = extractAddressFields(result);
@@ -994,7 +1031,7 @@ const SalonAddressScreen: React.FC<Props> = ({
         }
       }
     },
-    [applyAddressFields],
+    [applyAddressFields, recenterMaps],
   );
 
   /* LOCATION PERMISSION */
@@ -1084,13 +1121,14 @@ const SalonAddressScreen: React.FC<Props> = ({
         const addressRequestId =
           ++addressRequestIdRef.current;
 
+        // Recenter both the preview map and fullscreen map when
+        // the device location is received. Updating only the region
+        // state may not reliably animate an already-mounted MapView.
         setCoordinates(nextCoordinates);
-        setMapRegion({
-          ...nextCoordinates,
-          latitudeDelta: 0.012,
-          longitudeDelta: 0.012,
-        });
+        recenterMaps(nextCoordinates);
         setLocationFound(true);
+
+        console.log('[AddressSearch] Device location coordinates:', nextCoordinates);
 
         try {
           const result = await reverseGeocode(
@@ -1168,7 +1206,7 @@ const SalonAddressScreen: React.FC<Props> = ({
         maximumAge: 10000,
       },
     );
-  }, [requestLocationPermission, applyAddressFields]);
+  }, [requestLocationPermission, applyAddressFields, recenterMaps]);
 
   /* FULL-SCREEN MAP */
 
@@ -1718,6 +1756,7 @@ const SalonAddressScreen: React.FC<Props> = ({
 
             <View style={styles.mapContainer}>
               <MapView
+                ref={mapPreviewRef}
                 provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 region={mapRegion}
@@ -1975,10 +2014,12 @@ const SalonAddressScreen: React.FC<Props> = ({
           <View style={styles.fullscreenMapContainer}>
 
             <MapView
+              ref={fullscreenMapRef}
               provider={PROVIDER_GOOGLE}
               style={styles.map}
-              initialRegion={DEFAULT_REGION}
-              onPress={openFullscreenMap}
+              region={mapRegion}
+              onRegionChangeComplete={handleMapRegionChangeComplete}
+              onPress={handleMapPress}
               toolbarEnabled={false}
             >
               {locationFound && (
@@ -1986,6 +2027,8 @@ const SalonAddressScreen: React.FC<Props> = ({
                   coordinate={coordinates}
                   title="Your business location"
                   description={addressLine}
+                  draggable
+                  onDragEnd={handleMarkerDragEnd}
                 />
               )}
             </MapView>
