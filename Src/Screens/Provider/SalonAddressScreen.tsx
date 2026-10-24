@@ -1210,11 +1210,54 @@ const SalonAddressScreen: React.FC<Props> = ({
 
   /* FULL-SCREEN MAP */
 
+  // A fullscreen MapView is mounted only after the modal opens, so it may
+  // not have existed when a search/current-location result was selected.
+  // Rebuild the region from the authoritative selected coordinates and then
+  // animate the newly mounted fullscreen map to that exact location.
+  useEffect(() => {
+    if (!isMapFullscreen || !locationFound) {
+      return;
+    }
+
+    const selectedRegion: Region = {
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
+      latitudeDelta: 0.012,
+      longitudeDelta: 0.012,
+    };
+
+    setMapRegion(selectedRegion);
+
+    const recenterTimeout = setTimeout(() => {
+      fullscreenMapRef.current?.animateToRegion(
+        selectedRegion,
+        350,
+      );
+    }, 250);
+
+    return () => clearTimeout(recenterTimeout);
+  }, [
+    isMapFullscreen,
+    locationFound,
+    coordinates.latitude,
+    coordinates.longitude,
+  ]);
+
   const openFullscreenMap = useCallback(() => {
     Keyboard.dismiss();
     setActiveDropdown(null);
+
+    if (locationFound && isValidCoordinates(coordinates)) {
+      setMapRegion({
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        latitudeDelta: 0.012,
+        longitudeDelta: 0.012,
+      });
+    }
+
     setIsMapFullscreen(true);
-  }, []);
+  }, [coordinates, locationFound]);
 
   const closeFullscreenMap = useCallback(() => {
     setIsMapFullscreen(false);
