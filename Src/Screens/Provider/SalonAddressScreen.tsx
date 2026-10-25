@@ -22,7 +22,6 @@ import {
   Modal,
 } from 'react-native';
 import MapView, {
-  Marker,
   PROVIDER_GOOGLE,
   Region,
 } from 'react-native-maps';
@@ -38,6 +37,40 @@ import {
   AddressSuggestion,
 } from '../../services/locationService';
 import { Header } from '../../components';
+
+// This pin is a React Native overlay, not a native Google Maps Marker.
+// Its pointed tip stays at the exact center of the map viewport.
+const RedCenterPin = () => (
+  <View pointerEvents="none" style={pinStyles.overlay}>
+    <View style={pinStyles.pin}>
+      <View style={pinStyles.head}>
+        <View style={pinStyles.hole} />
+      </View>
+      <View style={pinStyles.point} />
+    </View>
+  </View>
+);
+
+const pinStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pin: { width: 44, height: 60, alignItems: 'center', marginTop: -60 },
+  head: {
+    width: 42, height: 42, borderRadius: 21,
+    backgroundColor: '#E53935', borderWidth: 3, borderColor: '#FFFFFF',
+    alignItems: 'center', justifyContent: 'center', elevation: 5,
+  },
+  hole: { width: 13, height: 13, borderRadius: 7, backgroundColor: '#FFFFFF' },
+  point: {
+    width: 0, height: 0,
+    borderLeftWidth: 11, borderRightWidth: 11, borderTopWidth: 19,
+    borderLeftColor: 'transparent', borderRightColor: 'transparent',
+    borderTopColor: '#E53935', marginTop: -2,
+  },
+});
 
 /* ============================================================
    TYPES
@@ -579,6 +612,7 @@ const SalonAddressScreen: React.FC<Props> = ({
   // explicitly recenters the map instead of relying only on region state.
   const mapPreviewRef = useRef<MapView | null>(null);
   const fullscreenMapRef = useRef<MapView | null>(null);
+  const userDraggedMapRef = useRef(false);
 
   const [searchText, setSearchText] = useState('');
 
@@ -1210,38 +1244,21 @@ const SalonAddressScreen: React.FC<Props> = ({
 
   /* FULL-SCREEN MAP */
 
-  // A fullscreen MapView is mounted only after the modal opens, so it may
-  // not have existed when a search/current-location result was selected.
-  // Rebuild the region from the authoritative selected coordinates and then
-  // animate the newly mounted fullscreen map to that exact location.
+  // On opening the modal, center the map on the selected location.
+  // Do not recenter when the user drags: the pin stays in the middle.
   useEffect(() => {
-    if (!isMapFullscreen || !locationFound) {
-      return;
-    }
-
-    const selectedRegion: Region = {
-      latitude: coordinates.latitude,
-      longitude: coordinates.longitude,
-      latitudeDelta: 0.012,
-      longitudeDelta: 0.012,
-    };
-
-    setMapRegion(selectedRegion);
-
-    const recenterTimeout = setTimeout(() => {
-      fullscreenMapRef.current?.animateToRegion(
-        selectedRegion,
-        350,
-      );
-    }, 250);
-
-    return () => clearTimeout(recenterTimeout);
-  }, [
-    isMapFullscreen,
-    locationFound,
-    coordinates.latitude,
-    coordinates.longitude,
-  ]);
+    if (!isMapFullscreen) return;
+    const timer = setTimeout(() => {
+      fullscreenMapRef.current?.animateToRegion({
+        ...coordinates,
+        latitudeDelta: mapRegion.latitudeDelta || 0.012,
+        longitudeDelta: mapRegion.longitudeDelta || 0.012,
+      }, 350);
+    }, 350);
+    return () => clearTimeout(timer);
+    // Only on opening; dragging must not trigger another animation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMapFullscreen]);
 
   const openFullscreenMap = useCallback(() => {
     Keyboard.dismiss();
@@ -1297,28 +1314,31 @@ const SalonAddressScreen: React.FC<Props> = ({
 
       if (nextCoordinates) {
         handleMapLocationChange(nextCoordinates);
+        fullscreenMapRef.current?.animateToRegion({
+          ...nextCoordinates,
+          latitudeDelta: mapRegion.latitudeDelta || 0.012,
+          longitudeDelta: mapRegion.longitudeDelta || 0.012,
+        }, 300);
       }
     },
-    [handleMapLocationChange],
-  );
-
-  const handleMarkerDragEnd = useCallback(
-    (event: any) => {
-      const nextCoordinates =
-        event?.nativeEvent?.coordinate;
-
-      if (nextCoordinates) {
-        handleMapLocationChange(nextCoordinates);
-      }
-    },
-    [handleMapLocationChange],
+    [handleMapLocationChange, mapRegion.latitudeDelta, mapRegion.longitudeDelta],
   );
 
   const handleMapRegionChangeComplete = useCallback(
     (region: Region) => {
       setMapRegion(region);
+      if (userDraggedMapRef.current) {
+        userDraggedMapRef.current = false;
+        // The center of the map is the point under our red pin.
+        const selected = {
+          latitude: region.latitude,
+          longitude: region.longitude,
+        };
+        handleMapLocationChange(selected);
+        mapPreviewRef.current?.animateToRegion(region, 300);
+      }
     },
-    [],
+    [handleMapLocationChange],
   );
 
   /* FORM VALIDATION */
@@ -1802,25 +1822,17 @@ const SalonAddressScreen: React.FC<Props> = ({
                 ref={mapPreviewRef}
                 provider={PROVIDER_GOOGLE}
                 style={styles.map}
-                region={mapRegion}
-                onRegionChangeComplete={handleMapRegionChangeComplete}
+                initialRegion={mapRegion}
                 onPress={openFullscreenMap}
-                showsUserLocation
+                showsUserLocation={false}
                 showsMyLocationButton={false}
                 toolbarEnabled={false}
                 scrollEnabled={false}
                 zoomEnabled={false}
                 rotateEnabled={false}
                 pitchEnabled={false}
-              >
-                {locationFound && (
-                  <Marker
-                    coordinate={coordinates}
-                    title="Your business location"
-                    description={addressLine}
-                  />
-                )}
-              </MapView>
+              />
+              {locationFound && <RedCenterPin />}
               {!locationFound && (
                 <View
                   pointerEvents="none"
@@ -2046,8 +2058,7 @@ const SalonAddressScreen: React.FC<Props> = ({
               </Text>
 
               <Text style={styles.fullscreenMapSubtitle}>
-                Tap the map or drag the pin to set the exact
-                location
+                Drag the map beneath the red pin, or tap a point to select it
               </Text>
             </View>
           </View>
@@ -2060,22 +2071,15 @@ const SalonAddressScreen: React.FC<Props> = ({
               ref={fullscreenMapRef}
               provider={PROVIDER_GOOGLE}
               style={styles.map}
-              region={mapRegion}
+              initialRegion={mapRegion}
+              onPanDrag={() => { userDraggedMapRef.current = true; }}
               onRegionChangeComplete={handleMapRegionChangeComplete}
               onPress={handleMapPress}
               toolbarEnabled={false}
-            >
-              {locationFound && (
-                <Marker
-                  coordinate={coordinates}
-                  title="Your business location"
-                  description={addressLine}
-                  draggable
-                  onDragEnd={handleMarkerDragEnd}
-                />
-              )}
-            </MapView>
-
+              rotateEnabled={false}
+              pitchEnabled={false}
+            />
+            <RedCenterPin />
 
             {!locationFound && (
               <View
@@ -2088,7 +2092,7 @@ const SalonAddressScreen: React.FC<Props> = ({
                   </Text>
 
                   <Text style={styles.fullscreenMapEmptySubtitle}>
-                    Tap anywhere on the map to place your pin
+                    Drag the map to place the red pin
                   </Text>
                 </View>
               </View>
@@ -2136,7 +2140,7 @@ const SalonAddressScreen: React.FC<Props> = ({
                 {addressLine ||
                   (locationFound
                     ? 'Getting address details...'
-                    : 'Tap the map to place a pin, or use your current location.')}
+                    : 'Drag the map or use your current location.')}
               </Text>
 
               {locationFound && (
@@ -2164,7 +2168,7 @@ const SalonAddressScreen: React.FC<Props> = ({
 
           <View style={styles.fullscreenMapFooter}>
             <Text style={styles.fullscreenMapHint}>
-              Place the pin as close as possible to your business
+              Move the map until the red pin points to your business
               entrance. Your address details will update automatically
             </Text>
 
