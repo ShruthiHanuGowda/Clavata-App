@@ -1660,7 +1660,7 @@ export default function SalonServicesScreen() {
                             <View style={styles.header}>
                                 <View style={styles.headerText}>
                                     <Text style={styles.eyebrow}>
-                                        SALON CATALOGUE
+                                        BUSINESS CATALOGUE
                                     </Text>
 
                                     <Text style={styles.title}>
@@ -1669,7 +1669,7 @@ export default function SalonServicesScreen() {
 
                                     <Text style={styles.subtitle}>
                                         Manage your service offerings and select
-                                        Clavata categories for your salon.
+                                        Clavata categories for your business.
                                     </Text>
                                 </View>
 
