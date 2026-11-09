@@ -2896,7 +2896,7 @@ export default function SalonInformation() {
                             placeholder="Enter owner name"
                         />
 
-                        <InputField
+                        {/* <InputField
                             label="Business Type"
                             value={
                                 businessType
@@ -2908,7 +2908,7 @@ export default function SalonInformation() {
                                 profileChangeLocked
                             }
                             placeholder="e.g. Salon, Beauty Parlour"
-                        />
+                        /> */}
 
                         <InputField
                             label="Email"
