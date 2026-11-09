@@ -1506,7 +1506,6 @@ export const UPDATE_SALON_PROFILE = gql`
                 ownerUserId
                 salonName
                 ownerName
-                businessType
                 ownerPhoneNumber
                 alternatePhone
                 email
