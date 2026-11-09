@@ -1093,6 +1093,19 @@ export default function SalonInformation() {
         Salon | null =
         data?.getSalon || null;
 
+    /**
+     * Prefer the editable local preview when the user has selected
+     * a new image. Otherwise show the already registered salon logo
+     * returned by GET_SALON. The signed logoMedia URL is a fallback
+     * for records that do not have the legacy logoUrl field.
+     */
+    const displayLogoUrl =
+        logoUrl ||
+        logoMedia?.previewUrl ||
+        salon?.logoUrl ||
+        salon?.logoMedia?.objectUrl ||
+        '';
+
     // ========================================================
     // VALIDATION
     // ========================================================
@@ -3057,14 +3070,10 @@ export default function SalonInformation() {
                             }
                         >
                             <View style={styles.logoPreview}>
-                                {logoUrl ? (
+                                {displayLogoUrl ? (
                                     <Image
-                                        source={{ uri: logoUrl }}
-                                        style={{
-                                            width: 120,
-                                            height: 120,
-                                            borderRadius: 60,
-                                        }}
+                                        source={{ uri: displayLogoUrl }}
+                                        style={styles.logoImage}
                                         resizeMode="contain"
                                         onLoad={() =>
                                             console.log('[IMAGE] ===== LOGO LOADED =====')
@@ -3115,7 +3124,7 @@ export default function SalonInformation() {
                                                 styles.outlineButtonText
                                             }
                                         >
-                                            {logoUrl
+                                            {displayLogoUrl
                                                 ? 'Change Photo'
                                                 : 'Choose Photo'}
                                         </Text>
@@ -3995,29 +4004,26 @@ const styles =
         },
 
         logoPreview: {
-            width: 92,
-            height: 92,
-            borderRadius:
-                46,
-            backgroundColor:
-                '#F0EAFE',
-            alignItems:
-                'center',
-            justifyContent:
-                'center',
-            overflow:
-                'hidden',
-            borderWidth:
-                1,
-            borderColor:
-                stylesVars.border,
+            width: 112,
+            height: 112,
+            borderRadius: 56,
+            backgroundColor: '#FFFFFF',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            borderWidth: 3,
+            borderColor: '#FFFFFF',
+            elevation: 5,
+            shadowColor: '#17121F',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.14,
+            shadowRadius: 6,
         },
 
         logoImage: {
             width: '100%',
             height: '100%',
-            resizeMode:
-                'cover',
+            backgroundColor: '#FFFFFF',
         },
 
         logoPlaceholder: {

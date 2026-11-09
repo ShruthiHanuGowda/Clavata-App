@@ -26,7 +26,92 @@ export default StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
   },
+  profileHeaderContainer: {
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    paddingBottom: 24,
+  },
 
+  profileCover: {
+    width: '100%',
+    height: 175,
+    backgroundColor: '#E9E5EF',
+    justifyContent: 'center',
+  },
+
+  profileCoverImage: {
+    resizeMode: 'cover',
+  },
+
+  profileCoverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(25, 18, 38, 0.25)',
+  },
+
+  logoPosition: {
+    marginTop: -58,
+    zIndex: 2,
+  },
+
+  professionalLogoFrame: {
+    width: 116,
+    height: 116,
+    borderRadius: 58,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+
+    elevation: 7,
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 7,
+  },
+
+  professionalLogoImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 54,
+    backgroundColor: '#FFFFFF',
+  },
+
+  logoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F2EDF8',
+  },
+
+  logoInitials: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#7651A8',
+  },
+
+  professionalSalonName: {
+    marginTop: 12,
+    fontSize: 23,
+    fontWeight: '700',
+    color: '#24202D',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+
+  profileSubtitle: {
+    marginTop: 5,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#85808F',
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
   content: {
     padding: 20,
     paddingBottom: 40,

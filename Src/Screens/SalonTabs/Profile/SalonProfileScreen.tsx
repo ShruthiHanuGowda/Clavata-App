@@ -580,28 +580,25 @@ export default function SalonProfileScreen() {
     };
 
     // ============================================================
-    // SALON LOGO FALLBACK
+    // SALON LOGO
     // ============================================================
 
     const renderSalonLogo = () => {
         if (salonLogoUrl) {
             return (
                 <Image
-                    source={{
-                        uri: salonLogoUrl,
+                    source={{ uri: salonLogoUrl }}
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: '#FFFFFF',
                     }}
-                    style={styles.avatar}
-                    resizeMode="cover"
-                    onLoad={() => {
-                        console.log(
-                            '[SalonProfile] Salon logo loaded:',
-                            salonLogoUrl,
-                        );
-                    }}
+                    resizeMode="contain"
+                    onLoad={() => console.log('[SalonProfile] Salon logo loaded')}
                     onError={error => {
                         console.error(
-                            '[SalonProfile] Salon logo failed:',
-                            error?.nativeEvent,
+                            '[SalonProfile] Logo loading failed:',
+                            error.nativeEvent,
                         );
                     }}
                 />
@@ -610,23 +607,22 @@ export default function SalonProfileScreen() {
 
         return (
             <View
-                style={[
-                    styles.avatar,
-                    {
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#E5E7EB',
-                    },
-                ]}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#F1ECF7',
+                }}
             >
                 <Text
                     style={{
-                        fontSize: 32,
-                        fontWeight: '600',
-                        color: '#6B5DD3',
+                        fontSize: 30,
+                        fontWeight: '700',
+                        color: '#7651A8',
                     }}
                 >
-                    {salonName.charAt(0).toUpperCase()}
+                    {getInitials(salonName)}
                 </Text>
             </View>
         );
@@ -638,149 +634,145 @@ export default function SalonProfileScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-            >
-                {/* ==================================================
-                    SALON PROFILE HEADER
-                ================================================== */}
-                <ImageBackground
-                    source={
-                        salonCoverImageUrl
-                            ? { uri: salonCoverImageUrl }
-                            : undefined
-                    }
-                    style={[
-                        styles.profileHeader,
-                        {
-                            overflow: 'hidden',
-                            minHeight: 180,
-                            justifyContent: 'flex-end',
-                            alignItems: 'center',
-                        },
-                    ]}
-                    imageStyle={{
-                        resizeMode: 'cover',
-                    }}
-                    onLoad={() => {
-                        if (salonCoverImageUrl) {
-                            console.log(
-                                '[SalonProfile] Cover image loaded:',
-                                salonCoverImageUrl,
-                            );
-                        }
-                    }}
-                    onError={error => {
-                        console.error(
-                            '[SalonProfile] Cover image failed:',
-                            error?.nativeEvent,
-                        );
+            <ScrollView showsVerticalScrollIndicator={false}>
+                {/* PROFESSIONAL SALON PROFILE HEADER */}
+                <View
+                    style={{
+                        backgroundColor: '#FFFFFF',
+                        alignItems: 'center',
+                        paddingBottom: 24,
                     }}
                 >
-                    <View
+                    <ImageBackground
+                        source={
+                            salonCoverImageUrl
+                                ? { uri: salonCoverImageUrl }
+                                : undefined
+                        }
                         style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            backgroundColor:
-                                'rgba(0,0,0,0.25)',
+                            width: '100%',
+                            height: 175,
+                            backgroundColor: '#E9E5EF',
+                            justifyContent: 'center',
                         }}
-                    />
-
-                    <View
-                        style={{
-                            marginBottom: 12,
-                            borderRadius: 60,
-                            borderWidth: 3,
-                            borderColor: '#FFFFFF',
-                            overflow: 'hidden',
-                            backgroundColor: '#FFFFFF',
+                        imageStyle={{ resizeMode: 'cover' }}
+                        onError={error => {
+                            console.error(
+                                '[SalonProfile] Cover image failed:',
+                                error.nativeEvent,
+                            );
                         }}
                     >
-                        {renderSalonLogo()}
+                        <View
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: 'rgba(25,18,38,0.28)',
+                            }}
+                        />
+                    </ImageBackground>
+
+                    {/* Salon logo overlaps the cover */}
+                    <View
+                        style={{
+                            width: 120,
+                            height: 120,
+                            borderRadius: 60,
+                            marginTop: -60,
+                            padding: 5,
+                            backgroundColor: '#FFFFFF',
+                            elevation: 7,
+                            shadowColor: '#000000',
+                            shadowOffset: { width: 0, height: 3 },
+                            shadowOpacity: 0.16,
+                            shadowRadius: 7,
+                            zIndex: 2,
+                        }}
+                    >
+                        <View
+                            style={{
+                                flex: 1,
+                                borderRadius: 55,
+                                overflow: 'hidden',
+                                backgroundColor: '#FFFFFF',
+                            }}
+                        >
+                            {renderSalonLogo()}
+                        </View>
                     </View>
 
                     <Text
-                        style={[
-                            styles.profileName,
-                            {
-                                color: '#FFFFFF',
-                                textAlign: 'center',
-                                textShadowColor:
-                                    'rgba(0,0,0,0.5)',
-                                textShadowOffset: {
-                                    width: 0,
-                                    height: 1,
-                                },
-                                textShadowRadius: 3,
-                            },
-                        ]}
+                        style={{
+                            marginTop: 13,
+                            paddingHorizontal: 20,
+                            fontSize: 23,
+                            lineHeight: 29,
+                            fontWeight: '700',
+                            color: '#24202D',
+                            textAlign: 'center',
+                        }}
                     >
                         {salonName}
                     </Text>
-                </ImageBackground>
 
-                {/* ==================================================
-                    BUSINESS ACCOUNT
-                ================================================== */}
+                    {/* <Text
+                        style={{
+                            marginTop: 5,
+                            fontSize: 13,
+                            fontWeight: '500',
+                            color: '#85808F',
+                            letterSpacing: 0.3,
+                            textAlign: 'center',
+                        }}
+                    >
+                        Salon Business Profile
+                    </Text> */}
 
+                    {loadingSalon ? (
+                        <ActivityIndicator
+                            style={{ marginTop: 10 }}
+                            size="small"
+                            color="#8B5CF6"
+                        />
+                    ) : null}
+                </View>
+
+                {/* BUSINESS ACCOUNT */}
                 <View style={styles.profileCard}>
-                    <Text style={styles.sectionTitle}>
-                        Business Account
-                    </Text>
+                    <Text style={styles.sectionTitle}>Business Account</Text>
 
                     <MenuItem
                         title="Salon Information"
                         subtitle="Manage your business details, address and profile"
-                        onPress={() =>
-                            handleBusinessNavigation(
-                                'SalonInformation',
-                            )
-                        }
+                        onPress={() => handleBusinessNavigation('SalonInformation')}
                         loading={loadingPendingChange}
                     />
 
                     <MenuItem
                         title="Business Hours"
                         subtitle="Set your regular opening and closing hours"
-                        onPress={() =>
-                            handleBusinessNavigation(
-                                'BusinessHours',
-                            )
-                        }
+                        onPress={() => handleBusinessNavigation('BusinessHours')}
                     />
 
                     <MenuItem
                         title="Offers & Discounts"
                         subtitle="Create promotions and manage discount offers"
-                        onPress={() =>
-                            handleBusinessNavigation(
-                                'Offers',
-                            )
-                        }
+                        onPress={() => handleBusinessNavigation('Offers')}
                     />
 
                     <MenuItem
                         title="Payment Settings"
                         subtitle="Manage your available payment settings"
-                        onPress={() =>
-                            handleBusinessNavigation(
-                                'PaymentSettings',
-                            )
-                        }
+                        onPress={() => handleBusinessNavigation('PaymentSettings')}
                     />
                 </View>
 
-                {/* ==================================================
-                    GROW YOUR BUSINESS
-                ================================================== */}
-
+                {/* GROW YOUR BUSINESS */}
                 <View style={styles.profileCard}>
-                    <Text style={styles.sectionTitle}>
-                        Grow Your Business
-                    </Text>
+                    <Text style={styles.sectionTitle}>Grow Your Business</Text>
 
                     <Text
                         style={{
@@ -791,133 +783,53 @@ export default function SalonProfileScreen() {
                             marginBottom: 10,
                         }}
                     >
-                        Discover tools to promote your business
-                        and grow your presence on Clavata.
+                        Discover tools to promote your business and grow your
+                        presence on Clavata.
                     </Text>
 
                     <MenuItem
                         title="Clavata Boost"
                         subtitle="View subscription plans and manage your membership"
-                        onPress={() =>
-                            handleGrowthNavigation(
-                                'ClavataBoost',
-                            )
-                        }
+                        onPress={() => handleGrowthNavigation('ClavataBoost')}
                     />
 
                     <MenuItem
                         title="Advertise on Clavata"
                         subtitle="Promote your business and selected services"
-                        onPress={() =>
-                            handleGrowthNavigation(
-                                'ClavataAdvertise',
-                            )
-                        }
+                        onPress={() => handleGrowthNavigation('ClavataAdvertise')}
                     />
                 </View>
 
-                {/* ==================================================
-                    ACCOUNT
-                ================================================== */}
-
-                {/* <View style={styles.profileCard}>
-                    <Text style={styles.sectionTitle}>
-                        Account
-                    </Text>
-
-                    <MenuItem
-                        title="Edit Profile"
-                        subtitle="Update your personal account details"
-                        onPress={() =>
-                            handleAccountNavigation(
-                                'EditProfile',
-                            )
-                        }
-                    />
-
-                    <MenuItem
-                        title="Notifications"
-                        subtitle="Manage your notification preferences"
-                        onPress={() =>
-                            handleAccountNavigation(
-                                'Notifications',
-                            )
-                        }
-                    />
-
-                    <MenuItem
-                        title="Change Password"
-                        subtitle="Update your account password"
-                        onPress={() =>
-                            handleAccountNavigation(
-                                'ChangePassword',
-                            )
-                        }
-                    />
-
-                    <MenuItem
-                        title="Language"
-                        subtitle="Choose your preferred app language"
-                        onPress={() =>
-                            handleAccountNavigation(
-                                'Language',
-                            )
-                        }
-                    />
-                </View> */}
-
-                {/* ==================================================
-                    SUPPORT
-                ================================================== */}
-
+                {/* SUPPORT */}
                 <View style={styles.profileCard}>
-                    <Text style={styles.sectionTitle}>
-                        Support
-                    </Text>
+                    <Text style={styles.sectionTitle}>Support</Text>
 
                     <MenuItem
                         title="Help Center"
                         subtitle="Get help with Clavata and your account"
-                        onPress={() =>
-                            handleSupportNavigation(
-                                'HelpCenter',
-                            )
-                        }
+                        onPress={() => handleSupportNavigation('HelpCenter')}
                     />
 
                     <MenuItem
                         title="Privacy Policy"
                         subtitle="Learn how your information is handled"
-                        onPress={() =>
-                            handleSupportNavigation(
-                                'PrivacyPolicy',
-                            )
-                        }
+                        onPress={() => handleSupportNavigation('PrivacyPolicy')}
                     />
 
                     <MenuItem
                         title="Terms & Conditions"
                         subtitle="Review the terms for using Clavata"
-                        onPress={() =>
-                            handleSupportNavigation(
-                                'TermsConditions',
-                            )
-                        }
+                        onPress={() => handleSupportNavigation('TermsConditions')}
                     />
                 </View>
 
-                {/* ==================================================
-                    LOGOUT
-                ================================================== */}
-
+                {/* LOGOUT */}
                 <TouchableOpacity
                     style={styles.logoutButton}
                     onPress={onLogout}
                     activeOpacity={0.8}
                 >
-                    <Text style={styles.logoutText}>
-                        Logout
-                    </Text>
+                    <Text style={styles.logoutText}>Logout</Text>
                 </TouchableOpacity>
 
                 <View style={{ height: 30 }} />
@@ -927,7 +839,23 @@ export default function SalonProfileScreen() {
 }
 
 // ================================================================
-// REUSABLE MENU ITEM WITH SUBTITLE
+// HELPER
+// ================================================================
+
+function getInitials(name: string): string {
+    const words = (name || 'Salon')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+
+    if (words.length === 0) return 'S';
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+
+    return `${words[0][0]}${words[1][0]}`.toUpperCase();
+}
+
+// ================================================================
+// REUSABLE MENU ITEM
 // ================================================================
 
 function MenuItem({
@@ -948,15 +876,8 @@ function MenuItem({
             activeOpacity={0.7}
             disabled={loading}
         >
-            <View
-                style={{
-                    flex: 1,
-                    paddingRight: 12,
-                }}
-            >
-                <Text style={styles.menuText}>
-                    {title}
-                </Text>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={styles.menuText}>{title}</Text>
 
                 {subtitle ? (
                     <Text
@@ -974,14 +895,9 @@ function MenuItem({
             </View>
 
             {loading ? (
-                <ActivityIndicator
-                    size="small"
-                    color="#8B5CF6"
-                />
+                <ActivityIndicator size="small" color="#8B5CF6" />
             ) : (
-                <Text style={styles.menuArrow}>
-                    ›
-                </Text>
+                <Text style={styles.menuArrow}>›</Text>
             )}
         </TouchableOpacity>
     );
