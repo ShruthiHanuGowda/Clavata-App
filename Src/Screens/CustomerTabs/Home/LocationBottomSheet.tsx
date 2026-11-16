@@ -198,7 +198,7 @@ const LocationBottomSheet: React.FC<Props> = ({
         setHasSearched(true);
         setSearchError(
           error?.message ||
-            'Unable to search locations. Please try again.',
+          'Unable to search locations. Please try again.',
         );
       } finally {
         if (requestId === searchRequestId.current) {
@@ -231,21 +231,27 @@ const LocationBottomSheet: React.FC<Props> = ({
           const result: any = await reverseGeocode(latitude, longitude);
 
           const address =
+            result?.formattedAddress ||
             result?.display_name ||
-            result?.address?.suburb ||
-            result?.address?.neighbourhood ||
-            result?.address?.city ||
-            result?.address?.town ||
-            result?.address?.village ||
+            [
+              result?.address?.house_number,
+              result?.address?.road,
+              result?.address?.suburb,
+              result?.address?.city ||
+              result?.address?.town ||
+              result?.address?.village,
+              result?.address?.state,
+              result?.address?.postcode,
+              result?.address?.country,
+            ]
+              .filter(Boolean)
+              .join(', ') ||
             'Current location';
 
           setDetectedLocation({
             latitude,
             longitude,
-            address:
-              typeof address === 'string'
-                ? address
-                : 'Current location',
+            address,
           });
         } catch (error) {
           console.warn('Reverse geocoding failed:', error);
@@ -277,53 +283,72 @@ const LocationBottomSheet: React.FC<Props> = ({
   }, []);
 
   // Select a search suggestion, saved location, or recent location.
+
   const handleSelectLocation = useCallback(
     async (location: LocationData & { placeId?: string }) => {
       Keyboard.dismiss();
+
+      setSearchError('');
 
       let selectedLocation: LocationData = location;
 
       if (location.placeId) {
         setIsSearching(true);
-        setSearchError('');
 
         try {
           const place = await getPlaceDetails(location.placeId);
 
           if (!place) {
-            setSearchError(
-              'Could not load this location. Please try another result.',
+            throw new Error('Could not load the full location details.');
+          }
+
+          const latitude = Number(place.latitude);
+          const longitude = Number(place.longitude);
+          const address = String(place.formattedAddress || '').trim();
+
+          if (
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude) ||
+            latitude < -90 ||
+            latitude > 90 ||
+            longitude < -180 ||
+            longitude > 180
+          ) {
+            throw new Error('Invalid location coordinates.');
+          }
+
+          if (!address) {
+            throw new Error(
+              'The full address could not be retrieved. Please select another result.',
             );
-            return;
           }
 
           selectedLocation = {
-            latitude: place.latitude,
-            longitude: place.longitude,
-            address: place.formattedAddress,
+            latitude,
+            longitude,
+            address,
           };
-
-          if (
-            !Number.isFinite(selectedLocation.latitude) ||
-            !Number.isFinite(selectedLocation.longitude) ||
-            selectedLocation.latitude < -90 ||
-            selectedLocation.latitude > 90 ||
-            selectedLocation.longitude < -180 ||
-            selectedLocation.longitude > 180
-          ) {
-            throw new Error('Invalid coordinates returned for this location.');
-          }
         } catch (error: any) {
           console.warn('Unable to load place details:', error);
 
           setSearchError(
-            error?.message ||
-              'Could not load this location. Please try again.',
+            error?.message || 'Unable to load the full address. Please try again.',
           );
+
           return;
         } finally {
           setIsSearching(false);
         }
+      }
+
+      if (
+        !selectedLocation.address ||
+        !selectedLocation.address.trim() ||
+        !Number.isFinite(Number(selectedLocation.latitude)) ||
+        !Number.isFinite(Number(selectedLocation.longitude))
+      ) {
+        setSearchError('This location does not have a valid address.');
+        return;
       }
 
       try {
@@ -338,6 +363,7 @@ const LocationBottomSheet: React.FC<Props> = ({
     },
     [onClose, onLocationSelected],
   );
+
 
   const filteredSavedLocations = useMemo(() => {
     const query = searchText.trim().toLowerCase();

@@ -450,10 +450,23 @@ export default function HomeScreenPage() {
   }, [navigation]);
 
   const handleLocationSelected = (location: LocationData) => {
-    setSelectedLocation(location.address || 'Selected location');
-    setLocationCoordinates(location);
-    setShowLocationModal(false);
-  };
+  const fullAddress = String(location.address || '').trim();
+
+  if (!fullAddress) {
+    Alert.alert(
+      'Address unavailable',
+      'The complete address could not be retrieved. Please select the location again.',
+    );
+    return;
+  }
+
+  setSelectedLocation(fullAddress);
+  setLocationCoordinates({
+    ...location,
+    address: fullAddress,
+  });
+  setShowLocationModal(false);
+};
 
   const handleAudienceChange = (audience: ServiceAudience) => {
     setSelectedAudiences(previous =>

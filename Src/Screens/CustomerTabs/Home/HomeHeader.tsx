@@ -344,9 +344,8 @@ export default function HomeHeader({
           onPress={onPressLocation}
           activeOpacity={0.75}
           accessibilityRole="button"
-          accessibilityLabel={`Choose location. Current location: ${
-            location || 'Choose location'
-          }`}
+          accessibilityLabel={`Choose location. Current location: ${location || 'Choose location'
+            }`}
         >
           <View style={styles.locationIconContainer}>
             <Text style={styles.locationIcon}>📍</Text>
@@ -355,7 +354,7 @@ export default function HomeHeader({
           <View style={styles.locationContent}>
             <Text style={styles.locationLabel}>YOUR LOCATION</Text>
 
-            <Text style={styles.locationText} numberOfLines={1}>
+            <Text style={styles.locationText}>
               {location || 'Choose location'}
             </Text>
           </View>
@@ -622,7 +621,7 @@ export default function HomeHeader({
                             style={[
                               styles.messageTitle,
                               message.unread &&
-                                styles.unreadMessageTitle,
+                              styles.unreadMessageTitle,
                             ]}
                             numberOfLines={2}
                           >
@@ -715,67 +714,67 @@ const styles = StyleSheet.create({
 
   // INBOX BUTTON
 
-inboxButton: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  paddingLeft: 0,
-  paddingVertical: 7,
-},
+  inboxButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: 0,
+    paddingVertical: 7,
+  },
 
-bellContainer: {
-  width: 30,
-  height: 32,
-  alignItems: 'center',
-  justifyContent: 'center',
-  position: 'relative',
-},
+  bellContainer: {
+    width: 30,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
 
-bellGradient: {
-  width: 28,
-  height: 28,
-  borderRadius: 10,
-  alignItems: 'center',
-  justifyContent: 'center',
-  overflow: 'visible',
-},
+  bellGradient: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+  },
 
-bellIcon: {
-  width: 16,
-  height: 18,
-  alignItems: 'center',
-  justifyContent: 'flex-start',
-  position: 'relative',
-},
+  bellIcon: {
+    width: 16,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    position: 'relative',
+  },
 
-bellBody: {
-  width: 12,
-  height: 13,
-  marginTop: 2,
-  backgroundColor: '#FFFFFF',
-  borderTopLeftRadius: 7,
-  borderTopRightRadius: 7,
-  borderBottomLeftRadius: 3,
-  borderBottomRightRadius: 3,
-},
+  bellBody: {
+    width: 12,
+    height: 13,
+    marginTop: 2,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 7,
+    borderTopRightRadius: 7,
+    borderBottomLeftRadius: 3,
+    borderBottomRightRadius: 3,
+  },
 
-bellBase: {
-  position: 'absolute',
-  bottom: 4,
-  width: 17,
-  height: 2,
-  borderRadius: 2,
-  backgroundColor: '#FFFFFF',
-},
+  bellBase: {
+    position: 'absolute',
+    bottom: 4,
+    width: 17,
+    height: 2,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
 
-bellClapper: {
-  position: 'absolute',
-  bottom: 0,
-  width: 4,
-  height: 4,
-  borderRadius: 2,
-  backgroundColor: '#FFFFFF',
-},
+  bellClapper: {
+    position: 'absolute',
+    bottom: 0,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
 
   unreadBadge: {
     position: 'absolute',
@@ -800,24 +799,26 @@ bellClapper: {
     color: '#FFFFFF',
   },
 
- inboxButtonText: {
-  fontSize: 13,
-  fontWeight: '700',
-  color: '#F97316',
-  marginLeft: 6,
-},
+  inboxButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F97316',
+    marginLeft: 6,
+  },
   // LOCATION
 
   locationButton: {
-    minHeight: 58,
+    minHeight: 65,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: RADIUS.medium,
     paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.small,
     flexDirection: 'row',
     alignItems: 'center',
   },
+
 
   locationIconContainer: {
     width: 32,
@@ -837,7 +838,6 @@ bellClapper: {
     flex: 1,
     minWidth: 0,
   },
-
   locationLabel: {
     fontSize: 9,
     fontWeight: '700',
@@ -850,6 +850,8 @@ bellClapper: {
     fontSize: FONT_SIZES.small,
     fontWeight: '600',
     color: COLORS.black,
+    lineHeight: 20,
+    flexShrink: 1,
   },
 
   arrow: {
