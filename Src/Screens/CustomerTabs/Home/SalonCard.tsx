@@ -345,14 +345,12 @@ export default function SalonCard({
     //
     // ========================================================
 
-    const approvedLogo =
-        salon?.logoMedia?.status ===
-            'APPROVED'
-            ? (
-                salon?.logoMedia?.objectUrl ??
-                null
-            )
-            : null;
+const approvedLogo =
+  salon?.logoMedia?.mediaType === 'LOGO' &&
+  salon?.logoMedia?.status === 'APPROVED' &&
+  salon?.logoMedia?.objectUrl
+    ? salon.logoMedia.objectUrl
+    : null;
 
 
     console.log(

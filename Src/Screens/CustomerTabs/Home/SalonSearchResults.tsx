@@ -57,7 +57,20 @@ type NearbySalonService = {
 
     price: number;
 };
-
+type SalonLogoMedia = {
+    imageId?: string;
+    salonId?: string;
+    mediaType?: string;
+    key?: string;
+    objectUrl?: string | null;
+    status?: string;
+    uploadedAt?: string;
+    approvedAt?: string;
+    approvedBy?: string;
+    rejectedAt?: string | null;
+    rejectedBy?: string | null;
+    rejectionReason?: string | null;
+};
 type Salon = {
     id: string;
     salonId: string;
@@ -71,13 +84,14 @@ type Salon = {
     image: string;
 
     salonStatus?:
-        | 'OPEN'
-        | 'CLOSED'
-        | 'TEMPORARILY_CLOSED';
+    | 'OPEN'
+    | 'CLOSED'
+    | 'TEMPORARILY_CLOSED';
 
     businessHours?: any;
     minServicePrice?: number;
     matchingServices?: NearbySalonService[];
+    logoMedia?: SalonLogoMedia | null;
 };
 
 type SearchParams = {
@@ -564,7 +578,7 @@ export default function SalonSearchResults() {
                                         item?.salonId ??
                                         '',
                                     ),
-
+                                logoMedia: item?.logoMedia ?? null,
                                 name:
                                     item?.salonName ||
                                     'Salon',
@@ -629,7 +643,7 @@ export default function SalonSearchResults() {
                     formatted,
                 );
             } catch (
-                error: any
+            error: any
             ) {
                 console.log(
                     '❌ SALON RESULTS ERROR:',
