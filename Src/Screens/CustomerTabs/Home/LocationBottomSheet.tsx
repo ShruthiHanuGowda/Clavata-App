@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -16,6 +17,7 @@ import Modal from 'react-native-modal';
 import Geolocation from '@react-native-community/geolocation';
 
 import {
+  getPlaceDetails,
   reverseGeocode,
   searchAddress,
 } from '../../../services/locationService';
@@ -38,6 +40,7 @@ type Props = {
 };
 
 type SearchResult = LocationData & {
+  placeId?: string;
   display_name?: string;
   name?: string;
 };
@@ -86,9 +89,14 @@ const LocationBottomSheet: React.FC<Props> = ({
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState('');
+
+  const searchRequestId = useRef(0);
 
   const hasSearchText = searchText.trim().length > 0;
 
+  // Load saved and recent locations.
   const loadLocations = useCallback(async () => {
     setIsLoadingSaved(true);
 
@@ -113,63 +121,98 @@ const LocationBottomSheet: React.FC<Props> = ({
     }
   }, [visible, loadLocations]);
 
+  // Reset when the bottom sheet closes.
   useEffect(() => {
     if (!visible) {
+      searchRequestId.current += 1;
       setSearchText('');
       setSearchResults([]);
       setDetectedLocation(null);
       setIsSearching(false);
+      setHasSearched(false);
+      setSearchError('');
     }
   }, [visible]);
 
-  const handleSearch = useCallback(async () => {
+  // Automatically search as the user types.
+  useEffect(() => {
     const query = searchText.trim();
 
-    if (!query) {
+    const requestId = ++searchRequestId.current;
+
+    if (!visible || query.length < 3) {
       setSearchResults([]);
+      setHasSearched(false);
+      setSearchError('');
+      setIsSearching(false);
       return;
     }
 
-    Keyboard.dismiss();
-    setIsSearching(true);
     setSearchResults([]);
+    setSearchError('');
+    setHasSearched(false);
+    setIsSearching(true);
 
-    try {
-      const results = await searchAddress(query);
+    const timer = setTimeout(async () => {
+      try {
+        const suggestions = await searchAddress(query);
 
-      const mappedResults: SearchResult[] = (Array.isArray(results)
-        ? results
-        : []
-      )
-        .map((item: any) => ({
-          latitude: Number(item.latitude ?? item.lat),
-          longitude: Number(item.longitude ?? item.lon),
-          address:
-            item.address ||
-            item.display_name ||
-            item.name ||
-            'Selected location',
-          display_name: item.display_name,
-          name: item.name,
-        }))
-        .filter(
-          item =>
-            Number.isFinite(item.latitude) &&
-            Number.isFinite(item.longitude),
+        // Ignore results from older requests.
+        if (
+          requestId !== searchRequestId.current ||
+          !visible
+        ) {
+          return;
+        }
+
+        const mappedResults: SearchResult[] = (
+          Array.isArray(suggestions) ? suggestions : []
+        )
+          .filter(
+            (suggestion: any) =>
+              suggestion?.placeId && suggestion?.description,
+          )
+          .map((suggestion: any) => ({
+            placeId: suggestion.placeId,
+            latitude: 0,
+            longitude: 0,
+            address: suggestion.description,
+            display_name: suggestion.description,
+            name: suggestion.description.split(',')[0],
+          }));
+
+        setSearchResults(mappedResults);
+        setHasSearched(true);
+
+        if (mappedResults.length === 0) {
+          setSearchError('No matching locations found. Try another address.');
+        }
+      } catch (error: any) {
+        if (requestId !== searchRequestId.current) {
+          return;
+        }
+
+        console.warn('Location search failed:', error);
+
+        setSearchResults([]);
+        setHasSearched(true);
+        setSearchError(
+          error?.message ||
+            'Unable to search locations. Please try again.',
         );
+      } finally {
+        if (requestId === searchRequestId.current) {
+          setIsSearching(false);
+        }
+      }
+    }, 400);
 
-      setSearchResults(mappedResults);
-    } catch (error) {
-      console.warn('Location search failed:', error);
-      Alert.alert(
-        'Search unavailable',
-        'We could not search for that location. Please try again.',
-      );
-    } finally {
-      setIsSearching(false);
-    }
-  }, [searchText]);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchText, visible]);
 
+  // Detect current device location.
   const handleUseCurrentLocation = useCallback(() => {
     Keyboard.dismiss();
     setIsLoadingLocation(true);
@@ -233,18 +276,64 @@ const LocationBottomSheet: React.FC<Props> = ({
     );
   }, []);
 
+  // Select a search suggestion, saved location, or recent location.
   const handleSelectLocation = useCallback(
-    async (location: LocationData) => {
+    async (location: LocationData & { placeId?: string }) => {
       Keyboard.dismiss();
 
+      let selectedLocation: LocationData = location;
+
+      if (location.placeId) {
+        setIsSearching(true);
+        setSearchError('');
+
+        try {
+          const place = await getPlaceDetails(location.placeId);
+
+          if (!place) {
+            setSearchError(
+              'Could not load this location. Please try another result.',
+            );
+            return;
+          }
+
+          selectedLocation = {
+            latitude: place.latitude,
+            longitude: place.longitude,
+            address: place.formattedAddress,
+          };
+
+          if (
+            !Number.isFinite(selectedLocation.latitude) ||
+            !Number.isFinite(selectedLocation.longitude) ||
+            selectedLocation.latitude < -90 ||
+            selectedLocation.latitude > 90 ||
+            selectedLocation.longitude < -180 ||
+            selectedLocation.longitude > 180
+          ) {
+            throw new Error('Invalid coordinates returned for this location.');
+          }
+        } catch (error: any) {
+          console.warn('Unable to load place details:', error);
+
+          setSearchError(
+            error?.message ||
+              'Could not load this location. Please try again.',
+          );
+          return;
+        } finally {
+          setIsSearching(false);
+        }
+      }
+
       try {
-        await saveLocation(location);
-        await addRecentLocation(location);
+        await saveLocation(selectedLocation);
+        await addRecentLocation(selectedLocation);
       } catch (error) {
         console.warn('Unable to save selected location:', error);
       }
 
-      onLocationSelected(location);
+      onLocationSelected(selectedLocation);
       onClose();
     },
     [onClose, onLocationSelected],
@@ -258,7 +347,9 @@ const LocationBottomSheet: React.FC<Props> = ({
     }
 
     return savedLocations.filter(location =>
-      `${location.title} ${location.address}`.toLowerCase().includes(query),
+      `${location.title} ${location.address}`
+        .toLowerCase()
+        .includes(query),
     );
   }, [savedLocations, searchText]);
 
@@ -289,10 +380,11 @@ const LocationBottomSheet: React.FC<Props> = ({
     index: number,
   ) => (
     <TouchableOpacity
-      key={`${getLocationKey(location)}-${index}`}
+      key={`${location.placeId || index}`}
       activeOpacity={0.75}
       style={styles.locationRow}
       onPress={() => handleSelectLocation(location)}
+      disabled={isSearching}
     >
       <View style={styles.locationIconContainer}>
         <Text style={styles.locationIcon}>⌖</Text>
@@ -302,6 +394,7 @@ const LocationBottomSheet: React.FC<Props> = ({
         <Text style={styles.locationTitle} numberOfLines={2}>
           {location.name || location.address.split(',')[0]}
         </Text>
+
         <Text style={styles.locationSubtitle} numberOfLines={2}>
           {location.display_name || location.address}
         </Text>
@@ -328,6 +421,7 @@ const LocationBottomSheet: React.FC<Props> = ({
         <Text style={styles.locationTitle} numberOfLines={1}>
           {location.title}
         </Text>
+
         <Text style={styles.locationSubtitle} numberOfLines={2}>
           {location.address}
         </Text>
@@ -355,6 +449,7 @@ const LocationBottomSheet: React.FC<Props> = ({
         <Text style={styles.locationTitle} numberOfLines={1}>
           {location.address.split(',')[0] || 'Recent location'}
         </Text>
+
         <Text style={styles.locationSubtitle} numberOfLines={2}>
           {location.address}
         </Text>
@@ -365,17 +460,17 @@ const LocationBottomSheet: React.FC<Props> = ({
   );
 
   return (
-  <Modal
-  isVisible={visible}
-  onBackdropPress={onClose}
-  onBackButtonPress={onClose}
-  style={styles.modal}
-  animationIn="slideInUp"
-  animationOut="slideOutDown"
-  backdropOpacity={0.42}
-  useNativeDriver={false}
-  useNativeDriverForBackdrop={false}
->
+    <Modal
+      isVisible={visible}
+      onBackdropPress={onClose}
+      onBackButtonPress={onClose}
+      style={styles.modal}
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      backdropOpacity={0.42}
+      useNativeDriver={false}
+      useNativeDriverForBackdrop={false}
+    >
       <View style={styles.sheet}>
         <View style={styles.handleArea}>
           <View style={styles.handle} />
@@ -400,29 +495,37 @@ const LocationBottomSheet: React.FC<Props> = ({
           </TouchableOpacity>
         </View>
 
+        {/* Search input - automatically searches while typing */}
         <View style={styles.searchContainer}>
           <Text style={styles.searchIcon}>⌕</Text>
 
           <TextInput
             value={searchText}
-            onChangeText={text => {
-              setSearchText(text);
-              setSearchResults([]);
-            }}
-            onSubmitEditing={handleSearch}
+            onChangeText={setSearchText}
             placeholder="Search area, street or landmark"
             placeholderTextColor={COLORS.placeholder}
             style={styles.searchInput}
             returnKeyType="search"
             autoCorrect={false}
+            autoCapitalize="none"
             accessibilityLabel="Search for a location"
           />
+
+          {isSearching && (
+            <ActivityIndicator
+              size="small"
+              color={COLORS.primary}
+              style={styles.searchLoader}
+            />
+          )}
 
           {searchText.length > 0 && (
             <TouchableOpacity
               onPress={() => {
                 setSearchText('');
                 setSearchResults([]);
+                setHasSearched(false);
+                setSearchError('');
               }}
               style={styles.clearButton}
               accessibilityRole="button"
@@ -431,124 +534,126 @@ const LocationBottomSheet: React.FC<Props> = ({
               <Text style={styles.clearButtonText}>×</Text>
             </TouchableOpacity>
           )}
-
-          <TouchableOpacity
-            style={styles.searchButton}
-            onPress={handleSearch}
-            disabled={isSearching || !hasSearchText}
-            activeOpacity={0.8}
-          >
-            {isSearching ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.searchButtonText}>Search</Text>
-            )}
-          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.currentLocationButton}
-          onPress={handleUseCurrentLocation}
-          disabled={isLoadingLocation}
-        >
-          <View style={styles.currentLocationIconContainer}>
-            <Text style={styles.currentLocationIcon}>◎</Text>
-          </View>
-
-          <View style={styles.currentLocationContent}>
-            <Text style={styles.currentLocationTitle}>
-              Use current location
-            </Text>
-            <Text style={styles.currentLocationSubtitle}>
-              Detect your location using GPS
-            </Text>
-          </View>
-
-          {isLoadingLocation ? (
-            <ActivityIndicator size="small" color={COLORS.primary} />
-          ) : (
-            <Text style={styles.rowChevron}>›</Text>
-          )}
-        </TouchableOpacity>
-
-        {isLoadingLocation && (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color={COLORS.primary} />
-            <Text style={styles.loadingText}>
-              Detecting your location...
-            </Text>
-          </View>
-        )}
-
-        {detectedLocation && (
-          <View style={styles.detectedCard}>
-            <View style={styles.detectedHeader}>
-              <View style={styles.detectedIconContainer}>
-                <Text style={styles.detectedIcon}>✓</Text>
-              </View>
-
-              <View style={styles.detectedTextContainer}>
-                <Text style={styles.detectedTitle}>
-                  Current location detected
-                </Text>
-                <Text style={styles.detectedAddress} numberOfLines={3}>
-                  {getAddressText(detectedLocation)}
-                </Text>
-              </View>
-            </View>
-
+        {/* Current location */}
+        {!hasSearchText && (
+          <>
             <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.useLocationButton}
-              onPress={() => handleSelectLocation(detectedLocation)}
+              activeOpacity={0.8}
+              style={styles.currentLocationButton}
+              onPress={handleUseCurrentLocation}
+              disabled={isLoadingLocation}
             >
-              <Text style={styles.useLocationButtonText}>
-                Use this location
-              </Text>
+              <View style={styles.currentLocationIconContainer}>
+                <Text style={styles.currentLocationIcon}>◎</Text>
+              </View>
+
+              <View style={styles.currentLocationContent}>
+                <Text style={styles.currentLocationTitle}>
+                  Use current location
+                </Text>
+
+                <Text style={styles.currentLocationSubtitle}>
+                  Detect your location using GPS
+                </Text>
+              </View>
+
+              {isLoadingLocation ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : (
+                <Text style={styles.rowChevron}>›</Text>
+              )}
             </TouchableOpacity>
-          </View>
+
+            {isLoadingLocation && (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color={COLORS.primary} />
+                <Text style={styles.loadingText}>
+                  Detecting your location...
+                </Text>
+              </View>
+            )}
+
+            {detectedLocation && (
+              <View style={styles.detectedCard}>
+                <View style={styles.detectedHeader}>
+                  <View style={styles.detectedIconContainer}>
+                    <Text style={styles.detectedIcon}>✓</Text>
+                  </View>
+
+                  <View style={styles.detectedTextContainer}>
+                    <Text style={styles.detectedTitle}>
+                      Current location detected
+                    </Text>
+
+                    <Text style={styles.detectedAddress} numberOfLines={3}>
+                      {getAddressText(detectedLocation)}
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.useLocationButton}
+                  onPress={() => handleSelectLocation(detectedLocation)}
+                >
+                  <Text style={styles.useLocationButtonText}>
+                    Use this location
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
         )}
 
+        {/* Search results, saved locations and recent locations */}
         <ScrollView
           style={styles.scrollArea}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {hasSearchText && (
+          {hasSearchText ? (
             <>
-              {renderSectionTitle('Search results')}
+              {renderSectionTitle('Suggestions')}
 
-              {isSearching ? (
+              {searchText.trim().length < 3 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>
+                    Type at least 3 characters to find locations.
+                  </Text>
+                </View>
+              ) : isSearching && searchResults.length === 0 ? (
                 <View style={styles.emptyState}>
                   <ActivityIndicator
                     size="small"
                     color={COLORS.primary}
                   />
+
                   <Text style={styles.emptyStateText}>
                     Searching locations...
                   </Text>
                 </View>
               ) : searchResults.length > 0 ? (
                 searchResults.map(renderSearchResult)
-              ) : (
+              ) : hasSearched ? (
                 <View style={styles.emptyState}>
                   <View style={styles.emptyIconContainer}>
                     <Text style={styles.emptyIcon}>⌕</Text>
                   </View>
+
                   <Text style={styles.emptyStateTitle}>
-                    No search results yet
+                    No locations found
                   </Text>
+
                   <Text style={styles.emptyStateText}>
-                    Tap Search to find matching locations.
+                    {searchError || 'Try another address or landmark.'}
                   </Text>
                 </View>
-              )}
+              ) : null}
             </>
-          )}
-
-          {!hasSearchText && (
+          ) : (
             <>
               {filteredSavedLocations.length > 0 && (
                 <>
@@ -575,9 +680,11 @@ const LocationBottomSheet: React.FC<Props> = ({
                     <View style={styles.emptyIconContainer}>
                       <Text style={styles.emptyIcon}>◷</Text>
                     </View>
+
                     <Text style={styles.emptyStateTitle}>
                       No recent locations
                     </Text>
+
                     <Text style={styles.emptyStateText}>
                       Locations you select will appear here.
                     </Text>
@@ -684,7 +791,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingLeft: 12,
-    paddingRight: 6,
+    paddingRight: 10,
     marginBottom: 12,
   },
 
@@ -705,9 +812,13 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
 
+  searchLoader: {
+    marginRight: 10,
+  },
+
   clearButton: {
-    width: 26,
-    height: 30,
+    width: 30,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -715,23 +826,6 @@ const styles = StyleSheet.create({
   clearButtonText: {
     fontSize: 22,
     color: COLORS.placeholder,
-  },
-
-  searchButton: {
-    minWidth: 66,
-    height: 36,
-    paddingHorizontal: 11,
-    borderRadius: 10,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 5,
-  },
-
-  searchButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
   },
 
   currentLocationButton: {
