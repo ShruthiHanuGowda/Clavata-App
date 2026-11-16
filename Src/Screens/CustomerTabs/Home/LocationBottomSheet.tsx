@@ -284,85 +284,101 @@ const LocationBottomSheet: React.FC<Props> = ({
 
   // Select a search suggestion, saved location, or recent location.
 
-  const handleSelectLocation = useCallback(
-    async (location: LocationData & { placeId?: string }) => {
-      Keyboard.dismiss();
 
-      setSearchError('');
 
-      let selectedLocation: LocationData = location;
+const handleSelectLocation = useCallback(
+  async (location: SearchResult | LocationData) => {
+    Keyboard.dismiss();
+    setSearchError('');
 
-      if (location.placeId) {
-        setIsSearching(true);
+    let selectedLocation: LocationData = location;
 
-        try {
-          const place = await getPlaceDetails(location.placeId);
-
-          if (!place) {
-            throw new Error('Could not load the full location details.');
-          }
-
-          const latitude = Number(place.latitude);
-          const longitude = Number(place.longitude);
-          const address = String(place.formattedAddress || '').trim();
-
-          if (
-            !Number.isFinite(latitude) ||
-            !Number.isFinite(longitude) ||
-            latitude < -90 ||
-            latitude > 90 ||
-            longitude < -180 ||
-            longitude > 180
-          ) {
-            throw new Error('Invalid location coordinates.');
-          }
-
-          if (!address) {
-            throw new Error(
-              'The full address could not be retrieved. Please select another result.',
-            );
-          }
-
-          selectedLocation = {
-            latitude,
-            longitude,
-            address,
-          };
-        } catch (error: any) {
-          console.warn('Unable to load place details:', error);
-
-          setSearchError(
-            error?.message || 'Unable to load the full address. Please try again.',
-          );
-
-          return;
-        } finally {
-          setIsSearching(false);
-        }
-      }
-
-      if (
-        !selectedLocation.address ||
-        !selectedLocation.address.trim() ||
-        !Number.isFinite(Number(selectedLocation.latitude)) ||
-        !Number.isFinite(Number(selectedLocation.longitude))
-      ) {
-        setSearchError('This location does not have a valid address.');
-        return;
-      }
+    if ('placeId' in location && location.placeId) {
+      setIsSearching(true);
 
       try {
-        await saveLocation(selectedLocation);
-        await addRecentLocation(selectedLocation);
-      } catch (error) {
-        console.warn('Unable to save selected location:', error);
-      }
+        const place = await getPlaceDetails(location.placeId);
 
-      onLocationSelected(selectedLocation);
-      onClose();
-    },
-    [onClose, onLocationSelected],
-  );
+        if (!place) {
+          throw new Error('Could not load the full location details.');
+        }
+
+        const latitude = Number(place.latitude);
+        const longitude = Number(place.longitude);
+        const formattedAddress = String(
+          place.formattedAddress || '',
+        ).trim();
+
+        if (
+          !Number.isFinite(latitude) ||
+          !Number.isFinite(longitude) ||
+          latitude < -90 ||
+          latitude > 90 ||
+          longitude < -180 ||
+          longitude > 180
+        ) {
+          throw new Error('Invalid location coordinates.');
+        }
+
+        if (!formattedAddress) {
+          throw new Error('Full address could not be retrieved.');
+        }
+
+        const placeName = String(
+          ('name' in location ? location.name : '') || '',
+        ).trim();
+
+        const fullAddress = [
+          placeName,
+          formattedAddress,
+        ]
+          .filter(Boolean)
+          .join(', ');
+
+        selectedLocation = {
+          latitude,
+          longitude,
+          address: fullAddress,
+        };
+
+        console.log('[PlaceDetails] Place name:', placeName);
+        console.log('[PlaceDetails] Full address:', fullAddress);
+      } catch (error: any) {
+        console.warn('Unable to load place details:', error);
+
+        setSearchError(
+          error?.message ||
+            'Unable to load the full address. Please try again.',
+        );
+
+        return;
+      } finally {
+        setIsSearching(false);
+      }
+    }
+
+    if (
+      !selectedLocation.address?.trim() ||
+      !Number.isFinite(Number(selectedLocation.latitude)) ||
+      !Number.isFinite(Number(selectedLocation.longitude))
+    ) {
+      setSearchError('This location does not have a valid address.');
+      return;
+    }
+
+    try {
+      await saveLocation(selectedLocation);
+      await addRecentLocation(selectedLocation);
+    } catch (error) {
+      console.warn('Unable to save selected location:', error);
+    }
+
+    onLocationSelected(selectedLocation);
+    onClose();
+  },
+  [onClose, onLocationSelected],
+);
+
 
 
   const filteredSavedLocations = useMemo(() => {

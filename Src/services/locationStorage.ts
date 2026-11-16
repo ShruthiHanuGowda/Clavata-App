@@ -14,6 +14,9 @@ export type LocationData = {
   latitude: number;
   longitude: number;
   address: string;
+  name?: string;
+  display_name?: string;
+  placeId?: string;
 };
 
 export type SavedLocation = LocationData & {
