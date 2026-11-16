@@ -145,17 +145,17 @@ type Offer = {
     description?: string;
 
     discountType:
-        | 'PERCENTAGE'
-        | 'FIXED'
-        | string;
+    | 'PERCENTAGE'
+    | 'FIXED'
+    | string;
 
     discountValue: number;
 
     couponCode?: string | null;
 
     minimumBookingAmount?:
-        | number
-        | null;
+    | number
+    | null;
 
     category?: string | null;
 
@@ -509,10 +509,30 @@ export default function SalonDetailsScreen({
     const approvedCover =
         salon?.coverMedia?.status ===
             'APPROVED' &&
-        salon?.coverMedia?.objectUrl
+            salon?.coverMedia?.objectUrl
             ? salon.coverMedia.objectUrl
             : null;
+    /**
+     * ----------------------------------------------------
+     * APPROVED SALON LOGO
+     * ----------------------------------------------------
+     */
 
+    // Prefer the logo returned by GET_SALON.
+    // Fall back to the logo passed from SalonCard.
+    const routeLogoMedia =
+        route?.params?.salon?.logoMedia ?? null;
+
+    const approvedLogo =
+        [
+            salon?.logoMedia,
+            routeLogoMedia,
+        ].find(
+            media =>
+                media?.mediaType === 'LOGO' &&
+                media?.status === 'APPROVED' &&
+                Boolean(media?.objectUrl),
+        )?.objectUrl ?? null;
     /**
      * ----------------------------------------------------
      * APPROVED GALLERY
@@ -533,7 +553,7 @@ export default function SalonDetailsScreen({
                     String(
                         media?.status || '',
                     ).toUpperCase() ===
-                        'APPROVED' &&
+                    'APPROVED' &&
                     Boolean(
                         media?.objectUrl,
                     ),
@@ -578,7 +598,7 @@ export default function SalonDetailsScreen({
                 minimumBookingAmount:
                     routeOffer.minimumBookingAmount !==
                         null &&
-                    routeOffer.minimumBookingAmount !==
+                        routeOffer.minimumBookingAmount !==
                         undefined
                         ? Number(
                             routeOffer.minimumBookingAmount,
@@ -696,7 +716,7 @@ export default function SalonDetailsScreen({
             const categoryId =
                 String(
                     service.categoryId ||
-                        '',
+                    '',
                 )
                     .trim()
                     .toLowerCase();
@@ -704,16 +724,16 @@ export default function SalonDetailsScreen({
             const categoryName =
                 String(
                     service.categoryName ||
-                        '',
+                    '',
                 )
                     .trim()
                     .toLowerCase();
 
             return (
                 offerCategory ===
-                    categoryId ||
+                categoryId ||
                 offerCategory ===
-                    categoryName
+                categoryName
             );
         }
 
@@ -728,9 +748,9 @@ export default function SalonDetailsScreen({
     const {
         data: favoriteData,
         loading:
-            favoriteStatusLoading,
+        favoriteStatusLoading,
         refetch:
-            refetchFavoriteStatus,
+        refetchFavoriteStatus,
     } = useQuery(
         IS_FAVORITE_SALON,
         {
@@ -762,11 +782,11 @@ export default function SalonDetailsScreen({
         if (
             favoriteData &&
             favoriteData.isFavoriteSalon !==
-                undefined
+            undefined
         ) {
             setIsFavorite(
                 favoriteData.isFavoriteSalon ===
-                    true,
+                true,
             );
         }
     }, [favoriteData]);
@@ -906,7 +926,7 @@ export default function SalonDetailsScreen({
                     const audience =
                         String(
                             service.audience ||
-                                '',
+                            '',
                         )
                             .trim()
                             .toUpperCase();
@@ -948,7 +968,7 @@ export default function SalonDetailsScreen({
                 service =>
                     String(
                         service.audience ||
-                            '',
+                        '',
                     )
                         .trim()
                         .toUpperCase() ===
@@ -977,8 +997,8 @@ export default function SalonDetailsScreen({
                     const key =
                         String(
                             service.categoryId ||
-                                service.categoryName ||
-                                '',
+                            service.categoryName ||
+                            '',
                         )
                             .trim()
                             .toLowerCase();
@@ -986,8 +1006,8 @@ export default function SalonDetailsScreen({
                     const name =
                         String(
                             service.categoryName ||
-                                service.categoryId ||
-                                '',
+                            service.categoryId ||
+                            '',
                         ).trim();
 
                     if (
@@ -1047,7 +1067,7 @@ export default function SalonDetailsScreen({
                     const categoryId =
                         String(
                             service.categoryId ||
-                                '',
+                            '',
                         )
                             .trim()
                             .toLowerCase();
@@ -1055,16 +1075,16 @@ export default function SalonDetailsScreen({
                     const categoryName =
                         String(
                             service.categoryName ||
-                                '',
+                            '',
                         )
                             .trim()
                             .toLowerCase();
 
                     return (
                         selectedCategory ===
-                            categoryId ||
+                        categoryId ||
                         selectedCategory ===
-                            categoryName
+                        categoryName
                     );
                 },
             );
@@ -1099,14 +1119,14 @@ export default function SalonDetailsScreen({
                     const categoryName =
                         String(
                             service.categoryName ||
-                                service.categoryId ||
-                                'Other',
+                            service.categoryId ||
+                            'Other',
                         ).trim();
 
                     const categoryId =
                         String(
                             service.categoryId ||
-                                categoryName,
+                            categoryName,
                         ).trim();
 
                     const categoryKey =
@@ -1139,14 +1159,14 @@ export default function SalonDetailsScreen({
                     const subcategoryName =
                         String(
                             service.subcategoryName ||
-                                service.subcategoryId ||
-                                'Other',
+                            service.subcategoryId ||
+                            'Other',
                         ).trim();
 
                     const subcategoryId =
                         String(
                             service.subcategoryId ||
-                                subcategoryName,
+                            subcategoryName,
                         ).trim();
 
                     const subcategoryKey =
@@ -1301,9 +1321,9 @@ export default function SalonDetailsScreen({
             if (
                 !normalizedOffer ||
                 normalizedOffer.minimumBookingAmount ===
-                    null ||
+                null ||
                 normalizedOffer.minimumBookingAmount ===
-                    undefined
+                undefined
             ) {
                 return true;
             }
@@ -1338,7 +1358,7 @@ export default function SalonDetailsScreen({
             const discountValue =
                 Number(
                     normalizedOffer.discountValue ||
-                        0,
+                    0,
                 );
 
             if (
@@ -1351,7 +1371,7 @@ export default function SalonDetailsScreen({
                 String(
                     normalizedOffer.discountType,
                 ).toUpperCase() ===
-                    'PERCENTAGE'
+                'PERCENTAGE'
             ) {
                 return Math.min(
                     eligibleSubtotal,
@@ -1366,7 +1386,7 @@ export default function SalonDetailsScreen({
                 String(
                     normalizedOffer.discountType,
                 ).toUpperCase() ===
-                    'FIXED'
+                'FIXED'
             ) {
                 return Math.min(
                     eligibleSubtotal,
@@ -1392,7 +1412,7 @@ export default function SalonDetailsScreen({
             return Math.max(
                 0,
                 subtotal -
-                    discountAmount,
+                discountAmount,
             );
         }, [
             subtotal,
@@ -1402,9 +1422,9 @@ export default function SalonDetailsScreen({
     const offerApplied =
         Boolean(
             normalizedOffer &&
-                isOfferValid &&
-                minimumBookingAmountMet &&
-                discountAmount > 0,
+            isOfferValid &&
+            minimumBookingAmountMet &&
+            discountAmount > 0,
         );
 
     /**
@@ -1433,7 +1453,7 @@ export default function SalonDetailsScreen({
             const discountType =
                 String(
                     normalizedOffer?.discountType ||
-                        '',
+                    '',
                 ).toUpperCase();
 
             if (
@@ -1443,7 +1463,7 @@ export default function SalonDetailsScreen({
                 const percentage =
                     Number(
                         normalizedOffer?.discountValue ||
-                            0,
+                        0,
                     );
 
                 const serviceDiscount =
@@ -1455,15 +1475,15 @@ export default function SalonDetailsScreen({
                 return Math.max(
                     0,
                     originalPrice -
-                        serviceDiscount,
+                    serviceDiscount,
                 );
             }
 
             if (
                 discountType ===
-                    'FIXED' &&
+                'FIXED' &&
                 eligibleSubtotal >
-                    0
+                0
             ) {
                 const serviceShare =
                     originalPrice /
@@ -1476,7 +1496,7 @@ export default function SalonDetailsScreen({
                 return Math.max(
                     0,
                     originalPrice -
-                        allocatedDiscount,
+                    allocatedDiscount,
                 );
             }
 
@@ -1500,7 +1520,7 @@ export default function SalonDetailsScreen({
                 String(
                     normalizedOffer.discountType,
                 ).toUpperCase() ===
-                    'PERCENTAGE'
+                'PERCENTAGE'
             ) {
                 return `${normalizedOffer.discountValue}% OFF`;
             }
@@ -1509,7 +1529,7 @@ export default function SalonDetailsScreen({
                 String(
                     normalizedOffer.discountType,
                 ).toUpperCase() ===
-                    'FIXED'
+                'FIXED'
             ) {
                 return `₹${normalizedOffer.discountValue} OFF`;
             }
@@ -1539,9 +1559,9 @@ export default function SalonDetailsScreen({
             if (
                 !minimumBookingAmountMet &&
                 normalizedOffer.minimumBookingAmount !==
-                    null &&
+                null &&
                 normalizedOffer.minimumBookingAmount !==
-                    undefined
+                undefined
             ) {
                 const remaining =
                     Math.max(
@@ -1549,7 +1569,7 @@ export default function SalonDetailsScreen({
                         Number(
                             normalizedOffer.minimumBookingAmount,
                         ) -
-                            subtotal,
+                        subtotal,
                     );
 
                 return `Add ₹${remaining.toFixed(
@@ -1589,8 +1609,8 @@ export default function SalonDetailsScreen({
                 sum +
                 Number(
                     item.duration ??
-                        item.durationMinutes ??
-                        0,
+                    item.durationMinutes ??
+                    0,
                 ),
             0,
         );
@@ -1617,20 +1637,20 @@ export default function SalonDetailsScreen({
             if (
                 directDay &&
                 typeof directDay ===
-                    'object'
+                'object'
             ) {
                 return directDay;
             }
 
             const nestedDay =
                 salon.businessHours?.[
-                    day
+                day
                 ];
 
             if (
                 nestedDay &&
                 typeof nestedDay ===
-                    'object'
+                'object'
             ) {
                 return nestedDay;
             }
@@ -1651,14 +1671,14 @@ export default function SalonDetailsScreen({
             const days: (
                 keyof BusinessHours
             )[] = [
-                'SUNDAY',
-                'MONDAY',
-                'TUESDAY',
-                'WEDNESDAY',
-                'THURSDAY',
-                'FRIDAY',
-                'SATURDAY',
-            ];
+                    'SUNDAY',
+                    'MONDAY',
+                    'TUESDAY',
+                    'WEDNESDAY',
+                    'THURSDAY',
+                    'FRIDAY',
+                    'SATURDAY',
+                ];
 
             return days[day];
         };
@@ -1735,7 +1755,7 @@ export default function SalonDetailsScreen({
 
             if (
                 todayHours.isOpen !==
-                    true
+                true
             ) {
                 return false;
             }
@@ -1752,7 +1772,7 @@ export default function SalonDetailsScreen({
 
             const currentMinutes =
                 now.getHours() *
-                    60 +
+                60 +
                 now.getMinutes();
 
             const openMinutes =
@@ -1782,9 +1802,9 @@ export default function SalonDetailsScreen({
             ) {
                 return (
                     currentMinutes >=
-                        openMinutes &&
+                    openMinutes &&
                     currentMinutes <
-                        closeMinutes
+                    closeMinutes
                 );
             }
 
@@ -1794,9 +1814,9 @@ export default function SalonDetailsScreen({
             ) {
                 return (
                     currentMinutes >=
-                        openMinutes ||
+                    openMinutes ||
                     currentMinutes <
-                        closeMinutes
+                    closeMinutes
                 );
             }
 
@@ -2216,7 +2236,7 @@ export default function SalonDetailsScreen({
                                     style={[
                                         styles.favorite,
                                         isFavorite &&
-                                            styles.favoriteActive,
+                                        styles.favoriteActive,
                                     ]}
                                 >
                                     {isFavorite
@@ -2229,7 +2249,7 @@ export default function SalonDetailsScreen({
                         {/* COVER */}
 
                         {approvedCover &&
-                        !coverLoadFailed ? (
+                            !coverLoadFailed ? (
                             <Image
                                 source={{
                                     uri:
@@ -2265,6 +2285,38 @@ export default function SalonDetailsScreen({
                                 styles.salonInfo
                             }
                         >
+                            {/* SALON LOGO */}
+
+                            {approvedLogo ? (
+                                <Image
+                                    source={{
+                                        uri: approvedLogo,
+                                    }}
+                                    style={
+                                        styles.salonLogo
+                                    }
+                                    resizeMode="cover"
+                                    onLoad={() => {
+                                        console.log(
+                                            '[SalonDetails] ✅ LOGO LOADED:',
+                                            salon.salonId,
+                                        );
+                                    }}
+                                    onError={event => {
+                                        console.log(
+                                            '[SalonDetails] ❌ LOGO LOAD FAILED:',
+                                            event?.nativeEvent,
+                                        );
+                                    }}
+                                />
+                            ) : (
+                                <View
+                                    style={
+                                        styles.salonLogoPlaceholder
+                                    }
+                                />
+                            )}
+
                             <Text
                                 style={
                                     styles.salonName
@@ -2303,7 +2355,7 @@ export default function SalonDetailsScreen({
                                     >
                                         {Number(
                                             salon.averageRating ??
-                                                0,
+                                            0,
                                         ).toFixed(
                                             1,
                                         )}
@@ -2402,112 +2454,112 @@ export default function SalonDetailsScreen({
 
                         {approvedGallery.length >
                             0 && (
-                            <View
-                                style={
-                                    styles.gallerySection
-                                }
-                            >
                                 <View
                                     style={
-                                        styles.galleryHeader
+                                        styles.gallerySection
                                     }
                                 >
-                                    <Text
+                                    <View
                                         style={
-                                            styles.sectionTitle
+                                            styles.galleryHeader
                                         }
                                     >
-                                        Gallery
-                                    </Text>
+                                        <Text
+                                            style={
+                                                styles.sectionTitle
+                                            }
+                                        >
+                                            Gallery
+                                        </Text>
 
-                                    <Text
-                                        style={
-                                            styles.galleryCount
+                                        <Text
+                                            style={
+                                                styles.galleryCount
+                                            }
+                                        >
+                                            {
+                                                approvedGallery.length
+                                            }{' '}
+                                            {approvedGallery.length ===
+                                                1
+                                                ? 'photo'
+                                                : 'photos'}
+                                        </Text>
+                                    </View>
+
+                                    <FlatList
+                                        data={
+                                            approvedGallery
                                         }
-                                    >
-                                        {
-                                            approvedGallery.length
-                                        }{' '}
-                                        {approvedGallery.length ===
-                                        1
-                                            ? 'photo'
-                                            : 'photos'}
-                                    </Text>
-                                </View>
-
-                                <FlatList
-                                    data={
-                                        approvedGallery
-                                    }
-                                    horizontal
-                                    showsHorizontalScrollIndicator={
-                                        false
-                                    }
-                                    keyExtractor={(
-                                        item,
-                                        index,
-                                    ) =>
-                                        item.imageId ||
-                                        item.key ||
-                                        `gallery-${index}`
-                                    }
-                                    contentContainerStyle={
-                                        styles.galleryList
-                                    }
-                                    renderItem={({
-                                        item,
-                                        index,
-                                    }) => {
-                                        const galleryKey =
+                                        horizontal
+                                        showsHorizontalScrollIndicator={
+                                            false
+                                        }
+                                        keyExtractor={(
+                                            item,
+                                            index,
+                                        ) =>
                                             item.imageId ||
                                             item.key ||
-                                            String(
-                                                index,
-                                            );
+                                            `gallery-${index}`
+                                        }
+                                        contentContainerStyle={
+                                            styles.galleryList
+                                        }
+                                        renderItem={({
+                                            item,
+                                            index,
+                                        }) => {
+                                            const galleryKey =
+                                                item.imageId ||
+                                                item.key ||
+                                                String(
+                                                    index,
+                                                );
 
-                                        const failed =
-                                            galleryLoadFailed[
+                                            const failed =
+                                                galleryLoadFailed[
                                                 galleryKey
-                                            ];
+                                                ];
 
-                                        if (
-                                            failed ||
-                                            !item.objectUrl
-                                        ) {
+                                            if (
+                                                failed ||
+                                                !item.objectUrl
+                                            ) {
+                                                return (
+                                                    <View
+                                                        style={
+                                                            styles.galleryImagePlaceholder
+                                                        }
+                                                    />
+                                                );
+                                            }
+
                                             return (
-                                                <View
+                                                <Image
+                                                    source={{
+                                                        uri:
+                                                            item.objectUrl,
+                                                    }}
                                                     style={
-                                                        styles.galleryImagePlaceholder
+                                                        styles.galleryImage
                                                     }
+                                                    resizeMode="cover"
+                                                    onError={() => {
+                                                        setGalleryLoadFailed(
+                                                            previous => ({
+                                                                ...previous,
+                                                                [galleryKey]:
+                                                                    true,
+                                                            }),
+                                                        );
+                                                    }}
                                                 />
                                             );
-                                        }
-
-                                        return (
-                                            <Image
-                                                source={{
-                                                    uri:
-                                                        item.objectUrl,
-                                                }}
-                                                style={
-                                                    styles.galleryImage
-                                                }
-                                                resizeMode="cover"
-                                                onError={() => {
-                                                    setGalleryLoadFailed(
-                                                        previous => ({
-                                                            ...previous,
-                                                            [galleryKey]:
-                                                                true,
-                                                        }),
-                                                    );
-                                                }}
-                                            />
-                                        );
-                                    }}
-                                />
-                            </View>
-                        )}
+                                        }}
+                                    />
+                                </View>
+                            )}
 
                         {/* OFFER */}
 
@@ -2575,7 +2627,7 @@ export default function SalonDetailsScreen({
                                     {normalizedOffer.minimumBookingAmount !==
                                         null &&
                                         normalizedOffer.minimumBookingAmount !==
-                                            undefined && (
+                                        undefined && (
                                             <Text
                                                 style={
                                                     styles.offerMinimum
@@ -2661,9 +2713,9 @@ export default function SalonDetailsScreen({
                                                 style={[
                                                     styles.audienceFilter,
                                                     active &&
-                                                        styles.audienceFilterActive,
+                                                    styles.audienceFilterActive,
                                                     !available &&
-                                                        styles.audienceFilterDisabled,
+                                                    styles.audienceFilterDisabled,
                                                 ]}
                                                 onPress={() =>
                                                     setSelectedAudience(
@@ -2677,9 +2729,9 @@ export default function SalonDetailsScreen({
                                                     style={[
                                                         styles.audienceFilterText,
                                                         active &&
-                                                            styles.audienceFilterTextActive,
+                                                        styles.audienceFilterTextActive,
                                                         !available &&
-                                                            styles.audienceFilterTextDisabled,
+                                                        styles.audienceFilterTextDisabled,
                                                     ]}
                                                 >
                                                     {
@@ -2712,7 +2764,7 @@ export default function SalonDetailsScreen({
 
                             {selectedAudience &&
                                 categories.length >
-                                    0 && (
+                                0 && (
                                     <View
                                         style={
                                             styles.categoryArea
@@ -2740,7 +2792,7 @@ export default function SalonDetailsScreen({
                                                     categories.length
                                                 }{' '}
                                                 {categories.length ===
-                                                1
+                                                    1
                                                     ? 'category'
                                                     : 'categories'}
                                             </Text>
@@ -2769,11 +2821,11 @@ export default function SalonDetailsScreen({
                                             }) => {
                                                 const active =
                                                     item.key ===
-                                                    'all'
+                                                        'all'
                                                         ? selectedCategory ===
-                                                          null
+                                                        null
                                                         : selectedCategory ===
-                                                          item.key;
+                                                        item.key;
 
                                                 return (
                                                     <TouchableOpacity
@@ -2783,7 +2835,7 @@ export default function SalonDetailsScreen({
                                                         style={[
                                                             styles.categoryFilter,
                                                             active &&
-                                                                styles.categoryFilterActive,
+                                                            styles.categoryFilterActive,
                                                         ]}
                                                         onPress={() => {
                                                             if (
@@ -2806,7 +2858,7 @@ export default function SalonDetailsScreen({
                                                             style={[
                                                                 styles.categoryFilterText,
                                                                 active &&
-                                                                    styles.categoryFilterTextActive,
+                                                                styles.categoryFilterTextActive,
                                                             ]}
                                                         >
                                                             {
@@ -2824,7 +2876,7 @@ export default function SalonDetailsScreen({
 
                             {!selectedAudience &&
                                 services.length >
-                                    0 && (
+                                0 && (
                                     <View
                                         style={
                                             styles.chooseAudienceCard
@@ -2874,7 +2926,7 @@ export default function SalonDetailsScreen({
 
                             {selectedAudience &&
                                 categories.length ===
-                                    0 &&
+                                0 &&
                                 !servicesLoading && (
                                     <View
                                         style={
@@ -2922,7 +2974,7 @@ export default function SalonDetailsScreen({
                                                     category.key ===
                                                     selectedCategory,
                                             )?.name ||
-                                                'Services'
+                                            'Services'
                                             : `${AUDIENCE_OPTIONS.find(
                                                 audience =>
                                                     audience.key ===
@@ -2939,7 +2991,7 @@ export default function SalonDetailsScreen({
                                             filteredServices.length
                                         }{' '}
                                         {filteredServices.length ===
-                                        1
+                                            1
                                             ? 'service'
                                             : 'services'}{' '}
                                         available
@@ -3063,7 +3115,7 @@ export default function SalonDetailsScreen({
                                             categoryGroup.subcategories.length
                                         }{' '}
                                         {categoryGroup.subcategories.length ===
-                                        1
+                                            1
                                             ? 'subcategory'
                                             : 'subcategories'}
                                     </Text>
@@ -3143,7 +3195,7 @@ export default function SalonDetailsScreen({
                                                     {subcategoryGroup
                                                         .services
                                                         .length ===
-                                                    1
+                                                        1
                                                         ? 'service'
                                                         : 'services'}
                                                 </Text>
@@ -3169,7 +3221,7 @@ export default function SalonDetailsScreen({
                                                 const originalPrice =
                                                     Number(
                                                         service.price ||
-                                                            0,
+                                                        0,
                                                     );
 
                                                 const displayPrice =
@@ -3181,13 +3233,13 @@ export default function SalonDetailsScreen({
                                                     offerApplied &&
                                                     eligible &&
                                                     displayPrice <
-                                                        originalPrice;
+                                                    originalPrice;
 
                                                 const duration =
                                                     Number(
                                                         service.duration ??
-                                                            service.durationMinutes ??
-                                                            0,
+                                                        service.durationMinutes ??
+                                                        0,
                                                     );
 
                                                 return (
@@ -3198,10 +3250,10 @@ export default function SalonDetailsScreen({
                                                         style={[
                                                             styles.serviceCard,
                                                             selected &&
-                                                                styles.selectedServiceCard,
+                                                            styles.selectedServiceCard,
                                                             offerApplied &&
-                                                                eligible &&
-                                                                styles.offerEligibleCard,
+                                                            eligible &&
+                                                            styles.offerEligibleCard,
                                                         ]}
                                                     >
                                                         <TouchableOpacity
@@ -3299,7 +3351,7 @@ export default function SalonDetailsScreen({
                                                                             style={[
                                                                                 styles.price,
                                                                                 hasDiscount &&
-                                                                                    styles.discountedPrice,
+                                                                                styles.discountedPrice,
                                                                             ]}
                                                                         >
                                                                             ₹
@@ -3366,14 +3418,14 @@ export default function SalonDetailsScreen({
                                                             style={[
                                                                 styles.serviceActionButton,
                                                                 selected &&
-                                                                    styles.serviceActionButtonRemove,
+                                                                styles.serviceActionButtonRemove,
                                                             ]}
                                                         >
                                                             <Text
                                                                 style={[
                                                                     styles.serviceActionIcon,
                                                                     selected &&
-                                                                        styles.serviceActionIconRemove,
+                                                                    styles.serviceActionIconRemove,
                                                                 ]}
                                                             >
                                                                 {selected
@@ -3385,7 +3437,7 @@ export default function SalonDetailsScreen({
                                                                 style={[
                                                                     styles.serviceActionText,
                                                                     selected &&
-                                                                        styles.serviceActionTextRemove,
+                                                                    styles.serviceActionTextRemove,
                                                                 ]}
                                                             >
                                                                 {selected
@@ -3545,7 +3597,7 @@ export default function SalonDetailsScreen({
                                         selectedServices.length
                                     }{' '}
                                     {selectedServices.length ===
-                                    1
+                                        1
                                         ? 'service'
                                         : 'services'}{' '}
                                     selected
@@ -3601,8 +3653,8 @@ export default function SalonDetailsScreen({
                                 const duration =
                                     Number(
                                         service.duration ??
-                                            service.durationMinutes ??
-                                            0,
+                                        service.durationMinutes ??
+                                        0,
                                     );
 
                                 const categoryName =
@@ -3758,7 +3810,7 @@ export default function SalonDetailsScreen({
                                 >
                                     {selectedServices.length}{' '}
                                     {selectedServices.length ===
-                                    1
+                                        1
                                         ? 'service'
                                         : 'services'}
                                 </Text>
@@ -3867,311 +3919,311 @@ export default function SalonDetailsScreen({
                 </View>
             </Modal>
 
-           {/* ====================================================
+            {/* ====================================================
     BOTTOM BOOKING BAR
    ==================================================== */}
 
-{selectedServices.length > 0 && (
-    <View
-        style={
-            styles.bottomBar
-        }
-    >
-        {/* TAP THIS AREA TO VIEW SELECTED SERVICES */}
-
-        <TouchableOpacity
-            activeOpacity={
-                0.75
-            }
-            style={
-                styles.bottomInfo
-            }
-            onPress={() =>
-                setSelectedServicesVisible(
-                    true,
-                )
-            }
-        >
-            <View
-                style={
-                    styles.bottomSelectedRow
-                }
-            >
-                <Text
+            {selectedServices.length > 0 && (
+                <View
                     style={
-                        styles.selectedText
+                        styles.bottomBar
                     }
                 >
-                    {
-                        selectedServices.length
-                    }{' '}
-                    {selectedServices.length ===
-                    1
-                        ? 'service'
-                        : 'services'}
-                </Text>
+                    {/* TAP THIS AREA TO VIEW SELECTED SERVICES */}
 
-                <Text
-                    style={
-                        styles.bottomViewText
-                    }
-                >
-                    View
-                </Text>
-
-                <Text
-                    style={
-                        styles.bottomViewArrow
-                    }
-                >
-                    ↑
-                </Text>
-            </View>
-
-            {offerApplied && (
-                <Text
-                    style={
-                        styles.bottomOriginalPrice
-                    }
-                >
-                    ₹
-                    {subtotal.toFixed(
-                        0,
-                    )}
-                </Text>
-            )}
-
-            {/* SERVICES TOTAL */}
-
-            <Text
-                style={
-                    styles.totalPrice
-                }
-            >
-                ₹
-                {discountedServicesTotal.toFixed(
-                    0,
-                )}
-            </Text>
-
-            {offerApplied && (
-                <Text
-                    style={
-                        styles.bottomSavings
-                    }
-                >
-                    Save ₹
-                    {discountAmount.toFixed(
-                        0,
-                    )}
-                </Text>
-            )}
-
-            {!offerApplied &&
-                normalizedOffer &&
-                !minimumBookingAmountMet && (
-                    <Text
+                    <TouchableOpacity
+                        activeOpacity={
+                            0.75
+                        }
                         style={
-                            styles.minimumAmountWarning
+                            styles.bottomInfo
+                        }
+                        onPress={() =>
+                            setSelectedServicesVisible(
+                                true,
+                            )
                         }
                     >
-                        Add more for offer
-                    </Text>
-                )}
+                        <View
+                            style={
+                                styles.bottomSelectedRow
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.selectedText
+                                }
+                            >
+                                {
+                                    selectedServices.length
+                                }{' '}
+                                {selectedServices.length ===
+                                    1
+                                    ? 'service'
+                                    : 'services'}
+                            </Text>
 
-            {/* FIXED CLAVATA BOOKING FEE */}
+                            <Text
+                                style={
+                                    styles.bottomViewText
+                                }
+                            >
+                                View
+                            </Text>
 
-            <View
-                style={
-                    styles.bookingFeeRow
-                }
-            >
-                <Text
-                    style={
-                        styles.bookingFeeLabel
-                    }
-                >
-                    Booking fee
-                </Text>
+                            <Text
+                                style={
+                                    styles.bottomViewArrow
+                                }
+                            >
+                                ↑
+                            </Text>
+                        </View>
 
-                <Text
-                    style={
-                        styles.bookingFeeValue
-                    }
-                >
-                    ₹9
-                </Text>
-            </View>
+                        {offerApplied && (
+                            <Text
+                                style={
+                                    styles.bottomOriginalPrice
+                                }
+                            >
+                                ₹
+                                {subtotal.toFixed(
+                                    0,
+                                )}
+                            </Text>
+                        )}
 
-            <Text
-                style={
-                    styles.totalDuration
-                }
-            >
-                {
-                    totalDuration
-                }{' '}
-                mins
-            </Text>
-        </TouchableOpacity>
+                        {/* SERVICES TOTAL */}
 
-        {/* CONTINUE */}
+                        <Text
+                            style={
+                                styles.totalPrice
+                            }
+                        >
+                            ₹
+                            {discountedServicesTotal.toFixed(
+                                0,
+                            )}
+                        </Text>
 
-        <TouchableOpacity
-            style={
-                styles.continueButton
-            }
-            activeOpacity={
-                0.85
-            }
-            onPress={() => {
-                if (
-                    !currentUser?.userId
-                ) {
-                    Alert.alert(
-                        'Login required',
-                        'Please login to continue booking.',
-                    );
+                        {offerApplied && (
+                            <Text
+                                style={
+                                    styles.bottomSavings
+                                }
+                            >
+                                Save ₹
+                                {discountAmount.toFixed(
+                                    0,
+                                )}
+                            </Text>
+                        )}
 
-                    return;
-                }
+                        {!offerApplied &&
+                            normalizedOffer &&
+                            !minimumBookingAmountMet && (
+                                <Text
+                                    style={
+                                        styles.minimumAmountWarning
+                                    }
+                                >
+                                    Add more for offer
+                                </Text>
+                            )}
 
-                if (
-                    !salon?.salonId
-                ) {
-                    Alert.alert(
-                        'Salon unavailable',
-                        'Salon information is missing. Please try again.',
-                    );
+                        {/* FIXED CLAVATA BOOKING FEE */}
 
-                    return;
-                }
+                        <View
+                            style={
+                                styles.bookingFeeRow
+                            }
+                        >
+                            <Text
+                                style={
+                                    styles.bookingFeeLabel
+                                }
+                            >
+                                Booking fee
+                            </Text>
 
-                if (
-                    selectedServices.length ===
-                    0
-                ) {
-                    Alert.alert(
-                        'Select a service',
-                        'Please select at least one service before continuing.',
-                    );
+                            <Text
+                                style={
+                                    styles.bookingFeeValue
+                                }
+                            >
+                                ₹9
+                            </Text>
+                        </View>
 
-                    return;
-                }
+                        <Text
+                            style={
+                                styles.totalDuration
+                            }
+                        >
+                            {
+                                totalDuration
+                            }{' '}
+                            mins
+                        </Text>
+                    </TouchableOpacity>
 
-                const params = {
-                    salonId:
-                        salon.salonId,
+                    {/* CONTINUE */}
 
-                    salon,
+                    <TouchableOpacity
+                        style={
+                            styles.continueButton
+                        }
+                        activeOpacity={
+                            0.85
+                        }
+                        onPress={() => {
+                            if (
+                                !currentUser?.userId
+                            ) {
+                                Alert.alert(
+                                    'Login required',
+                                    'Please login to continue booking.',
+                                );
 
-                    salonName:
-                        salon.salonName,
+                                return;
+                            }
 
-                    customerUserId:
-                        currentUser.userId,
+                            if (
+                                !salon?.salonId
+                            ) {
+                                Alert.alert(
+                                    'Salon unavailable',
+                                    'Salon information is missing. Please try again.',
+                                );
 
-                    services:
-                        selectedServices,
+                                return;
+                            }
 
-                    offer:
-                        normalizedOffer ||
-                        undefined,
+                            if (
+                                selectedServices.length ===
+                                0
+                            ) {
+                                Alert.alert(
+                                    'Select a service',
+                                    'Please select at least one service before continuing.',
+                                );
 
-                    offerId:
-                        routeOfferId ||
-                        normalizedOffer?.offerId ||
-                        undefined,
+                                return;
+                            }
 
-                    subtotal,
+                            const params = {
+                                salonId:
+                                    salon.salonId,
 
-                    discountAmount,
+                                salon,
 
-                    totalPrice:
-                        discountedServicesTotal,
+                                salonName:
+                                    salon.salonName,
 
-                    offerApplied,
+                                customerUserId:
+                                    currentUser.userId,
 
-                    totalDuration,
+                                services:
+                                    selectedServices,
 
-                    /*
-                     * Fixed Clavata booking fee.
-                     *
-                     * This is NOT added to totalPrice.
-                     * It is collected separately as the
-                     * fixed booking fee.
-                     */
-                    bookingFee: 9,
+                                offer:
+                                    normalizedOffer ||
+                                    undefined,
 
-                    businessHours:
-                        salon.businessHours ??
-                        {
-                            MONDAY:
-                                (
-                                    salon as any
-                                ).MONDAY,
+                                offerId:
+                                    routeOfferId ||
+                                    normalizedOffer?.offerId ||
+                                    undefined,
 
-                            TUESDAY:
-                                (
-                                    salon as any
-                                ).TUESDAY,
+                                subtotal,
 
-                            WEDNESDAY:
-                                (
-                                    salon as any
-                                ).WEDNESDAY,
+                                discountAmount,
 
-                            THURSDAY:
-                                (
-                                    salon as any
-                                ).THURSDAY,
+                                totalPrice:
+                                    discountedServicesTotal,
 
-                            FRIDAY:
-                                (
-                                    salon as any
-                                ).FRIDAY,
+                                offerApplied,
 
-                            SATURDAY:
-                                (
-                                    salon as any
-                                ).SATURDAY,
+                                totalDuration,
 
-                            SUNDAY:
-                                (
-                                    salon as any
-                                ).SUNDAY,
-                        },
-                };
+                                /*
+                                 * Fixed Clavata booking fee.
+                                 *
+                                 * This is NOT added to totalPrice.
+                                 * It is collected separately as the
+                                 * fixed booking fee.
+                                 */
+                                bookingFee: 9,
 
-                console.log(
-                    '[SalonDetails] SENDING TO BOOKING DATETIME:',
-                    params,
-                );
+                                businessHours:
+                                    salon.businessHours ??
+                                    {
+                                        MONDAY:
+                                            (
+                                                salon as any
+                                            ).MONDAY,
 
-                navigation.navigate(
-                    'BookingDateTime',
-                    params,
-                );
-            }}
-        >
-            <Text
-                style={
-                    styles.continueText
-                }
-            >
-                Continue
-            </Text>
+                                        TUESDAY:
+                                            (
+                                                salon as any
+                                            ).TUESDAY,
 
-            <Text
-                style={
-                    styles.continueArrow
-                }
-            >
-                →
-            </Text>
-        </TouchableOpacity>
-    </View>
-)}
+                                        WEDNESDAY:
+                                            (
+                                                salon as any
+                                            ).WEDNESDAY,
+
+                                        THURSDAY:
+                                            (
+                                                salon as any
+                                            ).THURSDAY,
+
+                                        FRIDAY:
+                                            (
+                                                salon as any
+                                            ).FRIDAY,
+
+                                        SATURDAY:
+                                            (
+                                                salon as any
+                                            ).SATURDAY,
+
+                                        SUNDAY:
+                                            (
+                                                salon as any
+                                            ).SUNDAY,
+                                    },
+                            };
+
+                            console.log(
+                                '[SalonDetails] SENDING TO BOOKING DATETIME:',
+                                params,
+                            );
+
+                            navigation.navigate(
+                                'BookingDateTime',
+                                params,
+                            );
+                        }}
+                    >
+                        <Text
+                            style={
+                                styles.continueText
+                            }
+                        >
+                            Continue
+                        </Text>
+
+                        <Text
+                            style={
+                                styles.continueArrow
+                            }
+                        >
+                            →
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
@@ -4306,7 +4358,21 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#111',
     },
+    salonLogo: {
+        width: 76,
+        height: 76,
+        borderRadius: 15,
+        backgroundColor: '#E8E8E8',
+        marginBottom: 12,
+    },
 
+    salonLogoPlaceholder: {
+        width: 76,
+        height: 76,
+        borderRadius: 15,
+        backgroundColor: '#E8E8E8',
+        marginBottom: 12,
+    },
     ratingRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -5472,21 +5538,21 @@ const styles = StyleSheet.create({
         marginLeft: 7,
     },
     bookingFeeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 3,
-},
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 3,
+    },
 
-bookingFeeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#777',
-},
+    bookingFeeLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#777',
+    },
 
-bookingFeeValue: {
-    marginLeft: 4,
-    fontSize: 14,
-    fontWeight: '800',
-    color: PRIMARY,
-},
+    bookingFeeValue: {
+        marginLeft: 4,
+        fontSize: 14,
+        fontWeight: '800',
+        color: PRIMARY,
+    },
 });
